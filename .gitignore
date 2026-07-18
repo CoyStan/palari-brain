@@ -4,3 +4,4 @@ node_modules/
 *.key
 *.sqlite
 .DS_Store
+evals/results/
