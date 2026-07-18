@@ -1,0 +1,62 @@
+[
+  {
+    "question_id": "synthetic-multi-001",
+    "question_type": "multi-session",
+    "question": "Which two cities has the user mentioned living in?",
+    "answer": "Oaxaca and Lisbon",
+    "question_date": "2023/06/10 (Sat) 09:15",
+    "haystack_session_ids": ["syn_s1", "syn_s2", "syn_s3"],
+    "haystack_dates": ["2023/05/20 (Sat) 02:21", "2023/05/28 (Sun) 14:05", "2023/06/01 (Thu) 19:40"],
+    "haystack_sessions": [
+      [
+        { "role": "user", "content": "I just moved to Oaxaca for the food scene.", "has_answer": true },
+        { "role": "assistant", "content": "Oaxaca is wonderful — enjoy the tlayudas!" }
+      ],
+      [
+        { "role": "user", "content": "The weather report app you suggested works fine." },
+        { "role": "assistant", "content": "Glad the app helped." }
+      ],
+      [
+        { "role": "user", "content": "Before Oaxaca I lived in Lisbon for two years.", "has_answer": true },
+        { "role": "assistant", "content": "Lisbon to Oaxaca is quite the change." }
+      ]
+    ],
+    "answer_session_ids": ["syn_s1", "syn_s3"]
+  },
+  {
+    "question_id": "synthetic-update-002",
+    "question_type": "knowledge-update",
+    "question": "What is the user's current favorite espresso drink?",
+    "answer": "Cortado",
+    "question_date": "2023/07/02 (Sun) 08:00",
+    "haystack_session_ids": ["syn_s4", "syn_s5"],
+    "haystack_dates": ["2023/06/12 (Mon) 07:30", "2023/06/29 (Thu) 07:45"],
+    "haystack_sessions": [
+      [
+        { "role": "user", "content": "My favorite espresso drink is a flat white.", "has_answer": true },
+        { "role": "assistant", "content": "Flat white noted." }
+      ],
+      [
+        { "role": "user", "content": "Actually I have switched — my favorite is a cortado now.", "has_answer": true },
+        { "role": "assistant", "content": "Cortado it is." }
+      ]
+    ],
+    "answer_session_ids": ["syn_s4", "syn_s5"]
+  },
+  {
+    "question_id": "synthetic-absence-003_abs",
+    "question_type": "single-session-user",
+    "question": "What is the user's dog's name?",
+    "answer": "The user never mentioned having a dog.",
+    "question_date": "2023/07/05 (Wed) 21:10",
+    "haystack_session_ids": ["syn_s6"],
+    "haystack_dates": ["2023/07/01 (Sat) 10:00"],
+    "haystack_sessions": [
+      [
+        { "role": "user", "content": "My cat Nube knocked over the router again." },
+        { "role": "assistant", "content": "Nube sounds like a handful." }
+      ]
+    ],
+    "answer_session_ids": []
+  }
+]

@@ -2,7 +2,7 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: U6
+Next: U7
 
 ## Unit queue
 
@@ -96,11 +96,23 @@ Next: U6
   (b) extraction pass still writes via baseline store door — U7 wraps
   it with a gate-shim so ingest emits WriteProposals (noted in
   src/memory-extraction.mjs header).
-- [ ] U6 — LongMemEval intake. License check FIRST (record verdict in
-  docs/DECISIONS.md; FOUNDER GATE if unclear). Then loader for their
-  session-history format into kernel sessions; data/ gitignored.
-  Completion: loader parses N sample histories in a unit test with
-  synthetic mini-fixtures (not the real dataset) committed.
+- [x] U6 — LongMemEval intake. DONE 2026-07-18 (Fable 5). License
+  checked FIRST: MIT verified at both the canonical repo LICENSE
+  (© 2024 Di Wu) and the HF dataset card (longmemeval-cleaned) —
+  verdict PERMITTED, recorded in docs/DECISIONS.md; no download
+  performed (deferred until U8 prep needs it). Format pinned from the
+  repo README + generator source: timestamps "%Y/%m/%d (%a) %H:%M"
+  (no timezone — treated as UTC, recorded assumption; ordering exact).
+  Deliverables: src/longmemeval.mjs (loader -> kernel session shape;
+  session timestamps become eventAt so U7 ingest satisfies GAP-4
+  evidence-time; validates aligned haystack arrays, roles, the 6
+  question types; _abs abstention detection),
+  tests/fixtures/longmemeval-mini.json (3 SYNTHETIC instances:
+  multi-session, knowledge-update, abstention — no real data in git),
+  tests/longmemeval.contract.test.mjs (5 tests). Completion PASS:
+  36/36 green; data/ confirmed gitignored. FOUNDER note: a
+  LongMemEval-V2 exists now — classic remains the target per charter;
+  switching/adding V2 is the founder's call (noted in DECISIONS).
 - [ ] U7 — Adapter. Question-answering path: history -> kernel
   ingest (through the gate) -> recall -> briefing -> pluggable
   provider call (env key) -> answer. Deterministic dry mode with a
@@ -134,6 +146,9 @@ topicForget composed; node:test + Node>=22.5 decisions recorded.
 2026-07-18 — U4 — b122054 — Gate landed: propose()
 sole write door, 22/22 green, GAP-1..4 closed at kernel layer with
 baseline verbatim; direct-write-fails law is now a passing test.
-2026-07-18 — U5 — see `git log` (BRAIN u05) — Recall + briefing v1:
+2026-07-18 — U5 — c770708 — Recall + briefing v1:
 31/31 green; extraction+briefing extracted verbatim; v1 lines carry
 event/observed time, attribution, buckets, origin; v0 kept for U9.
+2026-07-18 — U6 — see `git log` (BRAIN u06) — LongMemEval intake:
+MIT verdict recorded pre-download; loader + synthetic fixtures,
+36/36 green; timestamps->eventAt for GAP-4; V2 flagged to founder.
