@@ -54,3 +54,12 @@ dates. Agents record; the founder decides.
   now also retries only transport failures, aborts rather than treating
   exhausted provider errors as empty memory, and checkpoints completed
   questions so model outputs are never re-rolled after interruption.
+- 2026-07-18 (FOUNDER — Quetzali, in session) **U8 model amendment:
+  use Gemini 3.1 Flash-Lite; spend cap $1.25.** After header auth was
+  corrected, a non-scoring probe proved the key valid but returned
+  `404 NOT_FOUND`: Gemini 2.5 Flash-Lite is no longer available to new
+  API users. Google documents `gemini-3.1-flash-lite` as the stable
+  successor. The recalculated paid-tier estimate is ~$1.06 for the
+  sealed slice. This amendment occurred before any benchmark score or
+  result file; dataset, slice, prompt hash, and outcome predictions stay
+  unchanged. Publish gate remains CLOSED.

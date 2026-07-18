@@ -84,8 +84,9 @@ export function estimateSliceTokens(instances = []) {
 // tokens, entered 2026-07-18 from public pricing pages — re-verify at
 // spend time; prices drift).
 export const candidateModels = Object.freeze([
-  { inPerM: 0.10, model: 'gemini-2.5-flash-lite', notes: 'cheapest; extraction request format is Gemini-native', outPerM: 0.40 },
-  { inPerM: 0.30, model: 'gemini-2.5-flash', notes: 'baseline v05 house format', outPerM: 2.50 },
+  { inPerM: 0.25, model: 'gemini-3.1-flash-lite', notes: 'current stable Flash-Lite; extraction request format is Gemini-native', outPerM: 1.50 },
+  { inPerM: 0.10, model: 'gemini-2.5-flash-lite', notes: 'legacy price; unavailable to new API users', outPerM: 0.40 },
+  { inPerM: 0.50, model: 'gemini-3-flash-preview', notes: 'stronger preview; Gemini-native', outPerM: 3.00 },
   { inPerM: 1.00, model: 'claude-haiku-4-5', notes: 'needs request translation from Gemini format', outPerM: 5.00 },
 ])
 

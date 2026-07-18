@@ -140,7 +140,7 @@ if (!predictions.includes('PREDICTIONS FINAL')) {
   console.error('FOUNDER GATE: evals/predictions.md must contain "PREDICTIONS FINAL" (with the slice ids pinned) BEFORE any live scoring run. Pre-registration is the law.')
   process.exit(3)
 }
-const model = args.includes('--model') ? args[args.indexOf('--model') + 1] : 'gemini-2.5-flash-lite'
+const model = args.includes('--model') ? args[args.indexOf('--model') + 1] : 'gemini-3.1-flash-lite'
 
 const retryableGeminiStatuses = new Set([429, 500, 502, 503, 504])
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))

@@ -21,7 +21,10 @@ evidence only (U7 tests; no live calls have occurred).
   + 1 knowledge-update abstention, 1 single-session-preference,
   1 temporal-reasoning, 2 single-session-assistant; 480 sessions,
   2402 user turns, ~4.93M history chars)
-- Model: gemini-2.5-flash-lite (founder-approved; est. ~$0.35)
+- Model: gemini-3.1-flash-lite (founder-approved substitution before
+  scoring; 2.5 Flash-Lite returned `404 NOT_FOUND` for the new API
+  user; est. ~$1.06, cap $1.25). Category and cross-cutting predictions
+  remain unchanged.
 - Prompt-config hash: `3147ad22edc76d12` (metadata corrected before
   any live call to cover the full extraction request plus briefing v1
   included/empty and answer framing; outcome predictions unchanged)

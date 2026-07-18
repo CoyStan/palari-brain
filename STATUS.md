@@ -3,8 +3,9 @@
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
 Next: U8 LIVE EXECUTION — FOUNDER GO RECEIVED 2026-07-18.
-Predictions are FINAL, the approved Gemini 2.5 Flash-Lite key is
-available at runtime, and the prompt-config provenance hash is sealed.
+Predictions are FINAL; founder-approved execution model is now Gemini
+3.1 Flash-Lite (2.5 is unavailable to new API users), the key is
+available at runtime, and prompt-config provenance remains sealed.
 Publish gate remains CLOSED; results stay under gitignored
 evals/results/.
 
@@ -140,8 +141,11 @@ evals/results/.
   to measure, not to silently patch.
 - [~] U8 — FOUNDER GATE: first live slice (10 questions). GO RECEIVED
   2026-07-18 (Quetzali: "use MIT, i agree with the rest"). Dataset,
-  Gemini 2.5 Flash-Lite, and estimated <$1 spend approved; publish gate
-  remains closed. Predictions are FINAL and unchanged from the pre-GO
+  Gemini 2.5 Flash-Lite, and estimated <$1 spend were initially approved.
+  The new API user cannot access 2.5 (`404 NOT_FOUND`); before scoring,
+  Quetzali approved Google's stable successor Gemini 3.1 Flash-Lite and
+  a $1.25 cap (estimated ~$1.06). Publish gate remains closed.
+  Predictions are FINAL and unchanged from the pre-GO
   draft; deterministic slice + dataset hash pinned. Prompt-config hash
   corrected BEFORE any live call to cover the full extraction request,
   briefing v1 included/empty surfaces, and answer framing. First live
@@ -149,7 +153,9 @@ evals/results/.
   key was sent through the runner's legacy `?key=` transport and rejected;
   no result file was produced. Transport now uses `x-goog-api-key`, retries
   transport failures only, aborts on exhausted extraction transport, and
-  checkpoints completed questions to prevent re-rolls (suite 47/47).
+  checkpoints completed questions to prevent re-rolls. With transport
+  corrected, the 2.5 endpoint returned model-unavailable before scoring;
+  3.1 metadata is now amended and sealed (suite 47/47).
   Runtime key is project-local, gitignored, mode 0600; never logged or
   committed. Execution is next; results remain in gitignored
   evals/results/.
@@ -200,7 +206,11 @@ dataset hash, model, prompt metadata, and ten slice IDs sealed.
 2026-07-18 — U8 — 88c878b — Prompt provenance completed before
 spend: full extraction request + briefing included/empty + answer
 framing hashed; metadata repinned, outcome predictions unchanged.
-2026-07-18 — U8 — see `git log` — First live invocation failed auth
-before scoring/no result file; corrected authorization-key transport to
+2026-07-18 — U8 — 9e68d57 — First live invocation failed auth before
+scoring/no result file; corrected authorization-key transport to
 header-only, added transport-only retries, loud extraction failure, and
 per-question checkpoints; 47/47 green.
+2026-07-18 — U8 — see `git log` — 2.5 Flash-Lite returned unavailable
+for the new API user; founder amended model to stable successor 3.1
+Flash-Lite and cap to $1.25 before scoring; estimate ~$1.06, predictions
+unchanged, 47/47 green.

@@ -1,9 +1,10 @@
 # U8 prep — first live slice (FOUNDER GATE)
 
-Prepared 2026-07-18 by Fable 5. Everything below is built and tested
-spend-free; **nothing live has run**. The gate is mechanical: the
-runner refuses without `PALARI_CONFIRM_SPEND=1`, a provider key, and
-a finalized predictions file.
+Prepared 2026-07-18 by Fable 5. At preparation time everything below
+was built and tested spend-free; execution amendments are recorded
+before the original decision sheet. The gate is mechanical: the runner
+refuses without `PALARI_CONFIRM_SPEND=1`, a provider key, and a
+finalized predictions file.
 
 ## What is prepared
 
@@ -20,11 +21,25 @@ a finalized predictions file.
     (gitignored — they contain dataset-derived text) with provenance:
     dataset sha256, model, prompt-config hash, date.
 - `src/slice.mjs` — selection/estimation/guard logic, contract-tested
-  (suite 44/44).
-- `evals/predictions.md` — DRAFT pre-registration, categories ordered
-  failing-first, written before any live call.
+  (current suite 47/47).
+- `evals/predictions.md` — FINAL pre-registration, categories ordered
+  failing-first, written before any scoring call.
 
-## Founder decisions needed (in order)
+## Pre-score execution amendments
+
+- Founder GO was recorded for the original 2.5 Flash-Lite plan.
+- The first invocation used legacy query-parameter authentication and
+  failed before scoring; no result file was produced. Current transport
+  uses `x-goog-api-key`, retries transport failures only, and checkpoints
+  completed questions to prevent re-rolls.
+- With authentication corrected, Gemini returned `404 NOT_FOUND` because
+  2.5 Flash-Lite is unavailable to this new API user. On 2026-07-18,
+  before any benchmark score, Quetzali selected the documented stable
+  successor `gemini-3.1-flash-lite` and authorized a $1.25 cap. Current
+  paid-tier estimate for the sealed slice is ~$1.06. Dataset, slice,
+  prompt hash, and outcome predictions are unchanged.
+
+## Original founder decision sheet (historical)
 
 1. **Dataset variant.** Recommend `longmemeval_s_cleaned.json` (the
    standard setting; the honest test). The oracle file is cheaper but
@@ -60,7 +75,7 @@ node scripts/run-live-slice.mjs --plan     # spend-free, pins everything
 node scripts/run-live-slice.mjs --dry      # spend-free plumbing check
 # finalize evals/predictions.md (slice ids + "PREDICTIONS FINAL")
 PALARI_CONFIRM_SPEND=1 GEMINI_API_KEY=... \
-  node scripts/run-live-slice.mjs --live --model gemini-2.5-flash-lite
+  node scripts/run-live-slice.mjs --live --model gemini-3.1-flash-lite
 ```
 
 ## Known limitations, stated up front
