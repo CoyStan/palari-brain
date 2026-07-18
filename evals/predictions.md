@@ -1,21 +1,30 @@
 # Pre-registered predictions — U8 first live slice
 
-Status: **DRAFT** — becomes FINAL only when (a) the slice ids are
-pinned from `scripts/run-live-slice.mjs --plan` output and (b) the
-founder approves spend. The live runner refuses to execute until this
-file contains the literal line "PREDICTIONS FINAL". No re-rolls: a
-bad number is a finding, not a retry. Results are graded against this
-file, failing categories first.
+Status: **PREDICTIONS FINAL** — pinned 2026-07-18 after founder GO
+(Quetzali, in session: "use MIT, i agree with the rest"; spend
+authorization recorded in docs/DECISIONS.md). The category
+predictions below are verbatim from the pre-GO draft — written before
+any live call, unchanged at finalization. No re-rolls: a bad number
+is a finding, not a retry. Results are graded against this file,
+failing categories first.
 
 Drafted 2026-07-18 by Fable 5, BEFORE any scoring run, from dry-mode
 evidence only (U7 tests; no live calls have occurred).
 
 ## Slice
 
-- Dataset: longmemeval_s_cleaned.json, sha256: `<pin from --plan>`
-- Slice ids (10): `<pin from --plan>`
-- Model: `<founder picks — see docs/U8-PREP.md>`
-- Prompt-config hash: `<pin from --plan>`
+- Dataset: longmemeval_s_cleaned.json, sha256:
+  `d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`
+- Slice ids (10): 001be529, 00ca467f, 0100672e, 01493427, 031748ae,
+  031748ae_abs, 06878be2, 08f4fc43, 0e5e2d1a, 1568498a
+  (types: 1 single-session-user, 2 multi-session, 2 knowledge-update
+  + 1 knowledge-update abstention, 1 single-session-preference,
+  1 temporal-reasoning, 2 single-session-assistant; 480 sessions,
+  2402 user turns, ~4.93M history chars)
+- Model: gemini-2.5-flash-lite (founder-approved; est. ~$0.35)
+- Prompt-config hash: `7fea1393c11b1f47`
+- Dry-run plumbing check passed 2026-07-18 (zero spend): ingest
+  through the gate 2-11 mock memories/question, no failures.
 
 ## Category predictions (accuracy on slice questions of that type)
 
@@ -64,6 +73,3 @@ abstention ids). Report format: failing categories first, then
 aggregate, then the honesty metrics. The official LongMemEval judge
 protocol is adopted wholesale only at U10; the slice uses manual
 grading recorded per question.
-
-<!-- When finalizing: replace DRAFT above, pin the slice, and add the
-     line: PREDICTIONS FINAL -->
