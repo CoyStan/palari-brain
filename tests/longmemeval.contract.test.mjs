@@ -39,7 +39,7 @@ test('loader: parses the synthetic mini-fixtures into kernel session shape', asy
   assert.equal(s1.eventAt, '2023-05-20T02:21:00.000Z', 'session timestamp becomes eventAt (evidence-time discipline)')
   assert.equal(s1.turns.length, 2)
   assert.deepEqual(s1.turns[0], {
-    content: 'I just moved to Oaxaca for the food scene.',
+    content: 'I live in Oaxaca now — I moved here for the food scene.',
     hasAnswer: true,
     role: 'user',
   })

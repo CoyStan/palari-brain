@@ -2,7 +2,7 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: U7
+Next: U8 (FOUNDER GATE — prepare only, never execute)
 
 ## Unit queue
 
@@ -113,10 +113,27 @@ Next: U7
   36/36 green; data/ confirmed gitignored. FOUNDER note: a
   LongMemEval-V2 exists now — classic remains the target per charter;
   switching/adding V2 is the founder's call (noted in DECISIONS).
-- [ ] U7 — Adapter. Question-answering path: history -> kernel
-  ingest (through the gate) -> recall -> briefing -> pluggable
-  provider call (env key) -> answer. Deterministic dry mode with a
-  stub provider for tests. Completion: end-to-end stub test green.
+- [x] U7 — Adapter. DONE 2026-07-18 (Fable 5). Deliverables:
+  src/adapter.mjs (gate-shim: baseline runMemoryExtractionPass writes
+  land as WriteProposals via gate.propose with per-session eventAt +
+  extractorId — one-gate law holds in the adapter path with zero
+  baseline edits; ingestChatTurn/ingestLongMemEvalInstance;
+  answerQuestion: recallAndBrief -> prompt -> injected provider;
+  stubProvider answers only from the briefing and abstains plainly;
+  NO api-key code exists — live provider runner is U8 FOUNDER GATE),
+  tests/adapter.contract.test.mjs (4 e2e dry tests: multi-session
+  ingest+answer, knowledge-update supersession through the gate w/
+  C15 recall behavior, abstention honesty, injection-boundary drop —
+  the CASE-memory-source-injection-minting class shown impossible in
+  a test). Completion PASS: end-to-end stub tests green, suite 40/40.
+  FINDING for U8 predictions (pre-register this): the baseline write
+  boundary requires assertive first-person user evidence
+  (assertiveUserSentences grammar) — synthetic fixtures had to be
+  rephrased to it. On real LongMemEval histories expect conservative
+  ingest coverage; predict weakest: single-session-assistant (facts
+  asserted by the assistant get no direct-user-evidence and are not
+  external-source), and casual phrasings dropped. This is a finding
+  to measure, not to silently patch.
 - [ ] U8 — FOUNDER GATE: first live slice (10 questions). Prepare:
   runner, cost estimate, prediction template pre-filled. Stop.
 - [ ] U9 — Briefing-format iterations from slice results (paired
@@ -149,6 +166,9 @@ baseline verbatim; direct-write-fails law is now a passing test.
 2026-07-18 — U5 — c770708 — Recall + briefing v1:
 31/31 green; extraction+briefing extracted verbatim; v1 lines carry
 event/observed time, attribution, buckets, origin; v0 kept for U9.
-2026-07-18 — U6 — see `git log` (BRAIN u06) — LongMemEval intake:
+2026-07-18 — U6 — 7c00320 — LongMemEval intake:
 MIT verdict recorded pre-download; loader + synthetic fixtures,
 36/36 green; timestamps->eventAt for GAP-4; V2 flagged to founder.
+2026-07-18 — U7 — see `git log` (BRAIN u07) — Adapter e2e dry mode
+green (40/40): gated ingest via shim, supersession+abstention+
+injection-drop proven; assertive-evidence finding pre-seeded for U8.

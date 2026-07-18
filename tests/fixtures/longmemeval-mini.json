@@ -9,7 +9,7 @@
     "haystack_dates": ["2023/05/20 (Sat) 02:21", "2023/05/28 (Sun) 14:05", "2023/06/01 (Thu) 19:40"],
     "haystack_sessions": [
       [
-        { "role": "user", "content": "I just moved to Oaxaca for the food scene.", "has_answer": true },
+        { "role": "user", "content": "I live in Oaxaca now — I moved here for the food scene.", "has_answer": true },
         { "role": "assistant", "content": "Oaxaca is wonderful — enjoy the tlayudas!" }
       ],
       [
@@ -17,7 +17,7 @@
         { "role": "assistant", "content": "Glad the app helped." }
       ],
       [
-        { "role": "user", "content": "Before Oaxaca I lived in Lisbon for two years.", "has_answer": true },
+        { "role": "user", "content": "Lisbon is my former home; I spent two years there before Oaxaca.", "has_answer": true },
         { "role": "assistant", "content": "Lisbon to Oaxaca is quite the change." }
       ]
     ],
@@ -33,11 +33,11 @@
     "haystack_dates": ["2023/06/12 (Mon) 07:30", "2023/06/29 (Thu) 07:45"],
     "haystack_sessions": [
       [
-        { "role": "user", "content": "My favorite espresso drink is a flat white.", "has_answer": true },
+        { "role": "user", "content": "I prefer a flat white as my espresso drink.", "has_answer": true },
         { "role": "assistant", "content": "Flat white noted." }
       ],
       [
-        { "role": "user", "content": "Actually I have switched — my favorite is a cortado now.", "has_answer": true },
+        { "role": "user", "content": "Actually I prefer a cortado instead of a flat white as my espresso drink now.", "has_answer": true },
         { "role": "assistant", "content": "Cortado it is." }
       ]
     ],
