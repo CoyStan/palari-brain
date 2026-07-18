@@ -2,7 +2,7 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: U4
+Next: U5
 
 ## Unit queue
 
@@ -56,9 +56,26 @@ Next: U4
   >=22.5 (node:sqlite experimental accepted, self-probed). Note for
   U4: store still exposes addMemory/supersedeMemory directly — the
   gate unification (propose as sole door) is U4's job, per plan.
-- [ ] U4 — Extract admission gate path (typed write proposal,
-  evidence thresholds, provenance fields required). Completion:
-  direct-write attempt fails a test; gated write passes.
+- [x] U4 — Admission gate path. DONE 2026-07-18 (Fable 5).
+  Deliverables: src/gate.mjs (createMemoryGate/createGatedStore/
+  createAdmissionPolicy/applyKernelMigrations),
+  tests/gate.contract.test.mjs (14 tests). Completion PASS: direct
+  write fails (gated surface exposes no addMemory/supersedeMemory/
+  insertMemory/db, frozen), gated write passes; suite 22/22 green.
+  All four U2 gaps closed at kernel layer, baseline file untouched:
+  GAP-1 migration CDX-M1 (source_kind + extractor columns, recorded
+  in memory_migrations; keyword marking kept), GAP-2 AdmissionPolicy
+  with enforced order demote<promote<permanent<ratify (default floors
+  0/.25/.6/.75 are KERNEL-CHOSEN values, recorded in gate.mjs — not
+  baseline behavior), GAP-3 type-safe supersession (partition check),
+  GAP-4 eventAt required for background_extraction/session_summary,
+  valid_from stamped from eventAt. Kinds/ops: promote|permanent
+  x add|supersede; demote x end_validity|delete_transient (transient
+  only); ratify x share (explicit_user_action only). Ownership ops
+  (deleteMemory/topicForget) stay user-side on the gated surface.
+  Note for U5/U7: extraction pass still calls store.addMemory
+  directly (baseline); U5/U7 rewire runMemoryExtractionPass writes
+  through gate.propose per KERNEL-API §5.
 - [ ] U5 — Extract recall + briefing (FTS query path, scoped filters,
   briefing format v1 with timestamps + session attribution).
   Completion: recall tests green against fixture memories.
@@ -94,6 +111,9 @@ excluded, node:sqlite the only non-builtin dep, severance small.
 2026-07-18 — U2 — fe25a15 — Kernel API designed:
 gate.propose sole write door; C1–C19 trace all 16 contract bullets;
 4 gaps recorded and assigned (U4/U7); upstream-fix note for founder.
-2026-07-18 — U3 — see `git log` (BRAIN u03) — Store extracted
+2026-07-18 — U3 — 56797c7 — Store extracted
 standalone: 8/8 contract tests green, zero deps, no v05 imports;
 topicForget composed; node:test + Node>=22.5 decisions recorded.
+2026-07-18 — U4 — see `git log` (BRAIN u04) — Gate landed: propose()
+sole write door, 22/22 green, GAP-1..4 closed at kernel layer with
+baseline verbatim; direct-write-fails law is now a passing test.
