@@ -3,7 +3,18 @@
 Append-only. Founder decisions and license verdicts land here with
 dates. Agents record; the founder decides.
 
-- (open) Repo license — recommendation MIT; awaiting founder.
+- 2026-07-18 (FOUNDER — Quetzali, in session) Repo license: **MIT**,
+  Copyright (c) 2026 CoyStan (matching palari-company-os). LICENSE
+  file added.
+- 2026-07-18 (FOUNDER — Quetzali, in session: "use MIT, i agree with
+  the rest") **U8 live slice GO approved**: dataset
+  longmemeval_s_cleaned.json, model gemini-2.5-flash-lite, spend cap
+  per estimate (<$1). Classic LongMemEval remains the target (V2
+  noted, not adopted). This entry is the recorded spend
+  authorization; PALARI_CONFIRM_SPEND=1 for the run executes it.
+  Publish gate (U12) remains CLOSED: the repo is PUBLIC, so no
+  scores/results enter git — raw outputs and the graded report stay
+  in gitignored evals/results/ until the founder opens U12.
 - 2026-07-18 (U6, Fable 5, recorded) **LongMemEval license verdict:
   MIT — our use is PERMITTED.** Verified at two sources before any
   download, per charter law: (1) the canonical repo
