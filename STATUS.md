@@ -2,7 +2,7 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: U5
+Next: U6
 
 ## Unit queue
 
@@ -76,9 +76,26 @@ Next: U5
   Note for U5/U7: extraction pass still calls store.addMemory
   directly (baseline); U5/U7 rewire runMemoryExtractionPass writes
   through gate.propose per KERNEL-API §5.
-- [ ] U5 — Extract recall + briefing (FTS query path, scoped filters,
-  briefing format v1 with timestamps + session attribution).
-  Completion: recall tests green against fixture memories.
+- [x] U5 — Recall + briefing. DONE 2026-07-18 (Fable 5).
+  Deliverables: src/memory-extraction.mjs (950 lines verbatim, blob
+  d8367ceb900c, one severed import -> src/routing-budgets.mjs vendored
+  shim pinning memory_extraction budgets 8000/0 from registry@baseline),
+  src/memory-briefing.mjs (verbatim, blob 69578eb05beb = briefing v0,
+  kept as U9 paired-run comparator), src/recall.mjs (NEW:
+  buildBriefingV1 per contract C12 — event-time + "observed" when
+  differing, session/source attribution, confidence buckets
+  high>=.75/medium>=.45/low kernel-chosen and recorded, external
+  origin surfaced per C7; recallAndBrief orchestration rewritten from
+  assistant-brain per SOURCE-MAP finding 3; tier logic replicated from
+  v0 so U9 pairs vary line format only; explicit absence text on empty
+  recall per C14/C16), tests/recall.contract.test.mjs (9 tests, fixtures
+  seeded through the gate). Completion PASS: 31/31 green (9+14+8), no
+  v05 imports. Recorded deferrals: (a) associative-link minting has no
+  gate op — only supersession creates links kernel-side; test-only
+  links use the raw store; revisit if an eval needs link writes;
+  (b) extraction pass still writes via baseline store door — U7 wraps
+  it with a gate-shim so ingest emits WriteProposals (noted in
+  src/memory-extraction.mjs header).
 - [ ] U6 — LongMemEval intake. License check FIRST (record verdict in
   docs/DECISIONS.md; FOUNDER GATE if unclear). Then loader for their
   session-history format into kernel sessions; data/ gitignored.
@@ -114,6 +131,9 @@ gate.propose sole write door; C1–C19 trace all 16 contract bullets;
 2026-07-18 — U3 — 56797c7 — Store extracted
 standalone: 8/8 contract tests green, zero deps, no v05 imports;
 topicForget composed; node:test + Node>=22.5 decisions recorded.
-2026-07-18 — U4 — see `git log` (BRAIN u04) — Gate landed: propose()
+2026-07-18 — U4 — b122054 — Gate landed: propose()
 sole write door, 22/22 green, GAP-1..4 closed at kernel layer with
 baseline verbatim; direct-write-fails law is now a passing test.
+2026-07-18 — U5 — see `git log` (BRAIN u05) — Recall + briefing v1:
+31/31 green; extraction+briefing extracted verbatim; v1 lines carry
+event/observed time, attribution, buckets, origin; v0 kept for U9.
