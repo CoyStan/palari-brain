@@ -51,6 +51,13 @@ docs/       kernel contract, references, decisions
 data/       (gitignored) benchmark datasets — never committed
 ```
 
+## The v2.0 architecture
+
+The north-star design — memory engines as swappable, certified
+commodities under a governed journal — lives in
+[docs/PALARI-V2-ARCHITECTURE.md](docs/PALARI-V2-ARCHITECTURE.md).
+It guides all future units here.
+
 ## Ground rules
 
 Results are reported failing-categories-first. Predictions are written
