@@ -25,6 +25,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { promptConfigHash } from '../src/eval-prompt-config.mjs'
 import { loadLongMemEvalInstances } from '../src/longmemeval.mjs'
 import {
   assertLiveRunAllowed,
@@ -58,13 +59,6 @@ async function loadDataset() {
   }
   const sha256 = createHash('sha256').update(raw).digest('hex')
   return { instances: loadLongMemEvalInstances(raw), sha256 }
-}
-
-function promptConfigHash() {
-  // hash the parts of the prompt surface that U9 iterates: extraction
-  // system prompt + briefing framing (kept stable within a run)
-  const extractionPrompt = JSON.stringify(buildMemoryExtractionRequest({ turn: {} }).systemInstruction)
-  return createHash('sha256').update(extractionPrompt).digest('hex').slice(0, 16)
 }
 
 async function openWorkspace(workspaceId) {

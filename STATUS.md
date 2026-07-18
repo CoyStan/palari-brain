@@ -2,15 +2,11 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: U8 LIVE EXECUTION — AWAITING FOUNDER (prep is done; see
-docs/U8-PREP.md). The loop is PAUSED at the founder gate.
-
-QUEUE PROPOSAL (per charter: propose, don't self-execute): U11
-(injection-eval design) has no dependency on U8/U9/U10 results — it
-draws on the v05 incident case + the U7 injection-boundary work
-already in the repo. If the founder prefers momentum while deciding
-U8 spend, reordering U11 before U9 is safe and keeps sessions
-productive. Founder's call; the queue stands as written until then.
+Next: U8 LIVE EXECUTION — FOUNDER GO RECEIVED 2026-07-18.
+Predictions are FINAL, the approved Gemini 2.5 Flash-Lite key is
+available at runtime, and the prompt-config provenance hash is sealed.
+Publish gate remains CLOSED; results stay under gitignored
+evals/results/.
 
 ## Unit queue
 
@@ -142,19 +138,16 @@ productive. Founder's call; the queue stands as written until then.
   asserted by the assistant get no direct-user-evidence and are not
   external-source), and casual phrasings dropped. This is a finding
   to measure, not to silently patch.
-- [~] U8 — FOUNDER GATE: first live slice (10 questions). PREPARED
-  2026-07-18 (Fable 5); STOPPED before execution per charter.
-  Prepared: scripts/run-live-slice.mjs (plan/dry/live; live
-  hard-refuses without PALARI_CONFIRM_SPEND=1 + provider key + a
-  "PREDICTIONS FINAL" marker in evals/predictions.md —
-  pre-registration enforced in code), src/slice.mjs (deterministic
-  stratified slice selection + token/cost estimation + spend guard;
-  4 contract tests, suite 44/44), evals/predictions.md (DRAFT
-  pre-registration, categories ordered failing-first, written before
-  any live call), docs/U8-PREP.md (decision sheet: dataset variant,
-  model, spend cap <$1..$4.50, GO). evals/results/ gitignored
-  (dataset-derived text). NO live call has occurred; no key exists in
-  the repo. Founder decisions listed in docs/U8-PREP.md.
+- [~] U8 — FOUNDER GATE: first live slice (10 questions). GO RECEIVED
+  2026-07-18 (Quetzali: "use MIT, i agree with the rest"). Dataset,
+  Gemini 2.5 Flash-Lite, and estimated <$1 spend approved; publish gate
+  remains closed. Predictions are FINAL and unchanged from the pre-GO
+  draft; deterministic slice + dataset hash pinned. Prompt-config hash
+  corrected BEFORE any live call to cover the full extraction request,
+  briefing v1 included/empty surfaces, and answer framing (contract test
+  added; suite 45/45). Runtime key is project-local, gitignored, mode
+  0600; never logged or committed. Execution is next; results remain in
+  gitignored evals/results/.
 - [ ] U9 — Briefing-format iterations from slice results (paired
   slices, one variable per run; each run FOUNDER GATE on spend).
 - [ ] U10 — FOUNDER GATE: full private LongMemEval run + report,
@@ -191,6 +184,14 @@ MIT verdict recorded pre-download; loader + synthetic fixtures,
 2026-07-18 — U7 — 7bd16ae — Adapter e2e dry mode
 green (40/40): gated ingest via shim, supersession+abstention+
 injection-drop proven; assertive-evidence finding pre-seeded for U8.
-2026-07-18 — U8 — see `git log` (BRAIN u08-prep) — Live slice
-PREPARED and STOPPED: runner w/ mechanical founder gate, predictions
-drafted failing-first, cost sheet <$1..$4.50; awaiting founder GO.
+2026-07-18 — U8 — 4c8bb67 — Live slice PREPARED and STOPPED:
+runner w/ mechanical founder gate, predictions drafted failing-first,
+cost sheet <$1..$4.50; awaiting founder GO.
+2026-07-18 — U8 — c84683a — Founder GO recorded: MIT license,
+classic S-cleaned slice, Gemini 2.5 Flash-Lite, estimated <$1 spend;
+publish gate remains closed.
+2026-07-18 — U8 — 0b3801a — Predictions FINAL before any live call;
+dataset hash, model, prompt metadata, and ten slice IDs sealed.
+2026-07-18 — U8 — see `git log` — Prompt provenance completed before
+spend: full extraction request + briefing included/empty + answer
+framing hashed; metadata repinned, outcome predictions unchanged.

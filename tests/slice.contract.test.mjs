@@ -7,6 +7,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
+import { buildPromptConfigManifest, promptConfigHash } from '../src/eval-prompt-config.mjs'
 import { loadLongMemEvalInstances } from '../src/longmemeval.mjs'
 import {
   assertLiveRunAllowed,
@@ -45,6 +46,19 @@ test('estimateSliceTokens: counts sessions, turns, and chars into token estimate
   assert.ok(est.historyChars > 0)
   assert.ok(est.estIngestInputTokens > 0, 'extraction input estimated')
   assert.ok(est.estAnswerInputTokens > 0, 'answer input estimated')
+})
+
+test('promptConfigHash: covers extraction and included/empty briefing prompt surfaces', () => {
+  const manifest = buildPromptConfigManifest()
+  assert.match(manifest.extractionRequest.systemInstruction.parts[0].text, /Extract durable Palari memory candidates/)
+  assert.match(manifest.answerPrompts.included, /Palari recall briefing \(v1\)/)
+  assert.match(manifest.answerPrompts.included, /Question date:/)
+  assert.match(manifest.answerPrompts.empty, /No stored memories match this question/)
+  assert.match(promptConfigHash(manifest), /^[a-f0-9]{16}$/)
+
+  const changed = structuredClone(manifest)
+  changed.answerPrompts.included += '\nchanged framing'
+  assert.notEqual(promptConfigHash(changed), promptConfigHash(manifest))
 })
 
 test('assertLiveRunAllowed: refuses without explicit founder confirmation and key', () => {

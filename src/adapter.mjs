@@ -140,6 +140,15 @@ export async function stubProvider({ briefing } = {}) {
   return { text: `Based on recalled evidence: ${briefing.included.map((entry) => entry.content).join(' | ')}` }
 }
 
+export function buildAnswerPrompt({ briefingText = '', question = '', questionDate } = {}) {
+  return [
+    briefingText,
+    '',
+    questionDate ? `Question date: ${questionDate}` : '',
+    `Question: ${question}`,
+  ].filter(Boolean).join('\n')
+}
+
 // Question -> recall -> briefing -> provider -> answer, measured.
 export async function answerQuestion(gated, {
   contextBudget = 12,
@@ -152,12 +161,7 @@ export async function answerQuestion(gated, {
 } = {}) {
   const now = questionDate ? new Date(questionDate) : new Date()
   const briefing = recallAndBrief(gated, question, { palariId, userId }, { contextBudget, maxChars, now })
-  const prompt = [
-    briefing.text,
-    '',
-    questionDate ? `Question date: ${questionDate}` : '',
-    `Question: ${question}`,
-  ].filter(Boolean).join('\n')
+  const prompt = buildAnswerPrompt({ briefingText: briefing.text, question, questionDate })
   const response = await provider({ briefing, prompt, question, questionDate })
   return {
     abstained: briefing.status !== 'included',

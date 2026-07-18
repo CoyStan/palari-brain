@@ -22,7 +22,9 @@ evidence only (U7 tests; no live calls have occurred).
   1 temporal-reasoning, 2 single-session-assistant; 480 sessions,
   2402 user turns, ~4.93M history chars)
 - Model: gemini-2.5-flash-lite (founder-approved; est. ~$0.35)
-- Prompt-config hash: `7fea1393c11b1f47`
+- Prompt-config hash: `3147ad22edc76d12` (metadata corrected before
+  any live call to cover the full extraction request plus briefing v1
+  included/empty and answer framing; outcome predictions unchanged)
 - Dry-run plumbing check passed 2026-07-18 (zero spend): ingest
   through the gate 2-11 mock memories/question, no failures.
 
