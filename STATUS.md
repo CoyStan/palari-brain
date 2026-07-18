@@ -144,10 +144,15 @@ evals/results/.
   remains closed. Predictions are FINAL and unchanged from the pre-GO
   draft; deterministic slice + dataset hash pinned. Prompt-config hash
   corrected BEFORE any live call to cover the full extraction request,
-  briefing v1 included/empty surfaces, and answer framing (contract test
-  added; suite 45/45). Runtime key is project-local, gitignored, mode
-  0600; never logged or committed. Execution is next; results remain in
-  gitignored evals/results/.
+  briefing v1 included/empty surfaces, and answer framing. First live
+  invocation failed authentication before scoring: the new authorization
+  key was sent through the runner's legacy `?key=` transport and rejected;
+  no result file was produced. Transport now uses `x-goog-api-key`, retries
+  transport failures only, aborts on exhausted extraction transport, and
+  checkpoints completed questions to prevent re-rolls (suite 47/47).
+  Runtime key is project-local, gitignored, mode 0600; never logged or
+  committed. Execution is next; results remain in gitignored
+  evals/results/.
 - [ ] U9 — Briefing-format iterations from slice results (paired
   slices, one variable per run; each run FOUNDER GATE on spend).
 - [ ] U10 — FOUNDER GATE: full private LongMemEval run + report,
@@ -192,6 +197,10 @@ classic S-cleaned slice, Gemini 2.5 Flash-Lite, estimated <$1 spend;
 publish gate remains closed.
 2026-07-18 — U8 — 0b3801a — Predictions FINAL before any live call;
 dataset hash, model, prompt metadata, and ten slice IDs sealed.
-2026-07-18 — U8 — see `git log` — Prompt provenance completed before
+2026-07-18 — U8 — 88c878b — Prompt provenance completed before
 spend: full extraction request + briefing included/empty + answer
 framing hashed; metadata repinned, outcome predictions unchanged.
+2026-07-18 — U8 — see `git log` — First live invocation failed auth
+before scoring/no result file; corrected authorization-key transport to
+header-only, added transport-only retries, loud extraction failure, and
+per-question checkpoints; 47/47 green.

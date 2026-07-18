@@ -26,6 +26,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { promptConfigHash } from '../src/eval-prompt-config.mjs'
+import { buildGeminiGenerateRequest } from '../src/gemini.mjs'
 import { loadLongMemEvalInstances } from '../src/longmemeval.mjs'
 import {
   assertLiveRunAllowed,
@@ -34,7 +35,7 @@ import {
   estimateSliceTokens,
   selectSlice,
 } from '../src/slice.mjs'
-import { createKernelStore } from '../src/store.mjs'
+import { createKernelStore, deleteKernelStoreFile } from '../src/store.mjs'
 import { createGatedStore } from '../src/gate.mjs'
 import { answerQuestion, ingestLongMemEvalInstance, stubProvider } from '../src/adapter.mjs'
 import { buildMemoryExtractionRequest, deterministicMockMemoryExtraction } from '../src/memory-extraction.mjs'
@@ -61,15 +62,25 @@ async function loadDataset() {
   return { instances: loadLongMemEvalInstances(raw), sha256 }
 }
 
-async function openWorkspace(workspaceId) {
+function workspaceOptions(workspaceId) {
   const root = join(repoRoot, 'data', 'run-workspaces')
-  await mkdir(root, { recursive: true })
-  const store = await createKernelStore({
+  return {
     memoryEnabled: true,
+    root,
     statePath: join(root, `${workspaceId}-state.json`),
     workspaceId,
-  })
+  }
+}
+
+async function openWorkspace(workspaceId) {
+  const options = workspaceOptions(workspaceId)
+  await mkdir(options.root, { recursive: true })
+  const store = await createKernelStore(options)
   return { gated: createGatedStore(store), store }
+}
+
+async function resetWorkspace(workspaceId) {
+  await deleteKernelStoreFile(workspaceOptions(workspaceId))
 }
 
 const { instances, sha256 } = await loadDataset()
@@ -131,16 +142,56 @@ if (!predictions.includes('PREDICTIONS FINAL')) {
 }
 const model = args.includes('--model') ? args[args.indexOf('--model') + 1] : 'gemini-2.5-flash-lite'
 
+const retryableGeminiStatuses = new Set([429, 500, 502, 503, 504])
+const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
+
+function retryDelayMs(response, attempt) {
+  const retryAfter = Number(response?.headers?.get?.('retry-after'))
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return Math.min(retryAfter * 1000, 60_000)
+  }
+  if (response?.status === 429) return 60_000
+  return Math.min(1000 * (2 ** (attempt - 1)), 15_000)
+}
+
 async function geminiCall(body) {
-  const key = process.env.GEMINI_API_KEY
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-    body: JSON.stringify(body),
-    headers: { 'content-type': 'application/json' },
-    method: 'POST',
+  const request = buildGeminiGenerateRequest({
+    apiKey: process.env.GEMINI_API_KEY,
+    body,
+    model,
   })
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 300)}`)
-  const data = await res.json()
-  return data?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? ''
+  const maxAttempts = 6
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    let res
+    try {
+      res = await fetch(request.url, request.init)
+    } catch (cause) {
+      if (attempt === maxAttempts) {
+        const error = new Error(`Gemini network failure after ${maxAttempts} attempts.`, { cause })
+        error.category = 'provider_transport'
+        throw error
+      }
+      const delay = Math.min(1000 * (2 ** (attempt - 1)), 15_000)
+      console.warn(`  Gemini network failure; retrying attempt ${attempt + 1}/${maxAttempts} in ${delay}ms.`)
+      await sleep(delay)
+      continue
+    }
+    if (res.ok) {
+      const data = await res.json()
+      return data?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? ''
+    }
+    const responseText = await res.text()
+    if (retryableGeminiStatuses.has(res.status) && attempt < maxAttempts) {
+      const delay = retryDelayMs(res, attempt)
+      console.warn(`  Gemini ${res.status}; retrying transport attempt ${attempt + 1}/${maxAttempts} in ${delay}ms.`)
+      await sleep(delay)
+      continue
+    }
+    const error = new Error(`Gemini ${res.status}: ${responseText.slice(0, 300)}`)
+    error.category = retryableGeminiStatuses.has(res.status) ? 'provider_transport' : 'provider_request'
+    throw error
+  }
+  throw new Error('Gemini request exhausted without a response.')
 }
 
 if (providerName !== 'gemini') {
@@ -153,45 +204,88 @@ const liveProvider = async ({ prompt }) => ({
   text: await geminiCall({ contents: [{ parts: [{ text: prompt }], role: 'user' }] }),
 })
 
-const runStamp = new Date().toISOString()
-const results = []
-for (const q of slice) {
-  const { gated, store } = await openWorkspace(`live-${q.questionId}`)
-  const stats = await ingestLongMemEvalInstance(gated, q, {
-    extractor: liveExtractor,
-    extractorId: `live-${model}`,
-    palariId: 'palari-eval',
-    userId: 'user-eval',
-  })
-  const answer = await answerQuestion(gated, {
-    palariId: 'palari-eval',
-    provider: liveProvider,
-    question: q.question,
-    questionDate: q.questionDate,
-    userId: 'user-eval',
-  })
-  results.push({
-    abstained: answer.abstained,
-    answer: answer.answer,
-    expectedAnswer: q.answer,
-    ingested: stats.memoriesWritten,
-    questionId: q.questionId,
-    questionType: q.questionType,
-    totalCandidates: answer.totalCandidates,
-  })
-  console.log(`  ${q.questionId}: ingested=${stats.memoriesWritten} abstained=${answer.abstained}`)
-  store.close()
-}
+const promptHash = promptConfigHash()
+const sliceIds = slice.map((q) => q.questionId)
 const outDir = join(repoRoot, 'evals', 'results')
+const outPath = join(outDir, `slice-u8-${model}-${promptHash}.json`)
 await mkdir(outDir, { recursive: true })
-const outPath = join(outDir, `slice-${runStamp.slice(0, 10)}-${model}.json`)
-await writeFile(outPath, JSON.stringify({
-  datasetSha256: sha256,
-  date: runStamp,
-  model,
-  promptConfigHash: promptConfigHash(),
-  results,
-  sliceIds: slice.map((q) => q.questionId),
-}, null, 2))
+
+let runStamp = new Date().toISOString()
+let results = []
+try {
+  const checkpoint = JSON.parse(await readFile(outPath, 'utf8'))
+  const provenanceMatches = checkpoint.datasetSha256 === sha256
+    && checkpoint.model === model
+    && checkpoint.promptConfigHash === promptHash
+    && JSON.stringify(checkpoint.sliceIds) === JSON.stringify(sliceIds)
+  if (!provenanceMatches) {
+    throw new Error(`Existing checkpoint provenance does not match this run: ${outPath}`)
+  }
+  if (checkpoint.status === 'complete') {
+    throw new Error(`U8 already completed at ${outPath}; refusing to re-roll model outputs.`)
+  }
+  runStamp = checkpoint.date
+  results = Array.isArray(checkpoint.results) ? checkpoint.results : []
+  console.log(`Resuming sealed U8 checkpoint with ${results.length}/${slice.length} questions complete.`)
+} catch (error) {
+  if (error?.code !== 'ENOENT') throw error
+}
+
+async function writeCheckpoint(status) {
+  await writeFile(outPath, JSON.stringify({
+    datasetSha256: sha256,
+    date: runStamp,
+    model,
+    promptConfigHash: promptHash,
+    results,
+    sliceIds,
+    status,
+  }, null, 2))
+}
+
+const completedIds = new Set(results.map((result) => result.questionId))
+for (const q of slice) {
+  if (completedIds.has(q.questionId)) {
+    console.log(`  ${q.questionId}: checkpointed — not re-running`)
+    continue
+  }
+  const workspaceId = `live-${q.questionId}`
+  await resetWorkspace(workspaceId)
+  const { gated, store } = await openWorkspace(workspaceId)
+  try {
+    const stats = await ingestLongMemEvalInstance(gated, q, {
+      extractor: liveExtractor,
+      extractorId: `live-${model}`,
+      failOnExtractorError: true,
+      palariId: 'palari-eval',
+      userId: 'user-eval',
+    })
+    const answer = await answerQuestion(gated, {
+      palariId: 'palari-eval',
+      provider: liveProvider,
+      question: q.question,
+      questionDate: q.questionDate,
+      userId: 'user-eval',
+    })
+    results.push({
+      abstained: answer.abstained,
+      answer: answer.answer,
+      expectedAnswer: q.answer,
+      extractorErrors: stats.extractorErrors,
+      ingested: stats.memoriesWritten,
+      invalidPayloads: stats.invalidPayloads,
+      questionId: q.questionId,
+      questionType: q.questionType,
+      totalCandidates: answer.totalCandidates,
+      turns: stats.turns,
+    })
+    completedIds.add(q.questionId)
+    await writeCheckpoint('in_progress')
+    console.log(`  ${q.questionId}: ingested=${stats.memoriesWritten} invalidPayloads=${stats.invalidPayloads} abstained=${answer.abstained}`)
+  } finally {
+    store.close()
+  }
+}
+await writeCheckpoint('complete')
 console.log(`\nLive slice complete. Results (with provenance) at ${outPath}`)
 console.log('Grade against evals/predictions.md — failing categories FIRST. A bad number is a finding, not a retry.')

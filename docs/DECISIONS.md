@@ -43,3 +43,14 @@ dates. Agents record; the founder decides.
   driver probe throws early on tokenizer mismatch). Do not swap to
   better-sqlite3 silently; that would be the repo's only non-builtin
   dependency and needs its own recorded decision.
+- 2026-07-18 (U8, Fable 5, recorded) **First live invocation failed
+  authentication before scoring and produced no result file.** The
+  project-local credential was an AI Studio authorization key supplied
+  as `GEMINI_API_KEY=...`; the file was normalized without logging the
+  value. The runner's legacy `?key=` query transport received
+  `API_KEY_INVALID`. Current Gemini REST documentation uses the
+  `x-goog-api-key` header, so transport was corrected to keep the key
+  out of URLs. This does not change prompts or predictions. The runner
+  now also retries only transport failures, aborts rather than treating
+  exhausted provider errors as empty memory, and checkpoints completed
+  questions so model outputs are never re-rolled after interruption.

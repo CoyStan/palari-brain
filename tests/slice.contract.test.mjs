@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
 import { buildPromptConfigManifest, promptConfigHash } from '../src/eval-prompt-config.mjs'
+import { buildGeminiGenerateRequest } from '../src/gemini.mjs'
 import { loadLongMemEvalInstances } from '../src/longmemeval.mjs'
 import {
   assertLiveRunAllowed,
@@ -59,6 +60,19 @@ test('promptConfigHash: covers extraction and included/empty briefing prompt sur
   const changed = structuredClone(manifest)
   changed.answerPrompts.included += '\nchanged framing'
   assert.notEqual(promptConfigHash(changed), promptConfigHash(manifest))
+})
+
+test('Gemini transport: authorization key stays in the header, never the URL', () => {
+  const apiKey = 'AQ.test-secret'
+  const request = buildGeminiGenerateRequest({
+    apiKey,
+    body: { contents: [] },
+    model: 'gemini-2.5-flash-lite',
+  })
+  assert.match(request.url, /gemini-2\.5-flash-lite:generateContent$/)
+  assert.ok(!request.url.includes(apiKey))
+  assert.equal(request.init.headers['x-goog-api-key'], apiKey)
+  assert.equal(request.init.headers['content-type'], 'application/json')
 })
 
 test('assertLiveRunAllowed: refuses without explicit founder confirmation and key', () => {

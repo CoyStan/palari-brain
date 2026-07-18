@@ -99,10 +99,13 @@ export async function ingestChatTurn(gated, {
 export async function ingestLongMemEvalInstance(gated, instance, {
   extractor,
   extractorId = 'dry-stub',
+  failOnExtractorError = false,
   palariId,
   userId,
 } = {}) {
   const stats = {
+    extractorErrors: 0,
+    invalidPayloads: 0,
     memoriesWritten: 0,
     sessions: 0,
     sourceBoundary: { droppedUnsafeSourceMemories: 0 },
@@ -124,6 +127,15 @@ export async function ingestLongMemEvalInstance(gated, instance, {
         userMessage: turns[i].content,
       }, { extractor, extractorId })
       stats.memoriesWritten += result.memoriesWritten ?? 0
+      if (result.reason === 'extractor_error') {
+        stats.extractorErrors += 1
+        if (failOnExtractorError) {
+          const error = new Error(`Extractor transport failed at ${session.sessionId}:${i}.`)
+          error.category = 'extractor_error'
+          throw error
+        }
+      }
+      if (result.reason === 'invalid_payload') stats.invalidPayloads += 1
       stats.sourceBoundary.droppedUnsafeSourceMemories +=
         result.sourceBoundary?.droppedUnsafeSourceMemories ?? 0
     }
