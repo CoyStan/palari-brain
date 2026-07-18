@@ -1,80 +1,39 @@
-# Pre-registered predictions — U8 first live slice
+# Pre-Registered Predictions
 
-Status: **PREDICTIONS FINAL** — pinned 2026-07-18 after founder GO
-(Quetzali, in session: "use MIT, i agree with the rest"; spend
-authorization recorded in docs/DECISIONS.md). The category
-predictions below are verbatim from the pre-GO draft — written before
-any live call, unchanged at finalization. No re-rolls: a bad number
-is a finding, not a retry. Results are graded against this file,
-failing categories first.
+Law (AGENTS.md): predictions are written BEFORE any scoring run and
+results are graded against them, failing categories first. Append
+only. Each prediction names its author, date, and grading run.
 
-Drafted 2026-07-18 by Fable 5, BEFORE any scoring run, from dry-mode
-evidence only (U7 tests; no live calls have occurred).
+## P-set 1 — before the first scored LongMemEval run
+Author: Fable (design lane), 2026-07-18, from the adversarial
+review. To be graded against the FIRST full scored run, whichever
+configuration it uses. If the run uses the pre-restructure kernel
+(FTS-only, no L0-L4), predictions 1-4 apply at full strength.
 
-## Slice
+1. TEMPORAL: temporal-reasoning and knowledge-update categories will
+   be the two worst category scores, materially below the overall
+   average.
+2. PARAPHRASE: among failed single-fact recalls, a majority will
+   show the fact present in the store but missed by lexical query
+   mismatch (paraphrase/translation), not absent from the store.
+3. RECALL TAX: a measurable share of misses will be
+   never-extracted facts (casual mentions filtered at write time)
+   which no retrieval improvement could recover — the L0/L4 case.
+4. ABSTENTION: the abstention/absence-honesty category will be at
+   or near the kernel's best category — the gate's posture pays
+   here.
+5. OVERALL (pre-restructure config): overall accuracy lands
+   materially below Zep's published 63.8%; a mid-40s-or-below
+   result is expected and is NOT a stop signal — it is the
+   ungoverned-baseline-free starting point.
+6. OVERALL (post-restructure, L2+L3+L4 landed): within striking
+   distance of Zep-tier (within ~10pts of 63.8%) while keeping all
+   gate guarantees. This is the prediction that matters.
+7. UNIQUE GROUND: on the U11 injection-resistance section (once it
+   exists), auto-retain baselines mint or parrot injected content
+   in a majority of cases; this kernel refuses in all but edge
+   cases. No current leaderboard system can take this exam at all.
 
-- Dataset: longmemeval_s_cleaned.json, sha256:
-  `d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`
-- Slice ids (10): 001be529, 00ca467f, 0100672e, 01493427, 031748ae,
-  031748ae_abs, 06878be2, 08f4fc43, 0e5e2d1a, 1568498a
-  (types: 1 single-session-user, 2 multi-session, 2 knowledge-update
-  + 1 knowledge-update abstention, 1 single-session-preference,
-  1 temporal-reasoning, 2 single-session-assistant; 480 sessions,
-  2402 user turns, ~4.93M history chars)
-- Model: gemini-3.1-flash-lite (founder-approved substitution before
-  scoring; 2.5 Flash-Lite returned `404 NOT_FOUND` for the new API
-  user; est. ~$1.06, cap $1.25). Category and cross-cutting predictions
-  remain unchanged.
-- Prompt-config hash: `3147ad22edc76d12` (metadata corrected before
-  any live call to cover the full extraction request plus briefing v1
-  included/empty and answer framing; outcome predictions unchanged)
-- Dry-run plumbing check passed 2026-07-18 (zero spend): ingest
-  through the gate 2-11 mock memories/question, no failures.
-
-## Category predictions (accuracy on slice questions of that type)
-
-Ordered by predicted weakness — this is also the reporting order.
-
-1. **single-session-assistant — predicted 0–30% (weakest).**
-   Why: the baseline write boundary demands direct user evidence
-   (assertive first-person grammar) or an external source kind;
-   assistant-asserted facts are neither, so most never mint. U7
-   surfaced this mechanically. If this category scores 0, that is the
-   headline finding, reported first.
-2. **single-session-user / single-session-preference — predicted
-   40–60%.** Why: casual, non-assertive phrasings ("my favorite
-   is...", "I just moved...") are dropped by the boundary grammar;
-   assertive ones land. Coverage, not recall, is the bottleneck.
-3. **multi-session — predicted 30–60%.** Why: requires several
-   assertive facts to all survive ingest; misses compound.
-4. **temporal-reasoning — predicted 30–60%.** Why: eventAt discipline
-   means briefing v1 lines carry true event dates (not ingest time),
-   which should help relative-order questions; but date arithmetic in
-   a small answer model is its own failure source.
-5. **knowledge-update — predicted 50–75%.** Why: supersession through
-   the gate demonstrably works (U7 e2e); prediction discounts only
-   ingest coverage of both the old and new value.
-6. **abstention (_abs ids) — predicted 80–100% (strongest).** Why:
-   empty recall produces an explicit absence briefing and the answer
-   abstains plainly; the kernel never invents. In OUR report,
-   abstention-with-correct-grounds counts as success even where the
-   benchmark scores it neutral.
-
-## Cross-cutting predictions
-
-- **Ingest coverage:** under 50% of humanly-memorable facts in the
-  haystacks will mint memories (conservative boundary + dedup). We
-  will report minted-per-question counts alongside accuracy.
-- **Needle survival:** ≥90% of briefed memories survive verbatim into
-  the final prompt (measured by briefingDiagnostics, not presumed).
-- **No invention:** zero answers assert a memory with no stored row
-  behind it (C16; grep-checkable against the store).
-
-## Grading protocol
-
-Per-question: correct / incorrect / abstained-correctly /
-abstained-wrongly, judged against `answer` (and `_abs` semantics for
-abstention ids). Report format: failing categories first, then
-aggregate, then the honesty metrics. The official LongMemEval judge
-protocol is adopted wholesale only at U10; the slice uses manual
-grading recorded per question.
+Grading notes: report per-category tables; grade each prediction
+CONFIRMED / PARTIAL / REFUTED with one line of evidence; refuted
+predictions are findings about our reasoning, not embarrassments.

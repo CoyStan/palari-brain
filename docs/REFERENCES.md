@@ -47,3 +47,18 @@
 - LICENSE for this repo (recommendation: MIT, matching company-os).
 - Spend gates: each live run.
 - Publish gate: any public score.
+
+## Competitive & benchmark literature (added 2026-07-18)
+
+- LongMemEval-V2 paper: https://arxiv.org/pdf/2605.12493
+- Benchmark landscape (LoCoMo/LongMemEval/BEAM):
+  https://mem0.ai/blog/ai-memory-benchmarks-in-2026
+- Framework head-to-heads (Mem0/Zep/Letta/Cognee):
+  https://particula.tech/blog/agent-memory-frameworks-tested-mem0-zep-letta-cognee-2026
+- Agent memory architectures 2026:
+  https://maidul-haque.vercel.app/blog/agent-memory-architectures-2026/
+- Zep/Graphiti temporal knowledge graph: the +15pt temporal
+  discriminator this repo's L2 answers.
+- In-repo: docs/ADVERSARIAL-REVIEW.md (the case against, recorded),
+  docs/RESTRUCTURE-PROPOSAL.md (the five-layer answer),
+  evals/predictions.md (the gradeable form).
