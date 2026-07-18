@@ -2,7 +2,7 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: U3
+Next: U4
 
 ## Unit queue
 
@@ -39,9 +39,23 @@ Next: U3
   summarized provenance (U4+U7). FOUNDER note: GAP-1/3/4 are spec
   shortfalls in palari-v05 itself — candidates to fix upstream;
   flagged here rather than patched cross-repo.
-- [ ] U3 — Extract store + schema + FTS with contract tests
-  (create/read/delete/topic-forget/residue-free deletion; scoping by
-  palari_id/user_id). Completion: tests green, no v05 imports.
+- [x] U3 — Extract store + schema + FTS. DONE 2026-07-18 (Fable 5).
+  Deliverables: src/memory-store.mjs (1112 lines verbatim from
+  baseline blob 4f67d0fe96dd, one severed import), src/util.mjs
+  (vendored booleanEnv/slugify from shared.mjs blob b47ebc15716f),
+  src/store.mjs (kernel wrapper: createKernelStore + NEW topicForget
+  composed op + deleteKernelStoreFile), tests/store.contract.test.mjs
+  (8 contract tests: create/provenance, writer rejection, type
+  partition, FTS+palari scoping incl. empty-scope⇒empty, user
+  visibility own+general+shared, residue-free delete vs raw FTS/link
+  tables, topic-forget scope isolation, per-workspace file ownership).
+  Completion PASS: 8/8 green (node --test, TDD red watched first:
+  ERR_MODULE_NOT_FOUND), no v05 imports (all targets are node:
+  builtins or kernel-relative — verified by grep). Decisions recorded
+  in docs/DECISIONS.md: zero-dep node:test runner; engine floor Node
+  >=22.5 (node:sqlite experimental accepted, self-probed). Note for
+  U4: store still exposes addMemory/supersedeMemory directly — the
+  gate unification (propose as sole door) is U4's job, per plan.
 - [ ] U4 — Extract admission gate path (typed write proposal,
   evidence thresholds, provenance fields required). Completion:
   direct-write attempt fails a test; gated write passes.
@@ -77,6 +91,9 @@ Next: U3
 2026-07-18 — U1 — ee25687 — Mapped kernel surface to
 docs/SOURCE-MAP.md; 16/16 paths verified @190a4ad2; private-memory
 excluded, node:sqlite the only non-builtin dep, severance small.
-2026-07-18 — U2 — see `git log` (BRAIN u02) — Kernel API designed:
+2026-07-18 — U2 — fe25a15 — Kernel API designed:
 gate.propose sole write door; C1–C19 trace all 16 contract bullets;
 4 gaps recorded and assigned (U4/U7); upstream-fix note for founder.
+2026-07-18 — U3 — see `git log` (BRAIN u03) — Store extracted
+standalone: 8/8 contract tests green, zero deps, no v05 imports;
+topicForget composed; node:test + Node>=22.5 decisions recorded.
