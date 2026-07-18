@@ -2,7 +2,7 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: U2
+Next: U3
 
 ## Unit queue
 
@@ -22,10 +22,23 @@ Next: U2
   assistant-routing-policy.mjs. Amended REFERENCES.md's imprecise
   "memory-*.test.js (6 files)" glob (matches 5; 6th is
   internal-alpha-memory-readiness.test.js).
-- [ ] U2 — Kernel API design. docs/KERNEL-API.md: store / gate /
-  extract / recall / brief interfaces derived from KERNEL-CONTRACT.md.
-  Name what is IN the kernel vs what stays product-side. Completion:
-  every contract clause maps to an interface or an explicit exclusion.
+- [x] U2 — Kernel API design. DONE 2026-07-18 (Fable 5), deliverable
+  docs/KERNEL-API.md. Completion test PASS (mechanical): contract has
+  16 bullets; traceability table C1–C19 covers all 16, each mapping to
+  an interface or an explicit exclusion (only C13 and the reporting
+  half of C14 route to evals process, recorded as such). Design core:
+  gate.propose(WriteProposal) is the sole write door — Admit (types,
+  writers, source boundary, threshold order demote<promote<permanent<
+  ratify) → Resolve (dedup, contradiction→supersede, type-safety) →
+  Apply (transactional; supersede = demote-and-promote + link,
+  history survives). Four recorded gaps where the spec asks more than
+  baseline v05 gives, all assigned: GAP-1 extractor/sourceKind
+  provenance columns (U4, kernel migration CDX-M1); GAP-2 explicit
+  threshold ordering (U4 AdmissionPolicy); GAP-3 type-safe
+  supersession check (U4); GAP-4 eventAt required for extracted/
+  summarized provenance (U4+U7). FOUNDER note: GAP-1/3/4 are spec
+  shortfalls in palari-v05 itself — candidates to fix upstream;
+  flagged here rather than patched cross-repo.
 - [ ] U3 — Extract store + schema + FTS with contract tests
   (create/read/delete/topic-forget/residue-free deletion; scoping by
   palari_id/user_id). Completion: tests green, no v05 imports.
@@ -61,6 +74,9 @@ Next: U2
 ## Log
 
 (append: date — unit — commit — one line)
-2026-07-18 — U1 — see `git log` (BRAIN u01) — Mapped kernel surface to
+2026-07-18 — U1 — ee25687 — Mapped kernel surface to
 docs/SOURCE-MAP.md; 16/16 paths verified @190a4ad2; private-memory
 excluded, node:sqlite the only non-builtin dep, severance small.
+2026-07-18 — U2 — see `git log` (BRAIN u02) — Kernel API designed:
+gate.propose sole write door; C1–C19 trace all 16 contract bullets;
+4 gaps recorded and assigned (U4/U7); upstream-fix note for founder.
