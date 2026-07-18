@@ -2,17 +2,26 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: U1
+Next: U2
 
 ## Unit queue
 
-- [ ] U1 — Source map. Record the exact kernel surface in
-  docs/SOURCE-MAP.md: for each module below, its palari-v05 path,
-  baseline commit, exports used, and dependencies to sever:
-  memory-store.mjs, memory-extraction.mjs, memory-briefing.mjs,
-  private-memory.mjs (assess), plus the recall path inside the
-  assistant runtime, and the 6 memory test files. Completion test:
-  every listed path exists at the baseline commit.
+- [x] U1 — Source map. DONE 2026-07-18 (Fable 5), deliverable
+  docs/SOURCE-MAP.md. Completion test PASS: all 16 named paths verified
+  present at baseline 190a4ad2 (blob hashes recorded in the map). Key
+  findings carried to U2: (a) private-memory.mjs is EXCLUDED from the
+  kernel (product feature; its sanitization pattern is prior art for
+  U11); (b) no topicForget store method exists — topic-forget must be
+  composed from listMemories/searchMemories + deleteMemory; (c) recall
+  is a store primitive (recallMemories); the "assistant runtime recall
+  path" is only ~60 lines of orchestration in assistant-brain.mjs's
+  buildAssistantMemoryBriefing, to reimplement, not lift; (d) only
+  non-builtin runtime need is node:sqlite + FTS5 (record min Node
+  version in U3); (e) severance is small — vendor booleanEnv/slugify
+  from shared.mjs, parameterize 2 token-budget fns from
+  assistant-routing-policy.mjs. Amended REFERENCES.md's imprecise
+  "memory-*.test.js (6 files)" glob (matches 5; 6th is
+  internal-alpha-memory-readiness.test.js).
 - [ ] U2 — Kernel API design. docs/KERNEL-API.md: store / gate /
   extract / recall / brief interfaces derived from KERNEL-CONTRACT.md.
   Name what is IN the kernel vs what stays product-side. Completion:
@@ -52,3 +61,6 @@ Next: U1
 ## Log
 
 (append: date — unit — commit — one line)
+2026-07-18 — U1 — see `git log` (BRAIN u01) — Mapped kernel surface to
+docs/SOURCE-MAP.md; 16/16 paths verified @190a4ad2; private-memory
+excluded, node:sqlite the only non-builtin dep, severance small.
