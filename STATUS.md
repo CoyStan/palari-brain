@@ -2,12 +2,11 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: U8 LIVE EXECUTION — FOUNDER GO RECEIVED 2026-07-18.
-Predictions are FINAL; founder-approved execution model is now Gemini
-3.1 Flash-Lite (2.5 is unavailable to new API users), the key is
-available at runtime, and prompt-config provenance remains sealed.
-Publish gate remains CLOSED; results stay under gitignored
-evals/results/.
+Next: U8 PAUSED BY FOUNDER after 9/10 questions checkpointed.
+Do not execute final question `1568498a` or resume the runner without a
+new explicit GO from Quetzali. Predictions and prompt provenance remain
+sealed; completed outputs must not be re-rolled. Publish gate remains
+CLOSED; results stay under gitignored evals/results/.
 
 ## Unit queue
 
@@ -157,8 +156,10 @@ evals/results/.
   corrected, the 2.5 endpoint returned model-unavailable before scoring;
   3.1 metadata is now amended and sealed (suite 47/47).
   Runtime key is project-local, gitignored, mode 0600; never logged or
-  committed. Execution is next; results remain in gitignored
-  evals/results/.
+  committed. Founder stopped execution after the currently running
+  question completed: 9/10 results are checkpointed; final question
+  `1568498a` has no result and must not run without a new GO. Partial
+  report remains in gitignored evals/results/.
 - [ ] U9 — Briefing-format iterations from slice results (paired
   slices, one variable per run; each run FOUNDER GATE on spend).
 - [ ] U10 — FOUNDER GATE: full private LongMemEval run + report,
@@ -210,7 +211,10 @@ framing hashed; metadata repinned, outcome predictions unchanged.
 scoring/no result file; corrected authorization-key transport to
 header-only, added transport-only retries, loud extraction failure, and
 per-question checkpoints; 47/47 green.
-2026-07-18 — U8 — see `git log` — 2.5 Flash-Lite returned unavailable
-for the new API user; founder amended model to stable successor 3.1
+2026-07-18 — U8 — f954c4b — 2.5 Flash-Lite returned unavailable for
+the new API user; founder amended model to stable successor 3.1
 Flash-Lite and cap to $1.25 before scoring; estimate ~$1.06, predictions
 unchanged, 47/47 green.
+2026-07-18 — U8 — see `git log` — Founder paused run after current
+question: 9/10 checkpointed, final `1568498a` has no result; no resume
+without new explicit GO, no completed output re-rolls.

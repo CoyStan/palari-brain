@@ -63,3 +63,10 @@ dates. Agents record; the founder decides.
   sealed slice. This amendment occurred before any benchmark score or
   result file; dataset, slice, prompt hash, and outcome predictions stay
   unchanged. Publish gate remains CLOSED.
+- 2026-07-18 (FOUNDER — Quetzali, in session: "Complete last question
+  running and then do not run next question") **U8 execution PAUSED.**
+  The active question was allowed to checkpoint, then the runner was
+  terminated before any final-question result was recorded. State is
+  9/10 checkpointed; `1568498a` remains incomplete. Do not resume without
+  a new explicit founder GO. Completed outputs remain sealed against
+  re-rolls; publish gate remains CLOSED.
