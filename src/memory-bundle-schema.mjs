@@ -1,6 +1,6 @@
 const reflectApply = Reflect.apply
-const stringReplace = String.prototype.replace
-const stringReplaceAll = String.prototype.replaceAll
+const stringCharCodeAt = String.prototype.charCodeAt
+const stringSlice = String.prototype.slice
 
 export const MEMORY_BUNDLE_CAPABILITIES = Object.freeze({
   sourceOfTruth: false,
@@ -770,15 +770,58 @@ export const MEMORY_BUNDLE_REQUIRED_PRAGMAS = Object.freeze({
   ignore_check_constraints: 0,
 })
 
+function isAsciiSqlWhitespace(unit) {
+  return (
+    unit === 0x09 ||
+    unit === 0x0a ||
+    unit === 0x0b ||
+    unit === 0x0c ||
+    unit === 0x0d ||
+    unit === 0x20
+  )
+}
+
 export function normalizeMemoryBundleSql(sql) {
-  let normalized = reflectApply(stringReplaceAll, sql, ['\r\n', '\n'])
-  normalized = reflectApply(stringReplace, normalized, [
-    /^[\t\n\v\f\r ]+|[\t\n\v\f\r ]+$/g,
-    '',
-  ])
-  normalized = reflectApply(stringReplace, normalized, [
-    /;[\t\n\v\f\r ]*$/,
-    '',
-  ])
-  return reflectApply(stringReplace, normalized, [/[\t\n\v\f\r ]+$/g, ''])
+  let normalized = ''
+  for (let index = 0; index < sql.length; index += 1) {
+    const unit = reflectApply(stringCharCodeAt, sql, [index])
+    if (
+      unit === 0x0d &&
+      index + 1 < sql.length &&
+      reflectApply(stringCharCodeAt, sql, [index + 1]) === 0x0a
+    ) {
+      normalized += '\n'
+      index += 1
+    } else {
+      normalized += reflectApply(stringSlice, sql, [index, index + 1])
+    }
+  }
+
+  let start = 0
+  let end = normalized.length
+  while (
+    start < end &&
+    isAsciiSqlWhitespace(reflectApply(stringCharCodeAt, normalized, [start]))
+  ) {
+    start += 1
+  }
+  while (
+    end > start &&
+    isAsciiSqlWhitespace(reflectApply(stringCharCodeAt, normalized, [end - 1]))
+  ) {
+    end -= 1
+  }
+  if (
+    end > start &&
+    reflectApply(stringCharCodeAt, normalized, [end - 1]) === 0x3b
+  ) {
+    end -= 1
+    while (
+      end > start &&
+      isAsciiSqlWhitespace(reflectApply(stringCharCodeAt, normalized, [end - 1]))
+    ) {
+      end -= 1
+    }
+  }
+  return reflectApply(stringSlice, normalized, [start, end])
 }

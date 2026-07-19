@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { DatabaseSync, StatementSync } from 'node:sqlite'
 import { test } from 'node:test'
 
@@ -19,6 +22,7 @@ import {
   M1_04_IDS,
   M1_05_META,
   createM105Bundle,
+  insertM105AtomRow,
   insertM105EventRow,
   makeM104AtomRow,
   makeM104CanonicalAtom,
@@ -873,6 +877,59 @@ function snapshotM105CanonicalRows(db) {
   }
 }
 
+function captureM105Outcome(callback) {
+  try {
+    return { value: callback(), error: undefined }
+  } catch (error) {
+    return { value: undefined, error }
+  }
+}
+
+function withM105DescriptorReplacements(replacements, callback) {
+  const originals = replacements.map(([target, key]) => ({
+    target,
+    key,
+    descriptor: Object.getOwnPropertyDescriptor(target, key),
+  }))
+  let result
+  let callbackError
+  try {
+    for (let index = 0; index < replacements.length; index += 1) {
+      const [target, key, descriptor] = replacements[index]
+      Object.defineProperty(target, key, descriptor)
+    }
+    result = callback()
+  } catch (error) {
+    callbackError = error
+  } finally {
+    for (let index = 0; index < originals.length; index += 1) {
+      const { target, key, descriptor } = originals[index]
+      if (descriptor === undefined) {
+        Reflect.deleteProperty(target, key)
+      } else {
+        Object.defineProperty(target, key, descriptor)
+      }
+    }
+  }
+
+  for (let index = 0; index < originals.length; index += 1) {
+    const { target, key, descriptor } = originals[index]
+    assert.deepEqual(Object.getOwnPropertyDescriptor(target, key), descriptor)
+  }
+  if (callbackError !== undefined) throw callbackError
+  return result
+}
+
+function withM105FilePath(prefix, callback) {
+  const directory = mkdtempSync(join(tmpdir(), prefix))
+  const dbPath = join(directory, 'bundle.sqlite')
+  try {
+    return callback(dbPath)
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
+
 test('M1-05 exposes exactly the four private verifier interfaces', () => {
   assert.deepEqual(Object.keys(verifyModule).sort(), [
     'assertBorrowedBundleConnection',
@@ -1574,4 +1631,506 @@ test('M1-05 uses captured normalized row dispatch under hostile row modes and sh
       }
     }
   }, { readBigInts: true, returnArrays: true })
+})
+
+test('M1-05 SQL normalization ignores forged RegExp and String @@replace hooks', () => {
+  withM105Database((validDb) => {
+    createM105Bundle(validDb)
+    withM105Database((alteredDb) => {
+      createM105Bundle(alteredDb, {
+        objectSqlOverrides: makeM105SqlOverride(
+          'memory_bundle_events_no_update',
+          "BEGIN SELECT RAISE(ABORT, 'memory_bundle_events_append_only'); END;",
+          'BEGIN SELECT 1; END;',
+        ),
+      })
+
+      let regexpReplaceCalls = 0
+      let stringReplaceCalls = 0
+      let replaceMethodCalls = 0
+      let replaceAllMethodCalls = 0
+      const regexpDescriptor = Object.getOwnPropertyDescriptor(
+        RegExp.prototype,
+        Symbol.replace,
+      )
+      const replaceDescriptor = Object.getOwnPropertyDescriptor(
+        String.prototype,
+        'replace',
+      )
+      const replaceAllDescriptor = Object.getOwnPropertyDescriptor(
+        String.prototype,
+        'replaceAll',
+      )
+      const outcomes = withM105DescriptorReplacements([
+        [RegExp.prototype, Symbol.replace, {
+          ...regexpDescriptor,
+          value() {
+            regexpReplaceCalls += 1
+            return 'forged-normalized-sql'
+          },
+        }],
+        [String.prototype, Symbol.replace, {
+          configurable: true,
+          enumerable: false,
+          writable: true,
+          value() {
+            stringReplaceCalls += 1
+            return 'forged-normalized-sql'
+          },
+        }],
+        [String.prototype, 'replace', {
+          ...replaceDescriptor,
+          value() {
+            replaceMethodCalls += 1
+            throw new Error('late String.prototype.replace ran')
+          },
+        }],
+        [String.prototype, 'replaceAll', {
+          ...replaceAllDescriptor,
+          value() {
+            replaceAllMethodCalls += 1
+            throw new Error('late String.prototype.replaceAll ran')
+          },
+        }],
+      ], () => ({
+        valid: captureM105Outcome(
+          () => verifyModule.verifyMemoryBundleState(validDb),
+        ),
+        altered: captureM105Outcome(
+          () => verifyModule.verifyMemoryBundleState(alteredDb),
+        ),
+      }))
+
+      if (outcomes.valid.error !== undefined) throw outcomes.valid.error
+      assert.deepEqual(outcomes.valid.value.checkpoint, {
+        streamId: M1_04_IDS.streamId,
+        sequence: 0,
+      })
+      assert.equal(outcomes.altered.value, undefined)
+      assert.equal(outcomes.altered.error?.code, 'bundle_layout_invalid')
+      assert.equal(regexpReplaceCalls, 0)
+      assert.equal(stringReplaceCalls, 0)
+      assert.equal(replaceMethodCalls, 0)
+      assert.equal(replaceAllMethodCalls, 0)
+    })
+  })
+})
+
+test('M1-05 SQL normalization ignores a throwing String @@replace hook', () => {
+  withM105Database((db) => {
+    createM105Bundle(db)
+    let replacementCalls = 0
+    const outcome = withM105DescriptorReplacements([
+      [String.prototype, Symbol.replace, {
+        configurable: true,
+        enumerable: false,
+        writable: true,
+        value() {
+          replacementCalls += 1
+          throw new Error('late String @@replace ran')
+        },
+      }],
+    ], () => captureM105Outcome(
+      () => verifyModule.verifyMemoryBundleState(db),
+    ))
+
+    if (outcome.error !== undefined) throw outcome.error
+    assert.deepEqual(outcome.value.checkpoint, {
+      streamId: M1_04_IDS.streamId,
+      sequence: 0,
+    })
+    assert.equal(replacementCalls, 0)
+  })
+})
+
+test('M1-05 SQL normalization ignores a throwing RegExp @@replace hook', () => {
+  withM105Database((db) => {
+    createM105Bundle(db)
+    let replacementCalls = 0
+    const descriptor = Object.getOwnPropertyDescriptor(
+      RegExp.prototype,
+      Symbol.replace,
+    )
+    const outcome = withM105DescriptorReplacements([
+      [RegExp.prototype, Symbol.replace, {
+        ...descriptor,
+        value() {
+          replacementCalls += 1
+          throw new Error('late RegExp @@replace ran')
+        },
+      }],
+    ], () => captureM105Outcome(
+      () => verifyModule.verifyMemoryBundleState(db),
+    ))
+
+    if (outcome.error !== undefined) throw outcome.error
+    assert.deepEqual(outcome.value.checkpoint, {
+      streamId: M1_04_IDS.streamId,
+      sequence: 0,
+    })
+    assert.equal(replacementCalls, 0)
+  })
+})
+
+test('M1-05 builds structural projection arrays without inherited numeric setters', () => {
+  withM105Database((db) => {
+    createM105Bundle(db)
+    let setterCalls = 0
+    const throwingSetter = {
+      configurable: true,
+      enumerable: false,
+      set() {
+        setterCalls += 1
+        throw new Error('inherited array numeric setter ran')
+      },
+    }
+    const outcome = withM105DescriptorReplacements([
+      [Array.prototype, '0', throwingSetter],
+      [Array.prototype, '1', throwingSetter],
+    ], () => captureM105Outcome(
+      () => verifyModule.verifyMemoryBundleState(db),
+    ))
+
+    if (outcome.error !== undefined) throw outcome.error
+    assert.deepEqual(outcome.value.checkpoint, {
+      streamId: M1_04_IDS.streamId,
+      sequence: 0,
+    })
+    assert.deepEqual(outcome.value.memories, [])
+    assert.equal(setterCalls, 0)
+  })
+})
+
+test('M1-05 builds active verified state arrays without inherited numeric setters', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, { seedActive: true })
+    let setterCalls = 0
+    const throwingSetter = {
+      configurable: true,
+      enumerable: false,
+      set() {
+        setterCalls += 1
+        throw new Error('inherited active-state numeric setter ran')
+      },
+    }
+    const outcome = withM105DescriptorReplacements([
+      [Array.prototype, '0', throwingSetter],
+      [Array.prototype, '1', throwingSetter],
+    ], () => captureM105Outcome(
+      () => verifyModule.verifyMemoryBundleState(db),
+    ))
+
+    if (outcome.error !== undefined) throw outcome.error
+    assert.deepEqual(outcome.value.checkpoint, {
+      streamId: M1_04_IDS.streamId,
+      sequence: 1,
+    })
+    assert.equal(outcome.value.memories.length, 1)
+    assert.deepEqual([...outcome.value.retainedByMemoryId], [[
+      M1_04_IDS.memoryId,
+      { palariId: 'palari-a', userId: 'user-1', status: 'active' },
+    ]])
+    assert.equal(setterCalls, 0)
+  })
+})
+
+test('M1-05 maps native SQLITE_BUSY from the first verifier read to bundle_busy', () => {
+  withM105FilePath('palari-m105-busy-', (dbPath) => {
+    const setup = new DatabaseSync(dbPath)
+    let beforeRows
+    try {
+      createM105Bundle(setup, { seedActive: true })
+      beforeRows = snapshotM105CanonicalRows(setup)
+    } finally {
+      setup.close()
+    }
+
+    const reader = new DatabaseSync(dbPath)
+    const blocker = new DatabaseSync(dbPath)
+    try {
+      reader.exec('PRAGMA busy_timeout=0; BEGIN;')
+      blocker.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE;')
+      const outcome = captureM105Outcome(
+        () => verifyModule.verifyMemoryBundleState(reader),
+      )
+      assert.equal(outcome.value, undefined)
+      assert.equal(outcome.error?.code, 'bundle_busy')
+      assert.equal(outcome.error?.cause?.code, 'ERR_SQLITE_ERROR')
+      assert.equal(outcome.error?.cause?.errcode, 5)
+      assert.equal(outcome.error?.cause?.errstr, 'database is locked')
+      assert.equal(reader.isTransaction, true)
+
+      blocker.exec('ROLLBACK')
+      reader.exec('ROLLBACK')
+      const healthyState = verifyModule.verifyMemoryBundleState(reader)
+      assert.deepEqual(healthyState.checkpoint, {
+        streamId: M1_04_IDS.streamId,
+        sequence: 1,
+      })
+      assert.deepEqual(snapshotM105CanonicalRows(reader), beforeRows)
+    } finally {
+      if (blocker.isTransaction) blocker.exec('ROLLBACK')
+      if (reader.isTransaction) reader.exec('ROLLBACK')
+      blocker.close()
+      reader.close()
+    }
+  })
+})
+
+test('M1-05 maps native extended SQLITE_LOCKED from a verifier read to bundle_busy', () => {
+  withM105FilePath('palari-m105-locked-', (dbPath) => {
+    const uri = `file:${dbPath}?cache=shared`
+    const setup = new DatabaseSync(uri)
+    let beforeRows
+    try {
+      createM105Bundle(setup)
+      beforeRows = snapshotM105CanonicalRows(setup)
+    } finally {
+      setup.close()
+    }
+
+    const blocker = new DatabaseSync(uri)
+    const reader = new DatabaseSync(uri)
+    try {
+      blocker.exec(`
+        PRAGMA busy_timeout=0;
+        BEGIN IMMEDIATE;
+        UPDATE main.memory_bundle_meta
+        SET head_sequence = head_sequence
+        WHERE singleton = 99;
+      `)
+      reader.exec('PRAGMA busy_timeout=0;')
+      const outcome = captureM105Outcome(
+        () => verifyModule.verifyMemoryBundleState(reader),
+      )
+      assert.equal(outcome.value, undefined)
+      assert.equal(outcome.error?.code, 'bundle_busy')
+      assert.equal(outcome.error?.cause?.code, 'ERR_SQLITE_ERROR')
+      assert.equal(outcome.error?.cause?.errcode, 262)
+      assert.equal(outcome.error?.cause?.errcode & 0xff, 6)
+      assert.equal(outcome.error?.cause?.errstr, 'database table is locked')
+
+      blocker.exec('ROLLBACK')
+      const healthyState = verifyModule.verifyMemoryBundleState(reader)
+      assert.deepEqual(healthyState.checkpoint, {
+        streamId: M1_04_IDS.streamId,
+        sequence: 0,
+      })
+      assert.deepEqual(snapshotM105CanonicalRows(reader), beforeRows)
+    } finally {
+      if (reader.isTransaction) reader.exec('ROLLBACK')
+      if (blocker.isTransaction) blocker.exec('ROLLBACK')
+      reader.close()
+      blocker.close()
+    }
+  })
+})
+
+test('M1-05 validates every event non-authority field before any event authority', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      meta: { head_sequence: 2 },
+      objectSqlOverrides: makeM105SqlOverride(
+        'memory_bundle_events',
+        'AND authority_id = user_id\n      AND memory_id IS NOT NULL',
+        "AND authority_id <> ''\n      AND memory_id IS NOT NULL",
+      ),
+      beforeTriggers(connection) {
+        insertM105EventRow(connection, makeM104EventRow({
+          authority_id: 'user-2',
+        }))
+        insertM105EventRow(connection, makeM104EventRow({
+          sequence: 2,
+          decision_id: 'not-a-decision-id',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000012',
+          outcome: 'refused',
+          reason_code: 'below_threshold',
+          authority_kind: 'policy',
+          authority_id: 'palari-kernel-admission@1',
+          memory_id: null,
+          effective_at: '2026-07-18T12:59:00.000Z',
+          observed_at: '2026-07-18T13:00:00.000Z',
+        }))
+      },
+    })
+    spoofM105StoredSql(
+      db,
+      'memory_bundle_events',
+      EXPECTED_PERSISTED_SQL.memory_bundle_events,
+    )
+    assert.equal(readM105SingleValue(db, 'PRAGMA main.quick_check'), 'ok')
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_invalid_decision',
+    )
+  })
+})
+
+test('M1-05 refused events update observations and seen ids without reducer effects', () => {
+  withM105Database((db) => {
+    const refused = makeM104EventRow({
+      outcome: 'refused',
+      reason_code: 'below_threshold',
+      authority_kind: 'policy',
+      authority_id: 'palari-kernel-admission@1',
+      memory_id: null,
+    })
+    createM105Bundle(db, {
+      meta: { head_sequence: 1 },
+      beforeTriggers(connection) {
+        insertM105EventRow(connection, refused)
+      },
+    })
+
+    const state = verifyModule.verifyMemoryBundleState(db)
+    assert.deepEqual(state.checkpoint, {
+      streamId: M1_04_IDS.streamId,
+      sequence: 1,
+    })
+    assert.deepEqual(state.memories, [])
+    assert.deepEqual([...state.retainedByMemoryId], [])
+    assert.deepEqual([...state.seenDecisionIds], [refused.decision_id])
+    assert.deepEqual([...state.seenProposalIds], [refused.proposal_id])
+    assert.equal(state.lastObservedAt, refused.observed_at)
+  })
+})
+
+test('M1-05 deleted memories remain retained with original scope and no atom', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      meta: { head_sequence: 2 },
+      beforeTriggers(connection) {
+        insertM105EventRow(connection)
+        insertM105EventRow(connection, makeM104EventRow({
+          sequence: 2,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000011',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000012',
+          proposal_kind: 'demote',
+          operation: 'delete',
+          memory_type: null,
+          effective_at: '2026-07-18T12:59:00.000Z',
+          observed_at: '2026-07-18T13:00:00.000Z',
+        }))
+      },
+    })
+
+    const state = verifyModule.verifyMemoryBundleState(db)
+    assert.deepEqual(state.memories, [])
+    assert.deepEqual([...state.retainedByMemoryId], [[
+      M1_04_IDS.memoryId,
+      { palariId: 'palari-a', userId: 'user-1', status: 'deleted' },
+    ]])
+    assert.equal(state.lastObservedAt, '2026-07-18T13:00:00.000Z')
+  })
+})
+
+test('M1-05 retained-scope mismatch wins before already-deleted state', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      meta: { head_sequence: 3 },
+      objectSqlOverrides: makeM105SqlOverride(
+        'memory_bundle_applied_delete_memory_unique',
+        "WHERE operation = 'delete' AND outcome = 'applied';",
+        "WHERE operation = 'delete' AND outcome = 'applied' AND sequence < 3;",
+      ),
+      beforeTriggers(connection) {
+        insertM105EventRow(connection)
+        insertM105EventRow(connection, makeM104EventRow({
+          sequence: 2,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000011',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000012',
+          proposal_kind: 'demote',
+          operation: 'delete',
+          memory_type: null,
+          effective_at: '2026-07-18T12:59:00.000Z',
+          observed_at: '2026-07-18T13:00:00.000Z',
+        }))
+        insertM105EventRow(connection, makeM104EventRow({
+          sequence: 3,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000021',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000022',
+          proposal_kind: 'demote',
+          operation: 'delete',
+          user_id: 'user-2',
+          authority_id: 'user-2',
+          memory_type: null,
+          effective_at: '2026-07-18T13:59:00.000Z',
+          observed_at: '2026-07-18T14:00:00.000Z',
+        }))
+      },
+    })
+    spoofM105StoredSql(
+      db,
+      'memory_bundle_applied_delete_memory_unique',
+      EXPECTED_PERSISTED_SQL.memory_bundle_applied_delete_memory_unique,
+    )
+    assert.equal(readM105SingleValue(db, 'PRAGMA main.quick_check'), 'ok')
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_unauthorized',
+    )
+  })
+})
+
+test('M1-05 decreasing observed time wins before retained-scope transition checks', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      meta: { head_sequence: 2 },
+      beforeTriggers(connection) {
+        insertM105EventRow(connection)
+        insertM105EventRow(connection, makeM104EventRow({
+          sequence: 2,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000011',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000012',
+          proposal_kind: 'demote',
+          operation: 'delete',
+          user_id: 'user-2',
+          authority_id: 'user-2',
+          memory_type: null,
+          effective_at: '2026-07-18T10:59:00.000Z',
+          observed_at: '2026-07-18T11:00:00.000Z',
+        }))
+      },
+    })
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_invalid_transition',
+    )
+  })
+})
+
+test('M1-05 missing and orphan atom precedence follows the sorted id merge', () => {
+  const laterMemoryId = 'mem_00000000-0000-4000-8000-000000000006'
+
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      meta: { head_sequence: 1 },
+      beforeTriggers(connection) {
+        insertM105EventRow(connection)
+        insertM105AtomRow(connection, codecModule.encodeAtomRow(
+          makeM104CanonicalAtom({ memoryId: laterMemoryId }),
+        ))
+      },
+    })
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_missing_atom',
+    )
+  })
+
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      meta: { head_sequence: 1 },
+      beforeTriggers(connection) {
+        insertM105EventRow(connection, makeM104EventRow({
+          memory_id: laterMemoryId,
+        }))
+        insertM105AtomRow(connection)
+      },
+    })
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_orphan_atom',
+    )
+  })
 })

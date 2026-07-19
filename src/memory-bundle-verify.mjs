@@ -28,10 +28,12 @@ import {
 
 const reflectApply = Reflect.apply
 const reflectConstruct = Reflect.construct
+const reflectDefineProperty = Reflect.defineProperty
+const reflectGetOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor
 const reflectOwnKeys = Reflect.ownKeys
-const arrayPush = Array.prototype.push
 const arraySort = Array.prototype.sort
 const numberIsSafeInteger = Number.isSafeInteger
+const objectHasOwnProperty = Object.prototype.hasOwnProperty
 const objectIs = Object.is
 const stringCharCodeAt = String.prototype.charCodeAt
 const stringFromCharCode = String.fromCharCode
@@ -95,7 +97,13 @@ function compareForeignKeys(left, right) {
 }
 
 function appendValue(values, value) {
-  reflectApply(arrayPush, values, [value])
+  reflectApply(reflectDefineProperty, undefined, [values, values.length, {
+    __proto__: null,
+    value,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  }])
 }
 
 function sortRows(rows, comparator) {
@@ -183,15 +191,63 @@ function soleRowValue(rows) {
   return rows[0][keys[0]]
 }
 
+function readOwnDataValue(value, key) {
+  if (
+    value === null ||
+    (typeof value !== 'object' && typeof value !== 'function')
+  ) {
+    return undefined
+  }
+  const descriptor = reflectApply(
+    reflectGetOwnPropertyDescriptor,
+    undefined,
+    [value, key],
+  )
+  if (
+    descriptor === undefined ||
+    !reflectApply(objectHasOwnProperty, descriptor, ['value'])
+  ) {
+    return undefined
+  }
+  return descriptor.value
+}
+
+function isNativeSqliteBusyOrLocked(error) {
+  if (readOwnDataValue(error, 'code') !== 'ERR_SQLITE_ERROR') return false
+  const errcode = readOwnDataValue(error, 'errcode')
+  if (
+    typeof errcode !== 'number' ||
+    !reflectApply(numberIsSafeInteger, undefined, [errcode]) ||
+    errcode < 0
+  ) {
+    return false
+  }
+  const primaryCode = errcode % 0x100
+  return primaryCode === 5 || primaryCode === 6
+}
+
+function guardedFailure(error, fallbackCode, fallbackMessage) {
+  const preserved = preserveMemoryBundleError(
+    error,
+    fallbackCode,
+    fallbackMessage,
+  )
+  if (preserved === error) return preserved
+  if (isNativeSqliteBusyOrLocked(error)) {
+    return memoryBundleFailure(
+      'bundle_busy',
+      'The memory bundle database is busy or locked.',
+      error,
+    )
+  }
+  return preserved
+}
+
 function layoutGuard(callback, message) {
   try {
     return callback()
   } catch (error) {
-    throw preserveMemoryBundleError(
-      error,
-      'bundle_layout_invalid',
-      message,
-    )
+    throw guardedFailure(error, 'bundle_layout_invalid', message)
   }
 }
 
@@ -199,7 +255,7 @@ function storageGuard(callback, message) {
   try {
     return callback()
   } catch (error) {
-    throw preserveMemoryBundleError(error, 'bundle_storage_error', message)
+    throw guardedFailure(error, 'bundle_storage_error', message)
   }
 }
 
@@ -573,7 +629,7 @@ function reduceVerifiedRows(eventRows, atomRows, meta) {
 
   const events = []
   for (let index = 0; index < eventRows.length; index += 1) {
-    const event = decodeEventRow(eventRows[index])
+    const event = decodeEventRow(eventRows[index], false)
     if (event.streamId !== meta.streamId) {
       fail('bundle_meta_mismatch', 'An event stream does not match the meta stream.')
     }
@@ -586,6 +642,10 @@ function reduceVerifiedRows(eventRows, atomRows, meta) {
     reflectApply(setAdd, seenDecisionIds, [event.decisionId])
     reflectApply(setAdd, seenProposalIds, [event.proposalId])
     appendValue(events, event)
+  }
+
+  for (let index = 0; index < eventRows.length; index += 1) {
+    decodeEventRow(eventRows[index])
   }
 
   for (let index = 0; index < events.length; index += 1) {

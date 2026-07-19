@@ -919,7 +919,7 @@ export function decodeAtomRow(value) {
   return buildDecodedAtom(atom, row.content_checksum)
 }
 
-export function decodeEventRow(value) {
+export function decodeEventRow(value, validateAuthority = true) {
   const row = captureSqliteRow(
     value,
     EVENT_ROW_KEYS,
@@ -980,6 +980,6 @@ export function decodeEventRow(value) {
   }
 
   const requiredAuthority = validateEventMatrix(event)
-  validateEventAuthority(event, requiredAuthority)
+  if (validateAuthority) validateEventAuthority(event, requiredAuthority)
   return event
 }
