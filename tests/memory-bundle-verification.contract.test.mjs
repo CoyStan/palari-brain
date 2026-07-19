@@ -2867,6 +2867,35 @@ test('M1-06 validates every canonical atom before merge correspondence', () => {
     })
   }
 
+  withM105Database((db) => {
+    const earlierActual = makeM106RefusedDeleteEventRow(
+      2,
+      m106Id('mem', 0x940),
+    )
+    const expectedBetween = makeM106CreateEventRow(
+      1,
+      m106Id('mem', 0x941),
+    )
+    const laterActual = makeM106RefusedDeleteEventRow(
+      3,
+      m106Id('mem', 0x942),
+    )
+    createM106SemanticBundle(
+      db,
+      [expectedBetween, earlierActual, laterActual],
+      [
+        makeM106AtomRow(earlierActual),
+        makeM106AtomRow(laterActual, {}, {
+          content_checksum: '0'.repeat(64),
+        }),
+      ],
+    )
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_invalid_atom',
+    )
+  })
+
   const shapeResult = runM106InstrumentedScenario('atom-row-shape')
   assert.equal(shapeResult.code, 'bundle_invalid_atom')
 })
@@ -3010,7 +3039,7 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
     'localeCompare',
   )
   let localeCompareCalls = 0
-  let freshVerifier
+  let verificationError
   try {
     Object.defineProperty(String.prototype, 'localeCompare', {
       ...localeCompareDescriptor,
@@ -3019,9 +3048,75 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
         throw new Error('localeCompare must not order replay')
       },
     })
-    freshVerifier = await import(
+    const freshVerifier = await import(
       `../src/memory-bundle-verify.mjs?m106-binary=${Date.now()}`
     )
+
+    withM105Database((db) => {
+      const memoryIds = [
+        m106Id('mem', 0x99f),
+        m106Id('mem', 0x991),
+        m106Id('mem', 0x99a),
+      ]
+      const events = memoryIds.map((memoryId, index) =>
+        makeM106CreateEventRow(index + 1, memoryId))
+      const atomOverrides = [
+        { keywords: ['alpha', 'tea'], fictional: false },
+        { keywords: ['beta', 'tea'], fictional: true },
+        { keywords: ['gamma', 'tea'], fictional: false },
+      ]
+      const atoms = events.map((event, index) =>
+        makeM106AtomRow(event, atomOverrides[index]))
+      createM106SemanticBundle(db, events, atoms)
+
+      const first = freshVerifier.verifyMemoryBundleState(db)
+      const second = freshVerifier.verifyMemoryBundleState(db)
+      const expectedOrder = [...memoryIds].sort(compareBinary)
+      const expectedById = new Map(events.map((event, index) => [
+        event.memory_id,
+        expectedM106ReplayMemory(event, atomOverrides[index]),
+      ]))
+      const expectedMemories = expectedOrder.map((memoryId) =>
+        expectedById.get(memoryId))
+
+      assert.deepEqual(first.memories.map(({ memoryId }) => memoryId), expectedOrder)
+      assert.deepEqual(first.memories, expectedMemories)
+      assert.deepEqual(second, first)
+      assert.notStrictEqual(second, first)
+      assert.notStrictEqual(second.checkpoint, first.checkpoint)
+      assert.notStrictEqual(second.memories, first.memories)
+      assert.notStrictEqual(second.retainedByMemoryId, first.retainedByMemoryId)
+      assert.notStrictEqual(second.seenDecisionIds, first.seenDecisionIds)
+      assert.notStrictEqual(second.seenProposalIds, first.seenProposalIds)
+      for (let index = 0; index < first.memories.length; index += 1) {
+        assertM106ReplayDescriptors(first.memories[index])
+        assert.notStrictEqual(second.memories[index], first.memories[index])
+        assert.notStrictEqual(
+          second.memories[index].keywords,
+          first.memories[index].keywords,
+        )
+      }
+
+      first.checkpoint.sequence = 999
+      first.memories[0].content = 'mutated content'
+      first.memories[0].keywords.push('zzzz')
+      first.retainedByMemoryId.clear()
+      first.seenDecisionIds.clear()
+      first.seenProposalIds.clear()
+
+      const third = freshVerifier.verifyMemoryBundleState(db)
+      assert.deepEqual(third.memories, expectedMemories)
+      assert.deepEqual(third.checkpoint, {
+        streamId: M1_04_IDS.streamId,
+        sequence: 3,
+      })
+      assert.equal(third.retainedByMemoryId.size, 3)
+      assert.equal(third.seenDecisionIds.size, 3)
+      assert.equal(third.seenProposalIds.size, 3)
+      assert.equal(localeCompareCalls, 0)
+    })
+  } catch (error) {
+    verificationError = error
   } finally {
     Object.defineProperty(
       String.prototype,
@@ -3030,67 +3125,10 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
     )
   }
 
-  withM105Database((db) => {
-    const memoryIds = [
-      m106Id('mem', 0x99f),
-      m106Id('mem', 0x991),
-      m106Id('mem', 0x99a),
-    ]
-    const events = memoryIds.map((memoryId, index) =>
-      makeM106CreateEventRow(index + 1, memoryId))
-    const atomOverrides = [
-      { keywords: ['alpha', 'tea'], fictional: false },
-      { keywords: ['beta', 'tea'], fictional: true },
-      { keywords: ['gamma', 'tea'], fictional: false },
-    ]
-    const atoms = events.map((event, index) =>
-      makeM106AtomRow(event, atomOverrides[index]))
-    createM106SemanticBundle(db, events, atoms)
-
-    const first = freshVerifier.verifyMemoryBundleState(db)
-    const second = freshVerifier.verifyMemoryBundleState(db)
-    const expectedOrder = [...memoryIds].sort(compareBinary)
-    const expectedById = new Map(events.map((event, index) => [
-      event.memory_id,
-      expectedM106ReplayMemory(event, atomOverrides[index]),
-    ]))
-    const expectedMemories = expectedOrder.map((memoryId) =>
-      expectedById.get(memoryId))
-
-    assert.equal(localeCompareCalls, 0)
-    assert.deepEqual(first.memories.map(({ memoryId }) => memoryId), expectedOrder)
-    assert.deepEqual(first.memories, expectedMemories)
-    assert.deepEqual(second, first)
-    assert.notStrictEqual(second, first)
-    assert.notStrictEqual(second.checkpoint, first.checkpoint)
-    assert.notStrictEqual(second.memories, first.memories)
-    assert.notStrictEqual(second.retainedByMemoryId, first.retainedByMemoryId)
-    assert.notStrictEqual(second.seenDecisionIds, first.seenDecisionIds)
-    assert.notStrictEqual(second.seenProposalIds, first.seenProposalIds)
-    for (let index = 0; index < first.memories.length; index += 1) {
-      assertM106ReplayDescriptors(first.memories[index])
-      assert.notStrictEqual(second.memories[index], first.memories[index])
-      assert.notStrictEqual(
-        second.memories[index].keywords,
-        first.memories[index].keywords,
-      )
-    }
-
-    first.checkpoint.sequence = 999
-    first.memories[0].content = 'mutated content'
-    first.memories[0].keywords.push('zzzz')
-    first.retainedByMemoryId.clear()
-    first.seenDecisionIds.clear()
-    first.seenProposalIds.clear()
-
-    const third = freshVerifier.verifyMemoryBundleState(db)
-    assert.deepEqual(third.memories, expectedMemories)
-    assert.deepEqual(third.checkpoint, {
-      streamId: M1_04_IDS.streamId,
-      sequence: 3,
-    })
-    assert.equal(third.retainedByMemoryId.size, 3)
-    assert.equal(third.seenDecisionIds.size, 3)
-    assert.equal(third.seenProposalIds.size, 3)
-  })
+  assert.deepEqual(
+    Object.getOwnPropertyDescriptor(String.prototype, 'localeCompare'),
+    localeCompareDescriptor,
+  )
+  assert.equal(localeCompareCalls, 0)
+  if (verificationError !== undefined) throw verificationError
 })
