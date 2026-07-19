@@ -1,3 +1,5 @@
+import { types as utilTypes } from 'node:util'
+
 export const BUNDLE_ERROR_CODES = Object.freeze([
   'bundle_invalid_argument',
   'bundle_busy',
@@ -30,10 +32,29 @@ const objectHasOwnProperty = Object.prototype.hasOwnProperty
 const setHas = Set.prototype.has
 const weakSetAdd = WeakSet.prototype.add
 const weakSetHas = WeakSet.prototype.has
+const isProxy = utilTypes.isProxy
 const nativeString = String
 const nativeTypeError = TypeError
+const INVALID_CODE_NON_PRIMITIVE_RENDERING = '<non-primitive>'
+const INVALID_MESSAGE_DIAGNOSTIC =
+  'Memory bundle error message must be a non-empty string.'
+
+function throwNativeTypeError(message) {
+  throw reflectConstruct(nativeTypeError, [message])
+}
+
+function renderInvalidCode(code) {
+  if (
+    typeof code === 'function' ||
+    (typeof code === 'object' && code !== null)
+  ) {
+    return INVALID_CODE_NON_PRIMITIVE_RENDERING
+  }
+  return reflectApply(nativeString, undefined, [code])
+}
 
 function readOwnDataCause(options) {
+  if (reflectApply(isProxy, undefined, [options])) return undefined
   if (
     options === null ||
     (typeof options !== 'object' && typeof options !== 'function')
@@ -58,10 +79,12 @@ function readOwnDataCause(options) {
 export class MemoryBundleError extends Error {
   constructor(code, message, options = {}) {
     if (!reflectApply(setHas, BUNDLE_ERROR_CODE_SET, [code])) {
-      const renderedCode = reflectApply(nativeString, undefined, [code])
-      throw reflectConstruct(nativeTypeError, [
-        `Unknown memory bundle error code: ${renderedCode}`,
-      ])
+      throwNativeTypeError(
+        `Unknown memory bundle error code: ${renderInvalidCode(code)}`,
+      )
+    }
+    if (typeof message !== 'string' || message === '') {
+      throwNativeTypeError(INVALID_MESSAGE_DIAGNOSTIC)
     }
     const cause = readOwnDataCause(options)
     super(message, cause === undefined ? undefined : { cause })

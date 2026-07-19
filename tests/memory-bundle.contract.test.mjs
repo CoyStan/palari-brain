@@ -4,7 +4,10 @@ import { DatabaseSync } from 'node:sqlite'
 
 import * as applyModule from '../src/memory-bundle-apply.mjs'
 import * as publicModule from '../src/memory-bundle.mjs'
-import { BUNDLE_ERROR_CODES } from '../src/memory-bundle-errors.mjs'
+import {
+  BUNDLE_ERROR_CODES,
+  preserveMemoryBundleError,
+} from '../src/memory-bundle-errors.mjs'
 import {
   captureExactRecord,
   isCapturedOrdinaryArray,
@@ -457,6 +460,193 @@ test('M1-02 invalid error codes ignore later String and TypeError poisoning', ()
     'Unknown memory bundle error code: __invalid_bundle_code__',
   )
   assert.deepEqual(Object.keys(caught), [])
+})
+
+test('M1-02 invalid object and function error codes never invoke conversion hooks', () => {
+  const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+  const defineProperty = Object.defineProperty
+  const deleteProperty = Reflect.deleteProperty
+  const originalDescriptor = getOwnPropertyDescriptor(
+    Object.prototype,
+    Symbol.toPrimitive,
+  )
+  const nativeTypeError = globalThis.TypeError
+  const functionCode = function invalidBundleCode() {}
+  let conversionCallCount = 0
+  let objectCaught
+  let functionCaught
+
+  defineProperty(functionCode, Symbol.toPrimitive, {
+    value() {
+      conversionCallCount += 1
+      throw new Error('own conversion poison ran')
+    },
+    enumerable: false,
+    configurable: true,
+    writable: true,
+  })
+
+  try {
+    defineProperty(Object.prototype, Symbol.toPrimitive, {
+      value() {
+        conversionCallCount += 1
+        throw new Error('Object.prototype conversion poison ran')
+      },
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    })
+
+    try {
+      new applyModule.MemoryBundleError({}, 'invalid')
+    } catch (error) {
+      objectCaught = error
+    }
+    try {
+      new applyModule.MemoryBundleError(functionCode, 'invalid')
+    } catch (error) {
+      functionCaught = error
+    }
+  } finally {
+    if (originalDescriptor === undefined) {
+      deleteProperty(Object.prototype, Symbol.toPrimitive)
+    } else {
+      defineProperty(Object.prototype, Symbol.toPrimitive, originalDescriptor)
+    }
+  }
+
+  assert.deepEqual(
+    getOwnPropertyDescriptor(Object.prototype, Symbol.toPrimitive),
+    originalDescriptor,
+  )
+  assert.equal(conversionCallCount, 0)
+  for (const caught of [objectCaught, functionCaught]) {
+    assert.equal(Object.getPrototypeOf(caught), nativeTypeError.prototype)
+    assert.equal(caught.name, 'TypeError')
+    assert.equal(
+      caught.message,
+      'Unknown memory bundle error code: <non-primitive>',
+    )
+    assert.deepEqual(Object.keys(caught), [])
+  }
+})
+
+test('M1-02 error options ignore live and revoked Proxies without traps', () => {
+  let descriptorTrapCallCount = 0
+  const liveOptions = new Proxy(
+    { cause: new Error('must not be observed') },
+    {
+      getOwnPropertyDescriptor() {
+        descriptorTrapCallCount += 1
+        throw new Error('options descriptor trap ran')
+      },
+    },
+  )
+  const revokedPair = Proxy.revocable(
+    { cause: new Error('must not be observed') },
+    {
+      getOwnPropertyDescriptor() {
+        descriptorTrapCallCount += 1
+        throw new Error('revoked options descriptor trap ran')
+      },
+    },
+  )
+  revokedPair.revoke()
+
+  let liveError
+  let liveCaught
+  let revokedError
+  let revokedCaught
+  try {
+    liveError = new applyModule.MemoryBundleError(
+      'bundle_storage_error',
+      'storage failed',
+      liveOptions,
+    )
+  } catch (error) {
+    liveCaught = error
+  }
+  try {
+    revokedError = new applyModule.MemoryBundleError(
+      'bundle_storage_error',
+      'storage failed',
+      revokedPair.proxy,
+    )
+  } catch (error) {
+    revokedCaught = error
+  }
+
+  assert.equal(descriptorTrapCallCount, 0)
+  assert.equal(liveCaught, undefined)
+  assert.equal(revokedCaught, undefined)
+  assertExactBundleError(
+    liveError,
+    'bundle_storage_error',
+    'storage failed',
+  )
+  assertExactBundleError(
+    revokedError,
+    'bundle_storage_error',
+    'storage failed',
+  )
+})
+
+test('M1-02 invalid messages fail before coercion and private branding', () => {
+  const nativeTypeError = globalThis.TypeError
+  let conversionCallCount = 0
+  const coercionPoison = {
+    [Symbol.toPrimitive]() {
+      conversionCallCount += 1
+      throw new Error('message Symbol.toPrimitive poison ran')
+    },
+    toString() {
+      conversionCallCount += 1
+      throw new Error('message toString poison ran')
+    },
+    valueOf() {
+      conversionCallCount += 1
+      throw new Error('message valueOf poison ran')
+    },
+  }
+  const outcomes = []
+
+  for (const message of [undefined, '', coercionPoison]) {
+    let returned
+    let caught
+    try {
+      returned = new applyModule.MemoryBundleError(
+        'bundle_invalid_argument',
+        message,
+      )
+    } catch (error) {
+      caught = error
+    }
+    outcomes.push({ returned, caught })
+  }
+
+  assert.equal(conversionCallCount, 0)
+  for (const { returned, caught } of outcomes) {
+    assert.equal(returned, undefined)
+    assert.equal(Object.getPrototypeOf(caught), nativeTypeError.prototype)
+    assert.equal(caught.name, 'TypeError')
+    assert.equal(
+      caught.message,
+      'Memory bundle error message must be a non-empty string.',
+    )
+    assert.deepEqual(Object.keys(caught), [])
+  }
+
+  const preserved = preserveMemoryBundleError(
+    outcomes[0].caught,
+    'bundle_storage_error',
+    'wrapped native failure',
+  )
+  assert.notEqual(preserved, outcomes[0].caught)
+  assert.equal(preserved.name, 'MemoryBundleError')
+  assert.equal(preserved.code, 'bundle_storage_error')
+  assert.equal(preserved.message, 'wrapped native failure')
+  assert.equal(preserved.cause, outcomes[0].caught)
+  assert.deepEqual(Object.keys(preserved), ['code'])
 })
 
 test('M1-02 exact record capture bypasses inherited setters', () => {

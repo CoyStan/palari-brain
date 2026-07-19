@@ -101,31 +101,84 @@ registerHooks({
 const scenarios = {
   async 'M1-02-native-capture'() {
     const runtime = await import('../../src/memory-bundle-runtime.mjs')
-    const db = runtime.constructDatabase([':memory:'])
-    try {
-      runtime.execDatabase(
-        db,
-        'CREATE TABLE capture_probe (id INTEGER PRIMARY KEY, value TEXT NOT NULL)',
-      )
-      const insert = runtime.prepareRowStatement(
-        db,
-        'INSERT INTO capture_probe (id, value) VALUES (?, ?)',
-      )
-      runtime.statementRun(insert, [7, 'seven'])
-      const get = runtime.prepareRowStatement(
-        db,
-        'SELECT value FROM capture_probe WHERE id = ?',
-      )
-      const row = runtime.statementGet(get, [7])
-      const all = runtime.prepareRowStatement(
-        db,
-        'SELECT id, value FROM capture_probe ORDER BY id',
-      )
-      const rows = runtime.statementAll(all, [])
-      return { trace, row, rows }
-    } finally {
-      runtime.closeDatabase(db)
+    const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+    const defineProperty = Object.defineProperty
+    const execDescriptor = getOwnPropertyDescriptor(
+      InstrumentedDatabaseSync.prototype,
+      'exec',
+    )
+    const prepareDescriptor = getOwnPropertyDescriptor(
+      InstrumentedDatabaseSync.prototype,
+      'prepare',
+    )
+    const closeDescriptor = getOwnPropertyDescriptor(
+      InstrumentedDatabaseSync.prototype,
+      'close',
+    )
+    let dynamicDatabaseDispatchCallCount = 0
+    let row
+    let rows
+
+    function dynamicDatabaseDispatchPoison() {
+      dynamicDatabaseDispatchCallCount += 1
+      throw new Error('dynamic database dispatch poison ran')
     }
+
+    try {
+      for (const [key, descriptor] of [
+        ['exec', execDescriptor],
+        ['prepare', prepareDescriptor],
+        ['close', closeDescriptor],
+      ]) {
+        defineProperty(InstrumentedDatabaseSync.prototype, key, {
+          ...descriptor,
+          value: dynamicDatabaseDispatchPoison,
+        })
+      }
+
+      const db = runtime.constructDatabase([':memory:'])
+      try {
+        runtime.execDatabase(
+          db,
+          'CREATE TABLE capture_probe (id INTEGER PRIMARY KEY, value TEXT NOT NULL)',
+        )
+        const insert = runtime.prepareRowStatement(
+          db,
+          'INSERT INTO capture_probe (id, value) VALUES (?, ?)',
+        )
+        runtime.statementRun(insert, [7, 'seven'])
+        const get = runtime.prepareRowStatement(
+          db,
+          'SELECT value FROM capture_probe WHERE id = ?',
+        )
+        row = runtime.statementGet(get, [7])
+        const all = runtime.prepareRowStatement(
+          db,
+          'SELECT id, value FROM capture_probe ORDER BY id',
+        )
+        rows = runtime.statementAll(all, [])
+      } finally {
+        runtime.closeDatabase(db)
+      }
+    } finally {
+      defineProperty(
+        InstrumentedDatabaseSync.prototype,
+        'exec',
+        execDescriptor,
+      )
+      defineProperty(
+        InstrumentedDatabaseSync.prototype,
+        'prepare',
+        prepareDescriptor,
+      )
+      defineProperty(
+        InstrumentedDatabaseSync.prototype,
+        'close',
+        closeDescriptor,
+      )
+    }
+
+    return { trace, row, rows, dynamicDatabaseDispatchCallCount }
   },
 }
 
