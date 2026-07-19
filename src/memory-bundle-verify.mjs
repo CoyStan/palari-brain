@@ -619,9 +619,8 @@ function validateAtomCorrespondence(atom, createEvent, streamId) {
   }
 }
 
-function reduceVerifiedRows(eventRows, atomRows, meta) {
+function reduceVerifiedEvents(eventRows, meta) {
   const retainedByMemoryId = reflectConstruct(nativeMap, [])
-  const createEventsByMemoryId = reflectConstruct(nativeMap, [])
   const seenDecisionIds = reflectConstruct(nativeSet, [])
   const seenProposalIds = reflectConstruct(nativeSet, [])
   const createdMemoryIds = []
@@ -667,9 +666,9 @@ function reduceVerifiedRows(eventRows, atomRows, meta) {
         palariId: event.palariId,
         userId: event.userId,
         status: 'active',
+        createEvent: event,
       }
       reflectApply(mapSet, retainedByMemoryId, [event.memoryId, retained])
-      reflectApply(mapSet, createEventsByMemoryId, [event.memoryId, event])
       appendValue(createdMemoryIds, event.memoryId)
       continue
     }
@@ -690,20 +689,34 @@ function reduceVerifiedRows(eventRows, atomRows, meta) {
     retained.status = 'deleted'
   }
 
+  return {
+    retainedByMemoryId,
+    seenDecisionIds,
+    seenProposalIds,
+    createdMemoryIds,
+    lastObservedAt,
+  }
+}
+
+function verifyAndMaterializeAtoms(atomRows, eventState, meta) {
   const expectedActiveIds = []
-  for (let index = 0; index < createdMemoryIds.length; index += 1) {
-    const memoryId = createdMemoryIds[index]
-    const retained = reflectApply(mapGet, retainedByMemoryId, [memoryId])
+  for (let index = 0; index < eventState.createdMemoryIds.length; index += 1) {
+    const memoryId = eventState.createdMemoryIds[index]
+    const retained = reflectApply(
+      mapGet,
+      eventState.retainedByMemoryId,
+      [memoryId],
+    )
     if (retained.status === 'active') appendValue(expectedActiveIds, memoryId)
   }
   sortRows(expectedActiveIds, compareCodeUnits)
 
-  const memories = []
+  const capturedAtoms = []
   const actualIds = []
   for (let index = 0; index < atomRows.length; index += 1) {
-    const atom = decodeAtomRow(atomRows[index])
-    appendValue(memories, atom)
-    appendValue(actualIds, atom.memoryId)
+    const captured = decodeAtomRow(atomRows[index], false)
+    appendValue(capturedAtoms, captured)
+    appendValue(actualIds, captured.atom.memoryId)
   }
 
   let expectedIndex = 0
@@ -721,8 +734,16 @@ function reduceVerifiedRows(eventRows, atomRows, meta) {
     if (comparison > 0) {
       fail('bundle_orphan_atom', 'An atom has no active create event.')
     }
-    const createEvent = reflectApply(mapGet, createEventsByMemoryId, [expectedId])
-    validateAtomCorrespondence(memories[actualIndex], createEvent, meta.streamId)
+    const retained = reflectApply(
+      mapGet,
+      eventState.retainedByMemoryId,
+      [expectedId],
+    )
+    validateAtomCorrespondence(
+      capturedAtoms[actualIndex].atom,
+      retained.createEvent,
+      meta.streamId,
+    )
     expectedIndex += 1
     actualIndex += 1
   }
@@ -733,17 +754,14 @@ function reduceVerifiedRows(eventRows, atomRows, meta) {
     fail('bundle_orphan_atom', 'An atom has no active create event.')
   }
 
-  return {
-    checkpoint: {
-      streamId: meta.streamId,
-      sequence: meta.headSequence,
-    },
-    memories,
-    retainedByMemoryId,
-    seenDecisionIds,
-    seenProposalIds,
-    lastObservedAt,
+  const memories = []
+  for (let index = 0; index < capturedAtoms.length; index += 1) {
+    appendValue(
+      memories,
+      reflectApply(capturedAtoms[index].materialize, undefined, []),
+    )
   }
+  return memories
 }
 
 export function verifyMemoryBundleState(db) {
@@ -790,13 +808,24 @@ export function verifyMemoryBundleState(db) {
   const meta = readAndValidateMeta(db)
   const eventRows = readEventRows(db)
   validateEventSequences(eventRows, meta.headSequence)
+  const eventState = reduceVerifiedEvents(eventRows, meta)
   const atomRows = readAtomRows(db)
-  const state = reduceVerifiedRows(eventRows, atomRows, meta)
+  const memories = verifyAndMaterializeAtoms(atomRows, eventState, meta)
   const lastSequence = eventRows.length === 0
     ? 0
     : eventRows[eventRows.length - 1].sequence
   if (meta.headSequence !== lastSequence) {
     fail('bundle_meta_mismatch', 'The canonical meta head does not match events.')
   }
-  return state
+  return {
+    checkpoint: {
+      streamId: meta.streamId,
+      sequence: meta.headSequence,
+    },
+    memories,
+    retainedByMemoryId: eventState.retainedByMemoryId,
+    seenDecisionIds: eventState.seenDecisionIds,
+    seenProposalIds: eventState.seenProposalIds,
+    lastObservedAt: eventState.lastObservedAt,
+  }
 }

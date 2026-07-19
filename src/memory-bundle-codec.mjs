@@ -492,7 +492,8 @@ function buildDecodedAtom(atom, checksum) {
   const decoded = {}
   for (let index = 0; index < CANONICAL_ATOM_KEYS.length; index += 1) {
     const key = CANONICAL_ATOM_KEYS[index]
-    defineData(decoded, key, atom[key])
+    const value = key === 'keywords' ? captureKeywords(atom[key]) : atom[key]
+    defineData(decoded, key, value)
   }
   defineData(decoded, 'contentChecksum', checksum)
   return decoded
@@ -863,7 +864,7 @@ export function encodeAtomRow(atom) {
   return buildAtomRow(captured, computeCapturedAtomChecksum(captured))
 }
 
-export function decodeAtomRow(value) {
+function captureDecodedAtomRow(value) {
   const row = captureSqliteRow(
     value,
     ATOM_ROW_KEYS,
@@ -916,7 +917,18 @@ export function decodeAtomRow(value) {
   ) {
     fail('bundle_invalid_atom', 'Persisted atom checksum is invalid.')
   }
-  return buildDecodedAtom(atom, row.content_checksum)
+
+  const captured = {}
+  defineData(captured, 'atom', atom)
+  defineData(captured, 'materialize', () =>
+    buildDecodedAtom(atom, row.content_checksum))
+  return captured
+}
+
+export function decodeAtomRow(value, materialize = true) {
+  const captured = captureDecodedAtomRow(value)
+  if (materialize === false) return captured
+  return reflectApply(captured.materialize, undefined, [])
 }
 
 export function decodeEventRow(value, validateAuthority = true) {
