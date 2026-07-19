@@ -1,10 +1,11 @@
+import { hash as nativeHash } from 'node:crypto'
+
 import {
   memoryBundleFailure,
   preserveMemoryBundleError,
 } from './memory-bundle-errors.mjs'
 import {
   constructNativeDate,
-  createNativeHash,
   isAbsolutePath,
   isProxyValue,
   nativeDateToISOString,
@@ -29,16 +30,13 @@ const stringCharCodeAt = String.prototype.charCodeAt
 const stringIndexOf = String.prototype.indexOf
 const stringSlice = String.prototype.slice
 const stringStartsWith = String.prototype.startsWith
-const regexpTest = RegExp.prototype.test
+const regexpExec = RegExp.prototype.exec
 const jsonParse = JSON.parse
 const jsonStringify = JSON.stringify
 const nativeMap = Map
 const mapGet = Map.prototype.get
 const mapSet = Map.prototype.set
-
-const hashProbe = createNativeHash('sha256')
-const hashUpdate = hashProbe.update
-const hashDigest = hashProbe.digest
+const cryptoHash = nativeHash
 
 const IDENTITY_PATTERN = /^[a-z][a-z0-9_-]{0,63}$/
 const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
@@ -205,6 +203,10 @@ function includesExact(values, candidate) {
   return false
 }
 
+function matchesPattern(pattern, value) {
+  return reflectApply(regexpExec, pattern, [value]) !== null
+}
+
 function snapshotDescriptors(value, ownKeys) {
   const descriptors = reflectConstruct(nativeMap, [])
   for (let index = 0; index < ownKeys.length; index += 1) {
@@ -219,15 +221,14 @@ function snapshotDescriptors(value, ownKeys) {
   return descriptors
 }
 
-function captureRecord(value, specification) {
-  const {
-    keys,
-    code,
-    message,
-    allowSubset = false,
-    requiredPrototype = objectPrototype,
-  } = specification
-
+function captureRecord(
+  value,
+  keys,
+  code,
+  message,
+  allowSubset,
+  requiredPrototype,
+) {
   try {
     if (isProxyValue(value)) fail(code, `${message} It must not be a Proxy.`)
     if (
@@ -280,12 +281,7 @@ function captureRecord(value, specification) {
 }
 
 function captureSqliteRow(value, keys, code, message) {
-  return captureRecord(value, {
-    keys,
-    code,
-    message,
-    requiredPrototype: null,
-  })
+  return captureRecord(value, keys, code, message, false, null)
 }
 
 function validateSafeInteger(value, minimum, code, label) {
@@ -412,11 +408,14 @@ function validateCanonicalAtom(atom) {
 }
 
 function captureCanonicalAtom(value) {
-  return validateCanonicalAtom(captureRecord(value, {
-    keys: CANONICAL_ATOM_KEYS,
-    code: 'bundle_invalid_atom',
-    message: 'A canonical atom exact-shape object is required.',
-  }))
+  return validateCanonicalAtom(captureRecord(
+    value,
+    CANONICAL_ATOM_KEYS,
+    'bundle_invalid_atom',
+    'A canonical atom exact-shape object is required.',
+    false,
+    objectPrototype,
+  ))
 }
 
 function stringifyCanonicalJson(value) {
@@ -455,13 +454,10 @@ function buildChecksumArray(atom) {
 
 function computeCapturedAtomChecksum(atom) {
   try {
-    const hash = createNativeHash('sha256')
-    reflectApply(hashUpdate, hash, [ATOM_CHECKSUM_DOMAIN, 'utf8'])
-    reflectApply(hashUpdate, hash, [
-      stringifyCanonicalJson(buildChecksumArray(atom)),
-      'utf8',
-    ])
-    return reflectApply(hashDigest, hash, ['hex'])
+    const input = ATOM_CHECKSUM_DOMAIN + stringifyCanonicalJson(
+      buildChecksumArray(atom),
+    )
+    return reflectApply(cryptoHash, undefined, ['sha256', input, 'hex'])
   } catch (error) {
     throw preserveMemoryBundleError(
       error,
@@ -604,12 +600,14 @@ function buildDecodedEvent(row) {
 }
 
 export function captureInitializerOptions(value) {
-  const options = captureRecord(value, {
-    keys: INITIALIZER_OPTION_KEYS,
-    code: 'bundle_invalid_argument',
-    message: 'Initializer options must be a plain exact-shape object.',
-    allowSubset: true,
-  })
+  const options = captureRecord(
+    value,
+    INITIALIZER_OPTION_KEYS,
+    'bundle_invalid_argument',
+    'Initializer options must be a plain exact-shape object.',
+    true,
+    objectPrototype,
+  )
   for (let index = 0; index < INITIALIZER_OPTION_KEYS.length; index += 1) {
     const key = INITIALIZER_OPTION_KEYS[index]
     if (hasOwn(options, key) && typeof options[key] !== 'function') {
@@ -620,11 +618,14 @@ export function captureInitializerOptions(value) {
 }
 
 export function captureOpenOptions(value) {
-  const options = captureRecord(value, {
-    keys: OPEN_OPTION_KEYS,
-    code: 'bundle_invalid_argument',
-    message: 'Public-open options must be a plain exact-shape object.',
-  })
+  const options = captureRecord(
+    value,
+    OPEN_OPTION_KEYS,
+    'bundle_invalid_argument',
+    'Public-open options must be a plain exact-shape object.',
+    false,
+    objectPrototype,
+  )
   const dbPath = options.dbPath
   if (
     typeof dbPath !== 'string' ||
@@ -638,16 +639,22 @@ export function captureOpenOptions(value) {
 }
 
 export function captureApplyEnvelope(value) {
-  const envelope = captureRecord(value, {
-    keys: APPLY_ENVELOPE_KEYS,
-    code: 'bundle_invalid_argument',
-    message: 'Apply input must be a plain exact-shape object.',
-  })
-  const expectedHead = captureRecord(envelope.expectedHead, {
-    keys: EXPECTED_HEAD_KEYS,
-    code: 'bundle_invalid_argument',
-    message: 'expectedHead must be a plain exact-shape object.',
-  })
+  const envelope = captureRecord(
+    value,
+    APPLY_ENVELOPE_KEYS,
+    'bundle_invalid_argument',
+    'Apply input must be a plain exact-shape object.',
+    false,
+    objectPrototype,
+  )
+  const expectedHead = captureRecord(
+    envelope.expectedHead,
+    EXPECTED_HEAD_KEYS,
+    'bundle_invalid_argument',
+    'expectedHead must be a plain exact-shape object.',
+    false,
+    objectPrototype,
+  )
   validatePrefixedUuidV4(
     expectedHead.streamId,
     'str_',
@@ -664,36 +671,48 @@ export function captureApplyEnvelope(value) {
 }
 
 export function captureDecision(value) {
-  return captureRecord(value, {
-    keys: DECISION_KEYS,
-    code: 'bundle_invalid_decision',
-    message: 'decision must be a plain exact-shape object.',
-  })
+  return captureRecord(
+    value,
+    DECISION_KEYS,
+    'bundle_invalid_decision',
+    'decision must be a plain exact-shape object.',
+    false,
+    objectPrototype,
+  )
 }
 
 export function captureScope(value) {
-  return captureRecord(value, {
-    keys: SCOPE_KEYS,
-    code: 'bundle_invalid_decision',
-    message: 'decision.scope must be a plain exact-shape object.',
-  })
+  return captureRecord(
+    value,
+    SCOPE_KEYS,
+    'bundle_invalid_decision',
+    'decision.scope must be a plain exact-shape object.',
+    false,
+    objectPrototype,
+  )
 }
 
 export function captureAuthority(value) {
-  return captureRecord(value, {
-    keys: AUTHORITY_KEYS,
-    code: 'bundle_invalid_decision',
-    message: 'decision.authority must be a plain exact-shape object.',
-  })
+  return captureRecord(
+    value,
+    AUTHORITY_KEYS,
+    'bundle_invalid_decision',
+    'decision.authority must be a plain exact-shape object.',
+    false,
+    objectPrototype,
+  )
 }
 
 export function captureAtom(value) {
   if (value === null) return null
-  return captureRecord(value, {
-    keys: INPUT_ATOM_KEYS,
-    code: 'bundle_invalid_atom',
-    message: 'atom must be null or a plain exact-shape object.',
-  })
+  return captureRecord(
+    value,
+    INPUT_ATOM_KEYS,
+    'bundle_invalid_atom',
+    'atom must be null or a plain exact-shape object.',
+    false,
+    objectPrototype,
+  )
 }
 
 export function captureKeywords(value) {
@@ -761,7 +780,7 @@ export function captureKeywords(value) {
 export function validateIdentity(value, code = 'bundle_invalid_decision') {
   if (
     typeof value !== 'string' ||
-    !reflectApply(regexpTest, IDENTITY_PATTERN, [value])
+    !matchesPattern(IDENTITY_PATTERN, value)
   ) {
     fail(code, 'Identity must match the bounded ASCII identity grammar.')
   }
@@ -781,7 +800,7 @@ export function validatePrefixedUuidV4(
     fail(code, 'Identifier must use the required UUID-v4 prefix.')
   }
   const uuid = reflectApply(stringSlice, value, [prefix.length])
-  if (!reflectApply(regexpTest, UUID_V4_PATTERN, [uuid])) {
+  if (!matchesPattern(UUID_V4_PATTERN, uuid)) {
     fail(code, 'Identifier must contain a lowercase RFC 4122 UUIDv4.')
   }
   return value
@@ -790,7 +809,7 @@ export function validatePrefixedUuidV4(
 export function validateTimestamp(value, code = 'bundle_invalid_decision') {
   if (
     typeof value !== 'string' ||
-    !reflectApply(regexpTest, TIMESTAMP_PATTERN, [value])
+    !matchesPattern(TIMESTAMP_PATTERN, value)
   ) {
     fail(code, 'Timestamp must use the exact UTC millisecond form.')
   }
@@ -892,7 +911,7 @@ export function decodeAtomRow(value) {
   })
   if (
     typeof row.content_checksum !== 'string' ||
-    !reflectApply(regexpTest, CHECKSUM_PATTERN, [row.content_checksum]) ||
+    !matchesPattern(CHECKSUM_PATTERN, row.content_checksum) ||
     computeCapturedAtomChecksum(atom) !== row.content_checksum
   ) {
     fail('bundle_invalid_atom', 'Persisted atom checksum is invalid.')

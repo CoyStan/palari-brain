@@ -1081,6 +1081,77 @@ const M1_04_CHECKSUM_VECTOR = {
 const M1_04_CHECKSUM =
   '7b73a4dd7913043b54961fb0d97ac3a09ba433f744ce5162b0d9af6224b21ab8'
 
+const m104ReflectApply = Reflect.apply
+const m104ReflectDefineProperty = Reflect.defineProperty
+const m104ReflectDeleteProperty = Reflect.deleteProperty
+const m104ReflectGetOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor
+const m104ReflectGetPrototypeOf = Reflect.getPrototypeOf
+const m104ReflectOwnKeys = Reflect.ownKeys
+
+function captureM104Outcome(callback) {
+  try {
+    return { value: callback(), error: undefined }
+  } catch (error) {
+    return { value: undefined, error }
+  }
+}
+
+function restoreM104OwnDescriptor(target, key, descriptor) {
+  if (descriptor === undefined) {
+    m104ReflectApply(m104ReflectDeleteProperty, undefined, [target, key])
+    return
+  }
+  m104ReflectApply(m104ReflectDefineProperty, undefined, [target, key, descriptor])
+}
+
+function findM104NativeHashHandlePrototype(hash) {
+  const ownKeys = m104ReflectApply(m104ReflectOwnKeys, undefined, [hash])
+  let handlePrototype = null
+  for (let index = 0; index < ownKeys.length; index += 1) {
+    const descriptor = m104ReflectApply(
+      m104ReflectGetOwnPropertyDescriptor,
+      undefined,
+      [hash, ownKeys[index]],
+    )
+    const candidate = descriptor?.value
+    if (candidate === null || typeof candidate !== 'object') continue
+    const candidatePrototype = m104ReflectApply(
+      m104ReflectGetPrototypeOf,
+      undefined,
+      [candidate],
+    )
+    if (candidatePrototype === null) continue
+    const updateDescriptor = m104ReflectApply(
+      m104ReflectGetOwnPropertyDescriptor,
+      undefined,
+      [candidatePrototype, 'update'],
+    )
+    const digestDescriptor = m104ReflectApply(
+      m104ReflectGetOwnPropertyDescriptor,
+      undefined,
+      [candidatePrototype, 'digest'],
+    )
+    if (
+      typeof updateDescriptor?.value !== 'function' ||
+      typeof digestDescriptor?.value !== 'function'
+    ) {
+      continue
+    }
+    assert.equal(
+      handlePrototype,
+      null,
+      'Node 22.22.2 exposed multiple SHA-256 native handle prototypes.',
+    )
+    handlePrototype = candidatePrototype
+  }
+  assert.notEqual(
+    handlePrototype,
+    null,
+    'Node 22.22.2 SHA-256 native handle prototype was not found.',
+  )
+  return handlePrototype
+}
+
 test('M1-04 exposes only the required private codec functions', () => {
   assert.deepEqual(Object.keys(codecModule).sort(), M1_04_CODEC_EXPORTS)
 })
@@ -1626,6 +1697,355 @@ test('M1-04 scalar validation never coerces caller values', () => {
     'bundle_invalid_atom',
   )
   assert.equal(coercionCalls, 0)
+})
+
+test('M1-04 grammar validation ignores later RegExp exec replacement', () => {
+  const originalDescriptor = m104ReflectApply(
+    m104ReflectGetOwnPropertyDescriptor,
+    undefined,
+    [RegExp.prototype, 'exec'],
+  )
+  assert.notEqual(originalDescriptor, undefined)
+
+  const validUuid = 'mem_00000000-0000-4000-8000-000000000004'
+  const validTimestamp = '2026-07-18T12:00:00.000Z'
+  const runGrammarCases = () => ({
+    validIdentity: captureM104Outcome(() => codecModule.validateIdentity(
+      'palari-a',
+      'bundle_invalid_decision',
+    )),
+    validUuid: captureM104Outcome(() => codecModule.validatePrefixedUuidV4(
+      validUuid,
+      'mem_',
+      'bundle_invalid_decision',
+    )),
+    validTimestamp: captureM104Outcome(() => codecModule.validateTimestamp(
+      validTimestamp,
+      'bundle_invalid_decision',
+    )),
+    invalidIdentity: captureM104Outcome(() => codecModule.validateIdentity(
+      'INVALID!',
+      'bundle_invalid_decision',
+    )),
+    invalidUuid: captureM104Outcome(() => codecModule.validatePrefixedUuidV4(
+      'mem_not-a-uuid',
+      'mem_',
+      'bundle_invalid_decision',
+    )),
+    invalidTimestamp: captureM104Outcome(() => codecModule.validateTimestamp(
+      '2026-07-18T12:00:00Z',
+      'bundle_invalid_decision',
+    )),
+  })
+
+  let forgedCalls = 0
+  let throwingCalls = 0
+  let forgedOutcomes
+  let throwingOutcomes
+  try {
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      RegExp.prototype,
+      'exec',
+      {
+        ...originalDescriptor,
+        value() {
+          forgedCalls += 1
+          return ['forged']
+        },
+      },
+    ])
+    forgedOutcomes = runGrammarCases()
+
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      RegExp.prototype,
+      'exec',
+      {
+        ...originalDescriptor,
+        value() {
+          throwingCalls += 1
+          throw new Error('poisoned RegExp exec ran')
+        },
+      },
+    ])
+    throwingOutcomes = runGrammarCases()
+  } finally {
+    restoreM104OwnDescriptor(RegExp.prototype, 'exec', originalDescriptor)
+  }
+
+  assert.deepEqual(
+    m104ReflectApply(m104ReflectGetOwnPropertyDescriptor, undefined, [
+      RegExp.prototype,
+      'exec',
+    ]),
+    originalDescriptor,
+  )
+  assert.equal(forgedCalls, 0)
+  assert.equal(throwingCalls, 0)
+  for (const outcomes of [forgedOutcomes, throwingOutcomes]) {
+    assert.equal(outcomes.validIdentity.error, undefined)
+    assert.equal(outcomes.validIdentity.value, 'palari-a')
+    assert.equal(outcomes.validUuid.error, undefined)
+    assert.equal(outcomes.validUuid.value, validUuid)
+    assert.equal(outcomes.validTimestamp.error, undefined)
+    assert.equal(outcomes.validTimestamp.value, validTimestamp)
+    assert.equal(outcomes.invalidIdentity.error?.code, 'bundle_invalid_decision')
+    assert.equal(outcomes.invalidUuid.error?.code, 'bundle_invalid_decision')
+    assert.equal(outcomes.invalidTimestamp.error?.code, 'bundle_invalid_decision')
+  }
+})
+
+test('M1-04 capture policy ignores inherited values and getters', () => {
+  const originalAllowSubset = m104ReflectApply(
+    m104ReflectGetOwnPropertyDescriptor,
+    undefined,
+    [Object.prototype, 'allowSubset'],
+  )
+  const originalRequiredPrototype = m104ReflectApply(
+    m104ReflectGetOwnPropertyDescriptor,
+    undefined,
+    [Object.prototype, 'requiredPrototype'],
+  )
+  const expectedHead = {
+    streamId: M1_04_IDS.streamId,
+    sequence: 0,
+  }
+  const nullPrototypeOpenOptions = Object.create(null)
+  m104ReflectApply(m104ReflectDefineProperty, undefined, [
+    nullPrototypeOpenOptions,
+    'dbPath',
+    {
+      value: '/tmp/bundle.sqlite',
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    },
+  ])
+
+  let inheritedDecision
+  let inheritedApply
+  let inheritedOpen
+  let getterDecision
+  let getterApply
+  let getterOpen
+  let allowSubsetGetterCalls = 0
+  let requiredPrototypeGetterCalls = 0
+  try {
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      Object.prototype,
+      'allowSubset',
+      {
+        value: true,
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      },
+    ])
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      Object.prototype,
+      'requiredPrototype',
+      {
+        value: Object.prototype,
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      },
+    ])
+    inheritedDecision = captureM104Outcome(() => codecModule.captureDecision({}))
+    inheritedApply = captureM104Outcome(() => codecModule.captureApplyEnvelope({
+      expectedHead,
+    }))
+
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      Object.prototype,
+      'allowSubset',
+      {
+        value: false,
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      },
+    ])
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      Object.prototype,
+      'requiredPrototype',
+      {
+        value: null,
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      },
+    ])
+    inheritedOpen = captureM104Outcome(() => codecModule.captureOpenOptions(
+      nullPrototypeOpenOptions,
+    ))
+
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      Object.prototype,
+      'allowSubset',
+      {
+        enumerable: false,
+        configurable: true,
+        get() {
+          allowSubsetGetterCalls += 1
+          throw new Error('inherited allowSubset getter ran')
+        },
+      },
+    ])
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      Object.prototype,
+      'requiredPrototype',
+      {
+        value: Object.prototype,
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      },
+    ])
+    getterDecision = captureM104Outcome(() => codecModule.captureDecision({}))
+    getterApply = captureM104Outcome(() => codecModule.captureApplyEnvelope({
+      expectedHead,
+    }))
+
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      Object.prototype,
+      'allowSubset',
+      {
+        value: false,
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      },
+    ])
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      Object.prototype,
+      'requiredPrototype',
+      {
+        enumerable: false,
+        configurable: true,
+        get() {
+          requiredPrototypeGetterCalls += 1
+          throw new Error('inherited requiredPrototype getter ran')
+        },
+      },
+    ])
+    getterOpen = captureM104Outcome(() => codecModule.captureOpenOptions(
+      nullPrototypeOpenOptions,
+    ))
+  } finally {
+    restoreM104OwnDescriptor(
+      Object.prototype,
+      'requiredPrototype',
+      originalRequiredPrototype,
+    )
+    restoreM104OwnDescriptor(
+      Object.prototype,
+      'allowSubset',
+      originalAllowSubset,
+    )
+  }
+
+  assert.deepEqual(
+    m104ReflectApply(m104ReflectGetOwnPropertyDescriptor, undefined, [
+      Object.prototype,
+      'allowSubset',
+    ]),
+    originalAllowSubset,
+  )
+  assert.deepEqual(
+    m104ReflectApply(m104ReflectGetOwnPropertyDescriptor, undefined, [
+      Object.prototype,
+      'requiredPrototype',
+    ]),
+    originalRequiredPrototype,
+  )
+  assert.equal(allowSubsetGetterCalls, 0)
+  assert.equal(requiredPrototypeGetterCalls, 0)
+  assert.equal(inheritedDecision.error?.code, 'bundle_invalid_decision')
+  assert.equal(inheritedApply.error?.code, 'bundle_invalid_argument')
+  assert.equal(inheritedOpen.error?.code, 'bundle_invalid_argument')
+  assert.equal(getterDecision.error?.code, 'bundle_invalid_decision')
+  assert.equal(getterApply.error?.code, 'bundle_invalid_argument')
+  assert.equal(getterOpen.error?.code, 'bundle_invalid_argument')
+})
+
+test('M1-04 checksum ignores later native hash-handle dispatch replacement', () => {
+  assert.equal(
+    process.version,
+    'v22.22.2',
+    'M1-04 native hash-handle regression requires Node v22.22.2.',
+  )
+  const handlePrototype = findM104NativeHashHandlePrototype(createHash('sha256'))
+  const originalUpdate = m104ReflectApply(
+    m104ReflectGetOwnPropertyDescriptor,
+    undefined,
+    [handlePrototype, 'update'],
+  )
+  const originalDigest = m104ReflectApply(
+    m104ReflectGetOwnPropertyDescriptor,
+    undefined,
+    [handlePrototype, 'digest'],
+  )
+  assert.equal(typeof originalUpdate?.value, 'function')
+  assert.equal(typeof originalDigest?.value, 'function')
+
+  let updateCalls = 0
+  let digestCalls = 0
+  let checksumOutcome
+  let rowOutcome
+  try {
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      handlePrototype,
+      'update',
+      {
+        ...originalUpdate,
+        value() {
+          updateCalls += 1
+          throw new Error('poisoned native hash-handle update ran')
+        },
+      },
+    ])
+    m104ReflectApply(m104ReflectDefineProperty, undefined, [
+      handlePrototype,
+      'digest',
+      {
+        ...originalDigest,
+        value() {
+          digestCalls += 1
+          throw new Error('poisoned native hash-handle digest ran')
+        },
+      },
+    ])
+    checksumOutcome = captureM104Outcome(() => (
+      codecModule.computeMemoryBundleAtomChecksum(M1_04_CHECKSUM_VECTOR)
+    ))
+    rowOutcome = captureM104Outcome(() => codecModule.encodeAtomRow(
+      M1_04_CHECKSUM_VECTOR,
+    ))
+  } finally {
+    restoreM104OwnDescriptor(handlePrototype, 'digest', originalDigest)
+    restoreM104OwnDescriptor(handlePrototype, 'update', originalUpdate)
+  }
+
+  assert.deepEqual(
+    m104ReflectApply(m104ReflectGetOwnPropertyDescriptor, undefined, [
+      handlePrototype,
+      'update',
+    ]),
+    originalUpdate,
+  )
+  assert.deepEqual(
+    m104ReflectApply(m104ReflectGetOwnPropertyDescriptor, undefined, [
+      handlePrototype,
+      'digest',
+    ]),
+    originalDigest,
+  )
+  assert.equal(updateCalls, 0)
+  assert.equal(digestCalls, 0)
+  assert.equal(checksumOutcome.error, undefined)
+  assert.equal(checksumOutcome.value, M1_04_CHECKSUM)
+  assert.equal(rowOutcome.error, undefined)
+  assert.equal(rowOutcome.value.content_checksum, M1_04_CHECKSUM)
 })
 
 test('M1-04 codec operations ignore later intrinsic and prototype poisoning', () => {
