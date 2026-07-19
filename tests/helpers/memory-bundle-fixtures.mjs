@@ -488,3 +488,109 @@ export const EXPECTED_FOREIGN_KEY_LIST = Object.freeze({
     },
   ],
 })
+
+export const M1_04_IDS = Object.freeze({
+  streamId: 'str_00000000-0000-4000-8000-000000000001',
+  decisionId: 'dec_00000000-0000-4000-8000-000000000002',
+  proposalId: 'prp_00000000-0000-4000-8000-000000000003',
+  memoryId: 'mem_00000000-0000-4000-8000-000000000004',
+  sourceMessageId: 'msg_00000000-0000-4000-8000-000000000005',
+})
+
+export function makeM104ApplyEnvelope(overrides = {}) {
+  const value = {
+    expectedHead: {
+      streamId: M1_04_IDS.streamId,
+      sequence: 0,
+    },
+    decision: {
+      decisionId: M1_04_IDS.decisionId,
+      proposalId: M1_04_IDS.proposalId,
+      proposalKind: 'permanent',
+      operation: 'create',
+      outcome: 'applied',
+      reasonCode: null,
+      scope: { palariId: 'palari-a', userId: 'user-1' },
+      authority: { kind: 'user', authorityId: 'user-1' },
+      evidenceKind: 'direct_user_message',
+      memoryId: M1_04_IDS.memoryId,
+      memoryType: 'preference',
+      effectiveAt: '2026-07-18T11:59:00.000Z',
+      observedAt: '2026-07-18T12:00:00.000Z',
+    },
+    atom: {
+      content: 'Prefers tea.\nSays "no sugar".',
+      keywords: ['no sugar', 'tea'],
+      initialImportance: 0.75,
+      confidence: 0.875,
+      provenanceKind: 'direct_user_message',
+      sourceMessageId: null,
+      fictional: false,
+    },
+  }
+  return Object.assign(value, overrides)
+}
+
+export function makeM104CanonicalAtom(overrides = {}) {
+  return Object.assign({
+    memoryId: M1_04_IDS.memoryId,
+    streamId: M1_04_IDS.streamId,
+    createdSequence: 1,
+    palariId: 'palari-a',
+    userId: 'user-1',
+    type: 'preference',
+    content: 'Prefers tea.\nSays "no sugar".',
+    keywords: ['no sugar', 'tea'],
+    initialImportance: 0.75,
+    confidence: 0.875,
+    provenanceKind: 'direct_user_message',
+    sourceMessageId: null,
+    validFrom: '2026-07-18T11:59:00.000Z',
+    createdAt: '2026-07-18T12:00:00.000Z',
+    fictional: false,
+  }, overrides)
+}
+
+export function makeM104AtomRow(overrides = {}) {
+  return Object.assign(Object.create(null), {
+    memory_id: M1_04_IDS.memoryId,
+    stream_id: M1_04_IDS.streamId,
+    created_sequence: 1,
+    palari_id: 'palari-a',
+    user_id: 'user-1',
+    type: 'preference',
+    content: 'Prefers tea.\nSays "no sugar".',
+    keywords_json: '["no sugar","tea"]',
+    initial_importance: 0.75,
+    confidence: 0.875,
+    provenance_kind: 'direct_user_message',
+    source_message_id: null,
+    valid_from: '2026-07-18T11:59:00.000Z',
+    created_at: '2026-07-18T12:00:00.000Z',
+    fictional: 0,
+    content_checksum:
+      '7b73a4dd7913043b54961fb0d97ac3a09ba433f744ce5162b0d9af6224b21ab8',
+  }, overrides)
+}
+
+export function makeM104EventRow(overrides = {}) {
+  return Object.assign(Object.create(null), {
+    sequence: 1,
+    stream_id: M1_04_IDS.streamId,
+    decision_id: M1_04_IDS.decisionId,
+    proposal_id: M1_04_IDS.proposalId,
+    proposal_kind: 'permanent',
+    operation: 'create',
+    outcome: 'applied',
+    reason_code: null,
+    palari_id: 'palari-a',
+    user_id: 'user-1',
+    authority_kind: 'user',
+    authority_id: 'user-1',
+    evidence_kind: 'direct_user_message',
+    memory_id: M1_04_IDS.memoryId,
+    memory_type: 'preference',
+    effective_at: '2026-07-18T11:59:00.000Z',
+    observed_at: '2026-07-18T12:00:00.000Z',
+  }, overrides)
+}

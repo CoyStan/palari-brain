@@ -1,8 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
+import { runInNewContext } from 'node:vm'
 
 import * as applyModule from '../src/memory-bundle-apply.mjs'
+import * as codecModule from '../src/memory-bundle-codec.mjs'
 import * as publicModule from '../src/memory-bundle.mjs'
 import {
   BUNDLE_ERROR_CODES,
@@ -12,6 +15,12 @@ import {
   captureExactRecord,
   isCapturedOrdinaryArray,
 } from '../src/memory-bundle-runtime.mjs'
+import {
+  M1_04_IDS,
+  makeM104ApplyEnvelope,
+  makeM104AtomRow,
+  makeM104CanonicalAtom,
+} from './helpers/memory-bundle-fixtures.mjs'
 
 function assertBundleCode(callback, expectedCode) {
   assert.throws(callback, (error) => {
@@ -937,4 +946,932 @@ test('M1-02 exact record capture bypasses inherited setters', () => {
     Object.getOwnPropertyDescriptor(Object.prototype, key),
     originalDescriptor,
   )
+})
+
+function cloneM104Record(value) {
+  return Object.defineProperties({}, Object.getOwnPropertyDescriptors(value))
+}
+
+function makeM104TrapProxy(value, counter) {
+  const trap = () => {
+    counter.count += 1
+    throw new Error('Proxy trap ran')
+  }
+  return new Proxy(value, {
+    get: trap,
+    getPrototypeOf: trap,
+    has: trap,
+    ownKeys: trap,
+    getOwnPropertyDescriptor: trap,
+  })
+}
+
+function makeM104RevokedProxy(value, counter) {
+  const proxy = makeM104TrapProxy(value, counter)
+  const revocable = Proxy.revocable(proxy, {})
+  revocable.revoke()
+  return revocable.proxy
+}
+
+function makeM104CaptureCases() {
+  const input = makeM104ApplyEnvelope()
+  const clock = () => new Date('2026-07-18T12:00:00.000Z')
+  const idFactory = () => '00000000-0000-4000-8000-000000000001'
+  return [
+    {
+      label: 'initializer options',
+      code: 'bundle_invalid_argument',
+      value: { clock, idFactory },
+      invoke: (value) => codecModule.captureInitializerOptions(value),
+      requiredKey: null,
+    },
+    {
+      label: 'public-open options',
+      code: 'bundle_invalid_argument',
+      value: { dbPath: '/tmp/palari-memory-bundle.sqlite' },
+      invoke: (value) => codecModule.captureOpenOptions(value),
+      requiredKey: 'dbPath',
+    },
+    {
+      label: 'top-level apply input',
+      code: 'bundle_invalid_argument',
+      value: input,
+      invoke: (value) => codecModule.captureApplyEnvelope(value),
+      requiredKey: 'expectedHead',
+    },
+    {
+      label: 'expectedHead',
+      code: 'bundle_invalid_argument',
+      value: input.expectedHead,
+      invoke: (value) => codecModule.captureApplyEnvelope({
+        ...makeM104ApplyEnvelope(),
+        expectedHead: value,
+      }),
+      requiredKey: 'streamId',
+    },
+    {
+      label: 'decision',
+      code: 'bundle_invalid_decision',
+      value: input.decision,
+      invoke: (value) => codecModule.captureDecision(value),
+      requiredKey: 'decisionId',
+    },
+    {
+      label: 'scope',
+      code: 'bundle_invalid_decision',
+      value: input.decision.scope,
+      invoke: (value) => codecModule.captureScope(value),
+      requiredKey: 'palariId',
+    },
+    {
+      label: 'authority',
+      code: 'bundle_invalid_decision',
+      value: input.decision.authority,
+      invoke: (value) => codecModule.captureAuthority(value),
+      requiredKey: 'kind',
+    },
+    {
+      label: 'atom',
+      code: 'bundle_invalid_atom',
+      value: input.atom,
+      invoke: (value) => codecModule.captureAtom(value),
+      requiredKey: 'content',
+    },
+  ]
+}
+
+const M1_04_CODEC_EXPORTS = [
+  'captureApplyEnvelope',
+  'captureAtom',
+  'captureAuthority',
+  'captureDecision',
+  'captureInitializerOptions',
+  'captureKeywords',
+  'captureOpenOptions',
+  'captureScope',
+  'compareUnicodeScalarStrings',
+  'computeMemoryBundleAtomChecksum',
+  'decodeAtomRow',
+  'decodeEventRow',
+  'encodeAtomRow',
+  'validateIdentity',
+  'validateMemoryType',
+  'validatePrefixedUuidV4',
+  'validateTimestamp',
+]
+
+const M1_04_CHECKSUM_VECTOR = {
+  memoryId: 'mem_00000000-0000-4000-8000-000000000004',
+  streamId: 'str_00000000-0000-4000-8000-000000000001',
+  createdSequence: 1,
+  palariId: 'palari-a',
+  userId: 'user-1',
+  type: 'preference',
+  content: 'Prefers tea.\nSays "no sugar".',
+  keywords: ['no sugar', 'tea'],
+  initialImportance: 0.75,
+  confidence: 0.875,
+  provenanceKind: 'direct_user_message',
+  sourceMessageId: null,
+  validFrom: '2026-07-18T11:59:00.000Z',
+  createdAt: '2026-07-18T12:00:00.000Z',
+  fictional: false,
+}
+
+const M1_04_CHECKSUM =
+  '7b73a4dd7913043b54961fb0d97ac3a09ba433f744ce5162b0d9af6224b21ab8'
+
+test('M1-04 exposes only the required private codec functions', () => {
+  assert.deepEqual(Object.keys(codecModule).sort(), M1_04_CODEC_EXPORTS)
+})
+
+test('M1-04 captures fresh exact-shape records and the nullable atom union', () => {
+  for (const { label, value, invoke } of makeM104CaptureCases()) {
+    const captured = invoke(value)
+    assert.notEqual(captured, value, label)
+    assert.equal(Object.getPrototypeOf(captured), Object.prototype, label)
+  }
+
+  const options = codecModule.captureInitializerOptions({})
+  assert.deepEqual(options, {})
+  assert.equal(Object.getPrototypeOf(options), Object.prototype)
+
+  const envelope = codecModule.captureApplyEnvelope(makeM104ApplyEnvelope())
+  assert.notEqual(envelope.expectedHead, makeM104ApplyEnvelope().expectedHead)
+  assert.equal(Object.getPrototypeOf(envelope.expectedHead), Object.prototype)
+  assert.deepEqual(Object.keys(envelope.expectedHead), ['streamId', 'sequence'])
+  assert.equal(codecModule.captureAtom(null), null)
+})
+
+test('M1-04 rejects live and revoked Proxies at every record position without traps', () => {
+  for (const { label, code, value, invoke } of makeM104CaptureCases()) {
+    for (const revoked of [false, true]) {
+      const counter = { count: 0 }
+      const proxy = revoked
+        ? makeM104RevokedProxy(value, counter)
+        : makeM104TrapProxy(value, counter)
+      assertBundleCode(() => invoke(proxy), code)
+      assert.equal(counter.count, 0, `${label}, revoked=${revoked}`)
+    }
+  }
+})
+
+test('M1-04 rejects wrong record prototypes and container types', () => {
+  for (const { label, code, value, invoke } of makeM104CaptureCases()) {
+    const wrongPrototype = cloneM104Record(value)
+    Object.setPrototypeOf(wrongPrototype, {})
+    assertBundleCode(() => invoke(wrongPrototype), code)
+
+    const nullPrototype = Object.defineProperties(
+      Object.create(null),
+      Object.getOwnPropertyDescriptors(value),
+    )
+    assertBundleCode(() => invoke(nullPrototype), code)
+
+    const crossRealm = runInNewContext('({})')
+    Object.defineProperties(crossRealm, Object.getOwnPropertyDescriptors(value))
+    assertBundleCode(() => invoke(crossRealm), code)
+
+    const array = Object.assign([], value)
+    assertBundleCode(() => invoke(array), code)
+    assert.ok(label.length > 0)
+  }
+})
+
+test('M1-04 rejects missing, extra, symbol, accessor, and non-enumerable record keys', () => {
+  for (const {
+    label,
+    code,
+    value,
+    invoke,
+    requiredKey,
+  } of makeM104CaptureCases()) {
+    if (requiredKey !== null) {
+      const missing = cloneM104Record(value)
+      Reflect.deleteProperty(missing, requiredKey)
+      assertBundleCode(() => invoke(missing), code)
+    }
+
+    const extra = cloneM104Record(value)
+    extra.extra = true
+    assertBundleCode(() => invoke(extra), code)
+
+    const symbolic = cloneM104Record(value)
+    symbolic[Symbol(label)] = true
+    assertBundleCode(() => invoke(symbolic), code)
+
+    const key = requiredKey ?? Reflect.ownKeys(value)[0]
+    const accessor = cloneM104Record(value)
+    let getterCalls = 0
+    Object.defineProperty(accessor, key, {
+      enumerable: true,
+      configurable: true,
+      get() {
+        getterCalls += 1
+        throw new Error('record getter ran')
+      },
+    })
+    assertBundleCode(() => invoke(accessor), code)
+    assert.equal(getterCalls, 0, label)
+
+    const nonEnumerable = cloneM104Record(value)
+    Object.defineProperty(nonEnumerable, key, {
+      ...Object.getOwnPropertyDescriptor(nonEnumerable, key),
+      enumerable: false,
+    })
+    assertBundleCode(() => invoke(nonEnumerable), code)
+  }
+})
+
+test('M1-04 rejects inherited-only keys and validates initializer/open scalars without coercion', () => {
+  const originalDbPath = Object.getOwnPropertyDescriptor(Object.prototype, 'dbPath')
+  let inheritedReads = 0
+  try {
+    Object.defineProperty(Object.prototype, 'dbPath', {
+      configurable: true,
+      get() {
+        inheritedReads += 1
+        throw new Error('inherited dbPath getter ran')
+      },
+    })
+    assertBundleCode(
+      () => codecModule.captureOpenOptions({}),
+      'bundle_invalid_argument',
+    )
+  } finally {
+    if (originalDbPath === undefined) {
+      Reflect.deleteProperty(Object.prototype, 'dbPath')
+    } else {
+      Object.defineProperty(Object.prototype, 'dbPath', originalDbPath)
+    }
+  }
+  assert.equal(inheritedReads, 0)
+
+  for (const options of [
+    { clock: undefined },
+    { idFactory: undefined },
+    { clock: 'not-a-function' },
+    { idFactory: 'not-a-function' },
+  ]) {
+    assertBundleCode(
+      () => codecModule.captureInitializerOptions(options),
+      'bundle_invalid_argument',
+    )
+  }
+
+  const coercion = {
+    calls: 0,
+    toString() {
+      this.calls += 1
+      throw new Error('coercion ran')
+    },
+    valueOf() {
+      this.calls += 1
+      throw new Error('coercion ran')
+    },
+    [Symbol.toPrimitive]() {
+      this.calls += 1
+      throw new Error('coercion ran')
+    },
+  }
+  for (const dbPath of [
+    '',
+    'relative.sqlite',
+    ':memory:',
+    'file:/tmp/bundle.sqlite',
+    new URL('file:///tmp/bundle.sqlite'),
+    Buffer.from('/tmp/bundle.sqlite'),
+    coercion,
+  ]) {
+    assertBundleCode(
+      () => codecModule.captureOpenOptions({ dbPath }),
+      'bundle_invalid_argument',
+    )
+  }
+  assert.equal(coercion.calls, 0)
+  assertBundleCode(
+    () => codecModule.captureOpenOptions({ dbPath: '/tmp/bundle .sqlite' }),
+    'bundle_invalid_argument',
+  )
+})
+
+test('M1-04 short-circuits malformed parents before inspecting later children', () => {
+  const expectedHeadCounter = { count: 0 }
+  const malformedTop = {
+    expectedHead: makeM104TrapProxy({}, expectedHeadCounter),
+    decision: makeM104ApplyEnvelope().decision,
+  }
+  assertBundleCode(
+    () => codecModule.captureApplyEnvelope(malformedTop),
+    'bundle_invalid_argument',
+  )
+  assert.equal(expectedHeadCounter.count, 0)
+
+  const decisionCounter = { count: 0 }
+  const malformedExpectedHead = { streamId: M1_04_IDS.streamId }
+  assertBundleCode(
+    () => codecModule.captureApplyEnvelope({
+      ...makeM104ApplyEnvelope(),
+      expectedHead: malformedExpectedHead,
+      decision: makeM104TrapProxy({}, decisionCounter),
+    }),
+    'bundle_invalid_argument',
+  )
+  assert.equal(decisionCounter.count, 0)
+
+  const scopeCounter = { count: 0 }
+  const malformedDecision = {
+    ...makeM104ApplyEnvelope().decision,
+    scope: makeM104TrapProxy({}, scopeCounter),
+  }
+  Reflect.deleteProperty(malformedDecision, 'observedAt')
+  assertBundleCode(
+    () => codecModule.captureDecision(malformedDecision),
+    'bundle_invalid_decision',
+  )
+  assert.equal(scopeCounter.count, 0)
+
+  const keywordsCounter = { count: 0 }
+  const wrongNullOnlyAtom = {
+    ...makeM104ApplyEnvelope().atom,
+    keywords: makeM104TrapProxy([], keywordsCounter),
+    extra: true,
+  }
+  assertBundleCode(
+    () => codecModule.captureAtom(wrongNullOnlyAtom),
+    'bundle_invalid_atom',
+  )
+  assert.equal(keywordsCounter.count, 0)
+})
+
+test('M1-04 validates expectedHead scalars in order without coercion', () => {
+  for (const streamId of [
+    '',
+    'mem_00000000-0000-4000-8000-000000000004',
+    'str_00000000-0000-5000-8000-000000000001',
+  ]) {
+    assertBundleCode(
+      () => codecModule.captureApplyEnvelope({
+        ...makeM104ApplyEnvelope(),
+        expectedHead: { streamId, sequence: 0 },
+      }),
+      'bundle_invalid_argument',
+    )
+  }
+  for (const sequence of [-1, 0.5, Number.MAX_SAFE_INTEGER + 1, NaN]) {
+    assertBundleCode(
+      () => codecModule.captureApplyEnvelope({
+        ...makeM104ApplyEnvelope(),
+        expectedHead: { streamId: M1_04_IDS.streamId, sequence },
+      }),
+      'bundle_invalid_argument',
+    )
+  }
+
+  let coercionCalls = 0
+  const coercion = {
+    valueOf() {
+      coercionCalls += 1
+      throw new Error('expectedHead coercion ran')
+    },
+    toString() {
+      coercionCalls += 1
+      throw new Error('expectedHead coercion ran')
+    },
+  }
+  const laterSequenceCounter = { count: 0 }
+  const laterSequence = makeM104TrapProxy({}, laterSequenceCounter)
+  assertBundleCode(
+    () => codecModule.captureApplyEnvelope({
+      ...makeM104ApplyEnvelope(),
+      expectedHead: { streamId: coercion, sequence: laterSequence },
+    }),
+    'bundle_invalid_argument',
+  )
+  assert.equal(coercionCalls, 0)
+  assert.equal(laterSequenceCounter.count, 0)
+})
+
+test('M1-04 captures only dense canonical keyword arrays without invoking getters or traps', () => {
+  const source = ['no sugar', 'tea']
+  const captured = codecModule.captureKeywords(source)
+  assert.deepEqual(captured, source)
+  assert.notEqual(captured, source)
+  assert.equal(Object.getPrototypeOf(captured), Array.prototype)
+  assert.deepEqual(Reflect.ownKeys(captured), ['0', '1', 'length'])
+
+  for (const revoked of [false, true]) {
+    const counter = { count: 0 }
+    const proxy = revoked
+      ? makeM104RevokedProxy(source, counter)
+      : makeM104TrapProxy(source, counter)
+    assertBundleCode(
+      () => codecModule.captureKeywords(proxy),
+      'bundle_invalid_atom',
+    )
+    assert.equal(counter.count, 0)
+  }
+
+  const crossRealm = runInNewContext('["no sugar", "tea"]')
+  assertBundleCode(
+    () => codecModule.captureKeywords(crossRealm),
+    'bundle_invalid_atom',
+  )
+  const wrongPrototype = ['no sugar', 'tea']
+  Object.setPrototypeOf(wrongPrototype, {})
+  assertBundleCode(
+    () => codecModule.captureKeywords(wrongPrototype),
+    'bundle_invalid_atom',
+  )
+  assertBundleCode(
+    () => codecModule.captureKeywords({ 0: 'tea', length: 1 }),
+    'bundle_invalid_atom',
+  )
+
+  const hole = ['no sugar', , 'tea']
+  assertBundleCode(() => codecModule.captureKeywords(hole), 'bundle_invalid_atom')
+
+  const accessor = ['no sugar', 'tea']
+  let getterCalls = 0
+  Object.defineProperty(accessor, '1', {
+    enumerable: true,
+    configurable: true,
+    get() {
+      getterCalls += 1
+      throw new Error('keyword getter ran')
+    },
+  })
+  assertBundleCode(
+    () => codecModule.captureKeywords(accessor),
+    'bundle_invalid_atom',
+  )
+  assert.equal(getterCalls, 0)
+
+  const nonEnumerableIndex = ['no sugar', 'tea']
+  Object.defineProperty(nonEnumerableIndex, '1', {
+    value: 'tea',
+    enumerable: false,
+    configurable: true,
+    writable: true,
+  })
+  assertBundleCode(
+    () => codecModule.captureKeywords(nonEnumerableIndex),
+    'bundle_invalid_atom',
+  )
+
+  for (const key of ['extra', '01']) {
+    const extra = ['no sugar', 'tea']
+    extra[key] = true
+    assertBundleCode(
+      () => codecModule.captureKeywords(extra),
+      'bundle_invalid_atom',
+    )
+  }
+  const nonEnumerableExtra = ['no sugar', 'tea']
+  Object.defineProperty(nonEnumerableExtra, 'extra', { value: true })
+  assertBundleCode(
+    () => codecModule.captureKeywords(nonEnumerableExtra),
+    'bundle_invalid_atom',
+  )
+  const symbolic = ['no sugar', 'tea']
+  symbolic[Symbol('extra')] = true
+  assertBundleCode(
+    () => codecModule.captureKeywords(symbolic),
+    'bundle_invalid_atom',
+  )
+  const modifiedLength = ['no sugar', 'tea']
+  Object.defineProperty(modifiedLength, 'length', { writable: false })
+  assertBundleCode(
+    () => codecModule.captureKeywords(modifiedLength),
+    'bundle_invalid_atom',
+  )
+})
+
+test('M1-04 enforces Unicode scalar keyword values, order, prefixes, and duplicates', () => {
+  assert.equal(codecModule.compareUnicodeScalarStrings('', ''), 0)
+  assert.equal(codecModule.compareUnicodeScalarStrings('a', 'aa'), -1)
+  assert.equal(codecModule.compareUnicodeScalarStrings('aa', 'a'), 1)
+  assert.equal(codecModule.compareUnicodeScalarStrings('', '𐀀'), -1)
+  assert.equal(codecModule.compareUnicodeScalarStrings('𐀀', ''), 1)
+  assert.equal(codecModule.compareUnicodeScalarStrings('é', 'é'), -1)
+
+  assert.deepEqual(
+    codecModule.captureKeywords(['a', 'aa', '', '𐀀']),
+    ['a', 'aa', '', '𐀀'],
+  )
+  for (const value of [
+    ['tea', 'no sugar'],
+    ['tea', 'tea'],
+    [''],
+    ['\uD800'],
+    ['\uDC00'],
+    ['ok', 'bad\uD800'],
+  ]) {
+    assertBundleCode(
+      () => codecModule.captureKeywords(value),
+      'bundle_invalid_atom',
+    )
+  }
+  assertBundleCode(
+    () => codecModule.compareUnicodeScalarStrings('ok', '\uD800'),
+    'bundle_invalid_atom',
+  )
+})
+
+test('M1-04 validates strict identities, prefixed UUID-v4 families, and memory types', () => {
+  assert.equal(codecModule.validateIdentity('a', 'bundle_invalid_decision'), 'a')
+  assert.equal(
+    codecModule.validateIdentity(`a${'0'.repeat(63)}`, 'bundle_invalid_decision'),
+    `a${'0'.repeat(63)}`,
+  )
+  for (const value of ['', 'A', '1user', 'user.name', `a${'0'.repeat(64)}`]) {
+    assertBundleCode(
+      () => codecModule.validateIdentity(value, 'bundle_invalid_decision'),
+      'bundle_invalid_decision',
+    )
+  }
+
+  const unprefixed = '00000000-0000-4000-8000-000000000001'
+  for (const prefix of ['str_', 'dec_', 'prp_', 'mem_', 'msg_', '']) {
+    assert.equal(
+      codecModule.validatePrefixedUuidV4(
+        `${prefix}${unprefixed}`,
+        prefix,
+        'bundle_invalid_decision',
+      ),
+      `${prefix}${unprefixed}`,
+    )
+  }
+  for (const value of [
+    'mem_AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA',
+    'mem_00000000-0000-5000-8000-000000000001',
+    'mem_00000000-0000-4000-7000-000000000001',
+    'mem_00000000-0000-4000-c000-000000000001',
+    unprefixed,
+  ]) {
+    assertBundleCode(
+      () => codecModule.validatePrefixedUuidV4(
+        value,
+        'mem_',
+        'bundle_invalid_decision',
+      ),
+      'bundle_invalid_decision',
+    )
+  }
+
+  const memoryTypes = [
+    'relationship',
+    'preference',
+    'opinion',
+    'entity',
+    'life_event',
+    'working',
+    'project',
+    'recent_life',
+    'session_summary',
+  ]
+  for (const value of memoryTypes) {
+    assert.equal(
+      codecModule.validateMemoryType(value, 'bundle_invalid_decision'),
+      value,
+    )
+  }
+  for (const value of ['', 'unknown', new String('preference')]) {
+    assertBundleCode(
+      () => codecModule.validateMemoryType(value, 'bundle_invalid_decision'),
+      'bundle_invalid_decision',
+    )
+  }
+})
+
+test('M1-04 validates intrinsic exact timestamp round trips and invalid calendar dates', () => {
+  for (const value of [
+    '2026-07-18T12:00:00.000Z',
+    '2024-02-29T23:59:59.999Z',
+    '0000-01-01T00:00:00.000Z',
+  ]) {
+    assert.equal(
+      codecModule.validateTimestamp(value, 'bundle_invalid_decision'),
+      value,
+    )
+  }
+  for (const value of [
+    '2026-02-29T00:00:00.000Z',
+    '2026-02-30T00:00:00.000Z',
+    '2026-07-18T12:00:00Z',
+    '2026-07-18T12:00:00.000+00:00',
+    '2026-07-18T12:00:60.000Z',
+    '2026-7-18T12:00:00.000Z',
+  ]) {
+    assertBundleCode(
+      () => codecModule.validateTimestamp(value, 'bundle_invalid_decision'),
+      'bundle_invalid_decision',
+    )
+  }
+
+  const originalDate = globalThis.Date
+  const originalToISOString = Date.prototype.toISOString
+  try {
+    globalThis.Date = class PoisonedDate {
+      constructor() {
+        throw new Error('poisoned Date constructor ran')
+      }
+    }
+    originalDate.prototype.toISOString = () => {
+      throw new Error('poisoned toISOString ran')
+    }
+    assert.equal(
+      codecModule.validateTimestamp(
+        '2026-07-18T12:00:00.000Z',
+        'bundle_invalid_decision',
+      ),
+      '2026-07-18T12:00:00.000Z',
+    )
+  } finally {
+    globalThis.Date = originalDate
+    originalDate.prototype.toISOString = originalToISOString
+  }
+})
+
+test('M1-04 scalar validation never coerces caller values', () => {
+  let coercionCalls = 0
+  const coercion = {
+    toString() {
+      coercionCalls += 1
+      throw new Error('toString ran')
+    },
+    valueOf() {
+      coercionCalls += 1
+      throw new Error('valueOf ran')
+    },
+    [Symbol.toPrimitive]() {
+      coercionCalls += 1
+      throw new Error('toPrimitive ran')
+    },
+  }
+  for (const callback of [
+    () => codecModule.validateIdentity(coercion, 'bundle_invalid_decision'),
+    () => codecModule.validatePrefixedUuidV4(
+      coercion,
+      'mem_',
+      'bundle_invalid_decision',
+    ),
+    () => codecModule.validateTimestamp(coercion, 'bundle_invalid_decision'),
+    () => codecModule.validateMemoryType(coercion, 'bundle_invalid_decision'),
+  ]) {
+    assertBundleCode(callback, 'bundle_invalid_decision')
+  }
+  assertBundleCode(
+    () => codecModule.compareUnicodeScalarStrings(coercion, 'value'),
+    'bundle_invalid_atom',
+  )
+  assert.equal(coercionCalls, 0)
+})
+
+test('M1-04 codec operations ignore later intrinsic and prototype poisoning', () => {
+  const hash = createHash('sha256')
+  const findMethodOwner = (key) => {
+    let prototype = Object.getPrototypeOf(hash)
+    while (prototype !== null && !Object.hasOwn(prototype, key)) {
+      prototype = Object.getPrototypeOf(prototype)
+    }
+    assert.notEqual(prototype, null)
+    return prototype
+  }
+  const hashUpdatePrototype = findMethodOwner('update')
+  const hashDigestPrototype = findMethodOwner('digest')
+
+  const poisons = [
+    [Reflect, 'apply'],
+    [Reflect, 'construct'],
+    [Reflect, 'defineProperty'],
+    [Reflect, 'getOwnPropertyDescriptor'],
+    [Reflect, 'getPrototypeOf'],
+    [Reflect, 'ownKeys'],
+    [Array, 'isArray'],
+    [Object.prototype, 'hasOwnProperty'],
+    [Object, 'is'],
+    [Number, 'isFinite'],
+    [Number, 'isSafeInteger'],
+    [Number.prototype, 'toString'],
+    [String.prototype, 'charCodeAt'],
+    [String.prototype, 'indexOf'],
+    [String.prototype, 'slice'],
+    [String.prototype, 'startsWith'],
+    [RegExp.prototype, 'test'],
+    [JSON, 'parse'],
+    [JSON, 'stringify'],
+    [Map.prototype, 'get'],
+    [Map.prototype, 'set'],
+    [hashUpdatePrototype, 'update'],
+    [hashDigestPrototype, 'digest'],
+  ].map(([target, key]) => ({
+    target,
+    key,
+    descriptor: Object.getOwnPropertyDescriptor(target, key),
+  }))
+
+  const atom = makeM104CanonicalAtom()
+  const row = makeM104AtomRow()
+  let outcomes
+  let caught
+  try {
+    for (const { target, key, descriptor } of poisons) {
+      Object.defineProperty(target, key, {
+        ...descriptor,
+        value() {
+          throw new Error(`poisoned ${key} ran`)
+        },
+      })
+    }
+    try {
+      outcomes = {
+        options: codecModule.captureOpenOptions({ dbPath: '/tmp/bundle.sqlite' }),
+        keywords: codecModule.captureKeywords(['no sugar', 'tea']),
+        checksum: codecModule.computeMemoryBundleAtomChecksum(atom),
+        decoded: codecModule.decodeAtomRow(row),
+      }
+    } catch (error) {
+      caught = error
+    }
+  } finally {
+    for (let index = poisons.length - 1; index >= 0; index -= 1) {
+      const { target, key, descriptor } = poisons[index]
+      Object.defineProperty(target, key, descriptor)
+    }
+  }
+
+  assert.equal(caught, undefined)
+  assert.deepEqual(outcomes.options, { dbPath: '/tmp/bundle.sqlite' })
+  assert.deepEqual(outcomes.keywords, ['no sugar', 'tea'])
+  assert.equal(outcomes.checksum, M1_04_CHECKSUM)
+  assert.equal(outcomes.decoded.contentChecksum, M1_04_CHECKSUM)
+})
+
+test('M1-04 computes the exact canonical atom checksum and preserves Unicode distinctions', () => {
+  assert.equal(
+    codecModule.computeMemoryBundleAtomChecksum(M1_04_CHECKSUM_VECTOR),
+    M1_04_CHECKSUM,
+  )
+  assert.match(M1_04_CHECKSUM, /^[0-9a-f]{64}$/)
+
+  const composed = makeM104CanonicalAtom({ content: 'café' })
+  const decomposed = makeM104CanonicalAtom({ content: 'café' })
+  assert.notEqual(
+    codecModule.computeMemoryBundleAtomChecksum(composed),
+    codecModule.computeMemoryBundleAtomChecksum(decomposed),
+  )
+
+  const originalArrayToJSON = Object.getOwnPropertyDescriptor(
+    Array.prototype,
+    'toJSON',
+  )
+  let toJSONCalls = 0
+  try {
+    Object.defineProperty(Array.prototype, 'toJSON', {
+      configurable: true,
+      value() {
+        toJSONCalls += 1
+        throw new Error('inherited toJSON ran')
+      },
+    })
+    assert.equal(
+      codecModule.computeMemoryBundleAtomChecksum(M1_04_CHECKSUM_VECTOR),
+      M1_04_CHECKSUM,
+    )
+  } finally {
+    if (originalArrayToJSON === undefined) {
+      Reflect.deleteProperty(Array.prototype, 'toJSON')
+    } else {
+      Object.defineProperty(Array.prototype, 'toJSON', originalArrayToJSON)
+    }
+  }
+  assert.equal(toJSONCalls, 0)
+})
+
+test('M1-04 rejects malformed canonical atom shape, Unicode, and numeric scalars without coercion', () => {
+  for (const revoked of [false, true]) {
+    const counter = { count: 0 }
+    const proxy = revoked
+      ? makeM104RevokedProxy(M1_04_CHECKSUM_VECTOR, counter)
+      : makeM104TrapProxy(M1_04_CHECKSUM_VECTOR, counter)
+    assertBundleCode(
+      () => codecModule.computeMemoryBundleAtomChecksum(proxy),
+      'bundle_invalid_atom',
+    )
+    assert.equal(counter.count, 0)
+  }
+
+  const wrongPrototype = { ...M1_04_CHECKSUM_VECTOR }
+  Object.setPrototypeOf(wrongPrototype, {})
+  assertBundleCode(
+    () => codecModule.computeMemoryBundleAtomChecksum(wrongPrototype),
+    'bundle_invalid_atom',
+  )
+  const nullPrototype = Object.assign(
+    Object.create(null),
+    M1_04_CHECKSUM_VECTOR,
+  )
+  assertBundleCode(
+    () => codecModule.computeMemoryBundleAtomChecksum(nullPrototype),
+    'bundle_invalid_atom',
+  )
+  const crossRealm = runInNewContext('({})')
+  Object.assign(crossRealm, M1_04_CHECKSUM_VECTOR)
+  assertBundleCode(
+    () => codecModule.computeMemoryBundleAtomChecksum(crossRealm),
+    'bundle_invalid_atom',
+  )
+
+  const extra = { ...M1_04_CHECKSUM_VECTOR, extra: true }
+  assertBundleCode(
+    () => codecModule.computeMemoryBundleAtomChecksum(extra),
+    'bundle_invalid_atom',
+  )
+  const symbolic = { ...M1_04_CHECKSUM_VECTOR, [Symbol('extra')]: true }
+  assertBundleCode(
+    () => codecModule.computeMemoryBundleAtomChecksum(symbolic),
+    'bundle_invalid_atom',
+  )
+  const accessor = { ...M1_04_CHECKSUM_VECTOR }
+  let getterCalls = 0
+  Object.defineProperty(accessor, 'content', {
+    enumerable: true,
+    get() {
+      getterCalls += 1
+      throw new Error('atom getter ran')
+    },
+  })
+  assertBundleCode(
+    () => codecModule.computeMemoryBundleAtomChecksum(accessor),
+    'bundle_invalid_atom',
+  )
+  assert.equal(getterCalls, 0)
+
+  for (const field of [
+    'memoryId',
+    'streamId',
+    'palariId',
+    'userId',
+    'type',
+    'content',
+    'provenanceKind',
+    'sourceMessageId',
+    'validFrom',
+    'createdAt',
+  ]) {
+    assertBundleCode(
+      () => codecModule.computeMemoryBundleAtomChecksum({
+        ...M1_04_CHECKSUM_VECTOR,
+        [field]: `bad\uD800`,
+      }),
+      'bundle_invalid_atom',
+    )
+  }
+
+  for (const [field, values] of [
+    ['initialImportance', [-0, NaN, Infinity, -0.01, 1.01]],
+    ['confidence', [-0, NaN, -Infinity, -0.01, 1.01]],
+  ]) {
+    for (const value of values) {
+      assertBundleCode(
+        () => codecModule.computeMemoryBundleAtomChecksum({
+          ...M1_04_CHECKSUM_VECTOR,
+          [field]: value,
+        }),
+        'bundle_invalid_atom',
+      )
+    }
+  }
+  for (const createdSequence of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    assertBundleCode(
+      () => codecModule.computeMemoryBundleAtomChecksum({
+        ...M1_04_CHECKSUM_VECTOR,
+        createdSequence,
+      }),
+      'bundle_invalid_atom',
+    )
+  }
+
+  let coercionCalls = 0
+  const coercion = {
+    valueOf() {
+      coercionCalls += 1
+      throw new Error('numeric coercion ran')
+    },
+    toString() {
+      coercionCalls += 1
+      throw new Error('string coercion ran')
+    },
+  }
+  for (const field of ['content', 'initialImportance', 'fictional']) {
+    assertBundleCode(
+      () => codecModule.computeMemoryBundleAtomChecksum({
+        ...M1_04_CHECKSUM_VECTOR,
+        [field]: coercion,
+      }),
+      'bundle_invalid_atom',
+    )
+  }
+  assert.equal(coercionCalls, 0)
 })
