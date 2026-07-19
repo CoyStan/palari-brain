@@ -260,7 +260,7 @@ unchanged, 47/47 green.
 2026-07-18 — U8 — 7aec0b5 — Founder paused run after current question:
 9/10 checkpointed, final `1568498a` has no result; no resume without new
 explicit GO, no completed output re-rolls.
-2026-07-18 — V2-M1 — see `git log` — Founder ratified autonomous local
+2026-07-18 — V2-M1 — ea83e15 — Founder ratified autonomous local
 v2 implementation; two adversarial GPT-5.6 Sol panels selected the
 same-file governed bundle as the minimal falsifiable substrate. U8 sealed;
 live/publish work deferred; M1 is next.
