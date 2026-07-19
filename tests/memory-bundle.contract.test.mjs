@@ -1,9 +1,17 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DatabaseSync } from 'node:sqlite'
 
 import * as applyModule from '../src/memory-bundle-apply.mjs'
 import * as publicModule from '../src/memory-bundle.mjs'
 import { BUNDLE_ERROR_CODES } from '../src/memory-bundle-errors.mjs'
+
+function assertBundleCode(callback, expectedCode) {
+  assert.throws(callback, (error) => {
+    assert.equal(error?.code, expectedCode)
+    return true
+  })
+}
 
 const EXPECTED_CODES = [
   'bundle_invalid_argument',
@@ -47,4 +55,49 @@ test('M1-01 exact module namespaces and 19-code error vocabulary', () => {
   assert.equal(error.code, 'bundle_storage_error')
   assert.equal(error.cause, cause)
   assert.deepEqual(Object.keys(error), ['code'])
+})
+
+test('M1-02 database branding rejects spoofs and Proxies without traps', () => {
+  const open = new DatabaseSync(':memory:')
+  let proxyTrapCount = 0
+  const proxy = new Proxy(open, {
+    get() {
+      proxyTrapCount += 1
+      throw new Error('trap ran')
+    },
+    getPrototypeOf() {
+      proxyTrapCount += 1
+      throw new Error('trap ran')
+    },
+  })
+  const spoof = Object.create(Object.getPrototypeOf(open))
+
+  assertBundleCode(
+    () => applyModule.initializeMemoryBundle(proxy),
+    'bundle_invalid_argument',
+  )
+  assert.equal(proxyTrapCount, 0)
+  assertBundleCode(
+    () => applyModule.initializeMemoryBundle(spoof),
+    'bundle_invalid_argument',
+  )
+  assertBundleCode(
+    () => applyModule.initializeMemoryBundle(open),
+    'bundle_layout_invalid',
+  )
+
+  open.exec('BEGIN')
+  assertBundleCode(
+    () => applyModule.initializeMemoryBundle(open),
+    'bundle_connection_invalid',
+  )
+  open.exec('ROLLBACK')
+  open.close()
+
+  const closed = new DatabaseSync(':memory:')
+  closed.close()
+  assertBundleCode(
+    () => applyModule.initializeMemoryBundle(closed),
+    'bundle_connection_invalid',
+  )
 })
