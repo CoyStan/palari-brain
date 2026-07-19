@@ -23,28 +23,61 @@ export const BUNDLE_ERROR_CODES = Object.freeze([
 const BUNDLE_ERROR_CODE_SET = new Set(BUNDLE_ERROR_CODES)
 const MEMORY_BUNDLE_ERROR_INSTANCES = new WeakSet()
 const reflectApply = Reflect.apply
+const reflectConstruct = Reflect.construct
+const reflectGetOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor
+const objectDefineProperty = Object.defineProperty
+const objectHasOwnProperty = Object.prototype.hasOwnProperty
+const setHas = Set.prototype.has
 const weakSetAdd = WeakSet.prototype.add
 const weakSetHas = WeakSet.prototype.has
+const nativeString = String
+const nativeTypeError = TypeError
+
+function readOwnDataCause(options) {
+  if (
+    options === null ||
+    (typeof options !== 'object' && typeof options !== 'function')
+  ) {
+    return undefined
+  }
+
+  const descriptor = reflectApply(
+    reflectGetOwnPropertyDescriptor,
+    undefined,
+    [options, 'cause'],
+  )
+  if (
+    descriptor === undefined ||
+    !reflectApply(objectHasOwnProperty, descriptor, ['value'])
+  ) {
+    return undefined
+  }
+  return descriptor.value
+}
 
 export class MemoryBundleError extends Error {
   constructor(code, message, options = {}) {
-    if (!BUNDLE_ERROR_CODE_SET.has(code)) {
-      throw new TypeError(`Unknown memory bundle error code: ${String(code)}`)
+    if (!reflectApply(setHas, BUNDLE_ERROR_CODE_SET, [code])) {
+      const renderedCode = reflectApply(nativeString, undefined, [code])
+      throw reflectConstruct(nativeTypeError, [
+        `Unknown memory bundle error code: ${renderedCode}`,
+      ])
     }
-    super(message, options.cause === undefined ? undefined : { cause: options.cause })
-    reflectApply(weakSetAdd, MEMORY_BUNDLE_ERROR_INSTANCES, [this])
-    Object.defineProperty(this, 'name', {
+    const cause = readOwnDataCause(options)
+    super(message, cause === undefined ? undefined : { cause })
+    reflectApply(objectDefineProperty, undefined, [this, 'name', {
       value: 'MemoryBundleError',
       enumerable: false,
       configurable: true,
       writable: true,
-    })
-    Object.defineProperty(this, 'code', {
+    }])
+    reflectApply(objectDefineProperty, undefined, [this, 'code', {
       value: code,
       enumerable: true,
       configurable: false,
       writable: false,
-    })
+    }])
+    reflectApply(weakSetAdd, MEMORY_BUNDLE_ERROR_INSTANCES, [this])
   }
 }
 

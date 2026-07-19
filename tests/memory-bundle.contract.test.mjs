@@ -17,6 +17,15 @@ function assertBundleCode(callback, expectedCode) {
   })
 }
 
+function assertExactBundleError(error, expectedCode, expectedMessage) {
+  assert.equal(Object.getPrototypeOf(error), applyModule.MemoryBundleError.prototype)
+  assert.equal(error.name, 'MemoryBundleError')
+  assert.equal(error.code, expectedCode)
+  assert.equal(error.message, expectedMessage)
+  assert.equal(Object.getOwnPropertyDescriptor(error, 'cause'), undefined)
+  assert.deepEqual(Object.keys(error), ['code'])
+}
+
 const EXPECTED_CODES = [
   'bundle_invalid_argument',
   'bundle_busy',
@@ -204,6 +213,250 @@ test('M1-02 exact record capture ignores later error hasInstance poisoning', () 
     originalDescriptor,
   )
   assert.equal(caught instanceof errorConstructor, true)
+})
+
+test('M1-02 exact record capture rejects accessors despite inherited value poisoning', () => {
+  const key = '__palariMemoryBundleM102AccessorKey__'
+  const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+  const defineProperty = Object.defineProperty
+  const deleteProperty = Reflect.deleteProperty
+  const originalDescriptor = getOwnPropertyDescriptor(Object.prototype, 'value')
+  const input = {}
+  let inputAccessorCalls = 0
+  let poisonCalls = 0
+  let caught
+
+  defineProperty(input, key, {
+    get() {
+      inputAccessorCalls += 1
+      throw new Error('input accessor ran')
+    },
+    enumerable: true,
+    configurable: true,
+  })
+
+  try {
+    defineProperty(Object.prototype, 'value', {
+      get() {
+        poisonCalls += 1
+        throw new Error('Object.prototype.value poison ran')
+      },
+      enumerable: false,
+      configurable: true,
+    })
+
+    try {
+      captureExactRecord(input, {
+        keys: [key],
+        code: 'bundle_invalid_atom',
+        message: 'Exact atom record required.',
+      })
+    } catch (error) {
+      caught = error
+    }
+  } finally {
+    if (originalDescriptor === undefined) {
+      deleteProperty(Object.prototype, 'value')
+    } else {
+      defineProperty(Object.prototype, 'value', originalDescriptor)
+    }
+  }
+
+  assert.deepEqual(
+    getOwnPropertyDescriptor(Object.prototype, 'value'),
+    originalDescriptor,
+  )
+  assert.equal(inputAccessorCalls, 0)
+  assert.equal(poisonCalls, 0)
+  assertExactBundleError(
+    caught,
+    'bundle_invalid_atom',
+    'Exact atom record required.',
+  )
+})
+
+test('M1-02 error classification ignores later Set has poisoning', () => {
+  const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+  const defineProperty = Object.defineProperty
+  const originalDescriptor = getOwnPropertyDescriptor(Set.prototype, 'has')
+  let poisonCalls = 0
+  let caught
+
+  try {
+    defineProperty(Set.prototype, 'has', {
+      value() {
+        poisonCalls += 1
+        throw new Error('Set.prototype.has poison ran')
+      },
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    })
+
+    try {
+      applyModule.applyResolvedDecisionInTransaction()
+    } catch (error) {
+      caught = error
+    }
+  } finally {
+    defineProperty(Set.prototype, 'has', originalDescriptor)
+  }
+
+  assert.deepEqual(
+    getOwnPropertyDescriptor(Set.prototype, 'has'),
+    originalDescriptor,
+  )
+  assert.equal(poisonCalls, 0)
+  assertExactBundleError(
+    caught,
+    'bundle_invalid_argument',
+    'A DatabaseSync connection is required.',
+  )
+})
+
+test('M1-02 error classification ignores inherited cause poisoning', () => {
+  const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+  const defineProperty = Object.defineProperty
+  const deleteProperty = Reflect.deleteProperty
+  const originalDescriptor = getOwnPropertyDescriptor(Object.prototype, 'cause')
+  let poisonCalls = 0
+  let caught
+
+  try {
+    defineProperty(Object.prototype, 'cause', {
+      get() {
+        poisonCalls += 1
+        throw new Error('Object.prototype.cause poison ran')
+      },
+      enumerable: false,
+      configurable: true,
+    })
+
+    try {
+      applyModule.applyResolvedDecisionInTransaction()
+    } catch (error) {
+      caught = error
+    }
+  } finally {
+    if (originalDescriptor === undefined) {
+      deleteProperty(Object.prototype, 'cause')
+    } else {
+      defineProperty(Object.prototype, 'cause', originalDescriptor)
+    }
+  }
+
+  assert.deepEqual(
+    getOwnPropertyDescriptor(Object.prototype, 'cause'),
+    originalDescriptor,
+  )
+  assert.equal(poisonCalls, 0)
+  assertExactBundleError(
+    caught,
+    'bundle_invalid_argument',
+    'A DatabaseSync connection is required.',
+  )
+})
+
+test('M1-02 error construction ignores later defineProperty poisoning', () => {
+  const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+  const defineProperty = Object.defineProperty
+  const originalDescriptor = getOwnPropertyDescriptor(Object, 'defineProperty')
+  let poisonCalls = 0
+  let leakedTarget
+  let caught
+
+  try {
+    defineProperty(Object, 'defineProperty', {
+      value(target) {
+        poisonCalls += 1
+        leakedTarget = target
+        throw new Error('Object.defineProperty poison ran')
+      },
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    })
+
+    try {
+      applyModule.applyResolvedDecisionInTransaction()
+    } catch (error) {
+      caught = error
+    }
+  } finally {
+    defineProperty(Object, 'defineProperty', originalDescriptor)
+  }
+
+  assert.deepEqual(
+    getOwnPropertyDescriptor(Object, 'defineProperty'),
+    originalDescriptor,
+  )
+  assert.equal(poisonCalls, 0)
+  assert.equal(leakedTarget, undefined)
+  assertExactBundleError(
+    caught,
+    'bundle_invalid_argument',
+    'A DatabaseSync connection is required.',
+  )
+})
+
+test('M1-02 invalid error codes ignore later String and TypeError poisoning', () => {
+  const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+  const defineProperty = Object.defineProperty
+  const originalStringDescriptor = getOwnPropertyDescriptor(globalThis, 'String')
+  const originalTypeErrorDescriptor = getOwnPropertyDescriptor(
+    globalThis,
+    'TypeError',
+  )
+  const nativeTypeError = globalThis.TypeError
+  let stringPoisonCalls = 0
+  let typeErrorPoisonCalls = 0
+  let caught
+
+  try {
+    defineProperty(globalThis, 'String', {
+      get() {
+        stringPoisonCalls += 1
+        throw new Error('global String poison ran')
+      },
+      enumerable: false,
+      configurable: true,
+    })
+    defineProperty(globalThis, 'TypeError', {
+      get() {
+        typeErrorPoisonCalls += 1
+        throw new Error('global TypeError poison ran')
+      },
+      enumerable: false,
+      configurable: true,
+    })
+
+    try {
+      new applyModule.MemoryBundleError('__invalid_bundle_code__', 'invalid')
+    } catch (error) {
+      caught = error
+    }
+  } finally {
+    defineProperty(globalThis, 'String', originalStringDescriptor)
+    defineProperty(globalThis, 'TypeError', originalTypeErrorDescriptor)
+  }
+
+  assert.deepEqual(
+    getOwnPropertyDescriptor(globalThis, 'String'),
+    originalStringDescriptor,
+  )
+  assert.deepEqual(
+    getOwnPropertyDescriptor(globalThis, 'TypeError'),
+    originalTypeErrorDescriptor,
+  )
+  assert.equal(stringPoisonCalls, 0)
+  assert.equal(typeErrorPoisonCalls, 0)
+  assert.equal(Object.getPrototypeOf(caught), nativeTypeError.prototype)
+  assert.equal(caught.name, 'TypeError')
+  assert.equal(
+    caught.message,
+    'Unknown memory bundle error code: __invalid_bundle_code__',
+  )
+  assert.deepEqual(Object.keys(caught), [])
 })
 
 test('M1-02 exact record capture bypasses inherited setters', () => {

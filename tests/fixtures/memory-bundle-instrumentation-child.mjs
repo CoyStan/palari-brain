@@ -103,9 +103,26 @@ const scenarios = {
     const runtime = await import('../../src/memory-bundle-runtime.mjs')
     const db = runtime.constructDatabase([':memory:'])
     try {
-      const statement = runtime.prepareRowStatement(db, 'SELECT 1 AS value')
-      const row = runtime.statementGet(statement, [])
-      return { trace, row }
+      runtime.execDatabase(
+        db,
+        'CREATE TABLE capture_probe (id INTEGER PRIMARY KEY, value TEXT NOT NULL)',
+      )
+      const insert = runtime.prepareRowStatement(
+        db,
+        'INSERT INTO capture_probe (id, value) VALUES (?, ?)',
+      )
+      runtime.statementRun(insert, [7, 'seven'])
+      const get = runtime.prepareRowStatement(
+        db,
+        'SELECT value FROM capture_probe WHERE id = ?',
+      )
+      const row = runtime.statementGet(get, [7])
+      const all = runtime.prepareRowStatement(
+        db,
+        'SELECT id, value FROM capture_probe ORDER BY id',
+      )
+      const rows = runtime.statementAll(all, [])
+      return { trace, row, rows }
     } finally {
       runtime.closeDatabase(db)
     }

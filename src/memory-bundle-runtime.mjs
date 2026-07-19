@@ -18,6 +18,7 @@ const reflectGetOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor
 
 const arrayIsArray = Array.isArray
 const objectPrototype = Object.prototype
+const objectHasOwnProperty = Object.prototype.hasOwnProperty
 const arrayPrototype = Array.prototype
 const nativeDate = Date
 const dateToISOString = Date.prototype.toISOString
@@ -148,7 +149,7 @@ export function captureExactRecord(value, specification) {
       if (
         descriptor === undefined ||
         descriptor.enumerable !== true ||
-        !('value' in descriptor)
+        !reflectApply(objectHasOwnProperty, descriptor, ['value'])
       ) {
         throw memoryBundleFailure(code, message)
       }

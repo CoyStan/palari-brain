@@ -21,8 +21,8 @@ function runScenario(name) {
   return JSON.parse(lines[0])
 }
 
-test('M1-02 captures one unopened probe before normalized row dispatch', () => {
-  const { trace, row } = runScenario('M1-02-native-capture')
+test('M1-02 captures one unopened probe before all native dispatch paths', () => {
+  const { trace, row, rows } = runScenario('M1-02-native-capture')
 
   assert.deepEqual(trace, [
     {
@@ -34,8 +34,28 @@ test('M1-02 captures one unopened probe before normalized row dispatch', () => {
       args: [':memory:'],
     },
     {
+      operation: 'exec',
+      sql: 'CREATE TABLE capture_probe (id INTEGER PRIMARY KEY, value TEXT NOT NULL)',
+    },
+    {
       operation: 'prepare',
-      sql: 'SELECT 1 AS value',
+      sql: 'INSERT INTO capture_probe (id, value) VALUES (?, ?)',
+    },
+    {
+      operation: 'setReadBigInts',
+      value: false,
+    },
+    {
+      operation: 'setReturnArrays',
+      value: false,
+    },
+    {
+      operation: 'run',
+      parameters: [7, 'seven'],
+    },
+    {
+      operation: 'prepare',
+      sql: 'SELECT value FROM capture_probe WHERE id = ?',
     },
     {
       operation: 'setReadBigInts',
@@ -47,11 +67,28 @@ test('M1-02 captures one unopened probe before normalized row dispatch', () => {
     },
     {
       operation: 'get',
+      parameters: [7],
+    },
+    {
+      operation: 'prepare',
+      sql: 'SELECT id, value FROM capture_probe ORDER BY id',
+    },
+    {
+      operation: 'setReadBigInts',
+      value: false,
+    },
+    {
+      operation: 'setReturnArrays',
+      value: false,
+    },
+    {
+      operation: 'all',
       parameters: [],
     },
     {
       operation: 'close',
     },
   ])
-  assert.deepEqual(row, { value: 1 })
+  assert.deepEqual(row, { value: 'seven' })
+  assert.deepEqual(rows, [{ id: 7, value: 'seven' }])
 })
