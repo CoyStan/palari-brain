@@ -1,5 +1,5 @@
 // U4 contract tests — admission gate (KERNEL-API §4; contract C2/C3/C5/C6/C7; GAP-1..4).
-// Completion law: a direct-write attempt fails; a gated write passes.
+// Bounded U4 law: candidate write shortcuts fail; a gated candidate write passes.
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -56,7 +56,7 @@ function userProposal(overrides = {}) {
   }
 }
 
-test('completion law: the gated surface has no direct write path (C5)', async () => {
+test('bounded U4 law: candidate add/supersede shortcuts are absent (partial C5)', async () => {
   const { gated } = await openGated()
   for (const method of ['addMemory', 'supersedeMemory', 'insertMemory']) {
     assert.equal(gated[method], undefined, `${method} must not exist on the gated surface`)
@@ -66,7 +66,7 @@ test('completion law: the gated surface has no direct write path (C5)', async ()
   assert.ok(Object.isFrozen(gated), 'gated surface is frozen')
 })
 
-test('completion law: a gated write passes and lands with provenance columns (C5, GAP-1)', async () => {
+test('bounded U4 law: a gated candidate write lands with provenance (partial C5, GAP-1)', async () => {
   const { gated, store } = await openGated()
   const result = gated.propose(userProposal())
   assert.equal(result.outcome, 'inserted')
@@ -276,7 +276,7 @@ test('ratify: sharing is ceremonial — explicit user action at the highest thre
   assert.equal(Boolean(store.getMemoryById(note.memory.id).shared), true)
 })
 
-test('ownership stays with the user: reads, deletion, and topic-forget remain on the gated surface (C17/C18)', async () => {
+test('ownership methods remain on the frozen surface pending V2-M2 gate closure (C17/C18)', async () => {
   const { gated } = await openGated()
   const note = gated.propose(userProposal())
   assert.ok(gated.getMemoryById(note.memory.id))

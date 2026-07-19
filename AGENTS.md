@@ -57,12 +57,22 @@ publish gate.
 ## Source of truth order
 
 1. The Unified Specification, Parts 4 (Memory) and 5 (Retrieval &
-   Context) — normative. See `docs/REFERENCES.md` for exact links.
-2. Running code in palari-v05 at the recorded baseline commit —
-   the implementation to extract, bugs and all (fix in v05 first,
-   then re-extract; never fork silently).
-3. `docs/KERNEL-CONTRACT.md` in this repo — the distilled contract.
-4. This charter for process; STATUS.md for state.
+   Context) — the governing normative law for all memory work. See
+   `docs/REFERENCES.md` for exact links. No milestone contract may
+   override it.
+2. For current CDX-M1 runtime semantics, `docs/KERNEL-CONTRACT.md` and
+   `docs/KERNEL-API.md` — the distilled contract and authoritative runtime
+   surface. Recorded conformance debt is a defect to close, not an
+   exception to the Unified Specification.
+3. Running code in palari-v05 at the recorded baseline commit — the
+   implementation to extract, bugs and all (fix in v05 first, then
+   re-extract; never fork silently). It does not override items 1-2.
+4. `docs/MEMORY-BUNDLE-CONTRACT.md` — normative only for exact CDX-B1
+   coexistence-substrate semantics: manifest, module surface, transaction
+   ownership, verification, and replay. CDX-B1 remains non-authoritative;
+   this scoped delegation does not govern CDX-M1 runtime behavior, override
+   items 1-3, or authorize a runtime cutover.
+5. This charter for process; `STATUS.md` for state.
 
 ## Spend and publish gates (FOUNDER GATE — prepare, never execute)
 

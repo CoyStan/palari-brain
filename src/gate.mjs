@@ -1,8 +1,10 @@
-// Admission gate — the one write door (KERNEL-API §4) — U4, Fable 5, 2026-07-18.
-// Every durable mutation is a typed WriteProposal through
-// propose(): Admit (types, writers, provenance fields, source
-// boundary, threshold order) -> Resolve (dedup, type-safe
-// supersession) -> Apply (baseline store primitives, transactional).
+// Admission gate for candidate/add/supersession paths (KERNEL-API §4) — U4, Fable 5, 2026-07-18.
+// propose() implements Admit (types, writers, provenance fields, source
+// boundary, threshold order) -> Resolve (dedup, type-safe supersession)
+// -> Apply for its closed operation vocabulary. Raw extraction/session-
+// summary callers plus ownership, lifecycle, recall-inclusion, and
+// internal link mutation remain explicit V2-M2 conformance debt; this
+// module does not yet close every durable write.
 // The extracted baseline (./memory-store.mjs) stays verbatim; kernel
 // divergences live here as the recorded migration CDX-M1 and the
 // admission rules closing GAP-1..4 (KERNEL-API §7).
@@ -170,9 +172,10 @@ export function createMemoryGate(store, { policy = admissionPolicyDefaults } = {
   return { policy, propose }
 }
 
-// The surface producers get: reads, ownership, lifecycle, and the one
-// write door. No addMemory / supersedeMemory / insertMemory / raw db —
-// the shortcut is the bug (C5).
+// The current producer surface hides addMemory / supersedeMemory /
+// insertMemory / raw db, but still forwards ownership, lifecycle, and
+// recall-inclusion mutations directly. V2-M2 must type those remaining
+// bypasses before the complete C5 one-gate claim is satisfied.
 export function createGatedStore(store, options = {}) {
   const gate = createMemoryGate(store, options)
   return Object.freeze({

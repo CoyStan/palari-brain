@@ -8,6 +8,31 @@ substrate:** palari-v05 @ `190a4ad2` as mapped in
 gives, the gap is recorded inline and assigned to a unit — nothing is
 forked silently.
 
+**V2-M1 coexistence note:** this API remains the authoritative CDX-M1
+runtime surface through M1. `docs/MEMORY-BUNDLE-CONTRACT.md` defines a
+separate non-authoritative proof substrate in the same workspace SQLite
+file, with internal transactional apply and a public verify/replay surface
+that is read-only after `openMemoryBundle` performs its create-disabled
+writable hot-journal recovery pass. M1 does not journal or dual-write these
+APIs. The
+later cutover requires Admit/Resolve and all canonical/projection
+mutations to borrow one caller-owned SQLite connection and outer
+transaction. Until that complete mutation matrix passes, the bundle
+reports `sourceOfTruth:false`.
+
+**Current conformance debt:** U4 implemented the bounded candidate gate
+and hid raw add/supersede handles only on `createGatedStore`; U7 later
+gated the adapter ingest path by passing a proposal-producing shim into
+the baseline extraction helper. The exported raw extraction and session-
+summary helpers can still receive a raw store, and the CDX-M1 surface also
+directly forwards ownership deletion/topic-forget, lifecycle decay,
+recall-inclusion telemetry, and store-internal link mutation. Those are
+durable bypasses of the stronger one-gate law in
+`docs/KERNEL-CONTRACT.md`; they are existing defects, not normative
+exceptions. V2-M2 must type and route every one through the gate before any
+source-of-truth cutover. M1 leaves them unchanged and makes no claim that
+U4 or U7 already closed the complete durable mutation matrix.
+
 ## 1. Kernel boundary
 
 **IN the kernel** (this repo, U3–U5):
@@ -46,9 +71,10 @@ forked silently.
 
 ## 2. Data shapes
 
-Names are JS-idiomatic; persistence stays schema `CDX-M0`
-(SOURCE-MAP: memories/memory_links/memory_fts + triggers) until a
-recorded kernel migration.
+Names are JS-idiomatic. `CDX-M0` names the extracted baseline schema
+(SOURCE-MAP: memories/memory_links/memory_fts + triggers); the current
+authoritative runtime is `CDX-M1` after U4's recorded provenance-column
+migration. The separate non-authoritative governed bundle uses `CDX-B1`.
 
 ```
 MemoryAtom {
@@ -70,7 +96,7 @@ MemoryAtom {
 
 WriteProposal {
   kind: demote | promote | permanent | ratify,      // admission order, cheap→ceremonial
-  op:   add | supersede | end_validity | delete_transient | link | touch | share,
+  op:   add | supersede | end_validity | delete_transient | share,
   record: partial MemoryAtom,
   target?: memoryId,                  // supersede/demote targets
   provenance: { writer: background_extraction|explicit_user_action|session_summary,
@@ -96,46 +122,62 @@ Briefing {
 Factory: `createKernelStore({ dbPath | rootDir+workspaceId, clock? })`
 (from v05 `createPalariMemoryStore` + `workspaceMemoryDbPath`).
 Multi-workspace cache: `createKernelStoreManager` (from
-`createWorkspaceMemoryManager`). Engine prerequisite: `node:sqlite`
-`DatabaseSync` with FTS5 `unicode61 remove_diacritics 2`;
-`probeSqliteDriver()` self-checks and the factory throws without it
-(U3 records the minimum Node version).
+`createWorkspaceMemoryManager`). Engine prerequisite: Node `>=22.22.2`
+(the current provisional repository floor), `node:sqlite` `DatabaseSync`,
+and FTS5 `unicode61 remove_diacritics 2`; `probeSqliteDriver()` self-checks
+and the factory throws without it. U3's `>=22.5` value is the historical
+theoretical API floor and is superseded for current repository work unless
+the complete suite is certified on a lower exact release.
 
 Reads (never gated — reading is not mutation):
 - `getById(id)`, `list(scope)`, `search(query, scope, {limit})`
 - `recall(query, scope, opts)` — §5.
 
-Deletion & ownership:
+Deletion & ownership (current CDX-M1 behavior, with M2 gate debt):
 - `deleteMemory(id, {actor})` — removes the row; FTS residue removed
   by trigger, links by `ON DELETE CASCADE`. Contract test in U3:
   after delete, FTS query and link walk return nothing (residue-free).
+  The frozen surface currently forwards this directly rather than as a
+  typed proposal; that bypass is non-conforming debt, not an exception.
 - `topicForget(topicQuery, scope, {actor})` — **new composed op**
   (SOURCE-MAP finding 2: no baseline method): `search(topicQuery,
   scope)` → `deleteMemory` each visible match, scoped to the
   requesting palari/user only; returns the deleted ids for user
-  confirmation. Built in U3 from baseline primitives.
+  confirmation. It currently inherits the same direct-write debt.
 - `deleteStoreFile()` — the whole per-workspace SQLite file
   (from `deleteWorkspaceMemoryDatabase`). One workspace = one file:
   portable, inspectable with any sqlite3, deletable as a unit.
 
-Lifecycle (internal actors, still through the gate as `demote`-class
-mutations): `runLifecycleJobs({palariId, now})` — transient decay
-(`lastDecayedAt`), validity stamping; `recordRecallInclusion(ids,
-{actor})` — inclusion telemetry for needle-survival (C10).
+Lifecycle currently has the same known bypass:
+`runLifecycleJobs({palariId, now})` mutates transient decay/validity and
+`recordRecallInclusion(ids, {actor})` writes inclusion telemetry through
+forwarded store methods. V2-M2 must add exact typed operations for these,
+ownership deletion/topic-forget, and any link mutation, then enumerate the
+complete durable surface in a direct-write-fails test.
 
 Ops: `status()`, `publicStatus()`, `close()`. Smoke: port of
 `internal-alpha-memory-readiness` probe (provider-free canary).
 
 ## 4. gate
 
-**Single write door:** `gate.propose(proposal: WriteProposal) →
-{outcome, memory?, superseded?, link?, reasons[]}`. Every durable
-mutation — extraction writes, session summaries, explicit user saves,
-lifecycle decay — is a `WriteProposal` through this door. The kernel
-module exports **no other write path**; `addMemory` /
-`supersedeMemory` / `insertMemory` become internal. U4's completion
-test is exactly this: a direct-write attempt fails, a gated write
-lands.
+**Candidate-write door implemented in U4:**
+`gate.propose(proposal: WriteProposal) →
+{outcome, memory?, superseded?, link?, reasons[]}`. Callers that actually
+hold the frozen surface can use this door for explicit user saves,
+supersession, demote `end_validity`/`delete_transient`, and ratify `share`;
+`addMemory`, `supersedeMemory`, `insertMemory`, and raw `db` are hidden
+from that surface. U7's LongMemEval adapter also routes its extraction
+writes through this door by supplying a gate shim. U4's completion test
+proves only the bounded frozen-surface claim, not the stronger
+all-durable-mutation law.
+
+**Unclosed law:** the exported raw extraction helper, raw session-summary
+helper, ownership deletion/topic-forget, lifecycle mutation,
+recall-inclusion telemetry, and store-internal link writes still can bypass
+`propose`. `docs/KERNEL-CONTRACT.md` remains normative: every durable
+mutation must eventually be typed through Admit → Resolve → Apply. V2-M2
+must close and test that complete matrix before the API may again claim a
+single write door without qualification.
 
 Three stages (contract: Admit → Resolve → Apply):
 
@@ -179,18 +221,22 @@ makes `eventAt` required for `extracted`/`summarized` provenance.)
 ## 5. extract
 
 - `runExtractionPass({ store, turn, extractor, logger }) →
-  {status, memoriesWritten, outcomes[], sourceBoundary}` — baseline
-  `runMemoryExtractionPass`, rewired so its writes emit
-  `WriteProposal`s through `gate.propose` instead of calling store
-  methods directly (the v05 behavior is preserved; the door is
-  unified).
+  {status, memoriesWritten, outcomes[], sourceBoundary}` — the exported
+  baseline `runMemoryExtractionPass` still calls the supplied store-like
+  object's add/supersede methods. U7's adapter passes a gate shim, so that
+  adapter path emits `WriteProposal`s; a direct caller can still pass the
+  raw store. V2-M2 must make the gate-bound dependency structural rather
+  than caller-conventional.
 - `extractor({turn}) → payload` is **injected**. Provided by kernel:
   `deterministicMockExtraction` (dry mode, U7 tests);
   `buildExtractionRequest({turn, budgets})` for real providers —
   token budgets become parameters (SOURCE-MAP severance:
   routing-policy functions parameterized).
-- `writeSessionSummaryMemory({store, ...})` — session summaries as
-  `promote`-class proposals, `writer: 'session_summary'`.
+- `writeSessionSummaryMemory({store, ...})` — the extracted helper still
+  writes through the supplied store and is not structurally gate-bound.
+  Its intended future proposal is `promote` class with
+  `writer: 'session_summary'`; V2-M2 must implement that path before the
+  intended shape becomes a conformance claim.
 - Candidate hygiene stays in the pass: transient-detail rejection
   (`memoryContainsTransientDetail`), source-boundary evaluation per
   candidate, the anti-injection instruction pattern
@@ -260,7 +306,7 @@ of the contract appears exactly once.
 | C2 | Atoms · evidence-time discipline | §4 Apply stamps from `eventAt`; GAP-4 |
 | C3 | Atoms/types · permanent linear; correction = demote-and-promote w/ link; counterfactual history survives | §4 Apply (supersede transaction; no content-mutation op) |
 | C4 | Atoms/types · transient use-or-decay; supersession type-safe | §3 lifecycle jobs; §4 Resolve type-safety (GAP-3) |
-| C5 | Gate · typed proposal Admit→Resolve→Apply; no producer writes directly | §4 `gate.propose` sole write door; U4 direct-write-fails test |
+| C5 | Gate · typed proposal Admit→Resolve→Apply; no producer writes directly | §4 candidate-write door plus explicit non-conformance debt; V2-M2 must structurally gate raw extraction/session-summary and close ownership/lifecycle/touch/link bypasses before expanding the direct-write-fails test |
 | C6 | Gate · thresholds demote < promote < permanent < ratify | §4 Admit `AdmissionPolicy` (GAP-2) |
 | C7 | Gate · external content must not mint w/o provenance marking; surfacing shows origin | §4 Admit source boundary; §5 candidate hygiene; §6 briefing origin attribution |
 | C8 | Retrieval · FTS + filters + optional graph walk; no vector default; extensions optional planes | §6 `recall`; §1 exclusion (no extension planes built here) |
@@ -282,10 +328,11 @@ Three bullets split into two clauses each for precision (16+3=19):
 atoms·bullet 1 → C1/C2 (fields vs evidence-time), atoms·bullet 2 →
 C3/C4 (permanent vs transient rules), briefing·bullet 2 → C12/C13
 (v1 format vs substitution law). All other bullets map 1:1. Every
-clause row names an interface section or an explicit exclusion; the
-only non-interface mappings are C13 and the reporting half of C14 —
-process laws routed to the evals discipline, recorded as exclusions
-from code scope, not omissions.
+clause row names an interface section, an explicit exclusion, or the
+now-explicit C5 conformance debt. The only process-only mappings are C13
+and the reporting half of C14, routed to the evals discipline. Traceability
+is complete; implementation conformance is not complete until V2-M2 closes
+C5's remaining durable bypasses.
 
 — Fable 5, U2, 2026-07-18. Design derived, gaps recorded, nothing
 forked silently.

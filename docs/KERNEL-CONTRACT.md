@@ -5,6 +5,18 @@ agent working in this repo. The full spec (with evidence tags and
 rationale) is linked in REFERENCES.md; where this file and the spec
 disagree, the spec wins and this file gets fixed.
 
+**V2-M1 precedence:** this contract continues to govern the current
+CDX-M1 runtime. `docs/MEMORY-BUNDLE-CONTRACT.md` governs only the new
+non-authoritative coexistence substrate. M1 introduces no second runtime
+write door and changes no lifecycle, visibility, sharing, deletion,
+retrieval, or gate behavior. The current CDX-M1 implementation is not yet
+fully conforming to the one-gate law: exported raw extraction/session-
+summary helpers, ownership deletion/topic-forget, lifecycle,
+recall-inclusion, and internal link mutations remain durable bypasses
+recorded for V2-M2. They are defects, not normative exceptions.
+A later cutover must close them and preserve every law here while
+committing canonical and projection mutations on one transaction.
+
 ## Memory atoms (Part 4)
 
 - An atom carries: content, type, importance, confidence, provenance

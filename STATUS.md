@@ -2,11 +2,16 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: U8 PAUSED BY FOUNDER after 9/10 questions checkpointed.
-Do not execute final question `1568498a` or resume the runner without a
-new explicit GO from Quetzali. Predictions and prompt provenance remain
-sealed; completed outputs must not be re-rolled. Publish gate remains
-CLOSED; results stay under gitignored evals/results/.
+Next: V2-M1 — GOVERNED MEMORY BUNDLE SUBSTRATE.
+Founder ratified autonomous local implementation on 2026-07-18. Build
+and falsify a non-authoritative same-workspace SQLite bundle: content-free
+decision events, erasable canonical atoms, exact-sequence conflict checks,
+read-only verification, and deterministic current-state replay. CDX-M1
+remains runtime truth; no gate cutover or live/provider work in M1.
+
+U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
+question `1568498a`, resume, re-roll, grade publicly, or publish without a
+new explicit founder GO. Results remain under gitignored evals/results/.
 
 ## Unit queue
 
@@ -31,7 +36,7 @@ CLOSED; results stay under gitignored evals/results/.
   16 bullets; traceability table C1–C19 covers all 16, each mapping to
   an interface or an explicit exclusion (only C13 and the reporting
   half of C14 route to evals process, recorded as such). Design core:
-  gate.propose(WriteProposal) is the sole write door — Admit (types,
+  gate.propose(WriteProposal) is the designed write door — Admit (types,
   writers, source boundary, threshold order demote<promote<permanent<
   ratify) → Resolve (dedup, contradiction→supersede, type-safety) →
   Apply (transactional; supersede = demote-and-promote + link,
@@ -63,9 +68,12 @@ CLOSED; results stay under gitignored evals/results/.
 - [x] U4 — Admission gate path. DONE 2026-07-18 (Fable 5).
   Deliverables: src/gate.mjs (createMemoryGate/createGatedStore/
   createAdmissionPolicy/applyKernelMigrations),
-  tests/gate.contract.test.mjs (14 tests). Completion PASS: direct
-  write fails (gated surface exposes no addMemory/supersedeMemory/
-  insertMemory/db, frozen), gated write passes; suite 22/22 green.
+  tests/gate.contract.test.mjs (14 tests). Bounded completion PASS:
+  candidate direct writes fail (gated surface exposes no
+  addMemory/supersedeMemory/insertMemory/db, frozen), and gated candidate
+  writes pass; suite 22/22 green. This did not prove the complete C5
+  mutation surface: ownership, lifecycle, recall-inclusion, and internal
+  link writes remain explicit V2-M2 gate debt.
   All four U2 gaps closed at kernel layer, baseline file untouched:
   GAP-1 migration CDX-M1 (source_kind + extractor columns, recorded
   in memory_migrations; keyword marking kept), GAP-2 AdmissionPolicy
@@ -76,7 +84,8 @@ CLOSED; results stay under gitignored evals/results/.
   valid_from stamped from eventAt. Kinds/ops: promote|permanent
   x add|supersede; demote x end_validity|delete_transient (transient
   only); ratify x share (explicit_user_action only). Ownership ops
-  (deleteMemory/topicForget) stay user-side on the gated surface.
+  (deleteMemory/topicForget) stay user-side on the frozen surface but
+  currently bypass typed proposals; V2-M2 must close that debt.
   Note for U5/U7: extraction pass still calls store.addMemory
   directly (baseline); U5/U7 rewire runMemoryExtractionPass writes
   through gate.propose per KERNEL-API §5.
@@ -96,7 +105,8 @@ CLOSED; results stay under gitignored evals/results/.
   seeded through the gate). Completion PASS: 31/31 green (9+14+8), no
   v05 imports. Recorded deferrals: (a) associative-link minting has no
   gate op — only supersession creates links kernel-side; test-only
-  links use the raw store; revisit if an eval needs link writes;
+  links use the raw store. This is part of the V2-M2 durable-bypass
+  closure, not a conditional eval-only revisit;
   (b) extraction pass still writes via baseline store door — U7 wraps
   it with a gate-shim so ingest emits WriteProposals (noted in
   src/memory-extraction.mjs header).
@@ -120,8 +130,10 @@ CLOSED; results stay under gitignored evals/results/.
 - [x] U7 — Adapter. DONE 2026-07-18 (Fable 5). Deliverables:
   src/adapter.mjs (gate-shim: baseline runMemoryExtractionPass writes
   land as WriteProposals via gate.propose with per-session eventAt +
-  extractorId — one-gate law holds in the adapter path with zero
-  baseline edits; ingestChatTurn/ingestLongMemEvalInstance;
+  extractorId — adapter-ingest candidate add/supersede writes are gated
+  with zero baseline edits; this is not complete one-gate conformance,
+  because answer-time recall-inclusion telemetry and the remaining CDX-M1
+  durable bypasses are V2-M2 debt; ingestChatTurn/ingestLongMemEvalInstance;
   answerQuestion: recallAndBrief -> prompt -> injected provider;
   stubProvider answers only from the briefing and abstains plainly;
   NO api-key code exists — live provider runner is U8 FOUNDER GATE),
@@ -160,17 +172,45 @@ CLOSED; results stay under gitignored evals/results/.
   question completed: 9/10 results are checkpointed; final question
   `1568498a` has no result and must not run without a new GO. Partial
   report remains in gitignored evals/results/.
-- [ ] U9 — Briefing-format iterations from slice results (paired
-  slices, one variable per run; each run FOUNDER GATE on spend).
-- [ ] U10 — FOUNDER GATE: full private LongMemEval run + report,
-  failing categories first, graded against predictions.
-- [ ] U11 — Injection-resistance extension design:
-  docs/INJECTION-EVAL.md — a scored eval section where source
-  documents attempt to mint memories / alter recall; drawn from
-  palari-v05's injection cases and the CASE-memory-source-injection
-  incident. Completion: 20+ case designs with mechanical checks.
-- [ ] U12 — FOUNDER GATE: publish decision (README results table,
-  license, announcement). Prepare the table; stop.
+- [~] V2-M1 — Governed memory bundle substrate. Non-authoritative
+  coexistence in the existing workspace SQLite file: three canonical
+  objects (`memory_bundle_meta`, content-free append-only
+  `memory_bundle_events`, erasable `memory_bundle_atoms`), personal
+  create/refuse/delete only, caller-owned transaction seam, exact
+  sequence CAS, deterministic verify/replay, no runtime integration.
+  Completion requires: docs coherent; exact module/return shapes and 19-code
+  error
+  vocabulary; atomic init; CDX-M1 coexistence; authority matrix including
+  NULL-refusal and retained-scope delete checks; content-free events;
+  recursive-trigger REPLACE defense plus enforced CHECK constraints;
+  main-qualified executable DDL under inert shadows; canonical-target
+  trigger rejection; ID non-reuse; one-connection rollback; fail-closed
+  structural verification; writable hot-journal recovery before the public
+  read-only handle; full suite green on Node 22.22.2 / SQLite 3.51.2.
+- [ ] V2-M2 — One-connection mutation seam. Refactor current projection
+  writes to borrow the gate coordinator's transaction; close direct
+  semantic bypasses. Bundle remains non-authoritative until the full
+  mutation matrix is atomic and tested.
+- [ ] V2-M3 — Gate repair + candidate receipts. Strict extraction schema,
+  authority fields not model-controlled, assistant evidence typed,
+  ordinary user evidence coverage widened without weakening injection
+  resistance, supersession semantics repaired, every candidate outcome
+  observable.
+- [ ] V2-M4 — Temporal reference driver. Journal-effective/observed time,
+  as-of recall, deterministic replay into SQLite FTS, old/new/future
+  validity tests. No graph/vector integration before this passes.
+- [ ] V2-M5 — Deletion-proof demo. Forget -> canonical payload removal ->
+  projection rebuild -> residue diff, with claims bounded honestly to
+  tested SQLite/media surfaces.
+- [ ] V2-M6 — Driver substitution. Formal driver interface plus a mock
+  second driver; paired governance/injection/deletion probes before any
+  commodity graph or vector integration.
+- [ ] U11 — Injection-resistance certification section remains planned,
+  now built on journal receipts and driver profiles after the v2 local
+  proofs.
+- [ ] DEFERRED FOUNDER GATES — briefing/model iterations, full
+  LongMemEval, result publication, and announcement. No live spend or
+  public score belongs to the v2 local proof sequence.
 
 ## Log
 
@@ -179,14 +219,16 @@ CLOSED; results stay under gitignored evals/results/.
 docs/SOURCE-MAP.md; 16/16 paths verified @190a4ad2; private-memory
 excluded, node:sqlite the only non-builtin dep, severance small.
 2026-07-18 — U2 — fe25a15 — Kernel API designed:
-gate.propose sole write door; C1–C19 trace all 16 contract bullets;
-4 gaps recorded and assigned (U4/U7); upstream-fix note for founder.
+gate.propose targeted as the sole write door; C1–C19 trace all 16 contract
+bullets; 4 gaps recorded and assigned. Later audit found remaining durable
+bypasses; V2-M2 owns full conformance.
 2026-07-18 — U3 — 56797c7 — Store extracted
 standalone: 8/8 contract tests green, zero deps, no v05 imports;
 topicForget composed; node:test + Node>=22.5 decisions recorded.
-2026-07-18 — U4 — b122054 — Gate landed: propose()
-sole write door, 22/22 green, GAP-1..4 closed at kernel layer with
-baseline verbatim; direct-write-fails law is now a passing test.
+2026-07-18 — U4 — b122054 — Candidate gate landed:
+add/supersede producer shortcuts hidden, 22/22 green, GAP-1..4 closed at
+kernel layer with baseline verbatim. Later audit narrowed the completion
+claim: ownership/lifecycle/touch/link durable bypasses remain for V2-M2.
 2026-07-18 — U5 — c770708 — Recall + briefing v1:
 31/31 green; extraction+briefing extracted verbatim; v1 lines carry
 event/observed time, attribution, buckets, origin; v0 kept for U9.
@@ -215,6 +257,10 @@ per-question checkpoints; 47/47 green.
 the new API user; founder amended model to stable successor 3.1
 Flash-Lite and cap to $1.25 before scoring; estimate ~$1.06, predictions
 unchanged, 47/47 green.
-2026-07-18 — U8 — see `git log` — Founder paused run after current
-question: 9/10 checkpointed, final `1568498a` has no result; no resume
-without new explicit GO, no completed output re-rolls.
+2026-07-18 — U8 — 7aec0b5 — Founder paused run after current question:
+9/10 checkpointed, final `1568498a` has no result; no resume without new
+explicit GO, no completed output re-rolls.
+2026-07-18 — V2-M1 — see `git log` — Founder ratified autonomous local
+v2 implementation; two adversarial GPT-5.6 Sol panels selected the
+same-file governed bundle as the minimal falsifiable substrate. U8 sealed;
+live/publish work deferred; M1 is next.

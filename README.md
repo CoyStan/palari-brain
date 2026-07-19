@@ -15,9 +15,15 @@ result until the founder gates it.
 Most agent-memory frameworks auto-retain every exchange and invisibly
 inject recall. Palari's kernel deliberately does not:
 
-- **One gate.** Every durable memory write is a typed proposal through
-  an admission gate with evidence thresholds. Producers propose;
-  nothing writes directly.
+- **One gate (governing law; current conformance debt).** Every durable
+  memory mutation must arrive as a typed proposal through Admit → Resolve
+  → Apply; a direct durable write is a defect, never an exception.
+  Candidate add/supersede writes on the current CDX-M1 gated surface,
+  including LongMemEval ingest, follow this path. Exported raw extraction
+  and session-summary helpers, ownership deletion/topic-forget, lifecycle,
+  recall-inclusion telemetry, and internal link mutations still have
+  durable bypasses. V2-M2 must close that complete mutation matrix before
+  any bundle/runtime cutover.
 - **Provenance.** Every memory knows where it came from (pipeline,
   source, confidence-at-creation). Source-derived text cannot silently
   become user memory — that boundary is tested, not promised.

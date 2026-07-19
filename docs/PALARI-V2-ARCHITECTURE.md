@@ -42,7 +42,9 @@ it swaps models.
 
 ### The Palari plane (the product; never commoditized)
 
-1. THE MEMORY JOURNAL — the single source of truth (section 3).
+1. THE GOVERNED MEMORY BUNDLE — canonical decisions and erasable atom
+   payloads in the user's workspace file; future indexes are projections
+   (section 3).
 2. THE GATE — one admission path for every durable write: typed
    proposals, evidence thresholds, provenance required, fail-closed.
 3. RECEIPTS — signed records of what was done, what the human was
@@ -57,46 +59,61 @@ it swaps models.
 7. IDENTITY & SUCCESSION — portable persona core, method corpus,
    measured handoffs.
 
-## 3. The Memory Journal (the load-bearing decision)
+## 3. The governed memory bundle (the load-bearing decision)
 
-Event sourcing applied to memory. Per user/workspace, one
-append-only journal file containing:
+Event-sourced governance applied to memory, with claims separated by
+what is actually proven. Per workspace, the user's existing SQLite file
+becomes a governed bundle containing:
 
-- every admitted memory atom (content, type, confidence, validity
-  window, full provenance: pipeline, source, extractor model,
-  confidence-at-creation);
-- every gate decision (admitted, refused, superseded, deleted) with
-  its reason;
-- references to raw session segments (raw is DATA: retained for
-  governed re-extraction, never injected directly into answers).
+- append-only **content-free decision events**: typed operation,
+  outcome, closed reason code, scope, authority, evidence class, target
+  id, and times;
+- **canonical atom payloads**: content, type, confidence, provenance,
+  and validity data, immutable while present and governedly erasable;
+- later, disposable recall projections rebuilt from canonical state.
 
-Properties the journal alone guarantees, independent of any engine:
+This separation resolves a contradiction in the original north star: a
+content-bearing log cannot be both literally append-only and physically
+forgetful. Palari keeps the non-content fact that a governed decision
+occurred while permitting the canonical payload to be removed.
 
-- OWNERSHIP: it is a file. The user can read it, export it, take it.
-- PORTABILITY: merkle-root fingerprint; signed export; move between
-  deployments and engines without loss.
-- PROVABLE DELETION: deletion removes journal entries, then every
-  projection is REBUILT from the journal; diff proves the forgotten
-  fact is gone everywhere. No other memory architecture can prove
-  right-to-forget. This is an enterprise feature, not hygiene.
-- AUDIT: the journal IS the consent/authority record; receipts
-  reference journal states by hash.
+Capability claims are phased:
+
+- M1 proves same-file ownership, atomic coexistence, content-free
+  decisions, logical current-state deletion, deterministic replay, and
+  memory-id non-reuse. It is explicitly not runtime truth.
+- M2 may cut the gate and projections onto one caller-owned SQLite
+  transaction, after every semantic write bypass is closed.
+- Later deletion certification must test SQLite freelists, WAL/journal
+  sidecars, backups, exports, caches, and active drivers before using
+  `deletionProvable:true`.
+- Merkle roots, signatures, signed exports, cryptographic erasure, and
+  external anchoring are future capabilities, not present-tense claims.
+
+Raw session history remains DATA, not memory. A future raw ledger may be
+referenced by governed identifiers, but it is not part of M1 and is never
+injected directly into answers.
 
 ## 4. Memory engines as disposable projections
 
-Every recall backend is a MATERIALIZED VIEW rebuilt from the journal:
+Every recall backend is a MATERIALIZED VIEW rebuilt from verified
+canonical bundle state:
 
-    journal --replay--> driver.build(index)
-    query   --------->  driver.recall(q, atTime) -> candidates
+    governed bundle --replay--> driver.build(index)
+    query            ---------> driver.recall(q, atTime) -> candidates
     candidates -> BRIEFING (Palari plane) -> engine prompt
+
+M1 proves only the bundle substrate and current-state replay. The driver
+interface below remains a later target until the existing gate and
+projection mutations share one atomic transaction.
 
 Driver interface (sketch):
 
-    build(journalStream) -> index          // full rebuild, idempotent
-    apply(journalEvent)  -> index'         // incremental
+    build(canonicalStream) -> index        // full rebuild, idempotent
+    apply(canonicalEvent)  -> index'        // incremental
     recall(query, {atTime, scope, k})      // candidates + per-item
-                                           // journal refs (provenance
-                                           // survives the driver)
+                                           // canonical bundle refs
+                                           // (provenance survives driver)
     profile() -> {                         // the compliance matrix
       temporalQueries: bool,               // validity-window support
       deletionProvable: bool,              // rebuild-diff clean?
@@ -105,8 +122,9 @@ Driver interface (sketch):
       injectionExamScore: number|untested,
     }
 
-Planned drivers, in order: sqlite-FTS (reference, local, fully
-compliant), temporal-graph (Zep/Graphiti-class — buys the measured
+Planned drivers, in order: sqlite-FTS (reference, local, targeting full
+compliance; profile remains untested until M4-M5), temporal-graph
+(Zep/Graphiti-class — buys the measured
 +15pt temporal advantage as an INDEX, not a dependency for truth),
 hybrid vector (sqlite-vec, stays inside the user's file),
 provider-native memory (convenient; profile marks portability
@@ -137,8 +155,8 @@ to be the row-owner of the table.
 - palari-company-os: the same governance at the human-work seam
   (write boundaries, proof-carrying acceptance); shares the receipt
   format.
-- palari-brain (this repo): journal spec, driver interface,
-  reference driver, certification harness, injection exam.
+- palari-brain (this repo): governed-bundle contract, later driver
+  interface, reference driver, certification harness, injection exam.
 - The Palari Work Receipt Protocol: the interchange format binding
   all of it.
 - The Unified Specification (the book): the law. This document is
@@ -147,19 +165,31 @@ to be the row-owner of the table.
 
 ## 7. Development guidance (what to build, in what order)
 
-NEAR (current queue continues): U8 baseline on current kernel ->
-grade predictions -> journal extraction (fuse raw ledger + atom
-store into the append-only journal) -> driver interface -> sqlite
-reference driver -> replay harness over journal events.
+NEAR — local falsification before any more spend:
 
-MID: temporal-graph driver (the +15pt move) -> hybrid driver ->
-transport adoption (AI SDK 7 line; Node>=22 precondition; transport
-only) -> injection exam published (U11) -> deletion-proof demo (the
-flagship demo: forget a fact, rebuild, prove absence everywhere).
+1. M1 governed-bundle coexistence substrate: content-free decisions,
+   erasable canonical atoms, strict authority matrix, deterministic
+   verify/replay, and same-file CDX-M1 coexistence. Runtime unchanged.
+2. M2 one-connection mutation seam: gate resolution plus canonical and
+   projection mutations in one caller-owned transaction; close every
+   durable bypass before source-of-truth cutover.
+3. M3 gate repair and candidate receipts: strict extraction schema,
+   safe authority fields, typed assistant evidence, wider ordinary-user
+   evidence coverage, corrected supersession, and complete outcome
+   observability.
+4. M4 temporal SQLite reference driver: effective/observed time and
+   `recall(..., atTime)` proven before graph/vector adoption.
+5. M5 deletion-proof demo over the explicitly tested storage surfaces.
+6. M6 driver substitution with a mock second driver and paired probes.
 
-FAR: provider-native and long-context drivers with honest profiles
--> certification program public -> v05 migrated onto the stack ->
-LongMemEval submission with the trade-off table.
+MID: temporal-graph and hybrid drivers only after the local reference
+semantics and substitution harness pass; then injection certification
+and honest profile tables. Transport adoption remains orthogonal and is
+not a prerequisite for memory correctness.
+
+FAR: provider-native and long-context drivers with honest profiles,
+portable export/import, v05 migration, public certification, and
+LongMemEval-class reporting only after founder publish/spend gates reopen.
 
 ## 8. What v2.0 refuses to build
 
@@ -171,17 +201,20 @@ LongMemEval submission with the trade-off table.
 
 ## 9. Falsifiers (how we will know v2.0 is working)
 
-1. A driver swap passes a paired probe with zero governance
-   regressions — demonstrated, not asserted.
-2. The deletion-proof demo runs end to end: forget -> rebuild ->
-   diff clean across every active driver.
-3. Temporal-graph driver closes the temporal category gap to
-   Zep-tier on the harness.
-4. The injection exam scores at least one commodity engine and
-   this stack side by side, published failing-first.
-5. A user exports their journal from one deployment and resumes on
-   another with a different driver, memory intact.
+1. M1 initializes, verifies, replays, logically deletes, and survives
+   transaction rollback beside a real unchanged CDX-M1 workspace.
+2. M2 commits a governed decision and every affected projection row on
+   one connection and one transaction; forced failures leave neither.
+3. The deletion-proof demo runs end to end over every surface named in
+   its capability profile: forget -> rebuild -> residue diff clean.
+4. A driver swap passes paired memory-bank and injection probes with zero
+   governance regressions.
+5. A temporal driver measurably improves temporal categories without
+   weakening scope, deletion, or injection behavior.
+6. A user exports governed canonical state from one deployment and
+   resumes on another with a different driver, memory intact.
 
-If 1-2 fail, the journal design is wrong. If 3 fails, the driver
-thesis is wrong. If 4-5 never happen, this was a vision document
-and not an architecture. Grade accordingly.
+If 1 fails, the bundle substrate is wrong. If 2 fails, the source-of-
+truth cutover is wrong. If 3 fails, deletion claims stay false. If 4-5
+fail, the disposable-driver thesis is wrong. If 6 never happens, the
+portability claim remains a vision. Grade accordingly.
