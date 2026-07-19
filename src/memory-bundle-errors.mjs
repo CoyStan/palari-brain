@@ -21,6 +21,10 @@ export const BUNDLE_ERROR_CODES = Object.freeze([
 ])
 
 const BUNDLE_ERROR_CODE_SET = new Set(BUNDLE_ERROR_CODES)
+const MEMORY_BUNDLE_ERROR_INSTANCES = new WeakSet()
+const reflectApply = Reflect.apply
+const weakSetAdd = WeakSet.prototype.add
+const weakSetHas = WeakSet.prototype.has
 
 export class MemoryBundleError extends Error {
   constructor(code, message, options = {}) {
@@ -28,6 +32,7 @@ export class MemoryBundleError extends Error {
       throw new TypeError(`Unknown memory bundle error code: ${String(code)}`)
     }
     super(message, options.cause === undefined ? undefined : { cause: options.cause })
+    reflectApply(weakSetAdd, MEMORY_BUNDLE_ERROR_INSTANCES, [this])
     Object.defineProperty(this, 'name', {
       value: 'MemoryBundleError',
       enumerable: false,
@@ -48,6 +53,8 @@ export function memoryBundleFailure(code, message, cause) {
 }
 
 export function preserveMemoryBundleError(error, code, message) {
-  if (error instanceof MemoryBundleError) return error
+  if (reflectApply(weakSetHas, MEMORY_BUNDLE_ERROR_INSTANCES, [error])) {
+    return error
+  }
   return memoryBundleFailure(code, message, error)
 }

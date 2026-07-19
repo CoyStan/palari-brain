@@ -146,6 +146,66 @@ test('M1-02 captured array checks ignore later global Array poisoning', () => {
   )
 })
 
+test('M1-02 exact record capture ignores later error hasInstance poisoning', () => {
+  const errorConstructor = applyModule.MemoryBundleError
+  const errorPrototype = errorConstructor.prototype
+  const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+  const defineProperty = Object.defineProperty
+  const deleteProperty = Reflect.deleteProperty
+  const originalDescriptor = getOwnPropertyDescriptor(
+    errorConstructor,
+    Symbol.hasInstance,
+  )
+  let poisonCallCount = 0
+  let caught
+
+  try {
+    defineProperty(errorConstructor, Symbol.hasInstance, {
+      value() {
+        poisonCallCount += 1
+        throw new Error('MemoryBundleError hasInstance poison ran')
+      },
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    })
+
+    try {
+      captureExactRecord(null, {
+        keys: ['value'],
+        code: 'bundle_invalid_argument',
+        message: 'Exact record required.',
+      })
+    } catch (error) {
+      caught = error
+    }
+
+    assert.equal(poisonCallCount, 0)
+    assert.equal(Object.getPrototypeOf(caught), errorPrototype)
+    assert.equal(caught.name, 'MemoryBundleError')
+    assert.equal(caught.code, 'bundle_invalid_argument')
+    assert.equal(caught.message, 'Exact record required.')
+    assert.equal(caught.cause, undefined)
+    assert.deepEqual(Object.keys(caught), ['code'])
+  } finally {
+    if (originalDescriptor === undefined) {
+      deleteProperty(errorConstructor, Symbol.hasInstance)
+    } else {
+      defineProperty(
+        errorConstructor,
+        Symbol.hasInstance,
+        originalDescriptor,
+      )
+    }
+  }
+
+  assert.deepEqual(
+    getOwnPropertyDescriptor(errorConstructor, Symbol.hasInstance),
+    originalDescriptor,
+  )
+  assert.equal(caught instanceof errorConstructor, true)
+})
+
 test('M1-02 exact record capture bypasses inherited setters', () => {
   const key = '__palariMemoryBundleM102RequiredKey__'
   const originalDescriptor = Object.getOwnPropertyDescriptor(

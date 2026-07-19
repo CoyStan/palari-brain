@@ -5,7 +5,6 @@ import { pathToFileURL } from 'node:url'
 import { types as utilTypes } from 'node:util'
 
 import {
-  MemoryBundleError,
   memoryBundleFailure,
   preserveMemoryBundleError,
 } from './memory-bundle-errors.mjs'
@@ -166,7 +165,6 @@ export function captureExactRecord(value, specification) {
     }
     return captured
   } catch (error) {
-    if (error instanceof MemoryBundleError) throw error
     throw preserveMemoryBundleError(error, code, message)
   }
 }
