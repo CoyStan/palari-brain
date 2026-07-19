@@ -5,6 +5,10 @@ import { DatabaseSync } from 'node:sqlite'
 import * as applyModule from '../src/memory-bundle-apply.mjs'
 import * as publicModule from '../src/memory-bundle.mjs'
 import { BUNDLE_ERROR_CODES } from '../src/memory-bundle-errors.mjs'
+import {
+  captureExactRecord,
+  isCapturedOrdinaryArray,
+} from '../src/memory-bundle-runtime.mjs'
 
 function assertBundleCode(callback, expectedCode) {
   assert.throws(callback, (error) => {
@@ -99,5 +103,97 @@ test('M1-02 database branding rejects spoofs and Proxies without traps', () => {
   assertBundleCode(
     () => applyModule.initializeMemoryBundle(closed),
     'bundle_connection_invalid',
+  )
+})
+
+test('M1-02 captured array checks ignore later global Array poisoning', () => {
+  const originalArrayDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'Array',
+  )
+  let trapCount = 0
+
+  try {
+    Object.defineProperty(globalThis, 'Array', {
+      configurable: true,
+      get() {
+        trapCount += 1
+        throw new Error('global Array trap ran')
+      },
+    })
+
+    assert.deepEqual(
+      captureExactRecord(
+        { value: 'captured' },
+        {
+          keys: ['value'],
+          code: 'bundle_invalid_argument',
+          message: 'Exact record required.',
+        },
+      ),
+      { value: 'captured' },
+    )
+    assert.equal(isCapturedOrdinaryArray([]), true)
+    assert.equal(isCapturedOrdinaryArray({}), false)
+    assert.equal(trapCount, 0)
+  } finally {
+    Object.defineProperty(globalThis, 'Array', originalArrayDescriptor)
+  }
+
+  assert.deepEqual(
+    Object.getOwnPropertyDescriptor(globalThis, 'Array'),
+    originalArrayDescriptor,
+  )
+})
+
+test('M1-02 exact record capture bypasses inherited setters', () => {
+  const key = '__palariMemoryBundleM102RequiredKey__'
+  const originalDescriptor = Object.getOwnPropertyDescriptor(
+    Object.prototype,
+    key,
+  )
+  const input = {}
+  Object.defineProperty(input, key, {
+    value: 'captured',
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  })
+  let trapCount = 0
+
+  try {
+    Object.defineProperty(Object.prototype, key, {
+      configurable: true,
+      set() {
+        trapCount += 1
+        throw new Error('inherited setter trap ran')
+      },
+    })
+
+    const captured = captureExactRecord(input, {
+      keys: [key],
+      code: 'bundle_invalid_argument',
+      message: 'Exact record required.',
+    })
+
+    assert.equal(Object.getPrototypeOf(captured), Object.prototype)
+    assert.deepEqual(Object.getOwnPropertyDescriptor(captured, key), {
+      value: 'captured',
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    })
+    assert.equal(trapCount, 0)
+  } finally {
+    if (originalDescriptor === undefined) {
+      Reflect.deleteProperty(Object.prototype, key)
+    } else {
+      Object.defineProperty(Object.prototype, key, originalDescriptor)
+    }
+  }
+
+  assert.deepEqual(
+    Object.getOwnPropertyDescriptor(Object.prototype, key),
+    originalDescriptor,
   )
 })

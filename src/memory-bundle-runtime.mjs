@@ -12,6 +12,7 @@ import {
 
 const reflectApply = Reflect.apply
 const reflectConstruct = Reflect.construct
+const reflectDefineProperty = Reflect.defineProperty
 const reflectGetPrototypeOf = Reflect.getPrototypeOf
 const reflectOwnKeys = Reflect.ownKeys
 const reflectGetOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor
@@ -121,7 +122,7 @@ export function captureExactRecord(value, specification) {
       isProxyValue(value) ||
       value === null ||
       typeof value !== 'object' ||
-      reflectApply(arrayIsArray, Array, [value]) ||
+      reflectApply(arrayIsArray, undefined, [value]) ||
       reflectGetPrototypeOf(value) !== objectPrototype
     ) {
       throw memoryBundleFailure(code, message)
@@ -152,7 +153,16 @@ export function captureExactRecord(value, specification) {
       ) {
         throw memoryBundleFailure(code, message)
       }
-      captured[key] = descriptor.value
+      reflectApply(reflectDefineProperty, undefined, [
+        captured,
+        key,
+        {
+          value: descriptor.value,
+          enumerable: true,
+          configurable: true,
+          writable: true,
+        },
+      ])
     }
     return captured
   } catch (error) {
@@ -164,7 +174,7 @@ export function captureExactRecord(value, specification) {
 export function isCapturedOrdinaryArray(value) {
   return (
     !isProxyValue(value) &&
-    reflectApply(arrayIsArray, Array, [value]) &&
+    reflectApply(arrayIsArray, undefined, [value]) &&
     reflectGetPrototypeOf(value) === arrayPrototype
   )
 }
