@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict'
-import { DatabaseSync } from 'node:sqlite'
+import { DatabaseSync, StatementSync } from 'node:sqlite'
 import { test } from 'node:test'
 
 import * as codecModule from '../src/memory-bundle-codec.mjs'
 import * as schemaModule from '../src/memory-bundle-schema.mjs'
+import * as verifyModule from '../src/memory-bundle-verify.mjs'
 import {
   EXPECTED_AUTOINDEX_NAMES,
   EXPECTED_CAPABILITIES,
@@ -16,9 +17,13 @@ import {
   EXPECTED_TABLE_XINFO,
   EXPECTED_TRIGGER_TARGETS,
   M1_04_IDS,
+  M1_05_META,
+  createM105Bundle,
+  insertM105EventRow,
   makeM104AtomRow,
   makeM104CanonicalAtom,
   makeM104EventRow,
+  spoofM105StoredSql,
 } from './helpers/memory-bundle-fixtures.mjs'
 
 const TABLE_NAMES = [
@@ -123,9 +128,13 @@ test('M1-03 pins the exact frozen private manifest constants', async () => {
   assert.deepEqual(Object.keys(schemaModule).sort(), [
     'MEMORY_BUNDLE_AUTOINDEXES',
     'MEMORY_BUNDLE_CAPABILITIES',
+    'MEMORY_BUNDLE_FOREIGN_KEY_LIST',
+    'MEMORY_BUNDLE_INDEX_LIST',
+    'MEMORY_BUNDLE_INDEX_XINFO',
     'MEMORY_BUNDLE_OBJECTS',
     'MEMORY_BUNDLE_REQUIRED_PRAGMAS',
     'MEMORY_BUNDLE_SCHEMA_VERSION',
+    'MEMORY_BUNDLE_TABLE_XINFO',
     'MEMORY_BUNDLE_TRIGGER_TARGETS',
     'normalizeMemoryBundleSql',
   ])
@@ -197,6 +206,17 @@ test('M1-03 pins the exact frozen private manifest constants', async () => {
     EXPECTED_REQUIRED_PRAGMAS,
   )
   assertDeepFrozen(schemaModule.MEMORY_BUNDLE_REQUIRED_PRAGMAS)
+  assert.deepEqual(schemaModule.MEMORY_BUNDLE_TABLE_XINFO, EXPECTED_TABLE_XINFO)
+  assert.deepEqual(schemaModule.MEMORY_BUNDLE_INDEX_LIST, EXPECTED_INDEX_LIST)
+  assert.deepEqual(schemaModule.MEMORY_BUNDLE_INDEX_XINFO, EXPECTED_INDEX_XINFO)
+  assert.deepEqual(
+    schemaModule.MEMORY_BUNDLE_FOREIGN_KEY_LIST,
+    EXPECTED_FOREIGN_KEY_LIST,
+  )
+  assertDeepFrozen(schemaModule.MEMORY_BUNDLE_TABLE_XINFO)
+  assertDeepFrozen(schemaModule.MEMORY_BUNDLE_INDEX_LIST)
+  assertDeepFrozen(schemaModule.MEMORY_BUNDLE_INDEX_XINFO)
+  assertDeepFrozen(schemaModule.MEMORY_BUNDLE_FOREIGN_KEY_LIST)
 })
 
 test('M1-03 normalizes only CRLF, outer ASCII whitespace, and one trailing semicolon', () => {
@@ -792,4 +812,766 @@ test('M1-04 event row decoding never coerces persisted scalar values', () => {
     )
   }
   assert.equal(coercionCalls, 0)
+})
+
+function assertM105BundleCode(callback, expectedCode) {
+  assert.throws(callback, (error) => {
+    assert.equal(error?.code, expectedCode)
+    return true
+  })
+}
+
+function readM105SingleValue(db, sql) {
+  const row = db.prepare(sql).get()
+  const values = Object.values(row)
+  assert.equal(values.length, 1)
+  return values[0]
+}
+
+function readM105Pragmas(db) {
+  return {
+    foreign_keys: readM105SingleValue(db, 'PRAGMA foreign_keys'),
+    busy_timeout: readM105SingleValue(db, 'PRAGMA busy_timeout'),
+    recursive_triggers: readM105SingleValue(db, 'PRAGMA recursive_triggers'),
+    ignore_check_constraints: readM105SingleValue(
+      db,
+      'PRAGMA ignore_check_constraints',
+    ),
+  }
+}
+
+function withM105Database(callback, options) {
+  const db = options === undefined
+    ? new DatabaseSync(':memory:')
+    : new DatabaseSync(':memory:', options)
+  try {
+    return callback(db)
+  } finally {
+    db.close()
+  }
+}
+
+function makeM105SqlOverride(name, search, replacement) {
+  return {
+    [name]: EXPECTED_PERSISTED_SQL[name].replace(search, replacement),
+  }
+}
+
+function snapshotM105CanonicalRows(db) {
+  return {
+    meta: db.prepare(`
+      SELECT singleton, schema_version, stream_id, head_sequence, created_at
+      FROM main.memory_bundle_meta
+      ORDER BY singleton
+    `).all(),
+    events: db.prepare(`
+      SELECT * FROM main.memory_bundle_events ORDER BY sequence
+    `).all(),
+    atoms: db.prepare(`
+      SELECT * FROM main.memory_bundle_atoms ORDER BY memory_id COLLATE BINARY
+    `).all(),
+  }
+}
+
+test('M1-05 exposes exactly the four private verifier interfaces', () => {
+  assert.deepEqual(Object.keys(verifyModule).sort(), [
+    'assertBorrowedBundleConnection',
+    'configureOwnedBundleConnection',
+    'rejectCanonicalTempTriggers',
+    'verifyMemoryBundleState',
+  ])
+})
+
+test('M1-05 owned connections set exactly four PRAGMAs without changing journal mode', () => {
+  withM105Database((db) => {
+    db.exec(`
+      PRAGMA foreign_keys=OFF;
+      PRAGMA busy_timeout=23;
+      PRAGMA recursive_triggers=OFF;
+      PRAGMA ignore_check_constraints=ON;
+    `)
+    const journalMode = readM105SingleValue(db, 'PRAGMA journal_mode')
+
+    assert.equal(verifyModule.configureOwnedBundleConnection(db), undefined)
+    assert.deepEqual(readM105Pragmas(db), EXPECTED_REQUIRED_PRAGMAS)
+    assert.equal(readM105SingleValue(db, 'PRAGMA journal_mode'), journalMode)
+    assert.equal(db.isTransaction, false)
+  })
+})
+
+test('M1-05 borrowed connections verify every PRAGMA without mutation', () => {
+  const wrongValues = {
+    foreign_keys: 0,
+    busy_timeout: 17,
+    recursive_triggers: 0,
+    ignore_check_constraints: 1,
+  }
+
+  for (const [wrongName, wrongValue] of Object.entries(wrongValues)) {
+    withM105Database((db) => {
+      db.exec(`
+        PRAGMA foreign_keys=ON;
+        PRAGMA busy_timeout=0;
+        PRAGMA recursive_triggers=ON;
+        PRAGMA ignore_check_constraints=OFF;
+        PRAGMA ${wrongName}=${wrongValue};
+      `)
+      const before = readM105Pragmas(db)
+      const journalMode = readM105SingleValue(db, 'PRAGMA journal_mode')
+      assertM105BundleCode(
+        () => verifyModule.assertBorrowedBundleConnection(db),
+        'bundle_connection_invalid',
+      )
+      assert.deepEqual(readM105Pragmas(db), before)
+      assert.equal(readM105SingleValue(db, 'PRAGMA journal_mode'), journalMode)
+    })
+  }
+
+  withM105Database((db) => {
+    db.exec(`
+      PRAGMA foreign_keys=ON;
+      PRAGMA busy_timeout=0;
+      PRAGMA recursive_triggers=ON;
+      PRAGMA ignore_check_constraints=OFF;
+    `)
+    assert.equal(verifyModule.assertBorrowedBundleConnection(db), undefined)
+    assert.deepEqual(readM105Pragmas(db), EXPECTED_REQUIRED_PRAGMAS)
+  })
+})
+
+test('M1-05 rejects ASCII-folded canonical TEMP trigger targets including TEMP shadows', () => {
+  withM105Database((db) => {
+    createM105Bundle(db)
+    db.exec(`
+      CREATE TEMP TRIGGER canonical_main_target
+      BEFORE INSERT ON main.memory_bundle_events
+      BEGIN SELECT 1; END;
+    `)
+    assertM105BundleCode(
+      () => verifyModule.rejectCanonicalTempTriggers(db),
+      'bundle_connection_invalid',
+    )
+  })
+
+  withM105Database((db) => {
+    db.exec(`
+      CREATE TEMP TABLE MEMORY_BUNDLE_ATOMS (value TEXT);
+      CREATE TEMP TRIGGER canonical_shadow_target
+      BEFORE INSERT ON MEMORY_BUNDLE_ATOMS
+      BEGIN SELECT 1; END;
+    `)
+    assertM105BundleCode(
+      () => verifyModule.rejectCanonicalTempTriggers(db),
+      'bundle_connection_invalid',
+    )
+  })
+})
+
+test('M1-05 permits unrelated TEMP triggers plus attached and unrelated main objects', () => {
+  withM105Database((db) => {
+    createM105Bundle(db)
+    db.exec(`
+      CREATE TEMP TABLE unrelated_temp (value TEXT);
+      CREATE TEMP TRIGGER unrelated_temp_trigger
+      BEFORE INSERT ON unrelated_temp
+      BEGIN SELECT 1; END;
+      CREATE TABLE main.unrelated_main (value TEXT);
+      CREATE TRIGGER main.unrelated_main_trigger
+      BEFORE INSERT ON unrelated_main
+      BEGIN SELECT 1; END;
+      ATTACH DATABASE ':memory:' AS attached_probe;
+      CREATE TABLE attached_probe.memory_bundle_events (value TEXT);
+      CREATE TRIGGER attached_probe.attached_canonical_name
+      BEFORE INSERT ON memory_bundle_events
+      BEGIN SELECT 1; END;
+      CREATE TEMP TABLE memory_bundle_meta (shadow_value TEXT);
+      CREATE TABLE attached_probe.memory_bundle_meta (shadow_value TEXT);
+    `)
+    const journalMode = readM105SingleValue(db, 'PRAGMA journal_mode')
+
+    assert.equal(verifyModule.rejectCanonicalTempTriggers(db), undefined)
+    assert.deepEqual(
+      verifyModule.verifyMemoryBundleState(db).checkpoint,
+      { streamId: M1_04_IDS.streamId, sequence: 0 },
+    )
+    assert.equal(readM105SingleValue(db, 'PRAGMA journal_mode'), journalMode)
+  })
+})
+
+test('M1-05 verifies an empty bundle read-only with the exact private state shape', () => {
+  withM105Database((db) => {
+    createM105Bundle(db)
+    const beforeRows = snapshotM105CanonicalRows(db)
+    const beforeChanges = readM105SingleValue(db, 'SELECT total_changes()')
+    const beforeSchemaVersion = readM105SingleValue(db, 'PRAGMA main.schema_version')
+    const journalMode = readM105SingleValue(db, 'PRAGMA journal_mode')
+
+    const state = verifyModule.verifyMemoryBundleState(db)
+
+    assert.deepEqual(Object.keys(state), [
+      'checkpoint',
+      'memories',
+      'retainedByMemoryId',
+      'seenDecisionIds',
+      'seenProposalIds',
+      'lastObservedAt',
+    ])
+    assert.deepEqual(state.checkpoint, {
+      streamId: M1_04_IDS.streamId,
+      sequence: 0,
+    })
+    assert.deepEqual(state.memories, [])
+    assert.ok(state.retainedByMemoryId instanceof Map)
+    assert.deepEqual([...state.retainedByMemoryId], [])
+    assert.ok(state.seenDecisionIds instanceof Set)
+    assert.deepEqual([...state.seenDecisionIds], [])
+    assert.ok(state.seenProposalIds instanceof Set)
+    assert.deepEqual([...state.seenProposalIds], [])
+    assert.equal(state.lastObservedAt, null)
+    assert.deepEqual(snapshotM105CanonicalRows(db), beforeRows)
+    assert.equal(readM105SingleValue(db, 'SELECT total_changes()'), beforeChanges)
+    assert.equal(
+      readM105SingleValue(db, 'PRAGMA main.schema_version'),
+      beforeSchemaVersion,
+    )
+    assert.equal(readM105SingleValue(db, 'PRAGMA journal_mode'), journalMode)
+    assert.equal(db.isTransaction, false)
+  })
+})
+
+test('M1-05 returns exact verified reducer state for an active canonical memory', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, { seedActive: true })
+
+    const state = verifyModule.verifyMemoryBundleState(db)
+
+    assert.deepEqual(state.checkpoint, {
+      streamId: M1_04_IDS.streamId,
+      sequence: 1,
+    })
+    assert.deepEqual(state.memories, [codecModule.decodeAtomRow(makeM104AtomRow())])
+    assert.deepEqual([...state.retainedByMemoryId], [[
+      M1_04_IDS.memoryId,
+      { palariId: 'palari-a', userId: 'user-1', status: 'active' },
+    ]])
+    assert.deepEqual([...state.seenDecisionIds], [M1_04_IDS.decisionId])
+    assert.deepEqual([...state.seenProposalIds], [M1_04_IDS.proposalId])
+    assert.equal(state.lastObservedAt, '2026-07-18T12:00:00.000Z')
+  })
+})
+
+test('M1-05 classifies missing and wrong-type meta before all later checks', () => {
+  withM105Database((db) => {
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+
+  withM105Database((db) => {
+    db.exec(`
+      CREATE VIEW main.memory_bundle_meta AS
+      SELECT 1 AS singleton, 'CDX-B1' AS schema_version;
+    `)
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+})
+
+test('M1-05 classifies unreadable and non-singleton meta preflight as layout invalid', () => {
+  withM105Database((db) => {
+    db.exec('CREATE TABLE main.memory_bundle_meta (other TEXT)')
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+
+  for (const rowCount of [0, 2]) {
+    withM105Database((db) => {
+      db.exec(`
+        CREATE TABLE main.memory_bundle_meta (
+          singleton INTEGER,
+          schema_version TEXT
+        );
+      `)
+      for (let index = 0; index < rowCount; index += 1) {
+        db.exec(`
+          INSERT INTO main.memory_bundle_meta VALUES (1, 'CDX-B1');
+        `)
+      }
+      assertM105BundleCode(
+        () => verifyModule.verifyMemoryBundleState(db),
+        'bundle_layout_invalid',
+      )
+    })
+  }
+})
+
+test('M1-05 unsupported schema wins before CDX-B1 inventory and integrity assumptions', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      meta: { schema_version: 'CDX-B2' },
+    })
+    db.exec('CREATE TABLE main.memory_bundle_extra (value TEXT)')
+    assert.notEqual(
+      readM105SingleValue(db, 'PRAGMA main.quick_check'),
+      'ok',
+    )
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_schema_unsupported',
+    )
+  })
+})
+
+test('M1-05 enforces exact application and autoindex inventories first', () => {
+  withM105Database((db) => {
+    createM105Bundle(db)
+    db.exec('CREATE TABLE main.memory_bundle_extra (value TEXT)')
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      objectSqlOverrides: makeM105SqlOverride(
+        'memory_bundle_meta',
+        'stream_id TEXT NOT NULL UNIQUE',
+        'stream_id TEXT NOT NULL',
+      ),
+    })
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+
+  for (const mutation of [
+    "tbl_name = 'unrelated_table'",
+    "sql = 'CREATE UNIQUE INDEX unexpected_autoindex_sql ON memory_bundle_meta(stream_id)'",
+  ]) {
+    withM105Database((db) => {
+      createM105Bundle(db)
+      db.exec('PRAGMA writable_schema=ON')
+      try {
+        db.exec(`
+          UPDATE main.sqlite_schema
+          SET ${mutation}
+          WHERE name = 'sqlite_autoindex_memory_bundle_meta_1';
+        `)
+      } finally {
+        db.exec('PRAGMA writable_schema=OFF')
+      }
+      assertM105BundleCode(
+        () => verifyModule.verifyMemoryBundleState(db),
+        'bundle_layout_invalid',
+      )
+    })
+  }
+})
+
+test('M1-05 enforces exact canonical main trigger-target pairs and arbitrary names', () => {
+  withM105Database((db) => {
+    createM105Bundle(db)
+    db.exec(`
+      CREATE TRIGGER main.arbitrary_canonical_target
+      BEFORE INSERT ON memory_bundle_events
+      BEGIN SELECT 1; END;
+    `)
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+
+  withM105Database((db) => {
+    createM105Bundle(db)
+    db.exec(`
+      DROP TRIGGER main.memory_bundle_events_no_update;
+      CREATE TABLE main.trigger_retarget_probe (value TEXT);
+      CREATE TRIGGER main.memory_bundle_events_no_update
+      BEFORE UPDATE ON trigger_retarget_probe
+      BEGIN SELECT 1; END;
+    `)
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+})
+
+test('M1-05 compares normalized stored SQL only with persistedSql', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      objectSqlOverrides: makeM105SqlOverride(
+        'memory_bundle_meta',
+        'singleton INTEGER',
+        'singleton  INTEGER',
+      ),
+    })
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+})
+
+test('M1-05 compares exact table index and foreign-key PRAGMA projections', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      objectSqlOverrides: makeM105SqlOverride(
+        'memory_bundle_meta',
+        '  created_at TEXT NOT NULL\n) STRICT;',
+        '  created_at TEXT NOT NULL,\n  extra TEXT\n) STRICT;',
+      ),
+    })
+    spoofM105StoredSql(
+      db,
+      'memory_bundle_meta',
+      EXPECTED_PERSISTED_SQL.memory_bundle_meta,
+    )
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+
+  withM105Database((db) => {
+    createM105Bundle(db)
+    db.exec(`
+      CREATE INDEX main.unrelated_projection_index
+      ON memory_bundle_events(sequence);
+    `)
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      objectSqlOverrides: makeM105SqlOverride(
+        'memory_bundle_applied_create_memory_unique',
+        'ON memory_bundle_events(memory_id)',
+        'ON memory_bundle_events(memory_id DESC)',
+      ),
+    })
+    spoofM105StoredSql(
+      db,
+      'memory_bundle_applied_create_memory_unique',
+      EXPECTED_PERSISTED_SQL.memory_bundle_applied_create_memory_unique,
+    )
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      objectSqlOverrides: makeM105SqlOverride(
+        'memory_bundle_events',
+        'FOREIGN KEY (stream_id) REFERENCES memory_bundle_meta(stream_id),',
+        'FOREIGN KEY (stream_id) REFERENCES memory_bundle_meta(stream_id) ON DELETE CASCADE,',
+      ),
+    })
+    spoofM105StoredSql(
+      db,
+      'memory_bundle_events',
+      EXPECTED_PERSISTED_SQL.memory_bundle_events,
+    )
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+})
+
+test('M1-05 requires empty foreign_key_check and a real one-row ok quick_check', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      meta: { head_sequence: 1 },
+      beforeTriggers(connection) {
+        insertM105EventRow(connection, makeM104EventRow({
+          stream_id: 'str_00000000-0000-4000-8000-000000000099',
+        }))
+      },
+    })
+    assert.ok(db.prepare('PRAGMA main.foreign_key_check').all().length > 0)
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+
+  withM105Database((db) => {
+    createM105Bundle(db)
+    db.exec('PRAGMA ignore_check_constraints=ON')
+    try {
+      db.prepare(`
+        INSERT INTO main.memory_bundle_meta (
+          singleton, schema_version, stream_id, head_sequence, created_at
+        ) VALUES (2, 'CDX-B1', ?, 0, ?)
+      `).run(
+        'str_00000000-0000-4000-8000-000000000099',
+        M1_05_META.created_at,
+      )
+    } finally {
+      db.exec('PRAGMA ignore_check_constraints=OFF')
+    }
+
+    const quickRows = db.prepare('PRAGMA main.quick_check').all()
+    assert.equal(quickRows.length, 1)
+    assert.notEqual(Object.values(quickRows[0])[0], 'ok')
+    assert.equal(
+      readM105SingleValue(db, 'PRAGMA ignore_check_constraints'),
+      0,
+    )
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+})
+
+test('M1-05 layout and integrity failures win before meta semantic interpretation', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      meta: { created_at: 'not-a-time' },
+    })
+    db.exec('CREATE TABLE main.memory_bundle_extra (value TEXT)')
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      meta: { created_at: 'not-a-time' },
+    })
+    db.exec('PRAGMA ignore_check_constraints=ON')
+    try {
+      db.prepare(`
+        INSERT INTO main.memory_bundle_meta (
+          singleton, schema_version, stream_id, head_sequence, created_at
+        ) VALUES (2, 'CDX-B1', ?, 0, ?)
+      `).run(
+        'str_00000000-0000-4000-8000-000000000099',
+        M1_05_META.created_at,
+      )
+    } finally {
+      db.exec('PRAGMA ignore_check_constraints=OFF')
+    }
+    assert.notEqual(
+      readM105SingleValue(db, 'PRAGMA main.quick_check'),
+      'ok',
+    )
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_layout_invalid',
+    )
+  })
+})
+
+test('M1-05 maps remaining meta identity time and head defects to meta mismatch', () => {
+  const cases = [
+    { stream_id: 'not-a-stream' },
+    { created_at: 'not-a-time' },
+    { head_sequence: 1 },
+  ]
+  for (const meta of cases) {
+    withM105Database((db) => {
+      createM105Bundle(db, { meta })
+      assertM105BundleCode(
+        () => verifyModule.verifyMemoryBundleState(db),
+        'bundle_meta_mismatch',
+      )
+    })
+  }
+})
+
+test('M1-05 validates all event rows before observed-time and transition reduction', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, {
+      meta: { head_sequence: 3 },
+      beforeTriggers(connection) {
+        insertM105EventRow(connection, makeM104EventRow({
+          sequence: 1,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000011',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000012',
+          outcome: 'refused',
+          reason_code: 'below_threshold',
+          authority_kind: 'policy',
+          authority_id: 'palari-kernel-admission@1',
+          memory_id: null,
+        }))
+        insertM105EventRow(connection, makeM104EventRow({
+          sequence: 2,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000021',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000022',
+          outcome: 'refused',
+          reason_code: 'below_threshold',
+          authority_kind: 'policy',
+          authority_id: 'palari-kernel-admission@1',
+          memory_id: null,
+          effective_at: '2026-07-18T10:59:00.000Z',
+          observed_at: '2026-07-18T11:00:00.000Z',
+        }))
+        insertM105EventRow(connection, makeM104EventRow({
+          sequence: 3,
+          decision_id: 'not-a-decision-id',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000032',
+          outcome: 'refused',
+          reason_code: 'below_threshold',
+          authority_kind: 'policy',
+          authority_id: 'palari-kernel-admission@1',
+          memory_id: null,
+          observed_at: '2026-07-18T13:00:00.000Z',
+        }))
+      },
+    })
+    assert.equal(readM105SingleValue(db, 'PRAGMA main.quick_check'), 'ok')
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_invalid_decision',
+    )
+  })
+})
+
+test('M1-05 ignores later array and SQL-normalization intrinsic replacement', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, { seedActive: true })
+    const targets = [
+      [Array.prototype, 'push'],
+      [Array.prototype, 'sort'],
+      [String.prototype, 'replace'],
+      [String.prototype, 'replaceAll'],
+    ]
+    const descriptors = targets.map(([target, name]) => [
+      target,
+      name,
+      Object.getOwnPropertyDescriptor(target, name),
+    ])
+    const poison = () => {
+      throw new Error('late verifier intrinsic poison ran')
+    }
+    let state
+    let capturedError
+    try {
+      for (const [target, name, descriptor] of descriptors) {
+        Object.defineProperty(target, name, { ...descriptor, value: poison })
+      }
+      state = verifyModule.verifyMemoryBundleState(db)
+    } catch (error) {
+      capturedError = error
+    } finally {
+      for (const [target, name, descriptor] of descriptors) {
+        Object.defineProperty(target, name, descriptor)
+      }
+    }
+    if (capturedError !== undefined) throw capturedError
+    assert.deepEqual(state.checkpoint, {
+      streamId: M1_04_IDS.streamId,
+      sequence: 1,
+    })
+    assert.equal(state.memories.length, 1)
+  })
+})
+
+test('M1-05 projection comparison bypasses later inherited setters', () => {
+  withM105Database((db) => {
+    createM105Bundle(db)
+    const descriptor = Object.getOwnPropertyDescriptor(Object.prototype, 'cid')
+    let setterCalls = 0
+    let state
+    let capturedError
+    try {
+      Object.defineProperty(Object.prototype, 'cid', {
+        configurable: true,
+        set() {
+          setterCalls += 1
+          throw new Error('inherited projection setter ran')
+        },
+      })
+      state = verifyModule.verifyMemoryBundleState(db)
+    } catch (error) {
+      capturedError = error
+    } finally {
+      if (descriptor === undefined) {
+        Reflect.deleteProperty(Object.prototype, 'cid')
+      } else {
+        Object.defineProperty(Object.prototype, 'cid', descriptor)
+      }
+    }
+    if (capturedError !== undefined) throw capturedError
+    assert.equal(setterCalls, 0)
+    assert.deepEqual(state.checkpoint, {
+      streamId: M1_04_IDS.streamId,
+      sequence: 0,
+    })
+  })
+})
+
+test('M1-05 uses captured normalized row dispatch under hostile row modes and shadows', () => {
+  withM105Database((db) => {
+    createM105Bundle(db, { seedActive: true })
+    db.exec(`
+      CREATE TEMP TABLE memory_bundle_events (shadow_value TEXT);
+      ATTACH DATABASE ':memory:' AS attached_shadow;
+      CREATE TABLE attached_shadow.memory_bundle_atoms (shadow_value TEXT);
+    `)
+
+    const databasePrepareDescriptor = Object.getOwnPropertyDescriptor(
+      DatabaseSync.prototype,
+      'prepare',
+    )
+    const statementDescriptors = new Map(
+      ['get', 'all', 'setReadBigInts', 'setReturnArrays'].map((name) => [
+        name,
+        Object.getOwnPropertyDescriptor(StatementSync.prototype, name),
+      ]),
+    )
+    const poison = () => {
+      throw new Error('dynamic SQLite dispatch poison ran')
+    }
+    try {
+      Object.defineProperty(DatabaseSync.prototype, 'prepare', {
+        ...databasePrepareDescriptor,
+        value: poison,
+      })
+      Object.defineProperty(db, 'prepare', {
+        value: poison,
+        configurable: true,
+      })
+      for (const [name, descriptor] of statementDescriptors) {
+        Object.defineProperty(StatementSync.prototype, name, {
+          ...descriptor,
+          value: poison,
+        })
+      }
+
+      const state = verifyModule.verifyMemoryBundleState(db)
+      assert.deepEqual(state.checkpoint, {
+        streamId: M1_04_IDS.streamId,
+        sequence: 1,
+      })
+      assert.equal(state.memories.length, 1)
+    } finally {
+      Reflect.deleteProperty(db, 'prepare')
+      Object.defineProperty(
+        DatabaseSync.prototype,
+        'prepare',
+        databasePrepareDescriptor,
+      )
+      for (const [name, descriptor] of statementDescriptors) {
+        Object.defineProperty(StatementSync.prototype, name, descriptor)
+      }
+    }
+  }, { readBigInts: true, returnArrays: true })
 })

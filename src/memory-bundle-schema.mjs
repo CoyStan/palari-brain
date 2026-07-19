@@ -1,3 +1,7 @@
+const reflectApply = Reflect.apply
+const stringReplace = String.prototype.replace
+const stringReplaceAll = String.prototype.replaceAll
+
 export const MEMORY_BUNDLE_CAPABILITIES = Object.freeze({
   sourceOfTruth: false,
   physicalDeletion: false,
@@ -621,6 +625,144 @@ export const MEMORY_BUNDLE_TRIGGER_TARGETS = Object.freeze([
   }),
 ])
 
+function freezeRowManifest(manifest) {
+  const names = Object.keys(manifest)
+  for (let index = 0; index < names.length; index += 1) {
+    const rows = manifest[names[index]]
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+      Object.freeze(rows[rowIndex])
+    }
+    Object.freeze(rows)
+  }
+  return Object.freeze(manifest)
+}
+
+export const MEMORY_BUNDLE_TABLE_XINFO = freezeRowManifest({
+  memory_bundle_meta: [
+    { cid: 0, name: 'singleton', type: 'INTEGER', notnull: 0, dflt_value: null, pk: 1, hidden: 0 },
+    { cid: 1, name: 'schema_version', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 2, name: 'stream_id', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 3, name: 'head_sequence', type: 'INTEGER', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 4, name: 'created_at', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+  ],
+  memory_bundle_events: [
+    { cid: 0, name: 'sequence', type: 'INTEGER', notnull: 0, dflt_value: null, pk: 1, hidden: 0 },
+    { cid: 1, name: 'stream_id', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 2, name: 'decision_id', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 3, name: 'proposal_id', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 4, name: 'proposal_kind', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 5, name: 'operation', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 6, name: 'outcome', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 7, name: 'reason_code', type: 'TEXT', notnull: 0, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 8, name: 'palari_id', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 9, name: 'user_id', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 10, name: 'authority_kind', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 11, name: 'authority_id', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 12, name: 'evidence_kind', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 13, name: 'memory_id', type: 'TEXT', notnull: 0, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 14, name: 'memory_type', type: 'TEXT', notnull: 0, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 15, name: 'effective_at', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 16, name: 'observed_at', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+  ],
+  memory_bundle_atoms: [
+    { cid: 0, name: 'memory_id', type: 'TEXT', notnull: 1, dflt_value: null, pk: 1, hidden: 0 },
+    { cid: 1, name: 'stream_id', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 2, name: 'created_sequence', type: 'INTEGER', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 3, name: 'palari_id', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 4, name: 'user_id', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 5, name: 'type', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 6, name: 'content', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 7, name: 'keywords_json', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 8, name: 'initial_importance', type: 'REAL', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 9, name: 'confidence', type: 'REAL', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 10, name: 'provenance_kind', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 11, name: 'source_message_id', type: 'TEXT', notnull: 0, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 12, name: 'valid_from', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 13, name: 'created_at', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 14, name: 'fictional', type: 'INTEGER', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+    { cid: 15, name: 'content_checksum', type: 'TEXT', notnull: 1, dflt_value: null, pk: 0, hidden: 0 },
+  ],
+})
+
+export const MEMORY_BUNDLE_INDEX_LIST = freezeRowManifest({
+  memory_bundle_meta: [
+    { name: 'sqlite_autoindex_memory_bundle_meta_1', unique: 1, origin: 'u', partial: 0 },
+  ],
+  memory_bundle_events: [
+    { name: 'memory_bundle_applied_create_memory_unique', unique: 1, origin: 'c', partial: 1 },
+    { name: 'memory_bundle_applied_delete_memory_unique', unique: 1, origin: 'c', partial: 1 },
+    { name: 'sqlite_autoindex_memory_bundle_events_1', unique: 1, origin: 'u', partial: 0 },
+    { name: 'sqlite_autoindex_memory_bundle_events_2', unique: 1, origin: 'u', partial: 0 },
+  ],
+  memory_bundle_atoms: [
+    { name: 'sqlite_autoindex_memory_bundle_atoms_1', unique: 1, origin: 'pk', partial: 0 },
+    { name: 'sqlite_autoindex_memory_bundle_atoms_2', unique: 1, origin: 'u', partial: 0 },
+  ],
+})
+
+export const MEMORY_BUNDLE_INDEX_XINFO = freezeRowManifest({
+  memory_bundle_applied_create_memory_unique: [
+    { seqno: 0, cid: 13, name: 'memory_id', desc: 0, coll: 'BINARY', key: 1 },
+    { seqno: 1, cid: -1, name: null, desc: 0, coll: 'BINARY', key: 0 },
+  ],
+  memory_bundle_applied_delete_memory_unique: [
+    { seqno: 0, cid: 13, name: 'memory_id', desc: 0, coll: 'BINARY', key: 1 },
+    { seqno: 1, cid: -1, name: null, desc: 0, coll: 'BINARY', key: 0 },
+  ],
+  sqlite_autoindex_memory_bundle_atoms_1: [
+    { seqno: 0, cid: 0, name: 'memory_id', desc: 0, coll: 'BINARY', key: 1 },
+    { seqno: 1, cid: -1, name: null, desc: 0, coll: 'BINARY', key: 0 },
+  ],
+  sqlite_autoindex_memory_bundle_atoms_2: [
+    { seqno: 0, cid: 2, name: 'created_sequence', desc: 0, coll: 'BINARY', key: 1 },
+    { seqno: 1, cid: -1, name: null, desc: 0, coll: 'BINARY', key: 0 },
+  ],
+  sqlite_autoindex_memory_bundle_events_1: [
+    { seqno: 0, cid: 2, name: 'decision_id', desc: 0, coll: 'BINARY', key: 1 },
+    { seqno: 1, cid: -1, name: null, desc: 0, coll: 'BINARY', key: 0 },
+  ],
+  sqlite_autoindex_memory_bundle_events_2: [
+    { seqno: 0, cid: 3, name: 'proposal_id', desc: 0, coll: 'BINARY', key: 1 },
+    { seqno: 1, cid: -1, name: null, desc: 0, coll: 'BINARY', key: 0 },
+  ],
+  sqlite_autoindex_memory_bundle_meta_1: [
+    { seqno: 0, cid: 2, name: 'stream_id', desc: 0, coll: 'BINARY', key: 1 },
+    { seqno: 1, cid: -1, name: null, desc: 0, coll: 'BINARY', key: 0 },
+  ],
+})
+
+export const MEMORY_BUNDLE_FOREIGN_KEY_LIST = freezeRowManifest({
+  memory_bundle_meta: [],
+  memory_bundle_events: [
+    {
+      table: 'memory_bundle_meta',
+      from: 'stream_id',
+      to: 'stream_id',
+      on_update: 'NO ACTION',
+      on_delete: 'NO ACTION',
+      match: 'NONE',
+    },
+  ],
+  memory_bundle_atoms: [
+    {
+      table: 'memory_bundle_events',
+      from: 'created_sequence',
+      to: 'sequence',
+      on_update: 'NO ACTION',
+      on_delete: 'NO ACTION',
+      match: 'NONE',
+    },
+    {
+      table: 'memory_bundle_meta',
+      from: 'stream_id',
+      to: 'stream_id',
+      on_update: 'NO ACTION',
+      on_delete: 'NO ACTION',
+      match: 'NONE',
+    },
+  ],
+})
+
 export const MEMORY_BUNDLE_REQUIRED_PRAGMAS = Object.freeze({
   foreign_keys: 1,
   busy_timeout: 0,
@@ -629,7 +771,14 @@ export const MEMORY_BUNDLE_REQUIRED_PRAGMAS = Object.freeze({
 })
 
 export function normalizeMemoryBundleSql(sql) {
-  let normalized = sql.replaceAll('\r\n', '\n').replace(/^[\t\n\v\f\r ]+|[\t\n\v\f\r ]+$/g, '')
-  normalized = normalized.replace(/;[\t\n\v\f\r ]*$/, '')
-  return normalized.replace(/[\t\n\v\f\r ]+$/g, '')
+  let normalized = reflectApply(stringReplaceAll, sql, ['\r\n', '\n'])
+  normalized = reflectApply(stringReplace, normalized, [
+    /^[\t\n\v\f\r ]+|[\t\n\v\f\r ]+$/g,
+    '',
+  ])
+  normalized = reflectApply(stringReplace, normalized, [
+    /;[\t\n\v\f\r ]*$/,
+    '',
+  ])
+  return reflectApply(stringReplace, normalized, [/[\t\n\v\f\r ]+$/g, ''])
 }

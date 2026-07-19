@@ -594,3 +594,159 @@ export function makeM104EventRow(overrides = {}) {
     observed_at: '2026-07-18T12:00:00.000Z',
   }, overrides)
 }
+
+export const M1_05_META = Object.freeze({
+  singleton: 1,
+  schema_version: 'CDX-B1',
+  stream_id: M1_04_IDS.streamId,
+  head_sequence: 0,
+  created_at: '2026-07-18T11:58:00.000Z',
+})
+
+function m105ExecutionSql(type, name, persistedSql) {
+  if (type === 'table') {
+    return persistedSql.replace(`CREATE TABLE ${name}`, `CREATE TABLE main.${name}`)
+  }
+  if (type === 'index') {
+    return persistedSql.replace(
+      `CREATE UNIQUE INDEX ${name}`,
+      `CREATE UNIQUE INDEX main.${name}`,
+    )
+  }
+  return persistedSql.replace(
+    `CREATE TRIGGER ${name}`,
+    `CREATE TRIGGER main.${name}`,
+  )
+}
+
+export function insertM105EventRow(db, row = makeM104EventRow()) {
+  db.prepare(`
+    INSERT INTO main.memory_bundle_events (
+      sequence, stream_id, decision_id, proposal_id, proposal_kind,
+      operation, outcome, reason_code, palari_id, user_id,
+      authority_kind, authority_id, evidence_kind, memory_id, memory_type,
+      effective_at, observed_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    row.sequence,
+    row.stream_id,
+    row.decision_id,
+    row.proposal_id,
+    row.proposal_kind,
+    row.operation,
+    row.outcome,
+    row.reason_code,
+    row.palari_id,
+    row.user_id,
+    row.authority_kind,
+    row.authority_id,
+    row.evidence_kind,
+    row.memory_id,
+    row.memory_type,
+    row.effective_at,
+    row.observed_at,
+  )
+}
+
+export function insertM105AtomRow(db, row = makeM104AtomRow()) {
+  db.prepare(`
+    INSERT INTO main.memory_bundle_atoms (
+      memory_id, stream_id, created_sequence, palari_id, user_id, type,
+      content, keywords_json, initial_importance, confidence,
+      provenance_kind, source_message_id, valid_from, created_at, fictional,
+      content_checksum
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    row.memory_id,
+    row.stream_id,
+    row.created_sequence,
+    row.palari_id,
+    row.user_id,
+    row.type,
+    row.content,
+    row.keywords_json,
+    row.initial_importance,
+    row.confidence,
+    row.provenance_kind,
+    row.source_message_id,
+    row.valid_from,
+    row.created_at,
+    row.fictional,
+    row.content_checksum,
+  )
+}
+
+export function seedM105ActiveMemory(db) {
+  insertM105EventRow(db)
+  insertM105AtomRow(db)
+  db.exec('UPDATE main.memory_bundle_meta SET head_sequence = 1 WHERE singleton = 1')
+}
+
+export function createM105Bundle(db, options = {}) {
+  const objectSqlOverrides = options.objectSqlOverrides ?? {}
+  const meta = Object.assign({}, M1_05_META, options.meta ?? {})
+
+  db.exec(`
+    PRAGMA foreign_keys=OFF;
+    PRAGMA busy_timeout=0;
+    PRAGMA recursive_triggers=ON;
+    PRAGMA ignore_check_constraints=OFF;
+  `)
+
+  for (const { type, name } of EXPECTED_OBJECTS) {
+    if (type === 'trigger') continue
+    const persistedSql = objectSqlOverrides[name] ?? EXPECTED_PERSISTED_SQL[name]
+    db.exec(m105ExecutionSql(type, name, persistedSql))
+  }
+
+  if (meta.schema_version !== 'CDX-B1' || options.ignoreChecksDuringMeta === true) {
+    db.exec('PRAGMA ignore_check_constraints=ON')
+  }
+  try {
+    db.prepare(`
+      INSERT INTO main.memory_bundle_meta (
+        singleton, schema_version, stream_id, head_sequence, created_at
+      ) VALUES (?, ?, ?, ?, ?)
+    `).run(
+      meta.singleton,
+      meta.schema_version,
+      meta.stream_id,
+      meta.head_sequence,
+      meta.created_at,
+    )
+  } finally {
+    db.exec('PRAGMA ignore_check_constraints=OFF')
+  }
+
+  if (typeof options.beforeTriggers === 'function') {
+    options.beforeTriggers(db, meta)
+  }
+
+  for (const { type, name } of EXPECTED_OBJECTS) {
+    if (type !== 'trigger') continue
+    const persistedSql = objectSqlOverrides[name] ?? EXPECTED_PERSISTED_SQL[name]
+    db.exec(m105ExecutionSql(type, name, persistedSql))
+  }
+
+  db.exec(`
+    PRAGMA foreign_keys=ON;
+    PRAGMA busy_timeout=0;
+    PRAGMA recursive_triggers=ON;
+    PRAGMA ignore_check_constraints=OFF;
+  `)
+
+  if (options.seedActive === true) seedM105ActiveMemory(db)
+  return meta
+}
+
+export function spoofM105StoredSql(db, name, persistedSql) {
+  db.exec('PRAGMA writable_schema=ON')
+  try {
+    db.prepare('UPDATE main.sqlite_schema SET sql = ? WHERE name = ?').run(
+      persistedSql,
+      name,
+    )
+  } finally {
+    db.exec('PRAGMA writable_schema=OFF')
+  }
+}
