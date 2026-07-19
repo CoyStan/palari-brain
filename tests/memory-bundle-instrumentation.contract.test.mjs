@@ -27,6 +27,7 @@ test('M1-02 captures one unopened probe before all native dispatch paths', () =>
     row,
     rows,
     dynamicDatabaseDispatchCallCount,
+    dynamicStatementDispatchCallCount,
   } = runScenario('M1-02-native-capture')
 
   assert.deepEqual(trace, [
@@ -97,4 +98,5 @@ test('M1-02 captures one unopened probe before all native dispatch paths', () =>
   assert.deepEqual(row, { value: 'seven' })
   assert.deepEqual(rows, [{ id: 7, value: 'seven' }])
   assert.equal(dynamicDatabaseDispatchCallCount, 0)
+  assert.equal(dynamicStatementDispatchCallCount, 0)
 })

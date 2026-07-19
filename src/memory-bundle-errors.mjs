@@ -33,6 +33,7 @@ const setHas = Set.prototype.has
 const weakSetAdd = WeakSet.prototype.add
 const weakSetHas = WeakSet.prototype.has
 const isProxy = utilTypes.isProxy
+const nativeError = Error
 const nativeString = String
 const nativeTypeError = TypeError
 const INVALID_CODE_NON_PRIMITIVE_RENDERING = '<non-primitive>'
@@ -87,22 +88,31 @@ export class MemoryBundleError extends Error {
       throwNativeTypeError(INVALID_MESSAGE_DIAGNOSTIC)
     }
     const cause = readOwnDataCause(options)
-    super(message, cause === undefined ? undefined : { cause })
-    reflectApply(objectDefineProperty, undefined, [this, 'name', {
+    const error = reflectConstruct(
+      nativeError,
+      [message, cause === undefined ? undefined : { cause }],
+      memoryBundleErrorNewTarget,
+    )
+    reflectApply(objectDefineProperty, undefined, [error, 'name', {
+      __proto__: null,
       value: 'MemoryBundleError',
       enumerable: false,
       configurable: true,
       writable: true,
     }])
-    reflectApply(objectDefineProperty, undefined, [this, 'code', {
+    reflectApply(objectDefineProperty, undefined, [error, 'code', {
+      __proto__: null,
       value: code,
       enumerable: true,
       configurable: false,
       writable: false,
     }])
-    reflectApply(weakSetAdd, MEMORY_BUNDLE_ERROR_INSTANCES, [this])
+    reflectApply(weakSetAdd, MEMORY_BUNDLE_ERROR_INSTANCES, [error])
+    return error
   }
 }
+
+const memoryBundleErrorNewTarget = MemoryBundleError
 
 export function memoryBundleFailure(code, message, cause) {
   return new MemoryBundleError(code, message, cause === undefined ? {} : { cause })

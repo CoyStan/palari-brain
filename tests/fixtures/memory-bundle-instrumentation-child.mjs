@@ -103,19 +103,53 @@ const scenarios = {
     const runtime = await import('../../src/memory-bundle-runtime.mjs')
     const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
     const defineProperty = Object.defineProperty
-    const execDescriptor = getOwnPropertyDescriptor(
-      InstrumentedDatabaseSync.prototype,
-      'exec',
-    )
-    const prepareDescriptor = getOwnPropertyDescriptor(
-      InstrumentedDatabaseSync.prototype,
-      'prepare',
-    )
-    const closeDescriptor = getOwnPropertyDescriptor(
-      InstrumentedDatabaseSync.prototype,
-      'close',
-    )
+    const databaseMethodDescriptors = [
+      [
+        'exec',
+        getOwnPropertyDescriptor(InstrumentedDatabaseSync.prototype, 'exec'),
+      ],
+      [
+        'prepare',
+        getOwnPropertyDescriptor(
+          InstrumentedDatabaseSync.prototype,
+          'prepare',
+        ),
+      ],
+      [
+        'close',
+        getOwnPropertyDescriptor(InstrumentedDatabaseSync.prototype, 'close'),
+      ],
+    ]
+    const statementMethodDescriptors = [
+      [
+        'get',
+        getOwnPropertyDescriptor(InstrumentedStatementSync.prototype, 'get'),
+      ],
+      [
+        'all',
+        getOwnPropertyDescriptor(InstrumentedStatementSync.prototype, 'all'),
+      ],
+      [
+        'run',
+        getOwnPropertyDescriptor(InstrumentedStatementSync.prototype, 'run'),
+      ],
+      [
+        'setReadBigInts',
+        getOwnPropertyDescriptor(
+          InstrumentedStatementSync.prototype,
+          'setReadBigInts',
+        ),
+      ],
+      [
+        'setReturnArrays',
+        getOwnPropertyDescriptor(
+          InstrumentedStatementSync.prototype,
+          'setReturnArrays',
+        ),
+      ],
+    ]
     let dynamicDatabaseDispatchCallCount = 0
+    let dynamicStatementDispatchCallCount = 0
     let row
     let rows
 
@@ -124,15 +158,22 @@ const scenarios = {
       throw new Error('dynamic database dispatch poison ran')
     }
 
+    function dynamicStatementDispatchPoison() {
+      dynamicStatementDispatchCallCount += 1
+      throw new Error('dynamic statement dispatch poison ran')
+    }
+
     try {
-      for (const [key, descriptor] of [
-        ['exec', execDescriptor],
-        ['prepare', prepareDescriptor],
-        ['close', closeDescriptor],
-      ]) {
+      for (const [key, descriptor] of databaseMethodDescriptors) {
         defineProperty(InstrumentedDatabaseSync.prototype, key, {
           ...descriptor,
           value: dynamicDatabaseDispatchPoison,
+        })
+      }
+      for (const [key, descriptor] of statementMethodDescriptors) {
+        defineProperty(InstrumentedStatementSync.prototype, key, {
+          ...descriptor,
+          value: dynamicStatementDispatchPoison,
         })
       }
 
@@ -161,24 +202,21 @@ const scenarios = {
         runtime.closeDatabase(db)
       }
     } finally {
-      defineProperty(
-        InstrumentedDatabaseSync.prototype,
-        'exec',
-        execDescriptor,
-      )
-      defineProperty(
-        InstrumentedDatabaseSync.prototype,
-        'prepare',
-        prepareDescriptor,
-      )
-      defineProperty(
-        InstrumentedDatabaseSync.prototype,
-        'close',
-        closeDescriptor,
-      )
+      for (const [key, descriptor] of databaseMethodDescriptors) {
+        defineProperty(InstrumentedDatabaseSync.prototype, key, descriptor)
+      }
+      for (const [key, descriptor] of statementMethodDescriptors) {
+        defineProperty(InstrumentedStatementSync.prototype, key, descriptor)
+      }
     }
 
-    return { trace, row, rows, dynamicDatabaseDispatchCallCount }
+    return {
+      trace,
+      row,
+      rows,
+      dynamicDatabaseDispatchCallCount,
+      dynamicStatementDispatchCallCount,
+    }
   },
 }
 

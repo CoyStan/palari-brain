@@ -157,6 +157,7 @@ export function captureExactRecord(value, specification) {
         captured,
         key,
         {
+          __proto__: null,
           value: descriptor.value,
           enumerable: true,
           configurable: true,

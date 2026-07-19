@@ -218,6 +218,80 @@ test('M1-02 exact record capture ignores later error hasInstance poisoning', () 
   assert.equal(caught instanceof errorConstructor, true)
 })
 
+test('M1-02 error construction ignores later exported constructor [[Prototype]] mutation', () => {
+  const errorConstructor = applyModule.MemoryBundleError
+  const getPrototypeOf = Object.getPrototypeOf
+  const setPrototypeOf = Object.setPrototypeOf
+  const originalPrototype = getPrototypeOf(errorConstructor)
+  const cause = new Error('native failure')
+  let poisonCallCount = 0
+  let constructed
+  let preserved
+  let caught
+
+  function MutatedSuperConstructor() {
+    poisonCallCount += 1
+    throw new Error('mutable exported constructor prototype poison ran')
+  }
+
+  try {
+    setPrototypeOf(errorConstructor, MutatedSuperConstructor)
+    try {
+      constructed = new errorConstructor(
+        'bundle_storage_error',
+        'storage failed',
+        { cause },
+      )
+      preserved = preserveMemoryBundleError(
+        constructed,
+        'bundle_invalid_argument',
+        'must preserve private brand',
+      )
+    } catch (error) {
+      caught = error
+    }
+  } finally {
+    setPrototypeOf(errorConstructor, originalPrototype)
+  }
+
+  assert.equal(getPrototypeOf(errorConstructor), originalPrototype)
+  assert.equal(poisonCallCount, 0)
+  assert.equal(caught, undefined)
+  assert.equal(getPrototypeOf(constructed), errorConstructor.prototype)
+  assert.equal(constructed instanceof errorConstructor, true)
+  assert.equal(constructed instanceof Error, true)
+  assert.equal(preserved, constructed)
+  assert.equal(constructed.message, 'storage failed')
+  assert.deepEqual(Object.getOwnPropertyDescriptor(constructed, 'message'), {
+    value: 'storage failed',
+    enumerable: false,
+    configurable: true,
+    writable: true,
+  })
+  assert.equal(constructed.cause, cause)
+  assert.deepEqual(Object.getOwnPropertyDescriptor(constructed, 'cause'), {
+    value: cause,
+    enumerable: false,
+    configurable: true,
+    writable: true,
+  })
+  assert.deepEqual(Object.getOwnPropertyDescriptor(constructed, 'name'), {
+    value: 'MemoryBundleError',
+    enumerable: false,
+    configurable: true,
+    writable: true,
+  })
+  assert.deepEqual(Object.getOwnPropertyDescriptor(constructed, 'code'), {
+    value: 'bundle_storage_error',
+    enumerable: true,
+    configurable: false,
+    writable: false,
+  })
+  assert.equal(typeof constructed.stack, 'string')
+  assert.match(constructed.stack, /storage failed/)
+  assert.deepEqual(Object.keys(constructed), ['code'])
+})
+
 test('M1-02 exact record capture rejects accessors despite inherited value poisoning', () => {
   const key = '__palariMemoryBundleM102AccessorKey__'
   const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
@@ -400,6 +474,91 @@ test('M1-02 error construction ignores later defineProperty poisoning', () => {
     'bundle_invalid_argument',
     'A DatabaseSync connection is required.',
   )
+})
+
+test('M1-02 error construction ignores inherited descriptor accessor keys', () => {
+  const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+  const defineProperties = Object.defineProperties
+  const defineProperty = Object.defineProperty
+  const deleteProperty = Reflect.deleteProperty
+  const originalGetDescriptor = getOwnPropertyDescriptor(
+    Object.prototype,
+    'get',
+  )
+  const originalSetDescriptor = getOwnPropertyDescriptor(
+    Object.prototype,
+    'set',
+  )
+  let inheritedGetCallCount = 0
+  let inheritedSetCallCount = 0
+  let constructed
+  let caught
+
+  try {
+    defineProperties(Object.prototype, {
+      get: {
+        get() {
+          inheritedGetCallCount += 1
+          throw new Error('inherited descriptor get poison ran')
+        },
+        configurable: true,
+      },
+      set: {
+        get() {
+          inheritedSetCallCount += 1
+          throw new Error('inherited descriptor set poison ran')
+        },
+        configurable: true,
+      },
+    })
+
+    try {
+      constructed = new applyModule.MemoryBundleError(
+        'bundle_invalid_argument',
+        'Exact record required.',
+      )
+    } catch (error) {
+      caught = error
+    }
+  } finally {
+    deleteProperty(Object.prototype, 'get')
+    deleteProperty(Object.prototype, 'set')
+    if (originalGetDescriptor !== undefined) {
+      defineProperty(Object.prototype, 'get', originalGetDescriptor)
+    }
+    if (originalSetDescriptor !== undefined) {
+      defineProperty(Object.prototype, 'set', originalSetDescriptor)
+    }
+  }
+
+  assert.deepEqual(
+    getOwnPropertyDescriptor(Object.prototype, 'get'),
+    originalGetDescriptor,
+  )
+  assert.deepEqual(
+    getOwnPropertyDescriptor(Object.prototype, 'set'),
+    originalSetDescriptor,
+  )
+  assert.equal(inheritedGetCallCount, 0)
+  assert.equal(inheritedSetCallCount, 0)
+  assert.equal(caught, undefined)
+  assertExactBundleError(
+    constructed,
+    'bundle_invalid_argument',
+    'Exact record required.',
+  )
+  assert.deepEqual(Object.getOwnPropertyDescriptor(constructed, 'name'), {
+    value: 'MemoryBundleError',
+    enumerable: false,
+    configurable: true,
+    writable: true,
+  })
+  assert.deepEqual(Object.getOwnPropertyDescriptor(constructed, 'code'), {
+    value: 'bundle_invalid_argument',
+    enumerable: true,
+    configurable: false,
+    writable: false,
+  })
 })
 
 test('M1-02 invalid error codes ignore later String and TypeError poisoning', () => {
@@ -647,6 +806,85 @@ test('M1-02 invalid messages fail before coercion and private branding', () => {
   assert.equal(preserved.message, 'wrapped native failure')
   assert.equal(preserved.cause, outcomes[0].caught)
   assert.deepEqual(Object.keys(preserved), ['code'])
+})
+
+test('M1-02 exact record capture ignores inherited descriptor accessor keys', () => {
+  const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+  const defineProperties = Object.defineProperties
+  const defineProperty = Object.defineProperty
+  const deleteProperty = Reflect.deleteProperty
+  const originalGetDescriptor = getOwnPropertyDescriptor(
+    Object.prototype,
+    'get',
+  )
+  const originalSetDescriptor = getOwnPropertyDescriptor(
+    Object.prototype,
+    'set',
+  )
+  const input = { required: 'captured' }
+  let inheritedGetCallCount = 0
+  let inheritedSetCallCount = 0
+  let captured
+  let caught
+
+  try {
+    defineProperties(Object.prototype, {
+      get: {
+        get() {
+          inheritedGetCallCount += 1
+          throw new Error('inherited descriptor get poison ran')
+        },
+        configurable: true,
+      },
+      set: {
+        get() {
+          inheritedSetCallCount += 1
+          throw new Error('inherited descriptor set poison ran')
+        },
+        configurable: true,
+      },
+    })
+
+    try {
+      captured = captureExactRecord(input, {
+        keys: ['required'],
+        code: 'bundle_invalid_argument',
+        message: 'Exact record required.',
+      })
+    } catch (error) {
+      caught = error
+    }
+  } finally {
+    deleteProperty(Object.prototype, 'get')
+    deleteProperty(Object.prototype, 'set')
+    if (originalGetDescriptor !== undefined) {
+      defineProperty(Object.prototype, 'get', originalGetDescriptor)
+    }
+    if (originalSetDescriptor !== undefined) {
+      defineProperty(Object.prototype, 'set', originalSetDescriptor)
+    }
+  }
+
+  assert.deepEqual(
+    getOwnPropertyDescriptor(Object.prototype, 'get'),
+    originalGetDescriptor,
+  )
+  assert.deepEqual(
+    getOwnPropertyDescriptor(Object.prototype, 'set'),
+    originalSetDescriptor,
+  )
+  assert.equal(inheritedGetCallCount, 0)
+  assert.equal(inheritedSetCallCount, 0)
+  assert.equal(caught, undefined)
+  assert.notEqual(captured, input)
+  assert.equal(Object.getPrototypeOf(captured), Object.prototype)
+  assert.deepEqual(Object.keys(captured), ['required'])
+  assert.deepEqual(Object.getOwnPropertyDescriptor(captured, 'required'), {
+    value: 'captured',
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  })
 })
 
 test('M1-02 exact record capture bypasses inherited setters', () => {
