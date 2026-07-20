@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync, StatementSync } from 'node:sqlite'
+import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 
 import * as codecModule from '../src/memory-bundle-codec.mjs'
@@ -2419,6 +2420,24 @@ function createM106SemanticBundle(db, events, atoms = [], options = {}) {
   }
 }
 
+function runM106NativeInstrumentationScenario(name) {
+  const childPath = fileURLToPath(new URL(
+    './fixtures/memory-bundle-instrumentation-child.mjs',
+    import.meta.url,
+  ))
+  const child = spawnSync(process.execPath, [childPath, name], {
+    encoding: 'utf8',
+  })
+  assert.equal(
+    child.status,
+    0,
+    `M1-06 native instrumentation failed\nstdout:\n${child.stdout}\nstderr:\n${child.stderr}`,
+  )
+  const lines = child.stdout.trim().split('\n')
+  assert.equal(lines.length, 1)
+  return JSON.parse(lines[0])
+}
+
 function runM106InstrumentedScenario(name) {
   const fixtureUrl = new URL(
     './helpers/memory-bundle-fixtures.mjs',
@@ -2475,7 +2494,9 @@ function runM106InstrumentedScenario(name) {
           if (
             scenario === 'atom-read-transition' ||
             scenario === 'atom-read-cross-scope-delete' ||
-            scenario === 'atom-read-double-delete'
+            scenario === 'atom-read-double-delete' ||
+            scenario === 'atom-read-active-id-reuse' ||
+            scenario === 'atom-read-deleted-id-reuse'
           ) {
             throw new Error('instrumented atom read failure')
           }
@@ -2610,6 +2631,69 @@ function runM106InstrumentedScenario(name) {
             fixtures.insertM105EventRow(connection, create)
             fixtures.insertM105EventRow(connection, firstDelete)
             fixtures.insertM105EventRow(connection, secondDelete)
+          },
+        }
+        spoofStoredSqlNames = [indexName]
+      } else if (scenario === 'atom-read-active-id-reuse') {
+        headSequence = 2
+        eventRows = null
+        const indexName = 'memory_bundle_applied_create_memory_unique'
+        const firstCreate = fixtures.makeM104EventRow()
+        const reusedCreate = fixtures.makeM104EventRow({
+          sequence: 2,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000041',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000042',
+          effective_at: '2026-07-18T12:59:00.000Z',
+          observed_at: '2026-07-18T13:00:00.000Z',
+        })
+        bundleOptions = {
+          meta: { head_sequence: headSequence },
+          objectSqlOverrides: {
+            [indexName]: fixtures.EXPECTED_PERSISTED_SQL[indexName].replace(
+              "WHERE operation = 'create' AND outcome = 'applied';",
+              "WHERE operation = 'create' AND outcome = 'applied' AND sequence < 2;",
+            ),
+          },
+          beforeTriggers(connection) {
+            fixtures.insertM105EventRow(connection, firstCreate)
+            fixtures.insertM105EventRow(connection, reusedCreate)
+          },
+        }
+        spoofStoredSqlNames = [indexName]
+      } else if (scenario === 'atom-read-deleted-id-reuse') {
+        headSequence = 3
+        eventRows = null
+        const indexName = 'memory_bundle_applied_create_memory_unique'
+        const firstCreate = fixtures.makeM104EventRow()
+        const deletion = fixtures.makeM104EventRow({
+          sequence: 2,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000051',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000052',
+          proposal_kind: 'demote',
+          operation: 'delete',
+          memory_type: null,
+          effective_at: '2026-07-18T12:59:00.000Z',
+          observed_at: '2026-07-18T13:00:00.000Z',
+        })
+        const reusedCreate = fixtures.makeM104EventRow({
+          sequence: 3,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000061',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000062',
+          effective_at: '2026-07-18T13:59:00.000Z',
+          observed_at: '2026-07-18T14:00:00.000Z',
+        })
+        bundleOptions = {
+          meta: { head_sequence: headSequence },
+          objectSqlOverrides: {
+            [indexName]: fixtures.EXPECTED_PERSISTED_SQL[indexName].replace(
+              "WHERE operation = 'create' AND outcome = 'applied';",
+              "WHERE operation = 'create' AND outcome = 'applied' AND sequence < 3;",
+            ),
+          },
+          beforeTriggers(connection) {
+            fixtures.insertM105EventRow(connection, firstCreate)
+            fixtures.insertM105EventRow(connection, deletion)
+            fixtures.insertM105EventRow(connection, reusedCreate)
           },
         }
         spoofStoredSqlNames = [indexName]
@@ -2759,6 +2843,74 @@ test('M1-06 completes multi-event delete transitions before attempting atom read
     assert.equal(result.code, expectedCode, scenario)
     assert.equal(result.atomReadCount, 0, scenario)
   }
+})
+
+test('M1-06 classifies active id reuse before atom reads', () => {
+  const result = runM106InstrumentedScenario('atom-read-active-id-reuse')
+  assert.equal(result.returned, false)
+  assert.equal(result.code, 'bundle_id_reuse')
+  assert.equal(result.atomReadCount, 0)
+})
+
+test('M1-06 classifies deleted id reuse before atom reads', () => {
+  const result = runM106InstrumentedScenario('atom-read-deleted-id-reuse')
+  assert.equal(result.returned, false)
+  assert.equal(result.code, 'bundle_id_reuse')
+  assert.equal(result.atomReadCount, 0)
+})
+
+test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
+  const result = runM106NativeInstrumentationScenario(
+    'M1-06-verifier-read-only-dispatch',
+  )
+
+  assert.equal(result.connectionConstruction.operation, 'construct')
+  assert.deepEqual(result.connectionConstruction.args[1], {
+    readOnly: true,
+    timeout: 0,
+  })
+  assert.ok(result.trace.length > 0)
+  let selectCount = 0
+  let pragmaCount = 0
+  let readCount = 0
+  for (const entry of result.trace) {
+    if (entry.operation === 'prepare') {
+      const normalizedSql = entry.sql.replace(/\s+/g, ' ').trim()
+      if (/^SELECT\b/i.test(normalizedSql)) {
+        selectCount += 1
+      } else if (/^PRAGMA\b/i.test(normalizedSql)) {
+        assert.doesNotMatch(normalizedSql, /=/)
+        pragmaCount += 1
+      } else {
+        assert.fail(`verifier prepared forbidden SQL: ${normalizedSql}`)
+      }
+      assert.doesNotMatch(
+        normalizedSql,
+        /^(?:BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|VACUUM|ATTACH|DETACH)\b/i,
+      )
+      continue
+    }
+    if (entry.operation === 'all' || entry.operation === 'get') {
+      readCount += 1
+      continue
+    }
+    assert.ok(
+      entry.operation === 'setReadBigInts' ||
+        entry.operation === 'setReturnArrays',
+      `verifier dispatched forbidden SQLite operation: ${entry.operation}`,
+    )
+  }
+  assert.ok(selectCount > 0)
+  assert.ok(pragmaCount > 0)
+  assert.ok(readCount > 0)
+  assert.equal(result.verificationError, null)
+  assert.deepEqual(result.checkpoint, {
+    streamId: M1_04_IDS.streamId,
+    sequence: 1,
+  })
+  assert.equal(result.isTransactionAfter, false)
+  assert.equal(result.dynamicDatabaseDispatchCallCount, 0)
+  assert.equal(result.dynamicStatementDispatchCallCount, 0)
 })
 
 test('M1-06 requires exact safe-integer sequences 1 through head including empty head', () => {
@@ -2959,6 +3111,55 @@ test('M1-06 preserves time, retained-scope, and transition-before-atom precedenc
     assertM105BundleCode(
       () => verifyModule.verifyMemoryBundleState(db),
       'bundle_unauthorized',
+    )
+  })
+})
+
+test('M1-06 validates all event authority before any transition reduction', () => {
+  withM105Database((db) => {
+    const missingTargetId = m106Id('mem', 0x933)
+    const unauthorizedCreateId = m106Id('mem', 0x934)
+    const objectSqlOverrides = makeM105SqlOverride(
+      'memory_bundle_events',
+      'AND authority_id = user_id\n      AND memory_id IS NOT NULL',
+      "AND authority_id <> ''\n      AND memory_id IS NOT NULL",
+    )
+    createM106SemanticBundle(db, [
+      makeM106DeleteEventRow(1, missingTargetId),
+      makeM106CreateEventRow(2, unauthorizedCreateId, {
+        authority_id: 'user-2',
+      }),
+    ], [], {
+      objectSqlOverrides,
+      spoofStoredSqlNames: ['memory_bundle_events'],
+    })
+
+    assert.equal(readM105SingleValue(db, 'PRAGMA main.quick_check'), 'ok')
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_unauthorized',
+    )
+  })
+})
+
+test('M1-06 validates global observed time before any transition reduction', () => {
+  withM105Database((db) => {
+    const memoryId = m106Id('mem', 0x935)
+    createM106SemanticBundle(db, [
+      makeM106CreateEventRow(1, memoryId),
+      makeM106DeleteEventRow(2, memoryId, {
+        user_id: 'user-2',
+        authority_id: 'user-2',
+      }),
+      makeM106RefusedDeleteEventRow(3, m106Id('mem', 0x936), {
+        effective_at: m106Timestamp(0),
+        observed_at: m106Timestamp(0),
+      }),
+    ])
+
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_invalid_transition',
     )
   })
 })
@@ -3251,34 +3452,44 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
     )
 
     withM105Database((db) => {
-      const memoryIds = [
+      const activeMemoryIds = [
         m106Id('mem', 0x99f),
         m106Id('mem', 0x991),
         m106Id('mem', 0x99a),
       ]
-      const events = memoryIds.map((memoryId, index) =>
+      const deletedMemoryId = m106Id('mem', 0x995)
+      const memoryIds = [...activeMemoryIds, deletedMemoryId]
+      const createEvents = memoryIds.map((memoryId, index) =>
         makeM106CreateEventRow(index + 1, memoryId))
+      const deletion = makeM106DeleteEventRow(5, deletedMemoryId)
+      const events = [...createEvents, deletion]
       const atomOverrides = [
         { keywords: ['alpha', 'tea'], fictional: false },
         { keywords: ['beta', 'tea'], fictional: true },
         { keywords: ['gamma', 'tea'], fictional: false },
+        { keywords: ['deleted', 'tea'], fictional: true },
       ]
-      const atoms = events.map((event, index) =>
-        makeM106AtomRow(event, atomOverrides[index]))
+      const atoms = createEvents.flatMap((event, index) =>
+        event.memory_id === deletedMemoryId
+          ? []
+          : [makeM106AtomRow(event, atomOverrides[index])])
       createM106SemanticBundle(db, events, atoms)
 
       const first = freshVerifier.verifyMemoryBundleState(db)
       const second = freshVerifier.verifyMemoryBundleState(db)
-      const expectedOrder = [...memoryIds].sort(compareBinary)
-      const expectedById = new Map(events.map((event, index) => [
+      const expectedOrder = [...activeMemoryIds].sort(compareBinary)
+      const expectedById = new Map(createEvents.map((event, index) => [
         event.memory_id,
         expectedM106ReplayMemory(event, atomOverrides[index]),
       ]))
       const expectedMemories = expectedOrder.map((memoryId) =>
         expectedById.get(memoryId))
-      const expectedRetainedEntries = events.map((event) => [
+      const expectedRetainedEntries = createEvents.map((event) => [
         event.memory_id,
-        expectedM106RetainedValue(event),
+        expectedM106RetainedValue(
+          event,
+          event.memory_id === deletedMemoryId ? 'deleted' : 'active',
+        ),
       ])
       const expectedRetainedById = new Map(expectedRetainedEntries)
       const firstRetainedValuesById = new Map()
@@ -3295,7 +3506,7 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
       assert.notStrictEqual(second.retainedByMemoryId, first.retainedByMemoryId)
       assert.notStrictEqual(second.seenDecisionIds, first.seenDecisionIds)
       assert.notStrictEqual(second.seenProposalIds, first.seenProposalIds)
-      for (const event of events) {
+      for (const event of createEvents) {
         const memoryId = event.memory_id
         const firstRetained = first.retainedByMemoryId.get(memoryId)
         const secondRetained = second.retainedByMemoryId.get(memoryId)
@@ -3309,6 +3520,15 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
           firstRetained.createEvent,
         )
       }
+      const firstDeletedRetained = firstRetainedValuesById.get(deletedMemoryId)
+      const secondDeletedRetained = secondRetainedValuesById.get(deletedMemoryId)
+      assert.equal(firstDeletedRetained.status, 'deleted')
+      assert.equal(secondDeletedRetained.status, 'deleted')
+      assert.notStrictEqual(secondDeletedRetained, firstDeletedRetained)
+      assert.notStrictEqual(
+        secondDeletedRetained.createEvent,
+        firstDeletedRetained.createEvent,
+      )
       for (let index = 0; index < first.memories.length; index += 1) {
         assertM106ReplayDescriptors(first.memories[index])
         assertM106ReplayDescriptors(second.memories[index])
@@ -3323,8 +3543,8 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
       first.checkpoint.sequence = 998
       second.lastObservedAt = '1971-01-01T00:00:00.000Z'
       second.checkpoint.sequence = 999
-      for (let index = 0; index < events.length; index += 1) {
-        const memoryId = events[index].memory_id
+      for (let index = 0; index < createEvents.length; index += 1) {
+        const memoryId = createEvents[index].memory_id
         const firstRetained = firstRetainedValuesById.get(memoryId)
         const secondRetained = secondRetainedValuesById.get(memoryId)
         firstRetained.palariId = `mutated-first-palari-${index}`
@@ -3336,6 +3556,8 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
         secondRetained.createEvent.userId = `mutated-second-user-${index}`
         secondRetained.createEvent.sequence = 950 + index
       }
+      secondDeletedRetained.palariId = 'mutated-deleted-palari'
+      secondDeletedRetained.createEvent.userId = 'mutated-deleted-user'
       first.retainedByMemoryId.clear()
       first.seenDecisionIds.clear()
       first.seenProposalIds.clear()
@@ -3365,11 +3587,11 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
       assert.deepEqual(third.memories, expectedMemories)
       assert.deepEqual(third.checkpoint, {
         streamId: M1_04_IDS.streamId,
-        sequence: 3,
+        sequence: 5,
       })
       assert.deepEqual([...third.retainedByMemoryId.keys()], memoryIds)
       assert.deepEqual([...third.retainedByMemoryId], expectedRetainedEntries)
-      for (const event of events) {
+      for (const event of createEvents) {
         const memoryId = event.memory_id
         const thirdRetained = third.retainedByMemoryId.get(memoryId)
         const firstRetained = firstRetainedValuesById.get(memoryId)
@@ -3386,6 +3608,18 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
           firstRetained.createEvent,
         )
       }
+      const thirdDeletedRetained = third.retainedByMemoryId.get(deletedMemoryId)
+      assert.deepEqual(
+        thirdDeletedRetained,
+        expectedRetainedById.get(deletedMemoryId),
+      )
+      assert.notStrictEqual(thirdDeletedRetained, secondDeletedRetained)
+      assert.notStrictEqual(
+        thirdDeletedRetained.createEvent,
+        secondDeletedRetained.createEvent,
+      )
+      assert.equal(thirdDeletedRetained.palariId, 'palari-a')
+      assert.equal(thirdDeletedRetained.createEvent.userId, 'user-1')
       assert.deepEqual(
         [...third.seenDecisionIds],
         events.map(({ decision_id: decisionId }) => decisionId),

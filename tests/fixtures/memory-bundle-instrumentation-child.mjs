@@ -1,4 +1,7 @@
+import { mkdtempSync, rmSync } from 'node:fs'
 import { registerHooks } from 'node:module'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
   DatabaseSync as NativeDatabaseSync,
   StatementSync as NativeStatementSync,
@@ -216,6 +219,106 @@ const scenarios = {
       rows,
       dynamicDatabaseDispatchCallCount,
       dynamicStatementDispatchCallCount,
+    }
+  },
+
+  async 'M1-06-verifier-read-only-dispatch'() {
+    const fixtures = await import('../helpers/memory-bundle-fixtures.mjs')
+    const directory = mkdtempSync(join(tmpdir(), 'palari-m106-read-only-'))
+    const dbPath = join(directory, 'bundle.sqlite')
+    let setup
+    let db
+
+    try {
+      setup = new NativeDatabaseSync(dbPath)
+      fixtures.createM105Bundle(setup, { seedActive: true })
+      Reflect.apply(nativeDatabaseClose, setup, [])
+      setup = undefined
+
+      const verifier = await import(
+        `../../src/memory-bundle-verify.mjs?m106-read-only=${Date.now()}`
+      )
+      db = new InstrumentedDatabaseSync(dbPath, {
+        readOnly: true,
+        timeout: 0,
+      })
+      const connectionConstruction = trace[trace.length - 1]
+      trace.length = 0
+
+      const databaseMethodDescriptors = ['exec', 'prepare'].map((key) => [
+        key,
+        Object.getOwnPropertyDescriptor(InstrumentedDatabaseSync.prototype, key),
+      ])
+      const statementMethodDescriptors = [
+        'get',
+        'all',
+        'run',
+        'setReadBigInts',
+        'setReturnArrays',
+      ].map((key) => [
+        key,
+        Object.getOwnPropertyDescriptor(NativeStatementSync.prototype, key),
+      ])
+      let dynamicDatabaseDispatchCallCount = 0
+      let dynamicStatementDispatchCallCount = 0
+      let state
+      let verificationError = null
+
+      function dynamicDatabaseDispatchPoison() {
+        dynamicDatabaseDispatchCallCount += 1
+        throw new Error('dynamic verifier database dispatch poison ran')
+      }
+
+      function dynamicStatementDispatchPoison() {
+        dynamicStatementDispatchCallCount += 1
+        throw new Error('dynamic verifier statement dispatch poison ran')
+      }
+
+      try {
+        for (const [key, descriptor] of databaseMethodDescriptors) {
+          Object.defineProperty(InstrumentedDatabaseSync.prototype, key, {
+            ...descriptor,
+            value: dynamicDatabaseDispatchPoison,
+          })
+        }
+        for (const [key, descriptor] of statementMethodDescriptors) {
+          Object.defineProperty(NativeStatementSync.prototype, key, {
+            ...descriptor,
+            value: dynamicStatementDispatchPoison,
+          })
+        }
+
+        try {
+          state = verifier.verifyMemoryBundleState(db)
+        } catch (error) {
+          verificationError = {
+            name: error?.name ?? null,
+            code: error?.code ?? null,
+            message: error?.message ?? String(error),
+          }
+        }
+      } finally {
+        for (const [key, descriptor] of databaseMethodDescriptors) {
+          Object.defineProperty(InstrumentedDatabaseSync.prototype, key, descriptor)
+        }
+        for (const [key, descriptor] of statementMethodDescriptors) {
+          Object.defineProperty(NativeStatementSync.prototype, key, descriptor)
+        }
+      }
+
+      return {
+        connectionConstruction,
+        trace: trace.slice(),
+        checkpoint: state?.checkpoint ?? null,
+        verificationError,
+        isTransactionAfter: db.isTransaction,
+        dynamicDatabaseDispatchCallCount,
+        dynamicStatementDispatchCallCount,
+      }
+    } finally {
+      if (setup !== undefined) Reflect.apply(nativeDatabaseClose, setup, [])
+      if (db !== undefined) Reflect.apply(nativeDatabaseClose, db, [])
+      rmSync(directory, { recursive: true, force: true })
     }
   },
 }
