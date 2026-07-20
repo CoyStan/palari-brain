@@ -3033,6 +3033,66 @@ test('M1-06 chooses the deterministic first unequal id across multiple defects',
   })
 })
 
+test('M1-06 reports missing atom at first unequal id after an equal prefix', () => {
+  withM105Database((db) => {
+    const sharedMemoryId =
+      'mem_00000000-0000-4000-8000-000000000970'
+    const expectedAfterPrefixId =
+      'mem_00000000-0000-4000-8000-000000000972'
+    const actualAfterPrefixId =
+      'mem_00000000-0000-4000-8000-000000000974'
+    const expectedAfterPrefix = makeM106CreateEventRow(
+      1,
+      expectedAfterPrefixId,
+    )
+    const shared = makeM106CreateEventRow(2, sharedMemoryId)
+    const actualAfterPrefix = makeM106RefusedDeleteEventRow(
+      3,
+      actualAfterPrefixId,
+    )
+    createM106SemanticBundle(
+      db,
+      [expectedAfterPrefix, shared, actualAfterPrefix],
+      [makeM106AtomRow(actualAfterPrefix), makeM106AtomRow(shared)],
+    )
+
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_missing_atom',
+    )
+  })
+})
+
+test('M1-06 reports orphan atom at first unequal id after an equal prefix', () => {
+  withM105Database((db) => {
+    const sharedMemoryId =
+      'mem_00000000-0000-4000-8000-000000000970'
+    const expectedAfterPrefixId =
+      'mem_00000000-0000-4000-8000-000000000974'
+    const actualAfterPrefixId =
+      'mem_00000000-0000-4000-8000-000000000972'
+    const expectedAfterPrefix = makeM106CreateEventRow(
+      1,
+      expectedAfterPrefixId,
+    )
+    const shared = makeM106CreateEventRow(2, sharedMemoryId)
+    const actualAfterPrefix = makeM106RefusedDeleteEventRow(
+      3,
+      actualAfterPrefixId,
+    )
+    createM106SemanticBundle(
+      db,
+      [expectedAfterPrefix, shared, actualAfterPrefix],
+      [makeM106AtomRow(actualAfterPrefix), makeM106AtomRow(shared)],
+    )
+
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_orphan_atom',
+    )
+  })
+})
+
 test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', async () => {
   const localeCompareDescriptor = Object.getOwnPropertyDescriptor(
     String.prototype,
@@ -3090,6 +3150,7 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
       assert.notStrictEqual(second.seenProposalIds, first.seenProposalIds)
       for (let index = 0; index < first.memories.length; index += 1) {
         assertM106ReplayDescriptors(first.memories[index])
+        assertM106ReplayDescriptors(second.memories[index])
         assert.notStrictEqual(second.memories[index], first.memories[index])
         assert.notStrictEqual(
           second.memories[index].keywords,
@@ -3097,22 +3158,64 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
         )
       }
 
-      first.checkpoint.sequence = 999
-      first.memories[0].content = 'mutated content'
-      first.memories[0].keywords.push('zzzz')
+      first.lastObservedAt = '1970-01-01T00:00:00.000Z'
+      first.checkpoint.sequence = 998
       first.retainedByMemoryId.clear()
       first.seenDecisionIds.clear()
       first.seenProposalIds.clear()
+      second.lastObservedAt = '1971-01-01T00:00:00.000Z'
+      second.checkpoint.sequence = 999
+      second.retainedByMemoryId.clear()
+      second.seenDecisionIds.clear()
+      second.seenProposalIds.clear()
+      for (let index = 0; index < first.memories.length; index += 1) {
+        first.memories[index].content = `mutated first content ${index}`
+        first.memories[index].keywords.push(`mutated-first-${index}`)
+        second.memories[index].content = `mutated second content ${index}`
+        second.memories[index].keywords.push(`mutated-second-${index}`)
+      }
 
       const third = freshVerifier.verifyMemoryBundleState(db)
+      assert.notStrictEqual(third, second)
+      assert.notStrictEqual(third.checkpoint, second.checkpoint)
+      assert.notStrictEqual(third.memories, second.memories)
+      assert.notStrictEqual(third.retainedByMemoryId, second.retainedByMemoryId)
+      assert.notStrictEqual(third.seenDecisionIds, second.seenDecisionIds)
+      assert.notStrictEqual(third.seenProposalIds, second.seenProposalIds)
+      assert.notStrictEqual(third, first)
+      assert.notStrictEqual(third.checkpoint, first.checkpoint)
+      assert.notStrictEqual(third.memories, first.memories)
+      assert.notStrictEqual(third.retainedByMemoryId, first.retainedByMemoryId)
+      assert.notStrictEqual(third.seenDecisionIds, first.seenDecisionIds)
+      assert.notStrictEqual(third.seenProposalIds, first.seenProposalIds)
       assert.deepEqual(third.memories, expectedMemories)
       assert.deepEqual(third.checkpoint, {
         streamId: M1_04_IDS.streamId,
         sequence: 3,
       })
-      assert.equal(third.retainedByMemoryId.size, 3)
-      assert.equal(third.seenDecisionIds.size, 3)
-      assert.equal(third.seenProposalIds.size, 3)
+      assert.deepEqual([...third.retainedByMemoryId.keys()], memoryIds)
+      assert.deepEqual(
+        [...third.seenDecisionIds],
+        events.map(({ decision_id: decisionId }) => decisionId),
+      )
+      assert.deepEqual(
+        [...third.seenProposalIds],
+        events.map(({ proposal_id: proposalId }) => proposalId),
+      )
+      assert.equal(third.lastObservedAt, events[events.length - 1].observed_at)
+      for (let index = 0; index < third.memories.length; index += 1) {
+        assertM106ReplayDescriptors(third.memories[index])
+        assert.notStrictEqual(third.memories[index], second.memories[index])
+        assert.notStrictEqual(
+          third.memories[index].keywords,
+          second.memories[index].keywords,
+        )
+        assert.notStrictEqual(third.memories[index], first.memories[index])
+        assert.notStrictEqual(
+          third.memories[index].keywords,
+          first.memories[index].keywords,
+        )
+      }
       assert.equal(localeCompareCalls, 0)
     })
   } catch (error) {
