@@ -13,6 +13,18 @@ function sqliteOperationName(key) {
   return typeof key === 'symbol' ? String(key) : key
 }
 
+function callableOwnOperationNames(prototype) {
+  const operations = []
+  for (const key of Reflect.ownKeys(prototype)) {
+    if (key === 'constructor') continue
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, key)
+    if (descriptor !== undefined && typeof descriptor.value === 'function') {
+      operations.push(sqliteOperationName(key))
+    }
+  }
+  return operations
+}
+
 const nativeDatabaseMethodEntries = []
 for (const key of Reflect.ownKeys(NativeDatabaseSync.prototype)) {
   if (key === 'constructor') continue
@@ -40,14 +52,38 @@ function requireNativeDatabaseMethod(key) {
   return entry.method
 }
 
+const nativeStatementMethodEntries = []
+for (const key of Reflect.ownKeys(NativeStatementSync.prototype)) {
+  if (key === 'constructor') continue
+  const descriptor = Object.getOwnPropertyDescriptor(
+    NativeStatementSync.prototype,
+    key,
+  )
+  if (descriptor === undefined || typeof descriptor.value !== 'function') {
+    continue
+  }
+  nativeStatementMethodEntries.push({
+    key,
+    operation: sqliteOperationName(key),
+    descriptor,
+    method: descriptor.value,
+  })
+}
+
+function requireNativeStatementMethod(key) {
+  const entry = nativeStatementMethodEntries.find((candidate) =>
+    candidate.key === key)
+  if (entry === undefined) {
+    throw new Error(`Missing native StatementSync method: ${String(key)}`)
+  }
+  return entry.method
+}
+
 const nativeDatabaseExec = requireNativeDatabaseMethod('exec')
 const nativeDatabasePrepare = requireNativeDatabaseMethod('prepare')
 const nativeDatabaseClose = requireNativeDatabaseMethod('close')
-const nativeStatementGet = NativeStatementSync.prototype.get
-const nativeStatementAll = NativeStatementSync.prototype.all
-const nativeStatementRun = NativeStatementSync.prototype.run
-const nativeStatementSetReadBigInts = NativeStatementSync.prototype.setReadBigInts
-const nativeStatementSetReturnArrays = NativeStatementSync.prototype.setReturnArrays
+const nativeStatementGet = requireNativeStatementMethod('get')
+const nativeStatementAll = requireNativeStatementMethod('all')
 
 class InstrumentedDatabaseSync extends NativeDatabaseSync {
   constructor(...args) {
@@ -72,31 +108,20 @@ for (const { key, operation, descriptor, method } of nativeDatabaseMethodEntries
   })
 }
 
-class InstrumentedStatementSync {
-  get(...parameters) {
-    trace.push({ operation: 'get', parameters })
-    return Reflect.apply(nativeStatementGet, this, parameters)
-  }
+class InstrumentedStatementSync {}
 
-  all(...parameters) {
-    trace.push({ operation: 'all', parameters })
-    return Reflect.apply(nativeStatementAll, this, parameters)
-  }
-
-  run(...parameters) {
-    trace.push({ operation: 'run', parameters })
-    return Reflect.apply(nativeStatementRun, this, parameters)
-  }
-
-  setReadBigInts(value) {
-    trace.push({ operation: 'setReadBigInts', value })
-    return Reflect.apply(nativeStatementSetReadBigInts, this, [value])
-  }
-
-  setReturnArrays(value) {
-    trace.push({ operation: 'setReturnArrays', value })
-    return Reflect.apply(nativeStatementSetReturnArrays, this, [value])
-  }
+for (const { key, operation, descriptor, method } of nativeStatementMethodEntries) {
+  Object.defineProperty(InstrumentedStatementSync.prototype, key, {
+    ...descriptor,
+    value(...args) {
+      if (operation === 'setReadBigInts' || operation === 'setReturnArrays') {
+        trace.push({ operation, value: args[0] })
+      } else {
+        trace.push({ operation, parameters: args })
+      }
+      return Reflect.apply(method, this, args)
+    },
+  })
 }
 
 Object.defineProperty(globalThis, '__palariMemoryBundleSqlite', {
@@ -144,34 +169,12 @@ const scenarios = {
         getOwnPropertyDescriptor(InstrumentedDatabaseSync.prototype, key),
       ],
     )
-    const statementMethodDescriptors = [
-      [
-        'get',
-        getOwnPropertyDescriptor(InstrumentedStatementSync.prototype, 'get'),
+    const statementMethodDescriptors = nativeStatementMethodEntries.map(
+      ({ key }) => [
+        key,
+        getOwnPropertyDescriptor(InstrumentedStatementSync.prototype, key),
       ],
-      [
-        'all',
-        getOwnPropertyDescriptor(InstrumentedStatementSync.prototype, 'all'),
-      ],
-      [
-        'run',
-        getOwnPropertyDescriptor(InstrumentedStatementSync.prototype, 'run'),
-      ],
-      [
-        'setReadBigInts',
-        getOwnPropertyDescriptor(
-          InstrumentedStatementSync.prototype,
-          'setReadBigInts',
-        ),
-      ],
-      [
-        'setReturnArrays',
-        getOwnPropertyDescriptor(
-          InstrumentedStatementSync.prototype,
-          'setReturnArrays',
-        ),
-      ],
-    ]
+    )
     let dynamicDatabaseDispatchCallCount = 0
     let dynamicStatementDispatchCallCount = 0
     let row
@@ -273,19 +276,18 @@ const scenarios = {
           Object.getOwnPropertyDescriptor(InstrumentedDatabaseSync.prototype, key),
         ],
       )
-      const statementMethodDescriptors = [
-        'get',
-        'all',
-        'run',
-        'setReadBigInts',
-        'setReturnArrays',
-      ].map((key) => [
-        key,
-        Object.getOwnPropertyDescriptor(NativeStatementSync.prototype, key),
-      ])
+      const statementMethodDescriptors = nativeStatementMethodEntries.map(
+        ({ key, operation }) => [
+          key,
+          operation,
+          Object.getOwnPropertyDescriptor(NativeStatementSync.prototype, key),
+        ],
+      )
       let dynamicDatabaseDispatchCallCount = 0
       const dynamicDatabaseDispatchOperations = []
       let dynamicStatementDispatchCallCount = 0
+      const dynamicStatementDispatchOperations = []
+      const poisonedStatementOperations = []
       let state
       let verificationError = null
 
@@ -299,9 +301,14 @@ const scenarios = {
         }
       }
 
-      function dynamicStatementDispatchPoison() {
-        dynamicStatementDispatchCallCount += 1
-        throw new Error('dynamic verifier statement dispatch poison ran')
+      function dynamicStatementDispatchPoison(operation) {
+        return function poisonStatementDispatch() {
+          dynamicStatementDispatchCallCount += 1
+          dynamicStatementDispatchOperations.push(operation)
+          throw new Error(
+            `dynamic verifier statement dispatch poison ran: ${operation}`,
+          )
+        }
       }
 
       try {
@@ -311,11 +318,12 @@ const scenarios = {
             value: dynamicDatabaseDispatchPoison(operation),
           })
         }
-        for (const [key, descriptor] of statementMethodDescriptors) {
+        for (const [key, operation, descriptor] of statementMethodDescriptors) {
           Object.defineProperty(NativeStatementSync.prototype, key, {
             ...descriptor,
-            value: dynamicStatementDispatchPoison,
+            value: dynamicStatementDispatchPoison(operation),
           })
+          poisonedStatementOperations.push(operation)
         }
 
         try {
@@ -331,7 +339,7 @@ const scenarios = {
         for (const [key, , descriptor] of databaseMethodDescriptors) {
           Object.defineProperty(InstrumentedDatabaseSync.prototype, key, descriptor)
         }
-        for (const [key, descriptor] of statementMethodDescriptors) {
+        for (const [key, , descriptor] of statementMethodDescriptors) {
           Object.defineProperty(NativeStatementSync.prototype, key, descriptor)
         }
       }
@@ -360,9 +368,17 @@ const scenarios = {
         poisonedDatabaseOperations: databaseMethodDescriptors.map(
           ([, operation]) => operation,
         ),
+        statementPrototypeOperations: nativeStatementMethodEntries.map(
+          ({ operation }) => operation,
+        ),
+        wrappedStatementOperations: callableOwnOperationNames(
+          InstrumentedStatementSync.prototype,
+        ),
+        poisonedStatementOperations,
         dynamicDatabaseDispatchCallCount,
         dynamicDatabaseDispatchOperations,
         dynamicStatementDispatchCallCount,
+        dynamicStatementDispatchOperations,
         oracleFunctionPersisted,
       }
     } finally {

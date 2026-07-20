@@ -2506,8 +2506,14 @@ function runM106InstrumentedScenario(name) {
     let atomRows = []
     let atomPrepareCount = 0
     let atomReadCount = 0
+    let verificationCall = 0
+    let firstAtomPrepareCount = 0
+    let firstAtomReadCount = 0
+    let secondAtomPrepareCount = 0
+    let secondAtomReadCount = 0
     let headSequence = 0
     let bundleOptions
+    let repeatedTransitionEvent
     let spoofStoredSqlNames = []
 
     function normalizeSql(sql) {
@@ -2520,12 +2526,18 @@ function runM106InstrumentedScenario(name) {
         const normalizedSql = normalizeSql(sql)
         if (normalizedSql.includes('FROM main.memory_bundle_atoms')) {
           atomPrepareCount += 1
+          if (verificationCall === 1) firstAtomPrepareCount += 1
+          if (verificationCall === 2) secondAtomPrepareCount += 1
           if (
             scenario === 'atom-read-transition' ||
             scenario === 'atom-read-cross-scope-delete' ||
             scenario === 'atom-read-double-delete' ||
             scenario === 'atom-read-active-id-reuse' ||
-            scenario === 'atom-read-deleted-id-reuse'
+            scenario === 'atom-read-deleted-id-reuse' ||
+            scenario === 'atom-read-long-missing-create' ||
+            scenario === 'atom-read-long-cross-scope-delete' ||
+            scenario === 'atom-read-long-double-delete' ||
+            scenario === 'atom-read-long-deleted-id-reuse'
           ) {
             throw new Error('instrumented atom prepare failure')
           }
@@ -2547,12 +2559,24 @@ function runM106InstrumentedScenario(name) {
         }
         if (sql?.includes('FROM main.memory_bundle_atoms')) {
           atomReadCount += 1
+          if (verificationCall === 1) firstAtomReadCount += 1
+          if (verificationCall === 2) secondAtomReadCount += 1
+          if (
+            scenario === 'atom-read-repeated-cached-all' &&
+            verificationCall === 2
+          ) {
+            throw new Error('instrumented second-call atom read failure')
+          }
           if (
             scenario === 'atom-read-transition' ||
             scenario === 'atom-read-cross-scope-delete' ||
             scenario === 'atom-read-double-delete' ||
             scenario === 'atom-read-active-id-reuse' ||
-            scenario === 'atom-read-deleted-id-reuse'
+            scenario === 'atom-read-deleted-id-reuse' ||
+            scenario === 'atom-read-long-missing-create' ||
+            scenario === 'atom-read-long-cross-scope-delete' ||
+            scenario === 'atom-read-long-double-delete' ||
+            scenario === 'atom-read-long-deleted-id-reuse'
           ) {
             throw new Error('instrumented atom read failure')
           }
@@ -2581,6 +2605,33 @@ function runM106InstrumentedScenario(name) {
           authority_kind: 'policy',
           authority_id: 'palari-kernel-admission@1',
           memory_id: null,
+          effective_at: '2026-07-18T12:' + minute + ':00.000Z',
+          observed_at: '2026-07-18T12:' + minute + ':00.000Z',
+          ...overrides,
+        })
+      }
+
+      function created(sequence, memoryId, overrides = {}) {
+        const minute = String(sequence).padStart(2, '0')
+        return fixtures.makeM104EventRow({
+          sequence,
+          decision_id: 'dec_00000000-0000-4000-8000-' +
+            String(300 + sequence).padStart(12, '0'),
+          proposal_id: 'prp_00000000-0000-4000-8000-' +
+            String(400 + sequence).padStart(12, '0'),
+          memory_id: memoryId,
+          effective_at: '2026-07-18T12:' + minute + ':00.000Z',
+          observed_at: '2026-07-18T12:' + minute + ':00.000Z',
+          ...overrides,
+        })
+      }
+
+      function deleted(sequence, memoryId, overrides = {}) {
+        const minute = String(sequence).padStart(2, '0')
+        return created(sequence, memoryId, {
+          proposal_kind: 'demote',
+          operation: 'delete',
+          memory_type: null,
           effective_at: '2026-07-18T12:' + minute + ':00.000Z',
           observed_at: '2026-07-18T12:' + minute + ':00.000Z',
           ...overrides,
@@ -2753,6 +2804,111 @@ function runM106InstrumentedScenario(name) {
           },
         }
         spoofStoredSqlNames = [indexName]
+      } else if (scenario === 'atom-read-long-missing-create') {
+        headSequence = 4
+        eventRows = null
+        const firstId = 'mem_00000000-0000-4000-8000-000000001101'
+        const secondId = 'mem_00000000-0000-4000-8000-000000001102'
+        const missingId = 'mem_00000000-0000-4000-8000-000000001103'
+        const events = [
+          created(1, firstId),
+          deleted(2, firstId),
+          created(3, secondId),
+          deleted(4, missingId),
+        ]
+        bundleOptions = {
+          meta: { head_sequence: headSequence },
+          beforeTriggers(connection) {
+            for (const event of events) fixtures.insertM105EventRow(connection, event)
+          },
+        }
+      } else if (scenario === 'atom-read-long-cross-scope-delete') {
+        headSequence = 5
+        eventRows = null
+        const firstId = 'mem_00000000-0000-4000-8000-000000001111'
+        const secondId = 'mem_00000000-0000-4000-8000-000000001112'
+        const thirdId = 'mem_00000000-0000-4000-8000-000000001113'
+        const events = [
+          created(1, firstId),
+          deleted(2, firstId),
+          created(3, secondId),
+          created(4, thirdId),
+          deleted(5, secondId, {
+            user_id: 'user-2',
+            authority_id: 'user-2',
+          }),
+        ]
+        bundleOptions = {
+          meta: { head_sequence: headSequence },
+          beforeTriggers(connection) {
+            for (const event of events) fixtures.insertM105EventRow(connection, event)
+          },
+        }
+      } else if (scenario === 'atom-read-long-double-delete') {
+        headSequence = 6
+        eventRows = null
+        const indexName = 'memory_bundle_applied_delete_memory_unique'
+        const firstId = 'mem_00000000-0000-4000-8000-000000001121'
+        const secondId = 'mem_00000000-0000-4000-8000-000000001122'
+        const thirdId = 'mem_00000000-0000-4000-8000-000000001123'
+        const events = [
+          created(1, firstId),
+          deleted(2, firstId),
+          created(3, secondId),
+          deleted(4, secondId),
+          created(5, thirdId),
+          deleted(6, firstId),
+        ]
+        bundleOptions = {
+          meta: { head_sequence: headSequence },
+          objectSqlOverrides: {
+            [indexName]: fixtures.EXPECTED_PERSISTED_SQL[indexName].replace(
+              "WHERE operation = 'delete' AND outcome = 'applied';",
+              "WHERE operation = 'delete' AND outcome = 'applied' AND sequence < 6;",
+            ),
+          },
+          beforeTriggers(connection) {
+            for (const event of events) fixtures.insertM105EventRow(connection, event)
+          },
+        }
+        spoofStoredSqlNames = [indexName]
+      } else if (scenario === 'atom-read-long-deleted-id-reuse') {
+        headSequence = 7
+        eventRows = null
+        const indexName = 'memory_bundle_applied_create_memory_unique'
+        const firstId = 'mem_00000000-0000-4000-8000-000000001131'
+        const secondId = 'mem_00000000-0000-4000-8000-000000001132'
+        const thirdId = 'mem_00000000-0000-4000-8000-000000001133'
+        const events = [
+          created(1, firstId),
+          deleted(2, firstId),
+          created(3, secondId),
+          deleted(4, secondId),
+          created(5, thirdId),
+          deleted(6, thirdId),
+          created(7, firstId),
+        ]
+        bundleOptions = {
+          meta: { head_sequence: headSequence },
+          objectSqlOverrides: {
+            [indexName]: fixtures.EXPECTED_PERSISTED_SQL[indexName].replace(
+              "WHERE operation = 'create' AND outcome = 'applied';",
+              "WHERE operation = 'create' AND outcome = 'applied' AND sequence < 7;",
+            ),
+          },
+          beforeTriggers(connection) {
+            for (const event of events) fixtures.insertM105EventRow(connection, event)
+          },
+        }
+        spoofStoredSqlNames = [indexName]
+      } else if (scenario === 'atom-read-repeated-cached-all') {
+        headSequence = 0
+        eventRows = null
+        repeatedTransitionEvent = deleted(
+          1,
+          'mem_00000000-0000-4000-8000-000000001201',
+        )
+        bundleOptions = { meta: { head_sequence: 0 } }
       } else if (scenario === 'atom-row-shape') {
         const row = Object.assign(
           Object.create(null),
@@ -2811,20 +2967,77 @@ function runM106InstrumentedScenario(name) {
           fixtures.EXPECTED_PERSISTED_SQL[name],
         )
       }
-      let value
-      let error
-      try {
-        value = verify.verifyMemoryBundleState(db)
-      } catch (caught) {
-        error = caught
+      if (scenario === 'atom-read-repeated-cached-all') {
+        verificationCall = 1
+        const firstValue = verify.verifyMemoryBundleState(db)
+        verificationCall = 0
+
+        const triggerName = 'memory_bundle_meta_advance_guard'
+        db.exec('DROP TRIGGER main.' + triggerName)
+        try {
+          fixtures.insertM105EventRow(db, repeatedTransitionEvent)
+          db.exec(
+            'UPDATE main.memory_bundle_meta SET head_sequence = 1 ' +
+            'WHERE singleton = 1',
+          )
+        } finally {
+          db.exec(fixtures.EXPECTED_PERSISTED_SQL[triggerName].replace(
+            'CREATE TRIGGER ' + triggerName,
+            'CREATE TRIGGER main.' + triggerName,
+          ))
+        }
+
+        const quickCheckRow = db.prepare('PRAGMA main.quick_check').get()
+        const foreignKeyViolations = db
+          .prepare('PRAGMA main.foreign_key_check')
+          .all()
+        const setupState = db.prepare(
+          'SELECT ' +
+          '(SELECT head_sequence FROM main.memory_bundle_meta) AS head_sequence, ' +
+          '(SELECT COUNT(*) FROM main.memory_bundle_events) AS event_count',
+        ).get()
+
+        let secondValue
+        let secondError
+        verificationCall = 2
+        try {
+          secondValue = verify.verifyMemoryBundleState(db)
+        } catch (caught) {
+          secondError = caught
+        }
+        verificationCall = 0
+        process.stdout.write(JSON.stringify({
+          firstCheckpoint: firstValue.checkpoint,
+          firstAtomPrepareCount,
+          firstAtomReadCount,
+          setupQuickCheck: Object.values(quickCheckRow)[0],
+          setupForeignKeyViolationCount: foreignKeyViolations.length,
+          setupHeadSequence: setupState.head_sequence,
+          setupEventCount: setupState.event_count,
+          secondReturned: secondValue !== undefined,
+          secondCode: secondError?.code ?? null,
+          secondMessage: secondError?.message ?? null,
+          secondAtomPrepareCount,
+          secondAtomReadCount,
+        }) + '\\n')
+      } else {
+        let value
+        let error
+        verificationCall = 1
+        try {
+          value = verify.verifyMemoryBundleState(db)
+        } catch (caught) {
+          error = caught
+        }
+        verificationCall = 0
+        process.stdout.write(JSON.stringify({
+          returned: value !== undefined,
+          code: error?.code ?? null,
+          message: error?.message ?? null,
+          atomPrepareCount,
+          atomReadCount,
+        }) + '\\n')
       }
-      process.stdout.write(JSON.stringify({
-        returned: value !== undefined,
-        code: error?.code ?? null,
-        message: error?.message ?? null,
-        atomPrepareCount,
-        atomReadCount,
-      }) + '\\n')
     } finally {
       if (db !== undefined) db.close()
       Object.defineProperty(
@@ -2867,6 +3080,27 @@ function assertM106ReplayDescriptors(memory) {
   }
   assert.equal(Object.getPrototypeOf(memory.keywords), Array.prototype)
   assert.equal(typeof memory.fictional, 'boolean')
+}
+
+function makeM106CorrespondencePositionFixture(
+  targetPair,
+  atomOverrides,
+  options = {},
+) {
+  const createEvents = []
+  for (let pair = 1; pair <= targetPair; pair += 1) {
+    createEvents.push(makeM106CreateEventRow(
+      pair,
+      m106Id('mem', (options.idBase ?? 0xa00) + pair),
+    ))
+  }
+  const events = [...createEvents]
+  if (options.withBackingEvent === true) {
+    events.push(makeM106RefusedCreateEventRow(targetPair + 1))
+  }
+  const atoms = createEvents.map((event, index) =>
+    makeM106AtomRow(event, index === targetPair - 1 ? atomOverrides : {}))
+  return { events, atoms, targetAtom: atoms[targetPair - 1] }
 }
 
 test('M1-06 retains the original applied create event on an active memory', () => {
@@ -2975,6 +3209,49 @@ test('M1-06 classifies deleted id reuse before preparing or reading atoms', () =
   })
 })
 
+test('M1-06 keeps atom prepare and execution behind longer valid transition prefixes', () => {
+  for (const [scenario, defectSequence, expectedCode] of [
+    ['atom-read-long-missing-create', 4, 'bundle_invalid_transition'],
+    ['atom-read-long-cross-scope-delete', 5, 'bundle_unauthorized'],
+    ['atom-read-long-double-delete', 6, 'bundle_invalid_transition'],
+    ['atom-read-long-deleted-id-reuse', 7, 'bundle_id_reuse'],
+  ]) {
+    const result = runM106InstrumentedScenario(scenario)
+    assert.deepEqual({
+      returned: result.returned,
+      code: result.code,
+      atomPrepareCount: result.atomPrepareCount,
+      atomReadCount: result.atomReadCount,
+    }, {
+      returned: false,
+      code: expectedCode,
+      atomPrepareCount: 0,
+      atomReadCount: 0,
+    }, `${scenario} sequence ${defectSequence}`)
+  }
+})
+
+test('M1-06 repeated verification keeps cached atom execution behind transition reduction', () => {
+  const result = runM106InstrumentedScenario('atom-read-repeated-cached-all')
+  assert.deepEqual(result, {
+    firstCheckpoint: {
+      streamId: M1_04_IDS.streamId,
+      sequence: 0,
+    },
+    firstAtomPrepareCount: 1,
+    firstAtomReadCount: 1,
+    setupQuickCheck: 'ok',
+    setupForeignKeyViolationCount: 0,
+    setupHeadSequence: 1,
+    setupEventCount: 1,
+    secondReturned: false,
+    secondCode: 'bundle_invalid_transition',
+    secondMessage: 'A persisted delete has no prior create.',
+    secondAtomPrepareCount: 0,
+    secondAtomReadCount: 0,
+  })
+})
+
 test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
   for (const sql of [
     'PRAGMA foreign_keys(OFF)',
@@ -3006,6 +3283,7 @@ test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
     dynamicDatabaseDispatchCallCount: result.dynamicDatabaseDispatchCallCount,
     dynamicDatabaseDispatchOperations: result.dynamicDatabaseDispatchOperations,
     dynamicStatementDispatchCallCount: result.dynamicStatementDispatchCallCount,
+    dynamicStatementDispatchOperations: result.dynamicStatementDispatchOperations,
     oracleFunctionPersisted: result.oracleFunctionPersisted,
   }, {
     verificationError: null,
@@ -3017,6 +3295,7 @@ test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
     dynamicDatabaseDispatchCallCount: 0,
     dynamicDatabaseDispatchOperations: [],
     dynamicStatementDispatchCallCount: 0,
+    dynamicStatementDispatchOperations: [],
     oracleFunctionPersisted: false,
   })
   const expectedDatabaseOperations = m106CallablePrototypeOperations(
@@ -3030,11 +3309,33 @@ test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
     [...result.poisonedDatabaseOperations].sort(compareBinary),
     expectedDatabaseOperations,
   )
+  const expectedStatementOperations = m106CallablePrototypeOperations(
+    StatementSync.prototype,
+  )
+  assert.deepEqual(
+    [...result.statementPrototypeOperations].sort(compareBinary),
+    expectedStatementOperations,
+  )
+  assert.deepEqual(
+    [...result.wrappedStatementOperations].sort(compareBinary),
+    expectedStatementOperations,
+  )
+  assert.deepEqual(
+    [...result.poisonedStatementOperations].sort(compareBinary),
+    expectedStatementOperations,
+  )
 
   let selectCount = 0
   let readCount = 0
   const observedPragmas = []
   const databaseOperations = new Set(result.databasePrototypeOperations)
+  const statementOperations = new Set(result.statementPrototypeOperations)
+  const allowedStatementOperations = new Set([
+    'all',
+    'get',
+    'setReadBigInts',
+    'setReturnArrays',
+  ])
   for (const entry of result.trace) {
     if (databaseOperations.has(entry.operation)) {
       assert.equal(
@@ -3056,15 +3357,17 @@ test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
       )
       continue
     }
+    assert.ok(
+      statementOperations.has(entry.operation),
+      `verifier dispatched unknown SQLite operation: ${entry.operation}`,
+    )
+    assert.ok(
+      allowedStatementOperations.has(entry.operation),
+      `verifier dispatched forbidden StatementSync operation: ${entry.operation}`,
+    )
     if (entry.operation === 'all' || entry.operation === 'get') {
       readCount += 1
-      continue
     }
-    assert.ok(
-      entry.operation === 'setReadBigInts' ||
-        entry.operation === 'setReturnArrays',
-      `verifier dispatched forbidden SQLite operation: ${entry.operation}`,
-    )
   }
   assert.ok(selectCount > 0)
   assert.deepEqual(
@@ -3460,6 +3763,89 @@ test('M1-06 checks every corruptible correspondence field on a later equal-id pa
           assert.equal(error?.code, 'bundle_invalid_atom', label)
           return true
         },
+      )
+    })
+  }
+})
+
+test('M1-06 checks the real-SQLite correspondence field matrix on the third equal-id pair', () => {
+  const cases = [
+    {
+      label: 'created sequence',
+      atomOverrides: { createdSequence: 4 },
+      withBackingEvent: true,
+    },
+    { label: 'Palari scope', atomOverrides: { palariId: 'palari-b' } },
+    { label: 'user scope', atomOverrides: { userId: 'user-2' } },
+    { label: 'memory type', atomOverrides: { type: 'opinion' } },
+    {
+      label: 'valid/effective time',
+      atomOverrides: { validFrom: m106Timestamp(0) },
+    },
+    {
+      label: 'created/observed time',
+      atomOverrides: { createdAt: m106Timestamp(4) },
+    },
+  ]
+
+  for (let index = 0; index < cases.length; index += 1) {
+    const { label, atomOverrides, withBackingEvent } = cases[index]
+    withM105Database((db) => {
+      const fixture = makeM106CorrespondencePositionFixture(
+        3,
+        atomOverrides,
+        {
+          idBase: 0xa20 + index * 0x10,
+          withBackingEvent,
+        },
+      )
+      assert.doesNotThrow(
+        () => codecModule.decodeAtomRow(fixture.targetAtom),
+        label,
+      )
+      createM106SemanticBundle(db, fixture.events, fixture.atoms)
+      assertM105BundleCode(
+        () => verifyModule.verifyMemoryBundleState(db),
+        'bundle_invalid_atom',
+      )
+    })
+  }
+})
+
+test('M1-06 checks representative correspondence fields at bounded deep equal-id positions', () => {
+  for (const {
+    label,
+    targetPair,
+    idBase,
+    atomOverrides,
+  } of [
+    {
+      label: 'fifth-pair user scope',
+      targetPair: 5,
+      idBase: 0xb00,
+      atomOverrides: { userId: 'user-2' },
+    },
+    {
+      label: 'eighth-pair created time',
+      targetPair: 8,
+      idBase: 0xc00,
+      atomOverrides: { createdAt: m106Timestamp(12) },
+    },
+  ]) {
+    withM105Database((db) => {
+      const fixture = makeM106CorrespondencePositionFixture(
+        targetPair,
+        atomOverrides,
+        { idBase },
+      )
+      assert.doesNotThrow(
+        () => codecModule.decodeAtomRow(fixture.targetAtom),
+        label,
+      )
+      createM106SemanticBundle(db, fixture.events, fixture.atoms)
+      assertM105BundleCode(
+        () => verifyModule.verifyMemoryBundleState(db),
+        'bundle_invalid_atom',
       )
     })
   }
