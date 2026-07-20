@@ -5102,3 +5102,419 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
   assert.equal(localeCompareCalls, 0)
   if (verificationError !== undefined) throw verificationError
 })
+
+function makeM109SqlId(prefix, nonce) {
+  const suffix = nonce.toString(16).padStart(12, '0')
+  return `${prefix}_00000000-0000-4000-8000-${suffix}`
+}
+
+function makeM109RefusedEvent(sequence, nonce, overrides = {}) {
+  return Object.assign(makeM104EventRow({
+    sequence,
+    decision_id: makeM109SqlId('dec', nonce),
+    proposal_id: makeM109SqlId('prp', nonce + 0x100),
+    outcome: 'refused',
+    reason_code: 'unsupported',
+    authority_kind: 'policy',
+    authority_id: 'palari-kernel-admission@1',
+    memory_id: null,
+  }), overrides)
+}
+
+function makeM109DeleteEvent(sequence, nonce, overrides = {}) {
+  return Object.assign(makeM104EventRow({
+    sequence,
+    decision_id: makeM109SqlId('dec', nonce),
+    proposal_id: makeM109SqlId('prp', nonce + 0x100),
+    proposal_kind: 'demote',
+    operation: 'delete',
+    memory_type: null,
+    effective_at: '2026-07-18T12:59:00.000Z',
+    observed_at: '2026-07-18T13:00:00.000Z',
+  }), overrides)
+}
+
+function runM109EventInsert(db, row, verb = 'INSERT') {
+  return db.prepare(`
+    ${verb} INTO main.memory_bundle_events (
+      sequence, stream_id, decision_id, proposal_id, proposal_kind,
+      operation, outcome, reason_code, palari_id, user_id,
+      authority_kind, authority_id, evidence_kind, memory_id, memory_type,
+      effective_at, observed_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    row.sequence,
+    row.stream_id,
+    row.decision_id,
+    row.proposal_id,
+    row.proposal_kind,
+    row.operation,
+    row.outcome,
+    row.reason_code,
+    row.palari_id,
+    row.user_id,
+    row.authority_kind,
+    row.authority_id,
+    row.evidence_kind,
+    row.memory_id,
+    row.memory_type,
+    row.effective_at,
+    row.observed_at,
+  )
+}
+
+function runM109AtomInsert(db, row, verb = 'INSERT') {
+  return db.prepare(`
+    ${verb} INTO main.memory_bundle_atoms (
+      memory_id, stream_id, created_sequence, palari_id, user_id, type,
+      content, keywords_json, initial_importance, confidence,
+      provenance_kind, source_message_id, valid_from, created_at, fictional,
+      content_checksum
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    row.memory_id,
+    row.stream_id,
+    row.created_sequence,
+    row.palari_id,
+    row.user_id,
+    row.type,
+    row.content,
+    row.keywords_json,
+    row.initial_importance,
+    row.confidence,
+    row.provenance_kind,
+    row.source_message_id,
+    row.valid_from,
+    row.created_at,
+    row.fictional,
+    row.content_checksum,
+  )
+}
+
+function assertM109SqlRejected(db, callback, messagePattern, errcode = 1811) {
+  const before = snapshotM105CanonicalRows(db)
+  assert.throws(callback, (error) => {
+    assert.equal(error?.code, 'ERR_SQLITE_ERROR')
+    assert.equal(error?.errcode, errcode)
+    assert.match(error?.message ?? '', messagePattern)
+    return true
+  })
+  assert.equal(db.isTransaction, true)
+  assert.deepEqual(snapshotM105CanonicalRows(db), before)
+}
+
+function withM109SqlProbe(options, callback) {
+  const db = new DatabaseSync(':memory:')
+  let committed
+  try {
+    createM105Bundle(db, { seedActive: options.seedActive === true })
+    committed = snapshotM105CanonicalRows(db)
+    db.exec('BEGIN IMMEDIATE')
+    return callback(db)
+  } finally {
+    if (db.isTransaction) db.exec('ROLLBACK')
+    if (committed !== undefined) {
+      assert.deepEqual(snapshotM105CanonicalRows(db), committed)
+    }
+    if (db.isOpen) db.close()
+  }
+}
+
+test('M1-09 canonical triggers reject direct mutation and recursive replace rewrites', () => {
+  withM109SqlProbe({ seedActive: true }, (db) => {
+    assert.equal(readM105SingleValue(db, 'PRAGMA recursive_triggers'), 1)
+    assertM109SqlRejected(
+      db,
+      () => db.exec(`
+        UPDATE main.memory_bundle_events
+        SET observed_at = observed_at WHERE sequence = 1
+      `),
+      /memory_bundle_events_append_only/,
+    )
+    assertM109SqlRejected(
+      db,
+      () => db.exec('DELETE FROM main.memory_bundle_events WHERE sequence = 1'),
+      /memory_bundle_events_append_only/,
+    )
+    assertM109SqlRejected(
+      db,
+      () => db.exec(`
+        UPDATE main.memory_bundle_atoms
+        SET content = content WHERE memory_id = '${M1_04_IDS.memoryId}'
+      `),
+      /memory_bundle_atoms_immutable/,
+    )
+    assertM109SqlRejected(
+      db,
+      () => db.exec(`
+        DELETE FROM main.memory_bundle_atoms
+        WHERE memory_id = '${M1_04_IDS.memoryId}'
+      `),
+      /memory_bundle_atom_delete_unauthorized/,
+    )
+    assertM109SqlRejected(
+      db,
+      () => db.exec('DELETE FROM main.memory_bundle_meta WHERE singleton = 1'),
+      /memory_bundle_meta_required/,
+    )
+    assertM109SqlRejected(
+      db,
+      () => db.exec(`
+        INSERT OR REPLACE INTO main.memory_bundle_meta (
+          singleton, schema_version, stream_id, head_sequence, created_at
+        )
+        SELECT singleton, schema_version, stream_id, head_sequence, created_at
+        FROM main.memory_bundle_meta WHERE singleton = 1
+      `),
+      /memory_bundle_meta_required/,
+    )
+    assertM109SqlRejected(
+      db,
+      () => runM109AtomInsert(db, makeM104AtomRow(), 'INSERT OR REPLACE'),
+      /memory_bundle_atom_insert_unauthorized/,
+    )
+  })
+
+  withM109SqlProbe({ seedActive: false }, (db) => {
+    const first = makeM109RefusedEvent(1, 0x930)
+    insertM105EventRow(db, first)
+    db.exec('UPDATE main.memory_bundle_meta SET head_sequence = 1 WHERE singleton = 1')
+    const replacement = makeM109RefusedEvent(2, 0x931, {
+      decision_id: first.decision_id,
+    })
+    assertM109SqlRejected(
+      db,
+      () => runM109EventInsert(db, replacement, 'INSERT OR REPLACE'),
+      /memory_bundle_events_append_only/,
+    )
+  })
+
+  withM109SqlProbe({ seedActive: false }, (db) => {
+    insertM105EventRow(db)
+    insertM105AtomRow(db)
+    assertM109SqlRejected(
+      db,
+      () => runM109AtomInsert(db, makeM104AtomRow(), 'INSERT OR REPLACE'),
+      /memory_bundle_atom_delete_unauthorized/,
+    )
+  })
+})
+
+test('M1-09 CHECKs and event/effect ordering reject incomplete or malformed SQL', () => {
+  withM109SqlProbe({ seedActive: false }, (db) => {
+    assert.equal(readM105SingleValue(db, 'PRAGMA ignore_check_constraints'), 0)
+    assertM109SqlRejected(
+      db,
+      () => insertM105EventRow(db, makeM109RefusedEvent(1, 0x940, {
+        reason_code: null,
+      })),
+      /constraint failed/i,
+      275,
+    )
+    assertM109SqlRejected(
+      db,
+      () => insertM105EventRow(db, makeM109DeleteEvent(1, 0x941, {
+        outcome: 'refused',
+        reason_code: null,
+        authority_kind: 'policy',
+        authority_id: 'palari-kernel-admission@1',
+      })),
+      /constraint failed/i,
+      275,
+    )
+    assertM109SqlRejected(
+      db,
+      () => insertM105EventRow(db, makeM104EventRow({ sequence: 2 })),
+      /memory_bundle_event_sequence/,
+    )
+    assertM109SqlRejected(
+      db,
+      () => insertM105EventRow(db, makeM104EventRow({
+        stream_id: makeM109SqlId('str', 0x942),
+      })),
+      /memory_bundle_event_sequence/,
+    )
+    assertM109SqlRejected(
+      db,
+      () => insertM105AtomRow(db),
+      /memory_bundle_atom_insert_unauthorized/,
+    )
+
+    insertM105EventRow(db)
+    assertM109SqlRejected(
+      db,
+      () => db.exec(`
+        UPDATE main.memory_bundle_meta SET head_sequence = 1
+        WHERE singleton = 1
+      `),
+      /memory_bundle_meta_advance_invalid/,
+    )
+  })
+
+  const atomMismatchCases = [
+    ['memory id', { memory_id: makeM109SqlId('mem', 0x950) }],
+    ['created sequence', { created_sequence: 2 }],
+    ['palari id', { palari_id: 'palari-b' }],
+    ['user id', { user_id: 'user-2' }],
+    ['type', { type: 'working' }],
+    ['valid from', { valid_from: '2026-07-18T11:58:59.000Z' }],
+    ['created at', { created_at: '2026-07-18T12:00:00.001Z' }],
+  ]
+  for (const [name, overrides] of atomMismatchCases) {
+    withM109SqlProbe({ seedActive: false }, (db) => {
+      insertM105EventRow(db)
+      assertM109SqlRejected(
+        db,
+        () => insertM105AtomRow(db, makeM104AtomRow(overrides)),
+        /memory_bundle_atom_insert_unauthorized/,
+      )
+      assert.ok(name.length > 0)
+    })
+  }
+
+  withM109SqlProbe({ seedActive: false }, (db) => {
+    insertM105EventRow(db)
+    assertM109SqlRejected(
+      db,
+      () => insertM105AtomRow(db, makeM104AtomRow({
+        stream_id: makeM109SqlId('str', 0x951),
+      })),
+      /FOREIGN KEY constraint failed/i,
+      787,
+    )
+  })
+
+  withM109SqlProbe({ seedActive: false }, (db) => {
+    insertM105EventRow(db, makeM109RefusedEvent(1, 0x952))
+    assertM109SqlRejected(
+      db,
+      () => insertM105AtomRow(db),
+      /memory_bundle_atom_insert_unauthorized/,
+    )
+  })
+
+  withM109SqlProbe({ seedActive: true }, (db) => {
+    insertM105EventRow(db, makeM109DeleteEvent(2, 0x953, {
+      palari_id: 'palari-b',
+    }))
+    assertM109SqlRejected(
+      db,
+      () => db.exec(`
+        DELETE FROM main.memory_bundle_atoms
+        WHERE memory_id = '${M1_04_IDS.memoryId}'
+      `),
+      /memory_bundle_atom_delete_unauthorized/,
+    )
+  })
+})
+
+test('M1-09 meta guards enforce exact advance and immutable singleton fields', () => {
+  withM109SqlProbe({ seedActive: false }, (db) => {
+    insertM105EventRow(db, makeM109RefusedEvent(1, 0x960))
+    assertM109SqlRejected(
+      db,
+      () => db.exec(`
+        UPDATE main.memory_bundle_meta SET head_sequence = 2
+        WHERE singleton = 1
+      `),
+      /memory_bundle_meta_advance_invalid/,
+    )
+
+    const immutableCases = [
+      ['singleton', 'singleton = 2'],
+      ['schema version', "schema_version = 'CDX-B2'"],
+      ['stream id', `stream_id = '${makeM109SqlId('str', 0x961)}'`],
+      ['created at', "created_at = '2026-07-18T11:58:00.001Z'"],
+    ]
+    for (const [name, assignment] of immutableCases) {
+      assertM109SqlRejected(
+        db,
+        () => db.exec(`
+          UPDATE main.memory_bundle_meta
+          SET head_sequence = 1, ${assignment}
+          WHERE singleton = 1
+        `),
+        /memory_bundle_meta_advance_invalid/,
+      )
+      assert.ok(name.length > 0)
+    }
+
+    db.exec(`
+      UPDATE main.memory_bundle_meta SET head_sequence = 1
+      WHERE singleton = 1
+    `)
+    assertM109SqlRejected(
+      db,
+      () => db.exec(`
+        UPDATE main.memory_bundle_meta SET head_sequence = 1
+        WHERE singleton = 1
+      `),
+      /memory_bundle_meta_advance_invalid/,
+    )
+    assertM109SqlRejected(
+      db,
+      () => db.exec(`
+        UPDATE main.memory_bundle_meta SET head_sequence = 0
+        WHERE singleton = 1
+      `),
+      /memory_bundle_meta_advance_invalid/,
+    )
+  })
+})
+
+test('M1-09 complete raw event/effect/meta orders succeed and historical reinsertion fails', () => {
+  withM109SqlProbe({ seedActive: false }, (db) => {
+    insertM105EventRow(db)
+    insertM105AtomRow(db)
+    db.exec(`
+      UPDATE main.memory_bundle_meta SET head_sequence = 1
+      WHERE singleton = 1
+    `)
+
+    const refusal = makeM109RefusedEvent(2, 0x970)
+    insertM105EventRow(db, refusal)
+    db.exec(`
+      UPDATE main.memory_bundle_meta SET head_sequence = 2
+      WHERE singleton = 1
+    `)
+    assert.equal(
+      db.prepare('SELECT count(*) AS count FROM main.memory_bundle_atoms').get().count,
+      1,
+    )
+
+    const deletion = makeM109DeleteEvent(3, 0x971)
+    insertM105EventRow(db, deletion)
+    assertM109SqlRejected(
+      db,
+      () => db.exec(`
+        UPDATE main.memory_bundle_meta SET head_sequence = 3
+        WHERE singleton = 1
+      `),
+      /memory_bundle_meta_advance_invalid/,
+    )
+    db.exec(`
+      DELETE FROM main.memory_bundle_atoms
+      WHERE memory_id = '${M1_04_IDS.memoryId}'
+    `)
+    db.exec(`
+      UPDATE main.memory_bundle_meta SET head_sequence = 3
+      WHERE singleton = 1
+    `)
+
+    const verified = verifyModule.verifyMemoryBundleState(db)
+    assert.deepEqual(verified.checkpoint, {
+      streamId: M1_04_IDS.streamId,
+      sequence: 3,
+    })
+    assert.deepEqual(verified.memories, [])
+    assert.equal(
+      db.prepare('SELECT count(*) AS count FROM main.memory_bundle_events').get().count,
+      3,
+    )
+    assertM109SqlRejected(
+      db,
+      () => insertM105AtomRow(db),
+      /memory_bundle_atom_insert_unauthorized/,
+    )
+  })
+})

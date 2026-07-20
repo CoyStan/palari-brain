@@ -6,6 +6,7 @@ import {
   captureInitializerOptions,
   captureKeywords,
   captureScope,
+  encodeAtomRow,
   validateInputAtomScalars,
   validatePrefixedUuidV4,
   validateResolvedAuthority,
@@ -44,6 +45,7 @@ import {
 
 const reflectApply = Reflect.apply
 const reflectDefineProperty = Reflect.defineProperty
+const reflectGetOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor
 const objectHasOwnProperty = Object.prototype.hasOwnProperty
 const mapGet = Map.prototype.get
 const mapHas = Map.prototype.has
@@ -272,6 +274,120 @@ function validateProspectiveTransition(state, decision, scope) {
   }
 }
 
+function requireSingleMutation(result, message) {
+  const descriptor = reflectApply(
+    reflectGetOwnPropertyDescriptor,
+    undefined,
+    [result, 'changes'],
+  )
+  if (
+    descriptor === undefined ||
+    !reflectApply(objectHasOwnProperty, descriptor, ['value']) ||
+    descriptor.value !== 1
+  ) {
+    throw memoryBundleFailure('bundle_storage_error', message)
+  }
+}
+
+function insertResolvedEvent(db, staged) {
+  const statement = prepareRowStatement(db, `
+    INSERT INTO main.memory_bundle_events (
+      sequence, stream_id, decision_id, proposal_id, proposal_kind,
+      operation, outcome, reason_code, palari_id, user_id,
+      authority_kind, authority_id, evidence_kind, memory_id, memory_type,
+      effective_at, observed_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  const result = statementRun(statement, [
+    staged.nextSequence,
+    staged.state.checkpoint.streamId,
+    staged.decision.decisionId,
+    staged.decision.proposalId,
+    staged.decision.proposalKind,
+    staged.decision.operation,
+    staged.decision.outcome,
+    staged.decision.reasonCode,
+    staged.scope.palariId,
+    staged.scope.userId,
+    staged.authority.kind,
+    staged.authority.authorityId,
+    staged.decision.evidenceKind,
+    staged.decision.memoryId,
+    staged.decision.memoryType,
+    staged.decision.effectiveAt,
+    staged.decision.observedAt,
+  ])
+  requireSingleMutation(result, 'The resolved event was not inserted exactly once.')
+}
+
+function insertResolvedAtom(db, row) {
+  const statement = prepareRowStatement(db, `
+    INSERT INTO main.memory_bundle_atoms (
+      memory_id, stream_id, created_sequence, palari_id, user_id, type,
+      content, keywords_json, initial_importance, confidence,
+      provenance_kind, source_message_id, valid_from, created_at, fictional,
+      content_checksum
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  const result = statementRun(statement, [
+    row.memory_id,
+    row.stream_id,
+    row.created_sequence,
+    row.palari_id,
+    row.user_id,
+    row.type,
+    row.content,
+    row.keywords_json,
+    row.initial_importance,
+    row.confidence,
+    row.provenance_kind,
+    row.source_message_id,
+    row.valid_from,
+    row.created_at,
+    row.fictional,
+    row.content_checksum,
+  ])
+  requireSingleMutation(result, 'The resolved atom was not inserted exactly once.')
+}
+
+function deleteResolvedAtom(db, memoryId) {
+  const statement = prepareRowStatement(db, `
+    DELETE FROM main.memory_bundle_atoms
+    WHERE memory_id = ?
+  `)
+  const result = statementRun(statement, [memoryId])
+  requireSingleMutation(result, 'The resolved atom was not deleted exactly once.')
+}
+
+function advanceResolvedHead(db, staged) {
+  const statement = prepareRowStatement(db, `
+    UPDATE main.memory_bundle_meta
+    SET head_sequence = ?
+    WHERE singleton = 1
+      AND stream_id = ?
+      AND head_sequence = ?
+  `)
+  const result = statementRun(statement, [
+    staged.nextSequence,
+    staged.state.checkpoint.streamId,
+    staged.state.checkpoint.sequence,
+  ])
+  requireSingleMutation(result, 'The memory bundle head was not advanced exactly once.')
+}
+
+function applyStagedMutation(db, staged) {
+  insertResolvedEvent(db, staged)
+  if (staged.atomRow !== null) {
+    insertResolvedAtom(db, staged.atomRow)
+  } else if (
+    staged.decision.operation === 'delete' &&
+    staged.decision.outcome === 'applied'
+  ) {
+    deleteResolvedAtom(db, staged.decision.memoryId)
+  }
+  advanceResolvedHead(db, staged)
+}
+
 function stageResolvedApply(db, input) {
   const isOpen = captureDatabaseOpenState(db)
   if (isOpen !== true) {
@@ -330,12 +446,39 @@ function stageResolvedApply(db, input) {
     scope.userId,
   )
   let keywords = null
+  let canonicalAtom = null
   if (atom !== null) {
     validateInputAtomScalars(atom)
     keywords = captureKeywords(atom.keywords)
+    canonicalAtom = {
+      memoryId: decision.memoryId,
+      streamId: state.checkpoint.streamId,
+      createdSequence: state.checkpoint.sequence + 1,
+      palariId: scope.palariId,
+      userId: scope.userId,
+      type: decision.memoryType,
+      content: atom.content,
+      keywords,
+      initialImportance: atom.initialImportance,
+      confidence: atom.confidence,
+      provenanceKind: atom.provenanceKind,
+      sourceMessageId: atom.sourceMessageId,
+      validFrom: decision.effectiveAt,
+      createdAt: decision.observedAt,
+      fictional: atom.fictional,
+    }
   }
   validateProspectiveTransition(state, decision, scope)
-  return { state, decision, scope, authority, atom, keywords }
+  const nextSequence = state.checkpoint.sequence + 1
+  const atomRow = canonicalAtom === null ? null : encodeAtomRow(canonicalAtom)
+  return {
+    state,
+    decision,
+    scope,
+    authority,
+    nextSequence,
+    atomRow,
+  }
 }
 
 export { MemoryBundleError }
@@ -403,7 +546,8 @@ export function initializeMemoryBundle(db, options = {}) {
 
 export function applyResolvedDecisionInTransaction(db, input) {
   try {
-    stageResolvedApply(db, input)
+    const staged = stageResolvedApply(db, input)
+    applyStagedMutation(db, staged)
     return undefined
   } catch (error) {
     throw mapApplyFailure(error)

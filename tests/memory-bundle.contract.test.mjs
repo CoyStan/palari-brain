@@ -10,6 +10,7 @@ import { runInNewContext } from 'node:vm'
 import * as applyModule from '../src/memory-bundle-apply.mjs'
 import * as codecModule from '../src/memory-bundle-codec.mjs'
 import * as publicModule from '../src/memory-bundle.mjs'
+import { createKernelStore } from '../src/store.mjs'
 import {
   BUNDLE_ERROR_CODES,
   preserveMemoryBundleError,
@@ -3764,5 +3765,388 @@ test('M1-08 uses captured Map and Set membership dispatch for staged state', () 
     assert.equal(caught, undefined)
     assert.equal(poisonCalls, 0)
     assert.equal(db.isTransaction, true)
+  })
+})
+
+function makeM109ExpectedEventRow(input, sequence, streamId) {
+  const { decision } = input
+  return Object.assign(Object.create(null), {
+    sequence,
+    stream_id: streamId,
+    decision_id: decision.decisionId,
+    proposal_id: decision.proposalId,
+    proposal_kind: decision.proposalKind,
+    operation: decision.operation,
+    outcome: decision.outcome,
+    reason_code: decision.reasonCode,
+    palari_id: decision.scope.palariId,
+    user_id: decision.scope.userId,
+    authority_kind: decision.authority.kind,
+    authority_id: decision.authority.authorityId,
+    evidence_kind: decision.evidenceKind,
+    memory_id: decision.memoryId,
+    memory_type: decision.memoryType,
+    effective_at: decision.effectiveAt,
+    observed_at: decision.observedAt,
+  })
+}
+
+function makeM109ExpectedAtomRow(input, sequence, streamId) {
+  const { atom, decision } = input
+  return Object.assign(Object.create(null), codecModule.encodeAtomRow({
+    memoryId: decision.memoryId,
+    streamId,
+    createdSequence: sequence,
+    palariId: decision.scope.palariId,
+    userId: decision.scope.userId,
+    type: decision.memoryType,
+    content: atom.content,
+    keywords: atom.keywords,
+    initialImportance: atom.initialImportance,
+    confidence: atom.confidence,
+    provenanceKind: atom.provenanceKind,
+    sourceMessageId: atom.sourceMessageId,
+    validFrom: decision.effectiveAt,
+    createdAt: decision.observedAt,
+    fictional: atom.fictional,
+  }))
+}
+
+function readM109Counts(db) {
+  return db.prepare(`
+    SELECT
+      (SELECT head_sequence FROM main.memory_bundle_meta WHERE singleton = 1)
+        AS head_sequence,
+      (SELECT count(*) FROM main.memory_bundle_events) AS event_count,
+      (SELECT count(*) FROM main.memory_bundle_atoms) AS atom_count
+  `).get()
+}
+
+test('M1-09 create-applied inserts exact content-free event and derived atom before advancing head', () => {
+  withM108Transaction({}, (db) => {
+    const head = readM108Head(db)
+    const input = makeM108Envelope('create-applied', 0x900, { head })
+    input.atom.sourceMessageId = M1_04_IDS.sourceMessageId
+    input.atom.fictional = true
+    const expectedEvent = makeM109ExpectedEventRow(input, 1, head.streamId)
+    const expectedAtom = makeM109ExpectedAtomRow(input, 1, head.streamId)
+
+    assert.equal(
+      applyModule.applyResolvedDecisionInTransaction(db, input),
+      undefined,
+    )
+    assert.equal(db.isTransaction, true)
+    assert.equal(db.prepare('SELECT 1 AS value').get().value, 1)
+
+    const state = snapshotM108Bundle(db)
+    assert.deepEqual(state.events, [expectedEvent])
+    assert.deepEqual(state.atoms, [expectedAtom])
+    assert.equal(state.meta[0].head_sequence, 1)
+    assert.equal(Object.hasOwn(state.events[0], 'content'), false)
+    assert.equal(state.atoms[0].content_checksum, expectedAtom.content_checksum)
+  })
+})
+
+test('M1-09 refusals append only their exact event and preserve atom state', () => {
+  const cases = [
+    {
+      kind: 'create-refused',
+      nonce: 0x901,
+      reasonCode: 'duplicate_current',
+      seedActive: false,
+    },
+    {
+      kind: 'delete-refused',
+      nonce: 0x902,
+      reasonCode: 'unsupported',
+      seedActive: true,
+    },
+  ]
+  for (const specification of cases) {
+    withM108Transaction({ seedActive: specification.seedActive }, (db) => {
+      const before = snapshotM108Bundle(db)
+      const head = readM108Head(db)
+      const input = makeM108Envelope(
+        specification.kind,
+        specification.nonce,
+        { head, reasonCode: specification.reasonCode },
+      )
+
+      assert.equal(
+        applyModule.applyResolvedDecisionInTransaction(db, input),
+        undefined,
+      )
+      const after = snapshotM108Bundle(db)
+      assert.deepEqual(after.events, [
+        ...before.events,
+        makeM109ExpectedEventRow(input, head.sequence + 1, head.streamId),
+      ])
+      assert.deepEqual(after.atoms, before.atoms)
+      assert.equal(after.meta[0].head_sequence, head.sequence + 1)
+      assert.equal(db.isTransaction, true)
+    })
+  }
+})
+
+test('M1-09 delete-applied removes only the active atom and retains create/delete history', () => {
+  withM108Transaction({ seedActive: true }, (db) => {
+    const before = snapshotM108Bundle(db)
+    const head = readM108Head(db)
+    const input = makeM108Envelope('delete-applied', 0x903, { head })
+
+    assert.equal(
+      applyModule.applyResolvedDecisionInTransaction(db, input),
+      undefined,
+    )
+    const after = snapshotM108Bundle(db)
+    assert.deepEqual(after.events, [
+      ...before.events,
+      makeM109ExpectedEventRow(input, 2, head.streamId),
+    ])
+    assert.deepEqual(after.atoms, [])
+    assert.equal(after.meta[0].head_sequence, 2)
+    assert.deepEqual(
+      after.events.map(({ operation }) => operation),
+      ['create', 'delete'],
+    )
+    assert.equal(db.isTransaction, true)
+  })
+})
+
+test('M1-09 outer commit and rollback control visibility and all three bundle mutations', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'palari-m109-visibility-'))
+  const dbPath = join(directory, 'bundle.sqlite')
+  const writer = new DatabaseSync(dbPath)
+  let reader
+  try {
+    createM105Bundle(writer)
+    reader = new DatabaseSync(dbPath)
+    const head = readM108Head(writer)
+    const input = makeM108Envelope('create-applied', 0x904, { head })
+
+    writer.exec('BEGIN IMMEDIATE')
+    assert.equal(
+      applyModule.applyResolvedDecisionInTransaction(writer, input),
+      undefined,
+    )
+    assert.deepEqual(readM109Counts(writer), Object.assign(Object.create(null), {
+      head_sequence: 1,
+      event_count: 1,
+      atom_count: 1,
+    }))
+    assert.deepEqual(readM109Counts(reader), Object.assign(Object.create(null), {
+      head_sequence: 0,
+      event_count: 0,
+      atom_count: 0,
+    }))
+    writer.exec('ROLLBACK')
+    assert.deepEqual(readM109Counts(writer), Object.assign(Object.create(null), {
+      head_sequence: 0,
+      event_count: 0,
+      atom_count: 0,
+    }))
+
+    writer.exec('BEGIN IMMEDIATE')
+    assert.equal(
+      applyModule.applyResolvedDecisionInTransaction(writer, input),
+      undefined,
+    )
+    assert.deepEqual(readM109Counts(reader), Object.assign(Object.create(null), {
+      head_sequence: 0,
+      event_count: 0,
+      atom_count: 0,
+    }))
+    writer.exec('COMMIT')
+    assert.deepEqual(readM109Counts(reader), Object.assign(Object.create(null), {
+      head_sequence: 1,
+      event_count: 1,
+      atom_count: 1,
+    }))
+  } finally {
+    if (writer.isTransaction) writer.exec('ROLLBACK')
+    reader?.close()
+    writer.close()
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+test('M1-09 composes atomically with a test-owned CDX-M1 sentinel on a kernel connection', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'palari-m109-kernel-'))
+  const statePath = join(directory, 'workspace-state.json')
+  const sentinel = 'M1-09-transaction-composition-sentinel'
+  const store = await createKernelStore({
+    clock: () => new Date('2026-07-20T12:00:00.000Z'),
+    memoryEnabled: true,
+    statePath,
+    workspaceId: 'm109-composition',
+  })
+  try {
+    assert.equal(applyModule.initializeMemoryBundle(store.db, {
+      clock: () => new Date(M1_07_TIMESTAMP),
+      idFactory: () => M1_07_UUID,
+    }), undefined)
+    const head = readM108Head(store.db)
+    const input = makeM108Envelope('create-applied', 0x905, { head })
+    const writeSentinel = () => store.db.prepare(`
+      INSERT INTO main.memory_migrations (id, applied_at) VALUES (?, ?)
+    `).run(sentinel, M1_07_TIMESTAMP)
+    const sentinelCount = () => store.db.prepare(`
+      SELECT count(*) AS count FROM main.memory_migrations WHERE id = ?
+    `).get(sentinel).count
+
+    store.db.exec('BEGIN IMMEDIATE')
+    writeSentinel()
+    assert.equal(
+      applyModule.applyResolvedDecisionInTransaction(store.db, input),
+      undefined,
+    )
+    store.db.exec('ROLLBACK')
+    assert.equal(sentinelCount(), 0)
+    assert.deepEqual(readM109Counts(store.db), Object.assign(Object.create(null), {
+      head_sequence: 0,
+      event_count: 0,
+      atom_count: 0,
+    }))
+
+    store.db.exec('BEGIN IMMEDIATE')
+    writeSentinel()
+    assert.equal(
+      applyModule.applyResolvedDecisionInTransaction(store.db, input),
+      undefined,
+    )
+    store.db.exec('COMMIT')
+    assert.equal(sentinelCount(), 1)
+    assert.deepEqual(readM109Counts(store.db), Object.assign(Object.create(null), {
+      head_sequence: 1,
+      event_count: 1,
+      atom_count: 1,
+    }))
+  } finally {
+    if (store.db.isTransaction) store.db.exec('ROLLBACK')
+    store.close()
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+test('M1-09 enforces prospective time, state, scope, and authority precedence', () => {
+  withM108Transaction({ seedActive: true }, (db) => {
+    const head = readM108Head(db)
+
+    const decreasing = makeM108Envelope('delete-applied', 0x910, { head })
+    decreasing.decision.scope.palariId = 'palari-b'
+    decreasing.decision.scope.userId = 'user-2'
+    decreasing.decision.authority.authorityId = 'user-2'
+    decreasing.decision.effectiveAt = '2026-07-18T11:59:00.000Z'
+    decreasing.decision.observedAt = '2026-07-18T11:59:59.999Z'
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, decreasing),
+      'bundle_invalid_transition',
+    )
+
+    const activeReuse = makeM108Envelope('create-applied', 0x912, { head })
+    activeReuse.decision.memoryId = M1_04_IDS.memoryId
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, activeReuse),
+      'bundle_id_reuse',
+    )
+
+    const crossScope = makeM108Envelope('delete-applied', 0x913, { head })
+    crossScope.decision.scope.palariId = 'palari-b'
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, crossScope),
+      'bundle_unauthorized',
+    )
+
+    const crossUserScope = makeM108Envelope('delete-applied', 0x9131, { head })
+    crossUserScope.decision.scope.userId = 'user-2'
+    crossUserScope.decision.authority.authorityId = 'user-2'
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, crossUserScope),
+      'bundle_unauthorized',
+    )
+  })
+
+  withM108Transaction({}, (db) => {
+    const head = readM108Head(db)
+    const missing = makeM108Envelope('delete-applied', 0x914, { head })
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, missing),
+      'bundle_invalid_transition',
+    )
+
+    const unauthorized = makeM108Envelope('create-applied', 0x915, { head })
+    unauthorized.decision.authority.authorityId = 'user-2'
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, unauthorized),
+      'bundle_unauthorized',
+    )
+
+    const malformed = makeM108Envelope('create-applied', 0x916, { head })
+    malformed.decision.authority.authorityId = 42
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, malformed),
+      'bundle_invalid_decision',
+    )
+  })
+})
+
+test('M1-09 retained scope precedes deleted state and create ids remain retired', () => {
+  withM108Transaction({ seedActive: true }, (db) => {
+    const firstHead = readM108Head(db)
+    const deletion = makeM108Envelope('delete-applied', 0x920, {
+      head: firstHead,
+    })
+    assert.equal(
+      applyModule.applyResolvedDecisionInTransaction(db, deletion),
+      undefined,
+    )
+    const deletedHead = readM108Head(db)
+
+    const crossScope = makeM108Envelope('delete-applied', 0x921, {
+      head: deletedHead,
+    })
+    crossScope.decision.scope.palariId = 'palari-b'
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, crossScope),
+      'bundle_unauthorized',
+    )
+
+    const crossUserScope = makeM108Envelope('delete-applied', 0x9211, {
+      head: deletedHead,
+    })
+    crossUserScope.decision.scope.userId = 'user-2'
+    crossUserScope.decision.authority.authorityId = 'user-2'
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, crossUserScope),
+      'bundle_unauthorized',
+    )
+
+    const alreadyDeleted = makeM108Envelope('delete-applied', 0x922, {
+      head: deletedHead,
+    })
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, alreadyDeleted),
+      'bundle_invalid_transition',
+    )
+
+    const retiredId = makeM108Envelope('create-applied', 0x923, {
+      head: deletedHead,
+    })
+    retiredId.decision.memoryId = M1_04_IDS.memoryId
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, retiredId),
+      'bundle_id_reuse',
+    )
   })
 })
