@@ -8,6 +8,10 @@ import {
 } from 'node:sqlite'
 
 const trace = []
+const databaseTargets = new WeakMap()
+const statementTargets = new WeakMap()
+let accessorPoisonEnabled = false
+let currentAccessorCase
 
 function sqliteOperationName(key) {
   return typeof key === 'symbol' ? String(key) : key
@@ -23,6 +27,22 @@ function callableOwnOperationNames(prototype) {
     }
   }
   return operations
+}
+
+function nativeOwnAccessorEntries(value) {
+  const entries = []
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key)
+    if (descriptor !== undefined && typeof descriptor.get === 'function') {
+      entries.push({
+        key,
+        operation: `get:${sqliteOperationName(key)}`,
+        descriptor,
+        getter: descriptor.get,
+      })
+    }
+  }
+  return entries
 }
 
 const nativeDatabaseMethodEntries = []
@@ -85,10 +105,124 @@ const nativeDatabaseClose = requireNativeDatabaseMethod('close')
 const nativeStatementGet = requireNativeStatementMethod('get')
 const nativeStatementAll = requireNativeStatementMethod('all')
 
+const nativeDatabaseAccessorProbe = new NativeDatabaseSync(':memory:', {
+  open: false,
+})
+const nativeDatabaseAccessorEntries = nativeOwnAccessorEntries(
+  nativeDatabaseAccessorProbe,
+)
+const nativeStatementAccessorProbeDatabase = new NativeDatabaseSync(':memory:')
+const nativeStatementAccessorProbe = Reflect.apply(
+  nativeDatabasePrepare,
+  nativeStatementAccessorProbeDatabase,
+  ['SELECT 1'],
+)
+const nativeStatementAccessorEntries = nativeOwnAccessorEntries(
+  nativeStatementAccessorProbe,
+)
+Reflect.apply(nativeDatabaseClose, nativeStatementAccessorProbeDatabase, [])
+
+function requireNativeDatabaseAccessor(key) {
+  const entry = nativeDatabaseAccessorEntries.find((candidate) =>
+    candidate.key === key)
+  if (entry === undefined) {
+    throw new Error(`Missing native DatabaseSync accessor: ${String(key)}`)
+  }
+  return entry.getter
+}
+
+const nativeDatabaseIsTransaction = requireNativeDatabaseAccessor(
+  'isTransaction',
+)
+
+function unwrapDatabase(value) {
+  return databaseTargets.get(value) ?? value
+}
+
+function unwrapStatement(value) {
+  return statementTargets.get(value) ?? value
+}
+
+function recordDynamicDatabaseAccessor(operation) {
+  if (currentAccessorCase !== undefined) {
+    currentAccessorCase.dynamicDatabaseAccessorCallCount += 1
+    currentAccessorCase.dynamicDatabaseAccessorOperations.push(operation)
+  }
+  throw new Error(`dynamic verifier database accessor poison ran: ${operation}`)
+}
+
+function recordDynamicStatementAccessor(operation) {
+  if (currentAccessorCase !== undefined) {
+    currentAccessorCase.dynamicStatementAccessorCallCount += 1
+    currentAccessorCase.dynamicStatementAccessorOperations.push(operation)
+  }
+  throw new Error(`dynamic verifier statement accessor poison ran: ${operation}`)
+}
+
+function wrapDatabase(target) {
+  const proxy = new Proxy(target, {
+    get(nativeTarget, key, receiver) {
+      const accessor = nativeDatabaseAccessorEntries.find((candidate) =>
+        candidate.key === key)
+      if (accessor !== undefined) {
+        if (accessorPoisonEnabled) {
+          return recordDynamicDatabaseAccessor(accessor.operation)
+        }
+        return Reflect.apply(accessor.getter, nativeTarget, [])
+      }
+      return Reflect.get(nativeTarget, key, receiver)
+    },
+  })
+  databaseTargets.set(proxy, target)
+  return proxy
+}
+
+class InstrumentedStatementSync {}
+
+function wrapStatement(target) {
+  const wrapper = Object.create(InstrumentedStatementSync.prototype)
+  statementTargets.set(wrapper, target)
+  for (const { key, operation, descriptor, getter } of nativeStatementAccessorEntries) {
+    Object.defineProperty(wrapper, key, {
+      ...descriptor,
+      get() {
+        if (accessorPoisonEnabled) {
+          return recordDynamicStatementAccessor(operation)
+        }
+        return Reflect.apply(getter, target, [])
+      },
+    })
+  }
+  return wrapper
+}
+
 class InstrumentedDatabaseSync extends NativeDatabaseSync {
   constructor(...args) {
     trace.push({ operation: 'construct', args })
     super(...args)
+    if (args[1]?.open === false) {
+      const probe = {}
+      for (const {
+        key,
+        operation,
+        descriptor,
+        getter,
+      } of nativeDatabaseAccessorEntries) {
+        Object.defineProperty(probe, key, {
+          ...descriptor,
+          get() {
+            trace.push({
+              kind: 'database-accessor',
+              operation,
+              dispatch: 'captured',
+            })
+            return Reflect.apply(getter, unwrapDatabase(this), [])
+          },
+        })
+      }
+      return probe
+    }
+    return wrapDatabase(this)
   }
 }
 
@@ -103,12 +237,11 @@ for (const { key, operation, descriptor, method } of nativeDatabaseMethodEntries
       } else {
         trace.push({ operation, argumentCount: args.length })
       }
-      return Reflect.apply(method, this, args)
+      const result = Reflect.apply(method, unwrapDatabase(this), args)
+      return operation === 'prepare' ? wrapStatement(result) : result
     },
   })
 }
-
-class InstrumentedStatementSync {}
 
 for (const { key, operation, descriptor, method } of nativeStatementMethodEntries) {
   Object.defineProperty(InstrumentedStatementSync.prototype, key, {
@@ -119,7 +252,7 @@ for (const { key, operation, descriptor, method } of nativeStatementMethodEntrie
       } else {
         trace.push({ operation, parameters: args })
       }
-      return Reflect.apply(method, this, args)
+      return Reflect.apply(method, unwrapStatement(this), args)
     },
   })
 }
@@ -249,9 +382,51 @@ const scenarios = {
   async 'M1-06-verifier-read-only-dispatch'() {
     const fixtures = await import('../helpers/memory-bundle-fixtures.mjs')
     const directory = mkdtempSync(join(tmpdir(), 'palari-m106-read-only-'))
+    const refusedEvents = [
+      fixtures.makeM104EventRow({
+        sequence: 1,
+        decision_id: 'dec_00000000-0000-4000-8000-000000001301',
+        proposal_id: 'prp_00000000-0000-4000-8000-000000001401',
+        outcome: 'refused',
+        reason_code: 'below_threshold',
+        authority_kind: 'policy',
+        authority_id: 'palari-kernel-admission@1',
+        memory_id: null,
+        effective_at: '2026-07-18T12:01:00.000Z',
+        observed_at: '2026-07-18T12:01:00.000Z',
+      }),
+      fixtures.makeM104EventRow({
+        sequence: 2,
+        decision_id: 'dec_00000000-0000-4000-8000-000000001302',
+        proposal_id: 'prp_00000000-0000-4000-8000-000000001402',
+        outcome: 'refused',
+        reason_code: 'below_threshold',
+        authority_kind: 'policy',
+        authority_id: 'palari-kernel-admission@1',
+        memory_id: null,
+        effective_at: '2026-07-18T12:02:00.000Z',
+        observed_at: '2026-07-18T12:02:00.000Z',
+      }),
+    ]
     const variants = [
-      { name: 'empty', seedActive: false },
-      { name: 'active', seedActive: true },
+      { name: 'empty', setupOptions: {} },
+      { name: 'active', setupOptions: { seedActive: true } },
+      {
+        name: 'refused',
+        setupOptions: {
+          meta: { head_sequence: refusedEvents.length },
+          beforeTriggers(connection) {
+            for (const event of refusedEvents) {
+              fixtures.insertM105EventRow(connection, event)
+            }
+          },
+        },
+      },
+      {
+        name: 'active-inside-transaction',
+        setupOptions: { seedActive: true },
+        beginTransaction: true,
+      },
     ]
     const setups = []
     const connections = []
@@ -261,10 +436,7 @@ const scenarios = {
         const dbPath = join(directory, `${variant.name}.sqlite`)
         let setup = new NativeDatabaseSync(dbPath)
         setups.push(setup)
-        fixtures.createM105Bundle(
-          setup,
-          variant.seedActive ? { seedActive: true } : {},
-        )
+        fixtures.createM105Bundle(setup, variant.setupOptions)
         Reflect.apply(nativeDatabaseClose, setup, [])
         setups.pop()
         setup = undefined
@@ -274,16 +446,22 @@ const scenarios = {
       const verifier = await import(
         `../../src/memory-bundle-verify.mjs?m106-read-only=${Date.now()}`
       )
+      const runtime = await import('../../src/memory-bundle-runtime.mjs')
       for (const variant of variants) {
         const db = new InstrumentedDatabaseSync(variant.dbPath, {
           readOnly: true,
           timeout: 0,
         })
+        const nativeTarget = unwrapDatabase(db)
+        const connectionConstruction = trace[trace.length - 1]
+        if (variant.beginTransaction === true) {
+          Reflect.apply(nativeDatabaseExec, nativeTarget, ['BEGIN'])
+        }
         connections.push({
           ...variant,
           db,
-          connectionConstruction: trace[trace.length - 1],
-          isTransactionBefore: db.isTransaction,
+          nativeTarget,
+          connectionConstruction,
         })
         trace.length = 0
       }
@@ -299,7 +477,7 @@ const scenarios = {
         ({ key, operation }) => [
           key,
           operation,
-          Object.getOwnPropertyDescriptor(NativeStatementSync.prototype, key),
+          Object.getOwnPropertyDescriptor(InstrumentedStatementSync.prototype, key),
         ],
       )
       const poisonedStatementOperations = []
@@ -327,6 +505,7 @@ const scenarios = {
       }
 
       try {
+        accessorPoisonEnabled = true
         for (const [key, operation, descriptor] of databaseMethodDescriptors) {
           Object.defineProperty(InstrumentedDatabaseSync.prototype, key, {
             ...descriptor,
@@ -334,7 +513,7 @@ const scenarios = {
           })
         }
         for (const [key, operation, descriptor] of statementMethodDescriptors) {
-          Object.defineProperty(NativeStatementSync.prototype, key, {
+          Object.defineProperty(InstrumentedStatementSync.prototype, key, {
             ...descriptor,
             value: dynamicStatementDispatchPoison(operation),
           })
@@ -345,13 +524,21 @@ const scenarios = {
           currentCase = {
             name: connection.name,
             connectionConstruction: connection.connectionConstruction,
-            isTransactionBefore: connection.isTransactionBefore,
             dynamicDatabaseDispatchCallCount: 0,
             dynamicDatabaseDispatchOperations: [],
             dynamicStatementDispatchCallCount: 0,
             dynamicStatementDispatchOperations: [],
+            dynamicDatabaseAccessorCallCount: 0,
+            dynamicDatabaseAccessorOperations: [],
+            dynamicStatementAccessorCallCount: 0,
+            dynamicStatementAccessorOperations: [],
           }
+          currentAccessorCase = currentCase
           trace.length = 0
+          runtime.assertOpenDatabaseSync(connection.nativeTarget)
+          currentCase.isTransactionBefore = runtime.readDatabaseTransactionState(
+            connection.db,
+          )
           let state
           let verificationError = null
           try {
@@ -363,28 +550,69 @@ const scenarios = {
               message: error?.message ?? String(error),
             }
           }
+          currentCase.isTransactionAfter = runtime.readDatabaseTransactionState(
+            connection.db,
+          )
           currentCase.trace = trace.slice()
           currentCase.checkpoint = state?.checkpoint ?? null
+          currentCase.state = state === undefined
+            ? null
+            : {
+                memoryIds: state.memories.map(({ memoryId }) => memoryId),
+                retained: [...state.retainedByMemoryId].map(
+                  ([memoryId, retained]) => [memoryId, retained.status],
+                ),
+                seenDecisionIds: [...state.seenDecisionIds],
+                seenProposalIds: [...state.seenProposalIds],
+                lastObservedAt: state.lastObservedAt,
+              }
           currentCase.verificationError = verificationError
-          currentCase.isTransactionAfter = connection.db.isTransaction
           cases.push(currentCase)
           currentCase = undefined
+          currentAccessorCase = undefined
         }
       } finally {
+        accessorPoisonEnabled = false
+        currentAccessorCase = undefined
         for (const [key, , descriptor] of databaseMethodDescriptors) {
           Object.defineProperty(InstrumentedDatabaseSync.prototype, key, descriptor)
         }
         for (const [key, , descriptor] of statementMethodDescriptors) {
-          Object.defineProperty(NativeStatementSync.prototype, key, descriptor)
+          Object.defineProperty(InstrumentedStatementSync.prototype, key, descriptor)
         }
+      }
+
+      for (let index = 0; index < connections.length; index += 1) {
+        const connection = connections[index]
+        const caseResult = cases[index]
+        caseResult.cleanupTransactionBefore = Reflect.apply(
+          nativeDatabaseIsTransaction,
+          connection.nativeTarget,
+          [],
+        )
+        caseResult.cleanupOperation = null
+        if (
+          connection.beginTransaction === true &&
+          caseResult.cleanupTransactionBefore === true
+        ) {
+          Reflect.apply(nativeDatabaseExec, connection.nativeTarget, ['ROLLBACK'])
+          caseResult.cleanupOperation = 'ROLLBACK'
+        }
+        caseResult.cleanupTransactionAfter = Reflect.apply(
+          nativeDatabaseIsTransaction,
+          connection.nativeTarget,
+          [],
+        )
       }
 
       for (let index = 0; index < connections.length; index += 1) {
         let oracleFunctionPersisted = false
         try {
-          const statement = Reflect.apply(nativeDatabasePrepare, connections[index].db, [
-            'SELECT m106_oracle_gap() AS value',
-          ])
+          const statement = Reflect.apply(
+            nativeDatabasePrepare,
+            connections[index].nativeTarget,
+            ['SELECT m106_oracle_gap() AS value'],
+          )
           Reflect.apply(nativeStatementGet, statement, [])
           oracleFunctionPersisted = true
         } catch {
@@ -401,6 +629,16 @@ const scenarios = {
         poisonedDatabaseOperations: databaseMethodDescriptors.map(
           ([, operation]) => operation,
         ),
+        databaseOwnAccessorOperations: nativeDatabaseAccessorEntries.map(
+          ({ operation }) => operation,
+        ),
+        capturedDatabaseAccessorOperations: nativeDatabaseAccessorEntries.map(
+          ({ operation }) => operation,
+        ),
+        poisonedDatabaseAccessorOperations: nativeDatabaseAccessorEntries.map(
+          ({ operation }) => operation,
+        ),
+        databaseAccessorBoundary: 'constructor-probe-and-native-target-proxy',
         statementPrototypeOperations: nativeStatementMethodEntries.map(
           ({ operation }) => operation,
         ),
@@ -408,13 +646,23 @@ const scenarios = {
           InstrumentedStatementSync.prototype,
         ),
         poisonedStatementOperations,
+        statementOwnAccessorOperations: nativeStatementAccessorEntries.map(
+          ({ operation }) => operation,
+        ),
+        wrappedStatementAccessorOperations: nativeStatementAccessorEntries.map(
+          ({ operation }) => operation,
+        ),
+        poisonedStatementAccessorOperations: nativeStatementAccessorEntries.map(
+          ({ operation }) => operation,
+        ),
+        statementAccessorBoundary: 'prepare-time-native-target-wrapper',
       }
     } finally {
       for (const setup of setups) {
         Reflect.apply(nativeDatabaseClose, setup, [])
       }
-      for (const { db } of connections) {
-        Reflect.apply(nativeDatabaseClose, db, [])
+      for (const { nativeTarget } of connections) {
+        Reflect.apply(nativeDatabaseClose, nativeTarget, [])
       }
       rmSync(directory, { recursive: true, force: true })
     }

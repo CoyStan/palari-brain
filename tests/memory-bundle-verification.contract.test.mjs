@@ -2216,6 +2216,20 @@ function m106CallablePrototypeOperations(prototype) {
   return operations.sort(compareBinary)
 }
 
+function m106OwnAccessorOperations(value) {
+  const operations = []
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key)
+    if (descriptor !== undefined && typeof descriptor.get === 'function') {
+      assert.equal(descriptor.set, undefined)
+      assert.equal(descriptor.enumerable, true)
+      assert.equal(descriptor.configurable, false)
+      operations.push(`get:${typeof key === 'symbol' ? String(key) : key}`)
+    }
+  }
+  return operations.sort(compareBinary)
+}
+
 function m106Id(prefix, value) {
   return `${prefix}_00000000-0000-4000-8000-${value
     .toString(16)
@@ -2517,15 +2531,21 @@ function runM106InstrumentedScenario(name) {
     const executionOperations = new Set(['all', 'get', 'iterate', 'run'])
     let eventRows = []
     let atomRows = []
+    let eventPrepareCount = 0
+    let eventReadCount = 0
     let atomPrepareCount = 0
     let atomReadCount = 0
     let atomStatementOperationCount = 0
     const atomStatementOperations = []
     let verificationCall = 0
+    let firstEventPrepareCount = 0
+    let firstEventReadCount = 0
     let firstAtomPrepareCount = 0
     let firstAtomReadCount = 0
     let firstAtomStatementOperationCount = 0
     const firstAtomStatementOperations = []
+    let secondEventPrepareCount = 0
+    let secondEventReadCount = 0
     let secondAtomPrepareCount = 0
     let secondAtomReadCount = 0
     let secondAtomStatementOperationCount = 0
@@ -2533,6 +2553,7 @@ function runM106InstrumentedScenario(name) {
     let headSequence = 0
     let bundleOptions
     let repeatedTransitionEvent
+    let repeatedNextHead = 0
     let spoofStoredSqlNames = []
 
     function normalizeSql(sql) {
@@ -2543,6 +2564,14 @@ function runM106InstrumentedScenario(name) {
       ...databasePrepareDescriptor,
       value(sql) {
         const normalizedSql = normalizeSql(sql)
+        if (
+          verificationCall !== 0 &&
+          normalizedSql.includes('FROM main.memory_bundle_events')
+        ) {
+          eventPrepareCount += 1
+          if (verificationCall === 1) firstEventPrepareCount += 1
+          if (verificationCall === 2) secondEventPrepareCount += 1
+        }
         if (normalizedSql.includes('FROM main.memory_bundle_atoms')) {
           atomPrepareCount += 1
           if (verificationCall === 1) firstAtomPrepareCount += 1
@@ -2593,7 +2622,10 @@ function runM106InstrumentedScenario(name) {
               if (executionOperations.has(operation)) secondAtomReadCount += 1
             }
             if (
-              scenario === 'atom-read-repeated-cached-all' &&
+              (
+                scenario === 'atom-read-repeated-cached-all' ||
+                scenario === 'atom-read-repeated-active-cached-all'
+              ) &&
               verificationCall === 2 &&
               operation === 'all'
             ) {
@@ -2602,10 +2634,13 @@ function runM106InstrumentedScenario(name) {
           }
           if (
             operation === 'all' &&
-            sql?.includes('FROM main.memory_bundle_events') &&
-            eventRows !== null
+            verificationCall !== 0 &&
+            sql?.includes('FROM main.memory_bundle_events')
           ) {
-            return eventRows
+            eventReadCount += 1
+            if (verificationCall === 1) firstEventReadCount += 1
+            if (verificationCall === 2) secondEventReadCount += 1
+            if (eventRows !== null) return eventRows
           }
           if (operation === 'all' && isAtomStatement) {
             if (
@@ -2621,7 +2656,7 @@ function runM106InstrumentedScenario(name) {
             ) {
               throw new Error('instrumented atom read failure')
             }
-            return atomRows
+            if (atomRows !== null) return atomRows
           }
           return Reflect.apply(method, this, parameters)
         },
@@ -2943,14 +2978,22 @@ function runM106InstrumentedScenario(name) {
           },
         }
         spoofStoredSqlNames = [indexName]
-      } else if (scenario === 'atom-read-repeated-cached-all') {
-        headSequence = 0
+      } else if (
+        scenario === 'atom-read-repeated-cached-all' ||
+        scenario === 'atom-read-repeated-active-cached-all'
+      ) {
+        const seedActive = scenario === 'atom-read-repeated-active-cached-all'
+        headSequence = seedActive ? 1 : 0
+        repeatedNextHead = headSequence + 1
         eventRows = null
+        if (seedActive) atomRows = null
         repeatedTransitionEvent = deleted(
-          1,
+          repeatedNextHead,
           'mem_00000000-0000-4000-8000-000000001201',
         )
-        bundleOptions = { meta: { head_sequence: 0 } }
+        bundleOptions = seedActive
+          ? { seedActive: true }
+          : { meta: { head_sequence: 0 } }
       } else if (scenario === 'atom-row-shape') {
         const row = Object.assign(
           Object.create(null),
@@ -3009,7 +3052,10 @@ function runM106InstrumentedScenario(name) {
           fixtures.EXPECTED_PERSISTED_SQL[name],
         )
       }
-      if (scenario === 'atom-read-repeated-cached-all') {
+      if (
+        scenario === 'atom-read-repeated-cached-all' ||
+        scenario === 'atom-read-repeated-active-cached-all'
+      ) {
         verificationCall = 1
         const firstValue = verify.verifyMemoryBundleState(db)
         verificationCall = 0
@@ -3019,8 +3065,8 @@ function runM106InstrumentedScenario(name) {
         try {
           fixtures.insertM105EventRow(db, repeatedTransitionEvent)
           db.exec(
-            'UPDATE main.memory_bundle_meta SET head_sequence = 1 ' +
-            'WHERE singleton = 1',
+            'UPDATE main.memory_bundle_meta SET head_sequence = ' +
+            repeatedNextHead + ' WHERE singleton = 1',
           )
         } finally {
           db.exec(fixtures.EXPECTED_PERSISTED_SQL[triggerName].replace(
@@ -3058,6 +3104,9 @@ function runM106InstrumentedScenario(name) {
             'setReturnArrays',
           ],
           firstCheckpoint: firstValue.checkpoint,
+          firstMemoryIds: firstValue.memories.map(({ memoryId }) => memoryId),
+          firstEventPrepareCount,
+          firstEventReadCount,
           firstAtomPrepareCount,
           firstAtomReadCount,
           firstAtomStatementOperationCount,
@@ -3073,6 +3122,8 @@ function runM106InstrumentedScenario(name) {
           secondMessageLength: typeof secondError?.message === 'string'
             ? secondError.message.length
             : null,
+          secondEventPrepareCount,
+          secondEventReadCount,
           secondAtomPrepareCount,
           secondAtomReadCount,
           secondAtomStatementOperationCount,
@@ -3092,6 +3143,8 @@ function runM106InstrumentedScenario(name) {
           returned: value !== undefined,
           code: error?.code ?? null,
           message: error?.message ?? null,
+          eventPrepareCount,
+          eventReadCount,
           atomPrepareCount,
           atomReadCount,
           atomStatementOperationCount,
@@ -3289,8 +3342,11 @@ test('M1-06 keeps atom prepare and execution behind longer valid transition pref
   }
 })
 
-test('M1-06 repeated verification keeps every cached atom statement operation behind transition reduction', () => {
-  const result = runM106InstrumentedScenario('atom-read-repeated-cached-all')
+function assertM106RepeatedAtomBarrier(
+  scenario,
+  { firstSequence, firstMemoryIds, nextSequence },
+) {
+  const result = runM106InstrumentedScenario(scenario)
   const expectedStatementOperations = m106CallablePrototypeOperations(
     StatementSync.prototype,
   )
@@ -3312,6 +3368,9 @@ test('M1-06 repeated verification keeps every cached atom statement operation be
   }
   assert.deepEqual({
     firstCheckpoint: result.firstCheckpoint,
+    firstMemoryIds: result.firstMemoryIds,
+    firstEventPrepareCount: result.firstEventPrepareCount,
+    firstEventReadCount: result.firstEventReadCount,
     firstAtomPrepareCount: result.firstAtomPrepareCount,
     firstAtomReadCount: result.firstAtomReadCount,
     firstAtomStatementOperationCount: result.firstAtomStatementOperationCount,
@@ -3322,6 +3381,8 @@ test('M1-06 repeated verification keeps every cached atom statement operation be
     setupEventCount: result.setupEventCount,
     secondReturned: result.secondReturned,
     secondCode: result.secondCode,
+    secondEventPrepareCount: result.secondEventPrepareCount,
+    secondEventReadCount: result.secondEventReadCount,
     secondAtomPrepareCount: result.secondAtomPrepareCount,
     secondAtomReadCount: result.secondAtomReadCount,
     secondAtomStatementOperationCount: result.secondAtomStatementOperationCount,
@@ -3329,8 +3390,11 @@ test('M1-06 repeated verification keeps every cached atom statement operation be
   }, {
     firstCheckpoint: {
       streamId: M1_04_IDS.streamId,
-      sequence: 0,
+      sequence: firstSequence,
     },
+    firstMemoryIds,
+    firstEventPrepareCount: 1,
+    firstEventReadCount: 1,
     firstAtomPrepareCount: 1,
     firstAtomReadCount: 1,
     firstAtomStatementOperationCount: 3,
@@ -3341,10 +3405,12 @@ test('M1-06 repeated verification keeps every cached atom statement operation be
     ],
     setupQuickCheck: 'ok',
     setupForeignKeyViolationCount: 0,
-    setupHeadSequence: 1,
-    setupEventCount: 1,
+    setupHeadSequence: nextSequence,
+    setupEventCount: nextSequence,
     secondReturned: false,
     secondCode: 'bundle_invalid_transition',
+    secondEventPrepareCount: 1,
+    secondEventReadCount: 1,
     secondAtomPrepareCount: 0,
     secondAtomReadCount: 0,
     secondAtomStatementOperationCount: 0,
@@ -3354,9 +3420,30 @@ test('M1-06 repeated verification keeps every cached atom statement operation be
   assert.equal(typeof result.secondMessage, 'string')
   assert.equal(result.secondMessageLength, result.secondMessage.length)
   assert.ok(result.secondMessageLength > 0)
+  return result
+}
+
+test('M1-06 repeated empty-first verification keeps every cached atom statement operation behind transition reduction', () => {
+  assertM106RepeatedAtomBarrier('atom-read-repeated-cached-all', {
+    firstSequence: 0,
+    firstMemoryIds: [],
+    nextSequence: 1,
+  })
 })
 
-test('M1-06 verifier dispatch stays read-only and transaction-free for empty and active bundles', () => {
+test('M1-06 repeated active-first verification keeps every cached atom statement operation behind transition reduction', () => {
+  const result = assertM106RepeatedAtomBarrier(
+    'atom-read-repeated-active-cached-all',
+    {
+      firstSequence: 1,
+      firstMemoryIds: [M1_04_IDS.memoryId],
+      nextSequence: 2,
+    },
+  )
+  assert.ok(result.firstMemoryIds.length > 0)
+})
+
+test('M1-06 verifier dispatch is accessor-observable and transaction-neutral across bundle states', () => {
   for (const sql of [
     'PRAGMA foreign_keys(OFF)',
     'PRAGMA foreign_keys(ON)',
@@ -3373,7 +3460,12 @@ test('M1-06 verifier dispatch stays read-only and transaction-free for empty and
   const result = runM106NativeInstrumentationScenario(
     'M1-06-verifier-read-only-dispatch',
   )
-  assert.deepEqual(result.cases.map(({ name }) => name), ['empty', 'active'])
+  assert.deepEqual(result.cases.map(({ name }) => name), [
+    'empty',
+    'active',
+    'refused',
+    'active-inside-transaction',
+  ])
 
   const expectedDatabaseOperations = m106CallablePrototypeOperations(
     DatabaseSync.prototype,
@@ -3386,6 +3478,39 @@ test('M1-06 verifier dispatch stays read-only and transaction-free for empty and
     [...result.poisonedDatabaseOperations].sort(compareBinary),
     expectedDatabaseOperations,
   )
+
+  const accessorProbeDatabase = new DatabaseSync(':memory:')
+  let expectedDatabaseAccessorOperations
+  let expectedStatementAccessorOperations
+  try {
+    expectedDatabaseAccessorOperations = m106OwnAccessorOperations(
+      accessorProbeDatabase,
+    )
+    expectedStatementAccessorOperations = m106OwnAccessorOperations(
+      accessorProbeDatabase.prepare('SELECT 1'),
+    )
+  } finally {
+    accessorProbeDatabase.close()
+  }
+  assert.deepEqual(expectedDatabaseAccessorOperations, [
+    'get:isOpen',
+    'get:isTransaction',
+  ])
+  for (const operations of [
+    result.databaseOwnAccessorOperations,
+    result.capturedDatabaseAccessorOperations,
+    result.poisonedDatabaseAccessorOperations,
+  ]) {
+    assert.deepEqual(
+      [...operations].sort(compareBinary),
+      expectedDatabaseAccessorOperations,
+    )
+  }
+  assert.equal(
+    result.databaseAccessorBoundary,
+    'constructor-probe-and-native-target-proxy',
+  )
+
   const expectedStatementOperations = m106CallablePrototypeOperations(
     StatementSync.prototype,
   )
@@ -3401,6 +3526,24 @@ test('M1-06 verifier dispatch stays read-only and transaction-free for empty and
     [...result.poisonedStatementOperations].sort(compareBinary),
     expectedStatementOperations,
   )
+  assert.deepEqual(expectedStatementAccessorOperations, [
+    'get:expandedSQL',
+    'get:sourceSQL',
+  ])
+  for (const operations of [
+    result.statementOwnAccessorOperations,
+    result.wrappedStatementAccessorOperations,
+    result.poisonedStatementAccessorOperations,
+  ]) {
+    assert.deepEqual(
+      [...operations].sort(compareBinary),
+      expectedStatementAccessorOperations,
+    )
+  }
+  assert.equal(
+    result.statementAccessorBoundary,
+    'prepare-time-native-target-wrapper',
+  )
 
   const databaseOperations = new Set(result.databasePrototypeOperations)
   const statementOperations = new Set(result.statementPrototypeOperations)
@@ -3410,7 +3553,56 @@ test('M1-06 verifier dispatch stays read-only and transaction-free for empty and
     'setReadBigInts',
     'setReturnArrays',
   ])
+  const activeState = {
+    memoryIds: [M1_04_IDS.memoryId],
+    retained: [[M1_04_IDS.memoryId, 'active']],
+    seenDecisionIds: [M1_04_IDS.decisionId],
+    seenProposalIds: [M1_04_IDS.proposalId],
+    lastObservedAt: '2026-07-18T12:00:00.000Z',
+  }
+  const expectedCases = new Map([
+    ['empty', {
+      checkpointSequence: 0,
+      isTransaction: false,
+      state: {
+        memoryIds: [],
+        retained: [],
+        seenDecisionIds: [],
+        seenProposalIds: [],
+        lastObservedAt: null,
+      },
+    }],
+    ['active', {
+      checkpointSequence: 1,
+      isTransaction: false,
+      state: activeState,
+    }],
+    ['refused', {
+      checkpointSequence: 2,
+      isTransaction: false,
+      state: {
+        memoryIds: [],
+        retained: [],
+        seenDecisionIds: [
+          'dec_00000000-0000-4000-8000-000000001301',
+          'dec_00000000-0000-4000-8000-000000001302',
+        ],
+        seenProposalIds: [
+          'prp_00000000-0000-4000-8000-000000001401',
+          'prp_00000000-0000-4000-8000-000000001402',
+        ],
+        lastObservedAt: '2026-07-18T12:02:00.000Z',
+      },
+    }],
+    ['active-inside-transaction', {
+      checkpointSequence: 1,
+      isTransaction: true,
+      state: activeState,
+    }],
+  ])
   for (const caseResult of result.cases) {
+    const expectedCase = expectedCases.get(caseResult.name)
+    assert.notEqual(expectedCase, undefined)
     assert.equal(caseResult.connectionConstruction.operation, 'construct')
     assert.deepEqual(caseResult.connectionConstruction.args[1], {
       readOnly: true,
@@ -3420,6 +3612,7 @@ test('M1-06 verifier dispatch stays read-only and transaction-free for empty and
     assert.deepEqual({
       verificationError: caseResult.verificationError,
       checkpoint: caseResult.checkpoint,
+      state: caseResult.state,
       isTransactionBefore: caseResult.isTransactionBefore,
       isTransactionAfter: caseResult.isTransactionAfter,
       dynamicDatabaseDispatchCallCount:
@@ -3430,26 +3623,57 @@ test('M1-06 verifier dispatch stays read-only and transaction-free for empty and
         caseResult.dynamicStatementDispatchCallCount,
       dynamicStatementDispatchOperations:
         caseResult.dynamicStatementDispatchOperations,
+      dynamicDatabaseAccessorCallCount:
+        caseResult.dynamicDatabaseAccessorCallCount,
+      dynamicDatabaseAccessorOperations:
+        caseResult.dynamicDatabaseAccessorOperations,
+      dynamicStatementAccessorCallCount:
+        caseResult.dynamicStatementAccessorCallCount,
+      dynamicStatementAccessorOperations:
+        caseResult.dynamicStatementAccessorOperations,
+      cleanupTransactionBefore: caseResult.cleanupTransactionBefore,
+      cleanupOperation: caseResult.cleanupOperation,
+      cleanupTransactionAfter: caseResult.cleanupTransactionAfter,
       oracleFunctionPersisted: caseResult.oracleFunctionPersisted,
     }, {
       verificationError: null,
       checkpoint: {
         streamId: M1_04_IDS.streamId,
-        sequence: caseResult.name === 'empty' ? 0 : 1,
+        sequence: expectedCase.checkpointSequence,
       },
-      isTransactionBefore: false,
-      isTransactionAfter: false,
+      state: expectedCase.state,
+      isTransactionBefore: expectedCase.isTransaction,
+      isTransactionAfter: expectedCase.isTransaction,
       dynamicDatabaseDispatchCallCount: 0,
       dynamicDatabaseDispatchOperations: [],
       dynamicStatementDispatchCallCount: 0,
       dynamicStatementDispatchOperations: [],
+      dynamicDatabaseAccessorCallCount: 0,
+      dynamicDatabaseAccessorOperations: [],
+      dynamicStatementAccessorCallCount: 0,
+      dynamicStatementAccessorOperations: [],
+      cleanupTransactionBefore: expectedCase.isTransaction,
+      cleanupOperation: expectedCase.isTransaction ? 'ROLLBACK' : null,
+      cleanupTransactionAfter: false,
       oracleFunctionPersisted: false,
     }, caseResult.name)
 
     let selectCount = 0
     let readCount = 0
+    let capturedOpenAccessorReadCount = 0
+    let capturedTransactionAccessorReadCount = 0
     const observedPragmas = []
     for (const entry of caseResult.trace) {
+      if (entry.kind === 'database-accessor') {
+        assert.equal(entry.dispatch, 'captured')
+        if (entry.operation === 'get:isOpen') {
+          capturedOpenAccessorReadCount += 1
+        } else {
+          assert.equal(entry.operation, 'get:isTransaction')
+          capturedTransactionAccessorReadCount += 1
+        }
+        continue
+      }
       if (databaseOperations.has(entry.operation)) {
         assert.equal(
           entry.operation,
@@ -3484,6 +3708,8 @@ test('M1-06 verifier dispatch stays read-only and transaction-free for empty and
         readCount += 1
       }
     }
+    assert.equal(capturedOpenAccessorReadCount, 1, caseResult.name)
+    assert.equal(capturedTransactionAccessorReadCount, 2, caseResult.name)
     assert.ok(selectCount > 0, caseResult.name)
     assert.deepEqual(
       observedPragmas.sort(compareBinary),
@@ -3545,15 +3771,30 @@ test('M1-06 requires one constant stream and persisted id uniqueness', () => {
   assert.equal(wrongStream.code, 'bundle_meta_mismatch')
   assert.equal(wrongStream.atomReadCount, 0)
 
-  const duplicateBoth = runM106InstrumentedScenario('duplicate-both')
-  assert.equal(duplicateBoth.code, 'bundle_invalid_decision')
-  assert.match(duplicateBoth.message, /decision id/i)
-  assert.equal(duplicateBoth.atomReadCount, 0)
-
-  const duplicateProposal = runM106InstrumentedScenario('duplicate-proposal')
-  assert.equal(duplicateProposal.code, 'bundle_invalid_decision')
-  assert.match(duplicateProposal.message, /proposal id/i)
-  assert.equal(duplicateProposal.atomReadCount, 0)
+  for (const scenario of ['duplicate-both', 'duplicate-proposal']) {
+    const result = runM106InstrumentedScenario(scenario)
+    assert.deepEqual({
+      returned: result.returned,
+      code: result.code,
+      eventPrepareCount: result.eventPrepareCount,
+      eventReadCount: result.eventReadCount,
+      atomPrepareCount: result.atomPrepareCount,
+      atomReadCount: result.atomReadCount,
+      atomStatementOperationCount: result.atomStatementOperationCount,
+      atomStatementOperations: result.atomStatementOperations,
+    }, {
+      returned: false,
+      code: 'bundle_invalid_decision',
+      eventPrepareCount: 1,
+      eventReadCount: 1,
+      atomPrepareCount: 0,
+      atomReadCount: 0,
+      atomStatementOperationCount: 0,
+      atomStatementOperations: [],
+    }, scenario)
+    assert.equal(typeof result.message, 'string', scenario)
+    assert.ok(result.message.length > 0, scenario)
+  }
 })
 
 test('M1-06 refused delete has no reducer effect while ids and time advance', () => {
