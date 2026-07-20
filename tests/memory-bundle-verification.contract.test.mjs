@@ -2294,6 +2294,37 @@ function expectedM106CreateEvent(overrides = {}) {
   }, overrides)
 }
 
+function expectedM106DecodedEvent(event) {
+  return {
+    sequence: event.sequence,
+    streamId: event.stream_id,
+    decisionId: event.decision_id,
+    proposalId: event.proposal_id,
+    proposalKind: event.proposal_kind,
+    operation: event.operation,
+    outcome: event.outcome,
+    reasonCode: event.reason_code,
+    palariId: event.palari_id,
+    userId: event.user_id,
+    authorityKind: event.authority_kind,
+    authorityId: event.authority_id,
+    evidenceKind: event.evidence_kind,
+    memoryId: event.memory_id,
+    memoryType: event.memory_type,
+    effectiveAt: event.effective_at,
+    observedAt: event.observed_at,
+  }
+}
+
+function expectedM106RetainedValue(createEvent, status = 'active') {
+  return {
+    palariId: createEvent.palari_id,
+    userId: createEvent.user_id,
+    status,
+    createEvent: expectedM106DecodedEvent(createEvent),
+  }
+}
+
 function makeM106CanonicalAtom(event, overrides = {}) {
   return Object.assign({
     memoryId: event.memory_id,
@@ -2414,6 +2445,8 @@ function runM106InstrumentedScenario(name) {
     let atomRows = []
     let atomReadCount = 0
     let headSequence = 0
+    let bundleOptions
+    let spoofStoredSqlNames = []
 
     function normalizeSql(sql) {
       return sql.replace(/\\s+/g, ' ').trim()
@@ -2431,10 +2464,19 @@ function runM106InstrumentedScenario(name) {
       ...statementAllDescriptor,
       value(...parameters) {
         const sql = statementSql.get(this)
-        if (sql?.includes('FROM main.memory_bundle_events')) return eventRows
+        if (
+          sql?.includes('FROM main.memory_bundle_events') &&
+          eventRows !== null
+        ) {
+          return eventRows
+        }
         if (sql?.includes('FROM main.memory_bundle_atoms')) {
           atomReadCount += 1
-          if (scenario === 'atom-read-transition') {
+          if (
+            scenario === 'atom-read-transition' ||
+            scenario === 'atom-read-cross-scope-delete' ||
+            scenario === 'atom-read-double-delete'
+          ) {
             throw new Error('instrumented atom read failure')
           }
           return atomRows
@@ -2508,6 +2550,69 @@ function runM106InstrumentedScenario(name) {
           operation: 'delete',
           memory_type: null,
         })]
+      } else if (scenario === 'atom-read-cross-scope-delete') {
+        headSequence = 2
+        eventRows = null
+        const create = fixtures.makeM104EventRow()
+        const crossScopeDelete = fixtures.makeM104EventRow({
+          sequence: 2,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000011',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000012',
+          proposal_kind: 'demote',
+          operation: 'delete',
+          user_id: 'user-2',
+          authority_id: 'user-2',
+          memory_type: null,
+          effective_at: '2026-07-18T12:59:00.000Z',
+          observed_at: '2026-07-18T13:00:00.000Z',
+        })
+        bundleOptions = {
+          meta: { head_sequence: headSequence },
+          beforeTriggers(connection) {
+            fixtures.insertM105EventRow(connection, create)
+            fixtures.insertM105EventRow(connection, crossScopeDelete)
+          },
+        }
+      } else if (scenario === 'atom-read-double-delete') {
+        headSequence = 3
+        eventRows = null
+        const indexName = 'memory_bundle_applied_delete_memory_unique'
+        const create = fixtures.makeM104EventRow()
+        const firstDelete = fixtures.makeM104EventRow({
+          sequence: 2,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000021',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000022',
+          proposal_kind: 'demote',
+          operation: 'delete',
+          memory_type: null,
+          effective_at: '2026-07-18T12:59:00.000Z',
+          observed_at: '2026-07-18T13:00:00.000Z',
+        })
+        const secondDelete = fixtures.makeM104EventRow({
+          sequence: 3,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000031',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000032',
+          proposal_kind: 'demote',
+          operation: 'delete',
+          memory_type: null,
+          effective_at: '2026-07-18T13:59:00.000Z',
+          observed_at: '2026-07-18T14:00:00.000Z',
+        })
+        bundleOptions = {
+          meta: { head_sequence: headSequence },
+          objectSqlOverrides: {
+            [indexName]: fixtures.EXPECTED_PERSISTED_SQL[indexName].replace(
+              "WHERE operation = 'delete' AND outcome = 'applied';",
+              "WHERE operation = 'delete' AND outcome = 'applied' AND sequence < 3;",
+            ),
+          },
+          beforeTriggers(connection) {
+            fixtures.insertM105EventRow(connection, create)
+            fixtures.insertM105EventRow(connection, firstDelete)
+            fixtures.insertM105EventRow(connection, secondDelete)
+          },
+        }
+        spoofStoredSqlNames = [indexName]
       } else if (scenario === 'atom-row-shape') {
         const row = Object.assign(
           Object.create(null),
@@ -2529,9 +2634,16 @@ function runM106InstrumentedScenario(name) {
       }
 
       db = new DatabaseSync(':memory:')
-      fixtures.createM105Bundle(db, {
+      fixtures.createM105Bundle(db, bundleOptions ?? {
         meta: { head_sequence: headSequence },
       })
+      for (const name of spoofStoredSqlNames) {
+        fixtures.spoofM105StoredSql(
+          db,
+          name,
+          fixtures.EXPECTED_PERSISTED_SQL[name],
+        )
+      }
       let value
       let error
       try {
@@ -2635,6 +2747,18 @@ test('M1-06 completes transition reduction before attempting atom reads', () => 
   assert.equal(result.returned, false)
   assert.equal(result.code, 'bundle_invalid_transition')
   assert.equal(result.atomReadCount, 0)
+})
+
+test('M1-06 completes multi-event delete transitions before attempting atom reads', () => {
+  for (const [scenario, expectedCode] of [
+    ['atom-read-cross-scope-delete', 'bundle_unauthorized'],
+    ['atom-read-double-delete', 'bundle_invalid_transition'],
+  ]) {
+    const result = runM106InstrumentedScenario(scenario)
+    assert.equal(result.returned, false, scenario)
+    assert.equal(result.code, expectedCode, scenario)
+    assert.equal(result.atomReadCount, 0, scenario)
+  }
 })
 
 test('M1-06 requires exact safe-integer sequences 1 through head including empty head', () => {
@@ -3033,10 +3157,12 @@ test('M1-06 chooses the deterministic first unequal id across multiple defects',
   })
 })
 
-test('M1-06 reports missing atom at first unequal id after an equal prefix', () => {
+test('M1-06 reports missing atom after two shared equal-id merge pairs', () => {
   withM105Database((db) => {
-    const sharedMemoryId =
+    const sharedFirstId =
       'mem_00000000-0000-4000-8000-000000000970'
+    const sharedSecondId =
+      'mem_00000000-0000-4000-8000-000000000971'
     const expectedAfterPrefixId =
       'mem_00000000-0000-4000-8000-000000000972'
     const actualAfterPrefixId =
@@ -3045,15 +3171,20 @@ test('M1-06 reports missing atom at first unequal id after an equal prefix', () 
       1,
       expectedAfterPrefixId,
     )
-    const shared = makeM106CreateEventRow(2, sharedMemoryId)
+    const sharedSecond = makeM106CreateEventRow(2, sharedSecondId)
     const actualAfterPrefix = makeM106RefusedDeleteEventRow(
       3,
       actualAfterPrefixId,
     )
+    const sharedFirst = makeM106CreateEventRow(4, sharedFirstId)
     createM106SemanticBundle(
       db,
-      [expectedAfterPrefix, shared, actualAfterPrefix],
-      [makeM106AtomRow(actualAfterPrefix), makeM106AtomRow(shared)],
+      [expectedAfterPrefix, sharedSecond, actualAfterPrefix, sharedFirst],
+      [
+        makeM106AtomRow(actualAfterPrefix),
+        makeM106AtomRow(sharedFirst),
+        makeM106AtomRow(sharedSecond),
+      ],
     )
 
     assertM105BundleCode(
@@ -3063,27 +3194,34 @@ test('M1-06 reports missing atom at first unequal id after an equal prefix', () 
   })
 })
 
-test('M1-06 reports orphan atom at first unequal id after an equal prefix', () => {
+test('M1-06 reports orphan atom after two shared equal-id merge pairs', () => {
   withM105Database((db) => {
-    const sharedMemoryId =
+    const sharedFirstId =
       'mem_00000000-0000-4000-8000-000000000970'
-    const expectedAfterPrefixId =
-      'mem_00000000-0000-4000-8000-000000000974'
+    const sharedSecondId =
+      'mem_00000000-0000-4000-8000-000000000971'
     const actualAfterPrefixId =
       'mem_00000000-0000-4000-8000-000000000972'
+    const expectedAfterPrefixId =
+      'mem_00000000-0000-4000-8000-000000000974'
     const expectedAfterPrefix = makeM106CreateEventRow(
       1,
       expectedAfterPrefixId,
     )
-    const shared = makeM106CreateEventRow(2, sharedMemoryId)
+    const sharedSecond = makeM106CreateEventRow(2, sharedSecondId)
     const actualAfterPrefix = makeM106RefusedDeleteEventRow(
       3,
       actualAfterPrefixId,
     )
+    const sharedFirst = makeM106CreateEventRow(4, sharedFirstId)
     createM106SemanticBundle(
       db,
-      [expectedAfterPrefix, shared, actualAfterPrefix],
-      [makeM106AtomRow(actualAfterPrefix), makeM106AtomRow(shared)],
+      [expectedAfterPrefix, sharedSecond, actualAfterPrefix, sharedFirst],
+      [
+        makeM106AtomRow(actualAfterPrefix),
+        makeM106AtomRow(sharedFirst),
+        makeM106AtomRow(sharedSecond),
+      ],
     )
 
     assertM105BundleCode(
@@ -3138,9 +3276,18 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
       ]))
       const expectedMemories = expectedOrder.map((memoryId) =>
         expectedById.get(memoryId))
+      const expectedRetainedEntries = events.map((event) => [
+        event.memory_id,
+        expectedM106RetainedValue(event),
+      ])
+      const expectedRetainedById = new Map(expectedRetainedEntries)
+      const firstRetainedValuesById = new Map()
+      const secondRetainedValuesById = new Map()
 
       assert.deepEqual(first.memories.map(({ memoryId }) => memoryId), expectedOrder)
       assert.deepEqual(first.memories, expectedMemories)
+      assert.deepEqual([...first.retainedByMemoryId], expectedRetainedEntries)
+      assert.deepEqual([...second.retainedByMemoryId], expectedRetainedEntries)
       assert.deepEqual(second, first)
       assert.notStrictEqual(second, first)
       assert.notStrictEqual(second.checkpoint, first.checkpoint)
@@ -3148,6 +3295,20 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
       assert.notStrictEqual(second.retainedByMemoryId, first.retainedByMemoryId)
       assert.notStrictEqual(second.seenDecisionIds, first.seenDecisionIds)
       assert.notStrictEqual(second.seenProposalIds, first.seenProposalIds)
+      for (const event of events) {
+        const memoryId = event.memory_id
+        const firstRetained = first.retainedByMemoryId.get(memoryId)
+        const secondRetained = second.retainedByMemoryId.get(memoryId)
+        firstRetainedValuesById.set(memoryId, firstRetained)
+        secondRetainedValuesById.set(memoryId, secondRetained)
+        assert.deepEqual(firstRetained, expectedRetainedById.get(memoryId))
+        assert.deepEqual(secondRetained, expectedRetainedById.get(memoryId))
+        assert.notStrictEqual(secondRetained, firstRetained)
+        assert.notStrictEqual(
+          secondRetained.createEvent,
+          firstRetained.createEvent,
+        )
+      }
       for (let index = 0; index < first.memories.length; index += 1) {
         assertM106ReplayDescriptors(first.memories[index])
         assertM106ReplayDescriptors(second.memories[index])
@@ -3160,11 +3321,24 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
 
       first.lastObservedAt = '1970-01-01T00:00:00.000Z'
       first.checkpoint.sequence = 998
+      second.lastObservedAt = '1971-01-01T00:00:00.000Z'
+      second.checkpoint.sequence = 999
+      for (let index = 0; index < events.length; index += 1) {
+        const memoryId = events[index].memory_id
+        const firstRetained = firstRetainedValuesById.get(memoryId)
+        const secondRetained = secondRetainedValuesById.get(memoryId)
+        firstRetained.palariId = `mutated-first-palari-${index}`
+        firstRetained.status = 'deleted'
+        firstRetained.createEvent.userId = `mutated-first-user-${index}`
+        firstRetained.createEvent.sequence = 900 + index
+        secondRetained.palariId = `mutated-second-palari-${index}`
+        secondRetained.status = 'deleted'
+        secondRetained.createEvent.userId = `mutated-second-user-${index}`
+        secondRetained.createEvent.sequence = 950 + index
+      }
       first.retainedByMemoryId.clear()
       first.seenDecisionIds.clear()
       first.seenProposalIds.clear()
-      second.lastObservedAt = '1971-01-01T00:00:00.000Z'
-      second.checkpoint.sequence = 999
       second.retainedByMemoryId.clear()
       second.seenDecisionIds.clear()
       second.seenProposalIds.clear()
@@ -3194,6 +3368,24 @@ test('M1-06 returns BINARY-sorted exact fresh replay memories with isolation', a
         sequence: 3,
       })
       assert.deepEqual([...third.retainedByMemoryId.keys()], memoryIds)
+      assert.deepEqual([...third.retainedByMemoryId], expectedRetainedEntries)
+      for (const event of events) {
+        const memoryId = event.memory_id
+        const thirdRetained = third.retainedByMemoryId.get(memoryId)
+        const firstRetained = firstRetainedValuesById.get(memoryId)
+        const secondRetained = secondRetainedValuesById.get(memoryId)
+        assert.deepEqual(thirdRetained, expectedRetainedById.get(memoryId))
+        assert.notStrictEqual(thirdRetained, secondRetained)
+        assert.notStrictEqual(
+          thirdRetained.createEvent,
+          secondRetained.createEvent,
+        )
+        assert.notStrictEqual(thirdRetained, firstRetained)
+        assert.notStrictEqual(
+          thirdRetained.createEvent,
+          firstRetained.createEvent,
+        )
+      }
       assert.deepEqual(
         [...third.seenDecisionIds],
         events.map(({ decision_id: decisionId }) => decisionId),
