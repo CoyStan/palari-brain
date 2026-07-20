@@ -27,6 +27,7 @@ import {
   makeM104ApplyEnvelope,
   makeM104AtomRow,
   makeM104CanonicalAtom,
+  seedM105ActiveMemory,
 } from './helpers/memory-bundle-fixtures.mjs'
 
 function assertBundleCode(callback, expectedCode) {
@@ -384,7 +385,7 @@ test('M1-02 error classification ignores later Set has poisoning', () => {
     })
 
     try {
-      applyModule.applyResolvedDecisionInTransaction()
+      applyModule.applyResolvedDecisionInTransaction(new Proxy({}, {}))
     } catch (error) {
       caught = error
     }
@@ -400,7 +401,7 @@ test('M1-02 error classification ignores later Set has poisoning', () => {
   assertExactBundleError(
     caught,
     'bundle_invalid_argument',
-    'A DatabaseSync connection is required.',
+    'A native DatabaseSync connection is required.',
   )
 })
 
@@ -423,7 +424,7 @@ test('M1-02 error classification ignores inherited cause poisoning', () => {
     })
 
     try {
-      applyModule.applyResolvedDecisionInTransaction()
+      applyModule.applyResolvedDecisionInTransaction(new Proxy({}, {}))
     } catch (error) {
       caught = error
     }
@@ -443,7 +444,7 @@ test('M1-02 error classification ignores inherited cause poisoning', () => {
   assertExactBundleError(
     caught,
     'bundle_invalid_argument',
-    'A DatabaseSync connection is required.',
+    'A native DatabaseSync connection is required.',
   )
 })
 
@@ -468,7 +469,7 @@ test('M1-02 error construction ignores later defineProperty poisoning', () => {
     })
 
     try {
-      applyModule.applyResolvedDecisionInTransaction()
+      applyModule.applyResolvedDecisionInTransaction(new Proxy({}, {}))
     } catch (error) {
       caught = error
     }
@@ -485,7 +486,7 @@ test('M1-02 error construction ignores later defineProperty poisoning', () => {
   assertExactBundleError(
     caught,
     'bundle_invalid_argument',
-    'A DatabaseSync connection is required.',
+    'A native DatabaseSync connection is required.',
   )
 })
 
@@ -1059,8 +1060,11 @@ const M1_04_CODEC_EXPORTS = [
   'decodeEventRow',
   'encodeAtomRow',
   'validateIdentity',
+  'validateInputAtomScalars',
   'validateMemoryType',
   'validatePrefixedUuidV4',
+  'validateResolvedAuthority',
+  'validateResolvedDecisionWithoutAuthority',
   'validateTimestamp',
 ]
 
@@ -2968,4 +2972,797 @@ test('M1-07 rejects canonical-target TEMP triggers and creates only main objects
   } finally {
     shadowed.close()
   }
+})
+
+const M1_08_POLICY_AUTHORITY_ID = 'palari-kernel-admission@1'
+
+function makeM108Id(prefix, nonce) {
+  const suffix = nonce.toString(16).padStart(12, '0')
+  return `${prefix}_00000000-0000-4000-8000-${suffix}`
+}
+
+function makeM108Envelope(kind, nonce, options = {}) {
+  const input = makeM104ApplyEnvelope()
+  input.decision.decisionId = makeM108Id('dec', nonce)
+  input.decision.proposalId = makeM108Id('prp', nonce + 0x100)
+  input.decision.memoryId = makeM108Id('mem', nonce + 0x200)
+
+  if (kind === 'create-applied-promote') {
+    input.decision.proposalKind = 'promote'
+    input.decision.memoryType = 'working'
+  } else if (kind === 'create-refused') {
+    input.decision.outcome = 'refused'
+    input.decision.reasonCode = options.reasonCode ?? 'below_threshold'
+    input.decision.memoryId = null
+    input.decision.authority = {
+      kind: 'policy',
+      authorityId: M1_08_POLICY_AUTHORITY_ID,
+    }
+    input.atom = null
+    if (options.proposalKind === 'promote') {
+      input.decision.proposalKind = 'promote'
+      input.decision.memoryType = 'working'
+    }
+  } else if (kind === 'delete-applied') {
+    input.decision.proposalKind = 'demote'
+    input.decision.operation = 'delete'
+    input.decision.memoryType = null
+    input.decision.memoryId = options.memoryId ?? M1_04_IDS.memoryId
+    input.atom = null
+  } else if (kind === 'delete-refused') {
+    input.decision.proposalKind = 'demote'
+    input.decision.operation = 'delete'
+    input.decision.outcome = 'refused'
+    input.decision.reasonCode = options.reasonCode ?? 'missing_target'
+    input.decision.memoryType = null
+    input.decision.memoryId = options.memoryId ?? input.decision.memoryId
+    input.decision.authority = {
+      kind: 'policy',
+      authorityId: M1_08_POLICY_AUTHORITY_ID,
+    }
+    input.atom = null
+  }
+
+  if (options.head !== undefined) {
+    input.expectedHead = {
+      streamId: options.head.streamId,
+      sequence: options.head.sequence,
+    }
+  }
+  return input
+}
+
+function readM108Head(db) {
+  const row = db.prepare(`
+    SELECT stream_id, head_sequence
+    FROM main.memory_bundle_meta
+    WHERE singleton = 1
+  `).get()
+  return { streamId: row.stream_id, sequence: row.head_sequence }
+}
+
+function snapshotM108Bundle(db) {
+  return {
+    meta: db.prepare(`
+      SELECT singleton, schema_version, stream_id, head_sequence, created_at
+      FROM main.memory_bundle_meta
+      ORDER BY singleton
+    `).all(),
+    events: db.prepare(`
+      SELECT
+        sequence, stream_id, decision_id, proposal_id, proposal_kind,
+        operation, outcome, reason_code, palari_id, user_id,
+        authority_kind, authority_id, evidence_kind, memory_id, memory_type,
+        effective_at, observed_at
+      FROM main.memory_bundle_events
+      ORDER BY sequence
+    `).all(),
+    atoms: db.prepare(`
+      SELECT
+        memory_id, stream_id, created_sequence, palari_id, user_id, type,
+        content, keywords_json, initial_importance, confidence,
+        provenance_kind, source_message_id, valid_from, created_at, fictional,
+        content_checksum
+      FROM main.memory_bundle_atoms
+      ORDER BY memory_id COLLATE BINARY
+    `).all(),
+  }
+}
+
+function withM108Transaction(options, callback) {
+  const db = new DatabaseSync(':memory:')
+  try {
+    createM105Bundle(db)
+    if (options.seedActive === true) seedM105ActiveMemory(db)
+    if (typeof options.beforeBegin === 'function') options.beforeBegin(db)
+    db.exec('BEGIN IMMEDIATE')
+    return callback(db)
+  } finally {
+    if (db.isOpen && db.isTransaction) db.exec('ROLLBACK')
+    if (db.isOpen) db.close()
+  }
+}
+
+function assertM108Failure(db, callback, code) {
+  const before = snapshotM108Bundle(db)
+  assertBundleCode(callback, code)
+  assert.equal(db.isTransaction, true)
+  assert.deepEqual(snapshotM108Bundle(db), before)
+}
+
+test('M1-08 enforces exact database brand, open state, and transaction ownership before input', () => {
+  const trapInputCounter = { count: 0 }
+  const trapInput = makeM104TrapProxy({}, trapInputCounter)
+  assertBundleCode(
+    () => applyModule.applyResolvedDecisionInTransaction({}, trapInput),
+    'bundle_invalid_argument',
+  )
+  assert.equal(trapInputCounter.count, 0)
+
+  const proxied = new DatabaseSync(':memory:')
+  const dbProxyCounter = { count: 0 }
+  try {
+    const dbProxy = makeM104TrapProxy(proxied, dbProxyCounter)
+    assertBundleCode(
+      () => applyModule.applyResolvedDecisionInTransaction(dbProxy, trapInput),
+      'bundle_invalid_argument',
+    )
+    assert.equal(dbProxyCounter.count, 0)
+    assert.equal(trapInputCounter.count, 0)
+  } finally {
+    proxied.close()
+  }
+
+  const closed = new DatabaseSync(':memory:')
+  closed.close()
+  assertBundleCode(
+    () => applyModule.applyResolvedDecisionInTransaction(closed, trapInput),
+    'bundle_connection_invalid',
+  )
+  assert.equal(trapInputCounter.count, 0)
+
+  const outside = new DatabaseSync(':memory:')
+  try {
+    createM105Bundle(outside)
+    assertBundleCode(
+      () => applyModule.applyResolvedDecisionInTransaction(outside, trapInput),
+      'bundle_not_in_transaction',
+    )
+    assert.equal(trapInputCounter.count, 0)
+  } finally {
+    outside.close()
+  }
+
+  const transacting = new DatabaseSync(':memory:')
+  const other = new DatabaseSync(':memory:')
+  try {
+    createM105Bundle(transacting)
+    createM105Bundle(other)
+    transacting.exec('BEGIN IMMEDIATE')
+    assertBundleCode(
+      () => applyModule.applyResolvedDecisionInTransaction(other, trapInput),
+      'bundle_not_in_transaction',
+    )
+    assert.equal(transacting.isTransaction, true)
+    assert.equal(other.isTransaction, false)
+    assert.equal(trapInputCounter.count, 0)
+  } finally {
+    if (transacting.isTransaction) transacting.exec('ROLLBACK')
+    transacting.close()
+    other.close()
+  }
+})
+
+test('M1-08 checks all PRAGMAs, TEMP triggers, and complete layout before reflecting on input', () => {
+  const pragmaCases = [
+    ['foreign_keys', 'PRAGMA foreign_keys=OFF'],
+    ['busy_timeout', 'PRAGMA busy_timeout=1'],
+    ['recursive_triggers', 'PRAGMA recursive_triggers=OFF'],
+    ['ignore_check_constraints', 'PRAGMA ignore_check_constraints=ON'],
+  ]
+  for (const [name, sql] of pragmaCases) {
+    const counter = { count: 0 }
+    const input = makeM104TrapProxy({}, counter)
+    withM108Transaction({ beforeBegin(db) { db.exec(sql) } }, (db) => {
+      assertM108Failure(
+        db,
+        () => applyModule.applyResolvedDecisionInTransaction(db, input),
+        'bundle_connection_invalid',
+      )
+      assert.equal(counter.count, 0, name)
+    })
+  }
+
+  const preconditionPrecedenceCases = [
+    {
+      name: 'wrong PRAGMA before malformed layout',
+      beforeBegin(db) {
+        db.exec(`
+          DROP TRIGGER main.memory_bundle_events_no_update;
+          PRAGMA recursive_triggers=OFF;
+        `)
+      },
+    },
+    {
+      name: 'canonical TEMP target before malformed layout',
+      beforeBegin(db) {
+        db.exec(`
+          DROP TRIGGER main.memory_bundle_events_no_update;
+          CREATE TEMP TRIGGER m108_precondition_precedence
+          BEFORE INSERT ON main.memory_bundle_meta
+          BEGIN SELECT 1; END;
+        `)
+      },
+    },
+  ]
+  for (const { name, beforeBegin } of preconditionPrecedenceCases) {
+    const counter = { count: 0 }
+    const input = makeM104TrapProxy({}, counter)
+    withM108Transaction({ beforeBegin }, (db) => {
+      assertM108Failure(
+        db,
+        () => applyModule.applyResolvedDecisionInTransaction(db, input),
+        'bundle_connection_invalid',
+      )
+      assert.equal(counter.count, 0, name)
+    })
+  }
+
+  const tempCounter = { count: 0 }
+  const tempInput = makeM104TrapProxy({}, tempCounter)
+  withM108Transaction({
+    beforeBegin(db) {
+      db.exec(`
+        CREATE TEMP TABLE memory_bundle_meta (value INTEGER);
+        CREATE TEMP TRIGGER m108_canonical_target
+        BEFORE INSERT ON memory_bundle_meta
+        BEGIN SELECT 1; END;
+      `)
+    },
+  }, (db) => {
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, tempInput),
+      'bundle_connection_invalid',
+    )
+    assert.equal(tempCounter.count, 0)
+  })
+
+  const layoutCounter = { count: 0 }
+  const layoutInput = makeM104TrapProxy({}, layoutCounter)
+  withM108Transaction({
+    beforeBegin(db) {
+      db.exec('DROP TRIGGER main.memory_bundle_events_no_update')
+    },
+  }, (db) => {
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, layoutInput),
+      'bundle_layout_invalid',
+    )
+    assert.equal(layoutCounter.count, 0)
+  })
+})
+
+test('M1-08 validates expected-head shape and scalars before exact-head CAS and decision capture', () => {
+  withM108Transaction({}, (db) => {
+    const head = readM108Head(db)
+    const laterCounter = { count: 0 }
+    const laterDecision = makeM104TrapProxy({}, laterCounter)
+
+    const headProxyCounter = { count: 0 }
+    const headProxyInput = makeM108Envelope('create-applied', 0x810)
+    headProxyInput.expectedHead = makeM104TrapProxy({}, headProxyCounter)
+    headProxyInput.decision = laterDecision
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, headProxyInput),
+      'bundle_invalid_argument',
+    )
+    assert.equal(headProxyCounter.count, 0)
+    assert.equal(laterCounter.count, 0)
+
+    const sequenceCounter = { count: 0 }
+    const invalidStream = makeM108Envelope('create-applied', 0x811)
+    invalidStream.expectedHead = {
+      streamId: 'not-a-stream',
+      sequence: makeM104TrapProxy({}, sequenceCounter),
+    }
+    invalidStream.decision = laterDecision
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, invalidStream),
+      'bundle_invalid_argument',
+    )
+    assert.equal(sequenceCounter.count, 0)
+    assert.equal(laterCounter.count, 0)
+
+    const invalidSequence = makeM108Envelope('create-applied', 0x812)
+    invalidSequence.expectedHead = { streamId: head.streamId, sequence: -1 }
+    invalidSequence.decision = laterDecision
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, invalidSequence),
+      'bundle_invalid_argument',
+    )
+    assert.equal(laterCounter.count, 0)
+
+    for (const expectedHead of [
+      { streamId: makeM108Id('str', 0x813), sequence: head.sequence },
+      { streamId: head.streamId, sequence: head.sequence + 1 },
+    ]) {
+      const mismatch = makeM108Envelope('create-applied', 0x814)
+      mismatch.expectedHead = expectedHead
+      mismatch.decision = laterDecision
+      assertM108Failure(
+        db,
+        () => applyModule.applyResolvedDecisionInTransaction(db, mismatch),
+        'bundle_head_conflict',
+      )
+      assert.equal(laterCounter.count, 0)
+    }
+
+    const exact = makeM108Envelope('create-applied', 0x815, { head })
+    exact.decision = laterDecision
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, exact),
+      'bundle_invalid_decision',
+    )
+    assert.equal(laterCounter.count, 0)
+  })
+})
+
+test('M1-08 accepts every canonical decision-matrix row in caller-owned transactions', () => {
+  const cases = [
+    { name: 'create applied permanent', kind: 'create-applied', nonce: 0x820 },
+    { name: 'create applied promote', kind: 'create-applied-promote', nonce: 0x821 },
+    ...[
+      'below_threshold',
+      'duplicate_current',
+      'unauthorized',
+      'unsupported',
+    ].map((reasonCode, index) => ({
+      name: `create refused ${reasonCode}`,
+      kind: 'create-refused',
+      nonce: 0x822 + index,
+      reasonCode,
+      proposalKind: index % 2 === 0 ? 'permanent' : 'promote',
+    })),
+    { name: 'delete applied', kind: 'delete-applied', nonce: 0x826, seedActive: true },
+    ...['missing_target', 'unauthorized', 'unsupported'].map(
+      (reasonCode, index) => ({
+        name: `delete refused ${reasonCode}`,
+        kind: 'delete-refused',
+        nonce: 0x827 + index,
+        reasonCode,
+      }),
+    ),
+  ]
+
+  for (const specification of cases) {
+    withM108Transaction(
+      { seedActive: specification.seedActive === true },
+      (db) => {
+        const head = readM108Head(db)
+        const input = makeM108Envelope(
+          specification.kind,
+          specification.nonce,
+          {
+            head,
+            reasonCode: specification.reasonCode,
+            proposalKind: specification.proposalKind,
+          },
+        )
+        assert.equal(
+          applyModule.applyResolvedDecisionInTransaction(db, input),
+          undefined,
+          specification.name,
+        )
+        assert.equal(db.isTransaction, true, specification.name)
+      },
+    )
+  }
+})
+
+test('M1-08 rejects every decision-matrix cell independently before transition state', () => {
+  const archetypes = [
+    {
+      name: 'create applied',
+      kind: 'create-applied',
+      wrongProposalKind: 'demote',
+      wrongReason: 'below_threshold',
+      wrongMemoryId: null,
+      wrongMemoryType: null,
+      wrongAtom: null,
+      wrongAuthority: {
+        kind: 'policy',
+        authorityId: M1_08_POLICY_AUTHORITY_ID,
+      },
+      partitionType: 'working',
+    },
+    {
+      name: 'create refused',
+      kind: 'create-refused',
+      wrongProposalKind: 'demote',
+      wrongReason: 'missing_target',
+      wrongMemoryId: makeM108Id('mem', 0x840),
+      wrongMemoryType: null,
+      wrongAtom: makeM104ApplyEnvelope().atom,
+      wrongAuthority: { kind: 'user', authorityId: 'user-1' },
+      partitionType: 'working',
+    },
+    {
+      name: 'delete applied',
+      kind: 'delete-applied',
+      wrongProposalKind: 'permanent',
+      wrongReason: 'missing_target',
+      wrongMemoryId: null,
+      wrongMemoryType: 'preference',
+      wrongAtom: makeM104ApplyEnvelope().atom,
+      wrongAuthority: {
+        kind: 'policy',
+        authorityId: M1_08_POLICY_AUTHORITY_ID,
+      },
+    },
+    {
+      name: 'delete refused',
+      kind: 'delete-refused',
+      wrongProposalKind: 'permanent',
+      wrongReason: 'below_threshold',
+      wrongMemoryId: null,
+      wrongMemoryType: 'preference',
+      wrongAtom: makeM104ApplyEnvelope().atom,
+      wrongAuthority: { kind: 'user', authorityId: 'user-1' },
+    },
+  ]
+
+  withM108Transaction({}, (db) => {
+    const head = readM108Head(db)
+    let nonce = 0x850
+    for (const archetype of archetypes) {
+      const mutationFactories = [
+        ['proposalKind', (input) => { input.decision.proposalKind = archetype.wrongProposalKind }],
+        ['operation', (input) => { input.decision.operation = input.decision.operation === 'create' ? 'delete' : 'create' }],
+        ['outcome', (input) => { input.decision.outcome = input.decision.outcome === 'applied' ? 'refused' : 'applied' }],
+        ['reasonCode', (input) => { input.decision.reasonCode = archetype.wrongReason }],
+        ['evidenceKind', (input) => { input.decision.evidenceKind = 'unsupported_evidence' }],
+        ['memoryId', (input) => { input.decision.memoryId = archetype.wrongMemoryId }],
+        ['memoryType', (input) => { input.decision.memoryType = archetype.wrongMemoryType }],
+        ['atom', (input) => { input.atom = archetype.wrongAtom }],
+      ]
+      if (archetype.partitionType !== undefined) {
+        mutationFactories.push([
+          'proposal partition',
+          (input) => { input.decision.memoryType = archetype.partitionType },
+        ])
+      }
+
+      for (const [field, mutate] of mutationFactories) {
+        const input = makeM108Envelope(archetype.kind, nonce, { head })
+        nonce += 1
+        mutate(input)
+        assertM108Failure(
+          db,
+          () => applyModule.applyResolvedDecisionInTransaction(db, input),
+          'bundle_invalid_decision',
+        )
+        assert.ok(field.length > 0)
+      }
+
+      const authorityInput = makeM108Envelope(archetype.kind, nonce, { head })
+      nonce += 1
+      authorityInput.decision.authority = archetype.wrongAuthority
+      assertM108Failure(
+        db,
+        () => applyModule.applyResolvedDecisionInTransaction(db, authorityInput),
+        'bundle_unauthorized',
+      )
+    }
+
+    for (const [kind, nonce] of [
+      ['create-applied-promote', 0x870],
+      ['create-refused', 0x871],
+    ]) {
+      const partitionMismatch = makeM108Envelope(kind, nonce, {
+        head,
+        proposalKind: 'promote',
+      })
+      partitionMismatch.decision.memoryType = 'preference'
+      assertM108Failure(
+        db,
+        () => applyModule.applyResolvedDecisionInTransaction(
+          db,
+          partitionMismatch,
+        ),
+        'bundle_invalid_decision',
+      )
+    }
+  })
+})
+
+test('M1-08 stages atom shape before decision values but atom values after duplicates and authority', () => {
+  withM108Transaction({ seedActive: true }, (db) => {
+    const head = readM108Head(db)
+
+    const malformedDecision = makeM108Envelope('create-applied', 0x880, { head })
+    malformedDecision.decision = {}
+    malformedDecision.atom = {}
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, malformedDecision),
+      'bundle_invalid_decision',
+    )
+
+    const malformedAtom = makeM108Envelope('create-applied', 0x881, { head })
+    malformedAtom.decision.decisionId = 'invalid-decision-id'
+    malformedAtom.atom = {}
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, malformedAtom),
+      'bundle_invalid_atom',
+    )
+
+    const malformedScope = makeM108Envelope('create-applied', 0x8811, { head })
+    malformedScope.decision.scope = {}
+    malformedScope.atom = {}
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, malformedScope),
+      'bundle_invalid_decision',
+    )
+
+    const malformedAuthority = makeM108Envelope(
+      'create-applied',
+      0x8812,
+      { head },
+    )
+    malformedAuthority.decision.authority = {}
+    malformedAuthority.atom = {}
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(
+        db,
+        malformedAuthority,
+      ),
+      'bundle_invalid_decision',
+    )
+
+    const keywordCounter = { count: 0 }
+    const keywordProxy = makeM104TrapProxy([], keywordCounter)
+    const deferredAtom = {
+      ...makeM104ApplyEnvelope().atom,
+      content: { invalid: true },
+      keywords: keywordProxy,
+    }
+
+    const invalidId = makeM108Envelope('create-applied', 0x882, { head })
+    invalidId.decision.decisionId = 'invalid-decision-id'
+    invalidId.atom = deferredAtom
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, invalidId),
+      'bundle_invalid_decision',
+    )
+    assert.equal(keywordCounter.count, 0)
+
+    const duplicateDecision = makeM108Envelope('create-applied', 0x883, { head })
+    duplicateDecision.decision.decisionId = M1_04_IDS.decisionId
+    duplicateDecision.decision.proposalId = M1_04_IDS.proposalId
+    duplicateDecision.decision.authority = {
+      kind: 'policy',
+      authorityId: M1_08_POLICY_AUTHORITY_ID,
+    }
+    duplicateDecision.atom = deferredAtom
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, duplicateDecision),
+      'bundle_duplicate_decision_id',
+    )
+    assert.equal(keywordCounter.count, 0)
+
+    const duplicateProposal = makeM108Envelope('create-applied', 0x884, { head })
+    duplicateProposal.decision.proposalId = M1_04_IDS.proposalId
+    duplicateProposal.decision.authority = {
+      kind: 'policy',
+      authorityId: M1_08_POLICY_AUTHORITY_ID,
+    }
+    duplicateProposal.atom = deferredAtom
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, duplicateProposal),
+      'bundle_duplicate_proposal_id',
+    )
+    assert.equal(keywordCounter.count, 0)
+
+    const invalidDecisionBeforeDuplicates = makeM108Envelope(
+      'create-applied',
+      0x8841,
+      { head },
+    )
+    invalidDecisionBeforeDuplicates.decision.evidenceKind = 'unsupported'
+    invalidDecisionBeforeDuplicates.decision.decisionId = M1_04_IDS.decisionId
+    invalidDecisionBeforeDuplicates.decision.proposalId = M1_04_IDS.proposalId
+    invalidDecisionBeforeDuplicates.decision.authority = {
+      kind: 'policy',
+      authorityId: M1_08_POLICY_AUTHORITY_ID,
+    }
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(
+        db,
+        invalidDecisionBeforeDuplicates,
+      ),
+      'bundle_invalid_decision',
+    )
+
+    const unauthorized = makeM108Envelope('create-applied', 0x885, { head })
+    unauthorized.decision.authority = {
+      kind: 'policy',
+      authorityId: M1_08_POLICY_AUTHORITY_ID,
+    }
+    unauthorized.atom = deferredAtom
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, unauthorized),
+      'bundle_unauthorized',
+    )
+    assert.equal(keywordCounter.count, 0)
+
+    const invalidAtomScalar = makeM108Envelope('create-applied', 0x886, { head })
+    invalidAtomScalar.atom = deferredAtom
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, invalidAtomScalar),
+      'bundle_invalid_atom',
+    )
+    assert.equal(keywordCounter.count, 0)
+
+    const invalidKeywords = makeM108Envelope('create-applied', 0x887, { head })
+    invalidKeywords.atom.keywords = keywordProxy
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, invalidKeywords),
+      'bundle_invalid_atom',
+    )
+    assert.equal(keywordCounter.count, 0)
+
+    const nullOnly = makeM108Envelope('delete-refused', 0x888, { head })
+    nullOnly.atom = {
+      ...makeM104ApplyEnvelope().atom,
+      keywords: keywordProxy,
+    }
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, nullOnly),
+      'bundle_invalid_decision',
+    )
+    assert.equal(keywordCounter.count, 0)
+
+    const malformedNullOnlyAtom = makeM108Envelope(
+      'delete-refused',
+      0x889,
+      { head },
+    )
+    malformedNullOnlyAtom.decision.evidenceKind = 'unsupported'
+    malformedNullOnlyAtom.atom = {}
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(
+        db,
+        malformedNullOnlyAtom,
+      ),
+      'bundle_invalid_atom',
+    )
+  })
+})
+
+test('M1-08 validates representative decision and every atom scalar', () => {
+  const cases = [
+    ['decision id', (input) => { input.decision.decisionId = 'bad' }],
+    ['proposal id', (input) => { input.decision.proposalId = 'bad' }],
+    ['palari id', (input) => { input.decision.scope.palariId = 'Bad!' }],
+    ['user id', (input) => { input.decision.scope.userId = '' }],
+    ['memory id', (input) => { input.decision.memoryId = 'bad' }],
+    ['memory type', (input) => { input.decision.memoryType = 'unknown' }],
+    ['effective time', (input) => { input.decision.effectiveAt = 'bad' }],
+    ['observed time', (input) => { input.decision.observedAt = 'bad' }],
+    ['time order', (input) => {
+      input.decision.effectiveAt = '2026-07-18T12:00:01.000Z'
+      input.decision.observedAt = '2026-07-18T12:00:00.000Z'
+    }],
+  ]
+
+  withM108Transaction({}, (db) => {
+    const head = readM108Head(db)
+    for (let index = 0; index < cases.length; index += 1) {
+      const [name, mutate] = cases[index]
+      const input = makeM108Envelope('create-applied', 0x890 + index, { head })
+      mutate(input)
+      assertM108Failure(
+        db,
+        () => applyModule.applyResolvedDecisionInTransaction(db, input),
+        'bundle_invalid_decision',
+      )
+      assert.ok(name.length > 0)
+    }
+
+    const atomCases = [
+      ['content', (atom) => { atom.content = { invalid: true } }],
+      ['initial importance', (atom) => { atom.initialImportance = 2 }],
+      ['confidence', (atom) => { atom.confidence = -1 }],
+      ['provenance', (atom) => { atom.provenanceKind = 'unsupported' }],
+      ['source message', (atom) => { atom.sourceMessageId = 'bad' }],
+      ['fictional', (atom) => { atom.fictional = 0 }],
+    ]
+    for (let index = 0; index < atomCases.length; index += 1) {
+      const [name, mutate] = atomCases[index]
+      const input = makeM108Envelope('create-applied', 0x8a0 + index, { head })
+      mutate(input.atom)
+      assertM108Failure(
+        db,
+        () => applyModule.applyResolvedDecisionInTransaction(db, input),
+        'bundle_invalid_atom',
+      )
+      assert.ok(name.length > 0)
+    }
+
+    const nonNullAndFictional = makeM108Envelope(
+      'create-applied',
+      0x8a6,
+      { head },
+    )
+    nonNullAndFictional.atom.sourceMessageId = M1_04_IDS.sourceMessageId
+    nonNullAndFictional.atom.fictional = true
+    assert.equal(
+      applyModule.applyResolvedDecisionInTransaction(db, nonNullAndFictional),
+      undefined,
+    )
+    assert.equal(db.isTransaction, true)
+  })
+})
+
+test('M1-08 uses captured Map and Set membership dispatch for staged state', () => {
+  withM108Transaction({ seedActive: true }, (db) => {
+    const head = readM108Head(db)
+    const input = makeM108Envelope('delete-applied', 0x8b0, { head })
+    const poisons = [
+      [Map.prototype, 'get'],
+      [Map.prototype, 'has'],
+      [Set.prototype, 'has'],
+    ].map(([target, key]) => ({
+      target,
+      key,
+      descriptor: Object.getOwnPropertyDescriptor(target, key),
+    }))
+    let poisonCalls = 0
+    let caught
+    try {
+      for (const { target, key, descriptor } of poisons) {
+        Object.defineProperty(target, key, {
+          ...descriptor,
+          value() {
+            poisonCalls += 1
+            throw new Error(`poisoned ${key} ran`)
+          },
+        })
+      }
+      try {
+        assert.equal(
+          applyModule.applyResolvedDecisionInTransaction(db, input),
+          undefined,
+        )
+      } catch (error) {
+        caught = error
+      }
+    } finally {
+      for (let index = poisons.length - 1; index >= 0; index -= 1) {
+        const { target, key, descriptor } = poisons[index]
+        Object.defineProperty(target, key, descriptor)
+      }
+    }
+    assert.equal(caught, undefined)
+    assert.equal(poisonCalls, 0)
+    assert.equal(db.isTransaction, true)
+  })
 })

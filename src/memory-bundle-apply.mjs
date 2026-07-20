@@ -1,6 +1,15 @@
 import {
+  captureApplyEnvelope,
+  captureAtom,
+  captureAuthority,
+  captureDecision,
   captureInitializerOptions,
+  captureKeywords,
+  captureScope,
+  validateInputAtomScalars,
   validatePrefixedUuidV4,
+  validateResolvedAuthority,
+  validateResolvedDecisionWithoutAuthority,
   validateTimestamp,
 } from './memory-bundle-codec.mjs'
 import {
@@ -27,6 +36,7 @@ import {
   MEMORY_BUNDLE_SCHEMA_VERSION,
 } from './memory-bundle-schema.mjs'
 import {
+  assertBorrowedBundleConnection,
   configureOwnedBundleConnection,
   rejectCanonicalTempTriggers,
   verifyMemoryBundleState,
@@ -35,6 +45,10 @@ import {
 const reflectApply = Reflect.apply
 const reflectDefineProperty = Reflect.defineProperty
 const objectHasOwnProperty = Object.prototype.hasOwnProperty
+const mapGet = Map.prototype.get
+const mapHas = Map.prototype.has
+const setHas = Set.prototype.has
+const numberMaxSafeInteger = Number.MAX_SAFE_INTEGER
 
 const APPLICATION_OBJECT_PREFIX = 'memory_bundle_'
 
@@ -44,6 +58,9 @@ const INITIALIZER_BUSY_MESSAGE =
   'The memory bundle database is busy or locked.'
 const INITIALIZER_ROLLBACK_MESSAGE =
   'Memory bundle initialization rollback failed.'
+const APPLY_STORAGE_MESSAGE =
+  'Memory bundle apply failed because storage could not be accessed.'
+const APPLY_BUSY_MESSAGE = 'The memory bundle database is busy or locked.'
 
 function defaultClock() {
   return constructNativeDate([])
@@ -186,6 +203,141 @@ function createFreshMemoryBundle(db, clock, idFactory) {
   ])
 }
 
+function mapApplyFailure(error) {
+  const preserved = preserveMemoryBundleError(
+    error,
+    'bundle_storage_error',
+    APPLY_STORAGE_MESSAGE,
+  )
+  if (preserved === error) return preserved
+  if (isNativeSqliteBusyOrLocked(error)) {
+    return memoryBundleFailure('bundle_busy', APPLY_BUSY_MESSAGE, error)
+  }
+  return preserved
+}
+
+function validateProspectiveTransition(state, decision, scope) {
+  if (
+    state.lastObservedAt !== null &&
+    decision.observedAt < state.lastObservedAt
+  ) {
+    throw memoryBundleFailure(
+      'bundle_invalid_transition',
+      'The prospective observed time decreases.',
+    )
+  }
+  if (state.checkpoint.sequence === numberMaxSafeInteger) {
+    throw memoryBundleFailure(
+      'bundle_invalid_transition',
+      'The memory bundle sequence cannot advance safely.',
+    )
+  }
+  if (decision.outcome === 'refused') return
+
+  if (decision.operation === 'create') {
+    if (reflectApply(mapHas, state.retainedByMemoryId, [decision.memoryId])) {
+      throw memoryBundleFailure(
+        'bundle_id_reuse',
+        'The prospective create reuses a retained memory id.',
+      )
+    }
+    return
+  }
+
+  const retained = reflectApply(
+    mapGet,
+    state.retainedByMemoryId,
+    [decision.memoryId],
+  )
+  if (retained === undefined) {
+    throw memoryBundleFailure(
+      'bundle_invalid_transition',
+      'The prospective delete has no retained create.',
+    )
+  }
+  if (
+    retained.palariId !== scope.palariId ||
+    retained.userId !== scope.userId
+  ) {
+    throw memoryBundleFailure(
+      'bundle_unauthorized',
+      'The prospective delete crosses retained scope.',
+    )
+  }
+  if (retained.status === 'deleted') {
+    throw memoryBundleFailure(
+      'bundle_invalid_transition',
+      'The prospective delete targets an already-deleted memory.',
+    )
+  }
+}
+
+function stageResolvedApply(db, input) {
+  const isOpen = captureDatabaseOpenState(db)
+  if (isOpen !== true) {
+    throw memoryBundleFailure(
+      'bundle_connection_invalid',
+      'The DatabaseSync connection must be open.',
+    )
+  }
+  if (readDatabaseTransactionState(db) !== true) {
+    throw memoryBundleFailure(
+      'bundle_not_in_transaction',
+      'Apply requires an active caller-owned transaction.',
+    )
+  }
+
+  assertBorrowedBundleConnection(db)
+  rejectCanonicalTempTriggers(db)
+  const state = verifyMemoryBundleState(db)
+  const envelope = captureApplyEnvelope(input)
+  if (
+    envelope.expectedHead.streamId !== state.checkpoint.streamId ||
+    envelope.expectedHead.sequence !== state.checkpoint.sequence
+  ) {
+    throw memoryBundleFailure(
+      'bundle_head_conflict',
+      'The expected bundle head does not match the verified head.',
+    )
+  }
+
+  const decision = captureDecision(envelope.decision)
+  const scope = captureScope(decision.scope)
+  const authority = captureAuthority(decision.authority)
+  const atom = captureAtom(envelope.atom)
+  const requiredAuthority = validateResolvedDecisionWithoutAuthority(
+    decision,
+    scope,
+    atom,
+  )
+
+  if (reflectApply(setHas, state.seenDecisionIds, [decision.decisionId])) {
+    throw memoryBundleFailure(
+      'bundle_duplicate_decision_id',
+      'The decision id is already retained.',
+    )
+  }
+  if (reflectApply(setHas, state.seenProposalIds, [decision.proposalId])) {
+    throw memoryBundleFailure(
+      'bundle_duplicate_proposal_id',
+      'The proposal id is already retained.',
+    )
+  }
+
+  validateResolvedAuthority(
+    authority,
+    requiredAuthority,
+    scope.userId,
+  )
+  let keywords = null
+  if (atom !== null) {
+    validateInputAtomScalars(atom)
+    keywords = captureKeywords(atom.keywords)
+  }
+  validateProspectiveTransition(state, decision, scope)
+  return { state, decision, scope, authority, atom, keywords }
+}
+
 export { MemoryBundleError }
 
 export function initializeMemoryBundle(db, options = {}) {
@@ -249,6 +401,11 @@ export function initializeMemoryBundle(db, options = {}) {
   }
 }
 
-export function applyResolvedDecisionInTransaction() {
-  throw new MemoryBundleError('bundle_invalid_argument', 'A DatabaseSync connection is required.')
+export function applyResolvedDecisionInTransaction(db, input) {
+  try {
+    stageResolvedApply(db, input)
+    return undefined
+  } catch (error) {
+    throw mapApplyFailure(error)
+  }
 }

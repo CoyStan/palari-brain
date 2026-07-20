@@ -556,23 +556,32 @@ function validateEventMatrix(event) {
 }
 
 function validateEventAuthority(event, requiredKind) {
-  if (event.authorityKind !== 'user' && event.authorityKind !== 'policy') {
+  validateAuthorityTuple(
+    event.authorityKind,
+    event.authorityId,
+    requiredKind,
+    event.userId,
+  )
+}
+
+function validateAuthorityTuple(kind, authorityId, requiredKind, userId) {
+  if (kind !== 'user' && kind !== 'policy') {
     fail('bundle_invalid_decision', 'Persisted event authority kind is invalid.')
   }
-  if (typeof event.authorityId !== 'string') {
+  if (typeof authorityId !== 'string') {
     fail('bundle_invalid_decision', 'Persisted event authority id is invalid.')
   }
 
-  if (event.authorityKind === 'user') {
-    validateIdentity(event.authorityId, 'bundle_invalid_decision')
+  if (kind === 'user') {
+    validateIdentity(authorityId, 'bundle_invalid_decision')
   }
 
-  if (event.authorityKind !== requiredKind) {
+  if (kind !== requiredKind) {
     fail('bundle_unauthorized', 'Persisted event authority kind is not authorized.')
   }
   if (
-    (requiredKind === 'user' && event.authorityId !== event.userId) ||
-    (requiredKind === 'policy' && event.authorityId !== POLICY_AUTHORITY_ID)
+    (requiredKind === 'user' && authorityId !== userId) ||
+    (requiredKind === 'policy' && authorityId !== POLICY_AUTHORITY_ID)
   ) {
     fail('bundle_unauthorized', 'Persisted event authority id is not authorized.')
   }
@@ -775,6 +784,122 @@ export function captureKeywords(value) {
     return captured
   } catch (error) {
     throw preserveMemoryBundleError(error, code, message)
+  }
+}
+
+export function validateResolvedDecisionWithoutAuthority(
+  decision,
+  scope,
+  atom,
+) {
+  validatePrefixedUuidV4(
+    decision.decisionId,
+    'dec_',
+    'bundle_invalid_decision',
+  )
+  validatePrefixedUuidV4(
+    decision.proposalId,
+    'prp_',
+    'bundle_invalid_decision',
+  )
+  validatePrimitiveToken(
+    decision.proposalKind,
+    PROPOSAL_KINDS,
+    'bundle_invalid_decision',
+    'Proposal kind',
+  )
+  validatePrimitiveToken(
+    decision.operation,
+    OPERATIONS,
+    'bundle_invalid_decision',
+    'Operation',
+  )
+  validatePrimitiveToken(
+    decision.outcome,
+    OUTCOMES,
+    'bundle_invalid_decision',
+    'Outcome',
+  )
+  if (
+    decision.reasonCode !== null &&
+    (
+      typeof decision.reasonCode !== 'string' ||
+      !includesExact(REFUSAL_REASONS, decision.reasonCode)
+    )
+  ) {
+    fail('bundle_invalid_decision', 'Reason code is invalid.')
+  }
+  validateIdentity(scope.palariId, 'bundle_invalid_decision')
+  validateIdentity(scope.userId, 'bundle_invalid_decision')
+  if (decision.evidenceKind !== 'direct_user_message') {
+    fail('bundle_invalid_decision', 'Evidence kind is invalid.')
+  }
+  if (decision.memoryId !== null) {
+    validatePrefixedUuidV4(
+      decision.memoryId,
+      'mem_',
+      'bundle_invalid_decision',
+    )
+  }
+  if (decision.memoryType !== null) {
+    validateMemoryType(decision.memoryType, 'bundle_invalid_decision')
+  }
+  validateTimestamp(decision.effectiveAt, 'bundle_invalid_decision')
+  validateTimestamp(decision.observedAt, 'bundle_invalid_decision')
+  if (decision.effectiveAt > decision.observedAt) {
+    fail('bundle_invalid_decision', 'effectiveAt must not exceed observedAt.')
+  }
+
+  const requiredAuthority = validateEventMatrix(decision)
+  const requiresAtom =
+    decision.operation === 'create' && decision.outcome === 'applied'
+  if ((atom !== null) !== requiresAtom) {
+    fail('bundle_invalid_decision', 'Decision and atom presence do not match.')
+  }
+  return requiredAuthority
+}
+
+export function validateResolvedAuthority(
+  authority,
+  requiredKind,
+  ownerUserId,
+) {
+  validateAuthorityTuple(
+    authority.kind,
+    authority.authorityId,
+    requiredKind,
+    ownerUserId,
+  )
+}
+
+export function validateInputAtomScalars(atom) {
+  validateUnicodeScalarString(
+    atom.content,
+    'bundle_invalid_atom',
+    'Atom content',
+  )
+  validateFiniteUnitNumber(
+    atom.initialImportance,
+    'bundle_invalid_atom',
+    'Atom initialImportance',
+  )
+  validateFiniteUnitNumber(
+    atom.confidence,
+    'bundle_invalid_atom',
+    'Atom confidence',
+  )
+  if (atom.provenanceKind !== 'direct_user_message') {
+    fail('bundle_invalid_atom', 'Atom provenanceKind is invalid.')
+  }
+  if (atom.sourceMessageId !== null) {
+    validatePrefixedUuidV4(
+      atom.sourceMessageId,
+      'msg_',
+      'bundle_invalid_atom',
+    )
+  }
+  if (typeof atom.fictional !== 'boolean') {
+    fail('bundle_invalid_atom', 'Atom fictional must be a boolean.')
   }
 }
 
