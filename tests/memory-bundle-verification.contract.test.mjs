@@ -2173,6 +2173,36 @@ const M1_06_REPLAY_KEYS = [
 ]
 const M1_06_ATOM_CHECKSUM_DOMAIN = 'palari-memory-bundle-atom-v1\0'
 const M1_06_ATOM_CHECKSUM_TAG = 'palari.memory-bundle-atom@1'
+const M1_06_READ_ONLY_PRAGMA_SQL = new Set([
+  'PRAGMA main.table_xinfo(memory_bundle_meta)',
+  'PRAGMA main.table_xinfo(memory_bundle_events)',
+  'PRAGMA main.table_xinfo(memory_bundle_atoms)',
+  'PRAGMA main.index_list(memory_bundle_meta)',
+  'PRAGMA main.index_list(memory_bundle_events)',
+  'PRAGMA main.index_list(memory_bundle_atoms)',
+  'PRAGMA main.foreign_key_list(memory_bundle_meta)',
+  'PRAGMA main.foreign_key_list(memory_bundle_events)',
+  'PRAGMA main.foreign_key_list(memory_bundle_atoms)',
+  'PRAGMA main.index_xinfo(memory_bundle_applied_create_memory_unique)',
+  'PRAGMA main.index_xinfo(memory_bundle_applied_delete_memory_unique)',
+  'PRAGMA main.index_xinfo(sqlite_autoindex_memory_bundle_atoms_1)',
+  'PRAGMA main.index_xinfo(sqlite_autoindex_memory_bundle_atoms_2)',
+  'PRAGMA main.index_xinfo(sqlite_autoindex_memory_bundle_events_1)',
+  'PRAGMA main.index_xinfo(sqlite_autoindex_memory_bundle_events_2)',
+  'PRAGMA main.index_xinfo(sqlite_autoindex_memory_bundle_meta_1)',
+  'PRAGMA main.foreign_key_check',
+  'PRAGMA main.quick_check',
+])
+
+function normalizeM106TraceSql(sql) {
+  return sql
+    .replace(/[\t\n\v\f\r ]+/g, ' ')
+    .replace(/^[\t\n\v\f\r ]+|[\t\n\v\f\r ]+$/g, '')
+}
+
+function isM106ReadOnlyVerifierPragma(normalizedSql) {
+  return M1_06_READ_ONLY_PRAGMA_SQL.has(normalizedSql)
+}
 
 function m106Id(prefix, value) {
   return `${prefix}_00000000-0000-4000-8000-${value
@@ -2860,6 +2890,19 @@ test('M1-06 classifies deleted id reuse before atom reads', () => {
 })
 
 test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
+  for (const sql of [
+    'PRAGMA foreign_keys(OFF)',
+    'PRAGMA foreign_keys(ON)',
+    '\tpragma\nforeign_keys(\vOFF\f)\r',
+    ' PrAgMa\tforeign_keys \n ( On ) ',
+  ]) {
+    assert.equal(
+      isM106ReadOnlyVerifierPragma(normalizeM106TraceSql(sql)),
+      false,
+      sql,
+    )
+  }
+
   const result = runM106NativeInstrumentationScenario(
     'M1-06-verifier-read-only-dispatch',
   )
@@ -2870,17 +2913,25 @@ test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
     timeout: 0,
   })
   assert.ok(result.trace.length > 0)
+  assert.equal(result.verificationError, null)
+  assert.deepEqual(result.checkpoint, {
+    streamId: M1_04_IDS.streamId,
+    sequence: 1,
+  })
+  assert.equal(result.isTransactionAfter, false)
+  assert.equal(result.dynamicDatabaseDispatchCallCount, 0)
+  assert.equal(result.dynamicStatementDispatchCallCount, 0)
+
   let selectCount = 0
-  let pragmaCount = 0
   let readCount = 0
+  const observedPragmas = []
   for (const entry of result.trace) {
     if (entry.operation === 'prepare') {
-      const normalizedSql = entry.sql.replace(/\s+/g, ' ').trim()
+      const normalizedSql = normalizeM106TraceSql(entry.sql)
       if (/^SELECT\b/i.test(normalizedSql)) {
         selectCount += 1
-      } else if (/^PRAGMA\b/i.test(normalizedSql)) {
-        assert.doesNotMatch(normalizedSql, /=/)
-        pragmaCount += 1
+      } else if (isM106ReadOnlyVerifierPragma(normalizedSql)) {
+        observedPragmas.push(normalizedSql)
       } else {
         assert.fail(`verifier prepared forbidden SQL: ${normalizedSql}`)
       }
@@ -2901,16 +2952,11 @@ test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
     )
   }
   assert.ok(selectCount > 0)
-  assert.ok(pragmaCount > 0)
+  assert.deepEqual(
+    observedPragmas.sort(compareBinary),
+    [...M1_06_READ_ONLY_PRAGMA_SQL].sort(compareBinary),
+  )
   assert.ok(readCount > 0)
-  assert.equal(result.verificationError, null)
-  assert.deepEqual(result.checkpoint, {
-    streamId: M1_04_IDS.streamId,
-    sequence: 1,
-  })
-  assert.equal(result.isTransactionAfter, false)
-  assert.equal(result.dynamicDatabaseDispatchCallCount, 0)
-  assert.equal(result.dynamicStatementDispatchCallCount, 0)
 })
 
 test('M1-06 requires exact safe-integer sequences 1 through head including empty head', () => {
@@ -3128,6 +3174,35 @@ test('M1-06 validates all event authority before any transition reduction', () =
       makeM106DeleteEventRow(1, missingTargetId),
       makeM106CreateEventRow(2, unauthorizedCreateId, {
         authority_id: 'user-2',
+      }),
+    ], [], {
+      objectSqlOverrides,
+      spoofStoredSqlNames: ['memory_bundle_events'],
+    })
+
+    assert.equal(readM105SingleValue(db, 'PRAGMA main.quick_check'), 'ok')
+    assertM105BundleCode(
+      () => verifyModule.verifyMemoryBundleState(db),
+      'bundle_unauthorized',
+    )
+  })
+})
+
+test('M1-06 validates all event authority before global observed time', () => {
+  withM105Database((db) => {
+    const earlierMemoryId = m106Id('mem', 0x935)
+    const laterMemoryId = m106Id('mem', 0x936)
+    const objectSqlOverrides = makeM105SqlOverride(
+      'memory_bundle_events',
+      'AND authority_id = user_id\n      AND memory_id IS NOT NULL',
+      "AND authority_id <> ''\n      AND memory_id IS NOT NULL",
+    )
+    createM106SemanticBundle(db, [
+      makeM106CreateEventRow(1, earlierMemoryId),
+      makeM106CreateEventRow(2, laterMemoryId, {
+        authority_id: 'user-2',
+        effective_at: m106Timestamp(0),
+        observed_at: m106Timestamp(0),
       }),
     ], [], {
       objectSqlOverrides,
