@@ -249,25 +249,44 @@ const scenarios = {
   async 'M1-06-verifier-read-only-dispatch'() {
     const fixtures = await import('../helpers/memory-bundle-fixtures.mjs')
     const directory = mkdtempSync(join(tmpdir(), 'palari-m106-read-only-'))
-    const dbPath = join(directory, 'bundle.sqlite')
-    let setup
-    let db
+    const variants = [
+      { name: 'empty', seedActive: false },
+      { name: 'active', seedActive: true },
+    ]
+    const setups = []
+    const connections = []
 
     try {
-      setup = new NativeDatabaseSync(dbPath)
-      fixtures.createM105Bundle(setup, { seedActive: true })
-      Reflect.apply(nativeDatabaseClose, setup, [])
-      setup = undefined
+      for (const variant of variants) {
+        const dbPath = join(directory, `${variant.name}.sqlite`)
+        let setup = new NativeDatabaseSync(dbPath)
+        setups.push(setup)
+        fixtures.createM105Bundle(
+          setup,
+          variant.seedActive ? { seedActive: true } : {},
+        )
+        Reflect.apply(nativeDatabaseClose, setup, [])
+        setups.pop()
+        setup = undefined
+        variant.dbPath = dbPath
+      }
 
       const verifier = await import(
         `../../src/memory-bundle-verify.mjs?m106-read-only=${Date.now()}`
       )
-      db = new InstrumentedDatabaseSync(dbPath, {
-        readOnly: true,
-        timeout: 0,
-      })
-      const connectionConstruction = trace[trace.length - 1]
-      trace.length = 0
+      for (const variant of variants) {
+        const db = new InstrumentedDatabaseSync(variant.dbPath, {
+          readOnly: true,
+          timeout: 0,
+        })
+        connections.push({
+          ...variant,
+          db,
+          connectionConstruction: trace[trace.length - 1],
+          isTransactionBefore: db.isTransaction,
+        })
+        trace.length = 0
+      }
 
       const databaseMethodDescriptors = nativeDatabaseMethodEntries.map(
         ({ key, operation }) => [
@@ -283,18 +302,14 @@ const scenarios = {
           Object.getOwnPropertyDescriptor(NativeStatementSync.prototype, key),
         ],
       )
-      let dynamicDatabaseDispatchCallCount = 0
-      const dynamicDatabaseDispatchOperations = []
-      let dynamicStatementDispatchCallCount = 0
-      const dynamicStatementDispatchOperations = []
       const poisonedStatementOperations = []
-      let state
-      let verificationError = null
+      const cases = []
+      let currentCase
 
       function dynamicDatabaseDispatchPoison(operation) {
         return function poisonDatabaseDispatch() {
-          dynamicDatabaseDispatchCallCount += 1
-          dynamicDatabaseDispatchOperations.push(operation)
+          currentCase.dynamicDatabaseDispatchCallCount += 1
+          currentCase.dynamicDatabaseDispatchOperations.push(operation)
           throw new Error(
             `dynamic verifier database dispatch poison ran: ${operation}`,
           )
@@ -303,8 +318,8 @@ const scenarios = {
 
       function dynamicStatementDispatchPoison(operation) {
         return function poisonStatementDispatch() {
-          dynamicStatementDispatchCallCount += 1
-          dynamicStatementDispatchOperations.push(operation)
+          currentCase.dynamicStatementDispatchCallCount += 1
+          currentCase.dynamicStatementDispatchOperations.push(operation)
           throw new Error(
             `dynamic verifier statement dispatch poison ran: ${operation}`,
           )
@@ -326,14 +341,34 @@ const scenarios = {
           poisonedStatementOperations.push(operation)
         }
 
-        try {
-          state = verifier.verifyMemoryBundleState(db)
-        } catch (error) {
-          verificationError = {
-            name: error?.name ?? null,
-            code: error?.code ?? null,
-            message: error?.message ?? String(error),
+        for (const connection of connections) {
+          currentCase = {
+            name: connection.name,
+            connectionConstruction: connection.connectionConstruction,
+            isTransactionBefore: connection.isTransactionBefore,
+            dynamicDatabaseDispatchCallCount: 0,
+            dynamicDatabaseDispatchOperations: [],
+            dynamicStatementDispatchCallCount: 0,
+            dynamicStatementDispatchOperations: [],
           }
+          trace.length = 0
+          let state
+          let verificationError = null
+          try {
+            state = verifier.verifyMemoryBundleState(connection.db)
+          } catch (error) {
+            verificationError = {
+              name: error?.name ?? null,
+              code: error?.code ?? null,
+              message: error?.message ?? String(error),
+            }
+          }
+          currentCase.trace = trace.slice()
+          currentCase.checkpoint = state?.checkpoint ?? null
+          currentCase.verificationError = verificationError
+          currentCase.isTransactionAfter = connection.db.isTransaction
+          cases.push(currentCase)
+          currentCase = undefined
         }
       } finally {
         for (const [key, , descriptor] of databaseMethodDescriptors) {
@@ -344,24 +379,22 @@ const scenarios = {
         }
       }
 
-      const verificationTrace = trace.slice()
-      let oracleFunctionPersisted = false
-      try {
-        const statement = Reflect.apply(nativeDatabasePrepare, db, [
-          'SELECT m106_oracle_gap() AS value',
-        ])
-        Reflect.apply(nativeStatementGet, statement, [])
-        oracleFunctionPersisted = true
-      } catch {
-        // The verification window must not register this caller-local function.
+      for (let index = 0; index < connections.length; index += 1) {
+        let oracleFunctionPersisted = false
+        try {
+          const statement = Reflect.apply(nativeDatabasePrepare, connections[index].db, [
+            'SELECT m106_oracle_gap() AS value',
+          ])
+          Reflect.apply(nativeStatementGet, statement, [])
+          oracleFunctionPersisted = true
+        } catch {
+          // The verification window must not register this caller-local function.
+        }
+        cases[index].oracleFunctionPersisted = oracleFunctionPersisted
       }
 
       return {
-        connectionConstruction,
-        trace: verificationTrace,
-        checkpoint: state?.checkpoint ?? null,
-        verificationError,
-        isTransactionAfter: db.isTransaction,
+        cases,
         databasePrototypeOperations: nativeDatabaseMethodEntries.map(
           ({ operation }) => operation,
         ),
@@ -375,15 +408,14 @@ const scenarios = {
           InstrumentedStatementSync.prototype,
         ),
         poisonedStatementOperations,
-        dynamicDatabaseDispatchCallCount,
-        dynamicDatabaseDispatchOperations,
-        dynamicStatementDispatchCallCount,
-        dynamicStatementDispatchOperations,
-        oracleFunctionPersisted,
       }
     } finally {
-      if (setup !== undefined) Reflect.apply(nativeDatabaseClose, setup, [])
-      if (db !== undefined) Reflect.apply(nativeDatabaseClose, db, [])
+      for (const setup of setups) {
+        Reflect.apply(nativeDatabaseClose, setup, [])
+      }
+      for (const { db } of connections) {
+        Reflect.apply(nativeDatabaseClose, db, [])
+      }
       rmSync(directory, { recursive: true, force: true })
     }
   },

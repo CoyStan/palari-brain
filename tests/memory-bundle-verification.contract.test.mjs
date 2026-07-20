@@ -2496,21 +2496,40 @@ function runM106InstrumentedScenario(name) {
       DatabaseSync.prototype,
       'prepare',
     )
-    const statementAllDescriptor = Object.getOwnPropertyDescriptor(
-      StatementSync.prototype,
-      'all',
-    )
     const nativePrepare = databasePrepareDescriptor.value
-    const nativeAll = statementAllDescriptor.value
+    const nativeStatementMethodEntries = []
+    for (const key of Reflect.ownKeys(StatementSync.prototype)) {
+      if (key === 'constructor') continue
+      const descriptor = Object.getOwnPropertyDescriptor(
+        StatementSync.prototype,
+        key,
+      )
+      if (descriptor === undefined || typeof descriptor.value !== 'function') {
+        continue
+      }
+      nativeStatementMethodEntries.push({
+        key,
+        operation: typeof key === 'symbol' ? String(key) : key,
+        descriptor,
+        method: descriptor.value,
+      })
+    }
+    const executionOperations = new Set(['all', 'get', 'iterate', 'run'])
     let eventRows = []
     let atomRows = []
     let atomPrepareCount = 0
     let atomReadCount = 0
+    let atomStatementOperationCount = 0
+    const atomStatementOperations = []
     let verificationCall = 0
     let firstAtomPrepareCount = 0
     let firstAtomReadCount = 0
+    let firstAtomStatementOperationCount = 0
+    const firstAtomStatementOperations = []
     let secondAtomPrepareCount = 0
     let secondAtomReadCount = 0
+    let secondAtomStatementOperationCount = 0
+    const secondAtomStatementOperations = []
     let headSequence = 0
     let bundleOptions
     let repeatedTransitionEvent
@@ -2547,44 +2566,67 @@ function runM106InstrumentedScenario(name) {
         return statement
       },
     })
-    Object.defineProperty(StatementSync.prototype, 'all', {
-      ...statementAllDescriptor,
-      value(...parameters) {
-        const sql = statementSql.get(this)
-        if (
-          sql?.includes('FROM main.memory_bundle_events') &&
-          eventRows !== null
-        ) {
-          return eventRows
-        }
-        if (sql?.includes('FROM main.memory_bundle_atoms')) {
-          atomReadCount += 1
-          if (verificationCall === 1) firstAtomReadCount += 1
-          if (verificationCall === 2) secondAtomReadCount += 1
-          if (
-            scenario === 'atom-read-repeated-cached-all' &&
-            verificationCall === 2
-          ) {
-            throw new Error('instrumented second-call atom read failure')
+    for (const {
+      key,
+      operation,
+      descriptor,
+      method,
+    } of nativeStatementMethodEntries) {
+      Object.defineProperty(StatementSync.prototype, key, {
+        ...descriptor,
+        value(...parameters) {
+          const sql = statementSql.get(this)
+          const isAtomStatement =
+            sql?.includes('FROM main.memory_bundle_atoms') === true
+          if (isAtomStatement) {
+            atomStatementOperationCount += 1
+            atomStatementOperations.push(operation)
+            if (executionOperations.has(operation)) atomReadCount += 1
+            if (verificationCall === 1) {
+              firstAtomStatementOperationCount += 1
+              firstAtomStatementOperations.push(operation)
+              if (executionOperations.has(operation)) firstAtomReadCount += 1
+            }
+            if (verificationCall === 2) {
+              secondAtomStatementOperationCount += 1
+              secondAtomStatementOperations.push(operation)
+              if (executionOperations.has(operation)) secondAtomReadCount += 1
+            }
+            if (
+              scenario === 'atom-read-repeated-cached-all' &&
+              verificationCall === 2 &&
+              operation === 'all'
+            ) {
+              throw new Error('instrumented second-call atom read failure')
+            }
           }
           if (
-            scenario === 'atom-read-transition' ||
-            scenario === 'atom-read-cross-scope-delete' ||
-            scenario === 'atom-read-double-delete' ||
-            scenario === 'atom-read-active-id-reuse' ||
-            scenario === 'atom-read-deleted-id-reuse' ||
-            scenario === 'atom-read-long-missing-create' ||
-            scenario === 'atom-read-long-cross-scope-delete' ||
-            scenario === 'atom-read-long-double-delete' ||
-            scenario === 'atom-read-long-deleted-id-reuse'
+            operation === 'all' &&
+            sql?.includes('FROM main.memory_bundle_events') &&
+            eventRows !== null
           ) {
-            throw new Error('instrumented atom read failure')
+            return eventRows
           }
-          return atomRows
-        }
-        return Reflect.apply(nativeAll, this, parameters)
-      },
-    })
+          if (operation === 'all' && isAtomStatement) {
+            if (
+              scenario === 'atom-read-transition' ||
+              scenario === 'atom-read-cross-scope-delete' ||
+              scenario === 'atom-read-double-delete' ||
+              scenario === 'atom-read-active-id-reuse' ||
+              scenario === 'atom-read-deleted-id-reuse' ||
+              scenario === 'atom-read-long-missing-create' ||
+              scenario === 'atom-read-long-cross-scope-delete' ||
+              scenario === 'atom-read-long-double-delete' ||
+              scenario === 'atom-read-long-deleted-id-reuse'
+            ) {
+              throw new Error('instrumented atom read failure')
+            }
+            return atomRows
+          }
+          return Reflect.apply(method, this, parameters)
+        },
+      })
+    }
 
     let db
     try {
@@ -3007,9 +3049,19 @@ function runM106InstrumentedScenario(name) {
         }
         verificationCall = 0
         process.stdout.write(JSON.stringify({
+          statementPrototypeOperations: nativeStatementMethodEntries.map(
+            ({ operation }) => operation,
+          ),
+          allowedPostTransitionAtomOperations: [
+            'all',
+            'setReadBigInts',
+            'setReturnArrays',
+          ],
           firstCheckpoint: firstValue.checkpoint,
           firstAtomPrepareCount,
           firstAtomReadCount,
+          firstAtomStatementOperationCount,
+          firstAtomStatementOperations,
           setupQuickCheck: Object.values(quickCheckRow)[0],
           setupForeignKeyViolationCount: foreignKeyViolations.length,
           setupHeadSequence: setupState.head_sequence,
@@ -3017,8 +3069,14 @@ function runM106InstrumentedScenario(name) {
           secondReturned: secondValue !== undefined,
           secondCode: secondError?.code ?? null,
           secondMessage: secondError?.message ?? null,
+          secondMessageType: typeof secondError?.message,
+          secondMessageLength: typeof secondError?.message === 'string'
+            ? secondError.message.length
+            : null,
           secondAtomPrepareCount,
           secondAtomReadCount,
+          secondAtomStatementOperationCount,
+          secondAtomStatementOperations,
         }) + '\\n')
       } else {
         let value
@@ -3036,6 +3094,8 @@ function runM106InstrumentedScenario(name) {
           message: error?.message ?? null,
           atomPrepareCount,
           atomReadCount,
+          atomStatementOperationCount,
+          atomStatementOperations,
         }) + '\\n')
       }
     } finally {
@@ -3045,11 +3105,9 @@ function runM106InstrumentedScenario(name) {
         'prepare',
         databasePrepareDescriptor,
       )
-      Object.defineProperty(
-        StatementSync.prototype,
-        'all',
-        statementAllDescriptor,
-      )
+      for (const { key, descriptor } of nativeStatementMethodEntries) {
+        Object.defineProperty(StatementSync.prototype, key, descriptor)
+      }
     }
   `
   const child = spawnSync(
@@ -3231,28 +3289,74 @@ test('M1-06 keeps atom prepare and execution behind longer valid transition pref
   }
 })
 
-test('M1-06 repeated verification keeps cached atom execution behind transition reduction', () => {
+test('M1-06 repeated verification keeps every cached atom statement operation behind transition reduction', () => {
   const result = runM106InstrumentedScenario('atom-read-repeated-cached-all')
-  assert.deepEqual(result, {
+  const expectedStatementOperations = m106CallablePrototypeOperations(
+    StatementSync.prototype,
+  )
+  assert.deepEqual(
+    [...result.statementPrototypeOperations].sort(compareBinary),
+    expectedStatementOperations,
+  )
+  assert.deepEqual(result.allowedPostTransitionAtomOperations, [
+    'all',
+    'setReadBigInts',
+    'setReturnArrays',
+  ])
+  const allowedOperations = new Set(result.allowedPostTransitionAtomOperations)
+  const forbiddenOperations = expectedStatementOperations.filter(
+    (operation) => !allowedOperations.has(operation),
+  )
+  for (const operation of ['get', 'iterate', 'run']) {
+    assert.ok(forbiddenOperations.includes(operation), operation)
+  }
+  assert.deepEqual({
+    firstCheckpoint: result.firstCheckpoint,
+    firstAtomPrepareCount: result.firstAtomPrepareCount,
+    firstAtomReadCount: result.firstAtomReadCount,
+    firstAtomStatementOperationCount: result.firstAtomStatementOperationCount,
+    firstAtomStatementOperations: result.firstAtomStatementOperations,
+    setupQuickCheck: result.setupQuickCheck,
+    setupForeignKeyViolationCount: result.setupForeignKeyViolationCount,
+    setupHeadSequence: result.setupHeadSequence,
+    setupEventCount: result.setupEventCount,
+    secondReturned: result.secondReturned,
+    secondCode: result.secondCode,
+    secondAtomPrepareCount: result.secondAtomPrepareCount,
+    secondAtomReadCount: result.secondAtomReadCount,
+    secondAtomStatementOperationCount: result.secondAtomStatementOperationCount,
+    secondAtomStatementOperations: result.secondAtomStatementOperations,
+  }, {
     firstCheckpoint: {
       streamId: M1_04_IDS.streamId,
       sequence: 0,
     },
     firstAtomPrepareCount: 1,
     firstAtomReadCount: 1,
+    firstAtomStatementOperationCount: 3,
+    firstAtomStatementOperations: [
+      'setReadBigInts',
+      'setReturnArrays',
+      'all',
+    ],
     setupQuickCheck: 'ok',
     setupForeignKeyViolationCount: 0,
     setupHeadSequence: 1,
     setupEventCount: 1,
     secondReturned: false,
     secondCode: 'bundle_invalid_transition',
-    secondMessage: 'A persisted delete has no prior create.',
     secondAtomPrepareCount: 0,
     secondAtomReadCount: 0,
+    secondAtomStatementOperationCount: 0,
+    secondAtomStatementOperations: [],
   })
+  assert.equal(result.secondMessageType, 'string')
+  assert.equal(typeof result.secondMessage, 'string')
+  assert.equal(result.secondMessageLength, result.secondMessage.length)
+  assert.ok(result.secondMessageLength > 0)
 })
 
-test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
+test('M1-06 verifier dispatch stays read-only and transaction-free for empty and active bundles', () => {
   for (const sql of [
     'PRAGMA foreign_keys(OFF)',
     'PRAGMA foreign_keys(ON)',
@@ -3269,35 +3373,8 @@ test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
   const result = runM106NativeInstrumentationScenario(
     'M1-06-verifier-read-only-dispatch',
   )
+  assert.deepEqual(result.cases.map(({ name }) => name), ['empty', 'active'])
 
-  assert.equal(result.connectionConstruction.operation, 'construct')
-  assert.deepEqual(result.connectionConstruction.args[1], {
-    readOnly: true,
-    timeout: 0,
-  })
-  assert.ok(result.trace.length > 0)
-  assert.deepEqual({
-    verificationError: result.verificationError,
-    checkpoint: result.checkpoint,
-    isTransactionAfter: result.isTransactionAfter,
-    dynamicDatabaseDispatchCallCount: result.dynamicDatabaseDispatchCallCount,
-    dynamicDatabaseDispatchOperations: result.dynamicDatabaseDispatchOperations,
-    dynamicStatementDispatchCallCount: result.dynamicStatementDispatchCallCount,
-    dynamicStatementDispatchOperations: result.dynamicStatementDispatchOperations,
-    oracleFunctionPersisted: result.oracleFunctionPersisted,
-  }, {
-    verificationError: null,
-    checkpoint: {
-      streamId: M1_04_IDS.streamId,
-      sequence: 1,
-    },
-    isTransactionAfter: false,
-    dynamicDatabaseDispatchCallCount: 0,
-    dynamicDatabaseDispatchOperations: [],
-    dynamicStatementDispatchCallCount: 0,
-    dynamicStatementDispatchOperations: [],
-    oracleFunctionPersisted: false,
-  })
   const expectedDatabaseOperations = m106CallablePrototypeOperations(
     DatabaseSync.prototype,
   )
@@ -3325,9 +3402,6 @@ test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
     expectedStatementOperations,
   )
 
-  let selectCount = 0
-  let readCount = 0
-  const observedPragmas = []
   const databaseOperations = new Set(result.databasePrototypeOperations)
   const statementOperations = new Set(result.statementPrototypeOperations)
   const allowedStatementOperations = new Set([
@@ -3336,45 +3410,88 @@ test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
     'setReadBigInts',
     'setReturnArrays',
   ])
-  for (const entry of result.trace) {
-    if (databaseOperations.has(entry.operation)) {
-      assert.equal(
-        entry.operation,
-        'prepare',
-        `verifier dispatched forbidden DatabaseSync operation: ${entry.operation}`,
-      )
-      const normalizedSql = normalizeM106TraceSql(entry.sql)
-      if (/^SELECT\b/i.test(normalizedSql)) {
-        selectCount += 1
-      } else if (isM106ReadOnlyVerifierPragma(normalizedSql)) {
-        observedPragmas.push(normalizedSql)
-      } else {
-        assert.fail(`verifier prepared forbidden SQL: ${normalizedSql}`)
+  for (const caseResult of result.cases) {
+    assert.equal(caseResult.connectionConstruction.operation, 'construct')
+    assert.deepEqual(caseResult.connectionConstruction.args[1], {
+      readOnly: true,
+      timeout: 0,
+    })
+    assert.ok(caseResult.trace.length > 0, caseResult.name)
+    assert.deepEqual({
+      verificationError: caseResult.verificationError,
+      checkpoint: caseResult.checkpoint,
+      isTransactionBefore: caseResult.isTransactionBefore,
+      isTransactionAfter: caseResult.isTransactionAfter,
+      dynamicDatabaseDispatchCallCount:
+        caseResult.dynamicDatabaseDispatchCallCount,
+      dynamicDatabaseDispatchOperations:
+        caseResult.dynamicDatabaseDispatchOperations,
+      dynamicStatementDispatchCallCount:
+        caseResult.dynamicStatementDispatchCallCount,
+      dynamicStatementDispatchOperations:
+        caseResult.dynamicStatementDispatchOperations,
+      oracleFunctionPersisted: caseResult.oracleFunctionPersisted,
+    }, {
+      verificationError: null,
+      checkpoint: {
+        streamId: M1_04_IDS.streamId,
+        sequence: caseResult.name === 'empty' ? 0 : 1,
+      },
+      isTransactionBefore: false,
+      isTransactionAfter: false,
+      dynamicDatabaseDispatchCallCount: 0,
+      dynamicDatabaseDispatchOperations: [],
+      dynamicStatementDispatchCallCount: 0,
+      dynamicStatementDispatchOperations: [],
+      oracleFunctionPersisted: false,
+    }, caseResult.name)
+
+    let selectCount = 0
+    let readCount = 0
+    const observedPragmas = []
+    for (const entry of caseResult.trace) {
+      if (databaseOperations.has(entry.operation)) {
+        assert.equal(
+          entry.operation,
+          'prepare',
+          `${caseResult.name} verifier dispatched forbidden DatabaseSync operation: ${entry.operation}`,
+        )
+        const normalizedSql = normalizeM106TraceSql(entry.sql)
+        if (/^SELECT\b/i.test(normalizedSql)) {
+          selectCount += 1
+        } else if (isM106ReadOnlyVerifierPragma(normalizedSql)) {
+          observedPragmas.push(normalizedSql)
+        } else {
+          assert.fail(
+            `${caseResult.name} verifier prepared forbidden SQL: ${normalizedSql}`,
+          )
+        }
+        assert.doesNotMatch(
+          normalizedSql,
+          /^(?:BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|VACUUM|ATTACH|DETACH)\b/i,
+        )
+        continue
       }
-      assert.doesNotMatch(
-        normalizedSql,
-        /^(?:BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|VACUUM|ATTACH|DETACH)\b/i,
+      assert.ok(
+        statementOperations.has(entry.operation),
+        `${caseResult.name} verifier dispatched unknown SQLite operation: ${entry.operation}`,
       )
-      continue
+      assert.ok(
+        allowedStatementOperations.has(entry.operation),
+        `${caseResult.name} verifier dispatched forbidden StatementSync operation: ${entry.operation}`,
+      )
+      if (entry.operation === 'all' || entry.operation === 'get') {
+        readCount += 1
+      }
     }
-    assert.ok(
-      statementOperations.has(entry.operation),
-      `verifier dispatched unknown SQLite operation: ${entry.operation}`,
+    assert.ok(selectCount > 0, caseResult.name)
+    assert.deepEqual(
+      observedPragmas.sort(compareBinary),
+      [...M1_06_READ_ONLY_PRAGMA_SQL].sort(compareBinary),
+      caseResult.name,
     )
-    assert.ok(
-      allowedStatementOperations.has(entry.operation),
-      `verifier dispatched forbidden StatementSync operation: ${entry.operation}`,
-    )
-    if (entry.operation === 'all' || entry.operation === 'get') {
-      readCount += 1
-    }
+    assert.ok(readCount > 0, caseResult.name)
   }
-  assert.ok(selectCount > 0)
-  assert.deepEqual(
-    observedPragmas.sort(compareBinary),
-    [...M1_06_READ_ONLY_PRAGMA_SQL].sort(compareBinary),
-  )
-  assert.ok(readCount > 0)
 })
 
 test('M1-06 requires exact safe-integer sequences 1 through head including empty head', () => {
