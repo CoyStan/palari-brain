@@ -9,9 +9,40 @@ import {
 
 const trace = []
 
-const nativeDatabaseExec = NativeDatabaseSync.prototype.exec
-const nativeDatabasePrepare = NativeDatabaseSync.prototype.prepare
-const nativeDatabaseClose = NativeDatabaseSync.prototype.close
+function sqliteOperationName(key) {
+  return typeof key === 'symbol' ? String(key) : key
+}
+
+const nativeDatabaseMethodEntries = []
+for (const key of Reflect.ownKeys(NativeDatabaseSync.prototype)) {
+  if (key === 'constructor') continue
+  const descriptor = Object.getOwnPropertyDescriptor(
+    NativeDatabaseSync.prototype,
+    key,
+  )
+  if (descriptor === undefined || typeof descriptor.value !== 'function') {
+    continue
+  }
+  nativeDatabaseMethodEntries.push({
+    key,
+    operation: sqliteOperationName(key),
+    descriptor,
+    method: descriptor.value,
+  })
+}
+
+function requireNativeDatabaseMethod(key) {
+  const entry = nativeDatabaseMethodEntries.find((candidate) =>
+    candidate.key === key)
+  if (entry === undefined) {
+    throw new Error(`Missing native DatabaseSync method: ${String(key)}`)
+  }
+  return entry.method
+}
+
+const nativeDatabaseExec = requireNativeDatabaseMethod('exec')
+const nativeDatabasePrepare = requireNativeDatabaseMethod('prepare')
+const nativeDatabaseClose = requireNativeDatabaseMethod('close')
 const nativeStatementGet = NativeStatementSync.prototype.get
 const nativeStatementAll = NativeStatementSync.prototype.all
 const nativeStatementRun = NativeStatementSync.prototype.run
@@ -23,21 +54,22 @@ class InstrumentedDatabaseSync extends NativeDatabaseSync {
     trace.push({ operation: 'construct', args })
     super(...args)
   }
+}
 
-  exec(sql) {
-    trace.push({ operation: 'exec', sql })
-    return Reflect.apply(nativeDatabaseExec, this, [sql])
-  }
-
-  prepare(sql) {
-    trace.push({ operation: 'prepare', sql })
-    return Reflect.apply(nativeDatabasePrepare, this, [sql])
-  }
-
-  close() {
-    trace.push({ operation: 'close' })
-    return Reflect.apply(nativeDatabaseClose, this, [])
-  }
+for (const { key, operation, descriptor, method } of nativeDatabaseMethodEntries) {
+  Object.defineProperty(InstrumentedDatabaseSync.prototype, key, {
+    ...descriptor,
+    value(...args) {
+      if (operation === 'exec' || operation === 'prepare') {
+        trace.push({ operation, sql: args[0] })
+      } else if (args.length === 0) {
+        trace.push({ operation })
+      } else {
+        trace.push({ operation, argumentCount: args.length })
+      }
+      return Reflect.apply(method, this, args)
+    },
+  })
 }
 
 class InstrumentedStatementSync {
@@ -106,23 +138,12 @@ const scenarios = {
     const runtime = await import('../../src/memory-bundle-runtime.mjs')
     const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
     const defineProperty = Object.defineProperty
-    const databaseMethodDescriptors = [
-      [
-        'exec',
-        getOwnPropertyDescriptor(InstrumentedDatabaseSync.prototype, 'exec'),
+    const databaseMethodDescriptors = nativeDatabaseMethodEntries.map(
+      ({ key }) => [
+        key,
+        getOwnPropertyDescriptor(InstrumentedDatabaseSync.prototype, key),
       ],
-      [
-        'prepare',
-        getOwnPropertyDescriptor(
-          InstrumentedDatabaseSync.prototype,
-          'prepare',
-        ),
-      ],
-      [
-        'close',
-        getOwnPropertyDescriptor(InstrumentedDatabaseSync.prototype, 'close'),
-      ],
-    ]
+    )
     const statementMethodDescriptors = [
       [
         'get',
@@ -245,10 +266,13 @@ const scenarios = {
       const connectionConstruction = trace[trace.length - 1]
       trace.length = 0
 
-      const databaseMethodDescriptors = ['exec', 'prepare'].map((key) => [
-        key,
-        Object.getOwnPropertyDescriptor(InstrumentedDatabaseSync.prototype, key),
-      ])
+      const databaseMethodDescriptors = nativeDatabaseMethodEntries.map(
+        ({ key, operation }) => [
+          key,
+          operation,
+          Object.getOwnPropertyDescriptor(InstrumentedDatabaseSync.prototype, key),
+        ],
+      )
       const statementMethodDescriptors = [
         'get',
         'all',
@@ -260,13 +284,19 @@ const scenarios = {
         Object.getOwnPropertyDescriptor(NativeStatementSync.prototype, key),
       ])
       let dynamicDatabaseDispatchCallCount = 0
+      const dynamicDatabaseDispatchOperations = []
       let dynamicStatementDispatchCallCount = 0
       let state
       let verificationError = null
 
-      function dynamicDatabaseDispatchPoison() {
-        dynamicDatabaseDispatchCallCount += 1
-        throw new Error('dynamic verifier database dispatch poison ran')
+      function dynamicDatabaseDispatchPoison(operation) {
+        return function poisonDatabaseDispatch() {
+          dynamicDatabaseDispatchCallCount += 1
+          dynamicDatabaseDispatchOperations.push(operation)
+          throw new Error(
+            `dynamic verifier database dispatch poison ran: ${operation}`,
+          )
+        }
       }
 
       function dynamicStatementDispatchPoison() {
@@ -275,10 +305,10 @@ const scenarios = {
       }
 
       try {
-        for (const [key, descriptor] of databaseMethodDescriptors) {
+        for (const [key, operation, descriptor] of databaseMethodDescriptors) {
           Object.defineProperty(InstrumentedDatabaseSync.prototype, key, {
             ...descriptor,
-            value: dynamicDatabaseDispatchPoison,
+            value: dynamicDatabaseDispatchPoison(operation),
           })
         }
         for (const [key, descriptor] of statementMethodDescriptors) {
@@ -298,7 +328,7 @@ const scenarios = {
           }
         }
       } finally {
-        for (const [key, descriptor] of databaseMethodDescriptors) {
+        for (const [key, , descriptor] of databaseMethodDescriptors) {
           Object.defineProperty(InstrumentedDatabaseSync.prototype, key, descriptor)
         }
         for (const [key, descriptor] of statementMethodDescriptors) {
@@ -306,14 +336,34 @@ const scenarios = {
         }
       }
 
+      const verificationTrace = trace.slice()
+      let oracleFunctionPersisted = false
+      try {
+        const statement = Reflect.apply(nativeDatabasePrepare, db, [
+          'SELECT m106_oracle_gap() AS value',
+        ])
+        Reflect.apply(nativeStatementGet, statement, [])
+        oracleFunctionPersisted = true
+      } catch {
+        // The verification window must not register this caller-local function.
+      }
+
       return {
         connectionConstruction,
-        trace: trace.slice(),
+        trace: verificationTrace,
         checkpoint: state?.checkpoint ?? null,
         verificationError,
         isTransactionAfter: db.isTransaction,
+        databasePrototypeOperations: nativeDatabaseMethodEntries.map(
+          ({ operation }) => operation,
+        ),
+        poisonedDatabaseOperations: databaseMethodDescriptors.map(
+          ([, operation]) => operation,
+        ),
         dynamicDatabaseDispatchCallCount,
+        dynamicDatabaseDispatchOperations,
         dynamicStatementDispatchCallCount,
+        oracleFunctionPersisted,
       }
     } finally {
       if (setup !== undefined) Reflect.apply(nativeDatabaseClose, setup, [])

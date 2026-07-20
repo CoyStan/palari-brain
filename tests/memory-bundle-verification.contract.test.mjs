@@ -2204,6 +2204,18 @@ function isM106ReadOnlyVerifierPragma(normalizedSql) {
   return M1_06_READ_ONLY_PRAGMA_SQL.has(normalizedSql)
 }
 
+function m106CallablePrototypeOperations(prototype) {
+  const operations = []
+  for (const key of Reflect.ownKeys(prototype)) {
+    if (key === 'constructor') continue
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, key)
+    if (descriptor !== undefined && typeof descriptor.value === 'function') {
+      operations.push(typeof key === 'symbol' ? String(key) : key)
+    }
+  }
+  return operations.sort(compareBinary)
+}
+
 function m106Id(prefix, value) {
   return `${prefix}_00000000-0000-4000-8000-${value
     .toString(16)
@@ -2492,6 +2504,7 @@ function runM106InstrumentedScenario(name) {
     const nativeAll = statementAllDescriptor.value
     let eventRows = []
     let atomRows = []
+    let atomPrepareCount = 0
     let atomReadCount = 0
     let headSequence = 0
     let bundleOptions
@@ -2504,8 +2517,21 @@ function runM106InstrumentedScenario(name) {
     Object.defineProperty(DatabaseSync.prototype, 'prepare', {
       ...databasePrepareDescriptor,
       value(sql) {
+        const normalizedSql = normalizeSql(sql)
+        if (normalizedSql.includes('FROM main.memory_bundle_atoms')) {
+          atomPrepareCount += 1
+          if (
+            scenario === 'atom-read-transition' ||
+            scenario === 'atom-read-cross-scope-delete' ||
+            scenario === 'atom-read-double-delete' ||
+            scenario === 'atom-read-active-id-reuse' ||
+            scenario === 'atom-read-deleted-id-reuse'
+          ) {
+            throw new Error('instrumented atom prepare failure')
+          }
+        }
         const statement = Reflect.apply(nativePrepare, this, [sql])
-        statementSql.set(statement, normalizeSql(sql))
+        statementSql.set(statement, normalizedSql)
         return statement
       },
     })
@@ -2735,14 +2761,41 @@ function runM106InstrumentedScenario(name) {
         row.extra = true
         atomRows = [row]
       } else if (scenario === 'atom-stream-correspondence') {
-        headSequence = 1
-        eventRows = [fixtures.makeM104EventRow()]
-        atomRows = [Object.assign(
-          Object.create(null),
-          codec.encodeAtomRow(fixtures.makeM104CanonicalAtom({
-            streamId: 'str_00000000-0000-4000-8000-000000000099',
-          })),
-        )]
+        headSequence = 2
+        const leadingMemoryId =
+          'mem_00000000-0000-4000-8000-000000000950'
+        const targetMemoryId =
+          'mem_00000000-0000-4000-8000-000000000951'
+        const leading = fixtures.makeM104EventRow({
+          memory_id: leadingMemoryId,
+        })
+        const target = fixtures.makeM104EventRow({
+          sequence: 2,
+          decision_id: 'dec_00000000-0000-4000-8000-000000000021',
+          proposal_id: 'prp_00000000-0000-4000-8000-000000000022',
+          memory_id: targetMemoryId,
+          effective_at: '2026-07-18T12:59:00.000Z',
+          observed_at: '2026-07-18T13:00:00.000Z',
+        })
+        eventRows = [leading, target]
+        atomRows = [
+          Object.assign(
+            Object.create(null),
+            codec.encodeAtomRow(fixtures.makeM104CanonicalAtom({
+              memoryId: leadingMemoryId,
+            })),
+          ),
+          Object.assign(
+            Object.create(null),
+            codec.encodeAtomRow(fixtures.makeM104CanonicalAtom({
+              memoryId: targetMemoryId,
+              streamId: 'str_00000000-0000-4000-8000-000000000099',
+              createdSequence: 2,
+              validFrom: '2026-07-18T12:59:00.000Z',
+              createdAt: '2026-07-18T13:00:00.000Z',
+            })),
+          ),
+        ]
       } else {
         throw new Error('unknown M1-06 instrumented scenario: ' + scenario)
       }
@@ -2769,6 +2822,7 @@ function runM106InstrumentedScenario(name) {
         returned: value !== undefined,
         code: error?.code ?? null,
         message: error?.message ?? null,
+        atomPrepareCount,
         atomReadCount,
       }) + '\\n')
     } finally {
@@ -2856,37 +2910,69 @@ test('M1-06 retains the original applied create event after deletion', () => {
   })
 })
 
-test('M1-06 completes transition reduction before attempting atom reads', () => {
+test('M1-06 completes transition reduction before preparing or reading atoms', () => {
   const result = runM106InstrumentedScenario('atom-read-transition')
-  assert.equal(result.returned, false)
-  assert.equal(result.code, 'bundle_invalid_transition')
-  assert.equal(result.atomReadCount, 0)
+  assert.deepEqual({
+    returned: result.returned,
+    code: result.code,
+    atomPrepareCount: result.atomPrepareCount,
+    atomReadCount: result.atomReadCount,
+  }, {
+    returned: false,
+    code: 'bundle_invalid_transition',
+    atomPrepareCount: 0,
+    atomReadCount: 0,
+  })
 })
 
-test('M1-06 completes multi-event delete transitions before attempting atom reads', () => {
+test('M1-06 completes multi-event delete transitions before preparing or reading atoms', () => {
   for (const [scenario, expectedCode] of [
     ['atom-read-cross-scope-delete', 'bundle_unauthorized'],
     ['atom-read-double-delete', 'bundle_invalid_transition'],
   ]) {
     const result = runM106InstrumentedScenario(scenario)
-    assert.equal(result.returned, false, scenario)
-    assert.equal(result.code, expectedCode, scenario)
-    assert.equal(result.atomReadCount, 0, scenario)
+    assert.deepEqual({
+      returned: result.returned,
+      code: result.code,
+      atomPrepareCount: result.atomPrepareCount,
+      atomReadCount: result.atomReadCount,
+    }, {
+      returned: false,
+      code: expectedCode,
+      atomPrepareCount: 0,
+      atomReadCount: 0,
+    }, scenario)
   }
 })
 
-test('M1-06 classifies active id reuse before atom reads', () => {
+test('M1-06 classifies active id reuse before preparing or reading atoms', () => {
   const result = runM106InstrumentedScenario('atom-read-active-id-reuse')
-  assert.equal(result.returned, false)
-  assert.equal(result.code, 'bundle_id_reuse')
-  assert.equal(result.atomReadCount, 0)
+  assert.deepEqual({
+    returned: result.returned,
+    code: result.code,
+    atomPrepareCount: result.atomPrepareCount,
+    atomReadCount: result.atomReadCount,
+  }, {
+    returned: false,
+    code: 'bundle_id_reuse',
+    atomPrepareCount: 0,
+    atomReadCount: 0,
+  })
 })
 
-test('M1-06 classifies deleted id reuse before atom reads', () => {
+test('M1-06 classifies deleted id reuse before preparing or reading atoms', () => {
   const result = runM106InstrumentedScenario('atom-read-deleted-id-reuse')
-  assert.equal(result.returned, false)
-  assert.equal(result.code, 'bundle_id_reuse')
-  assert.equal(result.atomReadCount, 0)
+  assert.deepEqual({
+    returned: result.returned,
+    code: result.code,
+    atomPrepareCount: result.atomPrepareCount,
+    atomReadCount: result.atomReadCount,
+  }, {
+    returned: false,
+    code: 'bundle_id_reuse',
+    atomPrepareCount: 0,
+    atomReadCount: 0,
+  })
 })
 
 test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
@@ -2913,20 +2999,49 @@ test('M1-06 verifier dispatch stays read-only and transaction-free', () => {
     timeout: 0,
   })
   assert.ok(result.trace.length > 0)
-  assert.equal(result.verificationError, null)
-  assert.deepEqual(result.checkpoint, {
-    streamId: M1_04_IDS.streamId,
-    sequence: 1,
+  assert.deepEqual({
+    verificationError: result.verificationError,
+    checkpoint: result.checkpoint,
+    isTransactionAfter: result.isTransactionAfter,
+    dynamicDatabaseDispatchCallCount: result.dynamicDatabaseDispatchCallCount,
+    dynamicDatabaseDispatchOperations: result.dynamicDatabaseDispatchOperations,
+    dynamicStatementDispatchCallCount: result.dynamicStatementDispatchCallCount,
+    oracleFunctionPersisted: result.oracleFunctionPersisted,
+  }, {
+    verificationError: null,
+    checkpoint: {
+      streamId: M1_04_IDS.streamId,
+      sequence: 1,
+    },
+    isTransactionAfter: false,
+    dynamicDatabaseDispatchCallCount: 0,
+    dynamicDatabaseDispatchOperations: [],
+    dynamicStatementDispatchCallCount: 0,
+    oracleFunctionPersisted: false,
   })
-  assert.equal(result.isTransactionAfter, false)
-  assert.equal(result.dynamicDatabaseDispatchCallCount, 0)
-  assert.equal(result.dynamicStatementDispatchCallCount, 0)
+  const expectedDatabaseOperations = m106CallablePrototypeOperations(
+    DatabaseSync.prototype,
+  )
+  assert.deepEqual(
+    [...result.databasePrototypeOperations].sort(compareBinary),
+    expectedDatabaseOperations,
+  )
+  assert.deepEqual(
+    [...result.poisonedDatabaseOperations].sort(compareBinary),
+    expectedDatabaseOperations,
+  )
 
   let selectCount = 0
   let readCount = 0
   const observedPragmas = []
+  const databaseOperations = new Set(result.databasePrototypeOperations)
   for (const entry of result.trace) {
-    if (entry.operation === 'prepare') {
+    if (databaseOperations.has(entry.operation)) {
+      assert.equal(
+        entry.operation,
+        'prepare',
+        `verifier dispatched forbidden DatabaseSync operation: ${entry.operation}`,
+      )
       const normalizedSql = normalizeM106TraceSql(entry.sql)
       if (/^SELECT\b/i.test(normalizedSql)) {
         selectCount += 1
@@ -3300,14 +3415,14 @@ test('M1-06 validates every canonical atom before merge correspondence', () => {
   assert.equal(shapeResult.code, 'bundle_invalid_atom')
 })
 
-test('M1-06 checks every equal-id event and atom correspondence field', () => {
+test('M1-06 checks every corruptible correspondence field on a later equal-id pair', () => {
   const streamResult = runM106InstrumentedScenario('atom-stream-correspondence')
-  assert.equal(streamResult.code, 'bundle_invalid_atom')
+  assert.equal(streamResult.code, 'bundle_invalid_atom', 'stream id')
 
   const cases = [
     {
       label: 'created sequence',
-      atomOverrides: { createdSequence: 2 },
+      atomOverrides: { createdSequence: 3 },
       withBackingEvent: true,
     },
     { label: 'Palari scope', atomOverrides: { palariId: 'palari-b' } },
@@ -3319,20 +3434,26 @@ test('M1-06 checks every equal-id event and atom correspondence field', () => {
     },
     {
       label: 'created/observed time',
-      atomOverrides: { createdAt: m106Timestamp(2) },
+      atomOverrides: { createdAt: m106Timestamp(3) },
     },
   ]
 
   for (let index = 0; index < cases.length; index += 1) {
     const { label, atomOverrides, withBackingEvent } = cases[index]
     withM105Database((db) => {
-      const create = makeM106CreateEventRow(1, m106Id('mem', 0x950 + index))
-      const events = [create]
-      if (withBackingEvent) events.push(makeM106RefusedCreateEventRow(2))
-      createM106SemanticBundle(db, events, [makeM106AtomRow(
-        create,
-        atomOverrides,
-      )])
+      const leading = makeM106CreateEventRow(1, m106Id('mem', 0x940))
+      const target = makeM106CreateEventRow(
+        2,
+        m106Id('mem', 0x950 + index),
+      )
+      const events = [leading, target]
+      if (withBackingEvent) events.push(makeM106RefusedCreateEventRow(3))
+      const targetAtom = makeM106AtomRow(target, atomOverrides)
+      assert.doesNotThrow(() => codecModule.decodeAtomRow(targetAtom), label)
+      createM106SemanticBundle(db, events, [
+        makeM106AtomRow(leading),
+        targetAtom,
+      ])
       assert.throws(
         () => verifyModule.verifyMemoryBundleState(db),
         (error) => {
