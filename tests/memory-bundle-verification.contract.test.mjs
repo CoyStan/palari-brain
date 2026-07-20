@@ -2500,17 +2500,27 @@ function runM106InstrumentedScenario(name) {
     import.meta.url,
   ).href
   const codecUrl = new URL('../src/memory-bundle-codec.mjs', import.meta.url).href
+  const applyUrl = new URL('../src/memory-bundle-apply.mjs', import.meta.url).href
   const verifierUrl = new URL('../src/memory-bundle-verify.mjs', import.meta.url).href
   const source = `
     import { DatabaseSync, StatementSync } from 'node:sqlite'
 
     const scenario = process.env.PALARI_M106_SCENARIO
     const statementSql = new WeakMap()
+    const statementTargets = new WeakMap()
+    const reflectApply = Reflect.apply
+    const stringCharCodeAt = String.prototype.charCodeAt
+    const stringFromCharCode = String.fromCharCode
     const databasePrepareDescriptor = Object.getOwnPropertyDescriptor(
       DatabaseSync.prototype,
       'prepare',
     )
+    const databaseCloseDescriptor = Object.getOwnPropertyDescriptor(
+      DatabaseSync.prototype,
+      'close',
+    )
     const nativePrepare = databasePrepareDescriptor.value
+    const nativeClose = databaseCloseDescriptor.value
     const nativeStatementMethodEntries = []
     for (const key of Reflect.ownKeys(StatementSync.prototype)) {
       if (key === 'constructor') continue
@@ -2528,6 +2538,29 @@ function runM106InstrumentedScenario(name) {
         method: descriptor.value,
       })
     }
+    const statementAccessorProbeDatabase = new DatabaseSync(':memory:')
+    const statementAccessorProbe = reflectApply(
+      nativePrepare,
+      statementAccessorProbeDatabase,
+      ['SELECT 1'],
+    )
+    const nativeStatementAccessorEntries = []
+    for (const key of Reflect.ownKeys(statementAccessorProbe)) {
+      const descriptor = Object.getOwnPropertyDescriptor(
+        statementAccessorProbe,
+        key,
+      )
+      if (descriptor === undefined || typeof descriptor.get !== 'function') {
+        continue
+      }
+      nativeStatementAccessorEntries.push({
+        key,
+        operation: 'get:' + (typeof key === 'symbol' ? String(key) : key),
+        descriptor,
+        getter: descriptor.get,
+      })
+    }
+    reflectApply(nativeClose, statementAccessorProbeDatabase, [])
     const executionOperations = new Set(['all', 'get', 'iterate', 'run'])
     let eventRows = []
     let atomRows = []
@@ -2537,6 +2570,8 @@ function runM106InstrumentedScenario(name) {
     let atomReadCount = 0
     let atomStatementOperationCount = 0
     const atomStatementOperations = []
+    let atomStatementAccessorCount = 0
+    const atomStatementAccessorOperations = []
     let verificationCall = 0
     let firstEventPrepareCount = 0
     let firstEventReadCount = 0
@@ -2544,20 +2579,253 @@ function runM106InstrumentedScenario(name) {
     let firstAtomReadCount = 0
     let firstAtomStatementOperationCount = 0
     const firstAtomStatementOperations = []
+    let firstAtomStatementAccessorCount = 0
+    const firstAtomStatementAccessorOperations = []
     let secondEventPrepareCount = 0
     let secondEventReadCount = 0
     let secondAtomPrepareCount = 0
     let secondAtomReadCount = 0
     let secondAtomStatementOperationCount = 0
     const secondAtomStatementOperations = []
+    let secondAtomStatementAccessorCount = 0
+    const secondAtomStatementAccessorOperations = []
     let headSequence = 0
     let bundleOptions
     let repeatedTransitionEvent
     let repeatedNextHead = 0
     let spoofStoredSqlNames = []
 
+    function isAsciiSqlWhitespace(unit) {
+      return unit === 0x09 || unit === 0x0a || unit === 0x0b ||
+        unit === 0x0c || unit === 0x0d || unit === 0x20
+    }
+
+    function isAsciiSqlIdentifierUnit(unit) {
+      return (unit >= 0x30 && unit <= 0x39) ||
+        (unit >= 0x41 && unit <= 0x5a) ||
+        unit === 0x5f || unit === 0x24 ||
+        (unit >= 0x61 && unit <= 0x7a)
+    }
+
+    function foldedAsciiSqlUnit(unit) {
+      return unit >= 0x41 && unit <= 0x5a ? unit + 0x20 : unit
+    }
+
+    function appendAsciiSqlUnit(value, unit) {
+      return value + reflectApply(
+        stringFromCharCode,
+        undefined,
+        [foldedAsciiSqlUnit(unit)],
+      )
+    }
+
+    function nextAsciiSqlToken(sql, cursor) {
+      let index = cursor.index
+      while (index < sql.length) {
+        const unit = reflectApply(stringCharCodeAt, sql, [index])
+        if (isAsciiSqlWhitespace(unit)) {
+          index += 1
+          continue
+        }
+        const nextUnit = index + 1 < sql.length
+          ? reflectApply(stringCharCodeAt, sql, [index + 1])
+          : -1
+        if (unit === 0x2d && nextUnit === 0x2d) {
+          index += 2
+          while (index < sql.length) {
+            const commentUnit = reflectApply(stringCharCodeAt, sql, [index])
+            index += 1
+            if (commentUnit === 0x0a || commentUnit === 0x0d) break
+          }
+          continue
+        }
+        if (unit === 0x2f && nextUnit === 0x2a) {
+          index += 2
+          while (index < sql.length) {
+            const commentUnit = reflectApply(stringCharCodeAt, sql, [index])
+            const afterCommentUnit = index + 1 < sql.length
+              ? reflectApply(stringCharCodeAt, sql, [index + 1])
+              : -1
+            if (commentUnit === 0x2a && afterCommentUnit === 0x2f) {
+              index += 2
+              break
+            }
+            index += 1
+          }
+          continue
+        }
+        break
+      }
+      if (index >= sql.length) {
+        cursor.index = index
+        return null
+      }
+
+      const unit = reflectApply(stringCharCodeAt, sql, [index])
+      if (unit === 0x27) {
+        index += 1
+        while (index < sql.length) {
+          const literalUnit = reflectApply(stringCharCodeAt, sql, [index])
+          if (literalUnit === 0x27) {
+            const nextUnit = index + 1 < sql.length
+              ? reflectApply(stringCharCodeAt, sql, [index + 1])
+              : -1
+            index += nextUnit === 0x27 ? 2 : 1
+            if (nextUnit !== 0x27) break
+            continue
+          }
+          index += 1
+        }
+        cursor.index = index
+        return 'literal'
+      }
+
+      if (unit === 0x22 || unit === 0x60 || unit === 0x5b) {
+        const closingUnit = unit === 0x5b ? 0x5d : unit
+        index += 1
+        let identifier = ''
+        while (index < sql.length) {
+          const identifierUnit = reflectApply(stringCharCodeAt, sql, [index])
+          if (identifierUnit === closingUnit) {
+            const nextUnit = index + 1 < sql.length
+              ? reflectApply(stringCharCodeAt, sql, [index + 1])
+              : -1
+            index += nextUnit === closingUnit ? 2 : 1
+            if (nextUnit !== closingUnit) break
+            identifier = appendAsciiSqlUnit(identifier, closingUnit)
+            continue
+          }
+          identifier = appendAsciiSqlUnit(identifier, identifierUnit)
+          index += 1
+        }
+        cursor.index = index
+        return 'word:' + identifier
+      }
+
+      if (isAsciiSqlIdentifierUnit(unit)) {
+        let identifier = ''
+        while (index < sql.length) {
+          const identifierUnit = reflectApply(stringCharCodeAt, sql, [index])
+          if (!isAsciiSqlIdentifierUnit(identifierUnit)) break
+          identifier = appendAsciiSqlUnit(identifier, identifierUnit)
+          index += 1
+        }
+        cursor.index = index
+        return 'word:' + identifier
+      }
+
+      cursor.index = index + 1
+      return 'symbol:' + reflectApply(stringFromCharCode, undefined, [unit])
+    }
+
+    function isM106AtomSelectSql(sql) {
+      if (typeof sql !== 'string') return false
+      const cursor = { index: 0 }
+      if (nextAsciiSqlToken(sql, cursor) !== 'word:select') return false
+      let token = nextAsciiSqlToken(sql, cursor)
+      while (token !== null) {
+        if (
+          token === 'word:from' &&
+          nextAsciiSqlToken(sql, cursor) === 'word:main' &&
+          nextAsciiSqlToken(sql, cursor) === 'symbol:.' &&
+          nextAsciiSqlToken(sql, cursor) === 'word:memory_bundle_atoms'
+        ) {
+          return true
+        }
+        token = nextAsciiSqlToken(sql, cursor)
+      }
+      return false
+    }
+
+    const atomSqlClassifierResults = {
+      canonical: isM106AtomSelectSql(
+        'SELECT memory_id FROM main.memory_bundle_atoms ORDER BY memory_id',
+      ),
+      lowercase: isM106AtomSelectSql(
+        'select memory_id from main.memory_bundle_atoms order by memory_id collate binary',
+      ),
+      mixedAsciiWhitespace: isM106AtomSelectSql(
+        ' SeLeCt\\tmemory_id\\nFrOm\\vmain \\f.\\r memory_bundle_atoms ',
+      ),
+      quotedIdentifiers: isM106AtomSelectSql(
+        'SELECT memory_id FROM "main" . [memory_bundle_atoms]',
+      ),
+      unrelatedTable: isM106AtomSelectSql(
+        'SELECT memory_id FROM main.memory_bundle_events',
+      ),
+      prefixedTable: isM106AtomSelectSql(
+        'SELECT memory_id FROM main.memory_bundle_atoms_archive',
+      ),
+      writeStatement: isM106AtomSelectSql(
+        'DELETE FROM main.memory_bundle_atoms',
+      ),
+      stringLiteral: isM106AtomSelectSql(
+        "SELECT 'FROM main.memory_bundle_atoms' AS diagnostic",
+      ),
+      lineComment: isM106AtomSelectSql(
+        'SELECT 1 -- FROM main.memory_bundle_atoms\\nFROM main.memory_bundle_events',
+      ),
+      blockComment: isM106AtomSelectSql(
+        'SELECT 1 /* FROM main.memory_bundle_atoms */ FROM main.memory_bundle_events',
+      ),
+    }
+
     function normalizeSql(sql) {
-      return sql.replace(/\\s+/g, ' ').trim()
+      let normalized = ''
+      let pendingSpace = false
+      for (let index = 0; index < sql.length; index += 1) {
+        const unit = reflectApply(stringCharCodeAt, sql, [index])
+        if (isAsciiSqlWhitespace(unit)) {
+          if (normalized !== '') pendingSpace = true
+          continue
+        }
+        if (pendingSpace) {
+          normalized += ' '
+          pendingSpace = false
+        }
+        normalized += reflectApply(stringFromCharCode, undefined, [unit])
+      }
+      return normalized
+    }
+
+    function unwrapStatement(statement) {
+      return statementTargets.get(statement) ?? statement
+    }
+
+    function recordAtomStatementAccessor(operation) {
+      atomStatementAccessorCount += 1
+      atomStatementAccessorOperations.push(operation)
+      if (verificationCall === 1) {
+        firstAtomStatementAccessorCount += 1
+        firstAtomStatementAccessorOperations.push(operation)
+      }
+      if (verificationCall === 2) {
+        secondAtomStatementAccessorCount += 1
+        secondAtomStatementAccessorOperations.push(operation)
+      }
+    }
+
+    function wrapStatement(target, normalizedSql) {
+      const wrapper = Object.create(StatementSync.prototype)
+      statementTargets.set(wrapper, target)
+      statementSql.set(wrapper, normalizedSql)
+      for (const {
+        key,
+        operation,
+        descriptor,
+        getter,
+      } of nativeStatementAccessorEntries) {
+        Object.defineProperty(wrapper, key, {
+          ...descriptor,
+          get() {
+            if (isM106AtomSelectSql(statementSql.get(this))) {
+              recordAtomStatementAccessor(operation)
+            }
+            return reflectApply(getter, unwrapStatement(this), [])
+          },
+        })
+      }
+      return wrapper
     }
 
     Object.defineProperty(DatabaseSync.prototype, 'prepare', {
@@ -2572,7 +2840,7 @@ function runM106InstrumentedScenario(name) {
           if (verificationCall === 1) firstEventPrepareCount += 1
           if (verificationCall === 2) secondEventPrepareCount += 1
         }
-        if (normalizedSql.includes('FROM main.memory_bundle_atoms')) {
+        if (isM106AtomSelectSql(sql)) {
           atomPrepareCount += 1
           if (verificationCall === 1) firstAtomPrepareCount += 1
           if (verificationCall === 2) secondAtomPrepareCount += 1
@@ -2590,9 +2858,8 @@ function runM106InstrumentedScenario(name) {
             throw new Error('instrumented atom prepare failure')
           }
         }
-        const statement = Reflect.apply(nativePrepare, this, [sql])
-        statementSql.set(statement, normalizedSql)
-        return statement
+        const statement = reflectApply(nativePrepare, this, [sql])
+        return wrapStatement(statement, normalizedSql)
       },
     })
     for (const {
@@ -2605,8 +2872,7 @@ function runM106InstrumentedScenario(name) {
         ...descriptor,
         value(...parameters) {
           const sql = statementSql.get(this)
-          const isAtomStatement =
-            sql?.includes('FROM main.memory_bundle_atoms') === true
+          const isAtomStatement = isM106AtomSelectSql(sql)
           if (isAtomStatement) {
             atomStatementOperationCount += 1
             atomStatementOperations.push(operation)
@@ -2658,7 +2924,7 @@ function runM106InstrumentedScenario(name) {
             }
             if (atomRows !== null) return atomRows
           }
-          return Reflect.apply(method, this, parameters)
+          return reflectApply(method, unwrapStatement(this), parameters)
         },
       })
     }
@@ -2667,7 +2933,36 @@ function runM106InstrumentedScenario(name) {
     try {
       const fixtures = await import(${JSON.stringify(fixtureUrl)})
       const codec = await import(${JSON.stringify(codecUrl)})
+      const apply = await import(${JSON.stringify(applyUrl)})
       const verify = await import(${JSON.stringify(`${verifierUrl}?m106-instrumented`)})
+
+      function captureExactBundleError(error) {
+        if (error === undefined) return null
+        const codeDescriptor = Object.getOwnPropertyDescriptor(error, 'code')
+        return {
+          constructorIdentity: error.constructor === apply.MemoryBundleError,
+          prototypeIdentity:
+            Object.getPrototypeOf(error) === apply.MemoryBundleError.prototype,
+          exportedInstance: error instanceof apply.MemoryBundleError,
+          name: error.name,
+          code: error.code,
+          codeDescriptor: codeDescriptor === undefined
+            ? null
+            : {
+                value: codeDescriptor.value,
+                enumerable: codeDescriptor.enumerable,
+                configurable: codeDescriptor.configurable,
+                writable: codeDescriptor.writable,
+              },
+          causeDescriptorAbsent:
+            Object.getOwnPropertyDescriptor(error, 'cause') === undefined,
+          enumerableKeys: Object.keys(error),
+          messageType: typeof error.message,
+          messageLength: typeof error.message === 'string'
+            ? error.message.length
+            : null,
+        }
+      }
 
       function refused(sequence, overrides = {}) {
         const minute = String(sequence).padStart(2, '0')
@@ -3095,7 +3390,11 @@ function runM106InstrumentedScenario(name) {
         }
         verificationCall = 0
         process.stdout.write(JSON.stringify({
+          atomSqlClassifierResults,
           statementPrototypeOperations: nativeStatementMethodEntries.map(
+            ({ operation }) => operation,
+          ),
+          statementOwnAccessorOperations: nativeStatementAccessorEntries.map(
             ({ operation }) => operation,
           ),
           allowedPostTransitionAtomOperations: [
@@ -3111,6 +3410,8 @@ function runM106InstrumentedScenario(name) {
           firstAtomReadCount,
           firstAtomStatementOperationCount,
           firstAtomStatementOperations,
+          firstAtomStatementAccessorCount,
+          firstAtomStatementAccessorOperations,
           setupQuickCheck: Object.values(quickCheckRow)[0],
           setupForeignKeyViolationCount: foreignKeyViolations.length,
           setupHeadSequence: setupState.head_sequence,
@@ -3128,6 +3429,8 @@ function runM106InstrumentedScenario(name) {
           secondAtomReadCount,
           secondAtomStatementOperationCount,
           secondAtomStatementOperations,
+          secondAtomStatementAccessorCount,
+          secondAtomStatementAccessorOperations,
         }) + '\\n')
       } else {
         let value
@@ -3140,15 +3443,19 @@ function runM106InstrumentedScenario(name) {
         }
         verificationCall = 0
         process.stdout.write(JSON.stringify({
+          atomSqlClassifierResults,
           returned: value !== undefined,
           code: error?.code ?? null,
           message: error?.message ?? null,
+          errorBoundary: captureExactBundleError(error),
           eventPrepareCount,
           eventReadCount,
           atomPrepareCount,
           atomReadCount,
           atomStatementOperationCount,
           atomStatementOperations,
+          atomStatementAccessorCount,
+          atomStatementAccessorOperations,
         }) + '\\n')
       }
     } finally {
@@ -3179,6 +3486,40 @@ function runM106InstrumentedScenario(name) {
   const lines = child.stdout.trim().split('\n')
   assert.equal(lines.length, 1)
   return JSON.parse(lines[0])
+}
+
+function assertM106AtomSqlClassifier(result) {
+  assert.deepEqual(result.atomSqlClassifierResults, {
+    canonical: true,
+    lowercase: true,
+    mixedAsciiWhitespace: true,
+    quotedIdentifiers: true,
+    unrelatedTable: false,
+    prefixedTable: false,
+    writeStatement: false,
+    stringLiteral: false,
+    lineComment: false,
+    blockComment: false,
+  })
+}
+
+function assertM106ExactBundleError(error, expectedCode, label) {
+  assert.notEqual(error, null, label)
+  assert.equal(error.constructorIdentity, true, label)
+  assert.equal(error.prototypeIdentity, true, label)
+  assert.equal(error.exportedInstance, true, label)
+  assert.equal(error.name, 'MemoryBundleError', label)
+  assert.equal(error.code, expectedCode, label)
+  assert.deepEqual(error.codeDescriptor, {
+    value: expectedCode,
+    enumerable: true,
+    configurable: false,
+    writable: false,
+  }, label)
+  assert.equal(error.causeDescriptorAbsent, true, label)
+  assert.deepEqual(error.enumerableKeys, ['code'], label)
+  assert.equal(error.messageType, 'string', label)
+  assert.ok(error.messageLength > 0, label)
 }
 
 function assertM106ReplayDescriptors(memory) {
@@ -3257,6 +3598,7 @@ test('M1-06 retains the original applied create event after deletion', () => {
 
 test('M1-06 completes transition reduction before preparing or reading atoms', () => {
   const result = runM106InstrumentedScenario('atom-read-transition')
+  assertM106AtomSqlClassifier(result)
   assert.deepEqual({
     returned: result.returned,
     code: result.code,
@@ -3354,6 +3696,21 @@ function assertM106RepeatedAtomBarrier(
     [...result.statementPrototypeOperations].sort(compareBinary),
     expectedStatementOperations,
   )
+  const accessorProbeDatabase = new DatabaseSync(':memory:')
+  let expectedStatementAccessorOperations
+  try {
+    expectedStatementAccessorOperations = m106OwnAccessorOperations(
+      accessorProbeDatabase.prepare('SELECT 1'),
+    )
+  } finally {
+    accessorProbeDatabase.close()
+  }
+  assert.ok(expectedStatementAccessorOperations.includes('get:sourceSQL'))
+  assert.ok(expectedStatementAccessorOperations.includes('get:expandedSQL'))
+  assert.deepEqual(
+    [...result.statementOwnAccessorOperations].sort(compareBinary),
+    expectedStatementAccessorOperations,
+  )
   assert.deepEqual(result.allowedPostTransitionAtomOperations, [
     'all',
     'setReadBigInts',
@@ -3375,6 +3732,9 @@ function assertM106RepeatedAtomBarrier(
     firstAtomReadCount: result.firstAtomReadCount,
     firstAtomStatementOperationCount: result.firstAtomStatementOperationCount,
     firstAtomStatementOperations: result.firstAtomStatementOperations,
+    firstAtomStatementAccessorCount: result.firstAtomStatementAccessorCount,
+    firstAtomStatementAccessorOperations:
+      result.firstAtomStatementAccessorOperations,
     setupQuickCheck: result.setupQuickCheck,
     setupForeignKeyViolationCount: result.setupForeignKeyViolationCount,
     setupHeadSequence: result.setupHeadSequence,
@@ -3387,6 +3747,9 @@ function assertM106RepeatedAtomBarrier(
     secondAtomReadCount: result.secondAtomReadCount,
     secondAtomStatementOperationCount: result.secondAtomStatementOperationCount,
     secondAtomStatementOperations: result.secondAtomStatementOperations,
+    secondAtomStatementAccessorCount: result.secondAtomStatementAccessorCount,
+    secondAtomStatementAccessorOperations:
+      result.secondAtomStatementAccessorOperations,
   }, {
     firstCheckpoint: {
       streamId: M1_04_IDS.streamId,
@@ -3403,6 +3766,8 @@ function assertM106RepeatedAtomBarrier(
       'setReturnArrays',
       'all',
     ],
+    firstAtomStatementAccessorCount: 0,
+    firstAtomStatementAccessorOperations: [],
     setupQuickCheck: 'ok',
     setupForeignKeyViolationCount: 0,
     setupHeadSequence: nextSequence,
@@ -3415,6 +3780,8 @@ function assertM106RepeatedAtomBarrier(
     secondAtomReadCount: 0,
     secondAtomStatementOperationCount: 0,
     secondAtomStatementOperations: [],
+    secondAtomStatementAccessorCount: 0,
+    secondAtomStatementAccessorOperations: [],
   })
   assert.equal(result.secondMessageType, 'string')
   assert.equal(typeof result.secondMessage, 'string')
@@ -3564,6 +3931,7 @@ test('M1-06 verifier dispatch is accessor-observable and transaction-neutral acr
     ['empty', {
       checkpointSequence: 0,
       isTransaction: false,
+      verificationCalls: 1,
       state: {
         memoryIds: [],
         retained: [],
@@ -3575,11 +3943,13 @@ test('M1-06 verifier dispatch is accessor-observable and transaction-neutral acr
     ['active', {
       checkpointSequence: 1,
       isTransaction: false,
+      verificationCalls: 1,
       state: activeState,
     }],
     ['refused', {
       checkpointSequence: 2,
       isTransaction: false,
+      verificationCalls: 1,
       state: {
         memoryIds: [],
         retained: [],
@@ -3597,6 +3967,7 @@ test('M1-06 verifier dispatch is accessor-observable and transaction-neutral acr
     ['active-inside-transaction', {
       checkpointSequence: 1,
       isTransaction: true,
+      verificationCalls: 2,
       state: activeState,
     }],
   ])
@@ -3608,115 +3979,129 @@ test('M1-06 verifier dispatch is accessor-observable and transaction-neutral acr
       readOnly: true,
       timeout: 0,
     })
-    assert.ok(caseResult.trace.length > 0, caseResult.name)
+    assert.equal(
+      caseResult.calls.length,
+      expectedCase.verificationCalls,
+      caseResult.name,
+    )
+    for (let callIndex = 0; callIndex < caseResult.calls.length; callIndex += 1) {
+      const callResult = caseResult.calls[callIndex]
+      const label = `${caseResult.name} call ${callIndex + 1}`
+      assert.equal(callResult.call, callIndex + 1, label)
+      assert.ok(callResult.trace.length > 0, label)
+      assert.deepEqual({
+        verificationError: callResult.verificationError,
+        checkpoint: callResult.checkpoint,
+        state: callResult.state,
+        isTransactionBefore: callResult.isTransactionBefore,
+        isTransactionAfter: callResult.isTransactionAfter,
+        dynamicDatabaseDispatchCallCount:
+          callResult.dynamicDatabaseDispatchCallCount,
+        dynamicDatabaseDispatchOperations:
+          callResult.dynamicDatabaseDispatchOperations,
+        dynamicStatementDispatchCallCount:
+          callResult.dynamicStatementDispatchCallCount,
+        dynamicStatementDispatchOperations:
+          callResult.dynamicStatementDispatchOperations,
+        dynamicDatabaseAccessorCallCount:
+          callResult.dynamicDatabaseAccessorCallCount,
+        dynamicDatabaseAccessorOperations:
+          callResult.dynamicDatabaseAccessorOperations,
+        dynamicStatementAccessorCallCount:
+          callResult.dynamicStatementAccessorCallCount,
+        dynamicStatementAccessorOperations:
+          callResult.dynamicStatementAccessorOperations,
+      }, {
+        verificationError: null,
+        checkpoint: {
+          streamId: M1_04_IDS.streamId,
+          sequence: expectedCase.checkpointSequence,
+        },
+        state: expectedCase.state,
+        isTransactionBefore: expectedCase.isTransaction,
+        isTransactionAfter: expectedCase.isTransaction,
+        dynamicDatabaseDispatchCallCount: 0,
+        dynamicDatabaseDispatchOperations: [],
+        dynamicStatementDispatchCallCount: 0,
+        dynamicStatementDispatchOperations: [],
+        dynamicDatabaseAccessorCallCount: 0,
+        dynamicDatabaseAccessorOperations: [],
+        dynamicStatementAccessorCallCount: 0,
+        dynamicStatementAccessorOperations: [],
+      }, label)
+
+      let selectCount = 0
+      let readCount = 0
+      let capturedOpenAccessorReadCount = 0
+      let capturedTransactionAccessorReadCount = 0
+      const observedPragmas = []
+      for (const entry of callResult.trace) {
+        if (entry.kind === 'database-accessor') {
+          assert.equal(entry.dispatch, 'captured')
+          if (entry.operation === 'get:isOpen') {
+            capturedOpenAccessorReadCount += 1
+          } else {
+            assert.equal(entry.operation, 'get:isTransaction')
+            capturedTransactionAccessorReadCount += 1
+          }
+          continue
+        }
+        if (databaseOperations.has(entry.operation)) {
+          assert.equal(
+            entry.operation,
+            'prepare',
+            `${label} verifier dispatched forbidden DatabaseSync operation: ${entry.operation}`,
+          )
+          const normalizedSql = normalizeM106TraceSql(entry.sql)
+          if (/^SELECT\b/i.test(normalizedSql)) {
+            selectCount += 1
+          } else if (isM106ReadOnlyVerifierPragma(normalizedSql)) {
+            observedPragmas.push(normalizedSql)
+          } else {
+            assert.fail(
+              `${label} verifier prepared forbidden SQL: ${normalizedSql}`,
+            )
+          }
+          assert.doesNotMatch(
+            normalizedSql,
+            /^(?:BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|VACUUM|ATTACH|DETACH)\b/i,
+          )
+          continue
+        }
+        assert.ok(
+          statementOperations.has(entry.operation),
+          `${label} verifier dispatched unknown SQLite operation: ${entry.operation}`,
+        )
+        assert.ok(
+          allowedStatementOperations.has(entry.operation),
+          `${label} verifier dispatched forbidden StatementSync operation: ${entry.operation}`,
+        )
+        if (entry.operation === 'all' || entry.operation === 'get') {
+          readCount += 1
+        }
+      }
+      assert.equal(capturedOpenAccessorReadCount, 1, label)
+      assert.equal(capturedTransactionAccessorReadCount, 2, label)
+      assert.ok(selectCount > 0, label)
+      assert.deepEqual(
+        observedPragmas.sort(compareBinary),
+        [...M1_06_READ_ONLY_PRAGMA_SQL].sort(compareBinary),
+        label,
+      )
+      assert.ok(readCount > 0, label)
+    }
+
     assert.deepEqual({
-      verificationError: caseResult.verificationError,
-      checkpoint: caseResult.checkpoint,
-      state: caseResult.state,
-      isTransactionBefore: caseResult.isTransactionBefore,
-      isTransactionAfter: caseResult.isTransactionAfter,
-      dynamicDatabaseDispatchCallCount:
-        caseResult.dynamicDatabaseDispatchCallCount,
-      dynamicDatabaseDispatchOperations:
-        caseResult.dynamicDatabaseDispatchOperations,
-      dynamicStatementDispatchCallCount:
-        caseResult.dynamicStatementDispatchCallCount,
-      dynamicStatementDispatchOperations:
-        caseResult.dynamicStatementDispatchOperations,
-      dynamicDatabaseAccessorCallCount:
-        caseResult.dynamicDatabaseAccessorCallCount,
-      dynamicDatabaseAccessorOperations:
-        caseResult.dynamicDatabaseAccessorOperations,
-      dynamicStatementAccessorCallCount:
-        caseResult.dynamicStatementAccessorCallCount,
-      dynamicStatementAccessorOperations:
-        caseResult.dynamicStatementAccessorOperations,
       cleanupTransactionBefore: caseResult.cleanupTransactionBefore,
       cleanupOperation: caseResult.cleanupOperation,
       cleanupTransactionAfter: caseResult.cleanupTransactionAfter,
       oracleFunctionPersisted: caseResult.oracleFunctionPersisted,
     }, {
-      verificationError: null,
-      checkpoint: {
-        streamId: M1_04_IDS.streamId,
-        sequence: expectedCase.checkpointSequence,
-      },
-      state: expectedCase.state,
-      isTransactionBefore: expectedCase.isTransaction,
-      isTransactionAfter: expectedCase.isTransaction,
-      dynamicDatabaseDispatchCallCount: 0,
-      dynamicDatabaseDispatchOperations: [],
-      dynamicStatementDispatchCallCount: 0,
-      dynamicStatementDispatchOperations: [],
-      dynamicDatabaseAccessorCallCount: 0,
-      dynamicDatabaseAccessorOperations: [],
-      dynamicStatementAccessorCallCount: 0,
-      dynamicStatementAccessorOperations: [],
       cleanupTransactionBefore: expectedCase.isTransaction,
       cleanupOperation: expectedCase.isTransaction ? 'ROLLBACK' : null,
       cleanupTransactionAfter: false,
       oracleFunctionPersisted: false,
     }, caseResult.name)
-
-    let selectCount = 0
-    let readCount = 0
-    let capturedOpenAccessorReadCount = 0
-    let capturedTransactionAccessorReadCount = 0
-    const observedPragmas = []
-    for (const entry of caseResult.trace) {
-      if (entry.kind === 'database-accessor') {
-        assert.equal(entry.dispatch, 'captured')
-        if (entry.operation === 'get:isOpen') {
-          capturedOpenAccessorReadCount += 1
-        } else {
-          assert.equal(entry.operation, 'get:isTransaction')
-          capturedTransactionAccessorReadCount += 1
-        }
-        continue
-      }
-      if (databaseOperations.has(entry.operation)) {
-        assert.equal(
-          entry.operation,
-          'prepare',
-          `${caseResult.name} verifier dispatched forbidden DatabaseSync operation: ${entry.operation}`,
-        )
-        const normalizedSql = normalizeM106TraceSql(entry.sql)
-        if (/^SELECT\b/i.test(normalizedSql)) {
-          selectCount += 1
-        } else if (isM106ReadOnlyVerifierPragma(normalizedSql)) {
-          observedPragmas.push(normalizedSql)
-        } else {
-          assert.fail(
-            `${caseResult.name} verifier prepared forbidden SQL: ${normalizedSql}`,
-          )
-        }
-        assert.doesNotMatch(
-          normalizedSql,
-          /^(?:BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|VACUUM|ATTACH|DETACH)\b/i,
-        )
-        continue
-      }
-      assert.ok(
-        statementOperations.has(entry.operation),
-        `${caseResult.name} verifier dispatched unknown SQLite operation: ${entry.operation}`,
-      )
-      assert.ok(
-        allowedStatementOperations.has(entry.operation),
-        `${caseResult.name} verifier dispatched forbidden StatementSync operation: ${entry.operation}`,
-      )
-      if (entry.operation === 'all' || entry.operation === 'get') {
-        readCount += 1
-      }
-    }
-    assert.equal(capturedOpenAccessorReadCount, 1, caseResult.name)
-    assert.equal(capturedTransactionAccessorReadCount, 2, caseResult.name)
-    assert.ok(selectCount > 0, caseResult.name)
-    assert.deepEqual(
-      observedPragmas.sort(compareBinary),
-      [...M1_06_READ_ONLY_PRAGMA_SQL].sort(compareBinary),
-      caseResult.name,
-    )
-    assert.ok(readCount > 0, caseResult.name)
   }
 })
 
@@ -3792,8 +4177,11 @@ test('M1-06 requires one constant stream and persisted id uniqueness', () => {
       atomStatementOperationCount: 0,
       atomStatementOperations: [],
     }, scenario)
-    assert.equal(typeof result.message, 'string', scenario)
-    assert.ok(result.message.length > 0, scenario)
+    assertM106ExactBundleError(
+      result.errorBoundary,
+      'bundle_invalid_decision',
+      scenario,
+    )
   }
 })
 

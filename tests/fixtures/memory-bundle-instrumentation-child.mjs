@@ -426,6 +426,7 @@ const scenarios = {
         name: 'active-inside-transaction',
         setupOptions: { seedActive: true },
         beginTransaction: true,
+        verificationCalls: 2,
       },
     ]
     const setups = []
@@ -521,55 +522,63 @@ const scenarios = {
         }
 
         for (const connection of connections) {
-          currentCase = {
+          const caseResult = {
             name: connection.name,
             connectionConstruction: connection.connectionConstruction,
-            dynamicDatabaseDispatchCallCount: 0,
-            dynamicDatabaseDispatchOperations: [],
-            dynamicStatementDispatchCallCount: 0,
-            dynamicStatementDispatchOperations: [],
-            dynamicDatabaseAccessorCallCount: 0,
-            dynamicDatabaseAccessorOperations: [],
-            dynamicStatementAccessorCallCount: 0,
-            dynamicStatementAccessorOperations: [],
+            calls: [],
           }
-          currentAccessorCase = currentCase
-          trace.length = 0
-          runtime.assertOpenDatabaseSync(connection.nativeTarget)
-          currentCase.isTransactionBefore = runtime.readDatabaseTransactionState(
-            connection.db,
-          )
-          let state
-          let verificationError = null
-          try {
-            state = verifier.verifyMemoryBundleState(connection.db)
-          } catch (error) {
-            verificationError = {
-              name: error?.name ?? null,
-              code: error?.code ?? null,
-              message: error?.message ?? String(error),
+          const verificationCalls = connection.verificationCalls ?? 1
+          for (let callIndex = 0; callIndex < verificationCalls; callIndex += 1) {
+            currentCase = {
+              call: callIndex + 1,
+              dynamicDatabaseDispatchCallCount: 0,
+              dynamicDatabaseDispatchOperations: [],
+              dynamicStatementDispatchCallCount: 0,
+              dynamicStatementDispatchOperations: [],
+              dynamicDatabaseAccessorCallCount: 0,
+              dynamicDatabaseAccessorOperations: [],
+              dynamicStatementAccessorCallCount: 0,
+              dynamicStatementAccessorOperations: [],
             }
-          }
-          currentCase.isTransactionAfter = runtime.readDatabaseTransactionState(
-            connection.db,
-          )
-          currentCase.trace = trace.slice()
-          currentCase.checkpoint = state?.checkpoint ?? null
-          currentCase.state = state === undefined
-            ? null
-            : {
-                memoryIds: state.memories.map(({ memoryId }) => memoryId),
-                retained: [...state.retainedByMemoryId].map(
-                  ([memoryId, retained]) => [memoryId, retained.status],
-                ),
-                seenDecisionIds: [...state.seenDecisionIds],
-                seenProposalIds: [...state.seenProposalIds],
-                lastObservedAt: state.lastObservedAt,
+            currentAccessorCase = currentCase
+            trace.length = 0
+            runtime.assertOpenDatabaseSync(connection.nativeTarget)
+            currentCase.isTransactionBefore = runtime.readDatabaseTransactionState(
+              connection.db,
+            )
+            let state
+            let verificationError = null
+            try {
+              state = verifier.verifyMemoryBundleState(connection.db)
+            } catch (error) {
+              verificationError = {
+                name: error?.name ?? null,
+                code: error?.code ?? null,
+                message: error?.message ?? String(error),
               }
-          currentCase.verificationError = verificationError
-          cases.push(currentCase)
-          currentCase = undefined
-          currentAccessorCase = undefined
+            }
+            currentCase.isTransactionAfter = runtime.readDatabaseTransactionState(
+              connection.db,
+            )
+            currentCase.trace = trace.slice()
+            currentCase.checkpoint = state?.checkpoint ?? null
+            currentCase.state = state === undefined
+              ? null
+              : {
+                  memoryIds: state.memories.map(({ memoryId }) => memoryId),
+                  retained: [...state.retainedByMemoryId].map(
+                    ([memoryId, retained]) => [memoryId, retained.status],
+                  ),
+                  seenDecisionIds: [...state.seenDecisionIds],
+                  seenProposalIds: [...state.seenProposalIds],
+                  lastObservedAt: state.lastObservedAt,
+                }
+            currentCase.verificationError = verificationError
+            caseResult.calls.push(currentCase)
+            currentCase = undefined
+            currentAccessorCase = undefined
+          }
+          cases.push(caseResult)
         }
       } finally {
         accessorPoisonEnabled = false
