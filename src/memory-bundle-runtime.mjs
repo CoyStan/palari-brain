@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { isAbsolute } from 'node:path'
 import { DatabaseSync, StatementSync } from 'node:sqlite'
-import { pathToFileURL } from 'node:url'
+import { pathToFileURL, URL, URLSearchParams } from 'node:url'
 import { types as utilTypes } from 'node:util'
 
 import {
@@ -27,6 +27,12 @@ const dateToISOString = Date.prototype.toISOString
 const isProxy = utilTypes.isProxy
 const pathIsAbsolute = isAbsolute
 const pathToFileUrl = pathToFileURL
+const urlSearchParams = reflectGetOwnPropertyDescriptor(
+  URL.prototype,
+  'searchParams',
+).get
+const urlHref = reflectGetOwnPropertyDescriptor(URL.prototype, 'href').get
+const urlSearchParamsSet = URLSearchParams.prototype.set
 const cryptoRandomUuid = randomUUID
 const cryptoCreateHash = createHash
 
@@ -259,6 +265,13 @@ export function isAbsolutePath(value) {
 
 export function convertPathToFileUrl(value) {
   return reflectApply(pathToFileUrl, undefined, [value])
+}
+
+export function convertPathToReadWriteFileHref(value) {
+  const url = reflectApply(pathToFileUrl, undefined, [value])
+  const parameters = reflectApply(urlSearchParams, url, [])
+  reflectApply(urlSearchParamsSet, parameters, ['mode', 'rw'])
+  return reflectApply(urlHref, url, [])
 }
 
 export function generateRandomUuid() {

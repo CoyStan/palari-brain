@@ -15,6 +15,8 @@ let currentAccessorCase
 let beforeExecHook
 let beforePrepareHook
 let afterExecHook
+let afterConstructHook
+let beforeCloseHook
 
 function sqliteOperationName(key) {
   return typeof key === 'symbol' ? String(key) : key
@@ -137,6 +139,7 @@ function requireNativeDatabaseAccessor(key) {
 const nativeDatabaseIsTransaction = requireNativeDatabaseAccessor(
   'isTransaction',
 )
+const nativeDatabaseIsOpen = requireNativeDatabaseAccessor('isOpen')
 
 function unwrapDatabase(value) {
   return databaseTargets.get(value) ?? value
@@ -203,6 +206,9 @@ class InstrumentedDatabaseSync extends NativeDatabaseSync {
   constructor(...args) {
     trace.push({ operation: 'construct', args })
     super(...args)
+    if (afterConstructHook !== undefined) {
+      afterConstructHook({ target: this, args })
+    }
     if (args[1]?.open === false) {
       const probe = {}
       for (const {
@@ -246,6 +252,9 @@ for (const { key, operation, descriptor, method } of nativeDatabaseMethodEntries
       }
       if (operation === 'prepare' && beforePrepareHook !== undefined) {
         beforePrepareHook({ target: nativeTarget, sql: args[0] })
+      }
+      if (operation === 'close' && beforeCloseHook !== undefined) {
+        beforeCloseHook({ target: nativeTarget })
       }
       const result = Reflect.apply(method, nativeTarget, args)
       if (operation === 'exec' && afterExecHook !== undefined) {
@@ -303,6 +312,48 @@ registerHooks({
     return nextLoad(url, context)
   },
 })
+
+function serializeError(error) {
+  if (error === null || error === undefined) return null
+  return {
+    name: error?.name ?? null,
+    code: error?.code ?? null,
+    message: error?.message ?? String(error),
+    causeMessage: error?.cause?.message ?? null,
+  }
+}
+
+function injectedSqliteFailure(label, errcode) {
+  const error = new Error(`injected ${label} failure`)
+  error.code = 'ERR_SQLITE_ERROR'
+  error.errcode = errcode
+  return error
+}
+
+function readNativeConnectionState(target) {
+  let isOpen = null
+  let isTransaction = null
+  try {
+    isOpen = Reflect.apply(nativeDatabaseIsOpen, target, [])
+  } catch {
+    // The scenario records null if a particular SQLite build rejects the getter.
+  }
+  try {
+    isTransaction = Reflect.apply(nativeDatabaseIsTransaction, target, [])
+  } catch {
+    // The scenario records null if a particular SQLite build rejects the getter.
+  }
+  return { isOpen, isTransaction }
+}
+
+function isTransactionControl(sql) {
+  return (
+    sql === 'BEGIN' ||
+    sql === 'BEGIN IMMEDIATE' ||
+    sql === 'COMMIT' ||
+    sql === 'ROLLBACK'
+  )
+}
 
 const scenarios = {
   async 'M1-02-native-capture'() {
@@ -1225,6 +1276,623 @@ const scenarios = {
       for (const { nativeTarget } of connections) {
         Reflect.apply(nativeDatabaseClose, nativeTarget, [])
       }
+      rmSync(directory, { recursive: true, force: true })
+    }
+  },
+
+  async 'M1-10-public-open-sequence'() {
+    const fixtures = await import('../helpers/memory-bundle-fixtures.mjs')
+    const directory = mkdtempSync(join(tmpdir(), 'palari-m110-open-sequence-'))
+    const dbPath = join(directory, 'bundle # % ? é 東京.sqlite')
+    const setup = new NativeDatabaseSync(dbPath)
+    fixtures.createM105Bundle(setup, { seedActive: true })
+    Reflect.apply(nativeDatabaseClose, setup, [])
+
+    const operationalConnections = []
+    let handle
+    afterConstructHook = ({ target, args }) => {
+      if (args[1]?.open === false) return
+      operationalConnections.push({
+        target,
+        args,
+        kind: args[1]?.readOnly === true ? 'final' : 'recovery',
+      })
+    }
+
+    try {
+      trace.length = 0
+      const publicModule = await import(
+        `../../src/memory-bundle.mjs?m110-open-sequence=${Date.now()}`
+      )
+      const malformedOptions = [
+        undefined,
+        {},
+        { dbPath: 'relative.sqlite' },
+        new Proxy(
+          { dbPath },
+          {
+            get() {
+              throw new Error('malformed options receiver trap ran')
+            },
+          },
+        ),
+      ]
+      const malformedResults = []
+      for (const options of malformedOptions) {
+        const constructorsBefore = trace.filter(
+          ({ operation }) => operation === 'construct',
+        ).length
+        let error = null
+        try {
+          publicModule.openMemoryBundle(options)
+        } catch (caught) {
+          error = serializeError(caught)
+        }
+        const constructorsAfter = trace.filter(
+          ({ operation }) => operation === 'construct',
+        ).length
+        malformedResults.push({
+          error,
+          operationalConstructorDelta: constructorsAfter - constructorsBefore,
+        })
+      }
+      const constructorsBeforeValidOpen = trace.filter(
+        ({ operation }) => operation === 'construct',
+      ).length
+      handle = publicModule.openMemoryBundle({ dbPath })
+      const openTrace = trace.slice()
+      const constructions = openTrace
+        .filter(({ operation }) => operation === 'construct')
+        .map(({ args }) => args)
+
+      const milestones = []
+      let currentKind = null
+      for (const entry of openTrace) {
+        if (entry.operation === 'construct') {
+          if (entry.args[1]?.open === false) {
+            milestones.push('probe:construct')
+            continue
+          }
+          currentKind = entry.args[1]?.readOnly === true ? 'final' : 'recovery'
+          milestones.push(`${currentKind}:construct`)
+          continue
+        }
+        if (entry.operation === 'exec' && typeof entry.sql === 'string') {
+          const sql = entry.sql.trim()
+          if (isTransactionControl(sql)) milestones.push(`${currentKind}:${sql}`)
+          continue
+        }
+        if (
+          entry.operation === 'prepare' &&
+          entry.sql === 'SELECT 1 FROM main.sqlite_schema LIMIT 1'
+        ) {
+          milestones.push('recovery:schema-read')
+          continue
+        }
+        if (entry.operation === 'close') milestones.push(`${currentKind}:close`)
+      }
+
+      const recoveryProbeIndex = openTrace.findIndex((entry) =>
+        entry.operation === 'prepare' &&
+        entry.sql === 'SELECT 1 FROM main.sqlite_schema LIMIT 1')
+      const recoveryProbeWindow = openTrace.slice(
+        recoveryProbeIndex,
+        recoveryProbeIndex + 4,
+      )
+      const pragmaConfigurations = { recovery: [], final: [] }
+      const pragmaReadbacks = { recovery: [], final: [] }
+      const applicationMutationSql = []
+      let tracedKind = null
+      for (let index = 0; index < openTrace.length; index += 1) {
+        const entry = openTrace[index]
+        if (entry.operation === 'construct' && entry.args[1]?.open !== false) {
+          tracedKind = entry.args[1]?.readOnly === true ? 'final' : 'recovery'
+          continue
+        }
+        if (tracedKind === null) continue
+        if (entry.operation === 'exec' && typeof entry.sql === 'string') {
+          const statements = entry.sql
+            .split(';')
+            .map((statement) => statement.trim())
+            .filter((statement) => statement.length !== 0)
+          for (const statement of statements) {
+            if (statement.startsWith('PRAGMA ')) {
+              pragmaConfigurations[tracedKind].push(statement)
+            }
+            if (
+              /^(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|VACUUM|ATTACH|DETACH)\b/i.test(
+                statement,
+              )
+            ) {
+              applicationMutationSql.push({ kind: tracedKind, sql: statement })
+            }
+          }
+          continue
+        }
+        if (entry.operation !== 'prepare' || typeof entry.sql !== 'string') {
+          continue
+        }
+        if (
+          /^PRAGMA (?:foreign_keys|busy_timeout|recursive_triggers|ignore_check_constraints)$/.test(
+            entry.sql,
+          )
+        ) {
+          pragmaReadbacks[tracedKind].push(
+            openTrace.slice(index, index + 4),
+          )
+        }
+        if (
+          /^(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|VACUUM|ATTACH|DETACH)\b/i.test(
+            entry.sql.trim(),
+          )
+        ) {
+          applicationMutationSql.push({ kind: tracedKind, sql: entry.sql })
+        }
+      }
+      const beforeHandleClose = operationalConnections.map(
+        ({ args, kind, target }) => ({
+          args,
+          kind,
+          ...readNativeConnectionState(target),
+        }),
+      )
+      const capabilitiesShared =
+        handle.capabilities === handle.verify().capabilities &&
+        handle.capabilities === handle.replay().capabilities
+      const closeReturnedUndefined = handle.close() === undefined
+      const afterHandleClose = operationalConnections.map(
+        ({ kind, target }) => ({
+          kind,
+          ...readNativeConnectionState(target),
+        }),
+      )
+
+      return {
+        dbPath,
+        malformedResults,
+        constructorsBeforeValidOpen,
+        constructions,
+        milestones,
+        recoveryProbeWindow,
+        pragmaConfigurations,
+        pragmaReadbacks,
+        applicationMutationSql,
+        beforeHandleClose,
+        afterHandleClose,
+        capabilitiesShared,
+        closeReturnedUndefined,
+      }
+    } finally {
+      afterConstructHook = undefined
+      beforeExecHook = undefined
+      beforePrepareHook = undefined
+      beforeCloseHook = undefined
+      if (handle !== undefined) {
+        try {
+          handle.close()
+        } catch {
+          // Native cleanup below is the final fixture safety net.
+        }
+      }
+      for (const { target } of operationalConnections) {
+        const state = readNativeConnectionState(target)
+        if (state.isOpen === true) {
+          if (state.isTransaction === true) {
+            Reflect.apply(nativeDatabaseExec, target, ['ROLLBACK'])
+          }
+          Reflect.apply(nativeDatabaseClose, target, [])
+        }
+      }
+      rmSync(directory, { recursive: true, force: true })
+    }
+  },
+
+  async 'M1-10-open-cleanup-precedence'() {
+    const fixtures = await import('../helpers/memory-bundle-fixtures.mjs')
+    const publicModule = await import(
+      `../../src/memory-bundle.mjs?m110-open-cleanup=${Date.now()}`
+    )
+    const directory = mkdtempSync(join(tmpdir(), 'palari-m110-open-cleanup-'))
+
+    function runOpenCase(name, specification = {}) {
+      const dbPath = join(directory, `${name}.sqlite`)
+      const setup = new NativeDatabaseSync(dbPath)
+      if (specification.semanticInvalid === true) {
+        fixtures.createM105Bundle(setup, {
+          meta: { head_sequence: 1 },
+          beforeTriggers(connection) {
+            fixtures.insertM105EventRow(connection)
+          },
+        })
+      } else {
+        fixtures.createM105Bundle(setup, { seedActive: true })
+      }
+      Reflect.apply(nativeDatabaseClose, setup, [])
+
+      const records = []
+      const recordsByTarget = new Map()
+      const faultOrder = []
+      let configurationFailureCount = 0
+      let primaryFailureCount = 0
+      let commitFailureCount = 0
+      let rollbackFailureCount = 0
+      let closeFailureCount = 0
+      let returnedHandle
+      let error = null
+
+      afterConstructHook = ({ target, args }) => {
+        if (args[1]?.open === false) return
+        const record = {
+          target,
+          args,
+          kind: args[1]?.readOnly === true ? 'final' : 'recovery',
+          transactionControls: [],
+          closeAttempts: 0,
+        }
+        records.push(record)
+        recordsByTarget.set(target, record)
+      }
+      beforePrepareHook = ({ target, sql }) => {
+        const record = recordsByTarget.get(target)
+        if (record === undefined || primaryFailureCount !== 0) return
+        const recoveryRead =
+          record.kind === 'recovery' &&
+          specification.primaryFailure === 'recovery-read' &&
+          sql === 'SELECT 1 FROM main.sqlite_schema LIMIT 1'
+        const finalRead =
+          record.kind === 'final' &&
+          specification.primaryFailure === 'final-read' &&
+          typeof sql === 'string' &&
+          sql.includes("WHERE name = 'memory_bundle_meta'")
+        if (!recoveryRead && !finalRead) return
+        primaryFailureCount += 1
+        faultOrder.push(`${record.kind}:primary`)
+        throw injectedSqliteFailure(`${record.kind} primary`, 5)
+      }
+      beforeExecHook = ({ target, sql }) => {
+        const record = recordsByTarget.get(target)
+        if (record === undefined || typeof sql !== 'string') return
+        const control = sql.trim()
+        if (
+          specification.configurationFailure === record.kind &&
+          configurationFailureCount === 0 &&
+          control.includes('PRAGMA foreign_keys=ON')
+        ) {
+          configurationFailureCount += 1
+          faultOrder.push(`${record.kind}:configuration`)
+          throw injectedSqliteFailure(`${record.kind} configuration`, 10)
+        }
+        if (isTransactionControl(control)) {
+          record.transactionControls.push(control)
+        }
+        if (
+          control === 'COMMIT' &&
+          specification.commitFailure === record.kind &&
+          commitFailureCount === 0
+        ) {
+          commitFailureCount += 1
+          faultOrder.push(`${record.kind}:commit`)
+          throw injectedSqliteFailure(`${record.kind} commit`, 6)
+        }
+        if (
+          control === 'ROLLBACK' &&
+          specification.rollbackFailure === record.kind &&
+          rollbackFailureCount === 0
+        ) {
+          rollbackFailureCount += 1
+          faultOrder.push(`${record.kind}:rollback`)
+          throw injectedSqliteFailure(`${record.kind} rollback`, 10)
+        }
+      }
+      beforeCloseHook = ({ target }) => {
+        const record = recordsByTarget.get(target)
+        if (record === undefined) return
+        record.closeAttempts += 1
+        if (
+          specification.closeFailure === record.kind &&
+          closeFailureCount === 0
+        ) {
+          closeFailureCount += 1
+          faultOrder.push(`${record.kind}:close`)
+          throw injectedSqliteFailure(`${record.kind} close`, 10)
+        }
+      }
+
+      trace.length = 0
+      try {
+        returnedHandle = publicModule.openMemoryBundle({ dbPath })
+      } catch (caught) {
+        error = serializeError(caught)
+      }
+
+      const connectionStates = records.map((record) => ({
+        kind: record.kind,
+        args: record.args,
+        transactionControls: record.transactionControls,
+        closeAttempts: record.closeAttempts,
+        ...readNativeConnectionState(record.target),
+      }))
+
+      afterConstructHook = undefined
+      beforeExecHook = undefined
+      beforePrepareHook = undefined
+      beforeCloseHook = undefined
+      if (returnedHandle !== undefined) {
+        try {
+          returnedHandle.close()
+        } catch {
+          // An unexpected returned handle is reported and cleaned natively below.
+        }
+      }
+      for (const record of records) {
+        const state = readNativeConnectionState(record.target)
+        if (state.isOpen === true) {
+          if (state.isTransaction === true) {
+            Reflect.apply(nativeDatabaseExec, record.target, ['ROLLBACK'])
+          }
+          Reflect.apply(nativeDatabaseClose, record.target, [])
+        }
+      }
+
+      return {
+        returnedHandle: returnedHandle !== undefined,
+        error,
+        faultOrder,
+        configurationFailureCount,
+        primaryFailureCount,
+        commitFailureCount,
+        rollbackFailureCount,
+        closeFailureCount,
+        connectionStates,
+      }
+    }
+
+    try {
+      return {
+        recoveryConfiguration: runOpenCase('recovery-configuration', {
+          configurationFailure: 'recovery',
+        }),
+        finalConfiguration: runOpenCase('final-configuration', {
+          configurationFailure: 'final',
+        }),
+        recoveryReadBusy: runOpenCase('recovery-read-busy', {
+          primaryFailure: 'recovery-read',
+        }),
+        recoveryCommitBusy: runOpenCase('recovery-commit-busy', {
+          commitFailure: 'recovery',
+        }),
+        recoveryCloseBeatsPrimary: runOpenCase(
+          'recovery-close-beats-primary',
+          {
+            primaryFailure: 'recovery-read',
+            closeFailure: 'recovery',
+          },
+        ),
+        recoveryRollbackBeatsClose: runOpenCase(
+          'recovery-rollback-beats-close',
+          {
+            primaryFailure: 'recovery-read',
+            rollbackFailure: 'recovery',
+            closeFailure: 'recovery',
+          },
+        ),
+        recoveryPostCommitClose: runOpenCase('recovery-post-commit-close', {
+          closeFailure: 'recovery',
+        }),
+        finalSemantic: runOpenCase('final-semantic', {
+          semanticInvalid: true,
+        }),
+        finalCommitBusy: runOpenCase('final-commit-busy', {
+          commitFailure: 'final',
+        }),
+        finalCloseBeatsPrimary: runOpenCase('final-close-beats-primary', {
+          primaryFailure: 'final-read',
+          closeFailure: 'final',
+        }),
+        finalRollbackBeatsClose: runOpenCase(
+          'final-rollback-beats-close',
+          {
+            primaryFailure: 'final-read',
+            rollbackFailure: 'final',
+            closeFailure: 'final',
+          },
+        ),
+      }
+    } finally {
+      afterConstructHook = undefined
+      beforeExecHook = undefined
+      beforePrepareHook = undefined
+      beforeCloseHook = undefined
+      rmSync(directory, { recursive: true, force: true })
+    }
+  },
+
+  async 'M1-10-handle-cleanup-precedence'() {
+    const fixtures = await import('../helpers/memory-bundle-fixtures.mjs')
+    const publicModule = await import(
+      `../../src/memory-bundle.mjs?m110-handle-cleanup=${Date.now()}`
+    )
+    const directory = mkdtempSync(join(tmpdir(), 'palari-m110-handle-cleanup-'))
+
+    function captureCall(callback) {
+      try {
+        const returned = callback()
+        return { returnedUndefined: returned === undefined, error: null }
+      } catch (error) {
+        return { returnedUndefined: false, error: serializeError(error) }
+      }
+    }
+
+    function runHandleCase(name, mode) {
+      const dbPath = join(directory, `${name}.sqlite`)
+      const setup = new NativeDatabaseSync(dbPath)
+      fixtures.createM105Bundle(setup, { seedActive: true })
+      Reflect.apply(nativeDatabaseClose, setup, [])
+
+      const operationalConnections = []
+      afterConstructHook = ({ target, args }) => {
+        if (args[1]?.open === false) return
+        operationalConnections.push({
+          target,
+          kind: args[1]?.readOnly === true ? 'final' : 'recovery',
+        })
+      }
+      const handle = publicModule.openMemoryBundle({ dbPath })
+      const finalTarget = operationalConnections.find(
+        ({ kind }) => kind === 'final',
+      ).target
+      const originalCapabilities = handle.capabilities
+      const transactionControls = []
+      const faultOrder = []
+      let primaryFailureCount = 0
+      let commitFailureCount = 0
+      let rollbackFailureCount = 0
+      let closeAttempts = 0
+      let closeFailureCount = 0
+
+      beforePrepareHook = ({ target, sql }) => {
+        if (
+          target === finalTarget &&
+          (mode === 'read-primary' ||
+            mode === 'poison-close-succeeds' ||
+            mode === 'poison-close-retries') &&
+          primaryFailureCount === 0 &&
+          typeof sql === 'string' &&
+          sql.includes("WHERE name = 'memory_bundle_meta'")
+        ) {
+          primaryFailureCount += 1
+          faultOrder.push('primary')
+          throw injectedSqliteFailure('handle primary', 5)
+        }
+      }
+      beforeExecHook = ({ target, sql }) => {
+        if (target !== finalTarget || typeof sql !== 'string') return
+        const control = sql.trim()
+        if (isTransactionControl(control)) transactionControls.push(control)
+        if (
+          mode === 'commit-primary' &&
+          control === 'COMMIT' &&
+          commitFailureCount === 0
+        ) {
+          commitFailureCount += 1
+          faultOrder.push('commit')
+          throw injectedSqliteFailure('handle commit', 5)
+        }
+        if (
+          (mode === 'poison-close-succeeds' ||
+            mode === 'poison-close-retries') &&
+          control === 'ROLLBACK' &&
+          rollbackFailureCount === 0
+        ) {
+          rollbackFailureCount += 1
+          faultOrder.push('rollback')
+          throw injectedSqliteFailure('handle rollback', 10)
+        }
+      }
+      beforeCloseHook = ({ target }) => {
+        if (target !== finalTarget) return
+        closeAttempts += 1
+        if (
+          (mode === 'ordinary-close-retry' ||
+            mode === 'poison-close-retries') &&
+          closeFailureCount === 0
+        ) {
+          closeFailureCount += 1
+          faultOrder.push('close')
+          throw injectedSqliteFailure('handle close', 10)
+        }
+      }
+
+      trace.length = 0
+      const result = {
+        mode,
+        first: null,
+        recoveryRead: null,
+        closedVerify: null,
+        closedReplay: null,
+        closeResults: [],
+      }
+
+      if (mode === 'read-primary') {
+        result.first = captureCall(() => handle.verify())
+        result.recoveryRead = captureCall(() => handle.replay())
+        result.closeResults.push(captureCall(() => handle.close()))
+      } else if (mode === 'commit-primary') {
+        result.first = captureCall(() => handle.replay())
+        result.recoveryRead = captureCall(() => handle.verify())
+        result.closeResults.push(captureCall(() => handle.close()))
+      } else if (
+        mode === 'poison-close-succeeds' ||
+        mode === 'poison-close-retries'
+      ) {
+        result.first = captureCall(() => handle.verify())
+        const beforeClosedReads = trace.length
+        result.closedVerify = captureCall(() => handle.verify())
+        result.closedReplay = captureCall(() => handle.replay())
+        result.closedReadSqliteCalls = trace.length - beforeClosedReads
+        result.closeResults.push(captureCall(() => handle.close()))
+        result.closeResults.push(captureCall(() => handle.close()))
+      } else {
+        result.first = captureCall(() => handle.close())
+        result.recoveryRead = captureCall(() => handle.verify())
+        result.closeResults.push(captureCall(() => handle.close()))
+        result.closeResults.push(captureCall(() => handle.close()))
+      }
+
+      const beforePostCloseReads = trace.length
+      if (result.closedVerify === null) {
+        result.closedVerify = captureCall(() => handle.verify())
+        result.closedReplay = captureCall(() => handle.replay())
+        result.closedReadSqliteCalls = trace.length - beforePostCloseReads
+      }
+      result.capabilitiesSame =
+        handle.capabilities === originalCapabilities &&
+        Object.isFrozen(handle.capabilities)
+      result.transactionControls = transactionControls
+      result.faultOrder = faultOrder
+      result.primaryFailureCount = primaryFailureCount
+      result.commitFailureCount = commitFailureCount
+      result.rollbackFailureCount = rollbackFailureCount
+      result.closeAttempts = closeAttempts
+      result.closeFailureCount = closeFailureCount
+      Object.assign(result, readNativeConnectionState(finalTarget))
+
+      afterConstructHook = undefined
+      beforeExecHook = undefined
+      beforePrepareHook = undefined
+      beforeCloseHook = undefined
+      const finalState = readNativeConnectionState(finalTarget)
+      if (finalState.isOpen === true) {
+        if (finalState.isTransaction === true) {
+          Reflect.apply(nativeDatabaseExec, finalTarget, ['ROLLBACK'])
+        }
+        Reflect.apply(nativeDatabaseClose, finalTarget, [])
+      }
+      return result
+    }
+
+    try {
+      return {
+        readPrimary: runHandleCase('read-primary', 'read-primary'),
+        commitPrimary: runHandleCase('commit-primary', 'commit-primary'),
+        poisonCloseSucceeds: runHandleCase(
+          'poison-close-succeeds',
+          'poison-close-succeeds',
+        ),
+        poisonCloseRetries: runHandleCase(
+          'poison-close-retries',
+          'poison-close-retries',
+        ),
+        ordinaryCloseRetry: runHandleCase(
+          'ordinary-close-retry',
+          'ordinary-close-retry',
+        ),
+      }
+    } finally {
+      afterConstructHook = undefined
+      beforeExecHook = undefined
+      beforePrepareHook = undefined
+      beforeCloseHook = undefined
       rmSync(directory, { recursive: true, force: true })
     }
   },
