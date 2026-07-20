@@ -17,9 +17,11 @@ const reflectOwnKeys = Reflect.ownKeys
 const reflectGetOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor
 
 const arrayIsArray = Array.isArray
+const numberIsSafeInteger = Number.isSafeInteger
 const objectPrototype = Object.prototype
 const objectHasOwnProperty = Object.prototype.hasOwnProperty
 const arrayPrototype = Array.prototype
+const stringCharCodeAt = String.prototype.charCodeAt
 const nativeDate = Date
 const dateToISOString = Date.prototype.toISOString
 const isProxy = utilTypes.isProxy
@@ -52,7 +54,7 @@ export function isProxyValue(value) {
   return reflectApply(isProxy, undefined, [value])
 }
 
-export function assertOpenDatabaseSync(value) {
+export function captureDatabaseOpenState(value) {
   if (isProxyValue(value)) {
     throw memoryBundleFailure(
       'bundle_invalid_argument',
@@ -60,9 +62,8 @@ export function assertOpenDatabaseSync(value) {
     )
   }
 
-  let isOpen
   try {
-    isOpen = reflectApply(databaseIsOpen, value, [])
+    return reflectApply(databaseIsOpen, value, [])
   } catch (error) {
     throw memoryBundleFailure(
       'bundle_invalid_argument',
@@ -70,8 +71,10 @@ export function assertOpenDatabaseSync(value) {
       error,
     )
   }
+}
 
-  if (isOpen !== true) {
+export function assertOpenDatabaseSync(value) {
+  if (captureDatabaseOpenState(value) !== true) {
     throw memoryBundleFailure(
       'bundle_connection_invalid',
       'The DatabaseSync connection must be open.',
@@ -81,6 +84,29 @@ export function assertOpenDatabaseSync(value) {
 
 export function readDatabaseTransactionState(db) {
   return reflectApply(databaseIsTransaction, db, [])
+}
+
+export function invokeFunction(callback) {
+  return reflectApply(callback, undefined, [])
+}
+
+export function hasAsciiCaseInsensitivePrefix(value, lowercaseAsciiPrefix) {
+  if (
+    typeof value !== 'string' ||
+    value.length < lowercaseAsciiPrefix.length
+  ) {
+    return false
+  }
+  for (let index = 0; index < lowercaseAsciiPrefix.length; index += 1) {
+    let unit = reflectApply(stringCharCodeAt, value, [index])
+    if (unit >= 0x41 && unit <= 0x5a) unit += 0x20
+    if (
+      unit !== reflectApply(stringCharCodeAt, lowercaseAsciiPrefix, [index])
+    ) {
+      return false
+    }
+  }
+  return true
 }
 
 export function constructDatabase(args) {
@@ -112,6 +138,46 @@ export function statementRun(statement, parameters) {
 
 export function closeDatabase(db) {
   return reflectApply(databaseClose, db, [])
+}
+
+function readOwnDataValue(value, key) {
+  if (
+    isProxyValue(value) ||
+    value === null ||
+    (typeof value !== 'object' && typeof value !== 'function')
+  ) {
+    return undefined
+  }
+  const descriptor = reflectGetOwnPropertyDescriptor(value, key)
+  if (
+    descriptor === undefined ||
+    !reflectApply(objectHasOwnProperty, descriptor, ['value'])
+  ) {
+    return undefined
+  }
+  return descriptor.value
+}
+
+export function isNativeSqliteBusyOrLocked(error) {
+  let candidate = error
+  for (let depth = 0; depth < 3; depth += 1) {
+    if (
+      readOwnDataValue(candidate, 'code') === 'ERR_SQLITE_ERROR'
+    ) {
+      const errcode = readOwnDataValue(candidate, 'errcode')
+      if (
+        typeof errcode === 'number' &&
+        reflectApply(numberIsSafeInteger, undefined, [errcode]) &&
+        errcode >= 0
+      ) {
+        const primaryCode = errcode % 0x100
+        if (primaryCode === 5 || primaryCode === 6) return true
+      }
+    }
+    candidate = readOwnDataValue(candidate, 'cause')
+    if (candidate === undefined) return false
+  }
+  return false
 }
 
 export function captureExactRecord(value, specification) {

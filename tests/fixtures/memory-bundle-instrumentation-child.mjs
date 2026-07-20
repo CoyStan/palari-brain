@@ -12,6 +12,9 @@ const databaseTargets = new WeakMap()
 const statementTargets = new WeakMap()
 let accessorPoisonEnabled = false
 let currentAccessorCase
+let beforeExecHook
+let beforePrepareHook
+let afterExecHook
 
 function sqliteOperationName(key) {
   return typeof key === 'symbol' ? String(key) : key
@@ -237,7 +240,17 @@ for (const { key, operation, descriptor, method } of nativeDatabaseMethodEntries
       } else {
         trace.push({ operation, argumentCount: args.length })
       }
-      const result = Reflect.apply(method, unwrapDatabase(this), args)
+      const nativeTarget = unwrapDatabase(this)
+      if (operation === 'exec' && beforeExecHook !== undefined) {
+        beforeExecHook({ target: nativeTarget, sql: args[0] })
+      }
+      if (operation === 'prepare' && beforePrepareHook !== undefined) {
+        beforePrepareHook({ target: nativeTarget, sql: args[0] })
+      }
+      const result = Reflect.apply(method, nativeTarget, args)
+      if (operation === 'exec' && afterExecHook !== undefined) {
+        afterExecHook({ target: nativeTarget, sql: args[0] })
+      }
       return operation === 'prepare' ? wrapStatement(result) : result
     },
   })
@@ -377,6 +390,545 @@ const scenarios = {
       dynamicDatabaseDispatchCallCount,
       dynamicStatementDispatchCallCount,
     }
+  },
+
+  async 'M1-07-initializer-race-window'() {
+    const fixtures = await import('../helpers/memory-bundle-fixtures.mjs')
+    const apply = await import('../../src/memory-bundle-apply.mjs')
+    const directory = mkdtempSync(join(tmpdir(), 'palari-m107-race-'))
+    const openConnections = []
+    const blockingConnections = []
+
+    function readNativeRows(target, sql) {
+      const statement = Reflect.apply(nativeDatabasePrepare, target, [sql])
+      return Reflect.apply(nativeStatementAll, statement, [])
+    }
+
+    function transactionControls() {
+      const controls = []
+      for (const entry of trace) {
+        if (entry.operation !== 'exec' || typeof entry.sql !== 'string') continue
+        const sql = entry.sql.trim()
+        if (
+          sql === 'BEGIN' ||
+          sql === 'COMMIT' ||
+          sql === 'BEGIN IMMEDIATE' ||
+          sql === 'ROLLBACK'
+        ) {
+          controls.push(sql)
+        }
+      }
+      return controls
+    }
+
+    function runRaceCase(name, raceAction) {
+      const dbPath = join(directory, `${name}.sqlite`)
+      const wrapped = new InstrumentedDatabaseSync(dbPath)
+      const target = unwrapDatabase(wrapped)
+      openConnections.push(target)
+      let raceFired = false
+      const callbackCalls = []
+      let returned
+      let error = null
+
+      afterExecHook = ({ target: hookTarget, sql }) => {
+        if (
+          hookTarget === target &&
+          raceFired === false &&
+          typeof sql === 'string' &&
+          sql.trim() === 'COMMIT'
+        ) {
+          raceFired = true
+          raceAction(dbPath)
+        }
+      }
+      trace.length = 0
+      try {
+        returned = apply.initializeMemoryBundle(target, {
+          clock: function clock() {
+            callbackCalls.push({
+              callback: 'clock',
+              thisIsUndefined: this === undefined,
+              argumentCount: arguments.length,
+            })
+            return new Date('2026-07-20T12:34:56.789Z')
+          },
+          idFactory: function idFactory() {
+            callbackCalls.push({
+              callback: 'idFactory',
+              thisIsUndefined: this === undefined,
+              argumentCount: arguments.length,
+            })
+            return '00000000-0000-4000-8000-000000000707'
+          },
+        })
+      } catch (caught) {
+        error = {
+          name: caught?.name ?? null,
+          code: caught?.code ?? null,
+          message: caught?.message ?? String(caught),
+        }
+      } finally {
+        afterExecHook = undefined
+      }
+
+      const controls = transactionControls()
+      const objects = readNativeRows(target, `
+        SELECT type, name
+        FROM main.sqlite_schema
+        WHERE name GLOB 'memory_bundle_*'
+        ORDER BY name COLLATE BINARY
+      `)
+      let hasMeta = false
+      for (const object of objects) {
+        if (object.type === 'table' && object.name === 'memory_bundle_meta') {
+          hasMeta = true
+          break
+        }
+      }
+      const semanticCounts = hasMeta
+        ? readNativeRows(target, `
+            SELECT
+              (SELECT head_sequence
+               FROM main.memory_bundle_meta
+               WHERE singleton = 1) AS headSequence,
+              (SELECT count(*) FROM main.memory_bundle_events) AS eventCount,
+              (SELECT count(*) FROM main.memory_bundle_atoms) AS atomCount
+          `)[0]
+        : null
+      const isTransaction = Reflect.apply(nativeDatabaseIsTransaction, target, [])
+      if (isTransaction) Reflect.apply(nativeDatabaseExec, target, ['ROLLBACK'])
+      Reflect.apply(nativeDatabaseClose, target, [])
+      openConnections.pop()
+
+      return {
+        returnedUndefined: returned === undefined && error === null,
+        error,
+        raceFired,
+        callbackCalls,
+        transactionControls: controls,
+        objects,
+        semanticCounts,
+        isTransactionAfter: isTransaction,
+      }
+    }
+
+    function runExistingCase() {
+      const dbPath = join(directory, 'existing.sqlite')
+      const wrapped = new InstrumentedDatabaseSync(dbPath)
+      const target = unwrapDatabase(wrapped)
+      openConnections.push(target)
+      fixtures.createM105Bundle(target)
+      const callbackCalls = []
+      let returned
+      let error = null
+
+      trace.length = 0
+      try {
+        returned = apply.initializeMemoryBundle(target, {
+          clock() {
+            callbackCalls.push('clock')
+            throw new Error('existing clock must not run')
+          },
+          idFactory() {
+            callbackCalls.push('idFactory')
+            throw new Error('existing idFactory must not run')
+          },
+        })
+      } catch (caught) {
+        error = {
+          name: caught?.name ?? null,
+          code: caught?.code ?? null,
+          message: caught?.message ?? String(caught),
+        }
+      }
+
+      const controls = transactionControls()
+      const objects = readNativeRows(target, `
+        SELECT type, name
+        FROM main.sqlite_schema
+        WHERE name GLOB 'memory_bundle_*'
+        ORDER BY name COLLATE BINARY
+      `)
+      const isTransaction = Reflect.apply(nativeDatabaseIsTransaction, target, [])
+      if (isTransaction) Reflect.apply(nativeDatabaseExec, target, ['ROLLBACK'])
+      Reflect.apply(nativeDatabaseClose, target, [])
+      openConnections.pop()
+
+      return {
+        returnedUndefined: returned === undefined && error === null,
+        error,
+        callbackCalls,
+        transactionControls: controls,
+        objects,
+        isTransactionAfter: isTransaction,
+      }
+    }
+
+    try {
+      const existing = runExistingCase()
+      const complete = runRaceCase('complete', (dbPath) => {
+        const contender = new NativeDatabaseSync(dbPath)
+        try {
+          fixtures.createM105Bundle(contender)
+        } finally {
+          Reflect.apply(nativeDatabaseClose, contender, [])
+        }
+      })
+      const semanticallyInvalid = runRaceCase('semantically-invalid', (dbPath) => {
+        const contender = new NativeDatabaseSync(dbPath)
+        try {
+          fixtures.createM105Bundle(contender, {
+            meta: { head_sequence: 1 },
+            beforeTriggers(db) {
+              fixtures.insertM105EventRow(db)
+            },
+          })
+        } finally {
+          Reflect.apply(nativeDatabaseClose, contender, [])
+        }
+      })
+      const partial = runRaceCase('partial', (dbPath) => {
+        const contender = new NativeDatabaseSync(dbPath)
+        try {
+          Reflect.apply(nativeDatabaseExec, contender, [
+            'CREATE TABLE main.memory_bundle_unknown (id INTEGER)',
+          ])
+        } finally {
+          Reflect.apply(nativeDatabaseClose, contender, [])
+        }
+      })
+      const busy = runRaceCase('busy', (dbPath) => {
+        const blocker = new NativeDatabaseSync(dbPath)
+        blockingConnections.push(blocker)
+        Reflect.apply(nativeDatabaseExec, blocker, [
+          'PRAGMA busy_timeout=0; BEGIN IMMEDIATE;',
+        ])
+      })
+      const absent = runRaceCase('absent', () => {})
+      return { existing, complete, semanticallyInvalid, partial, busy, absent }
+    } finally {
+      afterExecHook = undefined
+      for (const connection of openConnections) {
+        if (Reflect.apply(nativeDatabaseIsTransaction, connection, [])) {
+          Reflect.apply(nativeDatabaseExec, connection, ['ROLLBACK'])
+        }
+        Reflect.apply(nativeDatabaseClose, connection, [])
+      }
+      for (const connection of blockingConnections) {
+        if (Reflect.apply(nativeDatabaseIsTransaction, connection, [])) {
+          Reflect.apply(nativeDatabaseExec, connection, ['ROLLBACK'])
+        }
+        Reflect.apply(nativeDatabaseClose, connection, [])
+      }
+      rmSync(directory, { recursive: true, force: true })
+    }
+  },
+
+  async 'M1-07-initializer-rollback-precedence'() {
+    const apply = await import('../../src/memory-bundle-apply.mjs')
+
+    function transactionControls() {
+      const controls = []
+      for (const entry of trace) {
+        if (entry.operation !== 'exec' || typeof entry.sql !== 'string') continue
+        const sql = entry.sql.trim()
+        if (
+          sql === 'BEGIN' ||
+          sql === 'COMMIT' ||
+          sql === 'BEGIN IMMEDIATE' ||
+          sql === 'ROLLBACK'
+        ) {
+          controls.push(sql)
+        }
+      }
+      return controls
+    }
+
+    function runCleanupCase(name, rollbackFails) {
+      const wrapped = new InstrumentedDatabaseSync(':memory:')
+      const target = unwrapDatabase(wrapped)
+      const callbackCalls = []
+      let primaryFailureSeen = false
+      let error = null
+
+      beforeExecHook = ({ target: hookTarget, sql }) => {
+        if (hookTarget !== target || typeof sql !== 'string') return
+        const trimmed = sql.trim()
+        if (
+          name === 'ddl' &&
+          trimmed.startsWith('CREATE TABLE main.memory_bundle_events')
+        ) {
+          primaryFailureSeen = true
+          throw new Error('injected DDL failure')
+        }
+        if (rollbackFails && primaryFailureSeen && trimmed === 'ROLLBACK') {
+          throw new Error('injected rollback failure')
+        }
+      }
+
+      trace.length = 0
+      try {
+        apply.initializeMemoryBundle(target, {
+          clock: function clock() {
+            callbackCalls.push({
+              callback: 'clock',
+              thisIsUndefined: this === undefined,
+              argumentCount: arguments.length,
+            })
+            if (name === 'callback') {
+              primaryFailureSeen = true
+              throw new Error('injected callback failure')
+            }
+            return new Date('2026-07-20T12:34:56.789Z')
+          },
+          idFactory: function idFactory() {
+            callbackCalls.push({
+              callback: 'idFactory',
+              thisIsUndefined: this === undefined,
+              argumentCount: arguments.length,
+            })
+            return '00000000-0000-4000-8000-000000000708'
+          },
+        })
+      } catch (caught) {
+        error = {
+          name: caught?.name ?? null,
+          code: caught?.code ?? null,
+          message: caught?.message ?? String(caught),
+        }
+      } finally {
+        beforeExecHook = undefined
+      }
+
+      const controls = transactionControls()
+      const transactionRemainedOpen = Reflect.apply(
+        nativeDatabaseIsTransaction,
+        target,
+        [],
+      )
+      if (transactionRemainedOpen) {
+        Reflect.apply(nativeDatabaseExec, target, ['ROLLBACK'])
+      }
+      const objects = (() => {
+        const statement = Reflect.apply(nativeDatabasePrepare, target, [`
+          SELECT type, name
+          FROM main.sqlite_schema
+          WHERE name GLOB 'memory_bundle_*'
+          ORDER BY name COLLATE BINARY
+        `])
+        return Reflect.apply(nativeStatementAll, statement, [])
+      })()
+      Reflect.apply(nativeDatabaseClose, target, [])
+
+      return {
+        error,
+        primaryFailureSeen,
+        callbackCalls,
+        transactionControls: controls,
+        transactionRemainedOpen,
+        objectsAfterNativeCleanup: objects,
+      }
+    }
+
+    try {
+      return {
+        callback: runCleanupCase('callback', true),
+        ddl: runCleanupCase('ddl', true),
+        ddlRollback: runCleanupCase('ddl', false),
+      }
+    } finally {
+      beforeExecHook = undefined
+    }
+  },
+
+  async 'M1-07-initializer-setup-error-precedence'() {
+    const apply = await import('../../src/memory-bundle-apply.mjs')
+    const wrapped = new InstrumentedDatabaseSync(':memory:')
+    const target = unwrapDatabase(wrapped)
+    let injectedFailureSeen = false
+    let callbackCalls = 0
+    let error = null
+
+    beforeExecHook = ({ target: hookTarget, sql }) => {
+      if (
+        hookTarget === target &&
+        injectedFailureSeen === false &&
+        typeof sql === 'string' &&
+        sql.includes('PRAGMA foreign_keys=ON')
+      ) {
+        injectedFailureSeen = true
+        const injected = new Error('injected setup I/O failure')
+        injected.code = 'ERR_SQLITE_ERROR'
+        injected.errcode = 10
+        throw injected
+      }
+    }
+
+    trace.length = 0
+    try {
+      apply.initializeMemoryBundle(target, {
+        clock() {
+          callbackCalls += 1
+          return new Date('2026-07-20T12:34:56.789Z')
+        },
+        idFactory() {
+          callbackCalls += 1
+          return '00000000-0000-4000-8000-000000000709'
+        },
+      })
+    } catch (caught) {
+      error = {
+        name: caught?.name ?? null,
+        code: caught?.code ?? null,
+        message: caught?.message ?? String(caught),
+      }
+    } finally {
+      beforeExecHook = undefined
+    }
+
+    const transactionControls = trace
+      .filter((entry) =>
+        entry.operation === 'exec' &&
+        typeof entry.sql === 'string' &&
+        ['BEGIN', 'COMMIT', 'BEGIN IMMEDIATE', 'ROLLBACK'].includes(
+          entry.sql.trim(),
+        ))
+      .map((entry) => entry.sql.trim())
+    const transactionRemainedOpen = Reflect.apply(
+      nativeDatabaseIsTransaction,
+      target,
+      [],
+    )
+    const statement = Reflect.apply(nativeDatabasePrepare, target, [`
+      SELECT type, name
+      FROM main.sqlite_schema
+      WHERE name GLOB 'memory_bundle_*'
+      ORDER BY name COLLATE BINARY
+    `])
+    const objects = Reflect.apply(nativeStatementAll, statement, [])
+    Reflect.apply(nativeDatabaseClose, target, [])
+
+    return {
+      error,
+      injectedFailureSeen,
+      callbackCalls,
+      transactionControls,
+      transactionRemainedOpen,
+      objects,
+    }
+  },
+
+  async 'M1-07-initializer-pretransaction-native-failures'() {
+    const apply = await import('../../src/memory-bundle-apply.mjs')
+    const specifications = [
+      { phase: 'configuration', name: 'busy', errcode: 5 },
+      { phase: 'configuration', name: 'extended-locked', errcode: 262 },
+      { phase: 'configuration', name: 'io', errcode: 10 },
+      { phase: 'temp-inventory', name: 'busy', errcode: 5 },
+      { phase: 'temp-inventory', name: 'extended-locked', errcode: 262 },
+      { phase: 'temp-inventory', name: 'io', errcode: 10 },
+    ]
+    const results = {}
+
+    for (const specification of specifications) {
+      const wrapped = new InstrumentedDatabaseSync(':memory:')
+      const target = unwrapDatabase(wrapped)
+      let injectedFailureCount = 0
+      let callbackCalls = 0
+      let error = null
+
+      function injectNativeFailure() {
+        injectedFailureCount += 1
+        const injected = new Error(
+          `injected ${specification.phase} ${specification.name} failure`,
+        )
+        injected.code = 'ERR_SQLITE_ERROR'
+        injected.errcode = specification.errcode
+        throw injected
+      }
+
+      beforeExecHook = ({ target: hookTarget, sql }) => {
+        if (
+          specification.phase === 'configuration' &&
+          hookTarget === target &&
+          injectedFailureCount === 0 &&
+          typeof sql === 'string' &&
+          sql.includes('PRAGMA foreign_keys=ON')
+        ) {
+          injectNativeFailure()
+        }
+      }
+      beforePrepareHook = ({ target: hookTarget, sql }) => {
+        if (
+          specification.phase === 'temp-inventory' &&
+          hookTarget === target &&
+          injectedFailureCount === 0 &&
+          typeof sql === 'string' &&
+          sql.includes('FROM temp.sqlite_schema')
+        ) {
+          injectNativeFailure()
+        }
+      }
+
+      trace.length = 0
+      try {
+        apply.initializeMemoryBundle(target, {
+          clock() {
+            callbackCalls += 1
+            return new Date('2026-07-20T12:34:56.789Z')
+          },
+          idFactory() {
+            callbackCalls += 1
+            return '00000000-0000-4000-8000-000000000711'
+          },
+        })
+      } catch (caught) {
+        error = {
+          name: caught?.name ?? null,
+          code: caught?.code ?? null,
+          message: caught?.message ?? String(caught),
+        }
+      } finally {
+        beforeExecHook = undefined
+        beforePrepareHook = undefined
+      }
+
+      const transactionControls = trace
+        .filter((entry) =>
+          entry.operation === 'exec' &&
+          typeof entry.sql === 'string' &&
+          ['BEGIN', 'COMMIT', 'BEGIN IMMEDIATE', 'ROLLBACK'].includes(
+            entry.sql.trim(),
+          ))
+        .map((entry) => entry.sql.trim())
+      const transactionRemainedOpen = Reflect.apply(
+        nativeDatabaseIsTransaction,
+        target,
+        [],
+      )
+      const statement = Reflect.apply(nativeDatabasePrepare, target, [`
+        SELECT type, name
+        FROM main.sqlite_schema
+        WHERE name GLOB 'memory_bundle_*'
+        ORDER BY name COLLATE BINARY
+      `])
+      const objects = Reflect.apply(nativeStatementAll, statement, [])
+      Reflect.apply(nativeDatabaseClose, target, [])
+
+      results[`${specification.phase}:${specification.name}`] = {
+        error,
+        injectedFailureCount,
+        callbackCalls,
+        transactionControls,
+        transactionRemainedOpen,
+        objects,
+      }
+    }
+
+    beforeExecHook = undefined
+    beforePrepareHook = undefined
+    return results
   },
 
   async 'M1-06-verifier-read-only-dispatch'() {

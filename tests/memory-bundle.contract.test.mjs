@@ -1,6 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { runInNewContext } from 'node:vm'
 
@@ -16,7 +19,11 @@ import {
   isCapturedOrdinaryArray,
 } from '../src/memory-bundle-runtime.mjs'
 import {
+  EXPECTED_AUTOINDEX_NAMES,
+  EXPECTED_OBJECTS,
   M1_04_IDS,
+  createM105Bundle,
+  insertM105EventRow,
   makeM104ApplyEnvelope,
   makeM104AtomRow,
   makeM104CanonicalAtom,
@@ -106,10 +113,7 @@ test('M1-02 database branding rejects spoofs and Proxies without traps', () => {
     () => applyModule.initializeMemoryBundle(spoof),
     'bundle_invalid_argument',
   )
-  assertBundleCode(
-    () => applyModule.initializeMemoryBundle(open),
-    'bundle_layout_invalid',
-  )
+  assert.equal(applyModule.initializeMemoryBundle(open), undefined)
 
   open.exec('BEGIN')
   assertBundleCode(
@@ -2294,4 +2298,674 @@ test('M1-04 rejects malformed canonical atom shape, Unicode, and numeric scalars
     )
   }
   assert.equal(coercionCalls, 0)
+})
+
+const M1_07_TIMESTAMP = '2026-07-20T12:34:56.789Z'
+const M1_07_UUID = '00000000-0000-4000-8000-000000000701'
+
+function readM107BundleObjects(db) {
+  const rows = db.prepare(`
+    SELECT type, name, tbl_name, sql
+    FROM main.sqlite_schema
+    ORDER BY name COLLATE BINARY
+  `).all()
+  return rows.filter(({ name }) => {
+    const foldedName = name.toLowerCase()
+    return (
+      foldedName.startsWith('memory_bundle_') ||
+      foldedName.startsWith('sqlite_autoindex_memory_bundle_')
+    )
+  })
+}
+
+function readM107SingleValue(db, sql) {
+  const row = db.prepare(sql).get()
+  const keys = Object.keys(row)
+  assert.equal(keys.length, 1)
+  return row[keys[0]]
+}
+
+function assertM107NoBundleObjects(db) {
+  assert.deepEqual(readM107BundleObjects(db), [])
+  assert.equal(db.isTransaction, false)
+}
+
+function readM107SemanticCounts(db) {
+  return db.prepare(`
+    SELECT
+      (SELECT head_sequence
+       FROM main.memory_bundle_meta
+       WHERE singleton = 1) AS headSequence,
+      (SELECT count(*) FROM main.memory_bundle_events) AS eventCount,
+      (SELECT count(*) FROM main.memory_bundle_atoms) AS atomCount
+  `).get()
+}
+
+test('M1-07 initializes synchronously for every valid option-key subset with the exact fresh manifest', () => {
+  const invocations = [
+    {
+      name: 'omitted',
+      invoke(db) {
+        return applyModule.initializeMemoryBundle(db)
+      },
+    },
+    {
+      name: 'empty',
+      invoke(db) {
+        return applyModule.initializeMemoryBundle(db, {})
+      },
+    },
+    {
+      name: 'clock-only',
+      invoke(db) {
+        return applyModule.initializeMemoryBundle(db, {
+          clock() {
+            return new Date(M1_07_TIMESTAMP)
+          },
+        })
+      },
+    },
+    {
+      name: 'id-only',
+      invoke(db) {
+        return applyModule.initializeMemoryBundle(db, {
+          idFactory() {
+            return M1_07_UUID
+          },
+        })
+      },
+    },
+    {
+      name: 'both',
+      invoke(db) {
+        return applyModule.initializeMemoryBundle(db, {
+          clock() {
+            return new Date(M1_07_TIMESTAMP)
+          },
+          idFactory() {
+            return M1_07_UUID
+          },
+        })
+      },
+    },
+  ]
+
+  const expectedApplicationObjects = EXPECTED_OBJECTS
+    .map(({ type, name }) => ({ type, name }))
+    .sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0)
+  const expectedAutoindexes = [...EXPECTED_AUTOINDEX_NAMES].sort()
+
+  for (const invocation of invocations) {
+    const db = new DatabaseSync(':memory:')
+    try {
+      const result = invocation.invoke(db)
+      assert.equal(result, undefined, invocation.name)
+      assert.equal(result instanceof Promise, false, invocation.name)
+
+      const objects = readM107BundleObjects(db)
+      const applicationObjects = objects
+        .filter(({ name }) => name.startsWith('memory_bundle_'))
+        .map(({ type, name }) => ({ type, name }))
+      const autoindexes = objects
+        .filter(({ name }) => name.startsWith('sqlite_autoindex_'))
+        .map(({ name }) => name)
+      assert.deepEqual(applicationObjects, expectedApplicationObjects, invocation.name)
+      assert.deepEqual(autoindexes, expectedAutoindexes, invocation.name)
+
+      const rows = db.prepare(`
+        SELECT singleton, schema_version, stream_id, head_sequence, created_at
+        FROM main.memory_bundle_meta
+      `).all()
+      assert.equal(rows.length, 1, invocation.name)
+      assert.equal(rows[0].singleton, 1, invocation.name)
+      assert.equal(rows[0].schema_version, 'CDX-B1', invocation.name)
+      assert.match(
+        rows[0].stream_id,
+        /^str_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        invocation.name,
+      )
+      assert.equal(rows[0].head_sequence, 0, invocation.name)
+      assert.match(
+        rows[0].created_at,
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+        invocation.name,
+      )
+      if (invocation.name === 'clock-only' || invocation.name === 'both') {
+        assert.equal(rows[0].created_at, M1_07_TIMESTAMP)
+      }
+      if (invocation.name === 'id-only' || invocation.name === 'both') {
+        assert.equal(rows[0].stream_id, `str_${M1_07_UUID}`)
+      }
+
+      assert.equal(readM107SingleValue(db, 'PRAGMA foreign_keys'), 1)
+      assert.equal(readM107SingleValue(db, 'PRAGMA busy_timeout'), 0)
+      assert.equal(readM107SingleValue(db, 'PRAGMA recursive_triggers'), 1)
+      assert.equal(readM107SingleValue(db, 'PRAGMA ignore_check_constraints'), 0)
+    } finally {
+      db.close()
+    }
+  }
+})
+
+test('M1-07 captures exact options and invokes clock before idFactory with undefined this and zero arguments', () => {
+  const invalidOptions = [
+    { clock: undefined },
+    { idFactory: undefined },
+    { clock: null },
+    { idFactory: M1_07_UUID },
+  ]
+  for (const options of invalidOptions) {
+    const db = new DatabaseSync(':memory:')
+    try {
+      assertBundleCode(
+        () => applyModule.initializeMemoryBundle(db, options),
+        'bundle_invalid_argument',
+      )
+      assertM107NoBundleObjects(db)
+    } finally {
+      db.close()
+    }
+  }
+
+  const db = new DatabaseSync(':memory:')
+  const calls = []
+  try {
+    const result = applyModule.initializeMemoryBundle(db, {
+      clock: function clock() {
+        calls.push({ callback: 'clock', thisIsUndefined: this === undefined, arguments: arguments.length })
+        return new Date(M1_07_TIMESTAMP)
+      },
+      idFactory: function idFactory() {
+        calls.push({ callback: 'idFactory', thisIsUndefined: this === undefined, arguments: arguments.length })
+        return M1_07_UUID
+      },
+    })
+    assert.equal(result, undefined)
+    assert.deepEqual(calls, [
+      { callback: 'clock', thisIsUndefined: true, arguments: 0 },
+      { callback: 'idFactory', thisIsUndefined: true, arguments: 0 },
+    ])
+  } finally {
+    db.close()
+  }
+})
+
+test('M1-07 enforces database, options, open-state, and transaction precedence without Proxy traps', () => {
+  const closed = new DatabaseSync(':memory:')
+  closed.close()
+  assertBundleCode(
+    () => applyModule.initializeMemoryBundle(closed, { unexpected: true }),
+    'bundle_invalid_argument',
+  )
+
+  const active = new DatabaseSync(':memory:')
+  try {
+    active.exec('BEGIN')
+    assertBundleCode(
+      () => applyModule.initializeMemoryBundle(active, { clock: undefined }),
+      'bundle_invalid_argument',
+    )
+    active.exec('ROLLBACK')
+
+    let optionsProxyTrapCount = 0
+    const optionsProxy = new Proxy({}, {
+      get() {
+        optionsProxyTrapCount += 1
+        throw new Error('options Proxy trap ran')
+      },
+      getOwnPropertyDescriptor() {
+        optionsProxyTrapCount += 1
+        throw new Error('options Proxy trap ran')
+      },
+      ownKeys() {
+        optionsProxyTrapCount += 1
+        throw new Error('options Proxy trap ran')
+      },
+    })
+    assert.throws(
+      () => applyModule.initializeMemoryBundle({}, optionsProxy),
+      (error) => {
+        assert.equal(error?.code, 'bundle_invalid_argument')
+        assert.equal(error?.message, 'A native DatabaseSync connection is required.')
+        return true
+      },
+    )
+    assert.equal(optionsProxyTrapCount, 0)
+  } finally {
+    if (active.isTransaction) active.exec('ROLLBACK')
+    active.close()
+  }
+})
+
+test('M1-07 accepts native-branded Date values across realms and subclasses while ignoring overridden methods', () => {
+  class OverriddenDate extends Date {
+    toISOString() {
+      throw new Error('subclass override must not run')
+    }
+  }
+
+  const ownOverride = new Date(M1_07_TIMESTAMP)
+  ownOverride.toISOString = () => {
+    throw new Error('own override must not run')
+  }
+
+  const accepted = [
+    new Date(M1_07_TIMESTAMP),
+    runInNewContext(`new Date('${M1_07_TIMESTAMP}')`),
+    new OverriddenDate(M1_07_TIMESTAMP),
+    ownOverride,
+  ]
+
+  for (const date of accepted) {
+    const db = new DatabaseSync(':memory:')
+    try {
+      assert.equal(applyModule.initializeMemoryBundle(db, {
+        clock() {
+          return date
+        },
+        idFactory() {
+          return M1_07_UUID
+        },
+      }), undefined)
+      assert.equal(
+        db.prepare('SELECT created_at FROM main.memory_bundle_meta').get().created_at,
+        M1_07_TIMESTAMP,
+      )
+    } finally {
+      db.close()
+    }
+  }
+})
+
+test('M1-07 rejects invalid clocks before id generation and fully rolls back clock or id failures', () => {
+  const invalidClockFactories = [
+    () => new Proxy(new Date(M1_07_TIMESTAMP), {}),
+    () => Object.create(Date.prototype),
+    () => new Date('invalid'),
+    () => M1_07_TIMESTAMP,
+    () => ({ toISOString: () => M1_07_TIMESTAMP }),
+    () => { throw new Error('clock failed') },
+    () => {
+      const error = new Error('busy-shaped clock failure')
+      error.code = 'ERR_SQLITE_ERROR'
+      error.errcode = 5
+      throw error
+    },
+  ]
+
+  for (const clock of invalidClockFactories) {
+    const db = new DatabaseSync(':memory:')
+    let idCalls = 0
+    try {
+      assertBundleCode(
+        () => applyModule.initializeMemoryBundle(db, {
+          clock,
+          idFactory() {
+            idCalls += 1
+            return M1_07_UUID
+          },
+        }),
+        'bundle_invalid_argument',
+      )
+      assert.equal(idCalls, 0)
+      assertM107NoBundleObjects(db)
+    } finally {
+      db.close()
+    }
+  }
+
+  const invalidIds = [
+    undefined,
+    `str_${M1_07_UUID}`,
+    '00000000-0000-4000-8000-00000000070A',
+    '00000000-0000-3000-8000-000000000701',
+    7,
+    { toString() { throw new Error('id coercion must not run') } },
+  ]
+  const idFactories = invalidIds.map((value) => () => value)
+  idFactories.push(() => { throw new Error('id factory failed') })
+  idFactories.push(() => {
+    const error = new Error('busy-shaped id factory failure')
+    error.code = 'ERR_SQLITE_ERROR'
+    error.errcode = 6
+    throw error
+  })
+
+  for (const idFactory of idFactories) {
+    const db = new DatabaseSync(':memory:')
+    let clockCalls = 0
+    try {
+      assertBundleCode(
+        () => applyModule.initializeMemoryBundle(db, {
+          clock() {
+            clockCalls += 1
+            return new Date(M1_07_TIMESTAMP)
+          },
+          idFactory,
+        }),
+        'bundle_invalid_argument',
+      )
+      assert.equal(clockCalls, 1)
+      assertM107NoBundleObjects(db)
+    } finally {
+      db.close()
+    }
+  }
+})
+
+test('M1-07 leaves valid existing and partial, malformed, or unknown layouts unchanged without callbacks', () => {
+  const valid = new DatabaseSync(':memory:')
+  let validCallbackCalls = 0
+  try {
+    createM105Bundle(valid)
+    const before = readM107BundleObjects(valid)
+    const options = {
+      clock() {
+        validCallbackCalls += 1
+        throw new Error('existing bundle clock must not run')
+      },
+      idFactory() {
+        validCallbackCalls += 1
+        throw new Error('existing bundle id factory must not run')
+      },
+    }
+    assert.equal(applyModule.initializeMemoryBundle(valid, options), undefined)
+    assert.equal(applyModule.initializeMemoryBundle(valid, options), undefined)
+    assert.equal(validCallbackCalls, 0)
+    assert.deepEqual(readM107BundleObjects(valid), before)
+    assert.equal(valid.isTransaction, false)
+  } finally {
+    valid.close()
+  }
+
+  const invalidLayouts = [
+    'CREATE TABLE main.memory_bundle_meta (singleton INTEGER)',
+    `CREATE VIEW main.memory_bundle_meta AS
+       SELECT 1 AS singleton, 'CDX-B1' AS schema_version`,
+    'CREATE TABLE main.memory_bundle_unknown (id INTEGER)',
+    'CREATE TABLE main.Memory_Bundle_Meta (singleton INTEGER)',
+  ]
+  for (const sql of invalidLayouts) {
+    const db = new DatabaseSync(':memory:')
+    let callbackCalls = 0
+    try {
+      db.exec(sql)
+      const before = readM107BundleObjects(db)
+      assert.ok(before.length > 0)
+      assertBundleCode(
+        () => applyModule.initializeMemoryBundle(db, {
+          clock() {
+            callbackCalls += 1
+            return new Date(M1_07_TIMESTAMP)
+          },
+          idFactory() {
+            callbackCalls += 1
+            return M1_07_UUID
+          },
+        }),
+        'bundle_layout_invalid',
+      )
+      assert.equal(callbackCalls, 0)
+      assert.deepEqual(readM107BundleObjects(db), before)
+      assert.equal(db.isTransaction, false)
+    } finally {
+      db.close()
+    }
+  }
+
+  const semanticallyInvalid = new DatabaseSync(':memory:')
+  let semanticCallbackCalls = 0
+  try {
+    createM105Bundle(semanticallyInvalid, {
+      meta: { head_sequence: 1 },
+      beforeTriggers(db) {
+        insertM105EventRow(db)
+      },
+    })
+    const before = readM107BundleObjects(semanticallyInvalid)
+    const semanticBefore = readM107SemanticCounts(semanticallyInvalid)
+    assertBundleCode(
+      () => applyModule.initializeMemoryBundle(semanticallyInvalid, {
+        clock() {
+          semanticCallbackCalls += 1
+          throw new Error('semantic-invalid clock must not run')
+        },
+        idFactory() {
+          semanticCallbackCalls += 1
+          throw new Error('semantic-invalid idFactory must not run')
+        },
+      }),
+      'bundle_missing_atom',
+    )
+    assert.equal(semanticCallbackCalls, 0)
+    assert.deepEqual(readM107BundleObjects(semanticallyInvalid), before)
+    assert.deepEqual(readM107SemanticCounts(semanticallyInvalid), semanticBefore)
+    assert.equal(semanticBefore.headSequence, 1)
+    assert.equal(semanticBefore.eventCount, 1)
+    assert.equal(semanticBefore.atomCount, 0)
+    assert.equal(semanticallyInvalid.isTransaction, false)
+  } finally {
+    semanticallyInvalid.close()
+  }
+
+  const mixedCaseAdditional = new DatabaseSync(':memory:')
+  let mixedCaseCallbackCalls = 0
+  try {
+    createM105Bundle(mixedCaseAdditional)
+    mixedCaseAdditional.exec(
+      'CREATE TABLE main.Memory_Bundle_Unknown (id INTEGER)',
+    )
+    const before = readM107BundleObjects(mixedCaseAdditional)
+    assert.equal(
+      before.some(({ name }) => name === 'Memory_Bundle_Unknown'),
+      true,
+    )
+    assertBundleCode(
+      () => applyModule.initializeMemoryBundle(mixedCaseAdditional, {
+        clock() {
+          mixedCaseCallbackCalls += 1
+          throw new Error('mixed-case clock must not run')
+        },
+        idFactory() {
+          mixedCaseCallbackCalls += 1
+          throw new Error('mixed-case idFactory must not run')
+        },
+      }),
+      'bundle_layout_invalid',
+    )
+    assert.equal(mixedCaseCallbackCalls, 0)
+    assert.deepEqual(readM107BundleObjects(mixedCaseAdditional), before)
+    assert.equal(mixedCaseAdditional.isTransaction, false)
+  } finally {
+    mixedCaseAdditional.close()
+  }
+})
+
+test('M1-07 never delegates schema candidate selection to an overridden glob function', () => {
+  const fresh = new DatabaseSync(':memory:')
+  let freshGlobCalls = 0
+  try {
+    fresh.function('glob', function globPoison(pattern, value) {
+      freshGlobCalls += 1
+      throw new Error(`glob poison ran for ${pattern} and ${value}`)
+    })
+    assert.equal(applyModule.initializeMemoryBundle(fresh, {
+      clock() {
+        return new Date(M1_07_TIMESTAMP)
+      },
+      idFactory() {
+        return M1_07_UUID
+      },
+    }), undefined)
+    assert.equal(freshGlobCalls, 0)
+    assert.equal(readM107SemanticCounts(fresh).headSequence, 0)
+  } finally {
+    fresh.close()
+  }
+
+  const existing = new DatabaseSync(':memory:')
+  let existingGlobCalls = 0
+  let existingCallbackCalls = 0
+  try {
+    createM105Bundle(existing)
+    existing.function('glob', function globFalse(_pattern, _value) {
+      existingGlobCalls += 1
+      return 0
+    })
+    assert.equal(
+      existing.prepare(`
+        SELECT 'memory_bundle_meta' GLOB 'memory_bundle_*' AS matches
+      `).get().matches,
+      0,
+    )
+    assert.equal(existingGlobCalls, 1)
+    existingGlobCalls = 0
+    assert.equal(applyModule.initializeMemoryBundle(existing, {
+      clock() {
+        existingCallbackCalls += 1
+        throw new Error('existing clock must not run')
+      },
+      idFactory() {
+        existingCallbackCalls += 1
+        throw new Error('existing idFactory must not run')
+      },
+    }), undefined)
+    assert.equal(existingCallbackCalls, 0)
+    assert.equal(existingGlobCalls, 0)
+  } finally {
+    existing.close()
+  }
+
+  const coexistence = new DatabaseSync(':memory:')
+  let coexistenceGlobCalls = 0
+  let coexistenceCallbackCalls = 0
+  try {
+    createM105Bundle(coexistence)
+    coexistence.exec(
+      'CREATE TABLE main.unrelated_application_table (id INTEGER)',
+    )
+    coexistence.function('glob', function globTrue(_pattern, _value) {
+      coexistenceGlobCalls += 1
+      return 1
+    })
+    const options = {
+      clock() {
+        coexistenceCallbackCalls += 1
+        throw new Error('coexisting clock must not run')
+      },
+      idFactory() {
+        coexistenceCallbackCalls += 1
+        throw new Error('coexisting idFactory must not run')
+      },
+    }
+    assert.equal(
+      applyModule.initializeMemoryBundle(coexistence, options),
+      undefined,
+    )
+    coexistence.exec(
+      'CREATE TABLE main.Memory_Bundle_Unknown (id INTEGER)',
+    )
+    assertBundleCode(
+      () => applyModule.initializeMemoryBundle(coexistence, options),
+      'bundle_layout_invalid',
+    )
+    assert.equal(coexistenceCallbackCalls, 0)
+    assert.equal(coexistenceGlobCalls, 0)
+    assert.equal(coexistence.isTransaction, false)
+  } finally {
+    coexistence.close()
+  }
+})
+
+test('M1-07 first initialization busy is immediate, unretried, callback-free, and recoverable', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'palari-m107-busy-'))
+  const dbPath = join(directory, 'bundle.sqlite')
+  const blocker = new DatabaseSync(dbPath)
+  const initializer = new DatabaseSync(dbPath)
+  let callbackCalls = 0
+  try {
+    blocker.exec('PRAGMA busy_timeout=0; BEGIN IMMEDIATE;')
+    const started = process.hrtime.bigint()
+    assertBundleCode(
+      () => applyModule.initializeMemoryBundle(initializer, {
+        clock() {
+          callbackCalls += 1
+          return new Date(M1_07_TIMESTAMP)
+        },
+        idFactory() {
+          callbackCalls += 1
+          return M1_07_UUID
+        },
+      }),
+      'bundle_busy',
+    )
+    const elapsedMilliseconds = Number(process.hrtime.bigint() - started) / 1e6
+    assert.ok(elapsedMilliseconds < 2000, `busy failure took ${elapsedMilliseconds}ms`)
+    assert.equal(callbackCalls, 0)
+    assertM107NoBundleObjects(initializer)
+
+    blocker.exec('ROLLBACK')
+    assert.equal(applyModule.initializeMemoryBundle(initializer, {
+      clock() {
+        callbackCalls += 1
+        return new Date(M1_07_TIMESTAMP)
+      },
+      idFactory() {
+        callbackCalls += 1
+        return M1_07_UUID
+      },
+    }), undefined)
+    assert.equal(callbackCalls, 2)
+  } finally {
+    if (blocker.isTransaction) blocker.exec('ROLLBACK')
+    initializer.close()
+    blocker.close()
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+test('M1-07 rejects canonical-target TEMP triggers and creates only main objects under inert shadows', () => {
+  const contaminated = new DatabaseSync(':memory:')
+  try {
+    contaminated.exec(`
+      CREATE TEMP TABLE memory_bundle_meta (value INTEGER);
+      CREATE TEMP TRIGGER canonical_shadow_trigger
+      BEFORE INSERT ON memory_bundle_meta
+      BEGIN SELECT 1; END;
+    `)
+    assertBundleCode(
+      () => applyModule.initializeMemoryBundle(contaminated),
+      'bundle_connection_invalid',
+    )
+    assertM107NoBundleObjects(contaminated)
+  } finally {
+    contaminated.close()
+  }
+
+  const shadowed = new DatabaseSync(':memory:')
+  try {
+    shadowed.exec(`
+      CREATE TEMP TABLE memory_bundle_meta (value INTEGER);
+      CREATE TEMP TABLE memory_bundle_events (value INTEGER);
+      CREATE TEMP TABLE memory_bundle_atoms (value INTEGER);
+    `)
+    assert.equal(applyModule.initializeMemoryBundle(shadowed, {
+      clock() {
+        return new Date(M1_07_TIMESTAMP)
+      },
+      idFactory() {
+        return M1_07_UUID
+      },
+    }), undefined)
+    assert.equal(
+      shadowed.prepare('SELECT schema_version FROM main.memory_bundle_meta').get().schema_version,
+      'CDX-B1',
+    )
+    assert.equal(
+      shadowed.prepare('SELECT count(*) AS count FROM temp.memory_bundle_meta').get().count,
+      0,
+    )
+  } finally {
+    shadowed.close()
+  }
 })

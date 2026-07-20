@@ -177,7 +177,10 @@ race-safe state machine:
    reject the connection-local TEMP-trigger contamination defined in §9 with
    `bundle_connection_invalid`.
 2. Open one explicit deferred read transaction. Inventory only
-   `main.sqlite_schema`.
+   `main.sqlite_schema`. For this presence test only, ASCII-fold `name`
+   before matching the `memory_bundle_*` prefix because SQLite identifier
+   lookup is ASCII-case-insensitive. Complete verification still requires
+   the exact BINARY object names in §9.
 3. If any application-defined `memory_bundle_*` object exists in that
    snapshot, perform complete verification there. On success, commit the
    read transaction and return without calling either callback. On failure,
@@ -816,6 +819,19 @@ and SQL semantics. Complete verification compares the exact main
 `memory_bundle_*` object inventory and also enumerates every main trigger by
 canonical target table, regardless of trigger-name prefix; it never checks
 merely for table existence.
+
+The initializer's pre-verification presence inventory ASCII-folds
+`main.sqlite_schema.name` only for the `memory_bundle_*` application prefix.
+The complete verifier does the same and also folds the
+`sqlite_autoindex_memory_bundle_*` prefix for candidate selection. This
+detects case-variant identifiers that collide with canonical names under
+SQLite lookup and additional mixed-case bundle objects. Complete verification
+compares each original name with the exact BINARY inventory below, so every
+non-exact or additional candidate is `bundle_layout_invalid`; initializer
+callbacks are not invoked. Candidate selection does not relax the exact
+persisted object inventory. It filters an unfiltered, main-qualified
+schema-row read in captured application code and does not delegate matching
+to an overridable SQLite pattern function or operator.
 
 Each of the 13 application-defined objects has one exact
 `{ executionSql, persistedSql }` manifest entry. The SQL fence below is the

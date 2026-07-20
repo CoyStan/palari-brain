@@ -10,6 +10,8 @@ import {
 } from './memory-bundle-errors.mjs'
 import {
   execDatabase,
+  hasAsciiCaseInsensitivePrefix,
+  isNativeSqliteBusyOrLocked,
   prepareRowStatement,
   statementAll,
 } from './memory-bundle-runtime.mjs'
@@ -29,15 +31,12 @@ import {
 const reflectApply = Reflect.apply
 const reflectConstruct = Reflect.construct
 const reflectDefineProperty = Reflect.defineProperty
-const reflectGetOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor
 const reflectOwnKeys = Reflect.ownKeys
 const arraySort = Array.prototype.sort
 const numberIsSafeInteger = Number.isSafeInteger
-const objectHasOwnProperty = Object.prototype.hasOwnProperty
 const objectIs = Object.is
 const stringCharCodeAt = String.prototype.charCodeAt
 const stringFromCharCode = String.fromCharCode
-const stringStartsWith = String.prototype.startsWith
 const nativeMap = Map
 const nativeSet = Set
 const mapGet = Map.prototype.get
@@ -191,41 +190,6 @@ function soleRowValue(rows) {
   return rows[0][keys[0]]
 }
 
-function readOwnDataValue(value, key) {
-  if (
-    value === null ||
-    (typeof value !== 'object' && typeof value !== 'function')
-  ) {
-    return undefined
-  }
-  const descriptor = reflectApply(
-    reflectGetOwnPropertyDescriptor,
-    undefined,
-    [value, key],
-  )
-  if (
-    descriptor === undefined ||
-    !reflectApply(objectHasOwnProperty, descriptor, ['value'])
-  ) {
-    return undefined
-  }
-  return descriptor.value
-}
-
-function isNativeSqliteBusyOrLocked(error) {
-  if (readOwnDataValue(error, 'code') !== 'ERR_SQLITE_ERROR') return false
-  const errcode = readOwnDataValue(error, 'errcode')
-  if (
-    typeof errcode !== 'number' ||
-    !reflectApply(numberIsSafeInteger, undefined, [errcode]) ||
-    errcode < 0
-  ) {
-    return false
-  }
-  const primaryCode = errcode % 0x100
-  return primaryCode === 5 || primaryCode === 6
-}
-
 function guardedFailure(error, fallbackCode, fallbackMessage) {
   const preserved = preserveMemoryBundleError(
     error,
@@ -287,9 +251,9 @@ export function configureOwnedBundleConnection(db) {
     `)
     assertRequiredPragmas(db)
   } catch (error) {
-    throw preserveMemoryBundleError(
+    throw guardedFailure(
       error,
-      'bundle_connection_invalid',
+      'bundle_storage_error',
       'The owned bundle connection could not be configured.',
     )
   }
@@ -299,9 +263,9 @@ export function assertBorrowedBundleConnection(db) {
   try {
     assertRequiredPragmas(db)
   } catch (error) {
-    throw preserveMemoryBundleError(
+    throw guardedFailure(
       error,
-      'bundle_connection_invalid',
+      'bundle_storage_error',
       'The borrowed bundle connection does not match the required policy.',
     )
   }
@@ -325,9 +289,9 @@ export function rejectCanonicalTempTriggers(db) {
       }
     }
   } catch (error) {
-    throw preserveMemoryBundleError(
+    throw guardedFailure(
       error,
-      'bundle_connection_invalid',
+      'bundle_storage_error',
       'TEMP trigger state could not be accepted.',
     )
   }
@@ -361,13 +325,26 @@ function readMetaPreflight(db) {
 }
 
 function readSchemaInventory(db) {
-  return readRows(db, `
+  const rows = readRows(db, `
     SELECT type, name, tbl_name, sql
     FROM main.sqlite_schema
-    WHERE name GLOB 'memory_bundle_*'
-       OR name GLOB 'sqlite_autoindex_memory_bundle_*'
-    ORDER BY name COLLATE BINARY
   `)
+  const candidates = []
+  for (let index = 0; index < rows.length; index += 1) {
+    if (
+      hasAsciiCaseInsensitivePrefix(rows[index].name, 'memory_bundle_') ||
+      hasAsciiCaseInsensitivePrefix(
+        rows[index].name,
+        'sqlite_autoindex_memory_bundle_',
+      )
+    ) {
+      appendValue(candidates, rows[index])
+    }
+  }
+  return sortRows(
+    candidates,
+    (left, right) => compareCodeUnits(left.name, right.name),
+  )
 }
 
 function verifyObjectInventory(rows) {
@@ -375,10 +352,7 @@ function verifyObjectInventory(rows) {
   const autoindexRows = []
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index]
-    if (
-      typeof row.name === 'string' &&
-      reflectApply(stringStartsWith, row.name, [AUTOINDEX_PREFIX])
-    ) {
+    if (hasAsciiCaseInsensitivePrefix(row.name, AUTOINDEX_PREFIX)) {
       appendValue(autoindexRows, {
         type: row.type,
         name: row.name,
