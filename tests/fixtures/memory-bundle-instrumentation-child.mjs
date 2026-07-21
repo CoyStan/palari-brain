@@ -1,11 +1,19 @@
 import { mkdtempSync, rmSync } from 'node:fs'
-import { registerHooks } from 'node:module'
+import cryptoModule, { randomUUID as liveCryptoRandomUuid } from 'node:crypto'
+import { registerHooks, syncBuiltinESMExports } from 'node:module'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import pathModule, {
+  isAbsolute as livePathIsAbsolute,
+  join,
+} from 'node:path'
 import {
   DatabaseSync as NativeDatabaseSync,
   StatementSync as NativeStatementSync,
 } from 'node:sqlite'
+
+const harnessReflectApply = Reflect.apply
+const harnessReflectConstruct = Reflect.construct
+const harnessNativeDate = Date
 
 const trace = []
 const databaseTargets = new WeakMap()
@@ -16,7 +24,9 @@ let beforeExecHook
 let beforePrepareHook
 let afterExecHook
 let afterConstructHook
+let afterWrapStatementHook
 let beforeCloseHook
+let operationalRowModeOptions
 
 function sqliteOperationName(key) {
   return typeof key === 'symbol' ? String(key) : key
@@ -174,7 +184,7 @@ function wrapDatabase(target) {
         if (accessorPoisonEnabled) {
           return recordDynamicDatabaseAccessor(accessor.operation)
         }
-        return Reflect.apply(accessor.getter, nativeTarget, [])
+        return harnessReflectApply(accessor.getter, nativeTarget, [])
       }
       return Reflect.get(nativeTarget, key, receiver)
     },
@@ -195,21 +205,34 @@ function wrapStatement(target) {
         if (accessorPoisonEnabled) {
           return recordDynamicStatementAccessor(operation)
         }
-        return Reflect.apply(getter, target, [])
+        return harnessReflectApply(getter, target, [])
       },
     })
+  }
+  if (afterWrapStatementHook !== undefined) {
+    afterWrapStatementHook({ wrapper, target })
   }
   return wrapper
 }
 
 class InstrumentedDatabaseSync extends NativeDatabaseSync {
   constructor(...args) {
-    trace.push({ operation: 'construct', args })
-    super(...args)
+    const effectiveArgs =
+      operationalRowModeOptions === undefined || args[1]?.open === false
+        ? args
+        : [
+            args[0],
+            {
+              ...(args[1] ?? {}),
+              ...operationalRowModeOptions,
+            },
+          ]
+    trace.push({ operation: 'construct', args: effectiveArgs })
+    super(...effectiveArgs)
     if (afterConstructHook !== undefined) {
-      afterConstructHook({ target: this, args })
+      afterConstructHook({ target: this, args: effectiveArgs })
     }
-    if (args[1]?.open === false) {
+    if (effectiveArgs[1]?.open === false) {
       const probe = {}
       for (const {
         key,
@@ -225,7 +248,7 @@ class InstrumentedDatabaseSync extends NativeDatabaseSync {
               operation,
               dispatch: 'captured',
             })
-            return Reflect.apply(getter, unwrapDatabase(this), [])
+            return harnessReflectApply(getter, unwrapDatabase(this), [])
           },
         })
       }
@@ -256,7 +279,7 @@ for (const { key, operation, descriptor, method } of nativeDatabaseMethodEntries
       if (operation === 'close' && beforeCloseHook !== undefined) {
         beforeCloseHook({ target: nativeTarget })
       }
-      const result = Reflect.apply(method, nativeTarget, args)
+      const result = harnessReflectApply(method, nativeTarget, args)
       if (operation === 'exec' && afterExecHook !== undefined) {
         afterExecHook({ target: nativeTarget, sql: args[0] })
       }
@@ -274,7 +297,7 @@ for (const { key, operation, descriptor, method } of nativeStatementMethodEntrie
       } else {
         trace.push({ operation, parameters: args })
       }
-      return Reflect.apply(method, unwrapStatement(this), args)
+      return harnessReflectApply(method, unwrapStatement(this), args)
     },
   })
 }
@@ -353,6 +376,162 @@ function isTransactionControl(sql) {
     sql === 'COMMIT' ||
     sql === 'ROLLBACK'
   )
+}
+
+function collectPreparedReadWindows(entries) {
+  const windows = []
+  for (let index = 0; index < entries.length; index += 1) {
+    const prepared = entries[index]
+    if (prepared.operation !== 'prepare') continue
+
+    const operations = []
+    let resolved = false
+    for (let cursor = index + 1; cursor < entries.length; cursor += 1) {
+      const entry = entries[cursor]
+      if (
+        entry.operation === 'prepare' ||
+        entry.operation === 'exec' ||
+        entry.operation === 'construct' ||
+        entry.operation === 'close'
+      ) {
+        windows.push({ sql: prepared.sql, operations, incomplete: true })
+        resolved = true
+        break
+      }
+      operations.push(entry)
+      if (entry.operation === 'get' || entry.operation === 'all') {
+        windows.push({ sql: prepared.sql, operations })
+        resolved = true
+        break
+      }
+      if (entry.operation === 'run') {
+        resolved = true
+        break
+      }
+    }
+    if (!resolved) {
+      windows.push({ sql: prepared.sql, operations, incomplete: true })
+    }
+  }
+  return windows
+}
+
+function normalizeTraceSql(sql) {
+  return sql.trim().replace(/\s+/g, ' ')
+}
+
+function classifyTraceSql(sql) {
+  const normalized = normalizeTraceSql(sql)
+  if (isTransactionControl(normalized)) return `control:${normalized}`
+  if (
+    normalized ===
+    'PRAGMA foreign_keys=ON; PRAGMA busy_timeout=0; ' +
+      'PRAGMA recursive_triggers=ON; PRAGMA ignore_check_constraints=OFF;'
+  ) {
+    return 'configure'
+  }
+  const pragma = /^PRAGMA (foreign_keys|busy_timeout|recursive_triggers|ignore_check_constraints)$/.exec(
+    normalized,
+  )
+  if (pragma !== null) return `pragma:${pragma[1]}`
+  if (normalized === 'SELECT type, name FROM main.sqlite_schema') {
+    return 'application-inventory'
+  }
+  if (
+    normalized ===
+    "SELECT type FROM main.sqlite_schema WHERE name = 'memory_bundle_meta' " +
+      'ORDER BY type COLLATE BINARY'
+  ) {
+    return 'verify-meta-table'
+  }
+  if (
+    normalized ===
+    'SELECT singleton, schema_version FROM main.memory_bundle_meta ' +
+      'WHERE singleton = 1'
+  ) {
+    return 'verify-meta-preflight'
+  }
+  if (
+    normalized.startsWith('SELECT memory_id, stream_id, created_sequence,') &&
+    normalized.includes('FROM main.memory_bundle_atoms')
+  ) {
+    return 'verify-atoms'
+  }
+  if (normalized.startsWith('INSERT INTO main.memory_bundle_meta (')) {
+    return 'insert-meta'
+  }
+  if (normalized === 'SELECT 1 FROM main.sqlite_schema LIMIT 1') {
+    return 'recovery-schema'
+  }
+  if (normalized.includes('FROM temp.sqlite_schema')) return 'temp-triggers'
+
+  const ddl = /^CREATE (?:UNIQUE )?(?:TABLE|INDEX|TRIGGER) main\.(memory_bundle_[a-z0-9_]+)/.exec(
+    normalized,
+  )
+  if (ddl !== null) return `ddl:${ddl[1]}`
+  return null
+}
+
+function compactOrderedCalls(entries) {
+  const calls = []
+  let selectedStatement = false
+
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index]
+    if (entry.operation === 'construct') {
+      selectedStatement = false
+      if (entry.args[1]?.open === false) {
+        calls.push('construct:probe')
+      } else if (entry.args[1]?.readOnly === true) {
+        calls.push('construct:final')
+      } else if (entry.args[1]?.readOnly === false) {
+        calls.push('construct:recovery')
+      } else {
+        calls.push('construct:caller')
+      }
+      continue
+    }
+    if (entry.operation === 'exec') {
+      selectedStatement = false
+      const role = classifyTraceSql(entry.sql)
+      if (role !== null) calls.push(`exec:${role}`)
+      continue
+    }
+    if (entry.operation === 'prepare') {
+      const role = classifyTraceSql(entry.sql)
+      selectedStatement = role !== null
+      if (selectedStatement) calls.push(`prepare:${role}`)
+      continue
+    }
+    if (entry.operation === 'callback') {
+      selectedStatement = false
+      calls.push(`callback:${entry.callback}`)
+      continue
+    }
+    if (entry.operation === 'close') {
+      selectedStatement = false
+      calls.push('close')
+      continue
+    }
+    if (!selectedStatement) continue
+    if (entry.operation === 'setReadBigInts') {
+      calls.push(`statement:setReadBigInts(${String(entry.value)})`)
+      continue
+    }
+    if (entry.operation === 'setReturnArrays') {
+      calls.push(`statement:setReturnArrays(${String(entry.value)})`)
+      continue
+    }
+    if (
+      entry.operation === 'get' ||
+      entry.operation === 'all' ||
+      entry.operation === 'run'
+    ) {
+      calls.push(`statement:${entry.operation}/${entry.parameters.length}`)
+      selectedStatement = false
+    }
+  }
+  return calls
 }
 
 const scenarios = {
@@ -443,6 +622,562 @@ const scenarios = {
     }
   },
 
+  async 'M1-11-captured-dispatch-end-to-end'() {
+    const databaseOperations = ['exec', 'prepare', 'close']
+    const statementOperations = [
+      'get',
+      'all',
+      'run',
+      'setReadBigInts',
+      'setReturnArrays',
+    ]
+    const poisonCalls = {
+      databasePrototype: 0,
+      statementPrototype: 0,
+      databaseInstance: 0,
+      statementInstance: 0,
+      reflectApply: 0,
+      reflectConstruct: 0,
+      date: 0,
+      pathIsAbsolute: 0,
+      cryptoRandomUuid: 0,
+    }
+    const capturedApplyCounts = {
+      exec: 0,
+      prepare: 0,
+      close: 0,
+      get: 0,
+      all: 0,
+      run: 0,
+      setReadBigInts: 0,
+      setReturnArrays: 0,
+      pathIsAbsolute: 0,
+      cryptoRandomUuid: 0,
+    }
+    const capturedConstructCounts = {
+      database: 0,
+      date: 0,
+    }
+    const databasePrototypeDescriptors = databaseOperations.map((key) => ({
+      target: InstrumentedDatabaseSync.prototype,
+      key,
+      descriptor: Object.getOwnPropertyDescriptor(
+        InstrumentedDatabaseSync.prototype,
+        key,
+      ),
+    }))
+    const statementPrototypeDescriptors = statementOperations.map((key) => ({
+      target: InstrumentedStatementSync.prototype,
+      key,
+      descriptor: Object.getOwnPropertyDescriptor(
+        InstrumentedStatementSync.prototype,
+        key,
+      ),
+    }))
+    const reflectApplyDescriptor = Object.getOwnPropertyDescriptor(
+      Reflect,
+      'apply',
+    )
+    const reflectConstructDescriptor = Object.getOwnPropertyDescriptor(
+      Reflect,
+      'construct',
+    )
+    const dateDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'Date')
+    const pathIsAbsoluteDescriptor = Object.getOwnPropertyDescriptor(
+      pathModule,
+      'isAbsolute',
+    )
+    const cryptoRandomUuidDescriptor = Object.getOwnPropertyDescriptor(
+      cryptoModule,
+      'randomUUID',
+    )
+    const capturedApplyTargets = new Map([
+      ...databasePrototypeDescriptors.map(({ key, descriptor }) => [
+        descriptor.value,
+        key,
+      ]),
+      ...statementPrototypeDescriptors.map(({ key, descriptor }) => [
+        descriptor.value,
+        key,
+      ]),
+      [pathIsAbsoluteDescriptor.value, 'pathIsAbsolute'],
+      [cryptoRandomUuidDescriptor.value, 'cryptoRandomUuid'],
+    ])
+    const capturedConstructTargets = new Map([
+      [InstrumentedDatabaseSync, 'database'],
+      [harnessNativeDate, 'date'],
+    ])
+    const databaseInstanceDescriptors = []
+    const statementInstanceDescriptors = []
+    const operationalConnections = []
+
+    class BorrowedSubclass extends InstrumentedDatabaseSync {}
+
+    let directory
+    let borrowed
+    let input
+    let runtime
+    let apply
+    let publicModule
+    let borrowedStartedAsSubclass = false
+    let borrowedPrototypeChanged = false
+    let initializeReturnedUndefined = false
+    let applyReturnedUndefined = false
+    let borrowedCloseReturnedUndefined = false
+    let publicCloseReturnedUndefined = false
+    let checkpoint = null
+    let replayMemoryIds = []
+    let initializedMeta = null
+    let operationError = null
+    let poisonTrace = []
+    let importedBindingsReplaced = false
+    let capturedApplyBaseline = { ...capturedApplyCounts }
+    let capturedConstructBaseline = { ...capturedConstructCounts }
+
+    function countingReflectApply(target, thisArgument, argumentsList) {
+      const operation = capturedApplyTargets.get(target)
+      if (operation !== undefined) capturedApplyCounts[operation] += 1
+      return harnessReflectApply(target, thisArgument, argumentsList)
+    }
+
+    function countingReflectConstruct(target, argumentsList, newTarget) {
+      const operation = capturedConstructTargets.get(target)
+      if (operation !== undefined) capturedConstructCounts[operation] += 1
+      if (arguments.length === 2) {
+        return harnessReflectConstruct(target, argumentsList)
+      }
+      return harnessReflectConstruct(target, argumentsList, newTarget)
+    }
+
+    function makePoison(counter, label) {
+      return function capturedDispatchPoison() {
+        poisonCalls[counter] += 1
+        throw new Error(`${label} poison ran`)
+      }
+    }
+
+    function installOwnPoison(target, key, counter, records) {
+      const descriptor = Object.getOwnPropertyDescriptor(target, key)
+      records.push({ target, key, descriptor })
+      Object.defineProperty(target, key, {
+        __proto__: null,
+        value: makePoison(counter, `${counter}:${key}`),
+        enumerable: false,
+        configurable: true,
+        writable: true,
+      })
+    }
+
+    function restoreOwnDescriptors(records) {
+      for (let index = records.length - 1; index >= 0; index -= 1) {
+        const { target, key, descriptor } = records[index]
+        if (descriptor === undefined) {
+          Reflect.deleteProperty(target, key)
+        } else {
+          Object.defineProperty(target, key, descriptor)
+        }
+      }
+    }
+
+    try {
+      Object.defineProperty(Reflect, 'apply', {
+        ...reflectApplyDescriptor,
+        value: countingReflectApply,
+      })
+      Object.defineProperty(Reflect, 'construct', {
+        ...reflectConstructDescriptor,
+        value: countingReflectConstruct,
+      })
+
+      const fixtures = await import('../helpers/memory-bundle-fixtures.mjs')
+      runtime = await import('../../src/memory-bundle-runtime.mjs')
+      apply = await import('../../src/memory-bundle-apply.mjs')
+      publicModule = await import('../../src/memory-bundle.mjs')
+
+      directory = mkdtempSync(join(tmpdir(), 'palari-m111-dispatch-'))
+      const dbPath = join(directory, 'captured dispatch.sqlite')
+      input = fixtures.makeM104ApplyEnvelope()
+      const wrappedBorrowed = new BorrowedSubclass(dbPath)
+      borrowed = unwrapDatabase(wrappedBorrowed)
+      borrowedStartedAsSubclass =
+        Object.getPrototypeOf(borrowed) === BorrowedSubclass.prototype
+
+      for (const key of databaseOperations) {
+        installOwnPoison(
+          borrowed,
+          key,
+          'databaseInstance',
+          databaseInstanceDescriptors,
+        )
+      }
+      afterConstructHook = ({ target, args }) => {
+        if (args[1]?.open === false) return
+        operationalConnections.push(target)
+        for (const key of databaseOperations) {
+          installOwnPoison(
+            target,
+            key,
+            'databaseInstance',
+            databaseInstanceDescriptors,
+          )
+        }
+      }
+      afterWrapStatementHook = ({ wrapper }) => {
+        for (const key of statementOperations) {
+          installOwnPoison(
+            wrapper,
+            key,
+            'statementInstance',
+            statementInstanceDescriptors,
+          )
+        }
+      }
+
+      for (const { target, key, descriptor } of databasePrototypeDescriptors) {
+        Object.defineProperty(target, key, {
+          ...descriptor,
+          value: makePoison('databasePrototype', `database prototype:${key}`),
+        })
+      }
+      for (const { target, key, descriptor } of statementPrototypeDescriptors) {
+        Object.defineProperty(target, key, {
+          ...descriptor,
+          value: makePoison('statementPrototype', `statement prototype:${key}`),
+        })
+      }
+
+      const pathIsAbsolutePoison = makePoison(
+        'pathIsAbsolute',
+        'path.isAbsolute',
+      )
+      const cryptoRandomUuidPoison = makePoison(
+        'cryptoRandomUuid',
+        'crypto.randomUUID',
+      )
+      Object.defineProperty(pathModule, 'isAbsolute', {
+        ...pathIsAbsoluteDescriptor,
+        value: pathIsAbsolutePoison,
+      })
+      Object.defineProperty(cryptoModule, 'randomUUID', {
+        ...cryptoRandomUuidDescriptor,
+        value: cryptoRandomUuidPoison,
+      })
+      syncBuiltinESMExports()
+      importedBindingsReplaced =
+        livePathIsAbsolute === pathIsAbsolutePoison &&
+        liveCryptoRandomUuid === cryptoRandomUuidPoison
+      Object.defineProperty(Reflect, 'apply', {
+        ...reflectApplyDescriptor,
+        value: makePoison('reflectApply', 'Reflect.apply'),
+      })
+      Object.defineProperty(Reflect, 'construct', {
+        ...reflectConstructDescriptor,
+        value: makePoison('reflectConstruct', 'Reflect.construct'),
+      })
+      Object.defineProperty(globalThis, 'Date', {
+        ...dateDescriptor,
+        value: makePoison('date', 'Date'),
+      })
+
+      capturedApplyBaseline = { ...capturedApplyCounts }
+      capturedConstructBaseline = { ...capturedConstructCounts }
+      trace.length = 0
+      try {
+        initializeReturnedUndefined =
+          apply.initializeMemoryBundle(borrowed) === undefined
+
+        const metaStatement = runtime.prepareRowStatement(
+          borrowed,
+          `
+            SELECT stream_id, head_sequence, created_at
+            FROM main.memory_bundle_meta
+            WHERE singleton = 1
+          `,
+        )
+        initializedMeta = runtime.statementGet(metaStatement, [])
+        input.expectedHead.streamId = initializedMeta.stream_id
+
+        Object.setPrototypeOf(borrowed, null)
+        borrowedPrototypeChanged = Object.getPrototypeOf(borrowed) === null
+        runtime.execDatabase(borrowed, 'BEGIN IMMEDIATE')
+        applyReturnedUndefined =
+          apply.applyResolvedDecisionInTransaction(borrowed, input) === undefined
+        runtime.execDatabase(borrowed, 'COMMIT')
+        borrowedCloseReturnedUndefined =
+          runtime.closeDatabase(borrowed) === undefined
+
+        const handle = publicModule.openMemoryBundle({ dbPath })
+        checkpoint = handle.verify().checkpoint
+        replayMemoryIds = handle.replay().memories.map(
+          ({ memoryId }) => memoryId,
+        )
+        publicCloseReturnedUndefined = handle.close() === undefined
+      } catch (error) {
+        operationError = error
+      }
+      poisonTrace = trace.slice()
+    } finally {
+      afterConstructHook = undefined
+      afterWrapStatementHook = undefined
+
+      Object.defineProperty(globalThis, 'Date', dateDescriptor)
+      Object.defineProperty(Reflect, 'construct', reflectConstructDescriptor)
+      Object.defineProperty(Reflect, 'apply', reflectApplyDescriptor)
+      Object.defineProperty(pathModule, 'isAbsolute', pathIsAbsoluteDescriptor)
+      Object.defineProperty(
+        cryptoModule,
+        'randomUUID',
+        cryptoRandomUuidDescriptor,
+      )
+      syncBuiltinESMExports()
+
+      for (const { target, key, descriptor } of databasePrototypeDescriptors) {
+        Object.defineProperty(target, key, descriptor)
+      }
+      for (const { target, key, descriptor } of statementPrototypeDescriptors) {
+        Object.defineProperty(target, key, descriptor)
+      }
+      restoreOwnDescriptors(statementInstanceDescriptors)
+      restoreOwnDescriptors(databaseInstanceDescriptors)
+
+      const cleanupTargets = [
+        ...(borrowed === undefined ? [] : [borrowed]),
+        ...operationalConnections,
+      ]
+      for (const target of cleanupTargets) {
+        const state = readNativeConnectionState(target)
+        if (state.isOpen !== true) continue
+        if (state.isTransaction === true) {
+          harnessReflectApply(nativeDatabaseExec, target, ['ROLLBACK'])
+        }
+        harnessReflectApply(nativeDatabaseClose, target, [])
+      }
+      if (directory !== undefined) {
+        rmSync(directory, { recursive: true, force: true })
+      }
+    }
+
+    const operationCounts = {}
+    for (const entry of poisonTrace) {
+      if (typeof entry.operation !== 'string') continue
+      operationCounts[entry.operation] =
+        (operationCounts[entry.operation] ?? 0) + 1
+    }
+    const capturedDispatchCounts = {}
+    for (const operation of Object.keys(capturedApplyCounts)) {
+      capturedDispatchCounts[operation] =
+        capturedApplyCounts[operation] - capturedApplyBaseline[operation]
+    }
+    const capturedConstructionCounts = {}
+    for (const operation of Object.keys(capturedConstructCounts)) {
+      capturedConstructionCounts[operation] =
+        capturedConstructCounts[operation] -
+        capturedConstructBaseline[operation]
+    }
+
+    return {
+      operationError: serializeError(operationError),
+      poisonCalls,
+      operationCounts,
+      capturedDispatchCounts,
+      capturedConstructionCounts,
+      moduleCaptureDatabaseConstructCount:
+        capturedConstructBaseline.database,
+      importedBindingsReplaced,
+      borrowedStartedAsSubclass,
+      borrowedPrototypeChanged,
+      initializeReturnedUndefined,
+      applyReturnedUndefined,
+      borrowedCloseReturnedUndefined,
+      publicCloseReturnedUndefined,
+      initializedMeta,
+      checkpoint,
+      replayMemoryIds,
+      databasePrototypePoisonCount: databasePrototypeDescriptors.length,
+      statementPrototypePoisonCount: statementPrototypeDescriptors.length,
+      databaseInstancePoisonCount: databaseInstanceDescriptors.length,
+      statementInstancePoisonCount: statementInstanceDescriptors.length,
+      operationalConnectionCount: operationalConnections.length,
+    }
+  },
+
+  async 'M1-11-row-modes'() {
+    const fixtures = await import('../helpers/memory-bundle-fixtures.mjs')
+    trace.length = 0
+    const apply = await import('../../src/memory-bundle-apply.mjs')
+    const publicModule = await import('../../src/memory-bundle.mjs')
+    const moduleProbeConstructions = trace
+      .filter(({ operation }) => operation === 'construct')
+      .map(({ args }) => args)
+    const directory = mkdtempSync(join(tmpdir(), 'palari-m111-row-modes-'))
+    const modes = [
+      { name: 'default', rowOptions: null },
+      { name: 'readBigInts', rowOptions: { readBigInts: true } },
+      { name: 'returnArrays', rowOptions: { returnArrays: true } },
+      {
+        name: 'both',
+        rowOptions: { readBigInts: true, returnArrays: true },
+      },
+    ]
+    const results = []
+
+    try {
+      for (let index = 0; index < modes.length; index += 1) {
+        const mode = modes[index]
+        const dbPath = join(directory, `${mode.name}.sqlite`)
+        const writerArgs = mode.rowOptions === null
+          ? [dbPath]
+          : [dbPath, mode.rowOptions]
+        let writerTarget
+        let handle
+        let operationError = null
+        let initializeReturnedUndefined = false
+        let applyReturnedUndefined = false
+        let publicCloseReturnedUndefined = false
+        let writerConstruction = null
+        let publicConstructions = []
+        let verification = null
+        let replay = null
+        let initializeTrace = []
+        let applyTrace = []
+        let recoveryTrace = []
+        let finalOpenTrace = []
+        let verifyTrace = []
+        let replayTrace = []
+        const publicTargets = []
+
+        try {
+          trace.length = 0
+          const wrappedWriter = new InstrumentedDatabaseSync(...writerArgs)
+          writerTarget = unwrapDatabase(wrappedWriter)
+          writerConstruction = trace[0]?.args ?? null
+
+          trace.length = 0
+          initializeReturnedUndefined = apply.initializeMemoryBundle(
+            writerTarget,
+            {
+              clock() {
+                return new Date('2026-07-18T11:58:00.000Z')
+              },
+              idFactory() {
+                return '00000000-0000-4000-8000-000000000001'
+              },
+            },
+          ) === undefined
+          initializeTrace = trace.slice()
+
+          harnessReflectApply(nativeDatabaseExec, writerTarget, [
+            'BEGIN IMMEDIATE',
+          ])
+          trace.length = 0
+          applyReturnedUndefined = apply.applyResolvedDecisionInTransaction(
+            writerTarget,
+            fixtures.makeM104ApplyEnvelope(),
+          ) === undefined
+          applyTrace = trace.slice()
+          harnessReflectApply(nativeDatabaseExec, writerTarget, ['COMMIT'])
+          harnessReflectApply(nativeDatabaseClose, writerTarget, [])
+
+          afterConstructHook = ({ target, args }) => {
+            if (args[1]?.open === false) return
+            publicTargets.push(target)
+          }
+          operationalRowModeOptions = mode.rowOptions ?? undefined
+          trace.length = 0
+          handle = publicModule.openMemoryBundle({ dbPath })
+          const openTrace = trace.slice()
+          operationalRowModeOptions = undefined
+          afterConstructHook = undefined
+
+          const constructionIndexes = []
+          for (let traceIndex = 0; traceIndex < openTrace.length; traceIndex += 1) {
+            if (openTrace[traceIndex].operation === 'construct') {
+              constructionIndexes.push(traceIndex)
+            }
+          }
+          publicConstructions = constructionIndexes.map(
+            (traceIndex) => openTrace[traceIndex].args,
+          )
+          if (constructionIndexes.length === 2) {
+            recoveryTrace = openTrace.slice(
+              constructionIndexes[0],
+              constructionIndexes[1],
+            )
+            finalOpenTrace = openTrace.slice(constructionIndexes[1])
+          }
+
+          trace.length = 0
+          verification = handle.verify()
+          verifyTrace = trace.slice()
+
+          trace.length = 0
+          replay = handle.replay()
+          replayTrace = trace.slice()
+
+          trace.length = 0
+          publicCloseReturnedUndefined = handle.close() === undefined
+        } catch (error) {
+          operationError = serializeError(error)
+        } finally {
+          operationalRowModeOptions = undefined
+          afterConstructHook = undefined
+          if (handle !== undefined) {
+            try {
+              handle.close()
+            } catch {
+              // Native cleanup below is the final fixture safety net.
+            }
+          }
+          if (writerTarget !== undefined) {
+            const writerState = readNativeConnectionState(writerTarget)
+            if (writerState.isOpen === true) {
+              if (writerState.isTransaction === true) {
+                harnessReflectApply(nativeDatabaseExec, writerTarget, [
+                  'ROLLBACK',
+                ])
+              }
+              harnessReflectApply(nativeDatabaseClose, writerTarget, [])
+            }
+          }
+          for (const target of publicTargets) {
+            const state = readNativeConnectionState(target)
+            if (state.isOpen !== true) continue
+            if (state.isTransaction === true) {
+              harnessReflectApply(nativeDatabaseExec, target, ['ROLLBACK'])
+            }
+            harnessReflectApply(nativeDatabaseClose, target, [])
+          }
+        }
+
+        results.push({
+          name: mode.name,
+          rowOptions: mode.rowOptions,
+          operationError,
+          initializeReturnedUndefined,
+          applyReturnedUndefined,
+          publicCloseReturnedUndefined,
+          writerConstruction,
+          publicConstructions,
+          verification,
+          replay,
+          readWindows: {
+            initialize: collectPreparedReadWindows(initializeTrace),
+            apply: collectPreparedReadWindows(applyTrace),
+            recovery: collectPreparedReadWindows(recoveryTrace),
+            finalOpen: collectPreparedReadWindows(finalOpenTrace),
+            verify: collectPreparedReadWindows(verifyTrace),
+            replay: collectPreparedReadWindows(replayTrace),
+          },
+        })
+      }
+      return { moduleProbeConstructions, results }
+    } finally {
+      operationalRowModeOptions = undefined
+      afterConstructHook = undefined
+      rmSync(directory, { recursive: true, force: true })
+    }
+  },
+
   async 'M1-07-initializer-race-window'() {
     const fixtures = await import('../helpers/memory-bundle-fixtures.mjs')
     const apply = await import('../../src/memory-bundle-apply.mjs')
@@ -497,6 +1232,7 @@ const scenarios = {
       try {
         returned = apply.initializeMemoryBundle(target, {
           clock: function clock() {
+            trace.push({ operation: 'callback', callback: 'clock' })
             callbackCalls.push({
               callback: 'clock',
               thisIsUndefined: this === undefined,
@@ -505,6 +1241,7 @@ const scenarios = {
             return new Date('2026-07-20T12:34:56.789Z')
           },
           idFactory: function idFactory() {
+            trace.push({ operation: 'callback', callback: 'idFactory' })
             callbackCalls.push({
               callback: 'idFactory',
               thisIsUndefined: this === undefined,
@@ -523,6 +1260,7 @@ const scenarios = {
         afterExecHook = undefined
       }
 
+      const orderedCalls = compactOrderedCalls(trace)
       const controls = transactionControls()
       const objects = readNativeRows(target, `
         SELECT type, name
@@ -557,6 +1295,7 @@ const scenarios = {
         error,
         raceFired,
         callbackCalls,
+        orderedCalls,
         transactionControls: controls,
         objects,
         semanticCounts,
@@ -578,10 +1317,12 @@ const scenarios = {
       try {
         returned = apply.initializeMemoryBundle(target, {
           clock() {
+            trace.push({ operation: 'callback', callback: 'clock' })
             callbackCalls.push('clock')
             throw new Error('existing clock must not run')
           },
           idFactory() {
+            trace.push({ operation: 'callback', callback: 'idFactory' })
             callbackCalls.push('idFactory')
             throw new Error('existing idFactory must not run')
           },
@@ -594,6 +1335,7 @@ const scenarios = {
         }
       }
 
+      const orderedCalls = compactOrderedCalls(trace)
       const controls = transactionControls()
       const objects = readNativeRows(target, `
         SELECT type, name
@@ -610,6 +1352,7 @@ const scenarios = {
         returnedUndefined: returned === undefined && error === null,
         error,
         callbackCalls,
+        orderedCalls,
         transactionControls: controls,
         objects,
         isTransactionAfter: isTransaction,
@@ -1341,6 +2084,7 @@ const scenarios = {
       ).length
       handle = publicModule.openMemoryBundle({ dbPath })
       const openTrace = trace.slice()
+      const orderedCalls = compactOrderedCalls(openTrace)
       const constructions = openTrace
         .filter(({ operation }) => operation === 'construct')
         .map(({ args }) => args)
@@ -1452,6 +2196,7 @@ const scenarios = {
         malformedResults,
         constructorsBeforeValidOpen,
         constructions,
+        orderedCalls,
         milestones,
         recoveryProbeWindow,
         pragmaConfigurations,
@@ -1605,6 +2350,7 @@ const scenarios = {
         error = serializeError(caught)
       }
 
+      const orderedCalls = compactOrderedCalls(trace)
       const connectionStates = records.map((record) => ({
         kind: record.kind,
         args: record.args,
@@ -1644,6 +2390,7 @@ const scenarios = {
         rollbackFailureCount,
         closeFailureCount,
         connectionStates,
+        orderedCalls,
       }
     }
 
@@ -1855,6 +2602,7 @@ const scenarios = {
       result.rollbackFailureCount = rollbackFailureCount
       result.closeAttempts = closeAttempts
       result.closeFailureCount = closeFailureCount
+      result.orderedCalls = compactOrderedCalls(trace)
       Object.assign(result, readNativeConnectionState(finalTarget))
 
       afterConstructHook = undefined
