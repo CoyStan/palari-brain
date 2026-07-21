@@ -3093,6 +3093,84 @@ function assertM108Failure(db, callback, code) {
   assert.deepEqual(snapshotM108Bundle(db), before)
 }
 
+test('M1-14 deferred scope and mutation fields fail before event insertion', () => {
+  const cases = [
+    {
+      label: 'shared scope',
+      code: 'bundle_invalid_decision',
+      mutate(input) { input.decision.scope.shared = true },
+    },
+    {
+      label: 'general scope',
+      code: 'bundle_invalid_decision',
+      mutate(input) { input.decision.scope.userId = null },
+    },
+    {
+      label: 'ratification',
+      code: 'bundle_invalid_decision',
+      mutate(input) { input.decision.proposalKind = 'ratify' },
+    },
+    {
+      label: 'external provenance field',
+      code: 'bundle_invalid_atom',
+      mutate(input) { input.atom.sourceKind = 'web_result' },
+    },
+    {
+      label: 'external provenance vocabulary',
+      code: 'bundle_invalid_atom',
+      mutate(input) { input.atom.provenanceKind = 'extracted' },
+    },
+    {
+      label: 'supersession',
+      code: 'bundle_invalid_decision',
+      mutate(input) { input.decision.operation = 'supersede' },
+    },
+    {
+      label: 'supersession field',
+      code: 'bundle_invalid_decision',
+      mutate(input) {
+        input.decision.supersedesMemoryId = M1_04_IDS.memoryId
+      },
+    },
+    {
+      label: 'lifecycle',
+      code: 'bundle_invalid_decision',
+      mutate(input) { input.decision.operation = 'end_validity' },
+    },
+    {
+      label: 'lifecycle field',
+      code: 'bundle_invalid_decision',
+      mutate(input) {
+        input.decision.validUntil = '2026-07-19T12:00:00.000Z'
+      },
+    },
+  ]
+
+  withM108Transaction({}, (db) => {
+    const head = readM108Head(db)
+    for (let index = 0; index < cases.length; index += 1) {
+      const specification = cases[index]
+      const input = makeM108Envelope(
+        'create-applied',
+        0x1140 + index,
+        { head },
+      )
+      specification.mutate(input)
+      assertM108Failure(
+        db,
+        () => applyModule.applyResolvedDecisionInTransaction(db, input),
+        specification.code,
+      )
+      assert.ok(specification.label.length > 0)
+    }
+    assert.equal(
+      db.prepare('SELECT count(*) AS count FROM main.memory_bundle_events')
+        .get().count,
+      0,
+    )
+  })
+})
+
 test('M1-08 enforces exact database brand, open state, and transaction ownership before input', () => {
   const trapInputCounter = { count: 0 }
   const trapInput = makeM104TrapProxy({}, trapInputCounter)
