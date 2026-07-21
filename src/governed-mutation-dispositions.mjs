@@ -1,44 +1,5 @@
-# Governed Mutation Disposition Registry — Palari v2 M2-B
+import { types as utilTypes } from 'node:util';
 
-**Status:** normative for the M2-B compatibility-disposition surface. This
-artifact narrows the governed mutation bridge contract; it does not widen the
-canonical patch registry. If prose and this registry disagree about an A2
-branch, this registry governs the branch disposition. Higher-precedence
-Unified Specification and kernel law still govern.
-
-The JavaScript artifact below is the complete closed registry. A scalar cell
-is one symbolic value, an array cell is a finite coordinate projection, and a
-string beginning with `@` is an exact reference to a named finite set.
-`not_applicable` is a real symbolic value. There are no implicit values and no
-wildcard matching. An unknown value, unknown set reference, omitted dimension,
-or duplicate row is invalid rather than extensible.
-
-The values projected by two different cells are **never** an implied Cartesian
-product. The certified A2 fixture matrix owns the historical correlations
-among target branch, legacy outcome, explicit effects, and implicit SQLite
-consequences. M2-B production MUST cross-check that fixture matrix against all
-46 coordinate projections. Every non-`D-*` row has one static M2-B disposition
-before semantic CDX DML, so its projected A2 correlations are retained only as
-provenance obligations; they are not executable mutation choices. D-01/D-02/
-D-03 additionally use the exact relational derivation and terminal evaluator
-below, because those are the only rows with a potentially mapped leaf.
-
-The 22 positions in every `v` array correspond exactly, in order, to the A2
-obligation dimensions. `next` records the narrower A2 branch rows reachable
-from the current compatibility branch; `continueOutcomes` records the exact
-compatibility control outcomes that permit such descent. Those links do not
-grant governance authority.
-
-The companion authority namespace is read as exactly five public exports: one
-`MemoryAuthorityError` class plus four host operations. “Four host operations”
-must never be shortened to “four names.”
-
-Erasure authority is not one flat caller-supplied state. The evaluator records
-the exact mutation chronology as separate preflight and post-capture/use-time
-domains, with compatibility capture between them. A later-phase outcome is
-never allowed to outrank or stand in for a phase that was not reached.
-
-```js
 'use strict';
 
 const isProxyValue = utilTypes.isProxy;
@@ -2637,94 +2598,43 @@ function validateRegistry() {
   });
 }
 
-const verification = validateRegistry();
-console.log(jsonStringify({ok: true, ...verification}));
-```
+validateRegistry();
 
-The evaluator order is normative. For a generic non-erasure row, absence of an
-own `compatibilityOutcome` data property is the deliberate static-disposition
-query used by verification. If the property is present, it must be a primitive
-member of the row's exact expanded `legacy_outcome` cell or
-`continueOutcomes`; own `undefined`, accessors, and unknown values are internal
-errors rather than compatibility refusals. Every non-terminal input record has
-exactly `Object.prototype` or `null` as its prototype and may contain only the
-closed generic, PRE-03, or erasure field vocabulary; extra string or symbol
-keys are internal errors. Every reached input field is read only from an own
-data descriptor; inherited values and accessors cannot supply coordinates.
-`routeKind` must be a primitive member of the exact route vocabulary before
-any property-key operation, so coercion hooks are never invoked. A Proxy input
-is rejected with `node:util`'s trap-free
-`types.isProxy` before any user trap can run. This side-effect-free builtin is
-the module's only dependency and exists solely to implement the exact
-non-Proxy internal-record law; F-01/F-02/F-03 still inspect no input at all.
-Every intrinsic, constructor,
-prototype operation, iterator, and property-reflection operation reachable
-from evaluation, verification, or result cloning is captured when the artifact
-is evaluated. Post-import primordial or prototype replacement must be
-unobserved and cannot change a refusal, admit malformed coordinates, mint a
-`MAP`, corrupt a proof result, or weaken recursive freezing. The
-terminal-storage route is selected from
-its trusted route tag alone and throws one exact error covering F-01/F-02/F-03;
-it never selects a historical F branch or inspects options, path, live-owner,
-or filesystem state. D-01/D-02/D-03 use two explicit authority phases. Initial
-preflight runs first: `absent` returns the exact delete-route governance refusal
-without observing capture or later-phase fields; the exact pre-capture
-`authority_grant_invalid`, `authority_grant_unavailable`,
-`authority_grant_expired`, or `authority_scope_mismatch` error throws unchanged;
-and only `ready` continues. Capture runs next. The bridge lexically retains the
-exact capture-thrown value by identity—including a caller/coercion throw,
-`LegacyMutationError`, or native compatibility-validation error;
-`syntaxValid:false` returns `RETHROW`, and the bridge rethrows that retained
-value without passing it into or exposing it through the data-only evaluator.
-Missing `syntaxValid` or any value other than primitive `true` or `false` is an
-internal error, never a synthetic captured throw.
-Private `captureThrew` is separate from `captureThrownValue`, so exact
-`undefined` or `null` remains a legal retained throw value. `RETHROW` with
-`captureThrew !== true` is an internal invariant failure. No post-capture field
-is observed.
-Only successful capture may evaluate the closed use-time set:
-`legacy_store_closed`; the exact
-post-capture local-check, predicate, clock, or expiry `MemoryAuthorityError`;
-or `valid`. Only `valid` reaches projection verification. The repeated scope,
-unavailable, and expired codes remain phase-explicit because either initial or
-reentrant checks may observe them. Host construction/binding/issuance-only
-codes are invalid in both D phases. `not_applicable` is legal only on non-D
-rows.
+function cloneFrozenData(value) {
+  if (arrayIsArray(value)) {
+    return objectFreeze(arrayMap(value, (entry) => cloneFrozenData(entry)));
+  }
+  if (value === null || typeof value !== 'object') return value;
 
-For valid erasure authority, complete projection verification is a mandatory
-integrity precondition before any target-policy classification. It proves the
-required CDX/FTS/cardinality state; the terminal evaluator does not reorder FTS
-checks among policy reasons. Corruption always throws an internal projection
-failure and can never be hidden by a missing/scope/shared/link refusal. On a
-verified projection, target scope precedes link enumeration. A same-Palari,
-same-user shared target refuses as `shared_scope_unsealed`; every other wrong
-scope refuses as `scope_mismatch`. A clean private target with one or more
-incident links refuses as `incident_edges_unemittable`. Only a verified clean
-private same-scope target with `shared_0` and zero incident links can reach
-`MAP`, and only through D-02 or D-03. Type selects exactly D-02 versus D-03;
-type and current/ended validity do not alter the final erasure policy.
+  const clone = objectCreate(null);
+  for (const key of safeArrayIterable(reflectOwnKeys(value))) {
+    const descriptor = reflectGetOwnPropertyDescriptor(value, key);
+    if (
+      typeof key !== 'string' ||
+      descriptor === undefined ||
+      !objectHasOwn(descriptor, 'value')
+    ) {
+      throw new nativeError('registry data must contain only own string data properties');
+    }
+    reflectDefineProperty(clone, key, {
+      configurable: false,
+      enumerable: descriptor.enumerable,
+      value: cloneFrozenData(descriptor.value),
+      writable: false,
+    });
+  }
+  return objectFreeze(clone);
+}
 
-The following verifier is standalone. Run it from the repository root with
-Node; it executes the first JavaScript block above and therefore runs every
-embedded assertion.
+export const GOVERNED_MUTATION_DISPOSITION_VERSION =
+  'CDX-M1-legacy-disposition@5';
 
-```js
-'use strict';
+export const governedMutationDispositionRegistry = cloneFrozenData(REGISTRY);
 
-const fs = require('node:fs');
-const utilTypes = require('node:util').types;
-const vm = require('node:vm');
+export function evaluateGovernedMutationDisposition(obligationId, input) {
+  return cloneFrozenData(evaluateFinal(obligationId, input));
+}
 
-const path = process.argv[2] ||
-  'docs/GOVERNED-MUTATION-DISPOSITION-REGISTRY.md';
-const markdown = fs.readFileSync(path, 'utf8');
-const fence = String.fromCharCode(96).repeat(3);
-const open = fence + 'js';
-const start = markdown.indexOf(open);
-if (start < 0) throw new Error('normative JavaScript block not found');
-const bodyStart = start + open.length;
-const end = markdown.indexOf(fence, bodyStart);
-if (end < 0) throw new Error('normative JavaScript block is unterminated');
-const source = markdown.slice(bodyStart, end);
-vm.runInNewContext(source, {console, utilTypes}, {filename: path + '#registry'});
-```
+export function verifyGovernedMutationDispositionRegistry() {
+  return cloneFrozenData(validateRegistry());
+}

@@ -71,6 +71,10 @@ const M2B_AUTHORITY_SOURCE_FILES = Object.freeze([
   'memory-authority.mjs',
 ])
 
+const M2B_DISPOSITION_SOURCE_FILES = Object.freeze([
+  'governed-mutation-dispositions.mjs',
+])
+
 const DORMANT_SOURCE_FILES = Object.freeze([
   'memory-store.mjs',
 ])
@@ -79,6 +83,7 @@ const SEALED_PRODUCTION_MODULES = Object.freeze([
   ['scripts', 'run-live-slice.mjs'].join('/'),
   ...A2_RUNTIME_SOURCE_FILES.map((name) => `src/${name}`),
   ...M2B_AUTHORITY_SOURCE_FILES.map((name) => `src/${name}`),
+  ...M2B_DISPOSITION_SOURCE_FILES.map((name) => `src/${name}`),
   ...BUNDLE_SOURCE_FILES.map((name) => `src/${name}`),
 ])
 
@@ -481,18 +486,19 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
   }
 })
 
-test('M1-14 A2 plus isolated M2-B authority graph keeps B1 ownership isolated', () => {
+test('M1-14 A2 plus isolated M2-B data modules keep B1 ownership isolated', () => {
   const sourceDirectory = join(REPO_ROOT, 'src')
   const actualSourceFiles = readdirSync(sourceDirectory)
     .filter((name) => name.endsWith('.mjs'))
     .toSorted(compareBinary)
-  assert.equal(SEALED_PRODUCTION_MODULES.length, 25)
-  assert.equal(new Set(SEALED_PRODUCTION_MODULES).size, 25)
+  assert.equal(SEALED_PRODUCTION_MODULES.length, 26)
+  assert.equal(new Set(SEALED_PRODUCTION_MODULES).size, 26)
   assert.deepEqual(
     actualSourceFiles,
     [
       ...A2_RUNTIME_SOURCE_FILES,
       ...M2B_AUTHORITY_SOURCE_FILES,
+      ...M2B_DISPOSITION_SOURCE_FILES,
       ...BUNDLE_SOURCE_FILES,
       ...DORMANT_SOURCE_FILES,
     ].toSorted(compareBinary),
@@ -557,6 +563,20 @@ test('M1-14 A2 plus isolated M2-B authority graph keeps B1 ownership isolated', 
       name === 'memory-authority-runtime.mjs'
         ? ['node:util']
         : ['./memory-authority-runtime.mjs'],
+      `${name} gained an unreviewed dependency`,
+    )
+    assert.doesNotMatch(
+      source,
+      /\.\/memory-bundle(?:-[a-z]+)?\.mjs|\.\/memory-store\.mjs/,
+      `${name} reaches B1 or the dormant raw store`,
+    )
+  }
+
+  for (const name of M2B_DISPOSITION_SOURCE_FILES) {
+    const source = readFileSync(join(sourceDirectory, name), 'utf8')
+    assert.deepEqual(
+      literalImportSpecifiers(source),
+      ['node:util'],
       `${name} gained an unreviewed dependency`,
     )
     assert.doesNotMatch(

@@ -404,3 +404,44 @@ dates. Agents record; the founder decides.
   permission. CDX-M1 remains runtime/read authority, exact B1 remains unchanged
   and non-authoritative, parent M2/M2-B remain open, and Next is Task 2's
   executable disposition registry only.
+- 2026-07-21 (V2-M2-B Task 2 post-seal exactness clarification) **A present
+  generic compatibility outcome is closed data, while absence remains the
+  verifier's deliberate static-disposition query.** RED exposed that the
+  bridge contract required unknown internal inputs to throw, but the embedded
+  generic evaluator treated any non-continuing value as the row's static
+  refusal. For every non-D/non-F row, an absent own `compatibilityOutcome`
+  property still requests the static disposition. If present, the property
+  must be an own primitive data value in the union of the row's expanded
+  `legacy_outcome` cell and `continueOutcomes`; own `undefined`, an accessor,
+  or an unknown value is a native internal error. D-01/D-02/D-03 retain their
+  phase-local authority/capture/projection evaluator, and F-01/F-02/F-03 still
+  inspect no input. This closes an invariant-laundering hole without adding a
+  compatibility branch, MAP leaf, reason, operation, field, or runtime path.
+  Adversarial review then exposed a separate integrity defect: post-import
+  replacement of live `Number.isSafeInteger`, array/string methods, collection
+  methods, reflection operations, inherited numeric array setters, inherited
+  `toJSON`, or output-freezing operations could admit a malformed D-02
+  coordinate as `MAP` or corrupt the verifier/result clone. Inherited input
+  coordinates and Proxy-backed records were a second route around the exact
+  own-data/non-Proxy internal-record law. The normative artifact and production
+  copy now capture all reachable primordials and constructors at evaluation,
+  accept only ordinary/null-prototype records with closed row-local field
+  vocabularies, read reached fields only through own data descriptors, reject
+  Proxy records trap-free through the sole side-effect-free `node:util`
+  dependency, require primitive capture status and route tags without
+  coercion, build arrays through captured `Reflect.defineProperty`, compare
+  verifier data without JSON hooks, and use null-prototype iterators plus
+  indexed closed-array traversal rather than inherited close/species dispatch.
+  F-01/F-02/F-03 remain zero-observation. One
+  clean-child matrix poisons all such surfaces together with zero poison or
+  Proxy-trap observations. This is an implementation-integrity clarification;
+  it changes no registry data, branch result, version, or authority order.
+  The superseding disposition-registry SHA-256 is
+  `70d1d966cb8e5550c26b4ccac2b7b4193a564b0d8d7c01dfc4c92fb8b5a0df74`;
+  bridge `25e9eeb1b902582a72ddc9d60c46f437c886afeac5e33ce0288c142e3927fe27`,
+  authority `f4c87eda57059bf1b44d2640471f29f68ae6acf3af128a5142717f711fed75c9`,
+  B2 schema `84f01ae2b5bdf084cacf27b8d6e6d3a611852094e985c36aaa18bba8baa2813e`,
+  and canonical 5,704-byte config
+  `e1ded27e33516d73c60da1f4a4c9cb0767b1bb0b1482e78b429449ec7c0b07f4`
+  remain otherwise exact. This authorizes no B2/schema/bridge/producer wiring,
+  provider, sealed U8 run, spend, dataset, score, publication, or announcement.

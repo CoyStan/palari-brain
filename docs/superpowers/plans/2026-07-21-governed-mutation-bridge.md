@@ -169,25 +169,25 @@ wiring is claimed by these checked boxes.
 
 ### M2-B-02 RED
 
-- [ ] Parse both the sealed A2 obligations and normative B2 registry; require
-  exact 46-ID order/equality and exact 22 positional values per row.
-- [ ] Expand every named finite set; reject missing/unknown/duplicate values,
+- [x] Parse the sealed A2 IDs/dimensions and normative B2 registry; require
+  exact 46-ID order/equality and exact 22 positional values per registry row.
+- [x] Expand every named finite set; reject missing/unknown/duplicate values,
   unresolved references, wildcards, overlapping terminal results, and graph
   cycles that are not explicitly allowed.
-- [ ] Assert closed disposition/reason/recording/authority vocabularies.
-- [ ] Assert exact MAP allowlist `['D-02','D-03']`; PD-02 always refuses.
-- [ ] Exhaustively test the exact staged authority vocabularies: pre-capture
+- [x] Assert closed disposition/reason/recording/authority vocabularies.
+- [x] Assert exact MAP allowlist `['D-02','D-03']`; PD-02 always refuses.
+- [x] Exhaustively test the exact staged authority vocabularies: pre-capture
   preflight, exact retained-error `RETHROW` on capture failure, post-capture
   local/activity outcome, then
   projection and missing/scope/shared/link/applied transition precedence.
-- [ ] Reject every impossible cross-phase authority combination; constructor/
+- [x] Reject every impossible cross-phase authority combination; constructor/
   issuance-only authority errors are not mutation-call outcomes.
-- [ ] Cross-check all five A2 intents, eight explicit effects, producer result
+- [x] Cross-check all five A2 intents, eight explicit effects, producer result
   shapes, and terminal storage branches.
 
 ### M2-B-02 GREEN
 
-- [ ] Implement a frozen data-only source registry generated/checked against
+- [x] Implement a frozen data-only source registry generated/checked against
   the documentation artifact; bridge consumes it rather than duplicating an
   allowlist.
 
