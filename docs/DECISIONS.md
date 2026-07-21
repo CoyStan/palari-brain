@@ -156,3 +156,29 @@ dates. Agents record; the founder decides.
   benchmark scoring run, sealed U8 continuation, real dataset, result write,
   or publication path participated in certification; dry and synthetic
   regression coverage did run.
+- 2026-07-21 (V2-M2 pre-implementation boundary, corrected after three
+  independent read-only audits) **M2 is staged as A1 transaction ownership,
+  A2 legacy compatibility routing, then B production governance co-commit.**
+  The rejected broad draft incorrectly treated a private B1/CDX composition
+  proof as sufficient for M2 and mapped current operations onto a canonical
+  patch vocabulary without a trusted authority root. A1 now adds only the
+  hardened coordinator and private composition falsifier. A2 must close the
+  current CDX bypass matrix while naming its inputs honestly as legacy
+  compatibility intents. M2-B—not M3—must bind minimal trusted authority
+  outside caller/model proposals; define a provenance-pinned,
+  Unified-Spec-conforming governed operation contract; import existing CDX
+  state through an explicit legacy checkpoint; and co-commit a disjoint CDX-B2
+  decision/effect journal with production CDX effects. Every A2 legacy
+  intent/effect must map to a valid governed operation or deterministic refusal;
+  its compatibility labels never become B2 vocabulary. B must preserve
+  lifecycle demotion, permanent canonical immutability, distinct creation
+  confidence/evidence strength, and a corrected canonical type partition, and
+  cannot invent founder-amendable patch constants. Exact CDX-B1 cannot encode
+  the full matrix and remains unchanged; B2 object names must not match
+  `memory_bundle_*`. CDX-M1 remains runtime/read authority and all six B1
+  capabilities remain false. V2-M3 retains strict extractor schema, evidence
+  derivation/widening, assistant evidence, supersession repair, and complete
+  candidate observability, but cannot waive this M2 map-or-refuse falsifier.
+  This sequencing is within the founder's standing local v2 authority; it is
+  not a source-of-truth cutover, provider/spend, deletion, benchmark, or
+  publication decision.

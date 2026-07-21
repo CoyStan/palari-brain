@@ -5,8 +5,8 @@ agent working in this repo. The full spec (with evidence tags and
 rationale) is linked in REFERENCES.md; where this file and the spec
 disagree, the spec wins and this file gets fixed.
 
-**V2-M1 precedence:** this contract continues to govern the current
-CDX-M1 runtime. `docs/MEMORY-BUNDLE-CONTRACT.md` governs only the new
+**V2-M1/V2-M2 precedence:** this contract continues to govern the current
+CDX-M1 runtime. `docs/MEMORY-BUNDLE-CONTRACT.md` governs only the
 non-authoritative coexistence substrate. M1 introduces no second runtime
 write door and changes no lifecycle, visibility, sharing, deletion,
 retrieval, or gate behavior. The current CDX-M1 implementation is not yet
@@ -16,6 +16,23 @@ recall-inclusion, and internal link mutations remain durable bypasses
 recorded for V2-M2. They are defects, not normative exceptions.
 A later cutover must close them and preserve every law here while
 committing canonical and projection mutations on one transaction.
+
+`docs/MUTATION-SEAM-CONTRACT.md` is subordinate and normative only for
+V2-M2-A1 transaction ownership. A1 changes no memory policy or runtime path.
+M2-A2 separately closes current durable bypasses as explicitly legacy
+compatibility intents. Neither subunit may claim canonical patch conformance.
+M2-B must bind a minimal trusted authority root outside proposals and
+define a provenance-pinned, Unified-Spec-conforming governed operation
+contract before co-committing a disjoint CDX-B2 decision/effect journal with
+every projection effect. Every A2 intent/effect must map to that contract or be
+deterministically refused; legacy labels cannot become B2 vocabulary. M2-B
+must not confuse creation confidence with evidence strength, automatically
+erase lifecycle decay, mutate permanent canonical payloads, retain unresolved
+canonical type-partition debt, or invent founder-amendable constants. Exact
+CDX-B1 remains unchanged. Current caller-supplied identity/writer strings are
+not trusted authority. V2-M3 still owns strict extractor schema, richer
+evidence derivation, assistant evidence, supersession repair, and complete
+candidate observability; it cannot waive the M2 map-or-refuse falsifier.
 
 ## Memory atoms (Part 4)
 

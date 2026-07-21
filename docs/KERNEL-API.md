@@ -20,6 +20,27 @@ mutations to borrow one caller-owned SQLite connection and outer
 transaction. Until that complete mutation matrix passes, the bundle
 reports `sourceOfTruth:false`.
 
+**V2-M2 staged transaction boundary:**
+`docs/MUTATION-SEAM-CONTRACT.md` governs only M2-A1: a transaction coordinator
+and private real B1/CDX composition falsifier. A1 imports into no current
+runtime path. M2-A2 then routes the complete existing mutation surface as
+explicitly legacy compatibility intents; it does not claim to implement the
+Unified Specification's canonical patch calculus. M2-B must bind a minimal
+trusted authority root outside proposals, define a provenance-pinned
+Unified-Spec-conforming governed operation contract, and co-commit a disjoint
+CDX-B2 decision/effect journal with every CDX projection effect. Every A2
+legacy intent/effect must map to that governed contract or be deterministically
+refused; compatibility labels never become B2 vocabulary. Production may not
+derive authority from current caller-controlled `writer`, `actor`, `palari_id`,
+or `user_id` fields, confuse creation confidence with evidence strength,
+automatically erase on lifecycle decay, mutate permanent canonical payloads,
+or carry the current type-partition debt into canonical state. V2-M3 retains
+strict extractor schema, richer evidence derivation, assistant evidence,
+corrected supersession policy, and complete candidate observability. CDX-M1
+stays runtime/read authority and exact CDX-B1 stays unchanged and
+non-authoritative until separately authorized evidence supports a later
+cutover.
+
 **Current conformance debt:** U4 implemented the bounded candidate gate
 and hid raw add/supersede handles only on `createGatedStore`; U7 later
 gated the adapter ingest path by passing a proposal-producing shim into

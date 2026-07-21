@@ -2,11 +2,12 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M2 — ONE-CONNECTION MUTATION SEAM.
-Refactor current projection writes to borrow the gate coordinator's
-transaction and close every remaining direct semantic bypass. CDX-M1 remains
-runtime truth and the certified CDX-B1 bundle remains non-authoritative; no
-runtime cutover, live/provider work, or stronger capability claim is implied.
+Next: V2-M2-A1 — TRANSACTION COORDINATOR.
+Implement the bounded coordinator contract in
+`docs/MUTATION-SEAM-CONTRACT.md`: one synchronous owner, opaque lexical lease,
+deterministic failure precedence, and one private real B1/CDX composition
+falsifier. This is only the first V2-M2 subunit. It changes no runtime mutation
+path and cannot complete M2 or advance to M3.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish without a
@@ -187,8 +188,23 @@ new explicit founder GO. Results remain under gitignored evals/results/.
   audit, external-anchor, provider, benchmark, or publication claim was made.
 - [ ] V2-M2 — One-connection mutation seam. Refactor current projection
   writes to borrow the gate coordinator's transaction; close direct
-  semantic bypasses. Bundle remains non-authoritative until the full
-  mutation matrix is atomic and tested.
+  semantic bypasses and co-commit governed decisions with projection effects.
+  The independently reviewed staged contract and current executable plan are
+  `docs/MUTATION-SEAM-CONTRACT.md` and
+  `docs/superpowers/plans/2026-07-21-one-connection-mutation-seam.md`.
+  - [ ] V2-M2-A1 — transaction coordinator only: native captured dispatch,
+    lexical lease, exact failure law, and private real B1/CDX composition.
+  - [ ] V2-M2-A2 — route the complete current durable mutation matrix as
+    explicitly legacy compatibility intents; deterministic plans and no raw
+    semantic producer bypasses.
+  - [ ] V2-M2-B — bind a trusted authority root outside proposals; add a
+    provenance-pinned, Unified-Spec-conforming governed operation contract,
+    disjoint CDX-B2 journal, and legacy checkpoint; every A2 legacy intent maps
+    to a valid governed operation or deterministic refusal, and governed
+    decisions, ordered journal effects, and CDX projection effects co-commit.
+  CDX-M1 remains runtime/read authority and exact CDX-B1 remains unchanged and
+  non-authoritative throughout these proofs. Parent M2 stays open until M2-B
+  passes the complete production matrix.
 - [ ] V2-M3 — Gate repair + candidate receipts. Strict extraction schema,
   authority fields not model-controlled, assistant evidence typed,
   ordinary user evidence coverage widened without weakening injection
