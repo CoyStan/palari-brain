@@ -194,10 +194,11 @@ access. For `extraction_candidate`, scope captures
 `palariId:String(value ?? '').trim()` but
 `userId:String(value ?? '')` **without trimming**, exactly preserving the
 baseline contradiction helper's list-scope/user-comparison asymmetry. These
-two coercions run once per eligible candidate before coordinator entry and a
-throw escapes by identity. The candidate row independently applies its normal
-trimmed `palari_id`/`user_id` storage normalization; scope remains heuristic
-input only.
+two coercions run once per eligible candidate, in Palari-then-user order,
+after the named row/provenance normalization and before target/clock capture;
+a throw escapes by identity. The candidate row independently applies its
+normal trimmed `palari_id`/`user_id` storage normalization; scope remains
+heuristic input only.
 
 ### 4.1 `legacy_proposal`
 
@@ -398,10 +399,12 @@ It then materializes the exact 22-key row in §5 with these rules:
 | `extractor` | exact supplied provenance string or `null` |
 
 After pure admission passes, capture eagerly detaches and normalizes all named
-row/provenance inputs in the §4 record-key order, then the normalized target,
-then any required clock. Every named `String`/`Number` conversion occurs once
-and its result is reused. Caller coercion throws escape by identity before
-`BEGIN`; mutable caller values are never retained. This intentionally means a
+row/provenance inputs in the §4 record-key order. An extraction candidate then
+coerces scope Palari followed by scope user; every other route has no scope
+coercion at this position. Capture next normalizes any target and finally calls
+any required clock. Every named `String`/`Number` conversion occurs once and
+its result is reused. Caller coercion throws escape by identity before `BEGIN`;
+mutable caller values are never retained. This intentionally means a
 stateful or throwing insert-only ID, keyword, importance, acquisition,
 timestamp, or source-field conversion is observed even if transaction-time
 resolution later chooses duplicate/missing-target. Semantic validation that
@@ -563,7 +566,7 @@ touched entries, nested links/memories, and the top-level record are fresh
 ordinary mutable arrays/objects with no symbols, accessors, prototype brands,
 or shared plan references; primitive fields have the types implied above and
 counts are nonnegative safe integers. Rejected `reasons` preserves the exact
-listed order. The disabled result families use the exact shapes in §7.3.
+  listed order. The disabled result families use the exact shapes in §7.4.
 
 Enabled/disabled base and gated `close()` are synchronous, receiver-
 independent, idempotent, and return `undefined`. Manager `close()` and
@@ -959,6 +962,12 @@ every policy through `createAdmissionPolicy`, and returns a frozen gate. A
 caller-supplied mutable policy object or later mutation cannot change an
 existing gate.
 
+`admissionPolicyDefaults` is the frozen ordinary four-key record
+`{demote:0,promote:0.25,permanent:0.6,ratify:0.75}` in exactly that own-key
+order, with no symbols. These remain kernel-chosen compatibility floors, not
+the Unified Specification theta table. Every policy snapshot uses the same
+four-key order.
+
 `createAdmissionPolicy(overrides)` is exact. `undefined|null` means no
 overrides. Any other input must have `typeof overrides === 'object'`, be
 non-null, and not be a Proxy; primitives and functions therefore fail
@@ -1105,7 +1114,8 @@ The replacement producer signatures and provenance law are exact:
   `turn.eventAt`. After its existing source-reference, disabled, and missing-
   text skips, missing event time returns
   `{reason:'event_time_missing', sourceBoundary, status:'skipped'}`. Every skip
-  is exactly `{reason,sourceBoundary,status}` in that order. Inserted,
+  returned by `writeSessionSummaryMemory` is exactly
+  `{reason,sourceBoundary,status}` in that order. Inserted,
   duplicate, and rejected proposals all return exactly
   `{outcome,sourceBoundary,status:'completed'}` in that order; as in baseline,
   nested memory/similarity/reasons are not surfaced. A thrown proposal/apply
@@ -1117,7 +1127,11 @@ The replacement producer signatures and provenance law are exact:
 - `createMemoryExtractionScheduler` adds a captured `extractorId` option and
   requires its manager's `forWorkspace()` result to be a branded gated handle.
   A missing scheduler extractor ID produces the extraction drop above; no
-  identity is invented. Session summary follows the turn's event time.
+  identity is invented. Session summary follows the turn's event time. When
+  summary scheduling is disabled, the scheduler-created synthetic result is
+  exactly `{reason:'session_summary_disabled',status:'skipped'}` in that own-key
+  order; it is not a `writeSessionSummaryMemory` return and has no
+  `sourceBoundary`.
 
 These missing-provenance drops and the summary event-time requirement are
 intentional A2 structural deltas, not M3 evidence-policy claims.
@@ -1744,11 +1758,13 @@ strictly richer than an outcome/effect sequence:
 
 ```text
 route kind × proposal kind/op × legacy type/partition × actor/writer class
+× internal `explicit_proposal`/`extraction_candidate` producer discriminator
 × source/evidence/acquisition class × scope and same/cross-Palari/user relation
 × add/supersede source-message and keyword-decoration branch
 × shared-input flag × proposed/generated/normalized-target ID class
 × supplied/computed/matching/mismatching/invalid-type content-hash class
 × eager-capture conversion success/throw and deferred-validation class
+× normalized confidence and below/at/above selected policy-threshold relation
 × caller/event/store/native `created_at`/`valid_from`/`valid_until` class
 × caller historical access/decay/source-field class
 × access-count safe-increment/overflow boundary

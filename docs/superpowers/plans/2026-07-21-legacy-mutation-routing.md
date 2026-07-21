@@ -194,7 +194,10 @@ Expected RED: module missing.
   keywords, importance, confidence, acquisition, time, and source fields;
   confidence is coerced once at its admission position even after earlier
   reasons. Distinguish eager detachment from deferred nonempty-content/
-  acquisition/hash validation and branch-late UUID generation.
+  acquisition/hash validation and branch-late UUID generation. For extraction,
+  combine stateful/throwing row, provenance, scope-Palari, scope-user, and
+  clock values to prove row/provenance → scope Palari → scope user → target →
+  clock precedence.
 - [ ] Assert every insert and mutation-result memory uses the exact canonical
   22-key order and primitive/null types regardless of physical schema variant;
   `superseded`/delete rows are pre-update/pre-delete snapshots.
@@ -290,8 +293,9 @@ Expected RED: module missing.
   rejection; known enumerable own values read/Number-coerced once in canonical
   order; absent versus own-undefined; accessor throw identity; ignored
   inherited/non-enumerable/extra/symbol getters; boolean/string/BigInt/null,
-  NaN/infinity, strict-order, exact error, four-key numeric freeze, and no
-  `[0,1]` bound.
+  NaN/infinity, strict-order, exact error, exact ordered defaults
+  `{demote:0,promote:0.25,permanent:0.6,ratify:0.75}`, four-key numeric freeze,
+  and no `[0,1]` bound.
 - [ ] Prove CDX-M0 and CDX-M1 bootstrap completes before a handle returns and
   no public reinitialize/migration method exists.
 - [ ] Pin all three legitimate historical `memories` physical-column orders
@@ -369,7 +373,9 @@ Expected RED: module missing.
 - [ ] Recall inclusion accepts only the branded gated capability.
 - [ ] Pin every session-summary skip as `{reason,sourceBoundary,status}` and
   inserted/duplicate/rejected completion as `{outcome,sourceBoundary,status}`;
-  reasons remain intentionally deferred to V2-M3 receipts.
+  reasons remain intentionally deferred to V2-M3 receipts. Separately pin the
+  scheduler-disabled synthetic summary as exactly
+  `{reason:'session_summary_disabled',status:'skipped'}` without a boundary.
 - [ ] Manager returns exact gated handles, uses one creation flight per
   workspace, and closes/revokes every cache entry. Concurrent callers share
   identity; close racing a paused creation waits, closes the late handle, and
@@ -438,8 +444,10 @@ Expected RED: module missing.
   every planner effect to one of eight effects.
 - [ ] Write `docs/LEGACY-MUTATION-B2-OBLIGATIONS.md` with every finite semantic
   branch pattern generated from the exact ordered dimension key in contract
-  §11, mechanically asserting the artifact cannot omit: add/supersede source-
-  message/keyword decoration; proposed/generated/normalized-target ID;
+  §11, mechanically asserting the artifact cannot omit: internal producer
+  discriminator; normalized-confidence/selected-threshold relation;
+  add/supersede source-message/keyword decoration;
+  proposed/generated/normalized-target ID;
   supplied/computed/matching/mismatching/invalid hash; eager conversion versus
   deferred validation; caller/event/store/native temporal and historical
   access/decay/source fields; safe-increment/overflow; scope relations;
