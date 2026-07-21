@@ -225,3 +225,37 @@ dates. Agents record; the founder decides.
   spend, benchmark, publication, or sealed-U8 work. CDX-M1 stays authoritative;
   exact B1 stays unchanged/non-authoritative; Next is M2-A2 compatibility
   routing.
+- 2026-07-21 (V2-M2-A2 pre-implementation boundary, after complete mutation
+  and producer recon) **A2 is a five-intent/eight-effect compatibility router,
+  not a canonical patch layer.** The complete baseline graph contains more
+  mutation capability than the frozen U4 facade exposed: raw insert, link,
+  importance, touch, schema, database, and manager surfaces; separate
+  provenance autocommits; nested-transaction supersession; and partial
+  recall, lifecycle, and topic batches. A2 therefore retires raw returned
+  insert/add/supersede/link/bump/touch and `.db` capabilities, admits exactly
+  `legacy_proposal`, `legacy_delete_memory`, `legacy_forget_topic`,
+  `legacy_record_recall_inclusion`, and `legacy_run_lifecycle`, and applies
+  only the eight effects enumerated in
+  `docs/LEGACY-MUTATION-ROUTING-CONTRACT.md`. Plans resolve database-dependent
+  choices after A1 `BEGIN IMMEDIATE`, bind to its lease, materialize all
+  ordered effects before DML, and expose results only after commit. CDX-M1
+  schema completion moves to serialized pre-handle bootstrap. The extracted
+  raw factory cannot close a connection when its own bootstrap throws before
+  returning, so A2 production imports none of `src/memory-store.mjs`: a new
+  runtime owns captured-native construction, the exact three-variant
+  `CDX-M1-runtime@1` manifest, complete FTS/FK/trigger verification,
+  rollback/close cleanup, reads, and canonical-path registry directly. Caller
+  clocks run only before A1 entry; resolver reads and effect writes use
+  captured native dispatch; a closed 12-code `LegacyMutationError` law composes
+  beneath unchanged A1 failure precedence. Whole-workspace
+  destruction cannot truthfully co-commit with a journal inside the file it
+  removes, so it remains a separately serialized terminal operation requiring
+  zero supported live handles. A2 therefore closes the supported in-file raw
+  writer graph but does not claim overall one-gate conformance. Under the
+  current same-file B2 premise, M2-B must refuse terminal destruction unless
+  an explicitly authorized external authority/receipt substrate changes that
+  premise. Caller inputs and plans remain unauthenticated compatibility data;
+  every semantic branch/effect/consequence is carried to M2-B for governed
+  map-or-refuse. CDX-M1 remains runtime/read authority, exact B1 remains
+  unchanged/non-authoritative, and no provider, sealed U8, spend, dataset,
+  result, or publication action is authorized.

@@ -24,8 +24,10 @@ subunits:
    B1/CDX composition falsifier.
 2. **M2-A2 — legacy compatibility routing.** Inventory the complete current
    CDX durable mutation surface, describe it honestly as legacy compatibility
-   intents, resolve deterministic transaction-neutral plans, route every
-   current producer through the coordinator, and close raw semantic bypasses.
+   work, resolve deterministic transaction-neutral plans, route every current
+   in-file semantic DML producer through the coordinator, close raw writer
+   bypasses, and classify terminal file destruction separately rather than
+   pretending it can co-commit inside the file it removes.
 3. **M2-B — governed production bridge.** Bind trusted authority outside
    model/caller proposals; define a provenance-pinned, Unified-Spec-conforming
    patch/admission/authority/effect contract; introduce a disjoint CDX-B2
@@ -56,6 +58,11 @@ Exact CDX-B1 remains unchanged and non-authoritative. Its six capability bits
 remain false. CDX-M1 remains runtime and read authority. Any future CDX-B2
 objects must use a namespace that does not match `memory_bundle_*`, because
 the certified B1 verifier rejects additional objects under that prefix.
+
+The separately reviewed normative A2 boundary is
+`docs/LEGACY-MUTATION-ROUTING-CONTRACT.md`. It does not enlarge this A1
+contract retroactively: A1 remains the bounded transaction owner, while A2
+owns compatibility intent/effect routing and producer closure.
 
 ## 2. Exact internal module surface
 

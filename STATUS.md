@@ -2,11 +2,13 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M2-A2 — LEGACY COMPATIBILITY MUTATION ROUTING.
-Enumerate the complete current CDX-M1 durable mutation matrix, define exact
-legacy intent/plan boundaries, and route every semantic producer without raw
-mutation shortcuts. A2 still makes no canonical patch, authority, journal, or
-source-of-truth claim; parent M2 remains open for M2-B.
+Next: V2-M2-A2 — IMPLEMENT LEGACY COMPATIBILITY MUTATION ROUTING.
+The complete current CDX-M1 durable mutation matrix and exact five-intent,
+eight-effect, deterministic-plan boundary are sealed in
+`docs/LEGACY-MUTATION-ROUTING-CONTRACT.md`. Implement its branded safe
+handles, coordinator-owned routing, producer closure, atomic batches, and
+serialized terminal workspace deletion. A2 makes no canonical patch,
+authority, journal, or source-of-truth claim; parent M2 remains open for M2-B.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish without a
@@ -188,9 +190,10 @@ new explicit founder GO. Results remain under gitignored evals/results/.
 - [ ] V2-M2 — One-connection mutation seam. Refactor current projection
   writes to borrow the gate coordinator's transaction; close direct
   semantic bypasses and co-commit governed decisions with projection effects.
-  The independently reviewed staged contract and current executable plan are
-  `docs/MUTATION-SEAM-CONTRACT.md` and
-  `docs/superpowers/plans/2026-07-21-one-connection-mutation-seam.md`.
+  The independently reviewed staged contract and certified historical A1 plan
+  are `docs/MUTATION-SEAM-CONTRACT.md` and
+  `docs/superpowers/plans/2026-07-21-one-connection-mutation-seam.md`;
+  the current executable plan is named under A2 below.
   - [x] V2-M2-A1 — transaction coordinator only. DONE 2026-07-21,
     implementation commit `07d65ad`. Exact three-export internal surface;
     captured native dispatch; five-PRAGMA synchronous outer owner; opaque
@@ -206,7 +209,16 @@ new explicit founder GO. Results remain under gitignored evals/results/.
     CDX-M1 authoritative, B1 unchanged/non-authoritative, and parent M2 open.
   - [ ] V2-M2-A2 — route the complete current durable mutation matrix as
     explicitly legacy compatibility intents; deterministic plans and no raw
-    semantic producer bypasses.
+    semantic producer bypasses. Normative contract:
+    `docs/LEGACY-MUTATION-ROUTING-CONTRACT.md`; executable plan:
+    `docs/superpowers/plans/2026-07-21-legacy-mutation-routing.md`. The sealed
+    boundary retires raw insert/add/supersede/link/bump/touch and `.db` from
+    returned handles; routes exactly five intents to eight lease-checked
+    effects; makes proposal provenance, topic-forget, recall-inclusion, and
+    lifecycle calls atomic; moves CDX-M1 migration to pre-handle bootstrap;
+    and classifies whole-file deletion separately as a serialized terminal
+    zero-live-handle storage operation. It carries every legacy branch to M2-B
+    for map-or-refuse and claims no trusted authority or canonical semantics.
   - [ ] V2-M2-B — bind a trusted authority root outside proposals; add a
     provenance-pinned, Unified-Spec-conforming governed operation contract,
     disjoint CDX-B2 journal, and legacy checkpoint; every A2 legacy intent maps

@@ -23,9 +23,13 @@ reports `sourceOfTruth:false`.
 **V2-M2 staged transaction boundary:**
 `docs/MUTATION-SEAM-CONTRACT.md` governs only M2-A1: a transaction coordinator
 and private real B1/CDX composition falsifier. A1 imports into no current
-runtime path. M2-A2 then routes the complete existing mutation surface as
-explicitly legacy compatibility intents; it does not claim to implement the
-Unified Specification's canonical patch calculus. M2-B must bind a minimal
+runtime path. `docs/LEGACY-MUTATION-ROUTING-CONTRACT.md` governs M2-A2: it
+routes the complete supported in-file semantic DML surface as exactly five
+legacy compatibility intents and eight transaction-neutral effects, retires
+raw returned mutation/database capabilities, and classifies bootstrap and
+terminal file destruction honestly. The latter remains a separate legacy
+storage route, so A2 does not claim overall one-gate conformance or implement
+the Unified Specification's canonical patch calculus. M2-B must bind a minimal
 trusted authority root outside proposals, define a provenance-pinned
 Unified-Spec-conforming governed operation contract, and co-commit a disjoint
 CDX-B2 decision/effect journal with every CDX projection effect. Every A2
@@ -66,6 +70,19 @@ durable bypasses of the stronger one-gate law in
 exceptions. V2-M2 must type and route every one through the gate before any
 source-of-truth cutover. M1 leaves them unchanged and makes no claim that
 U4 or U7 already closed the complete durable mutation matrix.
+
+**M2-A2 sealed compatibility target:** supported callers receive an exact
+read-only base handle or exact gated handle, neither exposing `.db`, schema,
+or raw insert/add/supersede/link/bump/touch operations. Proposal, direct
+delete, topic forget, recall inclusion, and lifecycle map to the five A2
+legacy intents; their possible CDX writes map to the eight A2 effects. Schema
+completion and exact manifest verification occur before handle return through
+a runtime that owns native construction/cleanup directly; no production
+module imports the quarantined extracted raw store at `src/memory-store.mjs`.
+Whole-store deletion is a serialized zero-live-handle storage-lifecycle
+operation, not a false SQLite co-commit.
+This paragraph describes the A2 acceptance target until its implementation is
+certified; it is not a current-runtime completion claim.
 
 ## 1. Kernel boundary
 

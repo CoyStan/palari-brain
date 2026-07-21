@@ -19,8 +19,11 @@ committing canonical and projection mutations on one transaction.
 
 `docs/MUTATION-SEAM-CONTRACT.md` is subordinate and normative only for
 V2-M2-A1 transaction ownership. A1 changes no memory policy or runtime path.
-M2-A2 separately closes current durable bypasses as explicitly legacy
-compatibility intents. Neither subunit may claim canonical patch conformance.
+`docs/LEGACY-MUTATION-ROUTING-CONTRACT.md` is subordinate and normative only
+for M2-A2's closed compatibility routing boundary: exactly five legacy
+intents, eight CDX projection effects, deterministic lease-bound plans, safe
+returned handles, producer closure, and explicit bootstrap/file-lifecycle
+classification. Neither subunit may claim canonical patch conformance.
 M2-B must bind a minimal trusted authority root outside proposals and
 define a provenance-pinned, Unified-Spec-conforming governed operation
 contract before co-committing a disjoint CDX-B2 decision/effect journal with
