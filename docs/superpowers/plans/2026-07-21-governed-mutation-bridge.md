@@ -227,22 +227,22 @@ wiring is claimed by these checked boxes.
 
 ### M2-B-04 RED
 
-- [ ] Pin exact applied/refused decision matrices, authority ids/times,
+- [x] Pin exact applied/refused decision matrices, authority ids/times,
   sequence/head, effect ordinals, hashes, and nondecreasing observed time.
-- [ ] Mutate every B2 field/object/index/trigger/FK and require deterministic
+- [x] Mutate every B2 field/object/index/trigger/FK and require deterministic
   failure before use.
-- [ ] Prove raw update/delete, gaps/extras, wrong tail, wrong cardinality,
+- [x] Prove raw update/delete, gaps/extras, wrong tail, wrong cardinality,
   wrong target/state, duplicate authority/capability/target ids, and config
   drift fail closed.
-- [ ] Recompute exact target classification and reference Admit/Resolve plus
+- [x] Recompute exact target classification and reference Admit/Resolve plus
   specialized pure Apply on every decision.
-- [ ] Replay checkpoint+journal and compare exact in-scope CDX memory/scope/
+- [x] Replay checkpoint+journal and compare exact in-scope CDX memory/scope/
   type/shared/validity class, link ids/endpoints, and FTS membership.
-- [ ] Demonstrate every listed content/metadata blind spot explicitly.
+- [x] Demonstrate every listed content/metadata blind spot explicitly.
 
 ### M2-B-04 GREEN
 
-- [ ] Implement transaction-neutral complete verifier/reducer and
+- [x] Implement transaction-neutral complete verifier/reducer and
   lease-checked append applier with no transaction control or CDX DML.
 
 ## Task 5 — Production bridge and ratified erasure

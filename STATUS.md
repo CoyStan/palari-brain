@@ -2,13 +2,14 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M2-B Task 4 / M2-B-04 — IMPLEMENT THE APPEND-ONLY JOURNAL, REDUCER,
-AND TRANSITION. Follow the sealed plan: write the RED decision/effect/hash/time,
-field/object mutation, raw-tamper, tail/cardinality/authority/config, reference-
-kernel, replay/projection, and blind-spot matrix; then extend the same journal
-with complete positive-tail verification/reduction plus lease-checked append and
-head advance. Do not begin bridge, ratified erasure, router cutover, terminal,
-or producer tasks before Task 4 passes. CDX-M1 remains runtime/read authority,
+Next: V2-M2-B Task 5 / M2-B-05 — IMPLEMENT THE PRODUCTION BRIDGE AND
+RATIFIED ERASURE. Follow the sealed plan: first write the RED sole-A1-owner,
+seven-export historical-router, governed-token, authority-order, canonical-
+patch, full target matrix, refusal/receipt, fault-ordinal, clock/ledger race,
+and second-connection visibility proofs; then refactor A2 into a transaction-
+neutral planner/projection applier and route only the exact ratified private
+zero-link erasure through the bridge. Do not begin Task 6 producer/terminal
+refusal work before Task 5 passes. CDX-M1 remains runtime/read authority,
 exact B1 remains unchanged/non-authoritative, and parent M2/M2-B remain open.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
@@ -291,6 +292,21 @@ new explicit founder GO. Results remain under gitignored evals/results/.
     reviews report zero blockers or majors. Append, reducer, transition,
     bridge, runtime cutover, producer, and source-of-truth claims remain
     absent; Next is Task 4/M2-B-04 and U8 remains sealed.
+    Task 4 / M2-B-04 DONE 2026-07-21 at `1ff398a`: the journal now exposes the
+    exact five-name namespace and implements complete positive-tail
+    verification/reduction, pinned reference Admit/Resolve/SHA-256 replay,
+    exact first-match ratified-erasure classification, lease-checked append,
+    and one-step head advance. The matrix falsifies all 65 persisted fields,
+    all 16 named application objects, every one of nine index-list/xinfo
+    entries, all three FKs, raw tamper/tail/cardinality/id/time/config faults,
+    overlapping classifier conditions, live projection drift, and every
+    documented blind spot. Post-import inherited `toJSON` cannot affect the
+    null-prototype hash records. Completion PASS on exact Node 22.22.2 /
+    SQLite 3.51.2: bounded closure 268/268 and full suite 634/634, zero
+    failures; protected B1 bytes are unchanged and three independent final
+    reviews report zero blockers or majors. No bridge/runtime/producer wiring,
+    transaction control, semantic CDX/B1 DML, or source-of-truth claim was
+    added; Next is Task 5/M2-B-05 and U8 remains sealed.
   CDX-M1 remains runtime/read authority and exact CDX-B1 remains unchanged and
   non-authoritative throughout these proofs. Parent M2 stays open until M2-B
   passes the complete production matrix.
@@ -410,3 +426,12 @@ allowlist. Focused 129/129 and full 517/517 pass; 136 rollback/retry injections
 plus post-COMMIT uncertainty pass; protected B1 bytes are unchanged and three
 final reviews found zero blockers/majors. No append/reducer/transition/bridge/
 producer or runtime-authority claim; Next is M2-B-04 and U8 remains sealed.
+2026-07-21 — V2-M2-B Task 4 — 1ff398a — Implemented and certified the exact
+five-export positive-tail journal, complete reducer/replay/projection verifier,
+lease-checked append, and one-step head transition. Closure 268/268 and full
+634/634 pass on Node 22.22.2 / SQLite 3.51.2; all persisted fields, objects,
+indexes/FKs, refusal precedence, pinned hash bytes, tamper classes, projection
+checks, and documented blind spots are non-vacuously covered. Protected B1
+bytes are unchanged and three final reviews found zero blockers/majors. No
+bridge/runtime/producer or source-of-truth claim; Next is M2-B-05 and U8
+remains sealed.

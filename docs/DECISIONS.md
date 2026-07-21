@@ -496,3 +496,42 @@ dates. Agents record; the founder decides.
   reducer, transition, bridge, runtime cutover, producer routing, terminal
   action, provider, sealed U8 run, spend, dataset, score, publication, or
   announcement.
+- 2026-07-21 (V2-M2-B Task 4 certification) **Implementation commit
+  `1ff398a6b7a7a3754da609d1372a59817bd8689c` certifies the complete positive-
+  tail B2 journal, reducer, replay verifier, append, and head transition—no
+  production bridge or runtime cutover.** The module exposes exactly
+  `GovernedMemoryError`, `bootstrapCdxB2InTransaction`,
+  `verifyCdxB2InTransaction`, `appendCdxB2TailInTransaction`, and
+  `advanceCdxB2HeadInTransaction`. Every decision reconstructs and re-runs the
+  pinned Admit/Resolve/hash behavior from Palari v05 commit
+  `c9af823c7dee29d29fd937d44527f3b78d8d3845`, path
+  `apps/palari-local-workbench/scripts/workspace-backend/patch-kernel.mjs`,
+  blob `df4de5f00ae88ba670305f9b2bb699441cc5b234`, then applies only the reviewed
+  first-match ratified private zero-link erasure transition. Hash records and
+  every serialization-reachable nested record are frozen null-prototype data,
+  so an inherited post-import `toJSON` cannot replace the exact JSON bytes or
+  execute inside A1.
+
+  The completion matrix mutates every one of 65 persisted fields, all four
+  tables, the explicit index, all eleven triggers, all nine index-list/xinfo
+  entries including eight autoindexes, and all three FKs; it also covers raw
+  update/delete, gap/extra/unheaded tails, effect cardinality/order, authority/
+  capability/decision/patch/target reuse, ledger/config/time drift, overlapping
+  refusal precedence, checkpoint-derived historical replay, exact retained
+  memory/link/FTS projection, and each documented content/metadata blind spot.
+  Dynamic instrumentation observes only ordered B2 decision/effect inserts and
+  the B2 meta CAS, with no transaction control or semantic CDX/B1 DML, and
+  verifies the exact independent SHA-256 input bytes. Completion PASS on exact
+  Node 22.22.2 / SQLite 3.51.2 is bounded closure 268/268 and full suite
+  634/634, zero failures. Protected B1 production/document bytes remain exact
+  to `1d65bb0`; three fresh independent reviews end with zero blockers or
+  majors.
+
+  This certifies neither external authenticity nor resistance to a coherent
+  privileged same-file forgery. It intentionally does not check payload/
+  metadata fields listed by the contract, add a previous-hash chain, invoke B1
+  replay, own transaction control, mutate CDX/B1 projections, wire the bridge,
+  alter runtime/read authority, or authorize a provider, sealed U8 action,
+  spend, dataset, score, publication, or announcement. CDX-M1 remains runtime/
+  read authority, exact B1 remains unchanged and non-authoritative, parent
+  M2/M2-B remain open, and Next is Task 5/M2-B-05.
