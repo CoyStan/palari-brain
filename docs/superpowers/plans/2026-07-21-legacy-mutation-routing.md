@@ -17,9 +17,10 @@ production module imports or invokes the quarantined extracted raw factory.
 The compatibility resolver copies only the exact recorded baseline behavior
 needed to normalize and resolve plans after `BEGIN IMMEDIATE`; safe base/gated
 handles expose no database or child operations. Gate, extraction, recall,
-adapter, scheduler, manager, and topic-forget become branded intent producers.
-Schema work is pre-handle; whole-file deletion is a serialized zero-live-
-handle storage operation.
+adapter, scheduler, and topic-forget become gate-bound intent producers; the
+module-constructed frozen manager returns only branded gated handles. Schema
+work is pre-handle; whole-file deletion is a serialized zero-live-handle
+storage operation.
 
 **Runtime:** exact Node `v22.22.2`, SQLite `3.51.2`, ESM, `node:test`, built-in
 `node:sqlite`; no dependency change.

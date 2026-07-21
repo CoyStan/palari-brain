@@ -489,7 +489,11 @@ function nullableText(value) {
 
 function finiteNumber(value, fallback) {
   const numeric = reflectApply(nativeNumber, undefined, [value])
-  return reflectApply(numberIsFinite, undefined, [numeric]) ? numeric : fallback
+  if (!reflectApply(numberIsFinite, undefined, [numeric])) return fallback
+  // SQLite REAL affinity does not preserve JavaScript's signed-zero bit. Keep
+  // planned/public rows identical to their persisted projection by selecting
+  // one canonical representation before the plan is materialized.
+  return numeric === 0 ? 0 : numeric
 }
 
 function normalizeActor(value, fallback) {

@@ -579,6 +579,15 @@ test('M2-A2-01 all five captured envelopes have exact ordered primitive shapes',
     assert.equal(lifecycle.now, laterTime)
     assert.equal(lifecycle.palariId, 'palari-a')
 
+    const signedZeroBump = router.capture({
+      intentKind: 'legacy_record_recall_inclusion',
+      actor: 'lifecycle_job',
+      bumpAmount: -0,
+      memoryIds: [],
+    })
+    assert.equal(signedZeroBump.bumpAmount, 0)
+    assert.equal(Object.is(signedZeroBump.bumpAmount, -0), false)
+
     const other = createLegacyMutationRouter(db, { clock: () => fixedTime })
     assert.throws(() => other.capture(proposal), {
       code: 'legacy_invalid_argument',
@@ -1435,6 +1444,34 @@ test('M2-A2-02 exact add and supersede row normalization preserves every compati
     assert.equal(userAdd.memory.acquisition_mode, 'direct')
     assert.equal(userAdd.memory.created_by_pipeline, 0)
     assert.equal(userAdd.memory.source_message_id, 'msg-a')
+
+    const signedZero = router.execute({
+      ...proposalEnvelope({
+        record: baseRecord({
+          id: 'signed-zero-add',
+          content: 'Signed zero values are canonicalized',
+          confidence: -0,
+          importance: -0,
+        }),
+      }),
+      policy: Object.freeze({
+        demote: -4,
+        promote: -3,
+        permanent: -2,
+        ratify: -1,
+      }),
+    })
+    const persistedSignedZero = db.prepare(`
+      SELECT importance, confidence
+      FROM main.memories
+      WHERE id = ?
+    `).get('signed-zero-add')
+    assert.equal(Object.is(signedZero.memory.importance, -0), false)
+    assert.equal(Object.is(signedZero.memory.confidence, -0), false)
+    assert.equal(Object.is(persistedSignedZero.importance, -0), false)
+    assert.equal(Object.is(persistedSignedZero.confidence, -0), false)
+    assert.equal(signedZero.memory.importance, persistedSignedZero.importance)
+    assert.equal(signedZero.memory.confidence, persistedSignedZero.confidence)
 
     seed(db, {
       id: 'supersede-old',

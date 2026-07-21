@@ -22,14 +22,15 @@ reports `sourceOfTruth:false`.
 
 **V2-M2 staged transaction boundary:**
 `docs/MUTATION-SEAM-CONTRACT.md` governs only M2-A1: a transaction coordinator
-and private real B1/CDX composition falsifier. A1 imports into no current
-runtime path. `docs/LEGACY-MUTATION-ROUTING-CONTRACT.md` governs M2-A2: it
-routes the complete supported in-file semantic DML surface as exactly five
-legacy compatibility intents and eight transaction-neutral effects, retires
-raw returned mutation/database capabilities, and classifies bootstrap and
-terminal file destruction honestly. The latter remains a separate legacy
-storage route, so A2 does not claim overall one-gate conformance or implement
-the Unified Specification's canonical patch calculus. M2-B must bind a minimal
+and private real B1/CDX composition falsifier. At A1 certification no current
+runtime path imported it; A2 now adopts it only beneath the private legacy
+router. `docs/LEGACY-MUTATION-ROUTING-CONTRACT.md` governs M2-A2: it routes the
+complete supported in-file semantic DML surface as exactly five legacy
+compatibility intents and eight transaction-neutral effects, retires raw
+returned mutation/database capabilities, and classifies bootstrap and terminal
+file destruction honestly. The latter remains a separate legacy storage route,
+so A2 does not claim overall one-gate conformance or implement the Unified
+Specification's canonical patch calculus. M2-B must bind a minimal
 trusted authority root outside proposals, define a provenance-pinned
 Unified-Spec-conforming governed operation contract, and co-commit a disjoint
 CDX-B2 decision/effect journal with every CDX projection effect. Every A2
@@ -54,24 +55,12 @@ and supplies an opaque connection-bound lexical lease. The private acceptance
 test composes unchanged B1 transactional apply with the extracted
 transaction-neutral CDX insert on the same file-backed connection and proves
 joint invisibility-before-commit, visibility-after-commit (including FTS), and
-residue-free joint rollback. No current runtime module imports this surface;
-it is not a producer API, a production bridge, a gate repair, or a governed
-operation/journal contract.
+residue-free joint rollback. At A1 certification no runtime module imported
+this surface. M2-A2 now adopts it only through the private legacy router; it
+remains neither a producer API nor a governed operation/journal contract.
 
-**Current conformance debt:** U4 implemented the bounded candidate gate
-and hid raw add/supersede handles only on `createGatedStore`; U7 later
-gated the adapter ingest path by passing a proposal-producing shim into
-the baseline extraction helper. The exported raw extraction and session-
-summary helpers can still receive a raw store, and the CDX-M1 surface also
-directly forwards ownership deletion/topic-forget, lifecycle decay,
-recall-inclusion telemetry, and store-internal link mutation. Those are
-durable bypasses of the stronger one-gate law in
-`docs/KERNEL-CONTRACT.md`; they are existing defects, not normative
-exceptions. V2-M2 must type and route every one through the gate before any
-source-of-truth cutover. M1 leaves them unchanged and makes no claim that
-U4 or U7 already closed the complete durable mutation matrix.
-
-**M2-A2 sealed compatibility target:** supported callers receive an exact
+**M2-A2 certified compatibility boundary (`e6bbc51`):** supported callers
+receive an exact
 read-only base handle or exact gated handle, neither exposing `.db`, schema,
 or raw insert/add/supersede/link/bump/touch operations. Proposal, direct
 delete, topic forget, recall inclusion, and lifecycle map to the five A2
@@ -80,9 +69,13 @@ completion and exact manifest verification occur before handle return through
 a runtime that owns native construction/cleanup directly; no production
 module imports the quarantined extracted raw store at `src/memory-store.mjs`.
 Whole-store deletion is a serialized zero-live-handle storage-lifecycle
-operation, not a false SQLite co-commit.
-This paragraph describes the A2 acceptance target until its implementation is
-certified; it is not a current-runtime completion claim.
+operation, not a false SQLite co-commit. This closes the supported in-file raw
+writer graph only. It does not authenticate current callers, repair recorded
+legacy semantics, define canonical patches or a trusted authority root,
+journal decisions, make B1 authoritative, or establish overall one-gate
+conformance. M2-B must map every compatibility branch to a governed operation
+or refuse it and co-commit every accepted decision/journal/effect set. Parent
+M2 remains open.
 
 ## 1. Kernel boundary
 
@@ -132,7 +125,9 @@ MemoryAtom {
   id, palariId, userId|null, shared: bool,
   type: permanent {relationship,preference,opinion,entity,life_event}
       | transient {working,project,recent_life,session_summary},
-  content, keywords[], importance: 0..1, confidence: 0..1,   // confidence-at-creation; permanent rows never mutate it
+  content, keywords[], importance: finite, confidence: finite,
+      // A2 legacy inserts allow unbounded finite values; Unified target 0..1.
+      // Confidence is confidence-at-creation; permanent rows never mutate it.
   provenance: {
     acquisitionMode: direct|told_to_me|extracted|summarized,
     createdByPipeline: bool,
@@ -170,41 +165,41 @@ Briefing {
 
 ## 3. store
 
-Factory: `createKernelStore({ dbPath | rootDir+workspaceId, clock? })`
-(from v05 `createPalariMemoryStore` + `workspaceMemoryDbPath`).
-Multi-workspace cache: `createKernelStoreManager` (from
-`createWorkspaceMemoryManager`). Engine prerequisite: Node `>=22.22.2`
+Factory: `createKernelStore({memoryRootDir | statePath, workspaceId,
+clock?, memoryEnabled?, publicDemo?})`, adapted from v05
+`createPalariMemoryStore` + `workspaceMemoryDbPath` behind a safe base
+capability. Multi-workspace cache: `createWorkspaceMemoryManager()`.
+Engine prerequisite: Node `>=22.22.2`
 (the current provisional repository floor), `node:sqlite` `DatabaseSync`,
-and FTS5 `unicode61 remove_diacritics 2`; `probeSqliteDriver()` self-checks
+and FTS5 `unicode61 remove_diacritics 2`; `probeMemorySqliteDriver()` self-checks
 and the factory throws without it. U3's `>=22.5` value is the historical
 theoretical API floor and is superseded for current repository work unless
 the complete suite is certified on a lower exact release.
 
 Reads (never gated — reading is not mutation):
-- `getById(id)`, `list(scope)`, `search(query, scope, {limit})`
-- `recall(query, scope, opts)` — §5.
+- `getMemoryById(id)`, `listMemories(scope)`, and
+  `searchMemories(query, options)`;
+- `recallMemories(query, options)` — §6.
 
-Deletion & ownership (current CDX-M1 behavior, with M2 gate debt):
-- `deleteMemory(id, {actor})` — removes the row; FTS residue removed
+Deletion & ownership (A2 legacy compatibility routes):
+- gated `deleteMemory(id, {actor})` emits `legacy_delete_memory`; accepted
+  deletion removes the row, with FTS residue removed
   by trigger, links by `ON DELETE CASCADE`. Contract test in U3:
   after delete, FTS query and link walk return nothing (residue-free).
-  The frozen surface currently forwards this directly rather than as a
-  typed proposal; that bypass is non-conforming debt, not an exception.
-- `topicForget(topicQuery, scope, {actor})` — **new composed op**
-  (SOURCE-MAP finding 2: no baseline method): `search(topicQuery,
-  scope)` → `deleteMemory` each visible match, scoped to the
-  requesting palari/user only; returns the deleted ids for user
-  confirmation. It currently inherits the same direct-write debt.
-- `deleteStoreFile()` — the whole per-workspace SQLite file
-  (from `deleteWorkspaceMemoryDatabase`). One workspace = one file:
-  portable, inspectable with any sqlite3, deletable as a unit.
+- gated `topicForget(topicQuery, scope, {actor})` emits one
+  `legacy_forget_topic` intent. It resolves one visible snapshot after
+  `BEGIN IMMEDIATE`, applies ordered deletions atomically, and returns only
+  landed IDs. It replaces U3's pre-A2 composed loop.
+- `deleteKernelStoreFile(options)` is the separately classified terminal
+  whole-file route. It serializes by canonical path, refuses while any
+  supported handle is live or blocked, and removes main/WAL/SHM/journal only
+  at zero live count; it is not a SQLite or governance co-commit.
 
-Lifecycle currently has the same known bypass:
-`runLifecycleJobs({palariId, now})` mutates transient decay/validity and
-`recordRecallInclusion(ids, {actor})` writes inclusion telemetry through
-forwarded store methods. V2-M2 must add exact typed operations for these,
-ownership deletion/topic-forget, and any link mutation, then enumerate the
-complete durable surface in a direct-write-fails test.
+Gated `runLifecycleJobs({palariId, now})` and
+`recordRecallInclusion(ids, {actor, bumpAmount})` emit their respective legacy
+intents and make each public batch atomic. Their current decay/deletion and
+mutable access/importance behavior is compatibility behavior carried to M2-B,
+not canonical law.
 
 Ops: `status()`, `publicStatus()`, `close()`. Smoke: port of
 `internal-alpha-memory-readiness` probe (provider-free canary).
@@ -217,25 +212,29 @@ Ops: `status()`, `publicStatus()`, `close()`. Smoke: port of
 hold the frozen surface can use this door for explicit user saves,
 supersession, demote `end_validity`/`delete_transient`, and ratify `share`;
 `addMemory`, `supersedeMemory`, `insertMemory`, and raw `db` are hidden
-from that surface. U7's LongMemEval adapter also routes its extraction
-writes through this door by supplying a gate shim. U4's completion test
-proves only the bounded frozen-surface claim, not the stronger
-all-durable-mutation law.
+from that surface. M2-A2 removes U7's gate shim and structurally requires the
+module-branded gated capability for extraction and session summary. Proposal,
+ownership deletion, topic forget, recall-inclusion telemetry, and lifecycle
+enter the private router as exactly five legacy intents; every possible
+supported in-file semantic write is one of eight lease-checked effects under
+the A1 coordinator. No returned base, gate, or manager handle exposes a raw
+connection or child semantic writer.
 
-**Unclosed law:** the exported raw extraction helper, raw session-summary
-helper, ownership deletion/topic-forget, lifecycle mutation,
-recall-inclusion telemetry, and store-internal link writes still can bypass
-`propose`. `docs/KERNEL-CONTRACT.md` remains normative: every durable
-mutation must eventually be typed through Admit → Resolve → Apply. V2-M2
-must close and test that complete matrix before the API may again claim a
-single write door without qualification.
+**Still-unclosed law:** A2 closes the supported in-file raw writer graph, not
+the governing one-gate law. Its intents, actors, writers, policy values, and
+effects are explicitly unauthenticated compatibility data rather than trusted
+authority or canonical patches. Terminal whole-file deletion is separately
+serialized, not a false SQLite co-commit. M2-B must bind a minimal trusted
+authority root, map every compatibility branch to a governed operation or
+deterministically refuse it, and co-commit each accepted decision/journal/
+projection-effect set. Parent M2 therefore remains open.
 
 Three stages (contract: Admit → Resolve → Apply):
 
 1. **Admit** — typed validation (type ∈ memoryTypes, writer ∈
    memoryAddWriters, actor ∈ memoryMutationActors — all baseline
-   sets); **source boundary**: `sourceKind ∈ externalMemorySourceKinds
-   ⇒ write_eligible must hold** (baseline
+   sets); **source boundary**:
+   `sourceKind ∈ externalMemorySourceKinds ⇒ write_eligible must hold` (baseline
    `memorySourceBoundaryForCandidate`) — external content cannot mint
    memories, and what does get written carries origin provenance
    (C7); **threshold ordering** by proposal kind:
@@ -258,8 +257,12 @@ Three stages (contract: Admit → Resolve → Apply):
    in one transaction: old row gets `validUntil`, new row inserted,
    `supersedes` link written; the old row **survives** as
    counterfactual history (baseline `supersedeMemory`, verbatim).
-   Permanent rows are never UPDATEd — the API exposes no
-   content-mutation op; correction is only this path (C3).
+   The Unified target keeps permanent canonical payloads linear: correction is
+   demote-and-promote, never payload replacement. A2 exposes no content-
+   replacement operation, but its explicitly legacy effects still mutate CDX
+   validity, sharing, importance, access, and decay metadata. M2-B must map or
+   refuse those compatibility branches; their routing is not canonical
+   conformance (C3).
 
 **Evidence-time discipline (C2):** Apply stamps `validFrom` from
 `provenance.eventAt` when the proposal carries it; wall clock is only
@@ -271,23 +274,21 @@ makes `eventAt` required for `extracted`/`summarized` provenance.)
 
 ## 5. extract
 
-- `runExtractionPass({ store, turn, extractor, logger }) →
-  {status, memoriesWritten, outcomes[], sourceBoundary}` — the exported
-  baseline `runMemoryExtractionPass` still calls the supplied store-like
-  object's add/supersede methods. U7's adapter passes a gate shim, so that
-  adapter path emits `WriteProposal`s; a direct caller can still pass the
-  raw store. V2-M2 must make the gate-bound dependency structural rather
-  than caller-conventional.
+- `runMemoryExtractionPass({store: gated, turn, extractor, extractorId,
+  logger}) → {status, memoriesWritten, outcomes[], sourceBoundary}` requires
+  the module-branded gated capability. Each eligible candidate is converted
+  internally to an A2 `legacy_proposal`; duplicate, contradiction,
+  supersession-link, and insert work resolves after A1 transaction entry.
+  `turn.eventAt` and `extractorId` are required before any candidate write.
 - `extractor({turn}) → payload` is **injected**. Provided by kernel:
-  `deterministicMockExtraction` (dry mode, U7 tests);
-  `buildExtractionRequest({turn, budgets})` for real providers —
-  token budgets become parameters (SOURCE-MAP severance:
-  routing-policy functions parameterized).
-- `writeSessionSummaryMemory({store, ...})` — the extracted helper still
-  writes through the supplied store and is not structurally gate-bound.
-  Its intended future proposal is `promote` class with
-  `writer: 'session_summary'`; V2-M2 must implement that path before the
-  intended shape becomes a conformance claim.
+  `deterministicMockMemoryExtraction` (dry mode, U7 tests);
+  `buildMemoryExtractionRequest({turn})` for real providers —
+  request budgets stay pinned through the local routing-policy severance shim
+  recorded in `docs/SOURCE-MAP.md`.
+- `writeSessionSummaryMemory({store: gated, turn})` also requires the branded
+  capability and `turn.eventAt`; an eligible summary submits a `promote/add`
+  proposal with `writer:'session_summary'`. This is A2 compatibility routing,
+  not a governed receipt; complete candidate receipts remain V2-M3 work.
 - Candidate hygiene stays in the pass: transient-detail rejection
   (`memoryContainsTransientDetail`), source-boundary evaluation per
   candidate, the anti-injection instruction pattern
@@ -357,7 +358,7 @@ of the contract appears exactly once.
 | C2 | Atoms · evidence-time discipline | §4 Apply stamps from `eventAt`; GAP-4 |
 | C3 | Atoms/types · permanent linear; correction = demote-and-promote w/ link; counterfactual history survives | §4 Apply (supersede transaction; no content-mutation op) |
 | C4 | Atoms/types · transient use-or-decay; supersession type-safe | §3 lifecycle jobs; §4 Resolve type-safety (GAP-3) |
-| C5 | Gate · typed proposal Admit→Resolve→Apply; no producer writes directly | §4 candidate-write door plus explicit non-conformance debt; V2-M2 must structurally gate raw extraction/session-summary and close ownership/lifecycle/touch/link bypasses before expanding the direct-write-fails test |
+| C5 | Gate · typed proposal Admit→Resolve→Apply; no producer writes directly | §4: A2 closes the supported in-file raw writer graph through five legacy intents/eight lease-checked effects; M2-B still must authenticate authority, govern-or-refuse every branch, and co-commit the decision journal |
 | C6 | Gate · thresholds demote < promote < permanent < ratify | §4 Admit `AdmissionPolicy` (GAP-2) |
 | C7 | Gate · external content must not mint w/o provenance marking; surfacing shows origin | §4 Admit source boundary; §5 candidate hygiene; §6 briefing origin attribution |
 | C8 | Retrieval · FTS + filters + optional graph walk; no vector default; extensions optional planes | §6 `recall`; §1 exclusion (no extension planes built here) |
@@ -370,8 +371,8 @@ of the contract appears exactly once.
 | C15 | Honesty · newer supersedes older; superseded not confidently recalled | §4 Resolve contradiction→supersede; §6 validity predicate excludes expired |
 | C16 | Honesty · never invent a memory | §6 structural property + U5 property test |
 | C17 | Deletion · row + FTS/link residue removed | §3 `deleteMemory` + trigger/CASCADE; U3 residue-free test |
-| C18 | Deletion · topic-forget scoped to requesting user/palari | §3 `topicForget` (new composed op) |
-| C19 | Ownership · per-workspace SQLite file: portable, inspectable, deletable | §3 one-file-per-workspace + `deleteStoreFile` |
+| C18 | Deletion · topic-forget scoped to requesting user/palari | §3 gated `topicForget` legacy route |
+| C19 | Ownership · per-workspace SQLite file: portable, inspectable, deletable | §3 one-file-per-workspace + `deleteKernelStoreFile` |
 
 **Completion test — PASS:** KERNEL-CONTRACT.md contains 16 bullets
 across 6 sections (mechanically counted); C1–C19 cover all 16.
@@ -382,8 +383,10 @@ C3/C4 (permanent vs transient rules), briefing·bullet 2 → C12/C13
 clause row names an interface section, an explicit exclusion, or the
 now-explicit C5 conformance debt. The only process-only mappings are C13
 and the reporting half of C14, routed to the evals discipline. Traceability
-is complete; implementation conformance is not complete until V2-M2 closes
-C5's remaining durable bypasses.
+is complete. A2 closes the supported in-file raw writer graph; implementation
+conformance remains incomplete until M2-B supplies trusted authority,
+govern-or-refuse semantics, and decision/journal/effect co-commit, including a
+governed disposition for the separately serialized terminal route.
 
 — Fable 5, U2, 2026-07-18. Design derived, gaps recorded, nothing
 forked silently.

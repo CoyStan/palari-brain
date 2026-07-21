@@ -269,8 +269,9 @@ The exact pre-transaction branches are:
 
 Admission converts `record.confidence` with the captured native `Number`
 exactly once at the final reason position; a conversion throw escapes by
-identity even when earlier reasons exist. A finite result is reused for both
-the threshold and any eventual row; a non-finite result becomes `0.5`.
+identity even when earlier reasons exist. A finite result has either signed
+zero canonicalized to numeric `+0` and is then reused for both the threshold
+and any eventual row; a non-finite result becomes `0.5`.
 Current U4 can invoke stateful confidence coercion twice during admission and
 again on insert; once-and-reuse is an intentional deterministic A2 delta.
 
@@ -381,14 +382,14 @@ It then materializes the exact 22-key row in §5 with these rules:
 | `type` | exact admitted primitive supplied string; current U4 partition admission uses raw set membership, so padded/non-string/nullish/empty/unknown values already produced `kind_type_mismatch`; the later trim is therefore a no-op |
 | `content` | trimmed `String`; empty throws baseline `Memory content is required.` |
 | `keywords` | after the branch-specific step 5, array entries are converted to trimmed strings, empty converted strings are removed, and the rest join with one space; a scalar is trimmed `String`; thus external add drops raw falsy `0|false|null|undefined` before conversion while user-message add and supersession preserve their non-null scalar string forms |
-| `importance` | finite `Number(value)` or `0.5`; not clamped on insert |
+| `importance` | finite `Number(value)`, with either signed zero canonicalized to numeric `+0`, or `0.5`; not clamped on insert |
 | `valid_from` | exact non-nullish caller/event string selected above, otherwise captured store-time ISO string |
 | `valid_until` | trimmed `String` or `null` |
 | `access_count` | numeric `0`; caller input is ignored |
 | `last_accessed` | trimmed `String` or `null` |
 | `created_at` | exact caller `record.created_at` string when non-nullish, otherwise captured store-time ISO string |
 | `shared` | caller truthiness converted to numeric `0|1` |
-| `confidence` | finite `Number(value)` or `0.5`; not clamped on insert |
+| `confidence` | finite `Number(value)`, with either signed zero canonicalized to numeric `+0`, or `0.5`; not clamped on insert |
 | `acquisition_mode` | trimmed derived/caller string, default `direct`, then exact private acquisition-set validation with baseline message |
 | `created_by_pipeline` | writer-derived numeric `0|1` from step 2 |
 | `fictional` | caller truthiness converted to numeric `0|1` |
@@ -492,8 +493,9 @@ protected IDs, or repeat a full protected batch indefinitely.
 Carries memory IDs, actor exactly normalized as
 `String(options.actor ?? 'lifecycle_job').trim()`, and bump amount. Actor is
 private-set validated first. Bump is then converted once with captured native
-`Number`; a finite result is used, while non-finite becomes `0.05` (`null`
-therefore becomes `0`), and a conversion throw escapes by identity. IDs are
+`Number`; a finite result has either signed zero canonicalized to numeric `+0`
+and is then used, while non-finite becomes `0.05` (`null` therefore becomes
+`0`), and a conversion throw escapes by identity. IDs are
 then treated as the supplied array or one wrapped scalar, converted with
 `String(id ?? '').trim()`, filtered to nonempty, and deduplicated in first-
 occurrence order. Actor → bump → IDs is exact caller-coercion precedence. An
@@ -999,14 +1001,14 @@ with code `legacy_store_closed` before input inspection or database work.
 
 ### 7.4 Manager, producers, and capabilities
 
-`createWorkspaceMemoryManager()` returns a branded/frozen object with exact
-own keys `['close', 'config', 'forWorkspace', 'publicStatus']` and no symbol
-keys. `forWorkspace()` returns and caches the gated handle, never the dormant
-extraction evidence or base handle. Its cache entry is a private state record
-containing the one in-flight creation promise or live handle: concurrent calls
-for the same normalized workspace share one creation and resolve to the same
-object identity. If a caller closes a cached handle, the next
-`forWorkspace()` creates and caches a fresh handle.
+`createWorkspaceMemoryManager()` returns a module-constructed frozen object
+with exact own keys `['close', 'config', 'forWorkspace', 'publicStatus']` and
+no symbol keys. `forWorkspace()` returns and caches the branded gated handle,
+never the dormant extraction evidence or base handle. Its cache entry is a
+private state record containing the one in-flight creation promise or live
+handle: concurrent calls for the same normalized workspace share one creation
+and resolve to the same object identity. If a caller closes a cached handle,
+the next `forWorkspace()` creates and caches a fresh handle.
 
 Manager state is exactly `open → closing → closed`. `close()` changes to
 `closing` synchronously before its first await, is idempotent, awaits every
@@ -1803,8 +1805,9 @@ A2 is complete only when tests and review prove all of these together:
 
 1. the documented current-mutation disposition is exhaustive and mechanically
    matches the exact five-intent/eight-effect unions;
-2. enabled and disabled base/gated/manager surfaces are exact, frozen,
-   branded, and raw-handle-free;
+2. enabled and disabled base/gated surfaces are exact, frozen, branded, and
+   raw-handle-free; the manager is exact, frozen, module-constructed, and
+   returns only branded gated handles;
 3. spoofed, duck-typed, stale, and wrong-kind capabilities fail before any
    semantic write, and every A2 structural/state failure has the exact closed
    error code/message/precedence;
@@ -1854,8 +1857,9 @@ composite calls, direct-FTS accurate topic-forget results/termination, safe
 disabled handles, one-time eager caller-value detachment/coercion, prototype-
 collision and structural-input repairs, eager actor/ID validation, structural
 extraction/summary event and extractor provenance requirements, immutable
-policy vocabularies, canonical numeric policy snapshots, trimmed proposal-
-target/direct-ID
+policy vocabularies, canonical numeric policy snapshots, signed-zero
+canonicalization for finite confidence/importance/bump captures, trimmed
+proposal-target/direct-ID
 capture, deterministic lifecycle capture/date arithmetic, finite recall-time
 rejection, uniform extracted-candidate rejection accounting, canonical-parent
 path identity, manager single-flight/close-race revocation,

@@ -9,13 +9,16 @@ disagree, the spec wins and this file gets fixed.
 CDX-M1 runtime. `docs/MEMORY-BUNDLE-CONTRACT.md` governs only the
 non-authoritative coexistence substrate. M1 introduces no second runtime
 write door and changes no lifecycle, visibility, sharing, deletion,
-retrieval, or gate behavior. The current CDX-M1 implementation is not yet
-fully conforming to the one-gate law: exported raw extraction/session-
-summary helpers, ownership deletion/topic-forget, lifecycle,
-recall-inclusion, and internal link mutations remain durable bypasses
-recorded for V2-M2. They are defects, not normative exceptions.
-A later cutover must close them and preserve every law here while
-committing canonical and projection mutations on one transaction.
+retrieval, or gate behavior. M2-A2 implementation commit `e6bbc51` closes the
+supported **in-file CDX-M1 raw writer graph**: branded gated producers submit
+exactly five legacy intents, whose possible semantic SQL is exactly eight
+lease-checked effects under A1. That bounded compatibility closure is not full
+one-gate conformance. Current caller identity and policy inputs are not trusted
+authority, the recorded legacy semantic defects still require M2-B
+map-or-refuse, and terminal whole-file destruction remains a separately
+serialized storage route. Parent M2 therefore stays open until a governed
+operation contract and journal co-commit every accepted projection effect or
+deterministically refuse it.
 
 `docs/MUTATION-SEAM-CONTRACT.md` is subordinate and normative only for
 V2-M2-A1 transaction ownership. A1 changes no memory policy or runtime path.
