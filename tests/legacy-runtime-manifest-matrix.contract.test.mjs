@@ -18,6 +18,8 @@ import {
   deleteKernelStoreFile,
   workspaceMemoryDbPath,
 } from '../src/store.mjs'
+import { bootstrapCdxB2InTransaction } from '../src/cdx-b2-journal.mjs'
+import { createMutationCoordinator } from '../src/mutation-coordinator.mjs'
 
 const temporaryDirectories = []
 
@@ -405,6 +407,11 @@ function runInstrumentedManifestOpen(directory, workspaceId, mode) {
             'AFTER INSERT ON memories BEGIN SELECT 1; END',
           ])
         }
+        if (operational && payload.mode === 'b2-fk-temp-shadow') {
+          apply(nativeExec, target, [
+            'CREATE TEMP TABLE b2_fk_intruder(stream_id TEXT)',
+          ])
+        }
         return wrapper
       }
     }
@@ -510,10 +517,19 @@ function runInstrumentedManifestOpen(directory, workspaceId, mode) {
       handle.close()
       process.stdout.write(JSON.stringify({ code: 'OPENED', message: null }))
     } catch (error) {
-      process.stdout.write(JSON.stringify({
+      const result = {
         code: error?.code ?? null,
         message: error?.message ?? String(error),
-      }))
+      }
+      if (payload.mode === 'b2-fk-temp-shadow') {
+        const stack = error?.stack ?? ''
+        result.stage = stack.includes('verifyLegacyB2AllowlistState')
+          ? 'b2-allowlist'
+          : stack.includes('verifyMigrations')
+            ? 'migration'
+            : 'other'
+      }
+      process.stdout.write(JSON.stringify(result))
     }
   `
   const child = spawnSync(
@@ -997,6 +1013,38 @@ test('M2-A2-04 connection policy, TEMP trigger, quick-check, and FTS command rea
       await deleteKernelStoreFile(options)
     })
   }
+})
+
+test('M2-B-03 historical opener main-scopes the B2 FK allowlist under a TEMP same-name shadow', async () => {
+  const directory = await temporaryDirectory()
+  const workspaceId = 'b2-fk-temp-shadow'
+  const options = optionsFor(directory, workspaceId)
+  const initial = await createKernelStore(options)
+  const dbPath = initial.dbPath
+  initial.close()
+
+  const db = new DatabaseSync(dbPath)
+  try {
+    createMutationCoordinator(db).run((lease) =>
+      bootstrapCdxB2InTransaction(lease, db, { workspaceId }))
+    db.exec(`
+      CREATE TABLE main.b2_fk_intruder(
+        stream_id TEXT REFERENCES cdx_b2_meta(stream_id)
+      )
+    `)
+  } finally {
+    db.close()
+  }
+
+  assert.deepEqual(
+    runInstrumentedManifestOpen(directory, workspaceId, 'b2-fk-temp-shadow'),
+    {
+      code: 'legacy_schema_invalid',
+      message: 'The CDX-M1 runtime schema does not match the required manifest.',
+      stage: 'b2-allowlist',
+    },
+  )
+  await deleteKernelStoreFile(options)
 })
 
 test('M2-A2-04 non-STRICT memory row oracle rejects every scalar type/domain family', async (t) => {

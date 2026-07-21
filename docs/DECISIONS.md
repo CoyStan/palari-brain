@@ -445,3 +445,29 @@ dates. Agents record; the founder decides.
   `e1ded27e33516d73c60da1f4a4c9cb0767b1bb0b1482e78b429449ec7c0b07f4`
   remain otherwise exact. This authorizes no B2/schema/bridge/producer wiring,
   provider, sealed U8 run, spend, dataset, score, publication, or announcement.
+- 2026-07-21 (V2-M2-B Task 3 JavaScript-manifest representation) **The RED
+  schema matrix pins the three JavaScript aggregate shapes that the normative
+  SQL contract intentionally left representationally open; no persisted byte
+  or semantic rule changes.** `CDX_B2_CREATE_STATEMENTS` is a recursively
+  frozen, ordered array of sixteen primitive execution-SQL strings. Each
+  string qualifies only its created object as `main.` and ends in exactly one
+  semicolon; the corresponding manifest `persistedSql` is the independently
+  normalized unqualified normative statement, because normalization does not
+  and must not erase `main.`. `CDX_B2_REQUIRED_PRAGMAS` is an ordered frozen
+  array of null-prototype records with exact keys
+  `name,setSql,readSql,value`, in A1 policy order: `foreign_keys=1`,
+  `busy_timeout=0`, `recursive_triggers=1`,
+  `ignore_check_constraints=0`, and `trusted_schema=0`.
+  `CDX_B2_MANIFEST` is one recursively frozen null-prototype record with exact
+  keys `schemaVersion,schemaDocumentSha256,objects,autoindexes,tableXinfo,`
+  `indexLists,indexXinfo,foreignKeys,triggerTargets,caseFoldedNames`; its
+  ordered application objects use exact keys
+  `type,name,table,executionSql,persistedSql`, and autoindexes use
+  `name,table`. The leaf remains exactly six exports and no-I/O/no-import.
+  The schema document remains
+  `84f01ae2b5bdf084cacf27b8d6e6d3a611852094e985c36aaa18bba8baa2813e`,
+  and the canonical 5,704-byte configuration remains
+  `e1ded27e33516d73c60da1f4a4c9cb0767b1bb0b1482e78b429449ec7c0b07f4`.
+  This clarification adds no B2 field or object, runtime wiring, journal
+  append, reducer, transition, bridge, producer behavior, provider, sealed U8
+  action, spend, dataset, score, publication, or announcement permission.

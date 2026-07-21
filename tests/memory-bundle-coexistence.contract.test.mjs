@@ -75,6 +75,11 @@ const M2B_DISPOSITION_SOURCE_FILES = Object.freeze([
   'governed-mutation-dispositions.mjs',
 ])
 
+const M2B_B2_SOURCE_FILES = Object.freeze([
+  'cdx-b2-journal.mjs',
+  'cdx-b2-schema.mjs',
+])
+
 const DORMANT_SOURCE_FILES = Object.freeze([
   'memory-store.mjs',
 ])
@@ -84,6 +89,7 @@ const SEALED_PRODUCTION_MODULES = Object.freeze([
   ...A2_RUNTIME_SOURCE_FILES.map((name) => `src/${name}`),
   ...M2B_AUTHORITY_SOURCE_FILES.map((name) => `src/${name}`),
   ...M2B_DISPOSITION_SOURCE_FILES.map((name) => `src/${name}`),
+  ...M2B_B2_SOURCE_FILES.map((name) => `src/${name}`),
   ...BUNDLE_SOURCE_FILES.map((name) => `src/${name}`),
 ])
 
@@ -486,19 +492,20 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
   }
 })
 
-test('M1-14 A2 plus isolated M2-B data modules keep B1 ownership isolated', () => {
+test('M1-14 A2 plus isolated M2-B modules keep B1 ownership isolated', () => {
   const sourceDirectory = join(REPO_ROOT, 'src')
   const actualSourceFiles = readdirSync(sourceDirectory)
     .filter((name) => name.endsWith('.mjs'))
     .toSorted(compareBinary)
-  assert.equal(SEALED_PRODUCTION_MODULES.length, 26)
-  assert.equal(new Set(SEALED_PRODUCTION_MODULES).size, 26)
+  assert.equal(SEALED_PRODUCTION_MODULES.length, 28)
+  assert.equal(new Set(SEALED_PRODUCTION_MODULES).size, 28)
   assert.deepEqual(
     actualSourceFiles,
     [
       ...A2_RUNTIME_SOURCE_FILES,
       ...M2B_AUTHORITY_SOURCE_FILES,
       ...M2B_DISPOSITION_SOURCE_FILES,
+      ...M2B_B2_SOURCE_FILES,
       ...BUNDLE_SOURCE_FILES,
       ...DORMANT_SOURCE_FILES,
     ].toSorted(compareBinary),
@@ -583,6 +590,30 @@ test('M1-14 A2 plus isolated M2-B data modules keep B1 ownership isolated', () =
       source,
       /\.\/memory-bundle(?:-[a-z]+)?\.mjs|\.\/memory-store\.mjs/,
       `${name} reaches B1 or the dormant raw store`,
+    )
+  }
+
+  for (const name of M2B_B2_SOURCE_FILES) {
+    const source = readFileSync(join(sourceDirectory, name), 'utf8')
+    const specifiers = literalImportSpecifiers(source)
+    assert.deepEqual(
+      specifiers,
+      name === 'cdx-b2-schema.mjs'
+        ? []
+        : [
+            'node:crypto',
+            'node:sqlite',
+            'node:util',
+            './memory-bundle-schema.mjs',
+            './mutation-coordinator.mjs',
+            './cdx-b2-schema.mjs',
+          ],
+      `${name} gained an unreviewed dependency`,
+    )
+    assert.doesNotMatch(
+      source,
+      /\.\/memory-store\.mjs|\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:main\.)?memory_bundle_/i,
+      `${name} reaches the dormant raw store or B1 DML`,
     )
   }
 
@@ -682,7 +713,15 @@ test('M2-A2-07 semantic mutation, transaction, capability, and plan graphs are c
   }
 
   const ftsDml = /\b(?:INSERT\s+INTO|DELETE\s+FROM)\s+(?:main\.)?memory_fts\b/gi
-  assert.deepEqual(pathsMatching(ftsDml), ['src/kernel-store-runtime.mjs'])
+  assert.deepEqual(pathsMatching(ftsDml), [
+    'src/cdx-b2-journal.mjs',
+    'src/kernel-store-runtime.mjs',
+  ])
+  assert.equal(
+    sources.get('src/cdx-b2-journal.mjs').match(ftsDml)?.length,
+    8,
+    'B2 journal mentions only the copied A2 FTS trigger manifest DML',
+  )
   assert.equal(
     sources.get('src/kernel-store-runtime.mjs').match(ftsDml)?.length,
     9,
@@ -691,6 +730,8 @@ test('M2-A2-07 semantic mutation, transaction, capability, and plan graphs are c
 
   const transactionToken = /\b(?:BEGIN(?:\s+IMMEDIATE)?|COMMIT|ROLLBACK(?:\s+TO)?|SAVEPOINT|RELEASE)\b/
   assert.deepEqual(pathsMatching(transactionToken), [
+    'src/cdx-b2-journal.mjs',
+    'src/cdx-b2-schema.mjs',
     'src/kernel-store-runtime.mjs',
     'src/memory-bundle-apply.mjs',
     'src/memory-bundle-schema.mjs',
@@ -716,6 +757,7 @@ test('M2-A2-07 semantic mutation, transaction, capability, and plan graphs are c
   ])
   assert.deepEqual(pathsMatching(/\bimport\(/), [])
   assert.deepEqual(pathsMatching(/from\s*['"]node:sqlite['"]/), [
+    'src/cdx-b2-journal.mjs',
     'src/kernel-store-runtime.mjs',
     'src/legacy-mutation-router.mjs',
     'src/memory-bundle-runtime.mjs',
@@ -1015,6 +1057,7 @@ test('M1-14 dependency, namespace, schema, and provider-free boundaries remain c
   const expectedLocalGraph = new Set([
     ...roots,
     ...BUNDLE_SOURCE_FILES.map((name) => `src/${name}`),
+    'src/cdx-b2-schema.mjs',
     'src/gate.mjs',
     'src/kernel-store-runtime.mjs',
     'src/legacy-mutation-router.mjs',

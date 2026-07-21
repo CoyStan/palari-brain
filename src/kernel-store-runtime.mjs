@@ -10,8 +10,11 @@
 // directly, completes CDX-M1 before publication, verifies the closed
 // CDX-M1-runtime@1 manifest, captures native dispatch, exposes branded reads
 // only, delegates all semantic DML to the legacy router, and serializes
-// terminal file deletion. The extracted src/memory-store.mjs is never
-// imported and remains dormant provenance evidence.
+// terminal file deletion. M2-B Task 3 adds only the exact reviewed CDX-B2
+// object/trigger allowlist so a historical opener reaches—and rejects—the
+// intentional third migration row; it does not bootstrap or use B2. The
+// extracted src/memory-store.mjs is never imported and remains dormant
+// provenance evidence.
 
 import { mkdir, lstat, realpath, rm } from 'node:fs/promises'
 import { constants as fsConstants } from 'node:fs'
@@ -20,6 +23,10 @@ import { performance } from 'node:perf_hooks'
 import { DatabaseSync, StatementSync } from 'node:sqlite'
 import { types as utilTypes } from 'node:util'
 
+import {
+  CDX_B2_MANIFEST,
+  normalizeCdxB2Sql,
+} from './cdx-b2-schema.mjs'
 import {
   MEMORY_BUNDLE_OBJECTS,
   MEMORY_BUNDLE_TRIGGER_TARGETS,
@@ -1127,8 +1134,187 @@ const B1_TRIGGER_TARGETS = (() => {
   }
   return result
 })()
+const B2_TRIGGER_SQL = (() => {
+  const result = new nativeMap()
+  for (let index = 0; index < CDX_B2_MANIFEST.objects.length; index += 1) {
+    const object = CDX_B2_MANIFEST.objects[index]
+    if (object.type !== 'trigger') continue
+    reflectApply(mapSet, result, [object.name, object.persistedSql])
+  }
+  return result
+})()
+const B2_TRIGGER_TARGETS = (() => {
+  const result = new nativeMap()
+  for (
+    let index = 0;
+    index < CDX_B2_MANIFEST.triggerTargets.length;
+    index += 1
+  ) {
+    const target = CDX_B2_MANIFEST.triggerTargets[index]
+    reflectApply(mapSet, result, [target.name, target.table])
+  }
+  return result
+})()
+const B2_SCHEMA_ROWS = (() => {
+  const result = new nativeMap()
+  for (let index = 0; index < CDX_B2_MANIFEST.objects.length; index += 1) {
+    const object = CDX_B2_MANIFEST.objects[index]
+    reflectApply(mapSet, result, [object.name, objectFreeze({
+      sql: object.persistedSql,
+      table: object.table,
+      type: object.type,
+    })])
+  }
+  for (let index = 0; index < CDX_B2_MANIFEST.autoindexes.length; index += 1) {
+    const autoindex = CDX_B2_MANIFEST.autoindexes[index]
+    reflectApply(mapSet, result, [autoindex.name, objectFreeze({
+      sql: null,
+      table: autoindex.table,
+      type: 'index',
+    })])
+  }
+  return result
+})()
+const B2_TABLE_NAME_SET = (() => {
+  const result = new nativeSet()
+  for (let index = 0; index < CDX_B2_MANIFEST.objects.length; index += 1) {
+    const object = CDX_B2_MANIFEST.objects[index]
+    if (object.type === 'table') {
+      reflectApply(setAdd, result, [object.name])
+    }
+  }
+  return result
+})()
+
+function isLegacyB2AssociatedName(name) {
+  const folded = asciiFold(name)
+  return (
+    folded !== null &&
+    (
+      reflectApply(stringStartsWith, folded, ['cdx_b2_']) ||
+      reflectApply(stringStartsWith, folded, [
+        'sqlite_autoindex_cdx_b2_',
+      ])
+    )
+  )
+}
+
+function verifyLegacyB2AllowlistState(db) {
+  const schemaRows = readRows(db, `
+    SELECT type, name, tbl_name, sql
+    FROM main.sqlite_schema
+    ORDER BY name COLLATE BINARY
+  `)
+  const b2Rows = []
+  let hasMigrationTable = false
+  for (let index = 0; index < schemaRows.length; index += 1) {
+    const row = schemaRows[index]
+    if (row.type === 'table' && row.name === 'memory_migrations') {
+      hasMigrationTable = true
+    }
+    const namedForB2 = isLegacyB2AssociatedName(row.name)
+    const targetsB2 = isLegacyB2AssociatedName(row.tbl_name)
+    if (
+      (row.type === 'index' || row.type === 'trigger') &&
+      targetsB2 &&
+      reflectApply(mapGet, B2_SCHEMA_ROWS, [row.name]) === undefined
+    ) throw schemaInvalid()
+    if (namedForB2) appendValue(b2Rows, row)
+  }
+
+  let markerCount = 0
+  if (hasMigrationTable) {
+    try {
+      markerCount = readScalar(db, `
+        SELECT count(*)
+        FROM main.memory_migrations
+        WHERE id = 'CDX-B2'
+      `)
+    } catch (error) {
+      throw schemaInvalid(error)
+    }
+  }
+
+  if (b2Rows.length === 0 && markerCount === 0) return
+  if (
+    markerCount !== 1 ||
+    b2Rows.length !== CDX_B2_MANIFEST.caseFoldedNames.length
+  ) throw schemaInvalid()
+
+  for (let index = 0; index < b2Rows.length; index += 1) {
+    const row = b2Rows[index]
+    const expected = reflectApply(mapGet, B2_SCHEMA_ROWS, [row.name])
+    if (
+      expected === undefined ||
+      row.type !== expected.type ||
+      row.tbl_name !== expected.table ||
+      (
+        expected.sql === null
+          ? row.sql !== null
+          : (
+              typeof row.sql !== 'string' ||
+              normalizeCdxB2Sql(row.sql) !== expected.sql
+            )
+      )
+    ) throw schemaInvalid()
+  }
+
+  const tables = readRows(db, `
+    SELECT name FROM main.sqlite_schema
+    WHERE type = 'table'
+    ORDER BY name COLLATE BINARY
+  `)
+  for (let index = 0; index < tables.length; index += 1) {
+    const table = tables[index].name
+    const sourceIsB2 = reflectApply(setHas, B2_TABLE_NAME_SET, [table])
+    const foreignKeys = readRows(
+      db,
+      'SELECT "table" FROM pragma_foreign_key_list(?, ?)',
+      [table, 'main'],
+    )
+    for (let fkIndex = 0; fkIndex < foreignKeys.length; fkIndex += 1) {
+      const target = foreignKeys[fkIndex].table
+      const targetIsB2 = (
+        reflectApply(setHas, B2_TABLE_NAME_SET, [target]) ||
+        isLegacyB2AssociatedName(target)
+      )
+      if (sourceIsB2 !== targetIsB2) throw schemaInvalid()
+    }
+  }
+}
+
+function verifyAllowedCoexistingTrigger(row) {
+  let expectedSql
+  let expectedTarget
+  let actualSql
+  if (
+    row.name === 'memories_ai' ||
+    row.name === 'memories_ad' ||
+    row.name === 'memories_au'
+  ) {
+    expectedSql = normalizeSql(PERSISTED_SQL[row.name])
+    expectedTarget = 'memories'
+    actualSql = normalizeSql(row.sql)
+  } else {
+    expectedSql = reflectApply(mapGet, B1_TRIGGER_SQL, [row.name])
+    expectedTarget = reflectApply(mapGet, B1_TRIGGER_TARGETS, [row.name])
+    actualSql = normalizeSql(row.sql)
+    if (expectedSql === undefined && expectedTarget === undefined) {
+      expectedSql = reflectApply(mapGet, B2_TRIGGER_SQL, [row.name])
+      expectedTarget = reflectApply(mapGet, B2_TRIGGER_TARGETS, [row.name])
+      actualSql = typeof row.sql === 'string'
+        ? normalizeCdxB2Sql(row.sql)
+        : null
+    }
+  }
+  if (
+    expectedSql === undefined || expectedTarget === undefined ||
+    row.tbl_name !== expectedTarget || actualSql !== expectedSql
+  ) throw schemaInvalid()
+}
 
 function verifyBootstrapTriggerPreflight(db) {
+  verifyLegacyB2AllowlistState(db)
   if (readRows(db, "SELECT name FROM temp.sqlite_schema WHERE type = 'trigger'").length !== 0) {
     throw schemaInvalid()
   }
@@ -1139,24 +1325,7 @@ function verifyBootstrapTriggerPreflight(db) {
     ORDER BY name COLLATE BINARY
   `)
   for (let index = 0; index < rows.length; index += 1) {
-    const row = rows[index]
-    let expectedSql
-    let expectedTarget
-    if (
-      row.name === 'memories_ai' ||
-      row.name === 'memories_ad' ||
-      row.name === 'memories_au'
-    ) {
-      expectedSql = normalizeSql(PERSISTED_SQL[row.name])
-      expectedTarget = 'memories'
-    } else {
-      expectedSql = reflectApply(mapGet, B1_TRIGGER_SQL, [row.name])
-      expectedTarget = reflectApply(mapGet, B1_TRIGGER_TARGETS, [row.name])
-    }
-    if (
-      expectedSql === undefined || expectedTarget === undefined ||
-      row.tbl_name !== expectedTarget || normalizeSql(row.sql) !== expectedSql
-    ) throw schemaInvalid()
+    verifyAllowedCoexistingTrigger(rows[index])
   }
 }
 
@@ -1288,12 +1457,7 @@ function verifySchemaInventory(db) {
     if (row.name === 'memories_ai' || row.name === 'memories_ad' || row.name === 'memories_au') {
       continue
     }
-    const expectedSql = reflectApply(mapGet, B1_TRIGGER_SQL, [row.name])
-    const expectedTarget = reflectApply(mapGet, B1_TRIGGER_TARGETS, [row.name])
-    if (
-      expectedSql === undefined || expectedTarget === undefined ||
-      row.tbl_name !== expectedTarget || normalizeSql(row.sql) !== expectedSql
-    ) throw schemaInvalid()
+    verifyAllowedCoexistingTrigger(row)
   }
   if (readRows(db, "SELECT name FROM temp.sqlite_schema WHERE type = 'trigger'").length !== 0) {
     throw schemaInvalid()
@@ -1448,8 +1612,8 @@ function verifyForeignKeys(db) {
     const table = ordinaryTables[index].name
     const fks = readRows(
       db,
-      'SELECT "table" FROM pragma_foreign_key_list(?)',
-      [table],
+      'SELECT "table" FROM pragma_foreign_key_list(?, ?)',
+      [table, 'main'],
     )
     if (
       table !== 'memory_links' &&
