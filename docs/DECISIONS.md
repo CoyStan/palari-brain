@@ -356,3 +356,31 @@ dates. Agents record; the founder decides.
   and exact B1 unchanged/non-authoritative, and advances only to Task 1
   authority implementation. It authorizes no provider, sealed U8, spend,
   dataset, score, publication, or announcement action.
+- 2026-07-21 (V2-M2-B Task 1 post-seal exactness clarification) **The RED
+  authority matrix made three previously implicit edge ordinals executable;
+  the reviewed operation set and canonical configuration are unchanged.** A
+  burn-eligible reservation must first have returned an authorization
+  snapshot; premature or stale burn is `authority_invalid_argument`, repeated
+  release is a no-op, and an old reservation cannot affect a newer one. A
+  sampled authority clock is a primitive finite integer millisecond that
+  renders to the exact 24-character native ISO form, and its high-water mark
+  advances before later chronology/expiry rejection. Finally, two generations
+  published at B2 head zero may carry different ledger candidates: after one
+  establishes sequence one, the loser's next A1 attempt compares the verified
+  ledger before clock, nonce, or ID work, rolls back as exact
+  `authority_scope_mismatch`, appends nothing, and retires the immutable
+  incompatible root/audience; A1 uncertainty still wins. The exact A1
+  sequences and acceptance proof now carry that race rather than relying on a
+  later SQL trigger. These clarifications supersede only the affected prose
+  hashes from the Task 0 cut point: bridge
+  `25e9eeb1b902582a72ddc9d60c46f437c886afeac5e33ce0288c142e3927fe27`,
+  authority
+  `f4c87eda57059bf1b44d2640471f29f68ae6acf3af128a5142717f711fed75c9`,
+  and B2 schema
+  `84f01ae2b5bdf084cacf27b8d6e6d3a611852094e985c36aaa18bba8baa2813e`.
+  Disposition-registry hash
+  `d34106fedb1997a1bc03fa88f0479209a6c5d42fc9bb62038a6682ce9e6b8eee`
+  and canonical-config 5,704-byte hash
+  `e1ded27e33516d73c60da1f4a4c9cb0767b1bb0b1482e78b429449ec7c0b07f4`
+  remain exact. This narrows ambiguity; it adds no operation, authority source,
+  B2 field, runtime wiring, provider, spend, benchmark, or publication scope.

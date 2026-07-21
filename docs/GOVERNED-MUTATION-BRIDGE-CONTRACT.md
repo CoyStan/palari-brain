@@ -694,22 +694,32 @@ For an authority-bearing deletion, the exact sequence is:
 5. sample `observedAt`, construct immutable authority/patch scalars, and enter
    A1 directly;
 6. assert the A1 lease and fully verify B2 under the write snapshot;
-7. compare `observedAt` with the verified B2 tail; a lower value throws
+7. when the verified head is positive, compare the authorization snapshot's
+   `authorityLedgerId` with sequence one's established ledger; a mismatch
+   throws exact `authority_scope_mismatch`, rolls back, appends nothing, and
+   retires the incompatible root/audience before clock, nonce, or id work;
+8. compare `observedAt` with the verified B2 tail; a lower value throws
    `governance_clock_invalid`, rolls back, poisons the bridge, and retires the
    authority audience before any nonce or generated-id check;
-8. reject historical authority/capability id reuse;
-9. generate the next decision/patch ids once; a collision is an internal
+9. reject historical authority/capability id reuse;
+10. generate the next decision/patch ids once; a collision is an internal
    error, never retried;
-10. run exact Admit, Resolve, and the pure erasure transition;
-11. for the applied leaf, obtain the sole branded zero-key projection token;
+11. run exact Admit, Resolve, and the pure erasure transition;
+12. for the applied leaf, obtain the sole branded zero-key projection token;
     materialize/deep-freeze a one-use plan pairing the decision, zero or two
     B2 effects, and zero or one such CDX delete token;
-12. insert the decision and ordered B2 effects;
-13. apply the sole branded CDX effect when mapped;
-14. prove exact memory/FTS/link postconditions;
-15. advance meta exactly one and verify the complete new tail;
-16. let A1 commit, then burn the grant and return a detached legacy-compatible
+13. insert the decision and ordered B2 effects;
+14. apply the sole branded CDX effect when mapped;
+15. prove exact memory/FTS/link postconditions;
+16. advance meta exactly one and verify the complete new tail;
+17. let A1 commit, then burn the grant and return a detached legacy-compatible
     result.
+
+The step-7 race check is skipped at verified head zero. Its exact
+`MemoryAuthorityError` is rethrown after A1 proves rollback, but unlike an
+ordinary releasable pre-A1 scope mismatch it retires this immutable,
+now-incompatible root/audience. Any A1 ownership, cleanup, or commit
+uncertainty still wins and follows the broader uncertainty-retirement law.
 
 There is no user callback, authority callback, clock callback, random-id
 callback, coercion, async boundary, or public re-entry from step 5 through A1

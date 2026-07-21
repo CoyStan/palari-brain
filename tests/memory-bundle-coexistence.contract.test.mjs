@@ -66,6 +66,11 @@ const A2_RUNTIME_SOURCE_FILES = Object.freeze([
   'util.mjs',
 ])
 
+const M2B_AUTHORITY_SOURCE_FILES = Object.freeze([
+  'memory-authority-runtime.mjs',
+  'memory-authority.mjs',
+])
+
 const DORMANT_SOURCE_FILES = Object.freeze([
   'memory-store.mjs',
 ])
@@ -73,6 +78,7 @@ const DORMANT_SOURCE_FILES = Object.freeze([
 const SEALED_PRODUCTION_MODULES = Object.freeze([
   ['scripts', 'run-live-slice.mjs'].join('/'),
   ...A2_RUNTIME_SOURCE_FILES.map((name) => `src/${name}`),
+  ...M2B_AUTHORITY_SOURCE_FILES.map((name) => `src/${name}`),
   ...BUNDLE_SOURCE_FILES.map((name) => `src/${name}`),
 ])
 
@@ -475,17 +481,18 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
   }
 })
 
-test('M1-14 A2 production graph is sealed while B1 ownership stays isolated', () => {
+test('M1-14 A2 plus isolated M2-B authority graph keeps B1 ownership isolated', () => {
   const sourceDirectory = join(REPO_ROOT, 'src')
   const actualSourceFiles = readdirSync(sourceDirectory)
     .filter((name) => name.endsWith('.mjs'))
     .toSorted(compareBinary)
-  assert.equal(SEALED_PRODUCTION_MODULES.length, 23)
-  assert.equal(new Set(SEALED_PRODUCTION_MODULES).size, 23)
+  assert.equal(SEALED_PRODUCTION_MODULES.length, 25)
+  assert.equal(new Set(SEALED_PRODUCTION_MODULES).size, 25)
   assert.deepEqual(
     actualSourceFiles,
     [
       ...A2_RUNTIME_SOURCE_FILES,
+      ...M2B_AUTHORITY_SOURCE_FILES,
       ...BUNDLE_SOURCE_FILES,
       ...DORMANT_SOURCE_FILES,
     ].toSorted(compareBinary),
@@ -539,6 +546,23 @@ test('M1-14 A2 production graph is sealed while B1 ownership stays isolated', ()
     assert.doesNotMatch(
       source,
       /\b(?:initializeMemoryBundle|applyResolvedDecisionInTransaction)\s*\(/,
+    )
+  }
+
+  for (const name of M2B_AUTHORITY_SOURCE_FILES) {
+    const source = readFileSync(join(sourceDirectory, name), 'utf8')
+    const specifiers = literalImportSpecifiers(source)
+    assert.deepEqual(
+      specifiers,
+      name === 'memory-authority-runtime.mjs'
+        ? ['node:util']
+        : ['./memory-authority-runtime.mjs'],
+      `${name} gained an unreviewed dependency`,
+    )
+    assert.doesNotMatch(
+      source,
+      /\.\/memory-bundle(?:-[a-z]+)?\.mjs|\.\/memory-store\.mjs/,
+      `${name} reaches B1 or the dormant raw store`,
     )
   }
 

@@ -127,17 +127,17 @@ unchanged and non-authoritative.
 
 ### M2-B-01 RED
 
-- [ ] Pin exact public/internal module namespaces and every error/message.
-- [ ] Reject Proxy/accessor/inherited/extra/coerced inputs at exact ordinals.
-- [ ] Prove roots/grants/audiences/reservations are frozen, zero-key, branded;
+- [x] Pin exact public/internal module namespaces and every error/message.
+- [x] Reject Proxy/accessor/inherited/extra/coerced inputs at exact ordinals.
+- [x] Prove roots/grants/audiences/reservations are frozen, zero-key, branded;
   serialization/cloning cannot preserve authority; and no capability appears
   in an ordinary returned surface.
-- [ ] Bind one root exactly once to one successful enabled store generation;
-  close retires synchronously and reopen requires a new root.
-- [ ] Prove exact identifier/timestamp grammar, native clock high-water, issue
+- [x] Prove the primitive one-lifetime bind and synchronous retirement law with
+  synthetic generation audiences; a retired audience requires a new root.
+- [x] Prove exact identifier/timestamp grammar, native clock high-water, issue
   chronology, expiry equality, local revocation, identifier non-reuse, and
   immutable exact target/verb/audience.
-- [ ] Reserve before caller traps; invoke captured predicate exactly once
+- [x] Reserve before caller traps; invoke captured predicate exactly once
   after capture; validate predicate/provider only as non-Proxy
   `typeof === 'function'`; supply `thisArgument` undefined without overriding
   bound receivers; allow no callback/async boundary from final recheck through
@@ -145,18 +145,25 @@ unchanged and non-authoritative.
   exact `throw undefined`/`throw null` presence flags and cause descriptors,
   and protocol failures. Cross-grant store reentry is a violated trusted-host
   precondition and receives no hostile-host claim.
-- [ ] Bind every reopened root to the stream's established sequence-one
-  authority-ledger id; first committed decision establishes an empty stream.
-- [ ] Prove release on known no-commit, burn on known decision commit, and root
-  retirement on every uncertain A1 outcome.
-- [ ] Static-test that proposal/model-facing modules do not import or disclose
+- [x] Prove final bind accepts the established sequence-one authority-ledger id,
+  rejects a mismatch, and treats head zero as an unpersisted candidate.
+- [x] Prove the release, authorized-burn, and root-retirement primitives needed
+  by the exhaustive later A1 settlement matrix.
+- [x] Static-test that proposal/model-facing modules do not import or disclose
   authority constructors/runtime capabilities.
 
 ### M2-B-01 GREEN
 
-- [ ] Implement captured-primordial WeakMap state and exact public wrapper.
-- [ ] Bind/retire audiences only inside pre-publication/close lifecycle.
-- [ ] Run focused tests and inspect dynamic import namespaces.
+- [x] Implement captured-primordial WeakMap state and exact public wrapper.
+- [x] Keep bind/retire internal for the later pre-publication/close lifecycle;
+  no current proposal, model, producer, or public store surface imports them.
+- [x] Run focused tests and inspect dynamic import namespaces.
+
+Task 1 certifies the seven lifecycle/settlement primitives with synthetic
+generation, ledger, and decision-boundary fixtures. Actual store publication,
+close ordering, B2 ledger establishment/races, and A1 result settlement remain
+the explicit integration falsifiers in Tasks 3, 5, and 6; no premature runtime
+wiring is claimed by these checked boxes.
 
 ## Task 2 — Executable disposition registry
 
@@ -264,6 +271,10 @@ unchanged and non-authoritative.
 - [ ] Close/reopen with a new root and a lower native observed time; require
   the post-verifier/pre-nonce `governance_clock_invalid` ordinal, rollback,
   bridge poison, and authority retirement rather than a generic trigger error.
+- [ ] Publish two zero-head generations with different ledger candidates;
+  after one establishes sequence one, require the loser's next A1 attempt to
+  roll back as `authority_scope_mismatch`, append no decision, and retire its
+  incompatible root/audience.
 - [ ] Observe from a second connection: neither side before commit, both after.
 
 ### M2-B-05 GREEN

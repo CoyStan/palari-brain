@@ -1272,29 +1272,38 @@ The bridge is the sole production A1 owner. Within one A1 transaction it:
 1. verifies B2 and the current CDX projection completely;
 2. reads the verified head and, when `head > 0`, its exact tail decision under
    the write snapshot;
-3. compares the already-authorized snapshot's `observedAt` with the tail's
+3. when `head > 0`, compares the already-authorized snapshot's
+   `authorityLedgerId` with sequence one's verified `authority_ledger_id`; a
+   mismatch fails as exact `authority_scope_mismatch`;
+4. compares the already-authorized snapshot's `observedAt` with the tail's
    `observed_at`; an earlier value fails as `governance_clock_invalid`;
-4. rejects historical reuse of either `authority_event_id` or
+5. rejects historical reuse of either `authority_event_id` or
    `capability_id`;
-5. generates the next decision id and patch id exactly once; collision is an
+6. generates the next decision id and patch id exactly once; collision is an
    error and is never retried inside the call;
-6. runs exact C1--C8 admission and the exact six-field resolver on the one
+7. runs exact C1--C8 admission and the exact six-field resolver on the one
    canonical ratified-erasure patch;
-7. computes the first-match classifier;
-8. inserts one decision at `head + 1`;
-9. for an applied decision, inserts effect ordinal zero then ordinal one;
-10. invokes the sole A2 projection applier for one branded
+8. computes the first-match classifier;
+9. inserts one decision at `head + 1`;
+10. for an applied decision, inserts effect ordinal zero then ordinal one;
+11. invokes the sole A2 projection applier for one branded
    `cdx_memory_delete`;
-11. proves target memory and FTS absence and byte-identical link membership;
-12. advances the singleton head by exactly one;
-13. reruns complete verification and replay; and
-14. exposes a result only after A1 proves commit.
+12. proves target memory and FTS absence and byte-identical link membership;
+13. advances the singleton head by exactly one;
+14. reruns complete verification and replay; and
+15. exposes a result only after A1 proves commit.
 
-Step 3 is skipped only at head zero; equality is permitted. It runs after the
-complete verifier, so an invalid existing history wins, and before historical
-nonce lookup or id generation, so clock rollback wins over reuse/collision and
-samples no decision/patch id. On failure no decision is appended, A1 rolls
-back, and the bridge and current authority retire under the exact
+Steps 3 and 4 are skipped only at head zero; clock equality is permitted. Both
+run after the complete verifier, so an invalid existing history wins. The
+ledger comparison runs before the clock comparison, historical nonce lookup,
+or id generation: a zero-head generation that lost establishment to a
+different ledger therefore fails as exact `authority_scope_mismatch` even if
+its clock is also low. A1 rolls that mismatch back with no decision and the
+bridge retires the immutable incompatible root/audience. The clock comparison
+runs before historical nonce lookup or id generation, so clock rollback wins
+over reuse/collision and samples no decision/patch id. On clock failure no
+decision is appended, A1 rolls back, and the bridge and current authority
+retire under the exact
 `governance_clock_invalid` settlement in
 `docs/MEMORY-AUTHORITY-CONTRACT.md` and
 `docs/GOVERNED-MUTATION-BRIDGE-CONTRACT.md`. The decision trigger's
@@ -1431,6 +1440,13 @@ must use a fresh root whose internally monotone `observedAt` is earlier than
 the verified prior tail and prove exact `governance_clock_invalid`, zero new
 B2/CDX state, bridge poison, and current-authority retirement before nonce
 lookup or id generation.
+
+A separate supported-bridge race must publish two generations while the same
+stream is at head zero, using different ledger candidates. After one commits
+sequence one, the loser's next A1 attempt must fail proactively as
+`authority_scope_mismatch` immediately after verification, append no decision,
+retire its incompatible root/audience, and generate no decision/patch id. A
+simultaneously lower `observedAt` does not change that precedence.
 
 ## 8. Payload boundary
 

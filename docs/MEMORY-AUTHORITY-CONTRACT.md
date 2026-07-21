@@ -185,6 +185,14 @@ must never undo a reentrant revoke, audience retirement, or later reservation.
 Burn is idempotent only for the same already-burned reservation; a released or
 foreign reservation cannot burn a later use of the grant.
 
+An internal reservation reaches its burn-eligible state only after
+`authorizeMemoryAuthorityReservation` has returned its authorization snapshot.
+Burning a branded reservation before that state, or burning a released/stale
+reservation, is `authority_invalid_argument`; the latter check must leave any
+newer reservation untouched. Repeated release is an exact no-op. This private
+phase check does not prove a B2 commit by itself: the governed bridge remains
+responsible for calling burn only after a known committed decision.
+
 On successful authorization, `snapshot` is a frozen null-prototype data
 record with exactly these own keys and derived values:
 
@@ -258,6 +266,13 @@ permanently retires the root, its audience, and every grant, then throws
 `authority_clock_invalid`. A forward jump may expire authority but never
 extends it.
 
+For this profile, a sampled native-clock reading is valid exactly when it is a
+primitive finite integer millisecond value whose captured-native ISO rendering
+is a 24-character canonical timestamp. It is never coerced. After validity and
+monotonicity pass, the high-water mark advances immediately, before a later
+issuance-chronology or use-time-expiry check; a failed attempt therefore cannot
+erase an observed forward clock movement.
+
 ## 4. Root construction and audience binding
 
 `createMemoryAuthorityRoot` accepts exactly:
@@ -324,6 +339,15 @@ once in its lifetime and to exactly one generation:
 ```text
 unbound -> live(bound generation) -> retired
 ```
+
+Two already-published zero-head generations may therefore hold different
+candidates. If one establishes sequence one first, the other generation MUST,
+inside its next A1 attempt after complete B2 verification and before append,
+detect that the now-established ledger differs. That attempt rolls back with
+`authority_scope_mismatch`, appends no decision, and retires the incompatible
+root/audience because their immutable ledger can never match that stream.
+This race-only recheck does not weaken final-bind mismatch precedence for a
+generation opened after sequence one already exists.
 
 Both internal construction calls receive an already-normalized primitive
 `workspaceId`. Preflight checks root brand (`authority_root_invalid`),
@@ -742,10 +766,12 @@ revoke, and historical nonce reuse are terminal for that grant.
 Activity-check protocol failure and clock failure retire the root.
 
 Governed-bridge errors raised inside an A1 callback are settled after A1 has
-either proved rollback or reported uncertainty. This table is exhaustive:
+either proved rollback or reported uncertainty. These specific rows override
+the generic internal-callback row above. This table is exhaustive:
 
 | bridge result after A1 | authority and bridge disposition |
 |---|---|
+| race-only `authority_scope_mismatch` after verified ledger mismatch with proven rollback | retire incompatible root/audience/all grants; keep the bridge readable and nonpoisoned; append nothing; rethrow the exact `MemoryAuthorityError` |
 | `governance_identifier_collision` with proven rollback | release; no ID retry inside the call |
 | historical authority-event/capability reuse with proven rollback | mark grant burned; throw `authority_grant_unavailable` |
 | `governance_connection_invalid` | poison bridge and retire root/audience/all grants |
@@ -756,6 +782,10 @@ either proved rollback or reported uncertainty. This table is exhaustive:
 | `governance_invalid_argument` inside A1 | treat as internal invariant; poison and retire |
 | an otherwise unclassified native/projection-applier exception after A1 proves rollback | release; the next attempt re-runs the full verifier and activity predicate |
 | any bridge error combined with A1 ownership/cleanup/commit uncertainty | A1 uncertainty wins; poison bridge and retire root/audience/all grants |
+
+The race-only authority error follows the same uncertainty override: if A1
+cannot prove rollback/ownership/cleanup, uncertainty poisons the bridge and
+retires authority instead of exposing the scope error as a clean rollback.
 
 The governed projection child is not covered by the unclassified-exception
 row when it reports a known impossible state. The bridge converts exact
@@ -908,7 +938,9 @@ Implementation is incomplete until tests prove at least:
 3. root one-generation binding, rootless read operation, close-before-native-
    close retirement, mandatory new root after reopen, first-decision ledger
    establishment, same-ledger continuation, and nonempty-history bind mismatch
-   before publication;
+   before publication; plus competing zero-head candidates where the losing
+   generation rolls back its next attempt with `authority_scope_mismatch` and
+   retires without a decision;
 4. exact create-root/preflight/bind precedence; disabled/rootless/direct-store/
    manager-provider construction precedence; inherited omission, own-accessor
    rejection without invocation, own-data capture, exact function-typed/non-
