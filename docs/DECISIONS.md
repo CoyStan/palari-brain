@@ -384,3 +384,23 @@ dates. Agents record; the founder decides.
   `e1ded27e33516d73c60da1f4a4c9cb0767b1bb0b1482e78b429449ec7c0b07f4`
   remain exact. This narrows ambiguity; it adds no operation, authority source,
   B2 field, runtime wiring, provider, spend, benchmark, or publication scope.
+- 2026-07-21 (V2-M2-B Task 1 certified implementation cut point) **The trusted
+  authority core is implemented at `220be3b`, in isolation from every durable
+  mutation path.** `src/memory-authority-runtime.mjs` exposes the exact twelve
+  internal names and `src/memory-authority.mjs` identity-reexports the exact
+  five public names. Opaque private roots, audiences, grants, and reservations;
+  immutable scalar capture; one-generation ledger binding; identifier
+  non-reuse; captured activity predicates; primitive finite-integer native
+  clock high-water; callback/postcheck precedence; and authorized-only
+  release/burn/retire settlement are executable. The RED matrix was observed
+  failing first at the missing-module boundary. At certification, authority
+  tests pass 37/37 and the full suite passes 469/469 with zero failures on
+  exact Node 22.22.2 / SQLite 3.51.2. Exact namespace identity, static
+  isolation, and protected B1 byte checks pass; three independent final
+  reviews found zero blockers or majors. This cut point does not connect the
+  authority to a store generation, B2, A1, the bridge, or any producer; it
+  changes no durable mutation behavior, runtime/read authority, B1 authority,
+  provider, sealed U8 run, spend, dataset, score, publication, or announcement
+  permission. CDX-M1 remains runtime/read authority, exact B1 remains unchanged
+  and non-authoritative, parent M2/M2-B remain open, and Next is Task 2's
+  executable disposition registry only.

@@ -2,13 +2,13 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M2-B Task 1 / M2-B-01 — IMPLEMENT THE TRUSTED AUTHORITY ROOT,
-AUDIENCE, AND ONE-USE ERASURE GRANT. Follow the sealed plan and exact
-`host-checked-external-grant-v1` contract at documentation commit `a128f1e`:
-write the RED namespace/brand/record/precedence/lifecycle/callback/settlement
-matrix, then implement the exact five-name public and twelve-name internal
-authority surfaces. Do not begin the disposition, B2, bridge, or producer
-tasks before Task 1 passes. CDX-M1 remains runtime/read authority, exact B1
+Next: V2-M2-B Task 2 / M2-B-02 — IMPLEMENT THE EXECUTABLE DISPOSITION
+REGISTRY. Follow the sealed plan and exact `CDX-M1-legacy-disposition@5`
+contract: write the RED artifact-equality, finite-set, vocabulary, MAP,
+staged-authority, impossible-combination, producer, and terminal-branch
+matrix, then implement the frozen data-only registry and exact four-export
+evaluator surface. Do not begin B2 schema/checkpoint, bridge, or producer
+tasks before Task 2 passes. CDX-M1 remains runtime/read authority, exact B1
 remains unchanged/non-authoritative, and parent M2/M2-B remain open.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
@@ -245,8 +245,18 @@ new explicit founder GO. Results remain under gitignored evals/results/.
     SQL 4 tables/1 explicit index/8 autoindexes/3 FKs/11 triggers; full
     unchanged suite 432/432 on Node 22.22.2 / SQLite 3.51.2; protected B1
     bytes and local links exact; three final independent reviews with zero
-    blockers or majors. No production/test file changed. M2-B implementation
-    is still open; Next is Task 1/M2-B-01 authority only.
+    blockers or majors. No production/test file changed at that cut point.
+    Task 1 / M2-B-01 DONE 2026-07-21 at `220be3b`: exact five-export public
+    and twelve-export internal authority surfaces now implement opaque private
+    roots/audiences/grants/reservations, immutable capture, one-generation
+    ledger binding, ID non-reuse, native-clock high-water, callback/postcheck
+    precedence, and release/burn/retire settlement. Completion PASS on exact
+    Node 22.22.2 / SQLite 3.51.2: focused authority 37/37 and full suite
+    469/469, zero failures; exact export identity and protected-B1 byte checks
+    pass; three independent final reviews report zero blockers or majors.
+    The authority modules are not yet wired to the store, B2, A1, bridge, or
+    producers, so no durable mutation path or source-of-truth claim changed.
+    Next is Task 2/M2-B-02 executable disposition registry only.
   CDX-M1 remains runtime/read authority and exact CDX-B1 remains unchanged and
   non-authoritative throughout these proofs. Parent M2 stays open until M2-B
   passes the complete production matrix.
@@ -344,3 +354,10 @@ four-table B2 schema/replay, bootstrap/projection/terminal seams, and executable
 plan. Mechanical SQL/config/registry/link/protected-byte checks and unchanged
 432/432 suite pass; three final reviews have zero blockers/majors. Parent M2-B
 remains open; Next is M2-B-01 authority implementation; U8 remains sealed.
+2026-07-21 — V2-M2-B Task 1 — 220be3b — Implemented the exact trusted
+authority core and public wrapper: opaque roots/audiences/grants/reservations,
+one-generation ledger binding, one-use settlement, captured predicates,
+native-clock high-water, and closed precedence/error law. Authority 37/37 and
+full suite 469/469 pass on Node 22.22.2 / SQLite 3.51.2; protected B1 bytes are
+unchanged and three final reviews found zero blockers/majors. No runtime/store/
+B2/A1/bridge/producer wiring claim; Next is M2-B-02 and U8 remains sealed.
