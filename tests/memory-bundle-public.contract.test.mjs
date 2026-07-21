@@ -1,23 +1,31 @@
 import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
 import {
   existsSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 
-import { MemoryBundleError } from '../src/memory-bundle-apply.mjs'
+import {
+  applyResolvedDecisionInTransaction,
+  initializeMemoryBundle,
+  MemoryBundleError,
+} from '../src/memory-bundle-apply.mjs'
 import { openMemoryBundle } from '../src/memory-bundle.mjs'
 import {
   EXPECTED_CAPABILITIES,
   M1_04_IDS,
   createM105Bundle,
+  makeM104ApplyEnvelope,
   makeM104AtomRow,
   makeM104CanonicalAtom,
 } from './helpers/memory-bundle-fixtures.mjs'
@@ -446,4 +454,317 @@ test('M1-10 verify and replay return fresh exact values and close is idempotent'
     assert.deepEqual(readFileSync(dbPath), bytesBefore)
     assert.deepEqual(readdirSync(directory).sort(), entriesBefore)
   })
+})
+
+const M1_13_CHILD_PATH = fileURLToPath(new URL(
+  './fixtures/memory-bundle-hot-journal-child.mjs',
+  import.meta.url,
+))
+const M1_13_SPILL_ROW_COUNT = 768
+const M1_13_SPILL_PAYLOAD_BYTES = 3000
+const M1_13_MINIMUM_JOURNAL_BYTES = 2 * 1024 * 1024
+const M1_13_READY_TIMEOUT_MS = 10_000
+const M1_13_CLOSE_TIMEOUT_MS = 5_000
+const M1_13_ORIGINAL_PAYLOAD = 'A'.repeat(M1_13_SPILL_PAYLOAD_BYTES)
+const M1_13_CHANGED_PAYLOAD = 'B'.repeat(M1_13_SPILL_PAYLOAD_BYTES)
+const M1_13_HOT_JOURNAL_MAGIC = 'd9d505f920a163d7'
+const M1_13_CRASH_MEMORY_ID =
+  'mem_00000000-0000-4000-8000-000000001303'
+
+function readM113SingleValue(db, sql) {
+  const row = db.prepare(sql).get()
+  const values = Object.values(row)
+  assert.equal(values.length, 1)
+  return values[0]
+}
+
+function observeM113Child(child) {
+  const output = { stdout: '', stderr: '', error: undefined }
+  child.stdout.setEncoding('utf8')
+  child.stderr.setEncoding('utf8')
+  child.stdout.on('data', (chunk) => {
+    output.stdout += chunk
+  })
+  child.stderr.on('data', (chunk) => {
+    output.stderr += chunk
+  })
+  child.on('error', (error) => {
+    if (output.error === undefined) output.error = error
+  })
+  return output
+}
+
+function waitForM113Ready(child, output) {
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const timer = setTimeout(() => {
+      finish(new Error(
+        `M1-13 child READY timeout\nstdout:\n${output.stdout}\nstderr:\n${output.stderr}`,
+      ))
+    }, M1_13_READY_TIMEOUT_MS)
+
+    function finish(error) {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      child.stdout.off('data', inspect)
+      child.off('error', onError)
+      child.off('close', onClose)
+      if (error === undefined) resolve()
+      else reject(error)
+    }
+
+    function inspect() {
+      if (output.stdout === 'READY\n') {
+        finish()
+        return
+      }
+      if (!'READY\n'.startsWith(output.stdout)) {
+        finish(new Error(
+          `M1-13 child emitted unexpected stdout: ${JSON.stringify(output.stdout)}`,
+        ))
+      }
+    }
+
+    function onError(error) {
+      finish(error)
+    }
+
+    function onClose(code, signal) {
+      finish(new Error(
+        `M1-13 child exited before READY (${code ?? signal})\n` +
+        `stdout:\n${output.stdout}\nstderr:\n${output.stderr}`,
+      ))
+    }
+
+    child.stdout.on('data', inspect)
+    child.once('error', onError)
+    child.once('close', onClose)
+    inspect()
+  })
+}
+
+function observeM113Close(child) {
+  return new Promise((resolve) => {
+    child.once('close', (code, signal) => resolve({ code, signal }))
+  })
+}
+
+async function waitForM113Close(closePromise, output) {
+  let timer
+  try {
+    return await Promise.race([
+      closePromise,
+      new Promise((resolve, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(
+            `M1-13 child close timeout\n` +
+            `stdout:\n${output.stdout}\nstderr:\n${output.stderr}\n` +
+            `error:\n${output.error?.stack ?? output.error ?? ''}`,
+          ))
+        }, M1_13_CLOSE_TIMEOUT_MS)
+      }),
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+function makeM113CrashEnvelope() {
+  const input = makeM104ApplyEnvelope()
+  input.expectedHead.sequence = 1
+  input.decision.decisionId =
+    'dec_00000000-0000-4000-8000-000000001301'
+  input.decision.proposalId =
+    'prp_00000000-0000-4000-8000-000000001302'
+  input.decision.memoryId = M1_13_CRASH_MEMORY_ID
+  input.decision.effectiveAt = '2026-07-18T12:59:00.000Z'
+  input.decision.observedAt = '2026-07-18T13:00:00.000Z'
+  input.atom.content = 'M1-13 uncommitted crash memory.'
+  input.atom.keywords = ['crash', 'uncommitted']
+  input.atom.initialImportance = 0.625
+  return input
+}
+
+function inspectM113HotJournal(journalPath) {
+  assert.equal(existsSync(journalPath), true)
+  const journal = statSync(journalPath)
+  assert.equal(journal.isFile(), true)
+  assert.ok(journal.size > M1_13_MINIMUM_JOURNAL_BYTES)
+  const magic = readFileSync(journalPath).subarray(0, 8).toString('hex')
+  assert.equal(magic, M1_13_HOT_JOURNAL_MAGIC)
+  return { size: journal.size, magic }
+}
+
+function createM113Database(dbPath) {
+  const db = new DatabaseSync(dbPath)
+  try {
+    db.exec('PRAGMA page_size=4096')
+    assert.equal(
+      readM113SingleValue(db, 'PRAGMA journal_mode=DELETE'),
+      'delete',
+    )
+    assert.equal(initializeMemoryBundle(db, {
+      clock() {
+        return new Date('2026-07-18T11:58:00.000Z')
+      },
+      idFactory() {
+        return M1_04_IDS.streamId.slice('str_'.length)
+      },
+    }), undefined)
+    db.exec('BEGIN IMMEDIATE')
+    assert.equal(
+      applyResolvedDecisionInTransaction(db, makeM104ApplyEnvelope()),
+      undefined,
+    )
+    db.exec('COMMIT')
+    db.exec(`
+      CREATE TABLE main.m113_test_owned_spill (
+        id INTEGER PRIMARY KEY,
+        payload TEXT NOT NULL
+      ) STRICT;
+      BEGIN IMMEDIATE;
+    `)
+    const insert = db.prepare(`
+      INSERT INTO main.m113_test_owned_spill (id, payload)
+      VALUES (?, ?)
+    `)
+    for (let id = 1; id <= M1_13_SPILL_ROW_COUNT; id += 1) {
+      assert.equal(insert.run(id, M1_13_ORIGINAL_PAYLOAD).changes, 1)
+    }
+    db.exec('COMMIT')
+    assert.ok(readM113SingleValue(db, 'PRAGMA page_count') > 700)
+    assert.deepEqual(db.prepare(`
+      SELECT
+        count(*) AS rowCount,
+        sum(CASE WHEN payload = ? THEN 1 ELSE 0 END) AS originalCount
+      FROM main.m113_test_owned_spill
+    `).get(M1_13_ORIGINAL_PAYLOAD), Object.assign(Object.create(null), {
+      rowCount: M1_13_SPILL_ROW_COUNT,
+      originalCount: M1_13_SPILL_ROW_COUNT,
+    }))
+  } finally {
+    if (db.isTransaction) db.exec('ROLLBACK')
+    db.close()
+  }
+}
+
+function assertM113RecoveredSpill(dbPath) {
+  const db = new DatabaseSync(dbPath, { readOnly: true })
+  try {
+    assert.deepEqual(db.prepare(`
+      SELECT
+        count(*) AS rowCount,
+        sum(CASE WHEN payload = ? THEN 1 ELSE 0 END) AS originalCount,
+        sum(CASE WHEN payload = ? THEN 1 ELSE 0 END) AS changedCount
+      FROM main.m113_test_owned_spill
+    `).get(
+      M1_13_ORIGINAL_PAYLOAD,
+      M1_13_CHANGED_PAYLOAD,
+    ), Object.assign(Object.create(null), {
+      rowCount: M1_13_SPILL_ROW_COUNT,
+      originalCount: M1_13_SPILL_ROW_COUNT,
+      changedCount: 0,
+    }))
+  } finally {
+    db.close()
+  }
+}
+
+test('M1-13 public open recovers a hard-crash rollback journal', {
+  timeout: 30_000,
+}, async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'palari-m113-hot-journal-'))
+  const dbPath = join(directory, 'bundle.sqlite')
+  const journalPath = `${dbPath}-journal`
+  let child
+  let childClose
+  let output
+
+  try {
+    createM113Database(dbPath)
+    assert.equal(existsSync(journalPath), false)
+
+    child = spawn(process.execPath, [M1_13_CHILD_PATH, dbPath], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    output = observeM113Child(child)
+    childClose = observeM113Close(child)
+    await waitForM113Ready(child, output)
+
+    const journalBeforeKill = inspectM113HotJournal(journalPath)
+    assert.equal(child.kill('SIGKILL'), true)
+    assert.deepEqual(
+      await waitForM113Close(childClose, output),
+      { code: null, signal: 'SIGKILL' },
+    )
+    assert.equal(output.error, undefined)
+    assert.equal(output.stdout, 'READY\n')
+    assert.deepEqual(inspectM113HotJournal(journalPath), journalBeforeKill)
+
+    const handle = openMemoryBundle({ dbPath })
+    try {
+      assert.deepEqual(handle.verify().checkpoint, {
+        streamId: M1_04_IDS.streamId,
+        sequence: 1,
+      })
+      const replay = handle.replay()
+      assert.deepEqual(replay.checkpoint, {
+        streamId: M1_04_IDS.streamId,
+        sequence: 1,
+      })
+      assert.deepEqual(replay.memories, [{
+        ...makeM104CanonicalAtom(),
+        contentChecksum: makeM104AtomRow().content_checksum,
+      }])
+    } finally {
+      handle.close()
+    }
+    assert.equal(existsSync(journalPath), false)
+    assertM113RecoveredSpill(dbPath)
+
+    const writer = new DatabaseSync(dbPath)
+    try {
+      assert.equal(initializeMemoryBundle(writer), undefined)
+      writer.exec('BEGIN IMMEDIATE')
+      assert.equal(
+        applyResolvedDecisionInTransaction(writer, makeM113CrashEnvelope()),
+        undefined,
+      )
+      writer.exec('COMMIT')
+    } finally {
+      if (writer.isTransaction) writer.exec('ROLLBACK')
+      writer.close()
+    }
+
+    const finalHandle = openMemoryBundle({ dbPath })
+    try {
+      const replay = finalHandle.replay()
+      assert.deepEqual(replay.checkpoint, {
+        streamId: M1_04_IDS.streamId,
+        sequence: 2,
+      })
+      assert.deepEqual(
+        replay.memories.map(({ memoryId }) => memoryId),
+        [M1_04_IDS.memoryId, M1_13_CRASH_MEMORY_ID],
+      )
+    } finally {
+      finalHandle.close()
+    }
+  } finally {
+    try {
+      if (
+        child !== undefined &&
+        child.exitCode === null &&
+        child.signalCode === null
+      ) {
+        child.kill('SIGKILL')
+      }
+      if (childClose !== undefined) {
+        await waitForM113Close(childClose, output)
+      }
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  }
 })
