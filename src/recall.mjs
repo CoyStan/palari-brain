@@ -12,7 +12,8 @@
 
 import { memoryContainsTransientDetail } from './memory-extraction.mjs'
 import { estimateBriefingTokens, memoryBriefingPromptDiagnostics } from './memory-briefing.mjs'
-import { externalMemorySourceKinds } from './memory-store.mjs'
+import { assertGatedStoreCapability } from './gate.mjs'
+import { externalMemorySourceKinds } from './store.mjs'
 
 const memoryTierOrder = ['Primary', 'Active', 'Associative', 'Background']
 
@@ -146,15 +147,18 @@ export function buildBriefingV1({ recall = {}, maxChars = 1800, now = new Date()
 
 // The runtime recall path: status-gate -> recall -> brief -> record
 // inclusion (needle-survival telemetry, C10) -> measured result.
-export function recallAndBrief(store, query, { palariId, userId } = {}, {
-  contextBudget = 12,
-  maxChars = 1800,
-  now = new Date(),
-} = {}) {
-  const status = store?.publicStatus?.()
+export function recallAndBrief(store, query, scope = {}, options = {}) {
+  assertGatedStoreCapability(store)
+  const status = store.publicStatus()
   if (!status?.enabled) {
     return { included: [], latencyMs: 0, recallInclusionTouched: 0, status: 'disabled', text: '', totalCandidates: 0 }
   }
+  const { palariId, userId } = scope
+  const {
+    contextBudget = 12,
+    maxChars = 1800,
+    now = new Date(),
+  } = options
   const recall = store.recallMemories(query, { contextBudget, now, palariId, userId })
   const briefing = buildBriefingV1({ maxChars, now, recall })
   const inclusion = store.recordRecallInclusion(

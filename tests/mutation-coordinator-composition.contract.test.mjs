@@ -13,6 +13,7 @@ import {
   assertActiveMutationLease,
   createMutationCoordinator,
 } from '../src/mutation-coordinator.mjs'
+import { applyLegacyMutationEffectInTransaction } from '../src/legacy-mutation-router.mjs'
 import { createKernelStore } from '../src/store.mjs'
 import {
   M1_04_IDS,
@@ -23,21 +24,34 @@ const BUNDLE_CREATED_AT = '2026-07-18T11:58:00.000Z'
 const BUNDLE_STREAM_UUID = M1_04_IDS.streamId.slice('str_'.length)
 const FIXED_CDX_NOW = new Date('2026-07-18T12:00:00.000Z')
 
-const CDX_RECORD = Object.freeze({
-  acquisition_mode: 'direct',
-  confidence: 0.875,
-  content: 'Prefers tea.\nSays "no sugar".',
-  created_at: '2026-07-18T12:00:00.000Z',
-  created_by_pipeline: false,
-  fictional: false,
+const CDX_ROW = Object.freeze({
   id: M1_04_IDS.memoryId,
-  importance: 0.75,
-  keywords: Object.freeze(['no sugar', 'tea']),
   palari_id: 'palari-a',
-  source_message_id: null,
-  type: 'preference',
   user_id: 'user-1',
+  type: 'preference',
+  content: 'Prefers tea.\nSays "no sugar".',
+  keywords: 'no sugar tea',
+  importance: 0.75,
   valid_from: '2026-07-18T11:59:00.000Z',
+  valid_until: null,
+  access_count: 0,
+  last_accessed: null,
+  created_at: '2026-07-18T12:00:00.000Z',
+  shared: 0,
+  confidence: 0.875,
+  acquisition_mode: 'direct',
+  created_by_pipeline: 0,
+  fictional: 0,
+  last_decayed_at: null,
+  source_message_id: null,
+  content_hash: '0000000000000000000000000000000000000000000000000000000000000000',
+  source_kind: 'user_message',
+  extractor: null,
+})
+
+const CDX_INSERT_EFFECT = Object.freeze({
+  kind: 'cdx_memory_insert',
+  row: CDX_ROW,
 })
 
 function readCompositionState(db) {
@@ -98,7 +112,7 @@ function expectedAppliedState() {
     ftsMatchIds: [M1_04_IDS.memoryId],
     ftsRows: [{
       memory_id: M1_04_IDS.memoryId,
-      content: CDX_RECORD.content,
+      content: CDX_ROW.content,
       keywords: 'no sugar tea',
     }],
     head: { sequence: 1, streamId: M1_04_IDS.streamId },
@@ -107,45 +121,55 @@ function expectedAppliedState() {
       palari_id: 'palari-a',
       user_id: 'user-1',
       type: 'preference',
-      content: CDX_RECORD.content,
+      content: CDX_ROW.content,
     }],
   }
 }
 
 async function withCompositionFixture(prefix, callback) {
   const directory = mkdtempSync(join(tmpdir(), prefix))
+  let db
   let observer
-  let store
+  let bootstrap
   try {
-    store = await createKernelStore({
+    bootstrap = await createKernelStore({
       clock: () => FIXED_CDX_NOW,
       memoryEnabled: true,
       statePath: join(directory, 'workspace-state.json'),
       workspaceId: 'm2-a1-composition',
     })
-    assert.equal(initializeMemoryBundle(store.db, {
+    const dbPath = bootstrap.dbPath
+    assert.equal(bootstrap.close(), undefined)
+    bootstrap = undefined
+
+    db = new DatabaseSync(dbPath)
+    assert.equal(initializeMemoryBundle(db, {
       clock: () => new Date(BUNDLE_CREATED_AT),
       idFactory: () => BUNDLE_STREAM_UUID,
     }), undefined)
-    observer = new DatabaseSync(store.dbPath, { readOnly: true })
+    observer = new DatabaseSync(dbPath, { readOnly: true })
     observer.exec('PRAGMA busy_timeout = 0')
-    assert.deepEqual(readCompositionState(store.db), expectedEmptyState())
+    assert.deepEqual(readCompositionState(db), expectedEmptyState())
     assert.deepEqual(readCompositionState(observer), expectedEmptyState())
-    await callback({ observer, store })
+    await callback({ db, observer })
   } finally {
     try {
       if (observer?.isOpen) observer.close()
     } finally {
       try {
-        if (store?.db?.isOpen) {
+        if (db?.isOpen) {
           try {
-            if (store.db.isTransaction) store.db.exec('ROLLBACK')
+            if (db.isTransaction) db.exec('ROLLBACK')
           } finally {
-            if (store.db.isOpen) store.close()
+            if (db.isOpen) db.close()
           }
         }
       } finally {
-        rmSync(directory, { recursive: true, force: true })
+        try {
+          if (bootstrap !== undefined) bootstrap.close()
+        } finally {
+          rmSync(directory, { recursive: true, force: true })
+        }
       }
     }
   }
@@ -154,20 +178,27 @@ async function withCompositionFixture(prefix, callback) {
 test('M2-A1-04 real B1 and CDX effects become visible together after commit', async () => {
   await withCompositionFixture(
     'palari-m2-a1-composition-commit-',
-    ({ observer, store }) => {
-      const coordinator = createMutationCoordinator(store.db)
+    ({ db, observer }) => {
+      const coordinator = createMutationCoordinator(db)
       const expectedResult = { outcome: 'co-committed' }
       const result = coordinator.run((lease) => {
-        assert.equal(assertActiveMutationLease(lease, store.db), undefined)
+        assert.equal(assertActiveMutationLease(lease, db), undefined)
         assert.equal(
           applyResolvedDecisionInTransaction(
-            store.db,
+            db,
             makeM104ApplyEnvelope(),
           ),
           undefined,
         )
-        assert.equal(store.insertMemory(CDX_RECORD).id, M1_04_IDS.memoryId)
-        assert.deepEqual(readCompositionState(store.db), expectedAppliedState())
+        assert.equal(
+          applyLegacyMutationEffectInTransaction(
+            lease,
+            db,
+            CDX_INSERT_EFFECT,
+          ),
+          undefined,
+        )
+        assert.deepEqual(readCompositionState(db), expectedAppliedState())
         assert.deepEqual(
           readCompositionState(observer),
           expectedEmptyState(),
@@ -177,10 +208,10 @@ test('M2-A1-04 real B1 and CDX effects become visible together after commit', as
       })
 
       assert.equal(result, expectedResult)
-      assert.equal(store.db.isTransaction, false)
+      assert.equal(db.isTransaction, false)
       const committed = readCompositionState(observer)
       assert.deepEqual(committed, expectedAppliedState())
-      assert.deepEqual(readCompositionState(store.db), committed)
+      assert.deepEqual(readCompositionState(db), committed)
     },
   )
 })
@@ -188,27 +219,34 @@ test('M2-A1-04 real B1 and CDX effects become visible together after commit', as
 test('M2-A1-04 forced failure rolls back real B1 and CDX effects together', async () => {
   await withCompositionFixture(
     'palari-m2-a1-composition-rollback-',
-    ({ observer, store }) => {
-      const coordinator = createMutationCoordinator(store.db)
+    ({ db, observer }) => {
+      const coordinator = createMutationCoordinator(db)
       const primary = new Error('forced composition rollback')
 
       assert.throws(() => coordinator.run((lease) => {
-        assert.equal(assertActiveMutationLease(lease, store.db), undefined)
+        assert.equal(assertActiveMutationLease(lease, db), undefined)
         assert.equal(
           applyResolvedDecisionInTransaction(
-            store.db,
+            db,
             makeM104ApplyEnvelope(),
           ),
           undefined,
         )
-        assert.equal(store.insertMemory(CDX_RECORD).id, M1_04_IDS.memoryId)
-        assert.deepEqual(readCompositionState(store.db), expectedAppliedState())
+        assert.equal(
+          applyLegacyMutationEffectInTransaction(
+            lease,
+            db,
+            CDX_INSERT_EFFECT,
+          ),
+          undefined,
+        )
+        assert.deepEqual(readCompositionState(db), expectedAppliedState())
         assert.deepEqual(readCompositionState(observer), expectedEmptyState())
         throw primary
       }), (error) => error === primary)
 
-      assert.equal(store.db.isTransaction, false)
-      assert.deepEqual(readCompositionState(store.db), expectedEmptyState())
+      assert.equal(db.isTransaction, false)
+      assert.deepEqual(readCompositionState(db), expectedEmptyState())
       assert.deepEqual(readCompositionState(observer), expectedEmptyState())
       assert.equal(coordinator.run(() => 'reusable'), 'reusable')
     },

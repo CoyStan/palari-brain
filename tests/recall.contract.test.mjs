@@ -197,14 +197,38 @@ test('recallAndBrief: orchestration records inclusion and reports measurement (C
 
 test('recallAndBrief: disabled or absent memory reports honestly instead of briefing (C14)', async () => {
   const root = await tempDir()
-  const disabled = await createKernelStore({
+  const disabledBase = await createKernelStore({
     memoryEnabled: false,
     statePath: join(root, 'workspace-state.json'),
     workspaceId: 'disabled-recall',
   })
+  const disabled = createGatedStore(disabledBase)
   const result = recallAndBrief(disabled, 'anything', SCOPE, { now: FIXED_NOW })
   assert.equal(result.status, 'disabled')
   assert.equal(result.included.length, 0)
+})
+
+test('recallAndBrief rejects arbitrary recall/inclusion-shaped sinks before calling them', () => {
+  let called = false
+  const duck = {
+    publicStatus() {
+      called = true
+      return { enabled: true }
+    },
+    recallMemories() {
+      called = true
+      return { latencyMs: 0, memories: [], totalCandidates: 0 }
+    },
+    recordRecallInclusion() {
+      called = true
+      return { touched: [], touchedCount: 0 }
+    },
+  }
+  assert.throws(
+    () => recallAndBrief(duck, 'anything', SCOPE, { now: FIXED_NOW }),
+    (error) => error?.code === 'legacy_invalid_capability',
+  )
+  assert.equal(called, false)
 })
 
 test('needle survival is measurable: briefing presence in a final prompt is a number, not a hope (C10)', async () => {

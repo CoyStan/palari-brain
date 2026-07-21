@@ -4050,7 +4050,7 @@ test('M1-09 outer commit and rollback control visibility and all three bundle mu
   }
 })
 
-test('M1-09 composes atomically with a test-owned CDX-M1 sentinel on a kernel connection', async () => {
+test('M1-09 composes atomically with a test-owned CDX-M1 sentinel on a kernel-bootstrapped database', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'palari-m109-kernel-'))
   const statePath = join(directory, 'workspace-state.json')
   const sentinel = 'M1-09-transaction-composition-sentinel'
@@ -4060,49 +4060,53 @@ test('M1-09 composes atomically with a test-owned CDX-M1 sentinel on a kernel co
     statePath,
     workspaceId: 'm109-composition',
   })
+  const dbPath = store.dbPath
+  store.close()
+  const db = new DatabaseSync(dbPath)
   try {
-    assert.equal(applyModule.initializeMemoryBundle(store.db, {
+    assert.equal(applyModule.initializeMemoryBundle(db, {
       clock: () => new Date(M1_07_TIMESTAMP),
       idFactory: () => M1_07_UUID,
     }), undefined)
-    const head = readM108Head(store.db)
+    const head = readM108Head(db)
     const input = makeM108Envelope('create-applied', 0x905, { head })
-    const writeSentinel = () => store.db.prepare(`
+    const writeSentinel = () => db.prepare(`
       INSERT INTO main.memory_migrations (id, applied_at) VALUES (?, ?)
     `).run(sentinel, M1_07_TIMESTAMP)
-    const sentinelCount = () => store.db.prepare(`
+    const sentinelCount = () => db.prepare(`
       SELECT count(*) AS count FROM main.memory_migrations WHERE id = ?
     `).get(sentinel).count
 
-    store.db.exec('BEGIN IMMEDIATE')
+    db.exec('BEGIN IMMEDIATE')
     writeSentinel()
     assert.equal(
-      applyModule.applyResolvedDecisionInTransaction(store.db, input),
+      applyModule.applyResolvedDecisionInTransaction(db, input),
       undefined,
     )
-    store.db.exec('ROLLBACK')
+    db.exec('ROLLBACK')
     assert.equal(sentinelCount(), 0)
-    assert.deepEqual(readM109Counts(store.db), Object.assign(Object.create(null), {
+    assert.deepEqual(readM109Counts(db), Object.assign(Object.create(null), {
       head_sequence: 0,
       event_count: 0,
       atom_count: 0,
     }))
 
-    store.db.exec('BEGIN IMMEDIATE')
+    db.exec('BEGIN IMMEDIATE')
     writeSentinel()
     assert.equal(
-      applyModule.applyResolvedDecisionInTransaction(store.db, input),
+      applyModule.applyResolvedDecisionInTransaction(db, input),
       undefined,
     )
-    store.db.exec('COMMIT')
+    db.exec('COMMIT')
     assert.equal(sentinelCount(), 1)
-    assert.deepEqual(readM109Counts(store.db), Object.assign(Object.create(null), {
+    assert.deepEqual(readM109Counts(db), Object.assign(Object.create(null), {
       head_sequence: 1,
       event_count: 1,
       atom_count: 1,
     }))
   } finally {
-    if (store.db.isTransaction) store.db.exec('ROLLBACK')
+    if (db.isTransaction) db.exec('ROLLBACK')
+    db.close()
     store.close()
     rmSync(directory, { recursive: true, force: true })
   }

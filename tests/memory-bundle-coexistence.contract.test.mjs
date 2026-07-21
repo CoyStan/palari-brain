@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import {
   mkdtempSync,
   readFileSync,
@@ -12,6 +13,7 @@ import {
   relative,
   resolve,
 } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
@@ -46,19 +48,17 @@ const BUNDLE_SOURCE_FILES = Object.freeze([
   'memory-bundle.mjs',
 ])
 
-const A1_ISOLATED_SOURCE_FILES = Object.freeze([
-  'mutation-coordinator.mjs',
-])
-
-const LEGACY_RUNTIME_FILES = Object.freeze([
+const A2_RUNTIME_SOURCE_FILES = Object.freeze([
   'adapter.mjs',
   'eval-prompt-config.mjs',
   'gate.mjs',
   'gemini.mjs',
+  'kernel-store-runtime.mjs',
+  'legacy-mutation-router.mjs',
   'longmemeval.mjs',
   'memory-briefing.mjs',
   'memory-extraction.mjs',
-  'memory-store.mjs',
+  'mutation-coordinator.mjs',
   'recall.mjs',
   'routing-budgets.mjs',
   'slice.mjs',
@@ -66,8 +66,31 @@ const LEGACY_RUNTIME_FILES = Object.freeze([
   'util.mjs',
 ])
 
+const DORMANT_SOURCE_FILES = Object.freeze([
+  'memory-store.mjs',
+])
+
+const SEALED_PRODUCTION_MODULES = Object.freeze([
+  ['scripts', 'run-live-slice.mjs'].join('/'),
+  ...A2_RUNTIME_SOURCE_FILES.map((name) => `src/${name}`),
+  ...BUNDLE_SOURCE_FILES.map((name) => `src/${name}`),
+])
+
 function compareBinary(left, right) {
   return left < right ? -1 : left > right ? 1 : 0
+}
+
+function recursiveModuleFiles(directory) {
+  const files = []
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name)
+    if (entry.isDirectory()) {
+      files.push(...recursiveModuleFiles(path))
+    } else if (entry.isFile() && entry.name.endsWith('.mjs')) {
+      files.push(path)
+    }
+  }
+  return files
 }
 
 function schemaIdentity(row) {
@@ -227,6 +250,8 @@ function countOccurrences(source, value) {
 
 test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual writes', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'palari-m114-coexistence-'))
+  let db
+  let gated
   let store
   let handle
   try {
@@ -236,8 +261,9 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
       statePath: join(directory, 'workspace-state.json'),
       workspaceId: 'm114-coexistence',
     })
-    const gated = createGatedStore(store)
+    gated = createGatedStore(store)
     const dbPath = store.dbPath
+    db = new DatabaseSync(dbPath)
 
     const first = gated.propose(makeCdxProposal({
       content: 'Auburn marmot was the original M1-14 preference.',
@@ -259,7 +285,7 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
       [second.memory.id],
     )
     assert.deepEqual(
-      store.db.prepare(`
+      db.prepare(`
         SELECT from_memory_id, to_memory_id, relation
         FROM main.memory_links
       `).all(),
@@ -270,8 +296,8 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
       })],
     )
 
-    const schemaBefore = readSchema(store.db)
-    const cdxBefore = snapshotCdx(store.db)
+    const schemaBefore = readSchema(db)
+    const cdxBefore = snapshotCdx(db)
     const persistentPragmaNames = [
       'application_id',
       'auto_vacuum',
@@ -282,21 +308,21 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
       'user_version',
     ]
     const persistentPragmasBefore = snapshotPragmas(
-      store.db,
+      db,
       persistentPragmaNames,
     )
     assert.deepEqual(
-      snapshotPragmas(store.db, Object.keys(EXPECTED_REQUIRED_PRAGMAS)),
+      snapshotPragmas(db, Object.keys(EXPECTED_REQUIRED_PRAGMAS)),
       { ...EXPECTED_REQUIRED_PRAGMAS, recursive_triggers: 0 },
-      'CDX-M1 starts with recursive triggers disabled before bundle policy',
+      'the independent connection starts with recursive triggers disabled',
     )
 
-    assert.equal(applyModule.initializeMemoryBundle(store.db, {
+    assert.equal(applyModule.initializeMemoryBundle(db, {
       clock: () => new Date(BUNDLE_CREATED_AT),
       idFactory: () => BUNDLE_STREAM_UUID,
     }), undefined)
 
-    const schemaAfter = readSchema(store.db)
+    const schemaAfter = readSchema(db)
     const preexistingIdentities = new Set(schemaBefore.map(schemaIdentity))
     const addedSchema = schemaAfter.filter((row) =>
       !preexistingIdentities.has(schemaIdentity(row)))
@@ -318,18 +344,18 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
       schemaBefore,
       'every pre-existing CDX-M1 schema object remains byte-for-byte identical',
     )
-    assert.deepEqual(snapshotCdx(store.db), cdxBefore)
+    assert.deepEqual(snapshotCdx(db), cdxBefore)
     assert.deepEqual(
-      snapshotPragmas(store.db, persistentPragmaNames),
+      snapshotPragmas(db, persistentPragmaNames),
       persistentPragmasBefore,
       'bundle initialization does not alter workspace-persistent pragmas',
     )
     assert.deepEqual(
-      snapshotPragmas(store.db, Object.keys(EXPECTED_REQUIRED_PRAGMAS)),
+      snapshotPragmas(db, Object.keys(EXPECTED_REQUIRED_PRAGMAS)),
       EXPECTED_REQUIRED_PRAGMAS,
       'the borrowed connection is left with the four contractual safety pragmas',
     )
-    const initialized = snapshotBundle(store.db)
+    const initialized = snapshotBundle(db)
     assert.equal(initialized.meta[0].schema_version, 'CDX-B1')
     assert.equal(initialized.meta[0].head_sequence, 0)
     assert.deepEqual(initialized.events, [])
@@ -343,42 +369,42 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
       type: 'working',
     }))
     assert.equal(ordinary.outcome, 'inserted')
-    assert.deepEqual(snapshotBundle(store.db), initialized)
+    assert.deepEqual(snapshotBundle(db), initialized)
     assert.deepEqual(
       gated.searchMemories('verdigris kestrel', { ...CDX_SCOPE, limit: 10 })
         .map(({ id }) => id),
       [ordinary.memory.id],
     )
 
-    const cdxBeforeBundleApply = snapshotCdx(store.db)
+    const cdxBeforeBundleApply = snapshotCdx(db)
     const gateBeforeBundleApply = gateProbe(gated, second.memory.id)
-    store.db.exec('BEGIN IMMEDIATE')
+    db.exec('BEGIN IMMEDIATE')
     try {
       assert.equal(
         applyModule.applyResolvedDecisionInTransaction(
-          store.db,
+          db,
           makeM104ApplyEnvelope(),
         ),
         undefined,
       )
-      store.db.exec('COMMIT')
+      db.exec('COMMIT')
     } catch (error) {
-      if (store.db.isTransaction) store.db.exec('ROLLBACK')
+      if (db.isTransaction) db.exec('ROLLBACK')
       throw error
     }
-    assert.deepEqual(snapshotCdx(store.db), cdxBeforeBundleApply)
+    assert.deepEqual(snapshotCdx(db), cdxBeforeBundleApply)
     assert.deepEqual(gateProbe(gated, second.memory.id), gateBeforeBundleApply)
-    const applied = snapshotBundle(store.db)
+    const applied = snapshotBundle(db)
     assert.equal(applied.meta[0].head_sequence, 1)
     assert.equal(applied.events.length, 1)
     assert.equal(applied.atoms.length, 1)
-    assert.deepEqual(readSchema(store.db), schemaAfter)
+    assert.deepEqual(readSchema(db), schemaAfter)
     assert.deepEqual(
-      snapshotPragmas(store.db, persistentPragmaNames),
+      snapshotPragmas(db, persistentPragmaNames),
       persistentPragmasBefore,
     )
     assert.deepEqual(
-      snapshotPragmas(store.db, Object.keys(EXPECTED_REQUIRED_PRAGMAS)),
+      snapshotPragmas(db, Object.keys(EXPECTED_REQUIRED_PRAGMAS)),
       EXPECTED_REQUIRED_PRAGMAS,
     )
 
@@ -395,19 +421,21 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
         .map(({ id }) => id),
       [postApplyCdx.memory.id],
     )
-    assert.deepEqual(snapshotBundle(store.db), applied)
-    assert.deepEqual(readSchema(store.db), schemaAfter)
+    assert.deepEqual(snapshotBundle(db), applied)
+    assert.deepEqual(readSchema(db), schemaAfter)
     assert.deepEqual(
-      snapshotPragmas(store.db, persistentPragmaNames),
+      snapshotPragmas(db, persistentPragmaNames),
       persistentPragmasBefore,
     )
     assert.deepEqual(
-      snapshotPragmas(store.db, Object.keys(EXPECTED_REQUIRED_PRAGMAS)),
+      snapshotPragmas(db, Object.keys(EXPECTED_REQUIRED_PRAGMAS)),
       EXPECTED_REQUIRED_PRAGMAS,
     )
 
     gated.close()
-    assert.equal(store.db.isOpen, false)
+    assert.equal(store.status().status, 'closed')
+    db.close()
+    db = undefined
     handle = publicModule.openMemoryBundle({ dbPath })
     assert.deepEqual(handle.verify(), {
       checkpoint: { streamId: M1_04_IDS.streamId, sequence: 1 },
@@ -428,52 +456,90 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
       if (handle !== undefined) handle.close()
     } finally {
       try {
-        if (store?.db?.isOpen) store.close()
+        if (gated !== undefined) gated.close()
       } finally {
-        rmSync(directory, { recursive: true, force: true })
+        try {
+          if (store !== undefined) store.close()
+        } finally {
+          try {
+            if (db?.isOpen) {
+              if (db.isTransaction) db.exec('ROLLBACK')
+              db.close()
+            }
+          } finally {
+            rmSync(directory, { recursive: true, force: true })
+          }
+        }
       }
     }
   }
 })
 
-test('M1-14 legacy runtime remains bundle-unaware and bundle dependencies stay isolated', () => {
+test('M1-14 A2 production graph is sealed while B1 ownership stays isolated', () => {
   const sourceDirectory = join(REPO_ROOT, 'src')
-  const actualNonBundleFiles = readdirSync(sourceDirectory)
+  const actualSourceFiles = readdirSync(sourceDirectory)
     .filter((name) => name.endsWith('.mjs'))
-    .filter((name) => !BUNDLE_SOURCE_FILES.includes(name))
     .toSorted(compareBinary)
+  assert.equal(SEALED_PRODUCTION_MODULES.length, 23)
+  assert.equal(new Set(SEALED_PRODUCTION_MODULES).size, 23)
   assert.deepEqual(
-    actualNonBundleFiles,
-    [...LEGACY_RUNTIME_FILES, ...A1_ISOLATED_SOURCE_FILES]
-      .toSorted(compareBinary),
+    actualSourceFiles,
+    [
+      ...A2_RUNTIME_SOURCE_FILES,
+      ...BUNDLE_SOURCE_FILES,
+      ...DORMANT_SOURCE_FILES,
+    ].toSorted(compareBinary),
   )
 
-  for (const name of LEGACY_RUNTIME_FILES) {
-    const source = readFileSync(join(sourceDirectory, name), 'utf8')
+  const productionSet = new Set(SEALED_PRODUCTION_MODULES)
+  for (const repoPath of SEALED_PRODUCTION_MODULES) {
+    const path = join(REPO_ROOT, repoPath)
+    const source = readFileSync(path, 'utf8')
     for (const specifier of literalImportSpecifiers(source)) {
+      const importedPath = pathFromSpecifier(path, specifier)
+      if (importedPath === null) continue
+      const importedRepoPath = relative(REPO_ROOT, importedPath)
+      assert.ok(
+        productionSet.has(importedRepoPath),
+        `${repoPath} imports a module outside the sealed graph: ${importedRepoPath}`,
+      )
+      assert.notEqual(
+        importedRepoPath,
+        'src/memory-store.mjs',
+        `${repoPath} imports the dormant extracted raw store`,
+      )
+    }
+  }
+
+  for (const name of A2_RUNTIME_SOURCE_FILES) {
+    const source = readFileSync(join(sourceDirectory, name), 'utf8')
+    const bundleImports = literalImportSpecifiers(source).filter((specifier) => {
       const basename = specifier.split('?')[0].split('/').at(-1)
-      assert.equal(
-        BUNDLE_SOURCE_FILES.includes(basename),
-        false,
-        `${name} imports bundle module ${specifier}`,
+      return BUNDLE_SOURCE_FILES.includes(basename)
+    })
+    if (name === 'kernel-store-runtime.mjs') {
+      assert.deepEqual(bundleImports, ['./memory-bundle-schema.mjs'])
+      assert.match(
+        source,
+        new RegExp([
+          'import\\s*\\{\\s*MEMORY_BUNDLE_OBJECTS,\\s*',
+          'MEMORY_BUNDLE_TRIGGER_TARGETS,\\s*normalizeMemoryBundleSql,',
+          "\\s*\\}\\s*fr",
+          "om '\\.\\/memory-bundle-schema\\.mjs'",
+        ].join('')),
+        'runtime may import only the three immutable B1 schema allowlist values',
+      )
+    } else {
+      assert.deepEqual(
+        bundleImports,
+        [],
+        `${name} imports a B1 module`,
       )
     }
     assert.doesNotMatch(
       source,
       /\b(?:initializeMemoryBundle|applyResolvedDecisionInTransaction)\s*\(/,
     )
-  }
-
-  for (const name of A1_ISOLATED_SOURCE_FILES) {
-    const source = readFileSync(join(sourceDirectory, name), 'utf8')
-    for (const specifier of literalImportSpecifiers(source)) {
-      assert.equal(
-        specifier.startsWith('node:'),
-        true,
-        `${name} has a non-native production dependency: ${specifier}`,
-      )
-    }
-    assert.doesNotMatch(source, /\.\/memory-bundle(?:-[a-z]+)?\.mjs/)
   }
 
   for (const name of BUNDLE_SOURCE_FILES) {
@@ -484,6 +550,386 @@ test('M1-14 legacy runtime remains bundle-unaware and bundle dependencies stay i
           /^\.\/memory-bundle(?:-[a-z]+)?\.mjs$/.test(specifier),
         `${name} has an out-of-scope production dependency: ${specifier}`,
       )
+    }
+  }
+
+  const dormantSource = readFileSync(
+    join(sourceDirectory, DORMANT_SOURCE_FILES[0]),
+    'utf8',
+  )
+  assert.doesNotMatch(
+    dormantSource,
+    /\.\/memory-bundle(?:-[a-z]+)?\.mjs/,
+  )
+})
+
+test('M2-A2-07 semantic mutation, transaction, capability, and plan graphs are closed', () => {
+  const sources = new Map(SEALED_PRODUCTION_MODULES.map((repoPath) => [
+    repoPath,
+    readFileSync(join(REPO_ROOT, repoPath), 'utf8'),
+  ]))
+  const pathsMatching = (pattern) => [...sources]
+    .filter(([, source]) => {
+      pattern.lastIndex = 0
+      return pattern.test(source)
+    })
+    .map(([repoPath]) => repoPath)
+    .toSorted(compareBinary)
+  const sourceSpan = (source, startMarker, endMarker) => {
+    const start = source.indexOf(startMarker)
+    assert.notEqual(start, -1, `missing source marker: ${startMarker}`)
+    const end = source.indexOf(endMarker, start + startMarker.length)
+    assert.notEqual(end, -1, `missing source marker: ${endMarker}`)
+    return { end, source: source.slice(start, end), start }
+  }
+  const literalValues = (source, pattern) => [...source.matchAll(pattern)]
+    .map((match) => match[1])
+
+  const rawShortcut = /\.(?:addMemory|supersedeMemory|insertMemory|addMemoryLink|bumpImportance|touchMemory|initializeSchema)\s*\(/
+  assert.deepEqual(pathsMatching(rawShortcut), [])
+
+  const producerPaths = [
+    ['scripts', 'run-live-slice.mjs'].join('/'),
+    ['src', 'adapter.mjs'].join('/'),
+    ['src', 'eval-prompt-config.mjs'].join('/'),
+    'src/gate.mjs',
+    ['src', 'gemini.mjs'].join('/'),
+    ['src', 'longmemeval.mjs'].join('/'),
+    'src/memory-briefing.mjs',
+    'src/memory-extraction.mjs',
+    'src/recall.mjs',
+    'src/routing-budgets.mjs',
+    ['src', 'slice.mjs'].join('/'),
+    'src/store.mjs',
+    'src/util.mjs',
+  ]
+  for (const repoPath of producerPaths) {
+    assert.doesNotMatch(
+      sources.get(repoPath),
+      /\.db\b|\b(?:BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE)\b|\b(?:INSERT|UPDATE|DELETE)\s+(?:INTO|FROM)?\b/,
+      `${repoPath} reaches a raw connection, transaction, or SQL mutation`,
+    )
+  }
+
+  const semanticCdxDml = /\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:main\.)?(?:memories|memory_links)\b/gi
+  const semanticDmlFiles = []
+  let semanticDmlCount = 0
+  for (const [repoPath, source] of sources) {
+    const matches = source.match(semanticCdxDml) ?? []
+    if (matches.length > 0) semanticDmlFiles.push(repoPath)
+    semanticDmlCount += matches.length
+  }
+  assert.deepEqual(semanticDmlFiles, ['src/legacy-mutation-router.mjs'])
+  assert.equal(semanticDmlCount, 8, 'one exact SQL child for each A2 effect kind')
+
+  const routerSource = sources.get('src/legacy-mutation-router.mjs')
+  const childApplier = sourceSpan(
+    routerSource,
+    'export function applyLegacyMutationEffectInTransaction',
+    'function captureRouterOptions',
+  )
+  for (const match of routerSource.matchAll(
+    /\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:main\.)?(?:memories|memory_links)\b/gi,
+  )) {
+    assert.ok(
+      match.index >= childApplier.start && match.index < childApplier.end,
+      `semantic DML escaped the lease-checked child applier: ${match[0]}`,
+    )
+  }
+
+  const ftsDml = /\b(?:INSERT\s+INTO|DELETE\s+FROM)\s+(?:main\.)?memory_fts\b/gi
+  assert.deepEqual(pathsMatching(ftsDml), ['src/kernel-store-runtime.mjs'])
+  assert.equal(
+    sources.get('src/kernel-store-runtime.mjs').match(ftsDml)?.length,
+    9,
+    'only the exact bootstrap trigger manifests and integrity command mention FTS DML',
+  )
+
+  const transactionToken = /\b(?:BEGIN(?:\s+IMMEDIATE)?|COMMIT|ROLLBACK(?:\s+TO)?|SAVEPOINT|RELEASE)\b/
+  assert.deepEqual(pathsMatching(transactionToken), [
+    'src/kernel-store-runtime.mjs',
+    'src/memory-bundle-apply.mjs',
+    'src/memory-bundle-schema.mjs',
+    'src/memory-bundle.mjs',
+    'src/mutation-coordinator.mjs',
+  ])
+
+  assert.deepEqual(pathsMatching(/\bexecuteLegacyStoreIntent\b/), [
+    'src/gate.mjs',
+    'src/kernel-store-runtime.mjs',
+  ])
+  assert.deepEqual(pathsMatching(/\bassertKernelStoreCapability\b/), [
+    'src/gate.mjs',
+    'src/kernel-store-runtime.mjs',
+  ])
+  assert.deepEqual(pathsMatching(/\bcreateLegacyMutationRouter\b/), [
+    'src/kernel-store-runtime.mjs',
+    'src/legacy-mutation-router.mjs',
+  ])
+  assert.deepEqual(pathsMatching(/\bcreateMutationCoordinator\b/), [
+    'src/legacy-mutation-router.mjs',
+    'src/mutation-coordinator.mjs',
+  ])
+  assert.deepEqual(pathsMatching(/\bimport\(/), [])
+  assert.deepEqual(pathsMatching(/from\s*['"]node:sqlite['"]/), [
+    'src/kernel-store-runtime.mjs',
+    'src/legacy-mutation-router.mjs',
+    'src/memory-bundle-runtime.mjs',
+    'src/mutation-coordinator.mjs',
+  ])
+
+  const gateSource = sources.get('src/gate.mjs')
+  const routedIntents = [...gateSource.matchAll(/intentKind:\s*'([^']+)'/g)]
+    .map((match) => match[1])
+  assert.deepEqual([...new Set(routedIntents)].toSorted(compareBinary), [
+    'legacy_delete_memory',
+    'legacy_forget_topic',
+    'legacy_proposal',
+    'legacy_record_recall_inclusion',
+    'legacy_run_lifecycle',
+  ])
+  const gatedIntentSections = [
+    [
+      'gate.propose',
+      'function captureExplicitProposal',
+      'export function createMemoryGate',
+      'legacy_proposal',
+    ],
+    [
+      'proposeExtractedMemoryCandidate',
+      'export function proposeExtractedMemoryCandidate',
+      'export function createGatedStore',
+      'legacy_proposal',
+    ],
+    [
+      'deleteMemory',
+      '    deleteMemory(id, optionsValue) {',
+      '    enabled,',
+      'legacy_delete_memory',
+    ],
+    [
+      'recordRecallInclusion',
+      '    recordRecallInclusion(memoryIds, optionsValue) {',
+      '    runLifecycleJobs(optionsValue) {',
+      'legacy_record_recall_inclusion',
+    ],
+    [
+      'runLifecycleJobs',
+      '    runLifecycleJobs(optionsValue) {',
+      '    searchMemories:',
+      'legacy_run_lifecycle',
+    ],
+    [
+      'topicForget',
+      '    topicForget(query, scopeValue, optionsValue) {',
+      '  })\n\n  weakSet(gatedStates',
+      'legacy_forget_topic',
+    ],
+  ]
+  for (const [name, start, end, expectedIntent] of gatedIntentSections) {
+    const section = sourceSpan(gateSource, start, end).source
+    assert.deepEqual(
+      literalValues(section, /intentKind:\s*'([^']+)'/g),
+      [expectedIntent],
+      `${name} must map to exactly one sealed intent`,
+    )
+  }
+
+  const plannedEffects = [...routerSource.matchAll(/\beffect\('([^']+)'/g)]
+    .map((match) => match[1])
+  assert.deepEqual([...new Set(plannedEffects)].toSorted(compareBinary), [
+    'cdx_link_insert',
+    'cdx_memory_decay',
+    'cdx_memory_delete',
+    'cdx_memory_end_validity',
+    'cdx_memory_insert',
+    'cdx_memory_set_importance',
+    'cdx_memory_set_shared',
+    'cdx_memory_touch',
+  ])
+  const plannerEffectSections = [
+    [
+      'supersedePlan',
+      'function supersedePlan',
+      'function resolveProposal',
+      [
+        'cdx_memory_end_validity',
+        'cdx_memory_insert',
+        'cdx_link_insert',
+      ],
+    ],
+    [
+      'resolveProposal direct branches',
+      'function resolveProposal',
+      'function resolveDelete',
+      [
+        'cdx_memory_delete',
+        'cdx_memory_end_validity',
+        'cdx_memory_set_shared',
+        'cdx_memory_set_importance',
+        'cdx_memory_insert',
+      ],
+    ],
+    [
+      'resolveDelete',
+      'function resolveDelete',
+      'function resolveTopic',
+      ['cdx_memory_delete'],
+    ],
+    [
+      'resolveTopic',
+      'function resolveTopic',
+      'function resolveRecall',
+      ['cdx_memory_delete'],
+    ],
+    [
+      'resolveRecall',
+      'function resolveRecall',
+      'function resolveLifecycle',
+      ['cdx_memory_touch', 'cdx_memory_set_importance'],
+    ],
+    [
+      'resolveLifecycle',
+      'function resolveLifecycle',
+      'function validateRow',
+      ['cdx_memory_delete', 'cdx_memory_decay'],
+    ],
+  ]
+  for (const [name, start, end, expectedEffects] of plannerEffectSections) {
+    const section = sourceSpan(routerSource, start, end).source
+    assert.deepEqual(
+      literalValues(section, /\beffect\('([^']+)'/g),
+      expectedEffects,
+      `${name} lost or gained a sealed effect branch`,
+    )
+  }
+
+  const directApplierImport = /import\s*\{[^}]*\bapplyLegacyMutationEffectInTransaction\b[^}]*\}\s*from\s*['"][^'"]*legacy-mutation-router\.mjs['"]/s
+  const directApplierImporters = recursiveModuleFiles(join(REPO_ROOT, 'tests'))
+    .filter((path) => directApplierImport.test(readFileSync(path, 'utf8')))
+    .map((path) => relative(REPO_ROOT, path))
+    .toSorted(compareBinary)
+  assert.deepEqual(directApplierImporters, [
+    'tests/legacy-mutation-router.contract.test.mjs',
+    'tests/mutation-coordinator-composition.contract.test.mjs',
+  ])
+})
+
+test('M2-A2-07 B2 obligation matrix retains every sealed dimension and branch family', () => {
+  const source = readFileSync(
+    join(REPO_ROOT, 'docs/LEGACY-MUTATION-B2-OBLIGATIONS.md'),
+    'utf8',
+  )
+  const contractSource = readFileSync(
+    join(REPO_ROOT, 'docs/LEGACY-MUTATION-ROUTING-CONTRACT.md'),
+    'utf8',
+  )
+  const contractSection = contractSource.match(
+    /## 11\. M2-B map-or-refuse obligation\n([\s\S]*?)(?=\n## 12\.)/,
+  )
+  assert.ok(contractSection, 'contract §11 must remain present')
+  const contractKey = contractSection[1].match(/```text\n([\s\S]*?)\n```/)
+  assert.ok(contractKey, 'contract §11 must retain its sealed dimension key')
+  const normalizeDimension = (value) => value.replace(/\s+/g, ' ').trim()
+  const contractDimensions = contractKey[1]
+    .split('×')
+    .map(normalizeDimension)
+  assert.equal(contractDimensions.length, 22)
+
+  const artifactKey = source.match(
+    /## 1\. Exact branch-pattern key\n([\s\S]*?)(?=\n## 2\.)/,
+  )
+  assert.ok(artifactKey, 'obligation artifact must retain its dimension key')
+  const numberedDimensions = [...artifactKey[1].matchAll(
+    /^(\d+)\. (.+?)[;.]$/gm,
+  )]
+  assert.deepEqual(
+    numberedDimensions.map((match) => Number(match[1])),
+    contractDimensions.map((_, index) => index + 1),
+  )
+  assert.deepEqual(
+    numberedDimensions.map((match) => normalizeDimension(match[2])),
+    contractDimensions,
+    'obligation dimensions must derive exactly from the normative §11 key',
+  )
+
+  const expectedIds = [
+    'PRE-01','PRE-02','PRE-03','P-01','P-02','P-03','P-04','P-05',
+    'PA-01','PA-02','PA-03','PA-04','PX-01','PX-02','PX-03',
+    'PS-01','PS-02','PS-03','PD-01','PD-02','PD-03','PR-01',
+    'D-01','D-02','D-03','T-01','T-02','T-03','R-01','R-02','R-03',
+    'L-01','L-02','L-03','L-04','E-01','E-02','E-03','E-04','E-05',
+    'S-01','S-02','S-03','F-01','F-02','F-03',
+  ]
+  const rows = source.split('\n').filter((line) => /^\| [A-Z]+-[0-9]+ \|/.test(line))
+  assert.deepEqual(rows.map((line) => line.split('|')[1].trim()), expectedIds)
+  for (const row of rows) {
+    const id = row.split('|')[1].trim()
+    assert.match(
+      row,
+      id.startsWith('F-')
+        ? /\| M2-B MUST REFUSE \|$/
+        : /\| M2-B MUST MAP OR REFUSE \|$/,
+      `${id} lost its required pending disposition`,
+    )
+  }
+  for (const token of [
+    'cdx_memory_insert',
+    'cdx_memory_end_validity',
+    'cdx_memory_set_shared',
+    'cdx_memory_set_importance',
+    'cdx_memory_touch',
+    'cdx_memory_decay',
+    'cdx_memory_delete',
+    'cdx_link_insert',
+    'effect ordinal `0..n-1`',
+    'FTS insert trigger',
+    'FTS delete trigger + all link FK cascades',
+    'empty Palari cross-Palari sweep',
+    'remove main, `-wal`, `-shm`, `-journal`',
+  ]) {
+    assert.ok(source.includes(token), `obligation matrix omits ${token}`)
+  }
+})
+
+test('M2-A2-07 extraction provenance and divergence ledger stay pinned', () => {
+  const dormantPath = join(REPO_ROOT, 'src/memory-store.mjs')
+  const dormant = readFileSync(dormantPath)
+  const blobHash = createHash('sha1')
+    .update(`blob ${dormant.byteLength}\0`)
+    .update(dormant)
+    .digest('hex')
+  assert.equal(blobHash, '64e647232facc8682c86386cf9d98770193416e2')
+
+  const requiredLedgerTokens = new Map([
+    ['src/kernel-store-runtime.mjs', [
+      '190a4ad2f8d5187f5f21222048dd11efb2ad9991',
+      '4f67d0fe96dd',
+      '64e647232facc8682c86386cf9d98770193416e2',
+      'Copied regions are the CDX-M0',
+      'Intentional A2 deltas:',
+      'src/memory-store.mjs is never',
+    ]],
+    ['src/legacy-mutation-router.mjs', [
+      '190a4ad2f8d5187f5f21222048dd11efb2ad9991',
+      '4f67d0fe96dd',
+      '64e647232facc8682c86386cf9d98770193416e2',
+      'd8367ceb900c',
+      'eb8336ca92d8add299a5b89e1dffe81b153a3f71',
+      'Intentional deltas',
+    ]],
+    ['src/memory-extraction.mjs', [
+      '190a4ad2f8d5187f5f21222048dd11efb2ad9991',
+      'd8367ceb900c',
+      'eb8336ca92d8add299a5b89e1dffe81b153a3f71',
+      'A2 replaces the extraction/session-summary raw-store',
+      'moves contradiction selection',
+    ]],
+  ])
+  for (const [repoPath, tokens] of requiredLedgerTokens) {
+    const source = readFileSync(join(REPO_ROOT, repoPath), 'utf8')
+    for (const token of tokens) {
+      assert.ok(source.includes(token), `${repoPath} lost provenance token ${token}`)
     }
   }
 })
@@ -526,9 +972,10 @@ test('M1-14 dependency, namespace, schema, and provider-free boundaries remain c
     ...roots,
     ...BUNDLE_SOURCE_FILES.map((name) => `src/${name}`),
     'src/gate.mjs',
-    'src/memory-store.mjs',
+    'src/kernel-store-runtime.mjs',
+    'src/legacy-mutation-router.mjs',
+    'src/mutation-coordinator.mjs',
     'src/store.mjs',
-    'src/util.mjs',
   ])
   const forbiddenBuiltins = new Set([
     'node:dgram',

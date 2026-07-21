@@ -5,12 +5,26 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { DatabaseSync } from 'node:sqlite'
 
 import { createKernelStore } from '../src/store.mjs'
 import {
+  acquisitionModes,
+  externalMemorySourceKinds,
+  memoryAddWriters,
+  memoryMutationActors,
+  memoryTypes,
+  permanentMemoryTypes,
+  transientMemoryTypes,
+} from '../src/store.mjs'
+import * as gateModule from '../src/gate.mjs'
+import {
   admissionPolicyDefaults,
+  assertGatedStoreCapability,
   createAdmissionPolicy,
   createGatedStore,
+  createMemoryGate,
+  proposeExtractedMemoryCandidate,
 } from '../src/gate.mjs'
 
 const tempDirs = []
@@ -38,6 +52,15 @@ async function openGated(workspaceId = 'contract-gate') {
   return { gated, store }
 }
 
+function inspectDatabase(dbPath, callback) {
+  const db = new DatabaseSync(dbPath, { readOnly: true })
+  try {
+    return callback(db)
+  } finally {
+    db.close()
+  }
+}
+
 const SCOPE = { palari_id: 'palari-a', user_id: 'user-1' }
 
 function userProposal(overrides = {}) {
@@ -55,6 +78,710 @@ function userProposal(overrides = {}) {
     ...overrides,
   }
 }
+
+const BASE_KEYS = [
+  'close',
+  'config',
+  'dbPath',
+  'enabled',
+  'getMemoryById',
+  'listMemories',
+  'publicStatus',
+  'recallMemories',
+  'searchMemories',
+  'status',
+]
+
+const GATED_KEYS = [
+  'close',
+  'config',
+  'dbPath',
+  'deleteMemory',
+  'enabled',
+  'getMemoryById',
+  'listMemories',
+  'propose',
+  'publicStatus',
+  'recallMemories',
+  'recordRecallInclusion',
+  'runLifecycleJobs',
+  'searchMemories',
+  'status',
+  'topicForget',
+]
+
+const POLICY_KEYS = ['demote', 'promote', 'permanent', 'ratify']
+const POLICY_ORDER_ERROR =
+  'Admission thresholds must keep order demote < promote < permanent < ratify.'
+
+function assertFrozenOrdinarySurface(value, expectedKeys) {
+  assert.equal(Object.getPrototypeOf(value), Object.prototype)
+  assert.deepEqual(Reflect.ownKeys(value), expectedKeys)
+  assert.equal(Object.isFrozen(value), true)
+  for (const key of expectedKeys) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key)
+    assert.equal('value' in descriptor, true, `${String(key)} is a data property`)
+    assert.equal(descriptor.enumerable, true, `${String(key)} is enumerable`)
+    assert.equal(descriptor.configurable, false, `${String(key)} is non-configurable`)
+    assert.equal(descriptor.writable, false, `${String(key)} is non-writable`)
+  }
+}
+
+function assertPolicySnapshot(value, expected) {
+  assertFrozenOrdinarySurface(value, POLICY_KEYS)
+  assert.deepEqual(value, expected)
+  for (const key of POLICY_KEYS) assert.equal(typeof value[key], 'number')
+}
+
+function assertLegacyCode(code) {
+  return (error) => error?.code === code
+}
+
+function hostileProxy(counter) {
+  return new Proxy({}, {
+    defineProperty() { counter.count += 1; throw new Error('proxy define trap ran') },
+    get() { counter.count += 1; throw new Error('proxy get trap ran') },
+    getOwnPropertyDescriptor() {
+      counter.count += 1
+      throw new Error('proxy descriptor trap ran')
+    },
+    getPrototypeOf() { counter.count += 1; throw new Error('proxy prototype trap ran') },
+    has() { counter.count += 1; throw new Error('proxy has trap ran') },
+    ownKeys() { counter.count += 1; throw new Error('proxy keys trap ran') },
+    set() { counter.count += 1; throw new Error('proxy set trap ran') },
+  })
+}
+
+test('A2 gate namespace and admission policy snapshot are exact', () => {
+  assert.deepEqual(Object.keys(gateModule).sort(), [
+    'admissionPolicyDefaults',
+    'assertGatedStoreCapability',
+    'createAdmissionPolicy',
+    'createGatedStore',
+    'createMemoryGate',
+    'proposeExtractedMemoryCandidate',
+  ])
+  const expected = {
+    demote: 0,
+    promote: 0.25,
+    permanent: 0.6,
+    ratify: 0.75,
+  }
+  assertPolicySnapshot(admissionPolicyDefaults, expected)
+  const fromUndefined = createAdmissionPolicy(undefined)
+  const fromNull = createAdmissionPolicy(null)
+  assertPolicySnapshot(fromUndefined, expected)
+  assertPolicySnapshot(fromNull, expected)
+  assert.notEqual(fromUndefined, admissionPolicyDefaults)
+  assert.notEqual(fromNull, admissionPolicyDefaults)
+  assert.notEqual(fromUndefined, fromNull)
+})
+
+test('policy capture rejects wrong types and Proxies without traps', () => {
+  for (const invalid of [
+    false,
+    0,
+    1n,
+    '',
+    Symbol('policy'),
+    () => {},
+  ]) {
+    assert.throws(
+      () => createAdmissionPolicy(invalid),
+      assertLegacyCode('legacy_invalid_argument'),
+    )
+  }
+
+  const counter = { count: 0 }
+  assert.throws(
+    () => createAdmissionPolicy(hostileProxy(counter)),
+    assertLegacyCode('legacy_invalid_argument'),
+  )
+  assert.equal(counter.count, 0)
+
+  assertPolicySnapshot(createAdmissionPolicy([]), admissionPolicyDefaults)
+  assertPolicySnapshot(createAdmissionPolicy(new Date(0)), admissionPolicyDefaults)
+  assertPolicySnapshot(
+    createAdmissionPolicy(Object.create(null)),
+    admissionPolicyDefaults,
+  )
+})
+
+test('policy capture ignores every nonparticipating property without invoking getters', () => {
+  let ignoredReads = 0
+  const symbol = Symbol('ignored-policy-symbol')
+  const prototype = {}
+  Object.defineProperty(prototype, 'demote', {
+    enumerable: true,
+    get() {
+      ignoredReads += 1
+      throw new Error('inherited getter ran')
+    },
+  })
+  const overrides = Object.create(prototype)
+  Object.defineProperties(overrides, {
+    extra: {
+      enumerable: true,
+      get() {
+        ignoredReads += 1
+        throw new Error('extra getter ran')
+      },
+    },
+    promote: {
+      enumerable: false,
+      get() {
+        ignoredReads += 1
+        throw new Error('non-enumerable getter ran')
+      },
+    },
+  })
+  Object.defineProperty(overrides, symbol, {
+    enumerable: true,
+    get() {
+      ignoredReads += 1
+      throw new Error('symbol getter ran')
+    },
+  })
+
+  assertPolicySnapshot(createAdmissionPolicy(overrides), admissionPolicyDefaults)
+  assert.equal(ignoredReads, 0)
+})
+
+test('policy accessors and Number coercions run once each in canonical order', () => {
+  const events = []
+  const values = [-1, 0, 1, 2]
+  const overrides = {}
+  for (let index = 0; index < POLICY_KEYS.length; index += 1) {
+    const key = POLICY_KEYS[index]
+    Object.defineProperty(overrides, key, {
+      enumerable: true,
+      get() {
+        assert.equal(this, overrides)
+        events.push(`get:${key}`)
+        const coercible = {
+          [Symbol.toPrimitive](hint) {
+            assert.equal(this, coercible)
+            assert.equal(hint, 'number')
+            events.push(`number:${key}`)
+            return values[index]
+          },
+        }
+        return coercible
+      },
+    })
+  }
+
+  assertPolicySnapshot(createAdmissionPolicy(overrides), {
+    demote: -1,
+    promote: 0,
+    permanent: 1,
+    ratify: 2,
+  })
+  assert.deepEqual(events, [
+    'get:demote',
+    'number:demote',
+    'get:promote',
+    'number:promote',
+    'get:permanent',
+    'number:permanent',
+    'get:ratify',
+    'number:ratify',
+  ])
+
+  const accessorFailure = new Error('accessor identity')
+  const accessor = {}
+  Object.defineProperty(accessor, 'demote', {
+    enumerable: true,
+    get() { throw accessorFailure },
+  })
+  assert.throws(() => createAdmissionPolicy(accessor), (error) => error === accessorFailure)
+
+  const coercionFailure = new Error('coercion identity')
+  const coercion = {
+    demote: {
+      [Symbol.toPrimitive]() { throw coercionFailure },
+    },
+  }
+  assert.throws(() => createAdmissionPolicy(coercion), (error) => error === coercionFailure)
+})
+
+test('policy primitive conversion, finite/order checks, and unbounded values are exact', () => {
+  assertPolicySnapshot(createAdmissionPolicy({
+    demote: null,
+    permanent: '2.5',
+    promote: true,
+    ratify: 4n,
+  }), {
+    demote: 0,
+    promote: 1,
+    permanent: 2.5,
+    ratify: 4,
+  })
+  assertPolicySnapshot(createAdmissionPolicy({
+    demote: false,
+    permanent: 2,
+    promote: 1,
+    ratify: 3,
+  }), {
+    demote: 0,
+    promote: 1,
+    permanent: 2,
+    ratify: 3,
+  })
+
+  assertPolicySnapshot(createAdmissionPolicy({
+    demote: -1_000_000,
+    permanent: 50,
+    promote: -25,
+    ratify: 1_000_000,
+  }), {
+    demote: -1_000_000,
+    promote: -25,
+    permanent: 50,
+    ratify: 1_000_000,
+  })
+
+  const assertOrderError = (overrides) => assert.throws(
+    () => createAdmissionPolicy(overrides),
+    (error) =>
+      error?.constructor === Error &&
+      error.message === POLICY_ORDER_ERROR &&
+      error.code === undefined,
+  )
+  assert.throws(
+    () => createAdmissionPolicy({ demote: undefined }),
+    (error) => error?.constructor === Error && error.message === POLICY_ORDER_ERROR,
+  )
+  for (const key of POLICY_KEYS) {
+    for (const invalid of [NaN, Infinity, -Infinity]) {
+      assertOrderError({ [key]: invalid })
+    }
+  }
+  for (const invalidOrder of [
+    { demote: 0.25 },
+    { promote: 0 },
+    { permanent: 0.25 },
+    { ratify: 0.6 },
+    { demote: 4, promote: 3, permanent: 2, ratify: 1 },
+  ]) assertOrderError(invalidOrder)
+
+  const mutable = { demote: -1, promote: 0, permanent: 1, ratify: 2 }
+  const snapshot = createAdmissionPolicy(mutable)
+  mutable.demote = -100
+  mutable.promote = 100
+  assertPolicySnapshot(snapshot, {
+    demote: -1,
+    promote: 0,
+    permanent: 1,
+    ratify: 2,
+  })
+})
+
+test('gate construction rechecks base liveness after policy caller code', async () => {
+  const root = await tempDir()
+  const base = await createKernelStore({
+    clock: () => FIXED_NOW,
+    memoryEnabled: true,
+    statePath: join(root, 'workspace-state.json'),
+    workspaceId: 'policy-reentrant-close',
+  })
+  let reads = 0
+  const policy = {
+    permanent: 0.6,
+    promote: 0.25,
+    ratify: 0.75,
+  }
+  Object.defineProperty(policy, 'demote', {
+    enumerable: true,
+    get() {
+      reads += 1
+      base.close()
+      return 0
+    },
+  })
+
+  assert.throws(
+    () => createGatedStore(base, { policy }),
+    (error) =>
+      error?.code === 'legacy_store_closed' &&
+      error.message === 'The memory store is closed.',
+  )
+  assert.equal(reads, 1)
+  assert.equal(base.status().status, 'closed')
+})
+
+test('enabled base, gate, and gated surfaces are exact frozen branded capabilities', async () => {
+  const root = await tempDir()
+  const base = await createKernelStore({
+    clock: () => FIXED_NOW,
+    memoryEnabled: true,
+    statePath: join(root, 'workspace-state.json'),
+    workspaceId: 'exact-enabled-surfaces',
+  })
+  const mutablePolicy = {
+    demote: 0,
+    promote: 0.25,
+    permanent: 0.6,
+    ratify: 0.75,
+  }
+  const gate = createMemoryGate(base, { policy: mutablePolicy })
+  const gated = createGatedStore(base, { policy: mutablePolicy })
+
+  assertFrozenOrdinarySurface(base, BASE_KEYS)
+  assertFrozenOrdinarySurface(gate, ['policy', 'propose'])
+  assertPolicySnapshot(gate.policy, admissionPolicyDefaults)
+  assert.notEqual(gate.policy, admissionPolicyDefaults)
+  assertFrozenOrdinarySurface(gated, GATED_KEYS)
+  assert.equal(assertGatedStoreCapability(gated), undefined)
+  assert.equal(gated.close, base.close)
+  assert.equal(gated.config, base.config)
+  assert.equal(gated.dbPath, base.dbPath)
+  assert.equal(gated.enabled, true)
+  for (const forbidden of [
+    'addMemory',
+    'applyEffect',
+    'coordinator',
+    'db',
+    'effect',
+    'initializeSchema',
+    'insertMemory',
+    'lease',
+    'plan',
+    'router',
+    'schema',
+    'supersedeMemory',
+    'transaction',
+  ]) {
+    assert.equal(forbidden in base, false)
+    assert.equal(forbidden in gated, false)
+  }
+
+  mutablePolicy.promote = 0.95
+  mutablePolicy.permanent = 0.96
+  mutablePolicy.ratify = 0.97
+  assertPolicySnapshot(gate.policy, admissionPolicyDefaults)
+  assert.equal(gate.propose(userProposal({
+    record: { ...userProposal().record, confidence: 0.5 },
+  })).outcome, 'inserted')
+
+  gated.close()
+})
+
+test('base/gated brand checks reject raw, duck, wrong-kind, and Proxy values trap-free', async () => {
+  const { gated, store: base } = await openGated('capability-rejection')
+  const gate = createMemoryGate(base)
+  const raw = new DatabaseSync(':memory:')
+  const counter = { count: 0 }
+  const proxy = hostileProxy(counter)
+  const duck = {
+    close() {},
+    enabled: true,
+    status() { return { status: 'enabled' } },
+  }
+
+  try {
+    for (const invalidBase of [raw, duck, gate, gated, proxy]) {
+      assert.throws(
+        () => createMemoryGate(invalidBase),
+        assertLegacyCode('legacy_invalid_capability'),
+      )
+      assert.throws(
+        () => createGatedStore(invalidBase),
+        assertLegacyCode('legacy_invalid_capability'),
+      )
+    }
+    for (const invalidGated of [raw, duck, gate, base, proxy, { ...gated }]) {
+      assert.throws(
+        () => assertGatedStoreCapability(invalidGated),
+        assertLegacyCode('legacy_invalid_capability'),
+      )
+      assert.throws(
+        () => proposeExtractedMemoryCandidate(invalidGated, proxy),
+        assertLegacyCode('legacy_invalid_capability'),
+      )
+    }
+    assert.equal(counter.count, 0)
+  } finally {
+    raw.close()
+    gated.close()
+  }
+})
+
+test('enabled close is synchronous, receiver-independent, idempotent, and fails closed before input', async () => {
+  const { gated, store: base } = await openGated('enabled-close-law')
+  const gate = createMemoryGate(base)
+  const counter = { count: 0 }
+  const hostile = hostileProxy(counter)
+  const detachedClose = gated.close
+
+  assert.equal(Reflect.apply(detachedClose, hostile, []), undefined)
+  assert.equal(base.status().status, 'closed')
+  assert.equal(gated.status().status, 'closed')
+  assert.equal(base.publicStatus().status, 'closed')
+  assert.equal(gated.publicStatus().status, 'closed')
+  assert.equal(Reflect.apply(detachedClose, null, []), undefined)
+  assert.equal(base.close(), undefined)
+
+  const closedOperations = [
+    () => base.getMemoryById(hostile),
+    () => base.listMemories(hostile),
+    () => base.recallMemories(hostile, hostile),
+    () => base.searchMemories(hostile, hostile),
+    () => gated.getMemoryById(hostile),
+    () => gated.listMemories(hostile),
+    () => gate.propose(hostile),
+    () => gated.propose(hostile),
+    () => gated.recallMemories(hostile, hostile),
+    () => gated.searchMemories(hostile, hostile),
+    () => gated.deleteMemory(hostile, hostile),
+    () => gated.recordRecallInclusion(hostile, hostile),
+    () => gated.runLifecycleJobs(hostile),
+    () => gated.topicForget(hostile, hostile, hostile),
+    () => proposeExtractedMemoryCandidate(gated, hostile),
+  ]
+  for (const operation of closedOperations) {
+    assert.throws(operation, assertLegacyCode('legacy_store_closed'))
+  }
+  assert.throws(
+    () => assertGatedStoreCapability(gated),
+    assertLegacyCode('legacy_store_closed'),
+  )
+  assert.throws(
+    () => createMemoryGate(base),
+    assertLegacyCode('legacy_store_closed'),
+  )
+  assert.throws(
+    () => createGatedStore(base),
+    assertLegacyCode('legacy_store_closed'),
+  )
+  assert.equal(counter.count, 0)
+})
+
+test('disabled base/gate/gated surfaces stay exact and inert before and after close', async () => {
+  const base = await createKernelStore({ memoryEnabled: false })
+  const gate = createMemoryGate(base)
+  const gated = createGatedStore(base)
+  const counter = { count: 0 }
+  const hostile = hostileProxy(counter)
+
+  assertFrozenOrdinarySurface(base, BASE_KEYS)
+  assertFrozenOrdinarySurface(gate, ['policy', 'propose'])
+  assertPolicySnapshot(gate.policy, admissionPolicyDefaults)
+  assertFrozenOrdinarySurface(gated, GATED_KEYS)
+  assert.equal(base.enabled, false)
+  assert.equal(base.dbPath, null)
+  assert.equal(assertGatedStoreCapability(gated), undefined)
+
+  function assertInert() {
+    assert.equal(base.getMemoryById(hostile), null)
+    assert.deepEqual(base.listMemories(hostile), [])
+    assert.deepEqual(base.searchMemories(hostile, hostile), [])
+    assert.deepEqual(base.recallMemories(hostile, hostile), {
+      directCount: 0,
+      keywords: [],
+      latencyMs: 0,
+      memories: [],
+      totalCandidates: 0,
+    })
+    assert.equal(gated.getMemoryById(hostile), null)
+    assert.deepEqual(gated.listMemories(hostile), [])
+    assert.deepEqual(gated.searchMemories(hostile, hostile), [])
+    assert.deepEqual(gated.recallMemories(hostile, hostile), {
+      directCount: 0,
+      keywords: [],
+      latencyMs: 0,
+      memories: [],
+      totalCandidates: 0,
+    })
+    assert.deepEqual(gate.propose(hostile), {
+      outcome: 'rejected',
+      reasons: ['memory_disabled'],
+    })
+    assert.deepEqual(gated.propose(hostile), {
+      outcome: 'rejected',
+      reasons: ['memory_disabled'],
+    })
+    assert.deepEqual(proposeExtractedMemoryCandidate(gated, hostile), {
+      outcome: 'rejected',
+      reasons: ['memory_disabled'],
+    })
+    assert.deepEqual(gated.deleteMemory(hostile, hostile), {
+      deleted: false,
+      reason: 'memory_disabled',
+    })
+    assert.deepEqual(gated.topicForget(hostile, hostile, hostile), {
+      count: 0,
+      deleted: [],
+    })
+    assert.deepEqual(gated.recordRecallInclusion(hostile, hostile), {
+      touched: [],
+      touchedCount: 0,
+    })
+    assert.deepEqual(gated.runLifecycleJobs(hostile), {
+      decayed: 0,
+      deleted: 0,
+      skipped: 0,
+      touched: 0,
+    })
+  }
+
+  assertInert()
+  assert.equal(counter.count, 0)
+  const detachedClose = gated.close
+  assert.equal(Reflect.apply(detachedClose, hostile, []), undefined)
+  assert.equal(base.status().status, 'closed')
+  assert.equal(gated.status().status, 'closed')
+  assert.equal(base.publicStatus().status, 'closed')
+  assert.equal(gated.publicStatus().status, 'closed')
+  assert.equal(Reflect.apply(detachedClose, null, []), undefined)
+  assert.equal(assertGatedStoreCapability(gated), undefined)
+  assertInert()
+  assert.equal(counter.count, 0)
+})
+
+test('exported compatibility collections cannot mutate private runtime admission', async () => {
+  const collections = [
+    acquisitionModes,
+    externalMemorySourceKinds,
+    memoryAddWriters,
+    memoryMutationActors,
+    memoryTypes,
+    permanentMemoryTypes,
+    transientMemoryTypes,
+  ]
+  for (const collection of collections) {
+    assert.equal(collection instanceof Set, true)
+    assert.equal(Object.isFrozen(collection), true)
+    assert.deepEqual(Reflect.ownKeys(collection), [])
+    for (const method of ['add', 'delete', 'clear']) {
+      assert.equal(collection[method], undefined)
+      assert.equal(method in collection, false)
+    }
+    assert.throws(
+      () => Set.prototype.add.call(collection, 'rogue'),
+      TypeError,
+    )
+    assert.throws(
+      () => Set.prototype.delete.call(collection, 'explicit_user_action'),
+      TypeError,
+    )
+    assert.throws(() => Set.prototype.clear.call(collection), TypeError)
+    assert.equal(Reflect.set(collection, 'rogue', true), false)
+    assert.throws(
+      () => Object.defineProperty(collection, 'rogue', { value: true }),
+      TypeError,
+    )
+  }
+
+  assert.equal(memoryTypes.has('rogue_type'), false)
+  assert.equal(memoryAddWriters.has('rogue_writer'), false)
+  assert.equal(memoryMutationActors.has('rogue_actor'), false)
+  assert.equal(externalMemorySourceKinds.has('rogue_source'), false)
+
+  const { gated } = await openGated('private-admission-sets')
+  try {
+    const invalidType = gated.propose(userProposal({
+      kind: 'permanent',
+      record: { ...userProposal().record, type: 'rogue_type' },
+    }))
+    assert.equal(invalidType.outcome, 'rejected')
+    assert.ok(invalidType.reasons.includes('kind_type_mismatch'))
+
+    const invalidWriter = gated.propose(userProposal({
+      provenance: { sourceKind: 'user_message', writer: 'rogue_writer' },
+    }))
+    assert.equal(invalidWriter.outcome, 'rejected')
+    assert.ok(invalidWriter.reasons.includes('invalid_writer'))
+
+    const invalidSource = gated.propose(userProposal({
+      provenance: {
+        sourceKind: 'rogue_source',
+        writer: 'explicit_user_action',
+      },
+    }))
+    assert.equal(invalidSource.outcome, 'rejected')
+    assert.ok(invalidSource.reasons.includes('invalid_source_kind'))
+
+    assert.throws(
+      () => gated.deleteMemory('missing', { actor: 'rogue_actor' }),
+      (error) =>
+        error?.constructor === Error &&
+        error.message === 'Unauthorized memory mutation actor "rogue_actor".',
+    )
+
+    assert.equal(gated.propose(userProposal({
+      record: {
+        ...userProposal().record,
+        content: 'Private admission snapshots remain unchanged.',
+      },
+    })).outcome, 'inserted')
+  } finally {
+    gated.close()
+  }
+})
+
+test('proposal structure pins kind/op precedence and ignores inapplicable fields', async () => {
+  const { gated } = await openGated('proposal-structure')
+  assert.deepEqual(gated.propose(), {
+    outcome: 'rejected',
+    reasons: ['invalid_kind'],
+  })
+  assert.throws(
+    () => gated.propose(null),
+    (error) => error?.code === 'legacy_invalid_argument',
+  )
+  for (const kind of ['toString', 'constructor', '__proto__']) {
+    const proposal = Object.create(null)
+    proposal.kind = kind
+    assert.deepEqual(gated.propose(proposal), {
+      outcome: 'rejected',
+      reasons: ['invalid_kind'],
+    })
+  }
+  assert.deepEqual(gated.propose({ kind: 'promote', op: null }), {
+    outcome: 'rejected',
+    reasons: ['invalid_op'],
+  })
+
+  let ignoredReads = 0
+  const add = userProposal()
+  Object.defineProperties(add, {
+    extra: { enumerable: true, get() { ignoredReads += 1; return 'ignored' } },
+    scope: { enumerable: true, get() { ignoredReads += 1; return {} } },
+    target: { enumerable: true, get() { ignoredReads += 1; return 'ignored' } },
+  })
+  assert.equal(gated.propose(add).outcome, 'inserted')
+  assert.equal(ignoredReads, 0)
+
+  const recordAccessor = {
+    kind: 'promote',
+    provenance: { sourceKind: 'user_message', writer: 'explicit_user_action' },
+  }
+  Object.defineProperty(recordAccessor, 'record', {
+    enumerable: true,
+    get() { throw new Error('known accessor must not run') },
+  })
+  assert.throws(
+    () => gated.propose(recordAccessor),
+    (error) => error?.code === 'legacy_invalid_argument',
+  )
+})
+
+test('gated capability rejects spoofs; enabled close wins before hostile input', async () => {
+  assert.throws(
+    () => assertGatedStoreCapability({ enabled: true }),
+    (error) => error?.code === 'legacy_invalid_capability',
+  )
+  const { gated } = await openGated('closed-precedence')
+  gated.close()
+  const hostile = new Proxy({}, {
+    get() { throw new Error('proposal trap ran') },
+  })
+  assert.throws(
+    () => gated.propose(hostile),
+    (error) => error?.code === 'legacy_store_closed',
+  )
+})
 
 test('bounded U4 law: candidate add/supersede shortcuts are absent (partial C5)', async () => {
   const { gated } = await openGated()
@@ -78,7 +805,8 @@ test('bounded U4 law: a gated candidate write lands with provenance (partial C5,
 
 test('CDX-M1 migration is recorded in memory_migrations (GAP-1)', async () => {
   const { store } = await openGated()
-  const rows = store.db.prepare('SELECT id FROM memory_migrations ORDER BY id').all()
+  const rows = inspectDatabase(store.dbPath, (db) =>
+    db.prepare('SELECT id FROM memory_migrations ORDER BY id').all())
   assert.ok(rows.some((r) => r.id === 'CDX-M1'))
 })
 
@@ -195,8 +923,9 @@ test('resolve: supersession is demote-and-promote with a link; history survives 
   const old = store.getMemoryById(v1.memory.id)
   assert.ok(old, 'counterfactual history survives')
   assert.ok(old.valid_until, 'old row demoted via validity, not erased')
-  const link = store.db.prepare('SELECT relation FROM memory_links WHERE from_memory_id = ? AND to_memory_id = ?')
-    .get(v2.memory.id, v1.memory.id)
+  const link = inspectDatabase(store.dbPath, (db) => db.prepare(
+    'SELECT relation FROM memory_links WHERE from_memory_id = ? AND to_memory_id = ?',
+  ).get(v2.memory.id, v1.memory.id))
   assert.equal(link?.relation, 'supersedes')
 })
 
@@ -276,7 +1005,7 @@ test('ratify: sharing is ceremonial — explicit user action at the highest thre
   assert.equal(Boolean(store.getMemoryById(note.memory.id).shared), true)
 })
 
-test('ownership methods remain on the frozen surface pending V2-M2 gate closure (C17/C18)', async () => {
+test('ownership methods remain frozen gated adapters to legacy intents (C17/C18)', async () => {
   const { gated } = await openGated()
   const note = gated.propose(userProposal())
   assert.ok(gated.getMemoryById(note.memory.id))

@@ -1,198 +1,452 @@
-// Admission gate for candidate/add/supersession paths (KERNEL-API §4) — U4, Fable 5, 2026-07-18.
-// propose() implements Admit (types, writers, provenance fields, source
-// boundary, threshold order) -> Resolve (dedup, type-safe supersession)
-// -> Apply for its closed operation vocabulary. Raw extraction/session-
-// summary callers plus ownership, lifecycle, recall-inclusion, and
-// internal link mutation remain explicit V2-M2 conformance debt; this
-// module does not yet close every durable write.
-// The extracted baseline (./memory-store.mjs) stays verbatim; kernel
-// divergences live here as the recorded migration CDX-M1 and the
-// admission rules closing GAP-1..4 (KERNEL-API §7).
+// V2-M2-A2 legacy compatibility gate.
+//
+// This module is the public adapter from the established proposal/mutation
+// surface to the closed five-intent router. It owns no database connection,
+// SQL, transaction, clock, random source, or raw mutation capability.
+
+import { types as nodeUtilTypes } from 'node:util'
 
 import {
-  externalMemorySourceKinds,
-  memoryAddWriters,
-  memoryMutationActors,
-  permanentMemoryTypes,
-  transientMemoryTypes,
-} from './memory-store.mjs'
+  assertKernelStoreCapability,
+  executeLegacyStoreIntent,
+} from './kernel-store-runtime.mjs'
+import { LegacyMutationError } from './legacy-mutation-router.mjs'
 
-// GAP-2: the contract fixes the ORDER (demote < promote < permanent
-// < ratify); these default confidence floors are kernel-chosen values
-// realizing it, not baseline v05 behavior. Recorded here; tunable via
-// createAdmissionPolicy, never reorderable.
-export const admissionPolicyDefaults = Object.freeze({
+const ObjectFreeze = Object.freeze
+const ObjectDefineProperty = Object.defineProperty
+const ObjectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+const ObjectGetPrototypeOf = Object.getPrototypeOf
+const ObjectPrototype = Object.prototype
+const ObjectPrototypeHasOwnProperty = Object.prototype.hasOwnProperty
+const ArrayPrototypePush = Array.prototype.push
+const ErrorConstructor = Error
+const NumberConstructor = Number
+const NumberIsFinite = Number.isFinite
+const ReflectApply = Reflect.apply
+const ReflectGet = Reflect.get
+const WeakMapConstructor = WeakMap
+const WeakMapPrototypeGet = WeakMap.prototype.get
+const WeakMapPrototypeHas = WeakMap.prototype.has
+const WeakMapPrototypeSet = WeakMap.prototype.set
+const isProxy = nodeUtilTypes.isProxy
+
+const gateStates = new WeakMapConstructor()
+const gatedStates = new WeakMapConstructor()
+
+const proposalKindOps = ObjectFreeze({
+  demote: ObjectFreeze(['end_validity', 'delete_transient']),
+  permanent: ObjectFreeze(['add', 'supersede']),
+  promote: ObjectFreeze(['add', 'supersede']),
+  ratify: ObjectFreeze(['share']),
+})
+
+const provenanceKeys = ObjectFreeze([
+  'actor',
+  'eventAt',
+  'extractor',
+  'sourceKind',
+  'sourceMessageId',
+  'writer',
+])
+
+const recordKeys = ObjectFreeze([
+  'id',
+  'palari_id',
+  'user_id',
+  'type',
+  'content',
+  'keywords',
+  'importance',
+  'valid_from',
+  'valid_until',
+  'last_accessed',
+  'created_at',
+  'shared',
+  'confidence',
+  'acquisition_mode',
+  'fictional',
+  'last_decayed_at',
+  'source_message_id',
+  'content_hash',
+])
+
+const scopeKeys = ObjectFreeze(['palariId', 'userId'])
+const policyKeys = ObjectFreeze(['demote', 'promote', 'permanent', 'ratify'])
+
+function legacyError(code, message) {
+  return new LegacyMutationError(code, message)
+}
+
+function invalidArgument() {
+  return legacyError(
+    'legacy_invalid_argument',
+    'A valid legacy mutation argument is required.',
+  )
+}
+
+function invalidCapability() {
+  return legacyError(
+    'legacy_invalid_capability',
+    'A supported branded memory capability is required.',
+  )
+}
+
+function storeClosed() {
+  return legacyError('legacy_store_closed', 'The memory store is closed.')
+}
+
+function weakHas(map, value) {
+  return ReflectApply(WeakMapPrototypeHas, map, [value])
+}
+
+function weakGet(map, value) {
+  return ReflectApply(WeakMapPrototypeGet, map, [value])
+}
+
+function weakSet(map, key, value) {
+  ReflectApply(WeakMapPrototypeSet, map, [key, value])
+}
+
+function isOrdinaryRecord(value) {
+  if (typeof value !== 'object' || value === null || isProxy(value)) return false
+  const prototype = ReflectApply(ObjectGetPrototypeOf, Object, [value])
+  return prototype === ObjectPrototype || prototype === null
+}
+
+function ownDescriptor(value, key) {
+  return ReflectApply(ObjectGetOwnPropertyDescriptor, Object, [value, key])
+}
+
+function ownDataValue(value, key) {
+  const descriptor = ownDescriptor(value, key)
+  if (descriptor === undefined) return undefined
+  if (!ReflectApply(ObjectPrototypeHasOwnProperty, descriptor, ['value'])) {
+    throw invalidArgument()
+  }
+  return descriptor.value
+}
+
+function makeRecord(keys, values) {
+  const record = {}
+  for (let index = 0; index < keys.length; index += 1) {
+    ReflectApply(ObjectDefineProperty, Object, [record, keys[index], {
+      configurable: true,
+      enumerable: true,
+      value: values[index],
+      writable: true,
+    }])
+  }
+  return record
+}
+
+function emptyKnownRecord(keys) {
+  const values = []
+  for (let index = 0; index < keys.length; index += 1) {
+    ReflectApply(ArrayPrototypePush, values, [null])
+  }
+  return makeRecord(keys, values)
+}
+
+function captureKnownRecord(value, keys) {
+  if (value === undefined) return emptyKnownRecord(keys)
+  if (!isOrdinaryRecord(value)) throw invalidArgument()
+  const values = []
+  for (let index = 0; index < keys.length; index += 1) {
+    const key = keys[index]
+    const captured = ownDataValue(value, key)
+    ReflectApply(ArrayPrototypePush, values, [captured === undefined ? null : captured])
+  }
+  return makeRecord(keys, values)
+}
+
+function captureOptionalRecordField(value, key) {
+  if (value === undefined) return undefined
+  if (!isOrdinaryRecord(value)) throw invalidArgument()
+  return ownDataValue(value, key)
+}
+
+function proposalRejected(reason) {
+  return { outcome: 'rejected', reasons: [reason] }
+}
+
+function operationIsKnown(kind, op) {
+  let operations
+  if (kind === 'demote') operations = proposalKindOps.demote
+  else if (kind === 'permanent') operations = proposalKindOps.permanent
+  else if (kind === 'promote') operations = proposalKindOps.promote
+  else if (kind === 'ratify') operations = proposalKindOps.ratify
+  else return false
+  for (let index = 0; index < operations.length; index += 1) {
+    if (operations[index] === op) return true
+  }
+  return false
+}
+
+function proposalKindIsKnown(kind) {
+  return kind === 'demote' || kind === 'permanent' || kind === 'promote' || kind === 'ratify'
+}
+
+function isPermanentType(type) {
+  return type === 'relationship' ||
+    type === 'preference' ||
+    type === 'opinion' ||
+    type === 'entity' ||
+    type === 'life_event'
+}
+
+function assertEnabledStateLive(state) {
+  if (!state.enabled) return
+  const status = state.status()
+  if (status?.status === 'closed') throw storeClosed()
+}
+
+function assertActiveBase(base) {
+  assertKernelStoreCapability(base)
+  if (base.status().status === 'closed') throw storeClosed()
+}
+
+function executeForState(state, intent) {
+  assertEnabledStateLive(state)
+  return executeLegacyStoreIntent(state.base, intent)
+}
+
+export const admissionPolicyDefaults = ObjectFreeze({
   demote: 0,
   promote: 0.25,
   permanent: 0.6,
   ratify: 0.75,
 })
 
-export function createAdmissionPolicy(overrides = {}) {
-  const policy = { ...admissionPolicyDefaults, ...overrides }
-  if (!(policy.demote < policy.promote && policy.promote < policy.permanent && policy.permanent < policy.ratify)) {
-    throw new Error('Admission thresholds must keep order demote < promote < permanent < ratify.')
+export function createAdmissionPolicy(overrides) {
+  if (overrides === undefined || overrides === null) {
+    return ObjectFreeze({
+      demote: admissionPolicyDefaults.demote,
+      promote: admissionPolicyDefaults.promote,
+      permanent: admissionPolicyDefaults.permanent,
+      ratify: admissionPolicyDefaults.ratify,
+    })
   }
-  return Object.freeze(policy)
-}
-
-const kindOps = {
-  demote: new Set(['end_validity', 'delete_transient']),
-  permanent: new Set(['add', 'supersede']),
-  promote: new Set(['add', 'supersede']),
-  ratify: new Set(['share']),
-}
-
-// GAP-1: kernel migration CDX-M1 — first-class provenance columns for
-// origin (source_kind) and extractor identity, alongside (not
-// replacing) the baseline's in-band `source:<kind>` keyword marking.
-export function applyKernelMigrations(store) {
-  if (!store?.enabled) return
-  for (const column of ['source_kind TEXT', 'extractor TEXT']) {
-    try {
-      store.db.exec(`ALTER TABLE memories ADD COLUMN ${column}`)
-    } catch (error) {
-      if (!/duplicate column/i.test(String(error?.message ?? ''))) throw error
-    }
-  }
-  store.db.prepare('INSERT OR IGNORE INTO memory_migrations(id, applied_at) VALUES (?, ?)')
-    .run('CDX-M1', new Date().toISOString())
-}
-
-function partitionOf(type) {
-  if (permanentMemoryTypes.has(type)) return 'permanent'
-  if (transientMemoryTypes.has(type)) return 'transient'
-  return null
-}
-
-export function createMemoryGate(store, { policy = admissionPolicyDefaults } = {}) {
-  applyKernelMigrations(store)
-
-  function stampProvenance(memoryId, { extractor = null, sourceKind }) {
-    store.db.prepare('UPDATE memories SET source_kind = ?, extractor = ? WHERE id = ?')
-      .run(sourceKind ?? null, extractor, memoryId)
-    return store.getMemoryById(memoryId)
+  if (typeof overrides !== 'object' || isProxy(overrides)) {
+    throw invalidArgument()
   }
 
-  function admitWrite({ kind, provenance = {}, record = {} }) {
-    const reasons = []
-    const { eventAt, extractor, sourceKind, writer } = provenance
-    if (!writer) reasons.push('writer_required')
-    else if (!memoryAddWriters.has(writer)) reasons.push('invalid_writer')
-    if (!sourceKind) reasons.push('source_kind_required')
-    else if (sourceKind !== 'user_message' && !externalMemorySourceKinds.has(sourceKind)) {
-      reasons.push('invalid_source_kind')
+  const values = []
+  for (let index = 0; index < policyKeys.length; index += 1) {
+    const key = policyKeys[index]
+    const descriptor = ownDescriptor(overrides, key)
+    let raw
+    if (descriptor === undefined || descriptor.enumerable !== true) {
+      raw = admissionPolicyDefaults[key]
+    } else {
+      raw = ReflectApply(ReflectGet, Reflect, [overrides, key])
     }
-    // baseline law, pre-checked instead of thrown: external content
-    // only arrives via the extraction pipeline (C7)
-    if (sourceKind && externalMemorySourceKinds.has(sourceKind) && writer !== 'background_extraction') {
-      reasons.push('external_requires_extraction')
-    }
-    // GAP-4: evidence-time discipline — pipeline writes must carry
-    // the event time; applied state never comes from wall clock.
-    if (writer === 'background_extraction' || writer === 'session_summary') {
-      if (!eventAt) reasons.push('event_time_required')
-    }
-    // GAP-1: extraction must identify itself.
-    if (writer === 'background_extraction' && !extractor) reasons.push('extractor_required')
-    // C6: the proposal kind must match the type partition...
-    const partition = partitionOf(record.type)
-    if (kind === 'promote' && partition !== 'transient') reasons.push('kind_type_mismatch')
-    if (kind === 'permanent' && partition !== 'permanent') reasons.push('kind_type_mismatch')
-    // ...and clear the kind's evidence floor (order enforced at policy creation).
-    const confidence = Number.isFinite(Number(record.confidence)) ? Number(record.confidence) : 0.5
-    if (confidence < policy[kind]) reasons.push('below_threshold')
-    return reasons
+    ReflectApply(ArrayPrototypePush, values, [
+      ReflectApply(NumberConstructor, undefined, [raw]),
+    ])
   }
 
-  function propose(proposal = {}) {
-    const { kind, op = 'add', provenance = {}, record = {}, target } = proposal
-    if (!kindOps[kind]) return { outcome: 'rejected', reasons: ['invalid_kind'] }
-    if (!kindOps[kind].has(op)) return { outcome: 'rejected', reasons: ['invalid_op'] }
-
-    if (kind === 'demote') {
-      const actor = provenance.actor ?? provenance.writer
-      if (!actor || !memoryMutationActors.has(actor)) return { outcome: 'rejected', reasons: ['invalid_actor'] }
-      const existing = store.getMemoryById(target)
-      if (!existing) return { outcome: 'rejected', reasons: ['missing_target'] }
-      if (op === 'delete_transient') {
-        if (partitionOf(existing.type) !== 'transient') return { outcome: 'rejected', reasons: ['not_transient'] }
-        store.deleteMemory(target, { actor })
-        return { deletedId: target, outcome: 'demoted', reasons: [] }
-      }
-      const until = provenance.eventAt ?? new Date().toISOString()
-      store.db.prepare('UPDATE memories SET valid_until = ? WHERE id = ?').run(until, target)
-      return { memory: store.getMemoryById(target), outcome: 'demoted', reasons: [] }
-    }
-
-    if (kind === 'ratify') {
-      // authority direction is ceremonial: only the user ratifies
-      if (provenance.writer !== 'explicit_user_action') {
-        return { outcome: 'rejected', reasons: ['ratify_requires_user'] }
-      }
-      const existing = store.getMemoryById(target)
-      if (!existing) return { outcome: 'rejected', reasons: ['missing_target'] }
-      store.db.prepare('UPDATE memories SET shared = 1 WHERE id = ?').run(target)
-      return { memory: store.getMemoryById(target), outcome: 'ratified', reasons: [] }
-    }
-
-    // promote / permanent — add or supersede
-    const reasons = admitWrite({ kind, provenance, record })
-    if (reasons.length) return { outcome: 'rejected', reasons }
-
-    const writeRecord = {
-      ...record,
-      valid_from: record.valid_from ?? provenance.eventAt ?? undefined,
-    }
-    const writeOptions = {
-      sourceKind: provenance.sourceKind,
-      sourceMessageId: provenance.sourceMessageId,
-      writer: provenance.writer,
-    }
-
-    if (op === 'supersede') {
-      const existing = store.getMemoryById(target)
-      if (!existing) return { outcome: 'rejected', reasons: ['missing_target'] }
-      // GAP-3: supersession is type-safe across the partition
-      const newType = writeRecord.type ?? existing.type
-      if (partitionOf(newType) !== partitionOf(existing.type)) {
-        return { outcome: 'rejected', reasons: ['type_partition_mismatch'] }
-      }
-      const result = store.supersedeMemory(target, writeRecord, writeOptions)
-      const memory = stampProvenance(result.memory.id, provenance)
-      return { link: result.link, memory, outcome: 'superseded', reasons: [], superseded: result.superseded }
-    }
-
-    const result = store.addMemory(writeRecord, writeOptions)
-    if (result.outcome !== 'inserted') return { ...result, reasons: [] }
-    const memory = stampProvenance(result.memory.id, provenance)
-    return { memory, outcome: 'inserted', reasons: [] }
+  const demote = values[0]
+  const promote = values[1]
+  const permanent = values[2]
+  const ratify = values[3]
+  if (
+    !ReflectApply(NumberIsFinite, Number, [demote]) ||
+    !ReflectApply(NumberIsFinite, Number, [promote]) ||
+    !ReflectApply(NumberIsFinite, Number, [permanent]) ||
+    !ReflectApply(NumberIsFinite, Number, [ratify]) ||
+    !(demote < promote && promote < permanent && permanent < ratify)
+  ) {
+    throw new ErrorConstructor(
+      'Admission thresholds must keep order demote < promote < permanent < ratify.',
+    )
   }
 
-  return { policy, propose }
+  return ObjectFreeze({ demote, promote, permanent, ratify })
 }
 
-// The current producer surface hides addMemory / supersedeMemory /
-// insertMemory / raw db, but still forwards ownership, lifecycle, and
-// recall-inclusion mutations directly. V2-M2 must type those remaining
-// bypasses before the complete C5 one-gate claim is satisfied.
-export function createGatedStore(store, options = {}) {
-  const gate = createMemoryGate(store, options)
-  return Object.freeze({
-    close: () => store.close(),
-    config: store.config,
-    dbPath: store.dbPath,
-    deleteMemory: (id, opts) => store.deleteMemory(id, opts),
-    enabled: store.enabled,
-    getMemoryById: (id) => store.getMemoryById(id),
-    listMemories: (scope) => store.listMemories(scope),
-    propose: gate.propose,
-    publicStatus: () => store.publicStatus(),
-    recallMemories: (query, opts) => store.recallMemories(query, opts),
-    recordRecallInclusion: (ids, opts) => store.recordRecallInclusion(ids, opts),
-    runLifecycleJobs: (opts) => store.runLifecycleJobs(opts),
-    searchMemories: (query, opts) => store.searchMemories(query, opts),
-    status: () => store.status(),
-    topicForget: (query, scope, opts) => store.topicForget(query, scope, opts),
+function captureExplicitProposal(proposal, policy) {
+  if (proposal === undefined) return proposalRejected('invalid_kind')
+  if (!isOrdinaryRecord(proposal)) throw invalidArgument()
+
+  const proposalKind = ownDataValue(proposal, 'kind')
+  if (!proposalKindIsKnown(proposalKind)) {
+    return proposalRejected('invalid_kind')
+  }
+
+  const rawOp = ownDataValue(proposal, 'op')
+  const op = rawOp === undefined ? 'add' : rawOp
+  if (!operationIsKnown(proposalKind, op)) {
+    return proposalRejected('invalid_op')
+  }
+
+  const rawProvenance = ownDataValue(proposal, 'provenance')
+  const provenance = captureKnownRecord(rawProvenance, provenanceKeys)
+  const needsRecord = proposalKind === 'promote' || proposalKind === 'permanent'
+  const rawRecord = needsRecord ? ownDataValue(proposal, 'record') : undefined
+  const record = needsRecord
+    ? captureKnownRecord(rawRecord, recordKeys)
+    : emptyKnownRecord(recordKeys)
+  const needsTarget = op !== 'add'
+  const target = needsTarget ? ownDataValue(proposal, 'target') : null
+
+  return {
+    intentKind: 'legacy_proposal',
+    op,
+    policy,
+    producer: 'explicit_proposal',
+    proposalKind,
+    provenance,
+    record,
+    scope: makeRecord(scopeKeys, [null, null]),
+    target: target === undefined ? null : target,
+  }
+}
+
+export function createMemoryGate(base, options = {}) {
+  assertActiveBase(base)
+  if (!isOrdinaryRecord(options)) throw invalidArgument()
+  const suppliedPolicy = ownDataValue(options, 'policy')
+  const policy = createAdmissionPolicy(
+    suppliedPolicy === undefined ? admissionPolicyDefaults : suppliedPolicy,
+  )
+  assertActiveBase(base)
+  const enabled = base.enabled === true
+  const status = base.status
+  const state = ObjectFreeze({ base, enabled, policy, status })
+
+  function propose(proposal) {
+    if (!enabled) {
+      return { outcome: 'rejected', reasons: ['memory_disabled'] }
+    }
+    assertEnabledStateLive(state)
+    const captured = captureExplicitProposal(proposal, policy)
+    if (captured?.outcome === 'rejected') return captured
+    return executeForState(state, captured)
+  }
+
+  const gate = ObjectFreeze({ policy, propose })
+  weakSet(gateStates, gate, state)
+  return gate
+}
+
+export function assertGatedStoreCapability(gated) {
+  if (
+    (typeof gated !== 'object' && typeof gated !== 'function') ||
+    gated === null ||
+    isProxy(gated) ||
+    !weakHas(gatedStates, gated)
+  ) {
+    throw invalidCapability()
+  }
+  const state = weakGet(gatedStates, gated)
+  assertEnabledStateLive(state)
+}
+
+export function proposeExtractedMemoryCandidate(gated, input) {
+  assertGatedStoreCapability(gated)
+  const state = weakGet(gatedStates, gated)
+  if (!state.enabled) {
+    return { outcome: 'rejected', reasons: ['memory_disabled'] }
+  }
+  if (!isOrdinaryRecord(input)) throw invalidArgument()
+
+  const provenance = captureKnownRecord(
+    ownDataValue(input, 'provenance'),
+    provenanceKeys,
+  )
+  const record = captureKnownRecord(ownDataValue(input, 'record'), recordKeys)
+  const scope = captureKnownRecord(ownDataValue(input, 'scope'), scopeKeys)
+  const proposalKind = isPermanentType(record.type)
+    ? 'permanent'
+    : 'promote'
+
+  return executeForState(state, {
+    intentKind: 'legacy_proposal',
+    op: 'add',
+    policy: state.policy,
+    producer: 'extraction_candidate',
+    proposalKind,
+    provenance,
+    record,
+    scope,
+    target: null,
   })
+}
+
+export function createGatedStore(base, options = {}) {
+  assertActiveBase(base)
+  const gate = createMemoryGate(base, options)
+  const enabled = base.enabled === true
+  const state = ObjectFreeze({
+    base,
+    enabled,
+    policy: gate.policy,
+    status: base.status,
+  })
+
+  function inertOrExecute(inert, buildIntent) {
+    if (!enabled) return inert()
+    assertEnabledStateLive(state)
+    return executeForState(state, buildIntent())
+  }
+
+  const gated = ObjectFreeze({
+    close: base.close,
+    config: base.config,
+    dbPath: base.dbPath,
+    deleteMemory(id, optionsValue) {
+      return inertOrExecute(
+        () => ({ deleted: false, reason: 'memory_disabled' }),
+        () => ({
+          intentKind: 'legacy_delete_memory',
+          actor: captureOptionalRecordField(optionsValue, 'actor'),
+          id,
+        }),
+      )
+    },
+    enabled,
+    getMemoryById: base.getMemoryById,
+    listMemories: base.listMemories,
+    propose: gate.propose,
+    publicStatus: base.publicStatus,
+    recallMemories: base.recallMemories,
+    recordRecallInclusion(memoryIds, optionsValue) {
+      return inertOrExecute(
+        () => ({ touched: [], touchedCount: 0 }),
+        () => ({
+          intentKind: 'legacy_record_recall_inclusion',
+          actor: captureOptionalRecordField(optionsValue, 'actor'),
+          bumpAmount: captureOptionalRecordField(optionsValue, 'bumpAmount'),
+          memoryIds,
+        }),
+      )
+    },
+    runLifecycleJobs(optionsValue) {
+      return inertOrExecute(
+        () => ({ decayed: 0, deleted: 0, skipped: 0, touched: 0 }),
+        () => ({
+          intentKind: 'legacy_run_lifecycle',
+          now: captureOptionalRecordField(optionsValue, 'now'),
+          palariId: captureOptionalRecordField(optionsValue, 'palariId'),
+        }),
+      )
+    },
+    searchMemories: base.searchMemories,
+    status: base.status,
+    topicForget(query, scopeValue, optionsValue) {
+      return inertOrExecute(
+        () => ({ count: 0, deleted: [] }),
+        () => ({
+          intentKind: 'legacy_forget_topic',
+          actor: captureOptionalRecordField(optionsValue, 'actor'),
+          palariId: captureOptionalRecordField(scopeValue, 'palariId'),
+          query,
+          userId: captureOptionalRecordField(scopeValue, 'userId'),
+        }),
+      )
+    },
+  })
+
+  weakSet(gatedStates, gated, state)
+  return gated
 }
