@@ -2,14 +2,14 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M2-B Task 2 / M2-B-02 — IMPLEMENT THE EXECUTABLE DISPOSITION
-REGISTRY. Follow the sealed plan and exact `CDX-M1-legacy-disposition@5`
-contract: write the RED artifact-equality, finite-set, vocabulary, MAP,
-staged-authority, impossible-combination, producer, and terminal-branch
-matrix, then implement the frozen data-only registry and exact four-export
-evaluator surface. Do not begin B2 schema/checkpoint, bridge, or producer
-tasks before Task 2 passes. CDX-M1 remains runtime/read authority, exact B1
-remains unchanged/non-authoritative, and parent M2/M2-B remain open.
+Next: V2-M2-B Task 3 / M2-B-03 — IMPLEMENT THE EXACT B2 SCHEMA AND ATOMIC
+CHECKPOINT. Follow the sealed plan: write the RED canonical-config/DDL/
+manifest, three-layout checkpoint, payload-canary, failure-ordinal,
+malformed-inventory, ledger-binding, and no-op-reopen matrix; then implement
+the dependency-leaf schema and journal bootstrap's sole structural exception.
+Do not begin append/reducer/transition, bridge, or producer tasks before Task 3
+passes. CDX-M1 remains runtime/read authority, exact B1 remains unchanged/
+non-authoritative, and parent M2/M2-B remain open.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish without a
@@ -256,7 +256,25 @@ new explicit founder GO. Results remain under gitignored evals/results/.
     pass; three independent final reviews report zero blockers or majors.
     The authority modules are not yet wired to the store, B2, A1, bridge, or
     producers, so no durable mutation path or source-of-truth claim changed.
-    Next is Task 2/M2-B-02 executable disposition registry only.
+    Task 2 / M2-B-02 DONE 2026-07-21 at `e362fe6`: the exact four-export
+    `CDX-M1-legacy-disposition@5` module now contains the reviewed 46-row,
+    22-dimension frozen registry and complete route/phase evaluator. The
+    normative/source body is byte-equal and the registry document is pinned at
+    SHA-256
+    `70d1d966cb8e5550c26b4ccac2b7b4193a564b0d8d7c01dfc4c92fb8b5a0df74`.
+    Closed ordinary/null-prototype inputs, own-data fields, trap-free Proxy
+    rejection, primitive route/capture domains, captured dispatch, and
+    null-prototype iteration prevent inherited/coerced inputs from minting MAP
+    or corrupting verification; F-01/F-02/F-03 remain zero-observation. Exact
+    MAP remains limited to D-02/D-03. Completion PASS on exact Node 22.22.2 /
+    SQLite 3.51.2: focused registry 22/22, registry+coexistence 28/28, and full
+    suite 491/491, zero failures; 496 terminal pairs, 64 generic outcomes, 72
+    staged-authority cases, and 1,728 erasure cases are checked. Protected B1
+    bytes are unchanged and three final independent reviews report zero
+    blockers or majors. The module has only the documented side-effect-free
+    `node:util` dependency and no store, B1, B2, A1, bridge, runtime, or producer
+    wiring, so no durable mutation path or source-of-truth claim changed. Next
+    is Task 3/M2-B-03 exact B2 schema and atomic checkpoint only.
   CDX-M1 remains runtime/read authority and exact CDX-B1 remains unchanged and
   non-authoritative throughout these proofs. Parent M2 stays open until M2-B
   passes the complete production matrix.
@@ -361,3 +379,10 @@ native-clock high-water, and closed precedence/error law. Authority 37/37 and
 full suite 469/469 pass on Node 22.22.2 / SQLite 3.51.2; protected B1 bytes are
 unchanged and three final reviews found zero blockers/majors. No runtime/store/
 B2/A1/bridge/producer wiring claim; Next is M2-B-02 and U8 remains sealed.
+2026-07-21 — V2-M2-B Task 2 — e362fe6 — Implemented and certified the exact
+four-export @5 disposition registry/evaluator: 46 obligations, 22 dimensions,
+496 terminal pairs, 64 generic outcomes, 72 staged authority cases, and 1,728
+erasure cases with MAP limited to D-02/D-03. Registry 22/22, combined 28/28,
+and full 491/491 pass on Node 22.22.2 / SQLite 3.51.2; protected B1 bytes are
+unchanged and three final reviews found zero blockers/majors. No store/B1/B2/
+A1/bridge/runtime/producer wiring claim; Next is M2-B-03 and U8 remains sealed.
