@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { hash as nativeHash } from 'node:crypto'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync, StatementSync } from 'node:sqlite'
@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 
 import { MemoryBundleError } from '../src/memory-bundle-apply.mjs'
+import { openMemoryBundle } from '../src/memory-bundle.mjs'
 import * as codecModule from '../src/memory-bundle-codec.mjs'
 import * as schemaModule from '../src/memory-bundle-schema.mjs'
 import * as verifyModule from '../src/memory-bundle-verify.mjs'
@@ -5517,4 +5518,201 @@ test('M1-09 complete raw event/effect/meta orders succeed and historical reinser
       /memory_bundle_atom_insert_unauthorized/,
     )
   })
+})
+
+function snapshotM112CommittedBundle(dbPath) {
+  const db = new DatabaseSync(dbPath, { readOnly: true })
+  try {
+    return {
+      schema: db.prepare(`
+        SELECT type, name, tbl_name, sql
+        FROM main.sqlite_schema
+        WHERE name GLOB 'memory_bundle_*'
+           OR name GLOB 'sqlite_autoindex_memory_bundle_*'
+        ORDER BY name COLLATE BINARY
+      `).all(),
+      ...snapshotM105CanonicalRows(db),
+    }
+  } finally {
+    db.close()
+  }
+}
+
+function assertM112PublicOpenRejectsWithoutRepair(dbPath, expectedCode) {
+  const bytesBefore = readFileSync(dbPath)
+  const snapshotBefore = snapshotM112CommittedBundle(dbPath)
+  assertM105BundleCode(
+    () => openMemoryBundle({ dbPath }),
+    expectedCode,
+  )
+  assert.deepEqual(readFileSync(dbPath), bytesBefore)
+  assert.deepEqual(snapshotM112CommittedBundle(dbPath), snapshotBefore)
+}
+
+function withM112CommittedFault(
+  name,
+  setup,
+  expectedCode,
+  { seedActive = false } = {},
+) {
+  withM105FilePath(`palari-m112-${name}-`, (dbPath) => {
+    const db = new DatabaseSync(dbPath)
+    try {
+      createM105Bundle(db, { seedActive })
+      assert.deepEqual(readM105Pragmas(db), EXPECTED_REQUIRED_PRAGMAS)
+      db.exec('BEGIN IMMEDIATE')
+      setup(db)
+      db.exec('COMMIT')
+      assert.equal(readM105SingleValue(db, 'PRAGMA main.quick_check'), 'ok')
+      assert.deepEqual(
+        db.prepare('PRAGMA main.foreign_key_check').all(),
+        [],
+      )
+    } finally {
+      if (db.isTransaction) db.exec('ROLLBACK')
+      db.close()
+    }
+
+    assertM112PublicOpenRejectsWithoutRepair(dbPath, expectedCode)
+  })
+}
+
+test('M1-12 rejects committed partial DML without repair or truncation', () => {
+  withM112CommittedFault('event-only', (db) => {
+    insertM105EventRow(db)
+  }, 'bundle_meta_mismatch')
+
+  withM112CommittedFault('event-atom-no-meta', (db) => {
+    insertM105EventRow(db)
+    insertM105AtomRow(db)
+  }, 'bundle_meta_mismatch')
+})
+
+test('M1-12 rejects malformed complete rows after exact guards are restored', () => {
+  withM112CommittedFault('malformed-event', (db) => {
+    db.exec('DROP TRIGGER main.memory_bundle_events_no_update')
+    db.prepare(`
+      UPDATE main.memory_bundle_events
+      SET decision_id = ?
+      WHERE sequence = 1
+    `).run('not-a-decision-id')
+    db.exec(expectedExecutionSql('trigger', 'memory_bundle_events_no_update'))
+  }, 'bundle_invalid_decision', { seedActive: true })
+
+  withM112CommittedFault('malformed-atom', (db) => {
+    db.exec('DROP TRIGGER main.memory_bundle_atoms_no_update')
+    db.prepare(`
+      UPDATE main.memory_bundle_atoms
+      SET content_checksum = ?
+      WHERE memory_id = ?
+    `).run('0'.repeat(64), M1_04_IDS.memoryId)
+    db.exec(expectedExecutionSql('trigger', 'memory_bundle_atoms_no_update'))
+  }, 'bundle_invalid_atom', { seedActive: true })
+})
+
+function withM112PublicStoredFault(name, corrupt, expectedCode) {
+  withM105FilePath(`palari-m112-public-${name}-`, (dbPath) => {
+    const creator = new DatabaseSync(dbPath)
+    try {
+      createM105Bundle(creator, { seedActive: true })
+    } finally {
+      creator.close()
+    }
+
+    const handle = openMemoryBundle({ dbPath })
+    try {
+      const writer = new DatabaseSync(dbPath)
+      try {
+        verifyModule.configureOwnedBundleConnection(writer)
+        writer.exec('BEGIN IMMEDIATE')
+        corrupt(writer)
+        writer.exec('COMMIT')
+      } finally {
+        if (writer.isTransaction) writer.exec('ROLLBACK')
+        writer.close()
+      }
+
+      const committedFault = snapshotM112CommittedBundle(dbPath)
+      assertM105BundleCode(() => handle.verify(), expectedCode)
+      assert.deepEqual(snapshotM112CommittedBundle(dbPath), committedFault)
+      assertM105BundleCode(() => handle.replay(), expectedCode)
+      assert.deepEqual(snapshotM112CommittedBundle(dbPath), committedFault)
+    } finally {
+      handle.close()
+    }
+  })
+}
+
+function commitM112CrossScopeDelete(db, observedAt) {
+  db.exec('DROP TRIGGER main.memory_bundle_atom_delete_guard')
+  insertM105EventRow(db, makeM106DeleteEventRow(
+    2,
+    M1_04_IDS.memoryId,
+    {
+      user_id: 'user-2',
+      authority_id: 'user-2',
+      effective_at: observedAt,
+      observed_at: observedAt,
+    },
+  ))
+  db.prepare(`
+    DELETE FROM main.memory_bundle_atoms
+    WHERE memory_id = ?
+  `).run(M1_04_IDS.memoryId)
+  db.exec(`
+    UPDATE main.memory_bundle_meta
+    SET head_sequence = 2
+    WHERE singleton = 1
+  `)
+  db.exec(expectedExecutionSql('trigger', 'memory_bundle_atom_delete_guard'))
+}
+
+test('M1-12 public verify and replay share structural and transition precedence', () => {
+  withM112PublicStoredFault('layout-before-semantic', (db) => {
+    db.exec('DROP TRIGGER main.memory_bundle_meta_advance_guard')
+    db.prepare(`
+      UPDATE main.memory_bundle_meta
+      SET created_at = ?
+      WHERE singleton = 1
+    `).run('not-a-timestamp')
+  }, 'bundle_layout_invalid')
+
+  withM112PublicStoredFault('time-before-scope', (db) => {
+    commitM112CrossScopeDelete(db, '2026-07-18T11:59:00.000Z')
+  }, 'bundle_invalid_transition')
+
+  withM112PublicStoredFault('scope-before-atom', (db) => {
+    commitM112CrossScopeDelete(db, '2026-07-18T13:00:00.000Z')
+  }, 'bundle_unauthorized')
+})
+
+function commitM112MissingOrOrphanMerge(db, orphanMemoryId) {
+  const refused = makeM106RefusedDeleteEventRow(2, orphanMemoryId)
+  db.exec(`
+    DROP TRIGGER main.memory_bundle_atom_insert_guard;
+    DROP TRIGGER main.memory_bundle_atom_delete_guard;
+  `)
+  insertM105EventRow(db, refused)
+  db.prepare(`
+    DELETE FROM main.memory_bundle_atoms
+    WHERE memory_id = ?
+  `).run(M1_04_IDS.memoryId)
+  insertM105AtomRow(db, makeM106AtomRow(refused))
+  db.exec(`
+    UPDATE main.memory_bundle_meta
+    SET head_sequence = 2
+    WHERE singleton = 1
+  `)
+  db.exec(expectedExecutionSql('trigger', 'memory_bundle_atom_insert_guard'))
+  db.exec(expectedExecutionSql('trigger', 'memory_bundle_atom_delete_guard'))
+}
+
+test('M1-12 public verify and replay share the sorted missing-orphan failure', () => {
+  withM112PublicStoredFault('missing-first', (db) => {
+    commitM112MissingOrOrphanMerge(db, m106Id('mem', 0x006))
+  }, 'bundle_missing_atom')
+
+  withM112PublicStoredFault('orphan-first', (db) => {
+    commitM112MissingOrOrphanMerge(db, m106Id('mem', 0x003))
+  }, 'bundle_orphan_atom')
 })

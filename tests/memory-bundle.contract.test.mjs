@@ -24,10 +24,12 @@ import {
   EXPECTED_OBJECTS,
   M1_04_IDS,
   createM105Bundle,
+  insertM105AtomRow,
   insertM105EventRow,
   makeM104ApplyEnvelope,
   makeM104AtomRow,
   makeM104CanonicalAtom,
+  makeM104EventRow,
   seedM105ActiveMemory,
 } from './helpers/memory-bundle-fixtures.mjs'
 
@@ -4147,6 +4149,328 @@ test('M1-09 retained scope precedes deleted state and create ids remain retired'
       db,
       () => applyModule.applyResolvedDecisionInTransaction(db, retiredId),
       'bundle_id_reuse',
+    )
+  })
+})
+
+function captureM112BoundaryCode(label, callback) {
+  let thrown
+  try {
+    callback()
+  } catch (error) {
+    thrown = error
+  }
+  assert.notEqual(thrown, undefined, `${label} must throw`)
+  assert.equal(
+    Object.getPrototypeOf(thrown),
+    applyModule.MemoryBundleError.prototype,
+    label,
+  )
+  assert.equal(thrown.name, 'MemoryBundleError', label)
+  assert.equal(typeof thrown.code, 'string', label)
+  return thrown.code
+}
+
+function withM112File(prefix, callback) {
+  const directory = mkdtempSync(join(tmpdir(), prefix))
+  const dbPath = join(directory, 'bundle.sqlite')
+  try {
+    return callback(dbPath)
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
+
+function throwM112PublicOpen(options = {}) {
+  return withM112File('palari-m112-code-', (dbPath) => {
+    const db = new DatabaseSync(dbPath)
+    try {
+      if (options.empty !== true) {
+        createM105Bundle(db, options.bundleOptions)
+      }
+    } finally {
+      db.close()
+    }
+    const handle = publicModule.openMemoryBundle({ dbPath })
+    try {
+      if (options.afterOpen === 'closed') {
+        handle.close()
+        return handle.verify()
+      }
+      return handle
+    } finally {
+      handle.close()
+    }
+  })
+}
+
+function throwM112Apply({ seedActive = false, begin = true, mutate }) {
+  const db = new DatabaseSync(':memory:')
+  try {
+    createM105Bundle(db, { seedActive })
+    if (begin) db.exec('BEGIN IMMEDIATE')
+    const head = readM108Head(db)
+    const input = makeM108Envelope('create-applied', 0x1120, { head })
+    mutate(input, head)
+    return applyModule.applyResolvedDecisionInTransaction(db, input)
+  } finally {
+    if (db.isTransaction) db.exec('ROLLBACK')
+    db.close()
+  }
+}
+
+test('M1-12 exercises all 19 stable failure codes through contractual boundaries', () => {
+  const cases = [
+    {
+      code: 'bundle_invalid_argument',
+      trigger() {
+        applyModule.initializeMemoryBundle({})
+      },
+    },
+    {
+      code: 'bundle_busy',
+      trigger() {
+        return withM112File('palari-m112-busy-', (dbPath) => {
+          const locker = new DatabaseSync(dbPath)
+          const contender = new DatabaseSync(dbPath)
+          try {
+            locker.exec('BEGIN IMMEDIATE')
+            return applyModule.initializeMemoryBundle(contender)
+          } finally {
+            if (locker.isTransaction) locker.exec('ROLLBACK')
+            contender.close()
+            locker.close()
+          }
+        })
+      },
+    },
+    {
+      code: 'bundle_layout_invalid',
+      trigger() {
+        return throwM112PublicOpen({ empty: true })
+      },
+    },
+    {
+      code: 'bundle_schema_unsupported',
+      trigger() {
+        return throwM112PublicOpen({
+          bundleOptions: { meta: { schema_version: 'CDX-B2' } },
+        })
+      },
+    },
+    {
+      code: 'bundle_connection_invalid',
+      trigger() {
+        const db = new DatabaseSync(':memory:')
+        db.close()
+        applyModule.initializeMemoryBundle(db)
+      },
+    },
+    {
+      code: 'bundle_not_in_transaction',
+      trigger() {
+        return throwM112Apply({ begin: false, mutate() {} })
+      },
+    },
+    {
+      code: 'bundle_invalid_decision',
+      trigger() {
+        return throwM112Apply({
+          mutate(input) {
+            input.decision.proposalKind = 'unsupported'
+          },
+        })
+      },
+    },
+    {
+      code: 'bundle_duplicate_decision_id',
+      trigger() {
+        return throwM112Apply({
+          seedActive: true,
+          mutate(input) {
+            input.decision.decisionId = M1_04_IDS.decisionId
+          },
+        })
+      },
+    },
+    {
+      code: 'bundle_duplicate_proposal_id',
+      trigger() {
+        return throwM112Apply({
+          seedActive: true,
+          mutate(input) {
+            input.decision.proposalId = M1_04_IDS.proposalId
+          },
+        })
+      },
+    },
+    {
+      code: 'bundle_invalid_atom',
+      trigger() {
+        return throwM112Apply({
+          mutate(input) {
+            input.atom.initialImportance = 2
+          },
+        })
+      },
+    },
+    {
+      code: 'bundle_invalid_transition',
+      trigger() {
+        return throwM112Apply({
+          mutate(input, head) {
+            Object.assign(
+              input,
+              makeM108Envelope('delete-applied', 0x1121, { head }),
+            )
+          },
+        })
+      },
+    },
+    {
+      code: 'bundle_head_conflict',
+      trigger() {
+        return throwM112Apply({
+          mutate(input) {
+            input.expectedHead.sequence = 1
+          },
+        })
+      },
+    },
+    {
+      code: 'bundle_meta_mismatch',
+      trigger() {
+        return throwM112PublicOpen({
+          bundleOptions: { meta: { head_sequence: 1 } },
+        })
+      },
+    },
+    {
+      code: 'bundle_missing_atom',
+      trigger() {
+        return throwM112PublicOpen({
+          bundleOptions: {
+            meta: { head_sequence: 1 },
+            beforeTriggers(db) {
+              insertM105EventRow(db)
+            },
+          },
+        })
+      },
+    },
+    {
+      code: 'bundle_orphan_atom',
+      trigger() {
+        return throwM112PublicOpen({
+          bundleOptions: {
+            meta: { head_sequence: 1 },
+            beforeTriggers(db) {
+              insertM105EventRow(db, makeM104EventRow({
+                outcome: 'refused',
+                reason_code: 'below_threshold',
+                authority_kind: 'policy',
+                authority_id: M1_08_POLICY_AUTHORITY_ID,
+                memory_id: null,
+              }))
+              insertM105AtomRow(db)
+            },
+          },
+        })
+      },
+    },
+    {
+      code: 'bundle_id_reuse',
+      trigger() {
+        return throwM112Apply({
+          seedActive: true,
+          mutate(input) {
+            input.decision.memoryId = M1_04_IDS.memoryId
+          },
+        })
+      },
+    },
+    {
+      code: 'bundle_unauthorized',
+      trigger() {
+        return throwM112Apply({
+          seedActive: true,
+          mutate(input, head) {
+            const deletion = makeM108Envelope('delete-applied', 0x1122, { head })
+            deletion.decision.scope.userId = 'user-2'
+            deletion.decision.authority.authorityId = 'user-2'
+            Object.assign(input, deletion)
+          },
+        })
+      },
+    },
+    {
+      code: 'bundle_storage_error',
+      trigger() {
+        return withM112File('palari-m112-storage-', (dbPath) => {
+          new DatabaseSync(dbPath).close()
+          const db = new DatabaseSync(dbPath, { readOnly: true })
+          try {
+            return applyModule.initializeMemoryBundle(db)
+          } finally {
+            db.close()
+          }
+        })
+      },
+    },
+    {
+      code: 'bundle_closed',
+      trigger() {
+        return throwM112PublicOpen({ afterOpen: 'closed' })
+      },
+    },
+  ]
+
+  assert.deepEqual(cases.map(({ code }) => code), EXPECTED_CODES)
+  const observedCodes = cases.map(({ code, trigger }) =>
+    captureM112BoundaryCode(code, trigger))
+  assert.deepEqual(observedCodes, EXPECTED_CODES)
+})
+
+test('M1-12 fixes apply mixed-fault precedence before any mutation', () => {
+  withM108Transaction({ seedActive: true }, (db) => {
+    const head = readM108Head(db)
+
+    const duplicateBoth = makeM108Envelope('create-applied', 0x1130, { head })
+    duplicateBoth.decision.decisionId = M1_04_IDS.decisionId
+    duplicateBoth.decision.proposalId = M1_04_IDS.proposalId
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, duplicateBoth),
+      'bundle_duplicate_decision_id',
+    )
+
+    const atomShapeFirst = makeM108Envelope('create-applied', 0x1131, { head })
+    atomShapeFirst.decision.decisionId = 'not-a-decision-id'
+    atomShapeFirst.atom = {}
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, atomShapeFirst),
+      'bundle_invalid_atom',
+    )
+
+    const decisionValueFirst = makeM108Envelope('create-applied', 0x1132, { head })
+    decisionValueFirst.decision.decisionId = 'not-a-decision-id'
+    decisionValueFirst.atom.content = { malformed: true }
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, decisionValueFirst),
+      'bundle_invalid_decision',
+    )
+
+    const invalidHeadFirst = makeM108Envelope('create-applied', 0x1133, { head })
+    invalidHeadFirst.expectedHead = {
+      streamId: makeM108Id('str', 0x1134),
+      sequence: -1,
+    }
+    assertM108Failure(
+      db,
+      () => applyModule.applyResolvedDecisionInTransaction(db, invalidHeadFirst),
+      'bundle_invalid_argument',
     )
   })
 })
