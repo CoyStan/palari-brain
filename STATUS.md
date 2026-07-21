@@ -2,14 +2,14 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M2-B Task 3 / M2-B-03 — IMPLEMENT THE EXACT B2 SCHEMA AND ATOMIC
-CHECKPOINT. Follow the sealed plan: write the RED canonical-config/DDL/
-manifest, three-layout checkpoint, payload-canary, failure-ordinal,
-malformed-inventory, ledger-binding, and no-op-reopen matrix; then implement
-the dependency-leaf schema and journal bootstrap's sole structural exception.
-Do not begin append/reducer/transition, bridge, or producer tasks before Task 3
-passes. CDX-M1 remains runtime/read authority, exact B1 remains unchanged/
-non-authoritative, and parent M2/M2-B remain open.
+Next: V2-M2-B Task 4 / M2-B-04 — IMPLEMENT THE APPEND-ONLY JOURNAL, REDUCER,
+AND TRANSITION. Follow the sealed plan: write the RED decision/effect/hash/time,
+field/object mutation, raw-tamper, tail/cardinality/authority/config, reference-
+kernel, replay/projection, and blind-spot matrix; then extend the same journal
+with complete positive-tail verification/reduction plus lease-checked append and
+head advance. Do not begin bridge, ratified erasure, router cutover, terminal,
+or producer tasks before Task 4 passes. CDX-M1 remains runtime/read authority,
+exact B1 remains unchanged/non-authoritative, and parent M2/M2-B remain open.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish without a
@@ -273,8 +273,24 @@ new explicit founder GO. Results remain under gitignored evals/results/.
     bytes are unchanged and three final independent reviews report zero
     blockers or majors. The module has only the documented side-effect-free
     `node:util` dependency and no store, B1, B2, A1, bridge, runtime, or producer
-    wiring, so no durable mutation path or source-of-truth claim changed. Next
-    is Task 3/M2-B-03 exact B2 schema and atomic checkpoint only.
+    wiring, so no durable mutation path or source-of-truth claim changed.
+    Task 3 / M2-B-03 DONE 2026-07-21 at `5fb4418`: exact six-export
+    dependency-leaf schema and the truthful three-export head-zero journal now
+    implement the atomic three-layout B2 checkpoint under one A1 lease, with
+    captured native clock/UUID/SQLite dispatch, explicit main-schema
+    qualification, complete prepublication verification, and the sole
+    certified ordinary M0/M1 structural-completion exception. Runtime gained
+    only the exact B2 negative allowlist needed for the historical opener to
+    reach and reject the third migration row; it does not bootstrap or use B2.
+    Completion PASS on exact Node 22.22.2 / SQLite 3.51.2: schema/journal/
+    instrumentation/runtime/coexistence 129/129 and full suite 517/517, zero
+    failures; 136 injected rollback/retry cases plus the post-native-COMMIT
+    uncertainty proof pass. Numeric/string payload canaries, TEMP-shadow main
+    scoping, exact target/FK allowlists, and old-opener stage traces are non-
+    vacuous. Protected B1 bytes are unchanged and three final independent
+    reviews report zero blockers or majors. Append, reducer, transition,
+    bridge, runtime cutover, producer, and source-of-truth claims remain
+    absent; Next is Task 4/M2-B-04 and U8 remains sealed.
   CDX-M1 remains runtime/read authority and exact CDX-B1 remains unchanged and
   non-authoritative throughout these proofs. Parent M2 stays open until M2-B
   passes the complete production matrix.
@@ -386,3 +402,11 @@ erasure cases with MAP limited to D-02/D-03. Registry 22/22, combined 28/28,
 and full 491/491 pass on Node 22.22.2 / SQLite 3.51.2; protected B1 bytes are
 unchanged and three final reviews found zero blockers/majors. No store/B1/B2/
 A1/bridge/runtime/producer wiring claim; Next is M2-B-03 and U8 remains sealed.
+2026-07-21 — V2-M2-B Task 3 — 5fb4418 — Implemented and certified the exact
+six-export B2 schema leaf plus truthful head-zero journal bootstrap/verifier:
+atomic three-layout checkpoint, captured-native/main-scoped initialization,
+complete manifest/replay verification, and exact historical-runtime negative
+allowlist. Focused 129/129 and full 517/517 pass; 136 rollback/retry injections
+plus post-COMMIT uncertainty pass; protected B1 bytes are unchanged and three
+final reviews found zero blockers/majors. No append/reducer/transition/bridge/
+producer or runtime-authority claim; Next is M2-B-04 and U8 remains sealed.

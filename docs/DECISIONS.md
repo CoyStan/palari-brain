@@ -471,3 +471,28 @@ dates. Agents record; the founder decides.
   This clarification adds no B2 field or object, runtime wiring, journal
   append, reducer, transition, bridge, producer behavior, provider, sealed U8
   action, spend, dataset, score, publication, or announcement permission.
+- 2026-07-21 (V2-M2-B Task 3 certification) **Implementation commit
+  `5fb44188fb524a7939ca0e5d7f81474817387625` certifies only the exact B2
+  schema and atomic head-zero checkpoint.** The dependency leaf has the six
+  contracted exports; the Task 3 journal truthfully exposes only bootstrap,
+  verify, and the closed error class. Under one externally owned A1 lease it
+  classifies B2 before repair, permits only certified ordinary M0/M1
+  structural completion for the absent candidate, snapshots all three legacy
+  physical orders into content-free binary-ordered descriptor blocks, creates
+  the exact B2 manifest, inserts the marker, and completely verifies the
+  checkpoint/projection before return. Every operational schema, migration,
+  checkpoint, and projection reference is explicitly `main`-scoped; only
+  SQLite-required unqualified DML inside persistent main-trigger bodies
+  remains. Complete reopen is callback/write/repair-free. The historical
+  runtime imports only the schema leaf and accepts exactly the reviewed B2
+  object/target/FK set so it reaches—and rejects—the intentional third
+  migration row; CDX-M1 remains runtime/read authority and does not use B2.
+  Completion evidence on Node 22.22.2 / SQLite 3.51.2 is focused 129/129 and
+  full 517/517, zero failures, including 136 rollback/retry injection cases,
+  post-native-COMMIT uncertainty, non-vacuous payload canaries, and TEMP-shadow
+  regressions. Protected B1 production/document bytes and dormant raw
+  extraction remain identical to `1d65bb0`; three final independent reviews
+  report zero blockers or majors. This authorizes no positive-tail append,
+  reducer, transition, bridge, runtime cutover, producer routing, terminal
+  action, provider, sealed U8 run, spend, dataset, score, publication, or
+  announcement.

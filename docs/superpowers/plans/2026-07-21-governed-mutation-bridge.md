@@ -195,33 +195,33 @@ wiring is claimed by these checked boxes.
 
 ### M2-B-03 RED
 
-- [ ] Pin canonical config bytes/SHA-256, exact DDL, normalized persisted SQL,
+- [x] Pin canonical config bytes/SHA-256, exact DDL, normalized persisted SQL,
   table/index/trigger/FK/xinfo manifests, and case-fold collision set.
-- [ ] Checkpoint empty/nonempty CDX across all three physical memory orders:
+- [x] Checkpoint empty/nonempty CDX across all three physical memory orders:
   exact ordinal blocks and memory/link union, binary order, endpoint closure.
-- [ ] Trace canaries from every excluded payload-bearing column and prove no B2
+- [x] Trace canaries from every excluded payload-bearing column and prove no B2
   scalar contains them; do not use an impossible whole-file byte claim.
-- [ ] Force failure at each create/snapshot/meta/checkpoint/trigger/marker/
+- [x] Force failure at each create/snapshot/meta/checkpoint/trigger/marker/
   verify/commit ordinal; require no partial B2 and untouched M0/M1 on rollback.
-- [ ] Reject marker/schema mismatch, partial/case/extra objects, altered SQL,
+- [x] Reject marker/schema mismatch, partial/case/extra objects, altered SQL,
   checkpoint mutation, TEMP triggers, wrong PRAGMAs, and all repair attempts.
-- [ ] Permit only the certified ordinary A2 M0/M1 completion step before B2;
+- [x] Permit only the certified ordinary A2 M0/M1 completion step before B2;
   prove partial or malformed B2 is never repaired.
-- [ ] Commit a first decision to establish the stream ledger id, then prove a
+- [x] Commit a first decision to establish the stream ledger id, then prove a
   second/reopened-root decision with another ledger id cannot append or
   advance.
-- [ ] Prove complete reopen performs no clock/id/DDL/DML and old A2 open fails
+- [x] Prove complete reopen performs no clock/id/DDL/DML and old A2 open fails
   on the exact three-row migration set.
 
 ### M2-B-03 GREEN
 
-- [ ] Implement dependency-leaf schema plus captured-native initializer and
+- [x] Implement dependency-leaf schema plus captured-native initializer and
   complete pre-publication verifier.
-- [ ] Implement the journal bootstrap's sole structural exception: after B2
+- [x] Implement the journal bootstrap's sole structural exception: after B2
   absence classification, run certified M0/M1 completion/verification, then
   B2 snapshot/create/checkpoint/marker/verification under the same A1 lease;
   permit no semantic CDX memory/link/FTS-row DML.
-- [ ] Extend runtime allowlists only by the exact reviewed B2 manifest.
+- [x] Extend runtime allowlists only by the exact reviewed B2 manifest.
 
 ## Task 4 — Append-only journal, reducer, and transition
 
