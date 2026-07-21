@@ -2,12 +2,11 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M1 — GOVERNED MEMORY BUNDLE SUBSTRATE.
-Founder ratified autonomous local implementation on 2026-07-18. Build
-and falsify a non-authoritative same-workspace SQLite bundle: content-free
-decision events, erasable canonical atoms, exact-sequence conflict checks,
-read-only verification, and deterministic current-state replay. CDX-M1
-remains runtime truth; no gate cutover or live/provider work in M1.
+Next: V2-M2 — ONE-CONNECTION MUTATION SEAM.
+Refactor current projection writes to borrow the gate coordinator's
+transaction and close every remaining direct semantic bypass. CDX-M1 remains
+runtime truth and the certified CDX-B1 bundle remains non-authoritative; no
+runtime cutover, live/provider work, or stronger capability claim is implied.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish without a
@@ -172,21 +171,20 @@ new explicit founder GO. Results remain under gitignored evals/results/.
   question completed: 9/10 results are checkpointed; final question
   `1568498a` has no result and must not run without a new GO. Partial
   report remains in gitignored evals/results/.
-- [~] V2-M1 — Governed memory bundle substrate. Non-authoritative
-  coexistence in the existing workspace SQLite file: three canonical
-  objects (`memory_bundle_meta`, content-free append-only
-  `memory_bundle_events`, erasable `memory_bundle_atoms`), personal
-  create/refuse/delete only, caller-owned transaction seam, exact
-  sequence CAS, deterministic verify/replay, no runtime integration.
-  Completion requires: docs coherent; exact module/return shapes and 19-code
-  error
-  vocabulary; atomic init; CDX-M1 coexistence; authority matrix including
-  NULL-refusal and retained-scope delete checks; content-free events;
-  recursive-trigger REPLACE defense plus enforced CHECK constraints;
-  main-qualified executable DDL under inert shadows; canonical-target
-  trigger rejection; ID non-reuse; one-connection rollback; fail-closed
-  structural verification; writable hot-journal recovery before the public
-  read-only handle; full suite green on Node 22.22.2 / SQLite 3.51.2.
+- [x] V2-M1 — Governed memory bundle substrate. DONE 2026-07-21.
+  Preceding implementation commit: 3cdef74. Completion PASS: 208/208 tests,
+  zero failures, on exact Node 22.22.2 / SQLite 3.51.2. The completed proof
+  covers exact public surfaces and 19-code vocabulary; atomic/race-safe
+  initialization; content-free append-only decisions and governedly erasable,
+  immutable-while-present atoms; exact-sequence CAS; authority, transition,
+  retained-scope, and ID
+  non-reuse rules; main-qualified manifest/trigger/CHECK defenses; caller-owned
+  transaction composition and rollback; deterministic fail-closed
+  verify/replay; create-disabled hot-journal recovery before read-only open;
+  and unchanged same-file CDX-M1 schema/data/FTS/links/gate behavior with no
+  dual write. The bundle remains `sourceOfTruth:false`; CDX-M1 remains runtime
+  authority. No physical-deletion, deletion-proof, signature, cryptographic
+  audit, external-anchor, provider, benchmark, or publication claim was made.
 - [ ] V2-M2 — One-connection mutation seam. Refactor current projection
   writes to borrow the gate coordinator's transaction; close direct
   semantic bypasses. Bundle remains non-authoritative until the full
@@ -264,3 +262,8 @@ explicit GO, no completed output re-rolls.
 v2 implementation; two adversarial GPT-5.6 Sol panels selected the
 same-file governed bundle as the minimal falsifiable substrate. U8 sealed;
 live/publish work deferred; M1 is next.
+2026-07-21 — V2-M1 — 3cdef74 — Governed same-file bundle substrate
+implemented and independently reviewed: exact M1 surfaces, initialization,
+apply, verification/replay, crash recovery, and unchanged CDX-M1 coexistence;
+208/208 PASS on Node 22.22.2 / SQLite 3.51.2. CDX-M1 remains runtime authority,
+bundle capabilities remain all false, U8 remains sealed, and Next is V2-M2.

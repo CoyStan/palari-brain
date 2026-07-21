@@ -131,3 +131,28 @@ dates. Agents record; the founder decides.
   founder's standing v2 authority; it does not certify the unimplemented
   suite, change CDX-M1 runtime authority, reopen U8/live spend, or authorize
   publication.
+- 2026-07-20 (V2-M1 reviewed process exception) **Commit 4d9242c amended the
+  sealed CDX-B1 contract after implementation exposed SQLite's
+  ASCII-case-insensitive identifier-collision ambiguity.** The amendment
+  requires ASCII-folded candidate discovery while preserving the exact BINARY
+  canonical inventory, so case-variant and mixed-case bundle objects fail
+  closed. This was a security-tightening clarification, not a public API,
+  authority, capability, or runtime-scope expansion. It is recorded explicitly
+  because the normative contract changed after the normative contract seal
+  ea83e15 (implementation-scope base 280d3d0); all other implementation paths
+  remained within the approved M1 scope.
+- 2026-07-21 (V2-M1 certification, implementation commit 3cdef74)
+  **The declared floor remains Node >=22.22.2 and is now certified on exact
+  Node v22.22.2, whose bundled SQLite is 3.51.2.** Certification was earned
+  only after every dedicated M1 contract file and the complete zero-dependency
+  repository regression suite passed on that exact runtime: 208 tests, zero
+  failures. The public namespaces remain exactly three apply exports and one
+  read export, and the same-file coexistence proof leaves CDX-M1 as runtime
+  authority with no dual write. This does not establish a lower supported Node
+  floor or certify every later Node release. It also does not upgrade any
+  all-false bundle capability: `sourceOfTruth`, `physicalDeletion`,
+  `deletionProvable`, `signed`, `cryptographicAudit`, and
+  `externalAnchorRequired` remain false. No live or network provider call,
+  benchmark scoring run, sealed U8 continuation, real dataset, result write,
+  or publication path participated in certification; dry and synthetic
+  regression coverage did run.
