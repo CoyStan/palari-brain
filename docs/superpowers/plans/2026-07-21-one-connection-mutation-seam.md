@@ -36,9 +36,12 @@ connection.
 - **Modify `STATUS.md`, `docs/DECISIONS.md`, `docs/KERNEL-API.md`, and
   `docs/KERNEL-CONTRACT.md`** — record the reviewed A1 boundary and later its
   bounded certification. Do not mark parent M2 complete.
-- **Do not modify** any `src/memory-bundle*.mjs`, dedicated B1 test/helper,
-  current runtime gate/store/adapter/recall/extraction module, package manifest,
-  live runner, prediction, or result artifact.
+- **Do not modify** any `src/memory-bundle*.mjs`, B1 helper/fixture, current
+  runtime gate/store/adapter/recall/extraction module, package manifest, live
+  runner, prediction, or result artifact. The sole dedicated-test exception is
+  the reviewed source-inventory classification diff in
+  `tests/memory-bundle-coexistence.contract.test.mjs`; no B1 semantic assertion
+  may change.
 
 ---
 
@@ -234,7 +237,9 @@ node --test --test-name-pattern='^M2-A1-03' \
 
 ## Task 4 — Prove real B1/CDX composition
 
-**Files:** add composition contract test only.
+**Files:** add the composition contract test; permit only the separately
+reviewed A1-isolated inventory classification in the existing B1 coexistence
+test.
 
 ### M2-A1-04 RED
 
@@ -257,7 +262,9 @@ node --test tests/mutation-coordinator-composition.contract.test.mjs
 ### M2-A1-04 GREEN
 
 - [ ] Add only the test orchestration and fixtures local to that test. Reuse the
-  unchanged B1 helper exports; do not alter B1 production or dedicated tests.
+  unchanged B1 helper exports; do not alter B1 production or semantic tests.
+  Permit only the reviewed A1-isolated source-inventory classification in the
+  B1 coexistence test.
 - [ ] Run coordinator, composition, all B1 tests, and full suite.
 - [ ] Commit and push the composition proof.
 
@@ -269,16 +276,25 @@ node --test tests/mutation-coordinator-composition.contract.test.mjs
 
 - [ ] Verify the exact runtime and complete suite; report the new total and zero
   failures separately from the 208-test baseline.
-- [ ] Prove B1 production and dedicated tests/helpers are unchanged from
-  `616c60b`:
+- [ ] Prove B1 production, helpers/fixtures, and every dedicated test except the
+  reviewed coexistence inventory classification are unchanged from `616c60b`:
 
 ```bash
 git diff --exit-code 616c60b -- \
   docs/MEMORY-BUNDLE-CONTRACT.md \
   'src/memory-bundle*.mjs' \
-  'tests/memory-bundle*.test.mjs' \
   tests/helpers/memory-bundle-fixtures.mjs \
-  'tests/fixtures/memory-bundle-*'
+  tests/fixtures/memory-bundle-instrumentation-child.mjs \
+  tests/fixtures/memory-bundle-hot-journal-child.mjs \
+  tests/memory-bundle.contract.test.mjs \
+  tests/memory-bundle-instrumentation.contract.test.mjs \
+  tests/memory-bundle-public.contract.test.mjs \
+  tests/memory-bundle-verification.contract.test.mjs
+
+git diff --check 616c60b -- \
+  tests/memory-bundle-coexistence.contract.test.mjs
+git diff 616c60b -- \
+  tests/memory-bundle-coexistence.contract.test.mjs
 ```
 
 - [ ] Prove no current runtime module imports the new coordinator:

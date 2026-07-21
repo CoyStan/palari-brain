@@ -71,7 +71,9 @@ export function assertActiveMutationLease(lease, db)
 There is no default export and no other named export.
 
 `createMutationCoordinator(db)` returns a frozen ordinary object with exactly
-one enumerable own property:
+one own property. Its exact own-key set is `['run']`; `run` is an enumerable,
+non-writable, non-configurable data property, and there are no non-enumerable or
+symbol keys:
 
 ```js
 {
@@ -80,8 +82,9 @@ one enumerable own property:
 ```
 
 The object exposes neither the database connection nor transaction state.
-The lease is a frozen, module-branded object with no enumerable own properties,
-database property, transaction methods, or reusable authority. The callback is
+The lease is a frozen, module-branded object whose exact own-key set is empty:
+it has no enumerable, non-enumerable, or symbol properties, database property,
+transaction methods, or reusable authority. The callback is
 invoked synchronously through captured
 `Reflect.apply(callback, undefined, [lease])`: its supplied `thisArgument` is
 `undefined` and it receives exactly one argument, the lease. A strict/ESM
@@ -343,8 +346,13 @@ M2-A1 passes only when all of the following are true:
 - the private composition proof in §7 passes on real SQLite;
 - the coordinator is the only new production file and no runtime gate/store/
   adapter module imports it yet;
-- dedicated CDX-B1 production and test files remain byte-for-byte unchanged
-  from M2-A1's baseline commit `616c60b` and their full tests remain green;
+- the CDX-B1 contract, production, helpers/fixtures, and every dedicated test
+  except `tests/memory-bundle-coexistence.contract.test.mjs` remain
+  byte-for-byte unchanged from M2-A1's baseline commit `616c60b`. That one
+  coexistence file has only the bounded source-inventory classification diff
+  needed to recognize exact `src/mutation-coordinator.mjs` as A1-isolated,
+  node-only, and B1-unaware; all of its B1 semantic tests remain unchanged and
+  the full B1 tests remain green;
 - the full pre-A1 suite remains green, with the new total reported separately
   rather than claiming the original 208 tests are unchanged; and
 - `STATUS.md` advances only to `V2-M2-A2`, leaving parent V2-M2 unchecked, and

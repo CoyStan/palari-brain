@@ -46,6 +46,10 @@ const BUNDLE_SOURCE_FILES = Object.freeze([
   'memory-bundle.mjs',
 ])
 
+const A1_ISOLATED_SOURCE_FILES = Object.freeze([
+  'mutation-coordinator.mjs',
+])
+
 const LEGACY_RUNTIME_FILES = Object.freeze([
   'adapter.mjs',
   'eval-prompt-config.mjs',
@@ -434,11 +438,15 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
 
 test('M1-14 legacy runtime remains bundle-unaware and bundle dependencies stay isolated', () => {
   const sourceDirectory = join(REPO_ROOT, 'src')
-  const actualLegacyFiles = readdirSync(sourceDirectory)
+  const actualNonBundleFiles = readdirSync(sourceDirectory)
     .filter((name) => name.endsWith('.mjs'))
     .filter((name) => !BUNDLE_SOURCE_FILES.includes(name))
     .toSorted(compareBinary)
-  assert.deepEqual(actualLegacyFiles, [...LEGACY_RUNTIME_FILES])
+  assert.deepEqual(
+    actualNonBundleFiles,
+    [...LEGACY_RUNTIME_FILES, ...A1_ISOLATED_SOURCE_FILES]
+      .toSorted(compareBinary),
+  )
 
   for (const name of LEGACY_RUNTIME_FILES) {
     const source = readFileSync(join(sourceDirectory, name), 'utf8')
@@ -454,6 +462,18 @@ test('M1-14 legacy runtime remains bundle-unaware and bundle dependencies stay i
       source,
       /\b(?:initializeMemoryBundle|applyResolvedDecisionInTransaction)\s*\(/,
     )
+  }
+
+  for (const name of A1_ISOLATED_SOURCE_FILES) {
+    const source = readFileSync(join(sourceDirectory, name), 'utf8')
+    for (const specifier of literalImportSpecifiers(source)) {
+      assert.equal(
+        specifier.startsWith('node:'),
+        true,
+        `${name} has a non-native production dependency: ${specifier}`,
+      )
+    }
+    assert.doesNotMatch(source, /\.\/memory-bundle(?:-[a-z]+)?\.mjs/)
   }
 
   for (const name of BUNDLE_SOURCE_FILES) {

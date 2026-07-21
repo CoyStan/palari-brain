@@ -182,3 +182,26 @@ dates. Agents record; the founder decides.
   This sequencing is within the founder's standing local v2 authority; it is
   not a source-of-truth cutover, provider/spend, deletion, benchmark, or
   publication decision.
+- 2026-07-21 (V2-M2-A1 post-seal exact-shape clarification) **The coordinator
+  exact record and opaque lease now have explicit complete own-key sets.** The
+  sealed plan already required an exact frozen `{ run }` record, no exposed
+  symbol, and an empty opaque lease, while the normative prose constrained only
+  enumerable keys. Implementation-test reconnaissance caught that mismatch
+  before production code existed. The coordinator is now exactly `['run']` by
+  `Reflect.ownKeys`; a lease has no own keys at all. This narrows and makes
+  executable the already-reviewed encapsulation claim; it adds no runtime
+  adoption, mutation semantics, authority, journal, provider, or publication
+  scope.
+- 2026-07-21 (V2-M2-A1 acceptance-conjunction correction, independently
+  reviewed) **One exact B1 coexistence source-inventory assertion must recognize
+  the new A1-isolated module.** The sealed A1 contract simultaneously required
+  exact `src/mutation-coordinator.mjs`, a green full suite, and byte-identical
+  dedicated B1 tests. The existing coexistence test exhaustively classifies
+  every top-level `src/*.mjs`, making those three requirements mechanically
+  incompatible. Its sole permitted B1-test diff adds exact
+  `A1_ISOLATED_SOURCE_FILES = ['mutation-coordinator.mjs']`, keeps that module
+  outside both the legacy and B1 categories, and asserts node-only/B1-unaware
+  imports. B1 production, normative contract, helpers/fixtures, every other B1
+  test, and all other coexistence B1 behavioral assertions remain unchanged.
+  This repairs an impossible test-inventory conjunction; it changes no B1
+  behavior, API, authority, capability, transaction, or runtime-adoption claim.
