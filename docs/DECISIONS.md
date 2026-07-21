@@ -205,3 +205,23 @@ dates. Agents record; the founder decides.
   test, and all other coexistence B1 behavioral assertions remain unchanged.
   This repairs an impossible test-inventory conjunction; it changes no B1
   behavior, API, authority, capability, transaction, or runtime-adoption claim.
+- 2026-07-21 (V2-M2-A1 certification; implementation `07d65ad`; three fresh
+  independent read-only audits) **The isolated synchronous transaction
+  coordinator and private real B1/CDX composition falsifier pass their bounded
+  contract.** The internal module has exactly three exports, captured native
+  SQLite dispatch, five enforced PRAGMAs, one outer `BEGIN IMMEDIATE`/`COMMIT`,
+  opaque lexical leases, twelve deterministic failure codes, verified rollback
+  cleanup, and permanent poison on uncertain ownership/outcome. The private
+  file-backed proof co-applies unchanged B1 and the real transaction-neutral CDX
+  insert, showing neither to an observer before commit, both (including FTS)
+  after commit, and neither after a forced joint rollback. On exact Node
+  22.22.2 / SQLite 3.51.2, coordinator+composition pass 31/31, the pre-A1 suite
+  208/208, full B1 161/161, and the full suite 239/239. The coordinator is the
+  sole new production file and no current runtime module imports it. Protected
+  B1 files remain byte-identical to `616c60b`; the sole coexistence-test change
+  is the separately reviewed A1-isolated source classification. This does not
+  close a CDX durable bypass, prove native transaction identity, define trusted
+  authority/canonical operations/B2, complete parent M2, or authorize provider,
+  spend, benchmark, publication, or sealed-U8 work. CDX-M1 stays authoritative;
+  exact B1 stays unchanged/non-authoritative; Next is M2-A2 compatibility
+  routing.

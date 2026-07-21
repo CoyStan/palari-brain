@@ -41,6 +41,19 @@ stays runtime/read authority and exact CDX-B1 stays unchanged and
 non-authoritative until separately authorized evidence supports a later
 cutover.
 
+**V2-M2-A1 certified internal surface (`07d65ad`):**
+`src/mutation-coordinator.mjs` exports exactly `MemoryMutationError`,
+`createMutationCoordinator`, and `assertActiveMutationLease`.
+`createMutationCoordinator(db).run(callback)` synchronously sets and verifies
+the five A1 connection PRAGMAs, owns one `BEGIN IMMEDIATE`/`COMMIT` boundary,
+and supplies an opaque connection-bound lexical lease. The private acceptance
+test composes unchanged B1 transactional apply with the extracted
+transaction-neutral CDX insert on the same file-backed connection and proves
+joint invisibility-before-commit, visibility-after-commit (including FTS), and
+residue-free joint rollback. No current runtime module imports this surface;
+it is not a producer API, a production bridge, a gate repair, or a governed
+operation/journal contract.
+
 **Current conformance debt:** U4 implemented the bounded candidate gate
 and hid raw add/supersede handles only on `createGatedStore`; U7 later
 gated the adapter ingest path by passing a proposal-producing shim into

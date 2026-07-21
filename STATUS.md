@@ -2,12 +2,11 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M2-A1 — TRANSACTION COORDINATOR.
-Implement the bounded coordinator contract in
-`docs/MUTATION-SEAM-CONTRACT.md`: one synchronous owner, opaque lexical lease,
-deterministic failure precedence, and one private real B1/CDX composition
-falsifier. This is only the first V2-M2 subunit. It changes no runtime mutation
-path and cannot complete M2 or advance to M3.
+Next: V2-M2-A2 — LEGACY COMPATIBILITY MUTATION ROUTING.
+Enumerate the complete current CDX-M1 durable mutation matrix, define exact
+legacy intent/plan boundaries, and route every semantic producer without raw
+mutation shortcuts. A2 still makes no canonical patch, authority, journal, or
+source-of-truth claim; parent M2 remains open for M2-B.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish without a
@@ -192,8 +191,19 @@ new explicit founder GO. Results remain under gitignored evals/results/.
   The independently reviewed staged contract and current executable plan are
   `docs/MUTATION-SEAM-CONTRACT.md` and
   `docs/superpowers/plans/2026-07-21-one-connection-mutation-seam.md`.
-  - [ ] V2-M2-A1 — transaction coordinator only: native captured dispatch,
-    lexical lease, exact failure law, and private real B1/CDX composition.
+  - [x] V2-M2-A1 — transaction coordinator only. DONE 2026-07-21,
+    implementation commit `07d65ad`. Exact three-export internal surface;
+    captured native dispatch; five-PRAGMA synchronous outer owner; opaque
+    lexical lease; twelve-code deterministic failure/cleanup/poison law; and a
+    private real B1/CDX same-connection visibility, commit, FTS, and rollback
+    falsifier. Completion PASS on exact Node 22.22.2 / SQLite 3.51.2: focused
+    coordinator+composition 31/31, pre-A1 208/208, full suite 239/239, full B1
+    161/161. `src/mutation-coordinator.mjs` is the sole new production file and
+    no current runtime module imports it. Protected B1 files remain identical
+    to `616c60b`; the sole coexistence-test diff only classifies the new module
+    as A1-isolated/node-only/B1-unaware. A1 changes no runtime mutation path,
+    closes no durable bypass, proves no native transaction identity, and leaves
+    CDX-M1 authoritative, B1 unchanged/non-authoritative, and parent M2 open.
   - [ ] V2-M2-A2 — route the complete current durable mutation matrix as
     explicitly legacy compatibility intents; deterministic plans and no raw
     semantic producer bypasses.
@@ -283,3 +293,7 @@ implemented and independently reviewed: exact M1 surfaces, initialization,
 apply, verification/replay, crash recovery, and unchanged CDX-M1 coexistence;
 208/208 PASS on Node 22.22.2 / SQLite 3.51.2. CDX-M1 remains runtime authority,
 bundle capabilities remain all false, U8 remains sealed, and Next is V2-M2.
+2026-07-21 — V2-M2-A1 — 07d65ad — Certified the isolated synchronous
+transaction coordinator and private real B1/CDX co-commit/rollback falsifier:
+31/31 focused, 161/161 B1, 239/239 full PASS on Node 22.22.2 / SQLite 3.51.2;
+no runtime adoption or policy/source-of-truth claim; parent M2 open, Next A2.

@@ -34,6 +34,15 @@ not trusted authority. V2-M3 still owns strict extractor schema, richer
 evidence derivation, assistant evidence, supersession repair, and complete
 candidate observability; it cannot waive the M2 map-or-refuse falsifier.
 
+M2-A1 certification at implementation commit `07d65ad` establishes only one
+synchronous transaction owner and opaque lexical, connection-bound leases.
+It changes no memory policy or runtime mutation path, closes no durable bypass,
+and grants no canonical authority. Its native state checks prove only that a
+transaction is active/inactive at each boundary; SQLite's exposed
+`isTransaction` state cannot identify a transaction replaced inside caller
+code, so A1 makes no native transaction-identity claim. CDX-M1 remains runtime
+authority and exact B1 remains unchanged and non-authoritative.
+
 ## Memory atoms (Part 4)
 
 - An atom carries: content, type, importance, confidence, provenance
