@@ -480,7 +480,7 @@ Expected RED: module missing.
   blocker and major.
 - [x] Update STATUS and linked docs with bounded evidence. Check only A2; leave
   parent M2 unchecked and set Next to M2-B contract work.
-- [ ] Commit and push coherent implementation/certification cut points, then
+- [x] Commit and push coherent implementation/certification cut points, then
   fast-forward and push main under the charter.
 
 ```bash
