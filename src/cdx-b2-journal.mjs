@@ -1,4 +1,4 @@
-// V2-M2-B Task 3 CDX-B2 bootstrap journal.
+// V2-M2-B Task 4 CDX-B2 bootstrap, journal, reducer, and verifier.
 //
 // The private CDX-M0/M1 completion and manifest-verification core is
 // mechanically adapted from src/kernel-store-runtime.mjs at A2 implementation
@@ -8,14 +8,20 @@
 // 9352dc8ab74216a3924a12a760d3db25c552f652). Its upstream Palari v05
 // provenance remains commit 190a4ad2f8d5187f5f21222048dd11efb2ad9991.
 //
+// The private Admit/Resolve/hash functions below are mechanically adapted
+// from apps/palari-local-workbench/scripts/workspace-backend/patch-kernel.mjs
+// at governing commit c9af823c7dee29d29fd937d44527f3b78d8d3845,
+// exact source blob df4de5f00ae88ba670305f9b2bb699441cc5b234.
+// The only Apply addition is the scoped pure ratified-erasure transition
+// sealed by the M2-B contracts.
+//
 // Intentional M2-B deltas are limited to lease-bound transaction neutrality,
 // explicit main-schema qualification, B2-aware inventory/migration
 // verification, read-only FTS parity checks, the exact B2 checkpoint
-// bootstrap, and GovernedMemoryError classification. This Task 3 cut point
-// accepts only a head-zero journal; Task 4 extends the same verifier with
-// positive-tail reduction and adds append/advance operations.
+// bootstrap, positive-tail reduction, journal append/head advance, and
+// GovernedMemoryError classification.
 
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { DatabaseSync, StatementSync } from 'node:sqlite'
 import { types as utilTypes } from 'node:util'
 
@@ -41,18 +47,27 @@ const reflectGetPrototypeOf = Reflect.getPrototypeOf
 const reflectOwnKeys = Reflect.ownKeys
 const objectCreate = Object.create
 const objectFreeze = Object.freeze
+const objectIsFrozen = Object.isFrozen
 const objectHasOwnProperty = Object.prototype.hasOwnProperty
 const objectIs = Object.is
 const objectKeys = Object.keys
 const objectPrototype = Object.prototype
 const arrayIsArray = Array.isArray
+const arrayIncludes = Array.prototype.includes
+const arrayIndexOf = Array.prototype.indexOf
+const arrayPrototype = Array.prototype
 const arraySlice = Array.prototype.slice
+const arraySort = Array.prototype.sort
 const dateParse = Date.parse
 const dateToISOString = Date.prototype.toISOString
+const mapDelete = Map.prototype.delete
 const mapGet = Map.prototype.get
+const mapHas = Map.prototype.has
 const mapSet = Map.prototype.set
 const mapSize = reflectGetOwnPropertyDescriptor(Map.prototype, 'size').get
+const mathMax = Math.max
 const numberIsFinite = Number.isFinite
+const numberIsNaN = Number.isNaN
 const numberIsSafeInteger = Number.isSafeInteger
 const numberMaxSafeInteger = Number.MAX_SAFE_INTEGER
 const setAdd = Set.prototype.add
@@ -62,6 +77,7 @@ const stringFromCharCode = String.fromCharCode
 const stringIncludes = String.prototype.includes
 const stringSlice = String.prototype.slice
 const stringStartsWith = String.prototype.startsWith
+const stringTrim = String.prototype.trim
 const weakSetAdd = WeakSet.prototype.add
 const weakSetHas = WeakSet.prototype.has
 const isProxy = utilTypes.isProxy
@@ -69,11 +85,20 @@ const isProxy = utilTypes.isProxy
 const nativeDate = Date
 const nativeError = Error
 const nativeMap = Map
+const nativeNumber = Number
 const nativeRandomUUID = randomUUID
 const nativeSet = Set
 const nativeString = String
 const nativeTypeError = TypeError
 const nativeWeakSet = WeakSet
+const jsonStringify = JSON.stringify
+const nativeCreateHash = createHash
+
+const hashProbe = reflectApply(nativeCreateHash, undefined, ['sha256'])
+const hashPrototype = reflectGetPrototypeOf(hashProbe)
+const hashUpdate = reflectGetOwnPropertyDescriptor(hashPrototype, 'update').value
+const hashDigest = reflectGetOwnPropertyDescriptor(hashPrototype, 'digest').value
+reflectApply(hashDigest, hashProbe, ['hex'])
 
 const databaseExec = DatabaseSync.prototype.exec
 const databasePrepare = DatabaseSync.prototype.prepare
@@ -1621,9 +1646,6 @@ function verifyMeta(db, memoryVariant, expectedWorkspaceId = undefined) {
   if (row.kernel_config_hash !== CDX_B2_KERNEL_CONFIG_HASH) {
     throw governedFailure('governance_config_invalid')
   }
-  if (row.head_mutation_sequence !== 0) {
-    throw governedFailure('governance_journal_invalid')
-  }
   return row
 }
 
@@ -1751,19 +1773,787 @@ function verifyCheckpoint(db, meta) {
   return rows
 }
 
-function verifyEmptyJournal(db) {
-  if (readRows(db, 'SELECT sequence FROM main.cdx_b2_decisions').length !== 0) {
+const DECISION_KEYS = objectFreeze([
+  'sequence',
+  'stream_id',
+  'decision_id',
+  'patch_id',
+  'operation',
+  'patch_kind',
+  'patch_source',
+  'patch_priority',
+  'target_kind',
+  'target_id',
+  'visibility',
+  'authority_profile',
+  'authority_kind',
+  'authority_id',
+  'authority_ledger_id',
+  'authority_event_id',
+  'capability_id',
+  'palari_id',
+  'user_id',
+  'evidence_kind',
+  'evidence_strength',
+  'evidence_at',
+  'issued_at',
+  'effective_at',
+  'observed_at',
+  'expires_at',
+  'outcome',
+  'reason_code',
+  'failed_condition_mask',
+  'resolution',
+  'effect_count',
+  'kernel_config_hash',
+])
+
+const EFFECT_KEYS = objectFreeze([
+  'decision_sequence',
+  'effect_ordinal',
+  'effect_kind',
+  'object_id',
+])
+
+function frozenNullRecord(entries) {
+  const record = objectCreate(null)
+  for (let index = 0; index < entries.length; index += 1) {
+    reflectApply(reflectDefineProperty, undefined, [record, entries[index][0], {
+      __proto__: null,
+      value: entries[index][1],
+      enumerable: true,
+      configurable: false,
+      writable: false,
+    }])
+  }
+  return reflectApply(objectFreeze, undefined, [record])
+}
+
+const ACTION_BY_OPERATION = frozenNullRecord([
+  ['atom_erase', 'erase_atom'],
+])
+const RATIONALE_BY_OPERATION = frozenNullRecord([
+  ['atom_erase', 'user_erasure_request'],
+])
+
+// Private FB1-4 reference kernel, mechanically adapted from the pinned
+// patch-kernel blob named in the module provenance header. These constants
+// intentionally retain the complete reference domains even though B2 emits
+// only the ratified-erasure specialization.
+const REFERENCE_PATCH_KINDS = objectFreeze([
+  'audit', 'conf', 'demote', 'emit', 'obligate', 'pause', 'perm', 'promote',
+  'ratify', 'resume', 'scope_expand', 'trace', 'write',
+])
+const REFERENCE_PATCH_VISIBILITIES = objectFreeze([
+  'reason_only', 'ledger', 'user_visible', 'external',
+])
+const REFERENCE_PATCH_PRIORITIES = objectFreeze([
+  'promotion', 'confidence', 'repair', 'provenance', 'permission', 'safety',
+])
+const REFERENCE_PATCH_SOURCES = objectFreeze([
+  'g_audit', 'g_conf', 'g_demote', 'g_obligate', 'g_perm', 'g_promote',
+  'operator', 'peer_palari', 'ratified_user',
+])
+
+const REFERENCE_PRIORITY_MAP = (() => {
+  const result = new nativeMap()
+  const rows = [
+    ['audit|g_audit', 'safety'],
+    ['conf|g_conf', 'confidence'],
+    ['demote|g_demote', 'repair'],
+    ['obligate|g_obligate', 'provenance'],
+    ['perm|g_perm', 'permission'],
+    ['promote|g_promote', 'promotion'],
+    ['ratify|operator', 'provenance'],
+    ['ratify|ratified_user', 'provenance'],
+    ['scope_expand|ratified_user', 'permission'],
+    ['trace|g_audit', 'promotion'],
+  ]
+  for (let index = 0; index < rows.length; index += 1) {
+    reflectApply(mapSet, result, [rows[index][0], rows[index][1]])
+  }
+  return result
+})()
+
+const REFERENCE_THETA_EVIDENCE = (() => {
+  const result = new nativeMap()
+  const rows = [
+    ['audit', 0.9], ['conf', 0.3], ['demote', 0.55], ['emit', 0.5],
+    ['obligate', 0.65], ['pause', 0.5], ['perm', 0.85], ['promote', 0.65],
+    ['ratify', 1], ['resume', 0.5], ['scope_expand', 0.85], ['trace', 0],
+    ['write', 0.5],
+  ]
+  for (let index = 0; index < rows.length; index += 1) {
+    reflectApply(mapSet, result, [rows[index][0], rows[index][1]])
+  }
+  return result
+})()
+
+const REFERENCE_SOURCE_RANK = (() => {
+  const result = new nativeMap()
+  const rows = [
+    ['g_audit', 4], ['g_conf', 3], ['g_demote', 3], ['g_obligate', 3],
+    ['g_perm', 3], ['g_promote', 3], ['operator', 6], ['peer_palari', 1],
+    ['ratified_user', 5],
+  ]
+  for (let index = 0; index < rows.length; index += 1) {
+    reflectApply(mapSet, result, [rows[index][0], rows[index][1]])
+  }
+  return result
+})()
+
+const REFERENCE_EXCLUSIVE_KINDS = new nativeSet([
+  'conf', 'perm', 'promote', 'write',
+])
+
+function referenceText(value) {
+  const text = reflectApply(nativeString, undefined, [value ?? ''])
+  return reflectApply(stringTrim, text, [])
+}
+
+function referencePriorityFor(kind, source) {
+  return reflectApply(mapGet, REFERENCE_PRIORITY_MAP, [`${kind}|${source}`])
+}
+
+function referenceVisibilityFloor(visibility) {
+  return reflectApply(mathMax, undefined, [
+    0,
+    reflectApply(arrayIndexOf, REFERENCE_PATCH_VISIBILITIES, [visibility]),
+  ])
+}
+
+function referenceAdmitPatch(patch, context) {
+  const failed = []
+  const isObject = patch && typeof patch === 'object' && !arrayIsArray(patch)
+  const kindOk = isObject && reflectApply(
+    arrayIncludes,
+    REFERENCE_PATCH_KINDS,
+    [patch.kind],
+  )
+  if (!kindOk) appendValue(failed, 'C1_kind')
+  const targetOk = (
+    isObject &&
+    patch.target &&
+    typeof patch.target === 'object' &&
+    referenceText(patch.target.slot) &&
+    reflectApply(
+      arrayIncludes,
+      REFERENCE_PATCH_VISIBILITIES,
+      [patch.target.visibility],
+    )
+  )
+  if (!targetOk) appendValue(failed, 'C2_target')
+  const sourceOk = isObject && reflectApply(
+    arrayIncludes,
+    REFERENCE_PATCH_SOURCES,
+    [patch.source],
+  )
+  if (!sourceOk) appendValue(failed, 'C3_source')
+  const mapped = kindOk && sourceOk
+    ? referencePriorityFor(patch.kind, patch.source)
+    : undefined
+  if (mapped === undefined) appendValue(failed, 'C4_map_covers')
+  if (mapped === undefined || patch.priority !== mapped) {
+    appendValue(failed, 'C5_priority_matches')
+  }
+  const nowMs = reflectApply(dateParse, nativeDate, [context.now])
+  const notBefore = patch.validity?.notBefore
+    ? reflectApply(dateParse, nativeDate, [patch.validity.notBefore])
+    : -Infinity
+  const notAfter = patch.validity?.notAfter
+    ? reflectApply(dateParse, nativeDate, [patch.validity.notAfter])
+    : Infinity
+  if (!(
+    numberIsFinite(nowMs) &&
+    nowMs >= notBefore &&
+    nowMs <= notAfter
+  )) appendValue(failed, 'C6_valid_now')
+  const strength = reflectApply(nativeNumber, undefined, [
+    patch.provenance?.strength,
+  ])
+  const theta = kindOk
+    ? reflectApply(mapGet, REFERENCE_THETA_EVIDENCE, [patch.kind])
+    : Infinity
+  if (!(numberIsFinite(strength) && strength >= theta)) {
+    appendValue(failed, 'C7_evidence')
+  }
+  const floor = targetOk
+    ? referenceVisibilityFloor(patch.target.visibility)
+    : Infinity
+  const proposedRank = reflectApply(nativeNumber, undefined, [patch.permRank])
+  const permRank = numberIsFinite(proposedRank) ? proposedRank : floor
+  if (!(permRank <= context.trustRank && floor <= permRank)) {
+    appendValue(failed, 'C8_trust_scope')
+  }
+  return { admitted: failed.length === 0, failedConditions: failed }
+}
+
+function referencePatchHash(patch) {
+  // JSON.stringify performs an inherited toJSON lookup. Keep every
+  // serialization-reachable record off ambient prototypes so the pinned
+  // reference bytes cannot be replaced by post-import prototype poisoning.
+  const stable = frozenNullRecord([
+    ['id', patch.id],
+    ['kind', patch.kind],
+    ['payload', patch.payload],
+    ['slot', patch.target?.slot],
+    ['source', patch.source],
+    ['timestamp', patch.provenance?.timestamp],
+  ])
+  const bytes = reflectApply(jsonStringify, undefined, [stable])
+  const hash = reflectApply(nativeCreateHash, undefined, ['sha256'])
+  reflectApply(hashUpdate, hash, [bytes])
+  return reflectApply(hashDigest, hash, ['hex'])
+}
+
+function referenceSourceRank(source) {
+  return reflectApply(mapGet, REFERENCE_SOURCE_RANK, [source]) ?? 0
+}
+
+function referencePatchesConflict(left, right) {
+  if (!left || !right || left.id === right.id) return false
+  const explicit = (
+    arrayIsArray(left.conflictsWith) &&
+    reflectApply(arrayIncludes, left.conflictsWith, [right.id])
+  ) || (
+    arrayIsArray(right.conflictsWith) &&
+    reflectApply(arrayIncludes, right.conflictsWith, [left.id])
+  )
+  if (explicit) return true
+  if (left.target?.slot !== right.target?.slot) return false
+  if (
+    (left.kind === 'promote' && right.kind === 'demote') ||
+    (left.kind === 'demote' && right.kind === 'promote')
+  ) return true
+  if (
+    left.kind === right.kind &&
+    reflectApply(setHas, REFERENCE_EXCLUSIVE_KINDS, [left.kind])
+  ) {
+    return reflectApply(jsonStringify, undefined, [left.payload]) !==
+      reflectApply(jsonStringify, undefined, [right.payload])
+  }
+  return false
+}
+
+function referencePatchKey(patch, context) {
+  const parsedTimestamp = reflectApply(
+    dateParse,
+    nativeDate,
+    [patch?.provenance?.timestamp ?? ''],
+  )
+  const timestampMs = numberIsNaN(parsedTimestamp) ? 0 : parsedTimestamp || 0
+  const parsedNow = reflectApply(dateParse, nativeDate, [context.now])
+  const nowMs = numberIsNaN(parsedNow) ? 0 : parsedNow || 0
+  const freshness = -reflectApply(mathMax, undefined, [0, nowMs - timestampMs])
+  const strength = reflectApply(nativeNumber, undefined, [
+    patch?.provenance?.strength,
+  ]) || 0
+  return [
+    reflectApply(arrayIndexOf, REFERENCE_PATCH_PRIORITIES, [patch.priority]),
+    strength,
+    freshness,
+    referenceSourceRank(patch.source),
+    timestampMs,
+    referencePatchHash(patch),
+  ]
+}
+
+function referenceComparePatchKeysDesc(left, right) {
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] === right[index]) continue
+    if (typeof left[index] === 'string') return left[index] < right[index] ? 1 : -1
+    return right[index] - left[index]
+  }
+  return 0
+}
+
+function referenceResolvePatches(admitted, context) {
+  const sorted = reflectApply(arraySlice, admitted, [])
+  reflectApply(arraySort, sorted, [
+    (left, right) => referenceComparePatchKeysDesc(
+      referencePatchKey(left, context),
+      referencePatchKey(right, context),
+    ),
+  ])
+  const kept = []
+  const dropped = []
+  for (let index = 0; index < sorted.length; index += 1) {
+    const patch = sorted[index]
+    let defeater
+    for (let keptIndex = 0; keptIndex < kept.length; keptIndex += 1) {
+      if (referencePatchesConflict(kept[keptIndex], patch)) {
+        defeater = kept[keptIndex]
+        break
+      }
+    }
+    if (defeater === undefined) appendValue(kept, patch)
+    else appendValue(dropped, { defeatedBy: defeater.id, patch })
+  }
+  return { dropped, kept }
+}
+
+function isLowerHex(value, expectedLength) {
+  if (typeof value !== 'string' || value.length !== expectedLength) return false
+  for (let index = 0; index < value.length; index += 1) {
+    const unit = reflectApply(stringCharCodeAt, value, [index])
+    if (!(
+      (unit >= 0x30 && unit <= 0x39) ||
+      (unit >= 0x61 && unit <= 0x66)
+    )) return false
+  }
+  return true
+}
+
+function canonicalPatchFromDecision(decision) {
+  const target = frozenNullRecord([
+    ['slot', `mem/${decision.target_id}`],
+    ['visibility', 'ledger'],
+  ])
+  const payload = frozenNullRecord([
+    ['operation', 'erase_owned_atom@1'],
+    ['atomId', decision.target_id],
+  ])
+  const provenance = frozenNullRecord([
+    ['strength', 1],
+    ['timestamp', decision.evidence_at],
+    ['evidence', objectFreeze([decision.authority_event_id])],
+  ])
+  const validity = frozenNullRecord([
+    ['notBefore', decision.issued_at],
+    ['notAfter', decision.expires_at],
+  ])
+  return frozenNullRecord([
+    ['id', decision.patch_id],
+    ['kind', 'ratify'],
+    ['target', target],
+    ['source', 'ratified_user'],
+    ['priority', 'provenance'],
+    ['payload', payload],
+    ['provenance', provenance],
+    ['validity', validity],
+    ['permRank', 1],
+    ['conflictsWith', objectFreeze([])],
+  ])
+}
+
+function verifyReferenceKernel(decision, code) {
+  const patch = canonicalPatchFromDecision(decision)
+  const context = { now: decision.observed_at, trustRank: 1 }
+  const admission = referenceAdmitPatch(patch, context)
+  if (!admission.admitted || admission.failedConditions.length !== 0) {
+    throw governedFailure(code)
+  }
+  const key = referencePatchKey(patch, context)
+  const evidenceMs = reflectApply(dateParse, nativeDate, [decision.evidence_at])
+  const observedMs = reflectApply(dateParse, nativeDate, [decision.observed_at])
+  if (
+    key.length !== 6 ||
+    key[0] !== 3 ||
+    key[1] !== 1 ||
+    !valuesEqual(
+      key[2],
+      -reflectApply(mathMax, undefined, [0, observedMs - evidenceMs]),
+    ) ||
+    key[3] !== 5 ||
+    key[4] !== evidenceMs ||
+    !isLowerHex(key[5], 64)
+  ) throw governedFailure(code)
+  const resolution = referenceResolvePatches([patch], context)
+  if (
+    resolution.kept.length !== 1 ||
+    resolution.kept[0] !== patch ||
+    resolution.dropped.length !== 0
+  ) throw governedFailure(code)
+}
+
+function isAuthorityScopeId(value) {
+  if (typeof value !== 'string' || value.length < 1 || value.length > 64) {
+    return false
+  }
+  const first = reflectApply(stringCharCodeAt, value, [0])
+  if (!(first >= 0x61 && first <= 0x7a)) return false
+  for (let index = 1; index < value.length; index += 1) {
+    const unit = reflectApply(stringCharCodeAt, value, [index])
+    if (!(
+      (unit >= 0x61 && unit <= 0x7a) ||
+      (unit >= 0x30 && unit <= 0x39) ||
+      unit === 0x5f ||
+      unit === 0x2d
+    )) return false
+  }
+  return true
+}
+
+function verifyOperationViewMaps(code) {
+  const actionKeys = reflectOwnKeys(ACTION_BY_OPERATION)
+  const rationaleKeys = reflectOwnKeys(RATIONALE_BY_OPERATION)
+  if (
+    reflectGetPrototypeOf(ACTION_BY_OPERATION) !== null ||
+    reflectGetPrototypeOf(RATIONALE_BY_OPERATION) !== null ||
+    !reflectApply(objectIsFrozen, undefined, [ACTION_BY_OPERATION]) ||
+    !reflectApply(objectIsFrozen, undefined, [RATIONALE_BY_OPERATION]) ||
+    actionKeys.length !== 1 ||
+    actionKeys[0] !== 'atom_erase' ||
+    rationaleKeys.length !== 1 ||
+    rationaleKeys[0] !== 'atom_erase' ||
+    ACTION_BY_OPERATION.atom_erase !== 'erase_atom' ||
+    RATIONALE_BY_OPERATION.atom_erase !== 'user_erasure_request'
+  ) throw governedFailure(code)
+}
+
+function authorityUseView(meta, decision, code) {
+  const action = ACTION_BY_OPERATION[decision.operation]
+  const rationale = RATIONALE_BY_OPERATION[decision.operation]
+  if (action === undefined || rationale === undefined) {
+    throw governedFailure(code)
+  }
+  const scope = frozenNullRecord([
+    ['workspaceId', meta.workspace_id],
+    ['palariId', decision.palari_id],
+    ['userId', decision.user_id],
+    ['targetId', decision.target_id],
+  ])
+  return frozenNullRecord([
+    ['authorityLedgerId', decision.authority_ledger_id],
+    ['authorityEventId', decision.authority_event_id],
+    ['capabilityId', decision.capability_id],
+    ['timestamp', decision.observed_at],
+    ['palariId', decision.palari_id],
+    ['userId', decision.user_id],
+    ['action', action],
+    ['scope', scope],
+    ['rationale', rationale],
+    ['decision', decision.outcome],
+    ['reason', decision.reason_code],
+  ])
+}
+
+function readDecisionRows(db) {
+  return readRows(db, `
+    SELECT
+      sequence,
+      stream_id,
+      decision_id,
+      patch_id,
+      operation,
+      patch_kind,
+      patch_source,
+      patch_priority,
+      target_kind,
+      target_id,
+      visibility,
+      authority_profile,
+      authority_kind,
+      authority_id,
+      authority_ledger_id,
+      authority_event_id,
+      capability_id,
+      palari_id,
+      user_id,
+      evidence_kind,
+      evidence_strength,
+      evidence_at,
+      issued_at,
+      effective_at,
+      observed_at,
+      expires_at,
+      outcome,
+      reason_code,
+      failed_condition_mask,
+      resolution,
+      effect_count,
+      kernel_config_hash,
+      typeof(sequence) AS sequence_storage,
+      typeof(evidence_strength) AS evidence_strength_storage,
+      typeof(failed_condition_mask) AS failed_condition_mask_storage,
+      typeof(effect_count) AS effect_count_storage
+    FROM main.cdx_b2_decisions
+    ORDER BY sequence
+  `)
+}
+
+function readEffectRows(db) {
+  return readRows(db, `
+    SELECT
+      decision_sequence,
+      effect_ordinal,
+      effect_kind,
+      object_id,
+      typeof(decision_sequence) AS decision_sequence_storage,
+      typeof(effect_ordinal) AS effect_ordinal_storage
+    FROM main.cdx_b2_effects
+    ORDER BY decision_sequence, effect_ordinal
+  `)
+}
+
+function createJournalReducerState(checkpointRows, meta) {
+  const memories = new nativeMap()
+  const links = []
+  const incidentMemoryIds = new nativeSet()
+  for (let index = 0; index < meta.checkpoint_memory_count; index += 1) {
+    const row = checkpointRows[index]
+    reflectApply(mapSet, memories, [row.entity_id, row])
+  }
+  for (
+    let index = meta.checkpoint_memory_count;
+    index < checkpointRows.length;
+    index += 1
+  ) {
+    const row = checkpointRows[index]
+    appendValue(links, row)
+    reflectApply(setAdd, incidentMemoryIds, [row.from_memory_id])
+    reflectApply(setAdd, incidentMemoryIds, [row.to_memory_id])
+  }
+  return {
+    appliedTargetIds: new nativeSet(),
+    authorityLedgerId: null,
+    authorityUses: [],
+    incidentMemoryIds,
+    lastObservedAt: null,
+    links,
+    memories,
+    seenAuthorityEventIds: new nativeSet(),
+    seenCapabilityIds: new nativeSet(),
+    seenDecisionIds: new nativeSet(),
+    seenPatchIds: new nativeSet(),
+  }
+}
+
+function classifyRatifiedErasure(state, decision) {
+  if (!reflectApply(mapHas, state.memories, [decision.target_id])) {
+    return { outcome: 'refused', reason: 'missing_target' }
+  }
+  const memory = reflectApply(mapGet, state.memories, [decision.target_id])
+  if (
+    memory.palari_id !== decision.palari_id ||
+    memory.user_id !== decision.user_id
+  ) return { outcome: 'refused', reason: 'scope_mismatch' }
+  if (memory.shared === 1) {
+    return { outcome: 'refused', reason: 'shared_scope_unsealed' }
+  }
+  if (reflectApply(setHas, state.incidentMemoryIds, [decision.target_id])) {
+    return { outcome: 'refused', reason: 'incident_edges_unemittable' }
+  }
+  return { outcome: 'applied', reason: null }
+}
+
+function verifyEffect(effect, sequence, ordinal, kind, targetId, persisted, code) {
+  if (
+    !numberIsSafeInteger(effect.decision_sequence) ||
+    effect.decision_sequence !== sequence ||
+    !numberIsSafeInteger(effect.effect_ordinal) ||
+    effect.effect_ordinal !== ordinal ||
+    effect.effect_kind !== kind ||
+    effect.object_id !== targetId ||
+    (
+      persisted &&
+      (
+        effect.decision_sequence_storage !== 'integer' ||
+        effect.effect_ordinal_storage !== 'integer'
+      )
+    )
+  ) throw governedFailure(code)
+}
+
+function verifyDecisionScalars(decision, expectedSequence, meta, persisted, code) {
+  if (
+    !numberIsSafeInteger(decision.sequence) ||
+    decision.sequence !== expectedSequence ||
+    decision.stream_id !== meta.stream_id ||
+    !isPrefixedUuidV4(decision.decision_id, 'b2d_') ||
+    !isPrefixedUuidV4(decision.patch_id, 'b2p_') ||
+    decision.operation !== 'atom_erase' ||
+    decision.patch_kind !== 'ratify' ||
+    decision.patch_source !== 'ratified_user' ||
+    decision.patch_priority !== 'provenance' ||
+    decision.target_kind !== 'memory.atom' ||
+    !isPrefixedUuidV4(decision.target_id, 'mem_') ||
+    decision.visibility !== 'ledger' ||
+    decision.authority_profile !== 'host-checked-external-grant-v1' ||
+    decision.authority_kind !== 'user' ||
+    !isAuthorityScopeId(decision.authority_id) ||
+    !isPrefixedUuidV4(decision.authority_ledger_id, 'led_') ||
+    !isPrefixedUuidV4(decision.authority_event_id, 'agr_') ||
+    !isPrefixedUuidV4(decision.capability_id, 'cap_') ||
+    !isAuthorityScopeId(decision.palari_id) ||
+    !isAuthorityScopeId(decision.user_id) ||
+    decision.authority_id !== decision.user_id ||
+    decision.evidence_kind !== 'ratified_user' ||
+    decision.evidence_strength !== 1 ||
+    !isCanonicalTimestamp(decision.evidence_at) ||
+    !isCanonicalTimestamp(decision.issued_at) ||
+    !isCanonicalTimestamp(decision.effective_at) ||
+    !isCanonicalTimestamp(decision.observed_at) ||
+    !isCanonicalTimestamp(decision.expires_at) ||
+    decision.evidence_at > decision.issued_at ||
+    decision.issued_at > decision.effective_at ||
+    decision.effective_at !== decision.observed_at ||
+    decision.observed_at >= decision.expires_at ||
+    (decision.outcome !== 'applied' && decision.outcome !== 'refused') ||
+    decision.failed_condition_mask !== 0 ||
+    decision.resolution !== 'kept' ||
+    decision.kernel_config_hash !== CDX_B2_KERNEL_CONFIG_HASH ||
+    (
+      decision.outcome === 'applied' &&
+      (decision.reason_code !== null || decision.effect_count !== 2)
+    ) ||
+    (
+      decision.outcome === 'refused' &&
+      (
+        (
+          decision.reason_code !== 'missing_target' &&
+          decision.reason_code !== 'scope_mismatch' &&
+          decision.reason_code !== 'shared_scope_unsealed' &&
+          decision.reason_code !== 'incident_edges_unemittable'
+        ) ||
+        decision.effect_count !== 0
+      )
+    ) ||
+    (
+      persisted &&
+      (
+        decision.sequence_storage !== 'integer' ||
+        decision.evidence_strength_storage !== 'real' ||
+        decision.failed_condition_mask_storage !== 'integer' ||
+        decision.effect_count_storage !== 'integer'
+      )
+    )
+  ) throw governedFailure(code)
+}
+
+function verifyAndReduceDecision(
+  decision,
+  effects,
+  expectedSequence,
+  meta,
+  state,
+  options,
+) {
+  const code = options.code
+  verifyDecisionScalars(
+    decision,
+    expectedSequence,
+    meta,
+    options.persisted,
+    code,
+  )
+
+  if (state.authorityLedgerId === null) {
+    state.authorityLedgerId = decision.authority_ledger_id
+  } else if (state.authorityLedgerId !== decision.authority_ledger_id) {
+    throw governedFailure(code)
+  }
+  if (
+    state.lastObservedAt !== null &&
+    decision.observed_at < state.lastObservedAt
+  ) throw governedFailure(options.clockCode ?? code)
+
+  if (
+    reflectApply(setHas, state.seenDecisionIds, [decision.decision_id]) ||
+    reflectApply(setHas, state.seenPatchIds, [decision.patch_id])
+  ) throw governedFailure(options.identifierCollisionCode ?? code)
+  if (
+    reflectApply(
+      setHas,
+      state.seenAuthorityEventIds,
+      [decision.authority_event_id],
+    ) ||
+    reflectApply(setHas, state.seenCapabilityIds, [decision.capability_id])
+  ) throw governedFailure(code)
+
+  verifyReferenceKernel(decision, code)
+  const transition = classifyRatifiedErasure(state, decision)
+  if (
+    transition.outcome !== decision.outcome ||
+    transition.reason !== decision.reason_code
+  ) throw governedFailure(code)
+
+  if (decision.outcome === 'applied') {
+    if (
+      effects.length !== 2 ||
+      reflectApply(setHas, state.appliedTargetIds, [decision.target_id])
+    ) throw governedFailure(code)
+    verifyEffect(
+      effects[0],
+      decision.sequence,
+      0,
+      'projection_atom_erased',
+      decision.target_id,
+      options.persisted,
+      code,
+    )
+    verifyEffect(
+      effects[1],
+      decision.sequence,
+      1,
+      'projection_fts_erased',
+      decision.target_id,
+      options.persisted,
+      code,
+    )
+    reflectApply(setAdd, state.appliedTargetIds, [decision.target_id])
+    reflectApply(mapDelete, state.memories, [decision.target_id])
+  } else if (effects.length !== 0) {
+    throw governedFailure(code)
+  }
+
+  reflectApply(setAdd, state.seenDecisionIds, [decision.decision_id])
+  reflectApply(setAdd, state.seenPatchIds, [decision.patch_id])
+  reflectApply(
+    setAdd,
+    state.seenAuthorityEventIds,
+    [decision.authority_event_id],
+  )
+  reflectApply(setAdd, state.seenCapabilityIds, [decision.capability_id])
+  state.lastObservedAt = decision.observed_at
+  appendValue(state.authorityUses, authorityUseView(meta, decision, code))
+}
+
+function reduceJournal(db, meta, checkpointRows, targetHead) {
+  if (
+    !numberIsSafeInteger(targetHead) ||
+    targetHead < 0 ||
+    targetHead > numberMaxSafeInteger
+  ) throw governedFailure('governance_journal_invalid')
+  verifyOperationViewMaps('governance_journal_invalid')
+  const decisions = readDecisionRows(db)
+  const effects = readEffectRows(db)
+  if (decisions.length !== targetHead) {
+    throw governedFailure('governance_journal_invalid')
+  }
+  const state = createJournalReducerState(checkpointRows, meta)
+  let effectIndex = 0
+  for (let index = 0; index < decisions.length; index += 1) {
+    const decision = decisions[index]
+    const decisionEffects = []
+    while (
+      effectIndex < effects.length &&
+      effects[effectIndex].decision_sequence === index + 1
+    ) {
+      appendValue(decisionEffects, effects[effectIndex])
+      effectIndex += 1
+    }
+    verifyAndReduceDecision(
+      decision,
+      decisionEffects,
+      index + 1,
+      meta,
+      state,
+      { code: 'governance_journal_invalid', persisted: true },
+    )
+  }
+  if (effectIndex !== effects.length) {
     throw governedFailure('governance_journal_invalid')
   }
   if (
-    readRows(
-      db,
-      'SELECT decision_sequence FROM main.cdx_b2_effects',
-    ).length !== 0
+    (targetHead === 0 && state.authorityLedgerId !== null) ||
+    (targetHead > 0 && state.authorityLedgerId === null) ||
+    state.authorityUses.length !== targetHead
   ) throw governedFailure('governance_journal_invalid')
+  return state
 }
 
-function verifyCheckpointProjection(db, meta, checkpointRows) {
+function verifyReducedProjection(db, meta, checkpointRows, journalState) {
   const memories = readRows(db, `
     SELECT
       id AS entity_id,
@@ -1776,67 +2566,88 @@ function verifyCheckpointProjection(db, meta, checkpointRows) {
     FROM main.memories
     ORDER BY id COLLATE BINARY
   `)
+  const expectedMemories = []
+  for (let index = 0; index < meta.checkpoint_memory_count; index += 1) {
+    const checkpoint = checkpointRows[index]
+    if (reflectApply(mapHas, journalState.memories, [checkpoint.entity_id])) {
+      appendValue(expectedMemories, checkpoint)
+    }
+  }
+  if (
+    memories.length !== expectedMemories.length ||
+    memories.length !== reflectApply(mapSize, journalState.memories, [])
+  ) throw governedFailure('governance_projection_invalid')
+  for (let index = 0; index < memories.length; index += 1) {
+    const expected = expectedMemories[index]
+    const memory = memories[index]
+    if (
+      memory.entity_id !== expected.entity_id ||
+      memory.palari_id !== expected.palari_id ||
+      memory.user_id !== expected.user_id ||
+      memory.memory_type !== expected.memory_type ||
+      memory.shared !== expected.shared ||
+      memory.validity_state !== expected.validity_state
+    ) throw governedFailure('governance_projection_invalid')
+  }
+
   const links = readRows(db, `
-    SELECT
-      id AS entity_id,
-      from_memory_id,
-      to_memory_id
+    SELECT id AS entity_id, from_memory_id, to_memory_id
     FROM main.memory_links
     ORDER BY id COLLATE BINARY
   `)
-  if (
-    memories.length !== meta.checkpoint_memory_count ||
-    links.length !== meta.checkpoint_link_count
-  ) throw governedFailure('governance_projection_invalid')
-  for (let index = 0; index < memories.length; index += 1) {
-    const checkpoint = checkpointRows[index]
-    const memory = memories[index]
-    if (
-      checkpoint.entity_kind !== 'memory' ||
-      checkpoint.entity_id !== memory.entity_id ||
-      checkpoint.palari_id !== memory.palari_id ||
-      checkpoint.user_id !== memory.user_id ||
-      checkpoint.memory_type !== memory.memory_type ||
-      checkpoint.shared !== memory.shared ||
-      checkpoint.validity_state !== memory.validity_state
-    ) throw governedFailure('governance_projection_invalid')
+  if (links.length !== meta.checkpoint_link_count) {
+    throw governedFailure('governance_projection_invalid')
   }
   for (let index = 0; index < links.length; index += 1) {
-    const checkpoint = checkpointRows[meta.checkpoint_memory_count + index]
+    const expected = checkpointRows[meta.checkpoint_memory_count + index]
     const link = links[index]
     if (
-      checkpoint.entity_kind !== 'link' ||
-      checkpoint.entity_id !== link.entity_id ||
-      checkpoint.from_memory_id !== link.from_memory_id ||
-      checkpoint.to_memory_id !== link.to_memory_id
+      link.entity_id !== expected.entity_id ||
+      link.from_memory_id !== expected.from_memory_id ||
+      link.to_memory_id !== expected.to_memory_id
+    ) throw governedFailure('governance_projection_invalid')
+  }
+
+  const memberships = readRows(db, `
+    SELECT
+      memory_id,
+      count(*) AS membership_count,
+      typeof(memory_id) AS memory_id_storage,
+      typeof(count(*)) AS membership_count_storage
+    FROM main.memory_fts
+    GROUP BY memory_id
+    ORDER BY memory_id COLLATE BINARY
+  `)
+  if (memberships.length !== expectedMemories.length) {
+    throw governedFailure('governance_projection_invalid')
+  }
+  for (let index = 0; index < memberships.length; index += 1) {
+    if (
+      memberships[index].memory_id_storage !== 'text' ||
+      memberships[index].membership_count_storage !== 'integer' ||
+      memberships[index].membership_count !== 1 ||
+      memberships[index].memory_id !== expectedMemories[index].entity_id
     ) throw governedFailure('governance_projection_invalid')
   }
   verifyA2ProjectionParity(db)
 }
 
-function frozenVerificationState(meta) {
-  const state = objectCreate(null)
-  const entries = [
+function frozenVerificationState(meta, journalState) {
+  return frozenNullRecord([
     ['streamId', meta.stream_id],
     ['headMutationSequence', meta.head_mutation_sequence],
-    ['lastObservedAt', null],
-    ['authorityLedgerId', null],
+    ['lastObservedAt', journalState.lastObservedAt],
+    ['authorityLedgerId', journalState.authorityLedgerId],
     ['checkpointMemoryCount', meta.checkpoint_memory_count],
     ['checkpointLinkCount', meta.checkpoint_link_count],
-  ]
-  for (let index = 0; index < entries.length; index += 1) {
-    reflectApply(reflectDefineProperty, undefined, [state, entries[index][0], {
-      __proto__: null,
-      value: entries[index][1],
-      enumerable: true,
-      configurable: false,
-      writable: false,
-    }])
-  }
-  return reflectApply(objectFreeze, undefined, [state])
+  ])
 }
 
-function verifyTask3State(db, expectedWorkspaceId = undefined) {
+function verifyCompleteState(
+  db,
+  expectedWorkspaceId = undefined,
+  pendingSequence = undefined,
+) {
   const memoryVariant = runGovernedPhase(
     'governance_schema_invalid',
     () => verifyA2Manifest(db, true, false, false),
@@ -1854,12 +2665,33 @@ function verifyTask3State(db, expectedWorkspaceId = undefined) {
     'governance_checkpoint_invalid',
     () => verifyCheckpoint(db, meta),
   )
-  runGovernedPhase('governance_journal_invalid', () => verifyEmptyJournal(db))
+  const journalHead = pendingSequence === undefined
+    ? meta.head_mutation_sequence
+    : pendingSequence
+  if (
+    pendingSequence !== undefined &&
+    (
+      !numberIsSafeInteger(pendingSequence) ||
+      pendingSequence <= 0 ||
+      meta.head_mutation_sequence !== pendingSequence - 1
+    )
+  ) throw governedFailure('governance_journal_invalid')
+  const journalState = runGovernedPhase(
+    'governance_journal_invalid',
+    () => reduceJournal(db, meta, checkpointRows, journalHead),
+  )
   runGovernedPhase(
     'governance_projection_invalid',
-    () => verifyCheckpointProjection(db, meta, checkpointRows),
+    () => verifyReducedProjection(db, meta, checkpointRows, journalState),
   )
-  return frozenVerificationState(meta)
+  return {
+    checkpointRows,
+    journalState,
+    meta,
+    verification: pendingSequence === undefined
+      ? frozenVerificationState(meta, journalState)
+      : undefined,
+  }
 }
 
 function snapshotLegacyProjection(db) {
@@ -2047,6 +2879,141 @@ function insertB2Marker(db, checkpointAt) {
   requireOneChange(result, 'governance_migration_invalid')
 }
 
+function captureExactOrderedRecord(input, expectedKeys) {
+  if (!isOrdinaryRecord(input)) {
+    throw governedFailure('governance_invalid_argument')
+  }
+  const keys = reflectOwnKeys(input)
+  if (keys.length !== expectedKeys.length) {
+    throw governedFailure('governance_invalid_argument')
+  }
+  const captured = objectCreate(null)
+  for (let index = 0; index < expectedKeys.length; index += 1) {
+    const key = expectedKeys[index]
+    if (keys[index] !== key) {
+      throw governedFailure('governance_invalid_argument')
+    }
+    const descriptor = reflectGetOwnPropertyDescriptor(input, key)
+    if (descriptor === undefined || !hasOwn(descriptor, 'value')) {
+      throw governedFailure('governance_invalid_argument')
+    }
+    defineMutableData(captured, key, descriptor.value)
+  }
+  return captured
+}
+
+function captureFrozenEffects(input) {
+  if (
+    reflectApply(isProxy, undefined, [input]) ||
+    !arrayIsArray(input) ||
+    reflectGetPrototypeOf(input) !== arrayPrototype ||
+    !reflectApply(objectIsFrozen, undefined, [input])
+  ) throw governedFailure('governance_invalid_argument')
+  const keys = reflectOwnKeys(input)
+  const lengthDescriptor = reflectGetOwnPropertyDescriptor(input, 'length')
+  if (
+    lengthDescriptor === undefined ||
+    !hasOwn(lengthDescriptor, 'value') ||
+    (lengthDescriptor.value !== 0 && lengthDescriptor.value !== 2) ||
+    keys.length !== lengthDescriptor.value + 1 ||
+    keys[keys.length - 1] !== 'length'
+  ) throw governedFailure('governance_invalid_argument')
+  const captured = []
+  for (let index = 0; index < lengthDescriptor.value; index += 1) {
+    const key = reflectApply(nativeString, undefined, [index])
+    const descriptor = reflectGetOwnPropertyDescriptor(input, key)
+    if (
+      keys[index] !== key ||
+      descriptor === undefined ||
+      !hasOwn(descriptor, 'value')
+    ) throw governedFailure('governance_invalid_argument')
+    appendValue(
+      captured,
+      captureExactOrderedRecord(descriptor.value, EFFECT_KEYS),
+    )
+  }
+  return captured
+}
+
+function captureTailInput(input) {
+  const outer = captureExactOrderedRecord(input, ['decision', 'effects'])
+  return {
+    decision: captureExactOrderedRecord(outer.decision, DECISION_KEYS),
+    effects: captureFrozenEffects(outer.effects),
+  }
+}
+
+const DECISION_INSERT_SQL = `
+  INSERT INTO main.cdx_b2_decisions(
+    sequence,
+    stream_id,
+    decision_id,
+    patch_id,
+    operation,
+    patch_kind,
+    patch_source,
+    patch_priority,
+    target_kind,
+    target_id,
+    visibility,
+    authority_profile,
+    authority_kind,
+    authority_id,
+    authority_ledger_id,
+    authority_event_id,
+    capability_id,
+    palari_id,
+    user_id,
+    evidence_kind,
+    evidence_strength,
+    evidence_at,
+    issued_at,
+    effective_at,
+    observed_at,
+    expires_at,
+    outcome,
+    reason_code,
+    failed_condition_mask,
+    resolution,
+    effect_count,
+    kernel_config_hash
+  ) VALUES (
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+  )
+`
+
+const EFFECT_INSERT_SQL = `
+  INSERT INTO main.cdx_b2_effects(
+    decision_sequence,
+    effect_ordinal,
+    effect_kind,
+    object_id
+  ) VALUES (?, ?, ?, ?)
+`
+
+function insertCapturedTail(db, captured) {
+  const decisionValues = []
+  for (let index = 0; index < DECISION_KEYS.length; index += 1) {
+    appendValue(decisionValues, captured.decision[DECISION_KEYS[index]])
+  }
+  requireOneChange(
+    runStatement(db, DECISION_INSERT_SQL, decisionValues),
+    'governance_journal_invalid',
+  )
+  for (let index = 0; index < captured.effects.length; index += 1) {
+    const effect = captured.effects[index]
+    const effectValues = []
+    for (let keyIndex = 0; keyIndex < EFFECT_KEYS.length; keyIndex += 1) {
+      appendValue(effectValues, effect[EFFECT_KEYS[keyIndex]])
+    }
+    requireOneChange(
+      runStatement(db, EFFECT_INSERT_SQL, effectValues),
+      'governance_journal_invalid',
+    )
+  }
+}
+
 export function bootstrapCdxB2InTransaction(lease, db, input) {
   assertActiveMutationLease(lease, db)
   const workspaceId = captureBootstrapInput(input)
@@ -2055,7 +3022,7 @@ export function bootstrapCdxB2InTransaction(lease, db, input) {
     () => classifyB2State(db),
   )
   if (classification.kind === 'complete-candidate') {
-    return verifyTask3State(db, workspaceId)
+    return verifyCompleteState(db, workspaceId).verification
   }
 
   runGovernedPhase('governance_schema_invalid', () => {
@@ -2110,7 +3077,7 @@ export function bootstrapCdxB2InTransaction(lease, db, input) {
     'governance_migration_invalid',
     () => insertB2Marker(db, checkpointAt),
   )
-  return verifyTask3State(db, workspaceId)
+  return verifyCompleteState(db, workspaceId).verification
 }
 
 export function verifyCdxB2InTransaction(lease, db) {
@@ -2122,5 +3089,50 @@ export function verifyCdxB2InTransaction(lease, db) {
   if (classification.kind !== 'complete-candidate') {
     throw governedFailure('governance_migration_invalid')
   }
-  return verifyTask3State(db)
+  return verifyCompleteState(db).verification
+}
+
+export function appendCdxB2TailInTransaction(lease, db, input) {
+  assertActiveMutationLease(lease, db)
+  const captured = runGovernedPhase(
+    'governance_invalid_argument',
+    () => captureTailInput(input),
+  )
+  const current = verifyCompleteState(db)
+  verifyOperationViewMaps('governance_journal_invalid')
+  verifyAndReduceDecision(
+    captured.decision,
+    captured.effects,
+    current.meta.head_mutation_sequence + 1,
+    current.meta,
+    current.journalState,
+    {
+      clockCode: 'governance_clock_invalid',
+      code: 'governance_journal_invalid',
+      identifierCollisionCode: 'governance_identifier_collision',
+      persisted: false,
+    },
+  )
+  runGovernedPhase(
+    'governance_journal_invalid',
+    () => insertCapturedTail(db, captured),
+  )
+  return undefined
+}
+
+export function advanceCdxB2HeadInTransaction(lease, db, sequence) {
+  assertActiveMutationLease(lease, db)
+  if (!numberIsSafeInteger(sequence) || sequence <= 0) {
+    throw governedFailure('governance_invalid_argument')
+  }
+  const pending = verifyCompleteState(db, undefined, sequence)
+  runGovernedPhase('governance_journal_invalid', () => {
+    const result = runStatement(db, `
+      UPDATE main.cdx_b2_meta
+      SET head_mutation_sequence = ?
+      WHERE singleton = 1 AND head_mutation_sequence = ?
+    `, [sequence, pending.meta.head_mutation_sequence])
+    requireOneChange(result, 'governance_journal_invalid')
+  })
+  return verifyCompleteState(db).verification
 }

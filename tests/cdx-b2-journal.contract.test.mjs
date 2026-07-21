@@ -9,6 +9,8 @@ import { test } from 'node:test'
 
 import {
   GovernedMemoryError,
+  advanceCdxB2HeadInTransaction,
+  appendCdxB2TailInTransaction,
   bootstrapCdxB2InTransaction,
   verifyCdxB2InTransaction,
 } from '../src/cdx-b2-journal.mjs'
@@ -33,8 +35,10 @@ import {
   seedHistoricalCdxSchema,
 } from './helpers/cdx-b2-fixtures.mjs'
 
-const JOURNAL_EXPORTS_AT_TASK_3 = Object.freeze([
+const JOURNAL_EXPORTS_AT_TASK_4 = Object.freeze([
   'GovernedMemoryError',
+  'advanceCdxB2HeadInTransaction',
+  'appendCdxB2TailInTransaction',
   'bootstrapCdxB2InTransaction',
   'verifyCdxB2InTransaction',
 ])
@@ -96,9 +100,9 @@ function assertGovernedCode(expectedCode) {
   }
 }
 
-test('M2-B-03 journal exposes only truthful Task 3 operations and the closed governed error class', async () => {
+test('M2-B-04 journal exposes exactly five truthful operations and the closed governed error class', async () => {
   const namespace = await import('../src/cdx-b2-journal.mjs')
-  assert.deepEqual(Object.keys(namespace), JOURNAL_EXPORTS_AT_TASK_3)
+  assert.deepEqual(Object.keys(namespace), JOURNAL_EXPORTS_AT_TASK_4)
 
   const cause = new Error('identity cause')
   for (const [code, message] of Object.entries(ERROR_PAIRS)) {
@@ -135,6 +139,14 @@ test('M2-B-03 lease and connection validation precede bootstrap input inspection
     })
     assert.throws(
       () => bootstrapCdxB2InTransaction({}, fixture.db, poisonInput),
+      (error) => error?.code === 'mutation_invalid_argument',
+    )
+    assert.throws(
+      () => appendCdxB2TailInTransaction({}, fixture.db, poisonInput),
+      (error) => error?.code === 'mutation_invalid_argument',
+    )
+    assert.throws(
+      () => advanceCdxB2HeadInTransaction({}, fixture.db, poisonInput),
       (error) => error?.code === 'mutation_invalid_argument',
     )
 

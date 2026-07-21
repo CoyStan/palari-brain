@@ -10,6 +10,64 @@ import { DatabaseSync } from 'node:sqlite'
 export const B2_WORKSPACE_ID = 'b2-checkpoint-workspace'
 export const B2_ROW_TIME = '2026-07-21T10:00:00.000Z'
 
+// Task 4 literals stay independent of the production schema/config module.
+// They are intentionally shaped like the persisted xinfo order so tests can
+// detect a reordered, defaulted, or caller-omitted journal column.
+export const B2_KERNEL_CONFIG_HASH =
+  'e1ded27e33516d73c60da1f4a4c9cb0767b1bb0b1482e78b429449ec7c0b07f4'
+
+export const B2_DECISION_KEYS = Object.freeze([
+  'sequence',
+  'stream_id',
+  'decision_id',
+  'patch_id',
+  'operation',
+  'patch_kind',
+  'patch_source',
+  'patch_priority',
+  'target_kind',
+  'target_id',
+  'visibility',
+  'authority_profile',
+  'authority_kind',
+  'authority_id',
+  'authority_ledger_id',
+  'authority_event_id',
+  'capability_id',
+  'palari_id',
+  'user_id',
+  'evidence_kind',
+  'evidence_strength',
+  'evidence_at',
+  'issued_at',
+  'effective_at',
+  'observed_at',
+  'expires_at',
+  'outcome',
+  'reason_code',
+  'failed_condition_mask',
+  'resolution',
+  'effect_count',
+  'kernel_config_hash',
+])
+
+export const B2_EFFECT_KEYS = Object.freeze([
+  'decision_sequence',
+  'effect_ordinal',
+  'effect_kind',
+  'object_id',
+])
+
+export const B2_AUTHORITY_LEDGER_ID =
+  'led_10000000-0000-4000-8000-000000000001'
+
+export const B2_DECISION_TIMES = Object.freeze({
+  evidenceAt: '2026-07-21T10:00:00.000Z',
+  issuedAt: '2026-07-21T10:01:00.000Z',
+  observedAt: '2026-07-21T10:02:00.000Z',
+  expiresAt: '2026-07-21T10:03:00.000Z',
+})
+
 export const B2_MEMORY_IDS = Object.freeze([
   'mem_00000000-0000-4000-8000-000000000001',
   'mem_00000000-0000-4000-8000-000000000002',
@@ -20,6 +78,104 @@ export const B2_LINK_IDS = Object.freeze([
   'lnk_00000000-0000-4000-8000-000000000001',
   'lnk_00000000-0000-4000-8000-000000000002',
 ])
+
+export function b2Identifier(prefix, ordinal) {
+  if (
+    typeof prefix !== 'string' ||
+    ![
+      'agr_',
+      'b2c_',
+      'b2d_',
+      'b2p_',
+      'b2s_',
+      'cap_',
+      'led_',
+      'lnk_',
+      'mem_',
+    ].includes(prefix) ||
+    !Number.isSafeInteger(ordinal) ||
+    ordinal < 0 ||
+    ordinal > 999999999999
+  ) throw new TypeError('Invalid deterministic B2 fixture identifier.')
+  return `${prefix}10000000-0000-4000-8000-${String(ordinal).padStart(12, '0')}`
+}
+
+export function createB2Decision(state, options = {}) {
+  const sequence = options.sequence ?? 1
+  const outcome = options.outcome ?? 'refused'
+  const reasonCode = options.reasonCode ?? (
+    outcome === 'applied' ? null : 'missing_target'
+  )
+  const palariId = options.palariId ?? 'palari-b2'
+  const userId = options.userId ?? 'user-b2'
+  const observedAt = options.observedAt ?? B2_DECISION_TIMES.observedAt
+  const decision = {
+    sequence,
+    stream_id: options.streamId ?? state.streamId,
+    decision_id: options.decisionId ?? b2Identifier('b2d_', sequence),
+    patch_id: options.patchId ?? b2Identifier('b2p_', sequence),
+    operation: options.operation ?? 'atom_erase',
+    patch_kind: options.patchKind ?? 'ratify',
+    patch_source: options.patchSource ?? 'ratified_user',
+    patch_priority: options.patchPriority ?? 'provenance',
+    target_kind: options.targetKind ?? 'memory.atom',
+    target_id: options.targetId ?? b2Identifier('mem_', 900 + sequence),
+    visibility: options.visibility ?? 'ledger',
+    authority_profile:
+      options.authorityProfile ?? 'host-checked-external-grant-v1',
+    authority_kind: options.authorityKind ?? 'user',
+    authority_id: options.authorityId ?? userId,
+    authority_ledger_id:
+      options.authorityLedgerId ?? B2_AUTHORITY_LEDGER_ID,
+    authority_event_id:
+      options.authorityEventId ?? b2Identifier('agr_', sequence),
+    capability_id: options.capabilityId ?? b2Identifier('cap_', sequence),
+    palari_id: palariId,
+    user_id: userId,
+    evidence_kind: options.evidenceKind ?? 'ratified_user',
+    evidence_strength: options.evidenceStrength ?? 1.0,
+    evidence_at: options.evidenceAt ?? B2_DECISION_TIMES.evidenceAt,
+    issued_at: options.issuedAt ?? B2_DECISION_TIMES.issuedAt,
+    effective_at: options.effectiveAt ?? observedAt,
+    observed_at: observedAt,
+    expires_at: options.expiresAt ?? B2_DECISION_TIMES.expiresAt,
+    outcome,
+    reason_code: reasonCode,
+    failed_condition_mask: options.failedConditionMask ?? 0,
+    resolution: options.resolution ?? 'kept',
+    effect_count: options.effectCount ?? (outcome === 'applied' ? 2 : 0),
+    kernel_config_hash: options.kernelConfigHash ?? B2_KERNEL_CONFIG_HASH,
+  }
+  return Object.freeze(decision)
+}
+
+export function createB2Effects(decision, options = {}) {
+  if (options.empty === true || decision.outcome === 'refused') {
+    return Object.freeze([])
+  }
+  const targetId = options.targetId ?? decision.target_id
+  const sequence = options.sequence ?? decision.sequence
+  return Object.freeze([
+    Object.freeze({
+      decision_sequence: sequence,
+      effect_ordinal: options.firstOrdinal ?? 0,
+      effect_kind: options.firstKind ?? 'projection_atom_erased',
+      object_id: targetId,
+    }),
+    Object.freeze({
+      decision_sequence: sequence,
+      effect_ordinal: options.secondOrdinal ?? 1,
+      effect_kind: options.secondKind ?? 'projection_fts_erased',
+      object_id: targetId,
+    }),
+  ])
+}
+
+export function createB2Tail(state, options = {}) {
+  const decision = options.decision ?? createB2Decision(state, options)
+  const effects = options.effects ?? createB2Effects(decision, options.effectOptions)
+  return Object.freeze({ decision, effects })
+}
 
 export const B2_PAYLOAD_CANARIES = Object.freeze([
   'canary-content-b2-excluded',
@@ -269,6 +425,60 @@ export function seedCheckpointRows(db) {
     B2_MEMORY_IDS[1],
     'second-link-relation-canary',
     B2_PAYLOAD_CANARIES[18],
+  )
+}
+
+export function seedB2Memory(db, input) {
+  const id = input.id
+  const palariId = input.palariId ?? 'palari-b2'
+  const userId = input.userId ?? 'user-b2'
+  const memoryType = input.memoryType ?? 'preference'
+  const validUntil = input.validUntil ?? null
+  const shared = input.shared ?? 0
+  db.prepare(`
+    INSERT INTO main.memories(
+      id,
+      palari_id,
+      user_id,
+      type,
+      content,
+      keywords,
+      valid_from,
+      valid_until,
+      created_at,
+      shared,
+      content_hash
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    palariId,
+    userId,
+    memoryType,
+    input.content ?? `fixture content ${id}`,
+    input.keywords ?? 'fixture',
+    input.validFrom ?? B2_ROW_TIME,
+    validUntil,
+    input.createdAt ?? B2_ROW_TIME,
+    shared,
+    input.contentHash ?? `fixture hash ${id}`,
+  )
+}
+
+export function seedB2Link(db, input) {
+  db.prepare(`
+    INSERT INTO main.memory_links(
+      id,
+      from_memory_id,
+      to_memory_id,
+      relation,
+      created_at
+    ) VALUES (?, ?, ?, ?, ?)
+  `).run(
+    input.id,
+    input.fromMemoryId,
+    input.toMemoryId,
+    input.relation ?? 'associated',
+    input.createdAt ?? B2_ROW_TIME,
   )
 }
 

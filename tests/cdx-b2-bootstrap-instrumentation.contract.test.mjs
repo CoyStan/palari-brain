@@ -80,7 +80,9 @@ const EXPECTED_BOUNDARY_FAILURES = Object.freeze([
   }),
 ])
 
-const EXPECTED_VERIFY_READ_COUNT = 106
+// Task 4's complete reducer adds one grouped FTS-membership cardinality read
+// even at head zero; the bootstrap failure-ordinal proof remains exhaustive.
+const EXPECTED_VERIFY_READ_COUNT = 107
 
 let cachedResult
 
@@ -278,7 +280,7 @@ test('M2-B-03 snapshot and generated-value boundaries roll back cleanly and retr
   }
 })
 
-test('M2-B-03 every post-marker verifier get/all ordinal rolls back cleanly and retries', () => {
+test('M2-B-04 every post-marker complete-verifier get/all ordinal rolls back cleanly and retries', () => {
   const { newBootstrap, verifyReadFailureMatrix } = instrumentationResult()
   const { verifyReads } = newBootstrap
   assert.equal(verifyReads.length, EXPECTED_VERIFY_READ_COUNT)
@@ -292,7 +294,7 @@ test('M2-B-03 every post-marker verifier get/all ordinal rolls back cleanly and 
   )
   assert.equal(
     verifyReads.filter(({ operation }) => operation === 'all').length,
-    99,
+    100,
   )
   for (const target of verifyReads) {
     assert.match(target.operation, /^(?:all|get)$/)
