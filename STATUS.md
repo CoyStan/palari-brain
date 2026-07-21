@@ -2,16 +2,14 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M2-B — CONTRACT TRUSTED AUTHORITY, GOVERNED MAP-OR-REFUSE, AND
-CO-COMMIT. Begin with contract/recon only: bind a minimal trusted authority
-root outside caller/model proposals, pin the governed operation and disjoint
-CDX-B2 decision/effect journal vocabulary, define the legacy checkpoint, and
-map every A2 branch/effect/consequence to a valid operation or deterministic
-refusal. Preserve exact CDX-B1, refuse terminal same-file destruction under the
-current premise, and require accepted decisions, journal effects, and CDX
-projection effects to share one A1 transaction. No runtime/source-of-truth
-cutover is implied; parent M2 remains open until the complete production
-falsifier passes.
+Next: V2-M2-B Task 1 / M2-B-01 — IMPLEMENT THE TRUSTED AUTHORITY ROOT,
+AUDIENCE, AND ONE-USE ERASURE GRANT. Follow the sealed plan and exact
+`host-checked-external-grant-v1` contract at documentation commit `a128f1e`:
+write the RED namespace/brand/record/precedence/lifecycle/callback/settlement
+matrix, then implement the exact five-name public and twelve-name internal
+authority surfaces. Do not begin the disposition, B2, bridge, or producer
+tasks before Task 1 passes. CDX-M1 remains runtime/read authority, exact B1
+remains unchanged/non-authoritative, and parent M2/M2-B remain open.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish without a
@@ -237,6 +235,18 @@ new explicit founder GO. Results remain under gitignored evals/results/.
     disjoint CDX-B2 journal, and legacy checkpoint; every A2 legacy intent maps
     to a valid governed operation or deterministic refusal, and governed
     decisions, ordered journal effects, and CDX projection effects co-commit.
+    Contract Task 0 DONE 2026-07-21 at `a128f1e`: four reviewed normative
+    artifacts pin the authority profile, exact @5 disposition registry,
+    four-table B2 substrate, governed projection/terminal seams, and executable
+    implementation plan. Completion PASS for this documentation cut point:
+    registry 46 obligations/22 dimensions/72 staged cases/1,728 erasure cases;
+    config 5,704 ASCII bytes at
+    `e1ded27e33516d73c60da1f4a4c9cb0767b1bb0b1482e78b429449ec7c0b07f4`;
+    SQL 4 tables/1 explicit index/8 autoindexes/3 FKs/11 triggers; full
+    unchanged suite 432/432 on Node 22.22.2 / SQLite 3.51.2; protected B1
+    bytes and local links exact; three final independent reviews with zero
+    blockers or majors. No production/test file changed. M2-B implementation
+    is still open; Next is Task 1/M2-B-01 authority only.
   CDX-M1 remains runtime/read authority and exact CDX-B1 remains unchanged and
   non-authoritative throughout these proofs. Parent M2 stays open until M2-B
   passes the complete production matrix.
@@ -328,3 +338,9 @@ writer graph through five legacy intents/eight A1 lease-checked effects;
 green on Node 22.22.2 / SQLite 3.51.2. No trusted-authority, canonical,
 journal, source-of-truth, terminal-governance, or parent-M2 completion claim;
 Next is M2-B contract work and U8 remains sealed.
+2026-07-21 — V2-M2-B Task 0 — a128f1e — Sealed the reviewed governed-mutation
+contract: trusted one-use authority, exact @5 46x22 disposition registry,
+four-table B2 schema/replay, bootstrap/projection/terminal seams, and executable
+plan. Mechanical SQL/config/registry/link/protected-byte checks and unchanged
+432/432 suite pass; three final reviews have zero blockers/majors. Parent M2-B
+remains open; Next is M2-B-01 authority implementation; U8 remains sealed.

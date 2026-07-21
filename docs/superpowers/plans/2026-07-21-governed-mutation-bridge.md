@@ -118,7 +118,7 @@ unchanged and non-authoritative.
   blocker and major; record accepted minors.
 - [x] Run formatting, provenance, protected-byte, link, runtime, and unchanged
   432-test checks.
-- [ ] Update `STATUS.md`, `docs/DECISIONS.md`, `docs/KERNEL-CONTRACT.md`,
+- [x] Update `STATUS.md`, `docs/DECISIONS.md`, `docs/KERNEL-CONTRACT.md`,
   `docs/KERNEL-API.md`, and `docs/MUTATION-SEAM-CONTRACT.md`; commit/push a
   coherent documentation cut point with parent M2/M2-B still open and Next
   naming Task 1.
