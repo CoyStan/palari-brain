@@ -40,6 +40,24 @@ not trusted authority. V2-M3 still owns strict extractor schema, richer
 evidence derivation, assistant evidence, supersession repair, and complete
 candidate observability; it cannot waive the M2 map-or-refuse falsifier.
 
+**M2-B scoped structural amendment:** the reference patch kernel has no
+`ratify` Apply handler, while Part 4 requires storage erasure to be a separate
+ratified operation with its sidecars erased in that operation. Profile
+`FB1-4.ratified-erasure-apply-v1` therefore adds exactly one pure transition:
+an admitted and solely kept `ratify|ratified_user -> provenance`, strength
+`1.0`, ledger-rank-`1` patch may consume one present, same-Palari, same-user,
+private atom and its exactly-one FTS membership only when it has zero incident
+links. Missing, scope, shared, and incident-link states are governed refusals;
+projection mismatch is an internal rollback failure. Atom type and
+current/ended class do not change that erasure decision. Erasing a permanent
+atom consumes its storage membership after explicit ratification; it does not
+edit or correct permanent payload and does not relax demote-and-promote
+linearity. The amendment changes no registry constant and authorizes no edge
+write, demotion, payload correction, shared/general/cross-scope erasure, or
+other Apply handler. Exact authority, transition, journal, and co-commit rules
+are subordinate in `docs/GOVERNED-MUTATION-BRIDGE-CONTRACT.md` and its three
+normative appendices.
+
 M2-A1 certification at implementation commit `07d65ad` establishes only one
 synchronous transaction owner and opaque lexical, connection-bound leases.
 It changes no memory policy or runtime mutation path, closes no durable bypass,
@@ -109,3 +127,12 @@ authority and exact B1 remains unchanged and non-authoritative.
   user/palari scope only.
 - The store is a per-workspace SQLite file: portable, inspectable,
   deletable as a unit.
+
+**M2-B bounded availability:** these remain target kernel capabilities, not a
+claim that every deletion form is enabled by M2-B. The scoped amendment can
+ratify only a private exact-user zero-link atom, so its accepted operation
+removes the row and FTS membership with an already-empty incident-link set.
+Linked-atom erasure, topic forget, and whole-file destruction are deterministic
+governed refusals at this cut point because no edge patch or external terminal
+receipt substrate is registered. Their unavailable behavior is explicit
+conformance debt, not a silent weakening of the target contract.

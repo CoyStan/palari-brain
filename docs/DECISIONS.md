@@ -289,3 +289,70 @@ dates. Agents record; the founder decides.
   provider, sealed U8 question, spend, dataset, result, publication, or
   announcement. CDX-M1 remains runtime/read authority; exact B1 remains
   unchanged and non-authoritative; Next is M2-B contract work.
+- 2026-07-21 (V2-M2-B pre-implementation structural-kernel ruling) **Ratified
+  private zero-link atom erasure is an explicit, narrowly scoped Apply
+  amendment, not behavior silently attributed to the reference kernel.** The
+  pinned patch registry contains `ratify|ratified_user -> provenance` at
+  evidence strength `1.0` and ledger permission rank `1`, but the reference
+  Apply implementation has no `ratify` handler. Part 4 separately requires
+  storage erasure to be ratified and requires an erased atom's sidecars to be
+  erased in the same operation; it does not supply the missing pure
+  transition. M2-B records profile `FB1-4.ratified-erasure-apply-v1`: after
+  exact trusted authority, Admit, and singleton Resolve, one present,
+  same-Palari, same-user, private atom with exactly one FTS row and zero
+  incident links may have its atom and FTS memberships consumed. Type and
+  current/ended validity are not erasure selectors. For a permanent atom this
+  is explicit storage erasure, not payload update or correction, so
+  demote-and-promote linearity is unchanged; the content-history survival
+  claim is deliberately not made after user-ratified erasure. `ratify` is
+  selected because this is ceremonial user consent and is the registry's only
+  registered `ratified_user` pair; calling it `demote` would launder the
+  source. The amendment changes no patch kind/source/priority/threshold,
+  permits no link cascade or other structural write, and grants no demotion,
+  shared/general/cross-scope erasure, payload correction, or general `ratify`
+  Apply behavior. Those remain refused or require a new reviewed amendment.
+  CDX-M1 remains runtime/read authority; exact B1 remains unchanged and
+  non-authoritative; this ruling authorizes no provider, sealed U8, spend,
+  dataset, score, publication, or announcement action.
+- 2026-07-21 (V2-M2-B reviewed contract cut point) **M2-B will implement one
+  trusted, one-use ratified-erasure path and deterministically refuse every
+  other current semantic mutation; it will not reinterpret legacy authority
+  or silently widen the reference patch kernel.** The normative contract set
+  is pinned by SHA-256: bridge
+  `a7c5cbff9eb49171b4358b50df6cbebcf77bc0e60478e75df72e345999ea6b7e`,
+  authority
+  `288b10fb30712a7ca862f773fca74aaf4898ef5992495ac858564b511062eb95`,
+  disposition registry
+  `d34106fedb1997a1bc03fa88f0479209a6c5d42fc9bb62038a6682ce9e6b8eee`,
+  and B2 schema
+  `90c64965f88aa48959f935be01f1c62d1a9c8844e5657cadd6e0e5702b9397d4`.
+  The canonical config is 5,704 ASCII bytes with SHA-256
+  `e1ded27e33516d73c60da1f4a4c9cb0767b1bb0b1482e78b429449ec7c0b07f4`.
+  Registry `CDX-M1-legacy-disposition@5` proves 46 obligations, 22 dimensions,
+  72 staged-authority cases, and 1,728 erasure cases; only D-02/D-03 map.
+  Profile `host-checked-external-grant-v1` has no root verb, binds one root to
+  one store generation and one stream ledger, checks external activity on
+  each attempt after caller capture, and distinguishes thrown-value presence
+  from value so even `throw undefined` is preserved exactly. Valid target
+  refusals and an applied erasure burn one grant only after the B2 decision
+  commits; proven rollback releases; uncertainty retires.
+
+  CDX-B2 is exactly four tables, one explicit index, eight autoindexes, three
+  foreign keys, and eleven triggers. Its journal bootstrap alone owns the
+  certified structural M0/M1 completion/verification and B2 marker inside the
+  bridge-owned A1 transaction; it never owns semantic CDX row DML. The exact
+  seven-export historical router gains a zero-key, lease/database-bound,
+  one-use governed projection token; production removes router `execute` and
+  `executeLegacyStoreIntent`, and only the governed adapter reaches the
+  bridge. Terminal deletion refuses in the runtime export itself with the
+  compatibility-preserving immediately rejected Promise and the sole new,
+  thirteenth `LegacyMutationError` pair; the old `rm` route is removed.
+  Content/metadata blind spots, same-file non-cryptographic limits, and the
+  trusted-host premise remain explicit nonclaims. Three final independent
+  reviews ended with zero blockers/majors; executable registry/config/SQL,
+  local-link, provenance, protected-byte, and full unchanged 432/432 tests
+  pass on Node 22.22.2 / SQLite 3.51.2. This cut point changes no production or
+  test file, leaves parent M2/M2-B open, keeps CDX-M1 runtime/read authority
+  and exact B1 unchanged/non-authoritative, and advances only to Task 1
+  authority implementation. It authorizes no provider, sealed U8, spend,
+  dataset, score, publication, or announcement action.

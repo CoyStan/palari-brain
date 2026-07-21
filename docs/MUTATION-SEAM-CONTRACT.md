@@ -33,7 +33,8 @@ subunits:
    patch/admission/authority/effect contract; introduce a disjoint CDX-B2
    canonical journal; checkpoint legacy CDX state; and co-commit every
    production governed decision, ordered journal effect, and CDX projection
-   effect.
+   effect. Its sole structural-kernel amendment is the separately recorded
+   `FB1-4.ratified-erasure-apply-v1` transition in `docs/KERNEL-CONTRACT.md`.
 
 M2-A1 deliberately does not change any runtime gate, store, extraction,
 recall, lifecycle, manager, or adapter path. It adds no production journal and
@@ -46,9 +47,11 @@ complete, the separately reviewed M2-B contract must map every A2 legacy
 intent and possible effect to a valid governed patch/admission/authority
 operation or deterministically refuse it. That contract must preserve, among
 the other governing laws, lifecycle demotion rather than automatic erasure,
-immutable permanent canonical payloads, evidence strength distinct from
-creation confidence, and an explicit resolution of the current type-partition
-debt. Patch registrations and thresholds must be pinned to their exact
+permanent canonical payloads that are never edited or corrected (while the
+separately ratified erasure amendment may consume storage membership),
+evidence strength distinct from creation confidence, and an explicit
+resolution of the current type-partition debt. Patch registrations and
+thresholds must be pinned to their exact
 governing provenance; M2-B may not invent or silently change a
 founder-amendable constant. V2-M3 is not an escape hatch for this M2
 falsifier: it still repairs producer schema/evidence coverage and complete

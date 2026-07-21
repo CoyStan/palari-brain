@@ -77,6 +77,20 @@ conformance. M2-B must map every compatibility branch to a governed operation
 or refuse it and co-commit every accepted decision/journal/effect set. Parent
 M2 remains open.
 
+**M2-B scoped operation ruling:** the governed bridge may expose only the
+`FB1-4.ratified-erasure-apply-v1` structural Apply amendment recorded in
+`docs/KERNEL-CONTRACT.md`. Its canonical patch is the pinned
+`ratify|ratified_user -> provenance` pair at evidence strength `1.0`, ledger
+visibility/rank `1`, with target slot `mem/<targetId>` and closed payload
+`erase_owned_atom@1`. After exact authority, Admit, and singleton Resolve, its
+pure transition may consume exactly one present same-Palari/same-user private
+zero-link atom plus its exactly-one FTS membership. It applies equally to
+permanent or transient and current or ended atoms because erasure is a
+separate ratified storage operation, not payload mutation or correction. All
+other target states refuse or roll back exactly as the governed contract
+specifies. This does not add a general `ratify` handler or authorize demotion,
+edge writes, shared/general/cross-scope erasure, or any other mutation.
+
 ## 1. Kernel boundary
 
 **IN the kernel** (this repo, U3–U5):
@@ -166,9 +180,14 @@ Briefing {
 ## 3. store
 
 Factory: `createKernelStore({memoryRootDir | statePath, workspaceId,
-clock?, memoryEnabled?, publicDemo?})`, adapted from v05
+clock?, memoryEnabled?, publicDemo?, authorityRoot?})`, adapted from v05
 `createPalariMemoryStore` + `workspaceMemoryDbPath` behind a safe base
-capability. Multi-workspace cache: `createWorkspaceMemoryManager()`.
+capability. `authorityRoot` is the optional host-only M2-B field defined in
+`docs/MEMORY-AUTHORITY-CONTRACT.md`; it is ignored without observation for a
+disabled store and never appears in returned config. Multi-workspace cache:
+`createWorkspaceMemoryManager({clock?, env?, memoryEnabled?, memoryRootDir?,
+policy?, publicDemo?, statePath?, authorityRootForWorkspace?})`, with the exact
+trusted synchronous provider and construction-precedence law in that contract.
 Engine prerequisite: Node `>=22.22.2`
 (the current provisional repository floor), `node:sqlite` `DatabaseSync`,
 and FTS5 `unicode61 remove_diacritics 2`; `probeMemorySqliteDriver()` self-checks
@@ -181,53 +200,50 @@ Reads (never gated — reading is not mutation):
   `searchMemories(query, options)`;
 - `recallMemories(query, options)` — §6.
 
-Deletion & ownership (A2 legacy compatibility routes):
-- gated `deleteMemory(id, {actor})` emits `legacy_delete_memory`; accepted
-  deletion removes the row, with FTS residue removed
-  by trigger, links by `ON DELETE CASCADE`. Contract test in U3:
-  after delete, FTS query and link walk return nothing (residue-free).
-- gated `topicForget(topicQuery, scope, {actor})` emits one
-  `legacy_forget_topic` intent. It resolves one visible snapshot after
-  `BEGIN IMMEDIATE`, applies ordered deletions atomically, and returns only
-  landed IDs. It replaces U3's pre-A2 composed loop.
-- `deleteKernelStoreFile(options)` is the separately classified terminal
-  whole-file route. It serializes by canonical path, refuses while any
-  supported handle is live or blocked, and removes main/WAL/SHM/journal only
-  at zero live count; it is not a SQLite or governance co-commit.
+Deletion & ownership (current M2-B surface; this supersedes the historical
+U3/A2 behavior formerly carried by these names):
 
-Gated `runLifecycleJobs({palariId, now})` and
-`recordRecallInclusion(ids, {actor, bumpAmount})` emit their respective legacy
-intents and make each public batch atomic. Their current decay/deletion and
-mutable access/importance behavior is compatibility behavior carried to M2-B,
-not canonical law.
+- gated `deleteMemory(id, options, authorityGrant)` is the only production
+  route that can reach a governed semantic mutation. Disabled and omitted-
+  authority precedence inspect neither `id` nor `options`. A present grant is
+  reserved before their capture. Only an exact, externally active grant for a
+  present same-Palari/same-user private atom with one FTS row and zero incident
+  links can erase; the atom delete and FTS-trigger result co-commit with the
+  B2 decision/effects. Links never cascade on an accepted M2-B operation.
+- gated `topicForget(...)` is a deterministic no-write refusal returning
+  `{count:0,deleted:[]}`. It does not run the historical A2 batch.
+- `deleteKernelStoreFile(...)` returns an immediately rejected native Promise
+  whose reason is `legacy_terminal_storage_refused`, before observing options,
+  path, live-owner, or filesystem state. It removes no artifact.
+- gated `runLifecycleJobs(...)` returns
+  `{decayed:0,deleted:0,skipped:0,touched:0}` and
+  `recordRecallInclusion(...)` returns `{touched:[],touchedCount:0}` without
+  semantic DML. Their A2 mutation behavior is retained only in historical
+  planner tests until a separately governed operation is reviewed.
 
 Ops: `status()`, `publicStatus()`, `close()`. Smoke: port of
 `internal-alpha-memory-readiness` probe (provider-free canary).
 
 ## 4. gate
 
-**Candidate-write door implemented in U4:**
-`gate.propose(proposal: WriteProposal) →
-{outcome, memory?, superseded?, link?, reasons[]}`. Callers that actually
-hold the frozen surface can use this door for explicit user saves,
-supersession, demote `end_validity`/`delete_transient`, and ratify `share`;
-`addMemory`, `supersedeMemory`, `insertMemory`, and raw `db` are hidden
-from that surface. M2-A2 removes U7's gate shim and structurally requires the
-module-branded gated capability for extraction and session summary. Proposal,
-ownership deletion, topic forget, recall-inclusion telemetry, and lifecycle
-enter the private router as exactly five legacy intents; every possible
-supported in-file semantic write is one of eight lease-checked effects under
-the A1 coordinator. No returned base, gate, or manager handle exposes a raw
-connection or child semantic writer.
+**Current M2-B candidate surface:** `gate.propose(proposal)` returns exactly
+`{outcome:'rejected',reasons:['governance_refused']}` without observing the
+proposal. The U4/A2 proposal implementation and its five-intent/eight-effect
+router remain historical compatibility evidence and test fixtures; production
+does not execute them. No returned base, gate, or manager handle exposes a raw
+connection, authority constructor/root/grant, coordinator, lease, B2 writer,
+projection applier, or other child semantic writer.
 
-**Still-unclosed law:** A2 closes the supported in-file raw writer graph, not
-the governing one-gate law. Its intents, actors, writers, policy values, and
-effects are explicitly unauthenticated compatibility data rather than trusted
-authority or canonical patches. Terminal whole-file deletion is separately
-serialized, not a false SQLite co-commit. M2-B must bind a minimal trusted
-authority root, map every compatibility branch to a governed operation or
-deterministically refuse it, and co-commit each accepted decision/journal/
-projection-effect set. Parent M2 therefore remains open.
+M2-B closes the current production graph by governing the one supported
+ratified-erasure leaf and refusing every other A2 branch before CDX semantic
+DML. CDX-M1 remains runtime/read authority; B2 is the co-committed governance
+overlay. This completes neither the deferred create/supersession operations of
+M3 nor a source-of-truth cutover.
+
+The following three stages describe the historical U4/A2 proposal behavior
+and the canonical laws M3 must restore; they are not a writable M2-B public
+proposal path. M2-B's only production instance of Admit -> Resolve -> Apply is
+the exact ratified-erasure patch and pure transition above.
 
 Three stages (contract: Admit → Resolve → Apply):
 
@@ -260,9 +276,10 @@ Three stages (contract: Admit → Resolve → Apply):
    The Unified target keeps permanent canonical payloads linear: correction is
    demote-and-promote, never payload replacement. A2 exposes no content-
    replacement operation, but its explicitly legacy effects still mutate CDX
-   validity, sharing, importance, access, and decay metadata. M2-B must map or
-   refuse those compatibility branches; their routing is not canonical
-   conformance (C3).
+   validity, sharing, importance, access, and decay metadata. M2-B refuses
+   those compatibility branches. Its separately recorded ratified-erasure
+   amendment may consume permanent storage membership but never edits or
+   corrects permanent payload (C3).
 
 **Evidence-time discipline (C2):** Apply stamps `validFrom` from
 `provenance.eventAt` when the proposal carries it; wall clock is only
@@ -276,19 +293,17 @@ makes `eventAt` required for `extracted`/`summarized` provenance.)
 
 - `runMemoryExtractionPass({store: gated, turn, extractor, extractorId,
   logger}) → {status, memoriesWritten, outcomes[], sourceBoundary}` requires
-  the module-branded gated capability. Each eligible candidate is converted
-  internally to an A2 `legacy_proposal`; duplicate, contradiction,
-  supersession-link, and insert work resolves after A1 transaction entry.
-  `turn.eventAt` and `extractorId` are required before any candidate write.
+  the module-branded gated capability. It may still derive historical A2
+  candidates, but every production `propose` returns the exact governance
+  refusal without CDX/B2 mutation. M3 owns restoration under trusted evidence.
 - `extractor({turn}) → payload` is **injected**. Provided by kernel:
   `deterministicMockMemoryExtraction` (dry mode, U7 tests);
   `buildMemoryExtractionRequest({turn})` for real providers —
   request budgets stay pinned through the local routing-policy severance shim
   recorded in `docs/SOURCE-MAP.md`.
-- `writeSessionSummaryMemory({store: gated, turn})` also requires the branded
-  capability and `turn.eventAt`; an eligible summary submits a `promote/add`
-  proposal with `writer:'session_summary'`. This is A2 compatibility routing,
-  not a governed receipt; complete candidate receipts remain V2-M3 work.
+- `writeSessionSummaryMemory({store: gated, turn})` likewise receives the
+  deterministic proposal refusal. Complete trusted summary lineage and
+  candidate receipts remain V2-M3 work.
 - Candidate hygiene stays in the pass: transient-detail rejection
   (`memoryContainsTransientDetail`), source-boundary evaluation per
   candidate, the anti-injection instruction pattern
@@ -318,8 +333,10 @@ makes `eventAt` required for `extracted`/`summarized` provenance.)
   run** (process law, enforced in evals not in code).
 - `recallAndBrief(text, scope, opts)` — the ~60-line orchestration
   reimplemented from `buildAssistantMemoryBriefing` (SOURCE-MAP
-  finding 3): status-gate → recall → brief → `recordRecallInclusion`
-  (needle-survival telemetry) → Briefing + latency/candidate counts.
+  finding 3): status-gate -> recall -> brief -> the current no-write
+  `recordRecallInclusion` compatibility result -> Briefing +
+  latency/candidate counts. Needle-survival remains measurable from returned
+  diagnostics; durable inclusion telemetry is refused in M2-B.
 - **Placement contract (C11):** the briefing is dynamic, labeled
   evidence — the adapter inserts it as clearly-attributed context,
   never as system authority, never unlabeled. `briefingDiagnostics
@@ -355,24 +372,24 @@ of the contract appears exactly once.
 | # | Contract clause (section · bullet) | Maps to |
 |---|---|---|
 | C1 | Atoms · fields incl. provenance, scoping, hash, timestamps | §2 `MemoryAtom`; schema CDX-M0; GAP-1 |
-| C2 | Atoms · evidence-time discipline | §4 Apply stamps from `eventAt`; GAP-4 |
-| C3 | Atoms/types · permanent linear; correction = demote-and-promote w/ link; counterfactual history survives | §4 Apply (supersede transaction; no content-mutation op) |
-| C4 | Atoms/types · transient use-or-decay; supersession type-safe | §3 lifecycle jobs; §4 Resolve type-safety (GAP-3) |
-| C5 | Gate · typed proposal Admit→Resolve→Apply; no producer writes directly | §4: A2 closes the supported in-file raw writer graph through five legacy intents/eight lease-checked effects; M2-B still must authenticate authority, govern-or-refuse every branch, and co-commit the decision journal |
-| C6 | Gate · thresholds demote < promote < permanent < ratify | §4 Admit `AdmissionPolicy` (GAP-2) |
+| C2 | Atoms · evidence-time discipline | §4 historical Apply stamps from `eventAt`; M2-B erasure uses the authority evidence/observed-time law; GAP-4 |
+| C3 | Atoms/types · permanent linear; correction = demote-and-promote w/ link; counterfactual history survives | §4 historical Apply; current M2-B refuses correction and permits only separately ratified storage erasure under the scoped amendment |
+| C4 | Atoms/types · transient use-or-decay; supersession type-safe | §3 M2-B lifecycle refusal; §4 historical Resolve type-safety (GAP-3); restoration remains M3 |
+| C5 | Gate · typed proposal Admit→Resolve→Apply; no producer writes directly | §4: M2-B runs the exact ratified-erasure patch through the gate and deterministically refuses every other A2 branch before semantic DML; decision/journal/projection co-commit is the parent-M2 falsifier |
+| C6 | Gate · thresholds demote < promote < permanent < ratify | §4 exact pinned patch registry/config; M2-B emits only ratify at `1.0`; historical `AdmissionPolicy` is not production authority |
 | C7 | Gate · external content must not mint w/o provenance marking; surfacing shows origin | §4 Admit source boundary; §5 candidate hygiene; §6 briefing origin attribution |
 | C8 | Retrieval · FTS + filters + optional graph walk; no vector default; extensions optional planes | §6 `recall`; §1 exclusion (no extension planes built here) |
 | C9 | Retrieval · type-blind ranking; scoping mandatory predicates | §6 recall (type-blind rank test; empty-scope⇒empty result) |
-| C10 | Retrieval · window laws: matched sources opened; no empty desk; needle survival measured | §6 recall candidates; `Briefing.status='empty'`; `recordRecallInclusion` + `briefingDiagnostics` |
+| C10 | Retrieval · window laws: matched sources opened; no empty desk; needle survival measured | §6 recall candidates; `Briefing.status='empty'`; `briefingDiagnostics`; durable inclusion mutation is refused in M2-B |
 | C11 | Briefing · dynamic labeled context, never system authority | §6 placement contract |
 | C12 | Briefing · v1 line: content, event/observed timestamp, attribution, confidence bucket | §6 `brief` (golden format pinned in U5) |
 | C13 | Briefing · format changes are substitutions: paired runs only | process → evals discipline (U9); not an interface, by design |
 | C14 | Honesty · absence stated plainly; abstention-with-grounds = success in our reports | §6 honesty; reporting rule lives in evals (U8+ predictions/reports) |
-| C15 | Honesty · newer supersedes older; superseded not confidently recalled | §4 Resolve contradiction→supersede; §6 validity predicate excludes expired |
+| C15 | Honesty · newer supersedes older; superseded not confidently recalled | existing CDX validity + §6 predicate; new supersession is refused until M3 restores a governed operation |
 | C16 | Honesty · never invent a memory | §6 structural property + U5 property test |
-| C17 | Deletion · row + FTS/link residue removed | §3 `deleteMemory` + trigger/CASCADE; U3 residue-free test |
-| C18 | Deletion · topic-forget scoped to requesting user/palari | §3 gated `topicForget` legacy route |
-| C19 | Ownership · per-workspace SQLite file: portable, inspectable, deletable | §3 one-file-per-workspace + `deleteKernelStoreFile` |
+| C17 | Deletion · row + FTS/link residue removed | §3 exact authority-bound private zero-link erasure removes atom + FTS; linked targets refuse because no edge patch is registered |
+| C18 | Deletion · topic-forget scoped to requesting user/palari | §3 deterministic no-write refusal; broader topic authority/operation is explicit conformance debt |
+| C19 | Ownership · per-workspace SQLite file: portable, inspectable, deletable | file remains portable/inspectable; same-file B2 makes production terminal deletion an unconditional refusal pending an external authority/receipt substrate |
 
 **Completion test — PASS:** KERNEL-CONTRACT.md contains 16 bullets
 across 6 sections (mechanically counted); C1–C19 cover all 16.
@@ -380,13 +397,14 @@ Three bullets split into two clauses each for precision (16+3=19):
 atoms·bullet 1 → C1/C2 (fields vs evidence-time), atoms·bullet 2 →
 C3/C4 (permanent vs transient rules), briefing·bullet 2 → C12/C13
 (v1 format vs substitution law). All other bullets map 1:1. Every
-clause row names an interface section, an explicit exclusion, or the
-now-explicit C5 conformance debt. The only process-only mappings are C13
-and the reporting half of C14, routed to the evals discipline. Traceability
-is complete. A2 closes the supported in-file raw writer graph; implementation
-conformance remains incomplete until M2-B supplies trusted authority,
-govern-or-refuse semantics, and decision/journal/effect co-commit, including a
-governed disposition for the separately serialized terminal route.
+clause row names an interface section, an explicit exclusion, or a recorded
+conformance debt. The only process-only mappings are C13 and the reporting
+half of C14, routed to the evals discipline. Traceability is complete as an
+honest map, not a claim that every feature is enabled. M2-B must implement and
+certify its trusted authority, exact ratified-erasure operation, exhaustive
+refusals, and decision/journal/effect co-commit before parent M2 closes; M3 and
+the separately reviewed topic/terminal authority substrates retain the named
+feature debts.
 
 — Fable 5, U2, 2026-07-18. Design derived, gaps recorded, nothing
 forked silently.
