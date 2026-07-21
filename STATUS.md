@@ -2,13 +2,16 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M2-A2 — IMPLEMENT LEGACY COMPATIBILITY MUTATION ROUTING.
-The complete current CDX-M1 durable mutation matrix and exact five-intent,
-eight-effect, deterministic-plan boundary are sealed in
-`docs/LEGACY-MUTATION-ROUTING-CONTRACT.md`. Implement its branded safe
-handles, coordinator-owned routing, producer closure, atomic batches, and
-serialized terminal workspace deletion. A2 makes no canonical patch,
-authority, journal, or source-of-truth claim; parent M2 remains open for M2-B.
+Next: V2-M2-B — CONTRACT TRUSTED AUTHORITY, GOVERNED MAP-OR-REFUSE, AND
+CO-COMMIT. Begin with contract/recon only: bind a minimal trusted authority
+root outside caller/model proposals, pin the governed operation and disjoint
+CDX-B2 decision/effect journal vocabulary, define the legacy checkpoint, and
+map every A2 branch/effect/consequence to a valid operation or deterministic
+refusal. Preserve exact CDX-B1, refuse terminal same-file destruction under the
+current premise, and require accepted decisions, journal effects, and CDX
+projection effects to share one A1 transaction. No runtime/source-of-truth
+cutover is implied; parent M2 remains open until the complete production
+falsifier passes.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish without a
@@ -201,24 +204,34 @@ new explicit founder GO. Results remain under gitignored evals/results/.
     private real B1/CDX same-connection visibility, commit, FTS, and rollback
     falsifier. Completion PASS on exact Node 22.22.2 / SQLite 3.51.2: focused
     coordinator+composition 31/31, pre-A1 208/208, full suite 239/239, full B1
-    161/161. `src/mutation-coordinator.mjs` is the sole new production file and
-    no current runtime module imports it. Protected B1 files remain identical
-    to `616c60b`; the sole coexistence-test diff only classifies the new module
-    as A1-isolated/node-only/B1-unaware. A1 changes no runtime mutation path,
-    closes no durable bypass, proves no native transaction identity, and leaves
-    CDX-M1 authoritative, B1 unchanged/non-authoritative, and parent M2 open.
-  - [ ] V2-M2-A2 — route the complete current durable mutation matrix as
-    explicitly legacy compatibility intents; deterministic plans and no raw
-    semantic producer bypasses. Normative contract:
-    `docs/LEGACY-MUTATION-ROUTING-CONTRACT.md`; executable plan:
-    `docs/superpowers/plans/2026-07-21-legacy-mutation-routing.md`. The sealed
-    boundary retires raw insert/add/supersede/link/bump/touch and `.db` from
-    returned handles; routes exactly five intents to eight lease-checked
-    effects; makes proposal provenance, topic-forget, recall-inclusion, and
-    lifecycle calls atomic; moves CDX-M1 migration to pre-handle bootstrap;
-    and classifies whole-file deletion separately as a serialized terminal
-    zero-live-handle storage operation. It carries every legacy branch to M2-B
-    for map-or-refuse and claims no trusted authority or canonical semantics.
+    161/161. At the A1 certification cut point,
+    `src/mutation-coordinator.mjs` was the sole new production file and no
+    runtime module imported it; A2 now adopts it beneath the private legacy
+    router. Protected B1 files remain identical to `616c60b`; the sole
+    coexistence-test diff only classifies the new module as
+    A1-isolated/node-only/B1-unaware. At that cut point A1 changed no runtime
+    mutation path, closed no durable bypass, proved no native transaction
+    identity, and left CDX-M1 authoritative, B1 unchanged/non-authoritative,
+    and parent M2 open.
+  - [x] V2-M2-A2 — legacy compatibility mutation routing. DONE 2026-07-21;
+    implementation `e6bbc51`, certification hardening `d419fef`. Exactly five
+    legacy intents reach exactly eight lease-checked CDX effects under A1;
+    returned base/gated/manager paths expose no raw connection or child writer;
+    extraction, summary, scheduler, adapter, recall, ownership, topic, and
+    lifecycle producers are structurally gate-bound; bootstrap/manifest work is
+    pre-handle; and terminal deletion is a separately serialized zero-live-
+    handle storage route. Completion PASS on exact Node 22.22.2 / SQLite
+    3.51.2: router+routing 63/63, manifest matrix 97/97, full B1 164/164,
+    pre-A2 regressions 272/272, full suite 432/432, and M2-A2-07 static audit
+    3/3, all with zero failures. `docs/MEMORY-BUNDLE-CONTRACT.md`, all seven
+    `src/memory-bundle*.mjs` modules, and `src/memory-store.mjs` are byte-
+    identical to `1d65bb0`; B1 test-harness changes were reviewed separately
+    and pass. Three fresh independent final audits ended with no unresolved
+    blocker or major. This closes only the supported in-file raw writer graph:
+    caller authority remains untrusted, legacy semantics remain noncanonical,
+    B2 journaling/co-commit and terminal-route disposition remain M2-B work,
+    exact B1 remains unchanged/non-authoritative, CDX-M1 stays runtime/read
+    authority, and parent M2 remains open.
   - [ ] V2-M2-B — bind a trusted authority root outside proposals; add a
     provenance-pinned, Unified-Spec-conforming governed operation contract,
     disjoint CDX-B2 journal, and legacy checkpoint; every A2 legacy intent maps
@@ -309,3 +322,9 @@ bundle capabilities remain all false, U8 remains sealed, and Next is V2-M2.
 transaction coordinator and private real B1/CDX co-commit/rollback falsifier:
 31/31 focused, 161/161 B1, 239/239 full PASS on Node 22.22.2 / SQLite 3.51.2;
 no runtime adoption or policy/source-of-truth claim; parent M2 open, Next A2.
+2026-07-21 — V2-M2-A2 — e6bbc51+d419fef — Routed the supported in-file CDX-M1
+writer graph through five legacy intents/eight A1 lease-checked effects;
+432/432 full PASS plus focused, manifest, B1, regression, and static matrices
+green on Node 22.22.2 / SQLite 3.51.2. No trusted-authority, canonical,
+journal, source-of-truth, terminal-governance, or parent-M2 completion claim;
+Next is M2-B contract work and U8 remains sealed.

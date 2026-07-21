@@ -216,15 +216,16 @@ dates. Agents record; the founder decides.
   insert, showing neither to an observer before commit, both (including FTS)
   after commit, and neither after a forced joint rollback. On exact Node
   22.22.2 / SQLite 3.51.2, coordinator+composition pass 31/31, the pre-A1 suite
-  208/208, full B1 161/161, and the full suite 239/239. The coordinator is the
-  sole new production file and no current runtime module imports it. Protected
-  B1 files remain byte-identical to `616c60b`; the sole coexistence-test change
-  is the separately reviewed A1-isolated source classification. This does not
-  close a CDX durable bypass, prove native transaction identity, define trusted
-  authority/canonical operations/B2, complete parent M2, or authorize provider,
-  spend, benchmark, publication, or sealed-U8 work. CDX-M1 stays authoritative;
-  exact B1 stays unchanged/non-authoritative; Next is M2-A2 compatibility
-  routing.
+  208/208, full B1 161/161, and the full suite 239/239. At that certification
+  cut point the coordinator was the sole new production file and no runtime
+  module imported it; A2 now adopts it beneath the private legacy router.
+  Protected B1 files remain byte-identical to `616c60b`; the sole coexistence-
+  test change is the separately reviewed A1-isolated source classification.
+  A1 itself did not close a CDX durable bypass, prove native transaction
+  identity, define trusted authority/canonical operations/B2, complete parent
+  M2, or authorize provider, spend, benchmark, publication, or sealed-U8 work.
+  CDX-M1 stayed authoritative; exact B1 stayed unchanged/non-authoritative; the
+  next unit at that cut point was M2-A2 compatibility routing.
 - 2026-07-21 (V2-M2-A2 pre-implementation boundary, after complete mutation
   and producer recon) **A2 is a five-intent/eight-effect compatibility router,
   not a canonical patch layer.** The complete baseline graph contains more
@@ -259,3 +260,32 @@ dates. Agents record; the founder decides.
   map-or-refuse. CDX-M1 remains runtime/read authority, exact B1 remains
   unchanged/non-authoritative, and no provider, sealed U8, spend, dataset,
   result, or publication action is authorized.
+- 2026-07-21 (V2-M2-A2 certification; implementation `e6bbc51`; hardening
+  `d419fef`; three fresh independent final audit disciplines) **The supported
+  in-file CDX-M1 raw writer graph is closed as a bounded legacy compatibility
+  layer, not as canonical one-gate conformance.** Exactly five legacy intents
+  resolve after A1 `BEGIN IMMEDIATE` to plans containing only eight
+  lease-checked CDX effects. Safe base/gated handles expose no raw connection
+  or child semantic writer; the module-constructed frozen manager returns only
+  branded gated handles; all supported extraction, summary, scheduler,
+  adapter, recall, ownership, topic, and lifecycle producers are structurally
+  bound to that route. CDX-M0/M1 schema completion plus the exact runtime
+  manifest occur before handle publication. Terminal whole-file deletion stays
+  outside the router as a canonical-path-serialized, zero-live-handle storage
+  operation; under the current same-file premise M2-B must refuse it unless a
+  separately reviewed external authority/receipt substrate is authorized.
+  Signed finite zero is canonicalized to numeric `+0` before plans are
+  materialized so immediate public rows equal SQLite projections. On exact
+  Node 22.22.2 / SQLite 3.51.2, router+routing pass 63/63, the manifest matrix
+  97/97, all B1 tests 164/164, pre-A2 regressions 272/272, the full suite
+  432/432, and the static M2-A2-07 audit 3/3, all with zero failures.
+  `docs/MEMORY-BUNDLE-CONTRACT.md`, all seven `src/memory-bundle*.mjs`
+  production modules, and the quarantined `src/memory-store.mjs` remain byte-
+  identical to `1d65bb0`; separately changed B1 test harnesses were reviewed
+  and pass. The final reviews left no unresolved blocker or major. This does
+  not authenticate callers, repair legacy semantics, define canonical patches
+  or a trusted authority root, add B2 decisions/journaling/co-commit, make B1
+  authoritative, govern terminal deletion, complete parent M2, or authorize a
+  provider, sealed U8 question, spend, dataset, result, publication, or
+  announcement. CDX-M1 remains runtime/read authority; exact B1 remains
+  unchanged and non-authoritative; Next is M2-B contract work.

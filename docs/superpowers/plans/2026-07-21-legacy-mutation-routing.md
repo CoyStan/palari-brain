@@ -113,28 +113,28 @@ A2 and parent M2 remains unchecked.
 
 ### M2-A2-01 RED
 
-- [ ] Assert the router module namespace is exactly the five contract exports,
+- [x] Assert the router module namespace is exactly the five contract exports,
   including `LegacyMutationError`.
-- [ ] Assert frozen exact five-intent/eight-effect arrays and reject unknown
+- [x] Assert frozen exact five-intent/eight-effect arrays and reject unknown
   values without database work.
-- [ ] Assert every canonical captured intent envelope/nested record has the
+- [x] Assert every canonical captured intent envelope/nested record has the
   exact contract keys/order/scalars and ignores no undocumented field.
-- [ ] Pin public proposal structure/admission: undefined versus null proposal;
+- [x] Pin public proposal structure/admission: undefined versus null proposal;
   own-data ordinary nested records; Proxy/known-accessor/inherited/extra
   fields; kind-before-op-before-container precedence; omitted/undefined op →
   add but null → invalid_op; prototype-collision kinds → invalid_kind; raw
   truthiness/set membership for writer/source/event/extractor; null nested
   containers; and exact reason order.
-- [ ] Assert a frozen exact `{apply, capture, execute, resolve}` router whose
+- [x] Assert a frozen exact `{apply, capture, execute, resolve}` router whose
   captured intents precede transaction entry and whose plans are deep-frozen,
   opaque to callers, lease/database bound, single-use, and stale after callback
   completion.
-- [ ] Prove all caller conversion/clock work occurs before coordinator entry,
+- [x] Prove all caller conversion/clock work occurs before coordinator entry,
   `resolve` performs no semantic DML or caller callback, and `apply` performs
   no read, clock, randomness, policy, or transaction control.
-- [ ] Prove the direct internal effect applier rejects unknown/stale/wrong-db
+- [x] Prove the direct internal effect applier rejects unknown/stale/wrong-db
   leases and applies every exact effect under a valid lease.
-- [ ] Pin every A2 error code/message/descriptor and cross-check its exact
+- [x] Pin every A2 error code/message/descriptor and cross-check its exact
   precedence against A1 lease/rollback/cleanup failures.
 
 ```bash
@@ -146,21 +146,21 @@ Expected RED: module missing.
 
 ### M2-A2-01 GREEN
 
-- [ ] Capture native construction/open/close/prepare plus statement
+- [x] Capture native construction/open/close/prepare plus statement
   get/all/run/row-mode dispatch and every required primordial at module
   evaluation; instrument both resolver reads and applier writes before import,
   then prove post-import prototype/instance tampering cannot redirect them.
-- [ ] Use the unchanged A1 coordinator as the sole semantic outer owner; the
+- [x] Use the unchanged A1 coordinator as the sole semantic outer owner; the
   private pre-handle bootstrap transaction is separately classified.
-- [ ] Implement module-owned intent capture before transaction entry and the
+- [x] Implement module-owned intent capture before transaction entry and the
   module-owned read-only resolver—no supplied planner callback—plus plan
   validation/branding/deep freeze, exact ordered apply, and result exposure
   after commit.
-- [ ] Invoke caller clocks only during capture, recheck store liveness after
+- [x] Invoke caller clocks only during capture, recheck store liveness after
   them, and use only module-captured native `randomUUID` during resolution for
   a blank memory ID; no injectable ID callback enters the transaction.
-- [ ] Keep all B1/B2 concepts absent.
-- [ ] Run focused tests and inspect exact namespaces.
+- [x] Keep all B1/B2 concepts absent.
+- [x] Run focused tests and inspect exact namespaces.
 
 ---
 
@@ -168,19 +168,19 @@ Expected RED: module missing.
 
 ### M2-A2-02 RED
 
-- [ ] Add golden fixtures for candidate insert, duplicate bump, supersede,
+- [x] Add golden fixtures for candidate insert, duplicate bump, supersede,
   end-validity, delete-transient, share, and direct delete against baseline
   `1d65bb0` results/data.
-- [ ] Pin the intentional deltas: source metadata in insert, one captured time
+- [x] Pin the intentional deltas: source metadata in insert, one captured time
   and IDs, deterministic ID tie-break, and all-or-nothing supersession.
-- [ ] Golden-test demote actor derivation as exact
+- [x] Golden-test demote actor derivation as exact
   `provenance.actor ?? provenance.writer`, including null fallback and empty-
   string non-fallback, before target resolution.
-- [ ] Golden-test target-consuming proposal capture as
+- [x] Golden-test target-consuming proposal capture as
   `String(target ?? '').trim()` after pure admission and before clock/BEGIN,
   including padded string, number, BigInt, Buffer, throwing coercion, empty
   `missing_target`, and ignored add/extraction target cases.
-- [ ] Golden-test every row-normalization field and precedence: writer-derived
+- [x] Golden-test every row-normalization field and precedence: writer-derived
   acquisition/pipeline values, add-only source-message fallback/external
   keyword marker and its pre-stringification truthiness filter (including
   `[0,false,'x']`) versus user-message add/undecorated supersession, caller
@@ -191,7 +191,7 @@ Expected RED: module missing.
   candidate without running the insert-only nonempty-content check. Prove a
   non-string supplied hash is captured without retaining caller data, is
   ignored by a duplicate bump, and rejects an insert/supersede before DML.
-- [ ] Prove one-time eager capture/coercion and reuse for stateful/throwing ID,
+- [x] Prove one-time eager capture/coercion and reuse for stateful/throwing ID,
   keywords, importance, confidence, acquisition, time, and source fields;
   confidence is coerced once at its admission position even after earlier
   reasons. Distinguish eager detachment from deferred nonempty-content/
@@ -199,37 +199,37 @@ Expected RED: module missing.
   combine stateful/throwing row, provenance, scope-Palari, scope-user, and
   clock values to prove row/provenance → scope Palari → scope user → target →
   clock precedence.
-- [ ] Assert every insert and mutation-result memory uses the exact canonical
+- [x] Assert every insert and mutation-result memory uses the exact canonical
   22-key order and primitive/null types regardless of physical schema variant;
   `superseded`/delete rows are pre-update/pre-delete snapshots.
-- [ ] Assert exact own-key order/mutability for every result family and touched
+- [x] Assert exact own-key order/mutability for every result family and touched
   entry, sync store/gate close, async manager close, and successful file-delete
   result.
-- [ ] Require target/duplicate/contradiction resolution only after
+- [x] Require target/duplicate/contradiction resolution only after
   `BEGIN IMMEDIATE` and prove competing writers cannot stale the plan.
-- [ ] Pin the internal proposal discriminator: explicit proposals preserve
+- [x] Pin the internal proposal discriminator: explicit proposals preserve
   caller add/supersede; extraction candidates resolve contradiction first,
   then duplicate, then insert, with the contract's full comparator chains.
-- [ ] Golden-test explicit scope as ignored/null and extraction scope as
+- [x] Golden-test explicit scope as ignored/null and extraction scope as
   trimmed `String(palariId)` plus untrimmed `String(userId)`, including padded,
   non-string, throwing, and separately trimmed stored-row user values.
-- [ ] Fail every supersession effect ordinal and prove old/new memory, FTS, and
+- [x] Fail every supersession effect ordinal and prove old/new memory, FTS, and
   link state all roll back.
-- [ ] Prove a provenance/constraint failure cannot leave a committed
+- [x] Prove a provenance/constraint failure cannot leave a committed
   provenance-null insert or supersession.
-- [ ] Require `changes === 1` for every planned insert/update/delete/link
+- [x] Require `changes === 1` for every planned insert/update/delete/link
   effect; zero or multiple changes produce `legacy_effect_cardinality` and
   roll back the complete call.
 
 ### M2-A2-02 GREEN
 
-- [ ] Convert insert normalization to produce a complete CDX-M1 row without
+- [x] Convert insert normalization to produce a complete CDX-M1 row without
   issuing SQL.
-- [ ] Move exact baseline duplicate and contradiction heuristics into
+- [x] Move exact baseline duplicate and contradiction heuristics into
   transaction-time read-only resolution; add only the pinned ID tie-break.
-- [ ] Replace nested supersession control with three ordered effects.
-- [ ] Preserve pure admission reason ordering and public result shapes.
-- [ ] Remove gate DML and post-write provenance stamping.
+- [x] Replace nested supersession control with three ordered effects.
+- [x] Preserve pure admission reason ordering and public result shapes.
+- [x] Remove gate DML and post-write provenance stamping.
 
 ---
 
@@ -237,45 +237,45 @@ Expected RED: module missing.
 
 ### M2-A2-03 RED
 
-- [ ] Topic forget selects one scoped snapshot, orders actual delete targets by
+- [x] Topic forget selects one scoped snapshot, orders actual delete targets by
   binary ID, reports only landed IDs, terminates on protected rows, and is
   atomic beyond 100 matches.
-- [ ] Pin direct-delete actor → ID and topic actor → query → Palari → user
+- [x] Pin direct-delete actor → ID and topic actor → query → Palari → user
   capture/throw precedence, including invalid actor before empty/no-match and
   empty direct ID → in-transaction `not_found`.
-- [ ] Pin topic capture to direct trimmed FTS `MATCH` syntax—not keyword
+- [x] Pin topic capture to direct trimmed FTS `MATCH` syntax—not keyword
   extraction—and prove malformed FTS syntax fails natively with zero change.
-- [ ] Recall inclusion deduplicates in first-occurrence order, uses one time,
+- [x] Recall inclusion deduplicates in first-occurrence order, uses one time,
   applies touch then importance per existing ID, and is atomic.
-- [ ] Pin recall-inclusion capture precedence actor → bump → ID list → optional
+- [x] Pin recall-inclusion capture precedence actor → bump → ID list → optional
   clock, including null/undefined/nonfinite/throwing bump, scalar/sparse/
   duplicate/throwing IDs, empty no-clock/no-BEGIN, clock throw, and liveness
   recheck.
-- [ ] Seed `access_count=Number.MAX_SAFE_INTEGER`: planner throws the exact
+- [x] Seed `access_count=Number.MAX_SAFE_INTEGER`: planner throws the exact
   pre-DML RangeError and rolls back the whole inclusion list; direct touch's
   guarded zero-cardinality path is `legacy_effect_cardinality`. Prove
   `MAX_SAFE_INTEGER-1` increments safely.
-- [ ] Lifecycle orders by creation time then ID, preserves current window and
+- [x] Lifecycle orders by creation time then ID, preserves current window and
   decay/delete thresholds, returns the current summary, and is atomic.
-- [ ] Pin lifecycle scope: a nonempty Palari filters by exact equality, while
+- [x] Pin lifecycle scope: a nonempty Palari filters by exact equality, while
   empty Palari sweeps current transient rows across all Palari; test both and
   classify the unsafe empty-scope branch for M2-B map-or-refuse.
-- [ ] Pin recall/lifecycle time behavior: empty-scope recall skips `now`;
+- [x] Pin recall/lifecycle time behavior: empty-scope recall skips `now`;
   otherwise omitted versus explicit/null, one wall/store clock respectively,
   caller-throw identity, exact invalid-time RangeError before DB/BEGIN, finite
   activation formula, lifecycle Palari-before-clock capture, invalid row time
   →365 days, future clamp, `/14` floor, 0.1 decay, and `<=0.1` delete.
-- [ ] At each effect ordinal, a deterministic SQLite failure leaves all
+- [x] At each effect ordinal, a deterministic SQLite failure leaves all
   relevant rows/FTS/links/telemetry/lifecycle columns at the pre-call snapshot.
-- [ ] Another connection observes no partial batch and cannot race target
+- [x] Another connection observes no partial batch and cannot race target
   selection after `BEGIN IMMEDIATE`.
 
 ### M2-A2-03 GREEN
 
-- [ ] Implement all three read-only planners and exact effect sequences without
+- [x] Implement all three read-only planners and exact effect sequences without
   calling any public mutation method.
-- [ ] Retire raw bump/touch/delete loops and the store wrapper's topic loop.
-- [ ] Keep lifecycle's auto-delete behavior explicitly legacy; do not repair it
+- [x] Retire raw bump/touch/delete loops and the store wrapper's topic loop.
+- [x] Keep lifecycle's auto-delete behavior explicitly legacy; do not repair it
   into canonical semantics in A2.
 
 ---
@@ -284,34 +284,34 @@ Expected RED: module missing.
 
 ### M2-A2-04 RED
 
-- [ ] Assert exact enabled/disabled base and gated own-key sets, no symbols,
+- [x] Assert exact enabled/disabled base and gated own-key sets, no symbols,
   frozen descriptors, module brands, close/stale behavior, and no `db`, schema,
   router, lease, plan, or raw mutation capability.
-- [ ] Reject raw/duck/proxy/spoof base stores in gate creation before mutation.
-- [ ] Prove mutable exported compatibility collections cannot change runtime
+- [x] Reject raw/duck/proxy/spoof base stores in gate creation before mutation.
+- [x] Prove mutable exported compatibility collections cannot change runtime
   type/writer/actor/source admission and mutable policy inputs are snapshotted.
-- [ ] Pin policy capture: null/undefined defaults; trap-free Proxy/wrong-type
+- [x] Pin policy capture: null/undefined defaults; trap-free Proxy/wrong-type
   rejection; known enumerable own values read/Number-coerced once in canonical
   order; absent versus own-undefined; accessor throw identity; ignored
   inherited/non-enumerable/extra/symbol getters; boolean/string/BigInt/null,
   NaN/infinity, strict-order, exact error, exact ordered defaults
   `{demote:0,promote:0.25,permanent:0.6,ratify:0.75}`, four-key numeric freeze,
   and no `[0,1]` bound.
-- [ ] Prove CDX-M0 and CDX-M1 bootstrap completes before a handle returns and
+- [x] Prove CDX-M0 and CDX-M1 bootstrap completes before a handle returns and
   no public reinitialize/migration method exists.
-- [ ] Pin all three legitimate historical `memories` physical-column orders
+- [x] Pin all three legitimate historical `memories` physical-column orders
   while projecting the same exact 22-key public row order; reject every other
   column/constraint variant and every case-variant CDX object.
-- [ ] Verify exact tables, FTS5/shadows/config, indexes/autoindexes, trigger
+- [x] Verify exact tables, FTS5/shadows/config, indexes/autoindexes, trigger
   bodies, link FKs, migration rows, connection PRAGMAs, quick/FK checks, FTS
   row parity, and rollback-scoped FTS integrity. Reject every TEMP trigger,
   unknown main triggers except exact schema-constant-verified B1 triples,
   extra CDX indexes, and any external FK into CDX.
-- [ ] Reject every existing non-STRICT memory/link row whose SQLite
+- [x] Reject every existing non-STRICT memory/link row whose SQLite
   type/domain violates the exact public row law, including null text PKs,
   text/nonfinite numbers, and negative/unsafe access counts; prove supplied
   mismatching content hashes remain accepted and explicitly classified.
-- [ ] Inject failure at every post-open bootstrap stage: the private bootstrap
+- [x] Inject failure at every post-open bootstrap stage: the private bootstrap
   transaction rolls back iff post-failure state proves it active, captured
   native close runs exactly once, no handle escapes, detected oracle mismatch
   is `legacy_schema_invalid`, operational native errors retain identity,
@@ -326,27 +326,27 @@ Expected RED: module missing.
   coordinator/router/registry/handle construction throw after proven commit;
   assert the exact no-rollback, rollback, close-once, aggregate-order, and
   poison branches.
-- [ ] Prove semantic DML cannot run through a base handle.
+- [x] Prove semantic DML cannot run through a base handle.
 
 ### M2-A2-04 GREEN
 
-- [ ] Leave the byte-identical extracted raw factory completely dormant: no
+- [x] Leave the byte-identical extracted raw factory completely dormant: no
   production import or call. Record upstream path/commit/blob, local severed
   blob, every copied runtime/schema/read fragment, and the explicit A2
   divergence ledger.
-- [ ] Construct `DatabaseSync` directly inside the runtime; configure policy,
+- [x] Construct `DatabaseSync` directly inside the runtime; configure policy,
   run module-owned M0/M1 bootstrap plus complete verification in one private
   control-plane transaction, and close/poison deterministically on failure.
-- [ ] Build exact branded safe base state around the hidden native connection
+- [x] Build exact branded safe base state around the hidden native connection
   and router, with all reads using captured dispatch and explicit row shapes.
-- [ ] Golden-test exact get/list 22-key rows, the baseline 20-key search row,
+- [x] Golden-test exact get/list 22-key rows, the baseline 20-key search row,
   and canonical-22-plus-five-metadata recall rows across all schema variants.
-- [ ] Normalize disabled stores to the same exact surfaces with deterministic
+- [x] Normalize disabled stores to the same exact surfaces with deterministic
   no-write results.
-- [ ] Close enabled and disabled base/gated handles: enabled calls fail closed,
+- [x] Close enabled and disabled base/gated handles: enabled calls fail closed,
   while disabled calls remain deterministic inert results before input and
   only status changes to `closed`; manager close precedence remains separate.
-- [ ] Build gate state only from a valid base brand and route all mutation
+- [x] Build gate state only from a valid base brand and route all mutation
   methods to the exact intent union.
 
 ---
@@ -355,29 +355,29 @@ Expected RED: module missing.
 
 ### M2-A2-05 RED
 
-- [ ] Raw extraction and session-summary helpers reject arbitrary
+- [x] Raw extraction and session-summary helpers reject arbitrary
   `addMemory`/`supersedeMemory` duck types and accept only a branded gated
   capability.
-- [ ] Pin replacement provenance: extraction takes `extractorId` plus
+- [x] Pin replacement provenance: extraction takes `extractorId` plus
   `turn.eventAt`; summary takes `turn.eventAt`; missing values return the exact
   contract drops/skips rather than inventing identity or time.
-- [ ] Adapter ingest works without a store-shaped shim; extracted contradiction
+- [x] Adapter ingest works without a store-shaped shim; extracted contradiction
   resolution happens in the transaction; event/extractor provenance remains
   complete.
-- [ ] Pin exact extraction return key order and outcome accounting for every
+- [x] Pin exact extraction return key order and outcome accounting for every
   drop/insert/duplicate/supersede/reject branch; rejected contradiction now
   appends `rejected` and continues, while thrown apply failure still rejects
   after prior candidate commits.
-- [ ] Disabled adapter ingest returns a deterministic skip instead of throwing.
-- [ ] Scheduler obtains a gated handle from the manager; raw CDX-M0 manager
+- [x] Disabled adapter ingest returns a deterministic skip instead of throwing.
+- [x] Scheduler obtains a gated handle from the manager; raw CDX-M0 manager
   stores are impossible; summaries obey event-time admission.
-- [ ] Recall inclusion accepts only the branded gated capability.
-- [ ] Pin every session-summary skip as `{reason,sourceBoundary,status}` and
+- [x] Recall inclusion accepts only the branded gated capability.
+- [x] Pin every session-summary skip as `{reason,sourceBoundary,status}` and
   inserted/duplicate/rejected completion as `{outcome,sourceBoundary,status}`;
   reasons remain intentionally deferred to V2-M3 receipts. Separately pin the
   scheduler-disabled synthetic summary as exactly
   `{reason:'session_summary_disabled',status:'skipped'}` without a boundary.
-- [ ] Manager returns exact gated handles, uses one creation flight per
+- [x] Manager returns exact gated handles, uses one creation flight per
   workspace, and closes/revokes every cache entry. Concurrent callers share
   identity; close racing a paused creation waits, closes the late handle, and
   rejects every waiter without allowing a handle to escape. Pause creation at
@@ -389,11 +389,11 @@ Expected RED: module missing.
 
 ### M2-A2-05 GREEN
 
-- [ ] Add internal brand assertions/capabilities with no handle-visible symbol.
-- [ ] Remove the adapter shim and direct extraction store reads used for
+- [x] Add internal brand assertions/capabilities with no handle-visible symbol.
+- [x] Remove the adapter shim and direct extraction store reads used for
   contradiction target selection.
-- [ ] Replace the re-exported raw manager with a path-keyed gated manager.
-- [ ] Preserve per-candidate/per-turn transaction boundaries explicitly.
+- [x] Replace the re-exported raw manager with a path-keyed gated manager.
+- [x] Preserve per-candidate/per-turn transaction boundaries explicitly.
 
 ---
 
@@ -401,49 +401,49 @@ Expected RED: module missing.
 
 ### M2-A2-06 RED
 
-- [ ] Refuse `deleteKernelStoreFile` while any supported base/gated/manager
+- [x] Refuse `deleteKernelStoreFile` while any supported base/gated/manager
   handle for the exact normalized path is live.
-- [ ] Serialize same-path create/create, create/delete, and delete/delete; allow
+- [x] Serialize same-path create/create, create/delete, and delete/delete; allow
   independent paths to proceed independently.
-- [ ] Canonicalize the absolute path through the real parent directory; prove
+- [x] Canonicalize the absolute path through the real parent directory; prove
   relative/absolute and directory-symlink aliases share one queue/live count,
   and reject an existing main-file symlink.
-- [ ] After every handle closes, remove main/WAL/SHM/rollback-journal through
+- [x] After every handle closes, remove main/WAL/SHM/rollback-journal through
   the sole supported door and permit a fresh clean open.
-- [ ] A native close failure revokes the handle but retains the live/blocked
+- [x] A native close failure revokes the handle but retains the live/blocked
   count and makes every alias open/delete fail `legacy_store_open` before
   native construction/removal.
-- [ ] Prove failure makes no SQLite atomicity, receipt, or proof claim and never
+- [x] Prove failure makes no SQLite atomicity, receipt, or proof claim and never
   silently unlinks an open supported workspace.
 
 ### M2-A2-06 GREEN
 
-- [ ] Add a module-private canonical-path operation queue, live-handle count,
+- [x] Add a module-private canonical-path operation queue, live-handle count,
   and poisoned-path state shared by open/close/delete.
-- [ ] Make close idempotent and release exactly once.
-- [ ] Keep file destruction outside the router/coordinator and label it
+- [x] Make close idempotent and release exactly once.
+- [x] Keep file destruction outside the router/coordinator and label it
   terminal storage lifecycle.
 
 ---
 
 ## Task 7 — Close the static matrix and B2 obligations
 
-- [ ] Add a static production audit proving reachable semantic CDX DML on the
+- [x] Add a static production audit proving reachable semantic CDX DML on the
   supported graph exists only in the router child-applier, no production
   module imports the byte-identical extracted file, semantic transaction SQL
   exists only in A1, the separately classified bootstrap transaction/schema/
   FTS-integrity SQL exists only in the runtime, and exact B1 owners remain
   separately allowlisted.
-- [ ] Parse the ESM import/call graph from supported entry points; prove no
+- [x] Parse the ESM import/call graph from supported entry points; prove no
   production path can obtain a raw factory, raw connection, raw method,
   direct effect applier, or arbitrary store-shaped mutation sink. Token `rg`
   checks supplement but do not replace reachability proof. Assert the exact
   23-path production root/module allowlist in contract §10; every new module,
   relative edge outside the allowlist, or import of dormant
   `src/memory-store.mjs` fails closed.
-- [ ] Mechanically map every gated mutation method to one of five intents and
+- [x] Mechanically map every gated mutation method to one of five intents and
   every planner effect to one of eight effects.
-- [ ] Write `docs/LEGACY-MUTATION-B2-OBLIGATIONS.md` with every finite semantic
+- [x] Write `docs/LEGACY-MUTATION-B2-OBLIGATIONS.md` with every finite semantic
   branch pattern generated from the exact ordered dimension key in contract
   §11, mechanically asserting the artifact cannot omit: internal producer
   discriminator; normalized-confidence/selected-threshold relation;
@@ -457,28 +457,28 @@ Expected RED: module missing.
   consequences; batch composition; compatibility flags; or terminal workspace
   destruction.
   Leave governance disposition blank except `M2-B MUST MAP OR REFUSE`.
-- [ ] Mark terminal destruction as `M2-B MUST REFUSE` under the current
+- [x] Mark terminal destruction as `M2-B MUST REFUSE` under the current
   same-file B2 premise unless a separately reviewed external authority/receipt
   substrate is explicitly authorized.
-- [ ] Rework test inspection through independent test-owned connections where
+- [x] Rework test inspection through independent test-owned connections where
   needed; do not reintroduce production accessors.
 
 ---
 
 ## Task 8 — Certify A2 without completing M2
 
-- [ ] Run exact runtime probes, focused router/routing tests, all B1 tests,
+- [x] Run exact runtime probes, focused router/routing tests, all B1 tests,
   pre-A2 regression tests, and full suite; record totals and zero failures.
-- [ ] Verify B1 production and `docs/MEMORY-BUNDLE-CONTRACT.md` are byte
+- [x] Verify B1 production and `docs/MEMORY-BUNDLE-CONTRACT.md` are byte
   identical to `1d65bb0`; also verify `src/memory-store.mjs` byte-identical to
   `1d65bb0`; review any B1/test-harness diff separately.
-- [ ] Review every production `INSERT|UPDATE|DELETE`, `BEGIN|COMMIT|ROLLBACK`,
+- [x] Review every production `INSERT|UPDATE|DELETE`, `BEGIN|COMMIT|ROLLBACK`,
   native construction/connection access, bootstrap verification command, and
   returned handle key.
-- [ ] Obtain three fresh independent read-only audits: matrix/surface closure,
+- [x] Obtain three fresh independent read-only audits: matrix/surface closure,
   transaction/SQLite/failure law, and spec/claim boundary. Resolve every
   blocker and major.
-- [ ] Update STATUS and linked docs with bounded evidence. Check only A2; leave
+- [x] Update STATUS and linked docs with bounded evidence. Check only A2; leave
   parent M2 unchecked and set Next to M2-B contract work.
 - [ ] Commit and push coherent implementation/certification cut points, then
   fast-forward and push main under the charter.
