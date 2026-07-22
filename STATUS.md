@@ -15,21 +15,30 @@ evals/results/.
 
 ## Unit queue
 
-- [ ] J1 — Journey bank. 10-20 concrete assistant-memory journeys as
-  fixtures: ordinary preferences, corrections, forgetting,
-  conflicting facts, two-user isolation, and at least one
-  untrusted-document case. Deliverables: evals/journeys.json plus a
-  short doc naming the scoring dimensions (answer usefulness,
-  wrong-memory rate, correction behavior, isolation, injection
-  resistance, integration effort, latency, inspectability).
-  Completion test: a loader validates every journey against a fixed
-  schema. FOUNDER reviews the bank before J2 begins.
-- [ ] J2 — Bake-off harness, dry. Run the journey bank end to end
-  against this kernel with deterministic stubs; prepare at least one
-  established framework (Mem0 first; Graphiti if temporal journeys
-  demand it) behind the same interface, mocked, no network, no new
-  production dependencies in the kernel itself. Completion test:
-  paired dry runs emit one comparable report per arm.
+Continuation is contracted: BAKEOFF-CONTRACT.md (founder-ratified
+2026-07-22) carries the executable task list for finishing J1/J2;
+the founder review of the bank rides the J3 gate (founder decision
+in session, since the seed bank was authored in the direction-review
+session itself).
+
+- [~] J1 — Journey bank. SEEDED 2026-07-22 (direction-review
+  session): evals/journey-bank.mjs (schema+loader), evals/harness.mjs
+  (arm interface + runner + written-count vacuity guard),
+  evals/arms/kernel-arm.mjs (reference arm), evals/journeys.json
+  (11 journeys, 17 probes, all expectTotalWritten pinned),
+  tests/journeys.contract.test.mjs (baseline PINNED: 26/28 graded
+  checks pass, exactly 2 findings, both predicted BEFORE first run
+  and confirmed by it: correction-espresso-04:p2 temporal-history
+  gap; conflict-cities-05:p2 un-cued conflicting re-assertions both
+  briefed). Suite 51/51; `npm run bakeoff` exit 0. REMAINING (per
+  BAKEOFF-CONTRACT J1.1-J1.2): extend to 16 journeys, re-pin,
+  docs/JOURNEY-BANK.md.
+- [ ] J2 — Bake-off harness completion, dry (per BAKEOFF-CONTRACT
+  J2.1-J2.4): ungoverned-baseline contrast arm with pinned leak
+  results, docs/BAKEOFF-J3-PREP.md + DRAFT predictions file,
+  markdown report renderer writing to gitignored evals/results/,
+  README + STATUS close-out. No live calls, no dependencies, src/
+  frozen.
 - [ ] J3 — FOUNDER GATE: live bake-off runs. Small spend, all arms,
   pre-registered predictions appended to evals/predictions.md first.
   Prepared by the agent; executed only on an explicit founder GO.
@@ -45,3 +54,7 @@ kernel, archived the v2 machinery at v2-proof-archive, added
 src/index.mjs + examples/quickstart.mjs + the surface test; suite
 48/48; quickstart green. Pre-trim history and the full v2 log:
 `git log v2-proof-archive`.
+2026-07-22 — J1 seed — this commit — Journey bank schema, harness,
+kernel reference arm, 11 journeys; baseline pinned 26/28 with 2
+predicted-and-confirmed findings; 51/51 green; continuation handed
+to BAKEOFF-CONTRACT.md.
