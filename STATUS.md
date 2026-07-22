@@ -1,15 +1,14 @@
 # STATUS — single source of truth for the loop
 
-Loop state: RUNNING
+Loop state: FOUNDER GATE — DIRECTION REVIEW
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M3 — GATE REPAIR + CANDIDATE RECEIPTS. Implement strict extraction
-schema, keep authority fields outside model control, type assistant evidence,
-widen ordinary-user evidence coverage without weakening the injection
-boundary, repair governed supersession semantics, and make every candidate
-outcome observable. Follow STATUS order and the source-of-truth hierarchy;
-do not treat completed V2-M2 refusal behavior as permission to invent an
-operation or authority constant. CDX-M1 remains runtime/read authority and
-exact B1 remains unchanged/non-authoritative.
+Next: FOUNDER DECISION — do not resume V2-M3 or later v2 units automatically.
+The founder requested a candid direction review after determining that the
+repository had become overbuilt relative to the original goal of giving a
+chatbot better memory. Read `WE-MESSED-UP.md`. Preserve the current coherent
+V2-M2 cut point. Resume the existing roadmap only on an explicit founder
+decision; otherwise the proposed next work is a small, product-led comparison
+of existing memory systems against concrete assistant journeys.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish without a
@@ -491,3 +490,7 @@ A1/A2 195/195, B1 164/164, product 77/77, and full 673/673 PASS on Node
 reviews found zero blockers/majors. Parent M2 is complete, Next is V2-M3,
 CDX-M1 remains runtime/read authority, exact B1 remains non-authoritative, and
 U8 remains sealed.
+2026-07-22 — DIRECTION REVIEW — this commit — Founder requested a public,
+candid postmortem after reviewing whether the repository solves the original
+better-memory-assistant need. Autonomous V2-M3+ work is paused at the coherent
+`59b9367` cut point pending an explicit direction decision; U8 remains sealed.

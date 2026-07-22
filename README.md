@@ -1,19 +1,24 @@
 # Palari Brain
 
-The governed memory kernel of Palari, extracted as a standalone,
-testable system — with one public objective:
+> **Direction review, July 22, 2026:** We overbuilt this project relative to
+> the original goal of giving a chatbot better memory. Read the candid
+> postmortem: **[We Messed This Up Big](WE-MESSED-UP.md)**.
+
+The governed memory kernel of Palari was extracted as a standalone, testable
+system. The repository was created with one public objective:
 
 > **Score governed memory on LongMemEval, honestly, and extend the
 > benchmark with the safety section it lacks.**
 
-Status: seed stage. An autonomous agent works this repo unit by unit
-(see `AGENTS.md` and `STATUS.md`). Nothing here is published as a
+Status: founder direction review. Autonomous implementation is paused at a
+coherent cut point while the project is compared with the original product
+goal (see `WE-MESSED-UP.md` and `STATUS.md`). Nothing here is published as a
 result until the founder gates it.
 
 ## What "governed memory" means
 
-Most agent-memory frameworks auto-retain every exchange and invisibly
-inject recall. Palari's kernel deliberately does not:
+Some simple agent-memory integrations automatically retain exchanges and
+inject recalled text. Palari's kernel deliberately takes a stricter approach:
 
 - **One gate (governing law; bounded M2 falsifier complete).** Every durable
   memory mutation must arrive as a typed proposal through Admit → Resolve
@@ -36,10 +41,12 @@ inject recall. Palari's kernel deliberately does not:
 - **Honest absence.** "I don't have a memory of that" is a scored,
   first-class answer.
 
-The bet this repo exists to measure: governance costs some raw recall
-and wins on knowledge-updates, abstention, and injection resistance.
-LongMemEval scores the first three. Nobody scores the fourth — so we
-will write that section and contribute it.
+The original research bet was that governance costs some raw recall and wins
+on knowledge-updates, abstention, and injection resistance. LongMemEval scores
+the first three; the proposed extension would score the fourth. The current
+direction review asks whether pursuing that research bet serves the original
+assistant product goal. No extension work is authorized while that gate is
+open.
 
 ## The wider Palari system
 
@@ -62,10 +69,11 @@ data/       (gitignored) benchmark datasets — never committed
 
 ## The v2.0 architecture
 
-The north-star design — memory engines as swappable, certified
-commodities under a governed journal — lives in
+The v2 design — memory engines as swappable, certified commodities under a
+governed journal — remains documented in
 [docs/PALARI-V2-ARCHITECTURE.md](docs/PALARI-V2-ARCHITECTURE.md).
-It guides all future units here.
+It does not authorize further implementation while the founder direction gate
+in `STATUS.md` is unresolved.
 
 ## Ground rules
 
