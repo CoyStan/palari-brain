@@ -1,4 +1,4 @@
-// V2-M2-A2 CDX-M1 native runtime.
+// V2-M2-B governed CDX-M1 native runtime.
 //
 // Copied behavior is traced to
 // apps/palari-local-workbench/scripts/workspace-backend/memory-store.mjs at
@@ -6,17 +6,16 @@
 // 4f67d0fe96dd), severed locally at 1d65bb0 (blob
 // 64e647232facc8682c86386cf9d98770193416e2). Copied regions are the CDX-M0
 // schema, workspace/config normalization, FTS/read paths, recall ranking, and
-// query helpers. Intentional A2 deltas: this module constructs DatabaseSync
-// directly, completes CDX-M1 before publication, verifies the closed
-// CDX-M1-runtime@1 manifest, captures native dispatch, exposes branded reads
-// only, delegates all semantic DML to the legacy router, and serializes
-// terminal file deletion. M2-B Task 3 adds only the exact reviewed CDX-B2
-// object/trigger allowlist so a historical opener reaches—and rejects—the
-// intentional third migration row; it does not bootstrap or use B2. The
-// extracted src/memory-store.mjs is never imported and remains dormant
-// provenance evidence.
+// query helpers. Intentional A2 deltas: this module constructs
+// DatabaseSync directly, completes CDX-M1 before publication, verifies the
+// closed CDX-M1-runtime@1 manifest, captures native dispatch, and exposes
+// branded reads only. M2-B constructs the governed bridge, bootstraps and
+// verifies B2 before handle publication, routes the one supported ratified
+// erasure through it, refuses every other semantic route, and refuses terminal
+// storage deletion. The extracted src/memory-store.mjs is never imported and
+// remains dormant provenance evidence.
 
-import { mkdir, lstat, realpath, rm } from 'node:fs/promises'
+import { mkdir, lstat, realpath } from 'node:fs/promises'
 import { constants as fsConstants } from 'node:fs'
 import { basename, dirname, resolve } from 'node:path'
 import { performance } from 'node:perf_hooks'
@@ -33,9 +32,15 @@ import {
   normalizeMemoryBundleSql,
 } from './memory-bundle-schema.mjs'
 import {
-  createLegacyMutationRouter,
   LegacyMutationError,
 } from './legacy-mutation-router.mjs'
+import {
+  createGovernedMemoryBridge,
+  GovernedMemoryError,
+} from './governed-memory-bridge.mjs'
+import {
+  preflightMemoryAuthorityRoot,
+} from './memory-authority-runtime.mjs'
 
 const reflectApply = Reflect.apply
 const reflectConstruct = Reflect.construct
@@ -65,6 +70,7 @@ const objectGetPrototypeOf = Object.getPrototypeOf
 const objectHasOwn = Object.hasOwn
 const objectIs = Object.is
 const objectKeys = Object.keys
+const objectPrototype = Object.prototype
 const regexpTest = RegExp.prototype.test
 const setAdd = Set.prototype.add
 const setEntries = Set.prototype.entries
@@ -105,7 +111,6 @@ const nativeString = String
 const fsLstat = lstat
 const fsMkdir = mkdir
 const fsRealpath = realpath
-const fsRm = rm
 const pathBasename = basename
 const pathDirname = dirname
 const pathResolve = resolve
@@ -507,11 +512,13 @@ function captureMemoryPathCandidate(options) {
   if (!statePath && !memoryRootDir) throw invalidPath()
 
   try {
-    return pathResolve(workspaceMemoryDbPath({
+    const workspaceId = normalizeWorkspaceId(options.workspaceId)
+    const candidate = pathResolve(workspaceMemoryDbPath({
       memoryRootDir,
       statePath,
-      workspaceId: options.workspaceId,
+      workspaceId,
     }))
+    return objectFreeze({ candidate, workspaceId })
   } catch (error) {
     throw invalidPath(error)
   }
@@ -1891,15 +1898,28 @@ function cleanupFailedBootstrap(db, owner, primary, entry) {
   throw aggregateErrors(errors)
 }
 
-function bootstrapAndConstruct(dbPath, entry, options, config) {
-  let db
-  const owner = {
-    beginIssued: false,
-    commitProven: false,
-    failureState: null,
-    poison: false,
-    preBeginFailure: true,
+function closeFailedConstruction(db, primary, entry) {
+  try {
+    reflectApply(databaseClose, db, [])
+    if (reflectApply(databaseIsOpen, db, []) !== false) {
+      throw closeStateError()
+    }
+  } catch (closeError) {
+    entry.poisoned = true
+    throw aggregateErrors([primary, closeError])
   }
+  throw primary
+}
+
+function bootstrapAndConstruct(
+  dbPath,
+  entry,
+  config,
+  workspaceId,
+  authorityRoot,
+) {
+  let db
+  let bridge
   try {
     db = reflectConstruct(nativeDatabaseSync, [dbPath])
   } catch (error) {
@@ -1907,26 +1927,12 @@ function bootstrapAndConstruct(dbPath, entry, options, config) {
   }
 
   try {
-    configureConnectionPolicy(db)
-    proveBootstrapState(db, true, false, owner)
-    owner.preBeginFailure = false
-    owner.beginIssued = true
-    execDatabase(db, 'BEGIN IMMEDIATE')
-    proveBootstrapState(db, true, true, owner)
-    verifyBootstrapTriggerPreflight(db)
-    completeSchema(db)
-    verifyRuntimeManifest(db)
-    proveBootstrapState(db, true, true, owner)
-    execDatabase(db, 'COMMIT')
-    proveBootstrapState(db, true, false, owner)
-    owner.commitProven = true
-
-    const userClock = options.clock
-    const router = createLegacyMutationRouter(
-      db,
-      userClock === undefined ? {} : { clock: userClock },
-    )
+    bridge = createGovernedMemoryBridge(db, {
+      workspaceId,
+      authorityRoot,
+    })
     const state = {
+      bridge,
       closed: false,
       config,
       db,
@@ -1940,14 +1946,14 @@ function bootstrapAndConstruct(dbPath, entry, options, config) {
         status: 'available',
         tokenizer: memoryFtsTokenizer,
       }),
-      router,
     }
     const handle = createBaseHandle(state)
     state.handle = handle
     entry.liveCount += 1
     return handle
   } catch (primary) {
-    cleanupFailedBootstrap(db, owner, primary, entry)
+    if (bridge !== undefined) bridge.close()
+    closeFailedConstruction(db, primary, entry)
   }
 }
 
@@ -2024,6 +2030,7 @@ function closeBaseState(state) {
   if (!state.enabled) return
   let closed = false
   try {
+    state.bridge.close()
     reflectApply(databaseClose, state.db, [])
     const open = reflectApply(databaseIsOpen, state.db, [])
     if (open !== false) throw closeStateError()
@@ -2466,6 +2473,7 @@ function createBaseHandle(state) {
 
 function disabledBaseHandle(config) {
   const state = {
+    bridge: null,
     closed: false,
     config,
     db: null,
@@ -2473,19 +2481,54 @@ function disabledBaseHandle(config) {
     enabled: false,
     entry: null,
     probe: null,
-    router: null,
   }
   const handle = createBaseHandle(state)
   state.handle = handle
   return handle
 }
 
-export function executeLegacyStoreIntent(base, intent) {
+function governedInvalidArgument() {
+  return reflectConstruct(GovernedMemoryError, [
+    'governance_invalid_argument',
+    'A valid governed memory argument is required.',
+  ])
+}
+
+function captureGovernedDeleteInput(input) {
+  if (
+    input === null ||
+    typeof input !== 'object' ||
+    reflectApply(isProxy, undefined, [input])
+  ) throw governedInvalidArgument()
+  const prototype = reflectApply(objectGetPrototypeOf, undefined, [input])
+  if (prototype !== objectPrototype && prototype !== null) {
+    throw governedInvalidArgument()
+  }
+  const keys = reflectApply(reflectOwnKeys, undefined, [input])
+  const expected = ['id', 'options', 'authorityGrant']
+  if (keys.length !== expected.length) throw governedInvalidArgument()
+  const values = []
+  for (let index = 0; index < expected.length; index += 1) {
+    if (keys[index] !== expected[index]) throw governedInvalidArgument()
+    const descriptor = reflectGetOwnPropertyDescriptor(input, expected[index])
+    if (descriptor === undefined || !objectHasOwn(descriptor, 'value')) {
+      throw governedInvalidArgument()
+    }
+    appendValue(values, descriptor.value)
+  }
+  return values
+}
+
+export function executeGovernedStoreIntent(base, routeKind, input) {
   const state = requireBaseState(base)
   if (!state.enabled || state.closed) throw storeClosedFailure()
-  const captured = state.router.capture(intent)
   assertEnabledOpen(state)
-  return state.router.execute(captured)
+  if (routeKind === 'legacy_delete_memory') {
+    const values = captureGovernedDeleteInput(input)
+    return state.bridge.erase(values[0], values[1], values[2])
+  }
+  if (input !== undefined) throw governedInvalidArgument()
+  return state.bridge.refuse(routeKind)
 }
 
 function captureStoreOptions(options) {
@@ -2510,33 +2553,42 @@ export async function createKernelStoreRuntime(options = {}) {
   const captured = captureStoreOptions(options)
   const config = resolveMemoryConfig(captured)
   if (!config.enabled) return disabledBaseHandle(config)
-  const candidate = captureMemoryPathCandidate(captured)
+  const pathCandidate = captureMemoryPathCandidate(captured)
+  const { candidate, workspaceId } = pathCandidate
+  const source = options ?? {}
+  const authorityDescriptor = reflectGetOwnPropertyDescriptor(
+    source,
+    'authorityRoot',
+  )
+  let authorityRoot
+  if (authorityDescriptor !== undefined) {
+    if (!objectHasOwn(authorityDescriptor, 'value')) {
+      preflightMemoryAuthorityRoot(undefined, workspaceId)
+    }
+    authorityRoot = authorityDescriptor.value
+    if (authorityRoot !== undefined) {
+      preflightMemoryAuthorityRoot(authorityRoot, workspaceId)
+    }
+  }
   const dbPath = await canonicalMemoryPath(candidate)
   const entry = registryEntry(dbPath)
   return queuePathOperation(entry, () => {
     if (entry.poisoned) throw storeOpenFailure()
-    return bootstrapAndConstruct(dbPath, entry, captured, config)
+    return bootstrapAndConstruct(
+      dbPath,
+      entry,
+      config,
+      workspaceId,
+      authorityRoot,
+    )
   })
 }
 
-export async function deleteKernelStoreRuntimeFile(options = {}) {
-  const captured = captureStoreOptions(options)
-  const candidate = captureMemoryPathCandidate(captured)
-  const dbPath = await canonicalMemoryPath(candidate)
-  const entry = registryEntry(dbPath)
-  return queuePathOperation(entry, async () => {
-    if (entry.poisoned || entry.liveCount !== 0) throw storeOpenFailure()
-    const artifacts = [
-      dbPath,
-      `${dbPath}-wal`,
-      `${dbPath}-shm`,
-      `${dbPath}-journal`,
-    ]
-    for (let index = 0; index < artifacts.length; index += 1) {
-      await fsRm(artifacts[index], { force: true })
-    }
-    return { dbPath, removed: true }
-  })
+export async function deleteKernelStoreRuntimeFile() {
+  throw reflectConstruct(LegacyMutationError, [
+    'legacy_terminal_storage_refused',
+    'Terminal deletion of a governed memory store is refused.',
+  ])
 }
 
 export function probeMemorySqliteDriver() {

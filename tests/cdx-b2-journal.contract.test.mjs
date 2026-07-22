@@ -720,7 +720,7 @@ test('M2-B-03 a forced outer failure rolls back B2 and permitted ordinary M0/M1 
   }
 })
 
-test('M2-B-03 the historical A2 opener rejects the exact three-row migration set', async () => {
+test('M2-B-05 governed runtime accepts the exact three-row set and rejects B2 intruders', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'brain-b2-old-a2-open-'))
   const options = {
     memoryEnabled: true,
@@ -737,7 +737,6 @@ test('M2-B-03 the historical A2 opener rejects the exact three-row migration set
     initial = undefined
 
     db = new DatabaseSync(dbPath)
-    bootstrap(db)
     assert.deepEqual(
       migrationRows(db).map((row) => row.id),
       ['CDX-B2', 'CDX-M0', 'CDX-M1'],
@@ -745,18 +744,9 @@ test('M2-B-03 the historical A2 opener rejects the exact three-row migration set
     db.close()
     db = undefined
 
-    await assert.rejects(
-      createKernelStore(options),
-      (error) => {
-        assert.equal(error?.code, 'legacy_schema_invalid')
-        assert.match(error?.stack ?? '', /\bat verifyMigrations\b/)
-        assert.doesNotMatch(
-          error?.stack ?? '',
-          /\bat verifyLegacyB2AllowlistState\b/,
-        )
-        return true
-      },
-    )
+    initial = await createKernelStore(options)
+    initial.close()
+    initial = undefined
 
     db = new DatabaseSync(dbPath)
     db.exec(`
@@ -768,11 +758,7 @@ test('M2-B-03 the historical A2 opener rejects the exact three-row migration set
     await assert.rejects(
       createKernelStore(options),
       (error) => {
-        assert.equal(error?.code, 'legacy_schema_invalid')
-        assert.match(
-          error?.stack ?? '',
-          /\bat verifyLegacyB2AllowlistState\b/,
-        )
+        assert.equal(error?.code, 'governance_schema_invalid')
         return true
       },
     )
@@ -789,11 +775,7 @@ test('M2-B-03 the historical A2 opener rejects the exact three-row migration set
     await assert.rejects(
       createKernelStore(options),
       (error) => {
-        assert.equal(error?.code, 'legacy_schema_invalid')
-        assert.match(
-          error?.stack ?? '',
-          /\bat verifyLegacyB2AllowlistState\b/,
-        )
+        assert.equal(error?.code, 'governance_schema_invalid')
         return true
       },
     )

@@ -1,8 +1,8 @@
 // CDX-M1 safe store contract after V2-M2-A2 routing.
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, access } from 'node:fs/promises'
-import { join } from 'node:path'
+import { mkdtemp, rm, access, mkdir } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { DatabaseSync } from 'node:sqlite'
 
@@ -12,7 +12,13 @@ import {
   deleteKernelStoreFile,
   permanentMemoryTypes,
   transientMemoryTypes,
+  workspaceMemoryDbPath,
 } from '../src/store.mjs'
+import {
+  seedB2Link,
+  seedB2Memory,
+  seedCdxM1Schema,
+} from './helpers/cdx-b2-fixtures.mjs'
 
 const tempDirs = []
 async function tempDir() {
@@ -27,14 +33,26 @@ after(async () => {
 
 const FIXED_NOW = new Date('2026-07-18T12:00:00.000Z')
 
-async function openStore(workspaceId = 'contract-store') {
+async function openStore(workspaceId = 'contract-store', seed = undefined) {
   const root = await tempDir()
-  const base = await createKernelStore({
+  const options = {
     clock: () => FIXED_NOW,
     memoryEnabled: true,
     statePath: join(root, 'workspace-state.json'),
     workspaceId,
-  })
+  }
+  if (seed !== undefined) {
+    const dbPath = workspaceMemoryDbPath(options)
+    await mkdir(dirname(dbPath), { recursive: true })
+    const db = new DatabaseSync(dbPath)
+    try {
+      seedCdxM1Schema(db, 0, { withRows: false })
+      seed(db)
+    } finally {
+      db.close()
+    }
+  }
+  const base = await createKernelStore(options)
   return { base, gated: createGatedStore(base), root }
 }
 
@@ -75,7 +93,7 @@ async function pathExists(path) {
   }
 }
 
-test('safe base exposes exact read-only surface; gated add lands provenance and hash', async () => {
+test('safe base exposes exact read-only surface; unsupported gated add is refused without a write', async () => {
   const { base, gated } = await openStore()
   assert.deepEqual(Object.keys(base), [
     'close',
@@ -104,18 +122,19 @@ test('safe base exposes exact read-only surface; gated add lands provenance and 
   assert.ok(Object.isFrozen(base))
 
   const result = addFixture(gated)
-  assert.equal(result.outcome, 'inserted')
-  const row = base.getMemoryById(result.memory.id)
-  assert.equal(row.palari_id, 'palari-a')
-  assert.equal(row.user_id, 'user-1')
-  assert.equal(row.type, 'preference')
-  assert.equal(row.acquisition_mode, 'direct')
-  assert.equal(row.created_by_pipeline, 0)
-  assert.equal(row.source_kind, 'user_message')
-  assert.equal(row.extractor, null)
-  assert.ok(row.content_hash)
-  assert.ok(row.valid_from)
-  assert.equal(row.valid_until, null)
+  assert.deepEqual(result, {
+    outcome: 'rejected',
+    reasons: ['governance_refused'],
+  })
+  assert.deepEqual(base.listMemories({ palariId: 'palari-a' }), [])
+  inspectDatabase(base.dbPath, (db) => {
+    assert.equal(db.prepare(
+      'SELECT count(*) AS count FROM main.memories',
+    ).get().count, 0)
+    assert.equal(db.prepare(
+      'SELECT count(*) AS count FROM main.cdx_b2_decisions',
+    ).get().count, 0)
+  })
   gated.close()
 })
 
@@ -128,8 +147,15 @@ test('type partition exports are immutable, disjoint, and cover schema types', (
 })
 
 test('FTS and Palari scope remain exact through safe reads', async () => {
-  const { base, gated } = await openStore()
-  addFixture(gated)
+  const { base, gated } = await openStore('fts-read-scope', (db) => {
+    seedB2Memory(db, {
+      content: 'Quetzali prefers pre-registered predictions before scoring.',
+      id: 'historical_predictions',
+      keywords: 'predictions preregistration',
+      palariId: 'palari-a',
+      userId: 'user-1',
+    })
+  })
   const hits = base.searchMemories('predictions', {
     palariId: 'palari-a',
     userId: 'user-1',
@@ -150,26 +176,27 @@ test('FTS and Palari scope remain exact through safe reads', async () => {
 })
 
 test('user scope preserves own + general + shared and hides other private rows', async () => {
-  const { base, gated } = await openStore()
-  addFixture(gated, {
-    content: 'user-1 private: prefers espresso before analysis.',
-    keywords: ['espresso'],
-  })
-  addFixture(gated, {
-    content: 'general: the workspace tracks espresso stock.',
-    keywords: ['espresso'],
-    user_id: null,
-  })
-  addFixture(gated, {
-    content: 'user-2 shared: espresso machine fixed on Tuesday.',
-    keywords: ['espresso'],
-    shared: true,
-    user_id: 'user-2',
-  })
-  addFixture(gated, {
-    content: 'user-2 private: espresso budget worries.',
-    keywords: ['espresso'],
-    user_id: 'user-2',
+  const { base, gated } = await openStore('historical-user-scope', (db) => {
+    const rows = [
+      ['own-private', 'user-1 private: prefers espresso before analysis.', 'user-1', 0],
+      ['general', 'general: the workspace tracks espresso stock.', null, 0],
+      ['other-shared', 'user-2 shared: espresso machine fixed on Tuesday.', 'user-2', 1],
+      ['other-private', 'user-2 private: espresso budget worries.', 'user-2', 0],
+    ]
+    for (const [id, content, userId, shared] of rows) {
+      seedB2Memory(db, {
+        content,
+        id,
+        keywords: 'espresso',
+        palariId: 'palari-a',
+        shared,
+        userId,
+      })
+      if (userId === null) {
+        db.prepare('UPDATE main.memories SET user_id = NULL WHERE id = ?')
+          .run(id)
+      }
+    }
   })
 
   const rows = base.searchMemories('espresso', {
@@ -181,73 +208,67 @@ test('user scope preserves own + general + shared and hides other private rows',
   gated.close()
 })
 
-test('routed delete removes memory, FTS row, and supersession-link cascade', async () => {
-  const { base, gated } = await openStore()
-  const first = addFixture(gated, {
-    content: 'The first deletion-cascade preference.',
-    id: 'delete_cascade_old',
-  })
-  const second = gated.propose({
-    kind: 'permanent',
-    op: 'supersede',
-    provenance: { sourceKind: 'user_message', writer: 'explicit_user_action' },
-    record: {
-      confidence: 0.9,
+test('ungranted routed delete is refused and preserves memory, FTS, links, and B2 head', async () => {
+  const { base, gated } = await openStore('refused-delete', (db) => {
+    seedB2Memory(db, {
+      content: 'The first deletion-cascade preference.',
+      id: 'delete_cascade_old',
+      keywords: 'deletion cascade',
+      palariId: 'palari-a',
+      userId: 'user-1',
+    })
+    seedB2Memory(db, {
       content: 'The replacement deletion-cascade preference.',
       id: 'delete_cascade_new',
-      palari_id: 'palari-a',
-      type: 'preference',
-      user_id: 'user-1',
-    },
-    target: first.memory.id,
+      keywords: 'deletion cascade',
+      palariId: 'palari-a',
+      userId: 'user-1',
+    })
+    seedB2Link(db, {
+      fromMemoryId: 'delete_cascade_new',
+      id: 'delete_cascade_link',
+      relation: 'supersedes',
+      toMemoryId: 'delete_cascade_old',
+    })
   })
-  assert.equal(second.outcome, 'superseded')
 
-  const deleted = gated.deleteMemory(first.memory.id, {
+  const deleted = gated.deleteMemory('delete_cascade_old', {
     actor: 'explicit_user_action',
   })
-  assert.deepEqual(
-    { deleted: deleted.deleted, reason: deleted.reason },
-    { deleted: true, reason: 'deleted' },
-  )
-  assert.equal(base.getMemoryById(first.memory.id), null)
+  assert.deepEqual(deleted, {
+    deleted: false,
+    reason: 'governance_refused',
+  })
+  assert.ok(base.getMemoryById('delete_cascade_old'))
   inspectDatabase(base.dbPath, (db) => {
     assert.equal(db.prepare(
       'SELECT count(*) AS count FROM main.memory_fts WHERE memory_id = ?',
-    ).get(first.memory.id).count, 0)
+    ).get('delete_cascade_old').count, 1)
     assert.equal(db.prepare(`
       SELECT count(*) AS count
       FROM main.memory_links
       WHERE from_memory_id = ? OR to_memory_id = ?
-    `).get(first.memory.id, first.memory.id).count, 0)
+    `).get('delete_cascade_old', 'delete_cascade_old').count, 1)
+    assert.equal(db.prepare(
+      'SELECT count(*) AS count FROM main.cdx_b2_decisions',
+    ).get().count, 0)
   })
   gated.close()
 })
 
-test('atomic topic forget removes only visible matching rows', async () => {
-  const { base, gated } = await openStore()
-  const mine = addFixture(gated, {
-    content: 'user-1: the tax filing deadline moved.',
-    keywords: ['tax', 'filing'],
-  })
-  const general = addFixture(gated, {
-    content: 'general: tax season notes for the workspace.',
-    keywords: ['tax'],
-    user_id: null,
-  })
-  const theirs = addFixture(gated, {
-    content: 'user-2 private: tax anxiety journaling.',
-    keywords: ['tax'],
-    user_id: 'user-2',
-  })
-  const offTopic = addFixture(gated, {
-    content: 'user-1: prefers walking meetings.',
-    keywords: ['walking'],
-  })
-  const otherPalari = addFixture(gated, {
-    content: 'palari-b: tax memo elsewhere.',
-    keywords: ['tax'],
-    palari_id: 'palari-b',
+test('topic forget returns its inert refusal shape and preserves every checkpoint row', async () => {
+  const ids = ['mine', 'general', 'theirs', 'off-topic', 'other-palari']
+  const { base, gated } = await openStore('refused-topic-forget', (db) => {
+    const rows = [
+      ['mine', 'user-1: the tax filing deadline moved.', 'tax filing', 'palari-a', 'user-1'],
+      ['general', 'general: tax season notes for the workspace.', 'tax', 'palari-a', null],
+      ['theirs', 'user-2 private: tax anxiety journaling.', 'tax', 'palari-a', 'user-2'],
+      ['off-topic', 'user-1: prefers walking meetings.', 'walking', 'palari-a', 'user-1'],
+      ['other-palari', 'palari-b: tax memo elsewhere.', 'tax', 'palari-b', 'user-1'],
+    ]
+    for (const [id, content, keywords, palariId, userId] of rows) {
+      seedB2Memory(db, { content, id, keywords, palariId, userId })
+    }
   })
 
   const result = gated.topicForget(
@@ -255,27 +276,26 @@ test('atomic topic forget removes only visible matching rows', async () => {
     { palariId: 'palari-a', userId: 'user-1' },
     { actor: 'explicit_user_action' },
   )
-  assert.deepEqual(
-    result.deleted.toSorted(),
-    [mine.memory.id, general.memory.id].toSorted(),
-  )
-  assert.equal(result.count, 2)
-  assert.ok(base.getMemoryById(theirs.memory.id))
-  assert.ok(base.getMemoryById(offTopic.memory.id))
-  assert.ok(base.getMemoryById(otherPalari.memory.id))
+  assert.deepEqual(result, { count: 0, deleted: [] })
+  for (const id of ids) assert.ok(base.getMemoryById(id))
+  inspectDatabase(base.dbPath, (db) => {
+    assert.equal(db.prepare(
+      'SELECT count(*) AS count FROM main.cdx_b2_decisions',
+    ).get().count, 0)
+  })
   gated.close()
 })
 
-test('CDX-M0/M1 bootstrap is complete before handle publication', async () => {
+test('CDX-M0/M1/B2 bootstrap is complete before handle publication', async () => {
   const { base, gated } = await openStore()
   const rows = inspectDatabase(base.dbPath, (db) => db.prepare(
     'SELECT id FROM main.memory_migrations ORDER BY id',
   ).all().map(({ id }) => id))
-  assert.deepEqual(rows, ['CDX-M0', 'CDX-M1'])
+  assert.deepEqual(rows, ['CDX-B2', 'CDX-M0', 'CDX-M1'])
   gated.close()
 })
 
-test('one workspace file is deleted only after the safe handle closes', async () => {
+test('terminal workspace deletion is refused before and after safe-handle close', async () => {
   const root = await tempDir()
   const statePath = join(root, 'workspace-state.json')
   const base = await createKernelStore({
@@ -285,19 +305,18 @@ test('one workspace file is deleted only after the safe handle closes', async ()
     workspaceId: 'ownership-check',
   })
   const gated = createGatedStore(base)
-  addFixture(gated)
   assert.ok(base.dbPath.endsWith('ownership-check.memory.sqlite'))
   assert.ok(await pathExists(base.dbPath))
   await assert.rejects(
     deleteKernelStoreFile({ statePath, workspaceId: 'ownership-check' }),
-    (error) => error?.code === 'legacy_store_open',
+    (error) => error?.code === 'legacy_terminal_storage_refused',
   )
   gated.close()
-  assert.deepEqual(
-    await deleteKernelStoreFile({ statePath, workspaceId: 'ownership-check' }),
-    { dbPath: base.dbPath, removed: true },
+  await assert.rejects(
+    deleteKernelStoreFile({ statePath, workspaceId: 'ownership-check' }),
+    (error) => error?.code === 'legacy_terminal_storage_refused',
   )
-  assert.equal(await pathExists(base.dbPath), false)
+  assert.equal(await pathExists(base.dbPath), true)
 })
 
 test('enabled reads recheck liveness after every caller-controlled capture phase', async () => {

@@ -60,6 +60,20 @@ function inspectDatabase(dbPath, inspect) {
   }
 }
 
+function assertNoMutation(store) {
+  inspectDatabase(store.dbPath, (db) => {
+    assert.equal(db.prepare(
+      'SELECT count(*) AS count FROM main.memories',
+    ).get().count, 0)
+    assert.equal(db.prepare(
+      'SELECT count(*) AS count FROM main.memory_links',
+    ).get().count, 0)
+    assert.equal(db.prepare(
+      'SELECT count(*) AS count FROM main.cdx_b2_decisions',
+    ).get().count, 0)
+  })
+}
+
 // Deterministic dry-mode extractor: keyed off the user message, no model.
 function fixtureExtractor({ turn = {} } = {}) {
   const msg = String(turn.userMessage ?? '')
@@ -87,7 +101,7 @@ async function fixtures() {
   return loadLongMemEvalInstances(raw)
 }
 
-test('e2e dry mode: multi-session ingest through the gate, recall, briefing, stub answer', async () => {
+test('e2e dry mode: multi-session candidates are governed refusals and the answer abstains honestly', async () => {
   const { gated, store } = await openWorkspace('adapter-multi')
   const [multi] = await fixtures()
   const stats = await ingestLongMemEvalInstance(gated, multi, {
@@ -96,14 +110,10 @@ test('e2e dry mode: multi-session ingest through the gate, recall, briefing, stu
     ...SCOPE,
   })
   assert.equal(stats.sessions, 3)
-  assert.ok(stats.memoriesWritten >= 2, 'both cities extracted')
-
-  // gate discipline held during ingest: evidence time + extractor identity
+  assert.equal(stats.memoriesWritten, 0)
   const rows = store.listMemories({ palariId: SCOPE.palariId, userId: SCOPE.userId })
-  const oaxaca = rows.find((r) => r.content.includes('Oaxaca for the food scene'))
-  assert.equal(oaxaca.valid_from, '2023-05-20T02:21:00.000Z', 'valid_from = session eventAt, not ingest wall clock')
-  assert.equal(oaxaca.extractor, 'dry-stub-v1')
-  assert.equal(Boolean(oaxaca.created_by_pipeline), true)
+  assert.deepEqual(rows, [])
+  assertNoMutation(store)
 
   const result = await answerQuestion(gated, {
     provider: stubProvider,
@@ -111,13 +121,12 @@ test('e2e dry mode: multi-session ingest through the gate, recall, briefing, stu
     questionDate: multi.questionDate,
     ...SCOPE,
   })
-  assert.equal(result.briefingStatus, 'included')
-  assert.match(result.answer, /oaxaca/i)
-  assert.match(result.answer, /lisbon/i)
-  assert.equal(result.abstained, false)
+  assert.equal(result.briefingStatus, 'empty')
+  assert.match(result.answer, /no stored memories/i)
+  assert.equal(result.abstained, true)
 })
 
-test('e2e dry mode: knowledge update supersedes through the gate; old value not recalled (C15)', async () => {
+test('e2e dry mode: update candidates cannot create or supersede governed memory', async () => {
   const { gated, store } = await openWorkspace('adapter-update')
   const [, update] = await fixtures()
   await ingestLongMemEvalInstance(gated, update, {
@@ -125,17 +134,17 @@ test('e2e dry mode: knowledge update supersedes through the gate; old value not 
     extractorId: 'dry-stub-v1',
     ...SCOPE,
   })
-  // supersession happened: flat white demoted with a link, history intact
   const all = store.listMemories({ palariId: SCOPE.palariId, userId: SCOPE.userId })
   const flatWhite = inspectDatabase(store.dbPath, (db) =>
     db.prepare("SELECT * FROM memories WHERE content = 'Prefers a flat white as the espresso drink.'").get(),
   )
-  assert.ok(flatWhite, 'history survives')
-  assert.ok(flatWhite.valid_until, 'old value demoted via validity')
+  assert.equal(flatWhite, undefined)
   const link = inspectDatabase(store.dbPath, (db) =>
     db.prepare("SELECT relation FROM memory_links WHERE relation = 'supersedes'").get(),
   )
-  assert.ok(link, 'supersedes link recorded')
+  assert.equal(link, undefined)
+  assert.deepEqual(all, [])
+  assertNoMutation(store)
 
   const result = await answerQuestion(gated, {
     provider: stubProvider,
@@ -143,12 +152,9 @@ test('e2e dry mode: knowledge update supersedes through the gate; old value not 
     questionDate: update.questionDate,
     ...SCOPE,
   })
-  assert.match(result.answer, /cortado/i, 'current value answered')
-  assert.ok(
-    !result.included.some((entry) => entry.content === 'Prefers a flat white as the espresso drink.'),
-    'superseded value not briefed as current',
-  )
-  assert.ok(all.every((r) => r.id !== flatWhite.id), 'superseded row absent from visible list')
+  assert.equal(result.abstained, true)
+  assert.equal(result.briefingStatus, 'empty')
+  assert.deepEqual(result.included, [])
 })
 
 test('e2e dry mode: abstention — empty recall answers honestly (C14/C16)', async () => {
@@ -417,9 +423,9 @@ test('scheduler snapshots extractor identity before an asynchronous workspace lo
   extractorIdValue = 'scheduler-mutated'
   releaseWorkspace()
   await scheduler.drain()
-  const [memory] = store.listMemories(SCOPE)
-  assert.equal(memory.extractor, 'scheduler-original')
   assert.equal(extractorIdReads, 1)
+  assert.deepEqual(store.listMemories(SCOPE), [])
+  assertNoMutation(store)
 })
 
 test('extraction provenance drops are exact and occur before invoking the extractor', async () => {
@@ -456,7 +462,7 @@ test('extraction provenance drops are exact and occur before invoking the extrac
   assert.equal(calls, 0)
 })
 
-test('negative direct-user evidence remains eligible for gated extraction', async () => {
+test('negative direct-user evidence remains eligible but cannot bypass governed refusal', async () => {
   const { gated, store } = await openWorkspace('adapter-negative-evidence')
   const result = await runMemoryExtractionPass({
     extractor: () => ({
@@ -479,18 +485,15 @@ test('negative direct-user evidence remains eligible for gated extraction', asyn
     },
   })
 
-  assert.deepEqual(result.outcomes, ['inserted'])
-  assert.equal(result.memoriesWritten, 1)
+  assert.deepEqual(result.outcomes, ['rejected'])
+  assert.equal(result.memoriesWritten, 0)
   assert.equal(result.sourceBoundary.writeEligibleCount, 1)
-  assert.equal(
-    store.listMemories(SCOPE).some((memory) =>
-      memory.content === 'I do not like tea.'),
-    true,
-  )
+  assert.deepEqual(store.listMemories(SCOPE), [])
+  assertNoMutation(store)
 })
 
-test('extraction accounting treats admission rejection as an outcome and duplicate as no write', async () => {
-  const { gated } = await openWorkspace('adapter-outcome-accounting')
+test('extraction accounting records every write-eligible governed refusal without a write', async () => {
+  const { gated, store } = await openWorkspace('adapter-outcome-accounting')
   const turn = {
     eventAt: FIXED_NOW.toISOString(),
     palariId: SCOPE.palariId,
@@ -507,23 +510,23 @@ test('extraction accounting treats admission rejection as an outcome and duplica
       type: 'preference',
     }],
   })
-  const inserted = await runMemoryExtractionPass({
+  const first = await runMemoryExtractionPass({
     extractor: highConfidence,
     extractorId: 'dry-stub-v1',
     store: gated,
     turn,
   })
-  assert.deepEqual(inserted.outcomes, ['inserted'])
-  assert.equal(inserted.memoriesWritten, 1)
+  assert.deepEqual(first.outcomes, ['rejected'])
+  assert.equal(first.memoriesWritten, 0)
 
-  const duplicate = await runMemoryExtractionPass({
+  const repeated = await runMemoryExtractionPass({
     extractor: highConfidence,
     extractorId: 'dry-stub-v1',
     store: gated,
     turn,
   })
-  assert.deepEqual(duplicate.outcomes, ['duplicate_bumped'])
-  assert.equal(duplicate.memoriesWritten, 0)
+  assert.deepEqual(repeated.outcomes, ['rejected'])
+  assert.equal(repeated.memoriesWritten, 0)
 
   const rejected = await runMemoryExtractionPass({
     extractor: () => ({
@@ -546,10 +549,11 @@ test('extraction accounting treats admission rejection as an outcome and duplica
   assert.deepEqual(rejected.outcomes, ['rejected'])
   assert.equal(rejected.memoriesWritten, 0)
   assert.deepEqual(Object.keys(rejected), ['memoriesWritten', 'outcomes', 'sourceBoundary', 'status'])
+  assertNoMutation(store)
 })
 
-test('extraction outcomes preserve candidate order across both drops, rejection, and insertion', async () => {
-  const { gated } = await openWorkspace('adapter-complete-accounting')
+test('extraction outcomes preserve candidate order across drops and governed refusals', async () => {
+  const { gated, store } = await openWorkspace('adapter-complete-accounting')
   const result = await runMemoryExtractionPass({
     extractor: () => ({
       memories: [
@@ -601,13 +605,14 @@ test('extraction outcomes preserve candidate order across both drops, rejection,
     'dropped_transient_detail',
     'dropped_source_boundary',
     'rejected',
-    'inserted',
+    'rejected',
   ])
-  assert.equal(result.memoriesWritten, 1)
+  assert.equal(result.memoriesWritten, 0)
   assert.equal(result.status, 'completed')
+  assertNoMutation(store)
 })
 
-test('a rejected candidate continues, while a later thrown proposal preserves earlier commits', async () => {
+test('candidate processing continues across governed refusals without post-checkpoint writes', async () => {
   const { gated, store } = await openWorkspace('adapter-candidate-cutpoints')
   const turn = {
     eventAt: FIXED_NOW.toISOString(),
@@ -639,55 +644,45 @@ test('a rejected candidate continues, while a later thrown proposal preserves ea
     store: gated,
     turn,
   })
-  assert.deepEqual(continued.outcomes, ['rejected', 'inserted'])
-  assert.equal(continued.memoriesWritten, 1)
+  assert.deepEqual(continued.outcomes, ['rejected', 'rejected'])
+  assert.equal(continued.memoriesWritten, 0)
 
-  const db = new DatabaseSync(store.dbPath)
-  try {
-    db.exec(`CREATE TRIGGER reject_osaka_candidate
-      BEFORE INSERT ON memories
-      WHEN new.content = 'Lives in Osaka.'
-      BEGIN SELECT RAISE(ABORT, 'osaka rejected'); END;`)
-  } finally {
-    db.close()
-  }
-  await assert.rejects(
-    runMemoryExtractionPass({
-      extractor: () => ({
-        memories: [
-          {
-            confidence: 0.9,
-            content: 'Lives in Nara.',
-            importance: 0.8,
-            keywords: ['nara'],
-            type: 'life_event',
-          },
-          {
-            confidence: 0.9,
-            content: 'Lives in Osaka.',
-            importance: 0.8,
-            keywords: ['osaka'],
-            type: 'life_event',
-          },
-        ],
-      }),
-      extractorId: 'cutpoint-extractor',
-      store: gated,
-      turn: {
-        ...turn,
-        sourceMessageId: 'cutpoints:1',
-        userMessage: 'I live in Nara. I live in Osaka.',
-      },
+  const later = await runMemoryExtractionPass({
+    extractor: () => ({
+      memories: [
+        {
+          confidence: 0.9,
+          content: 'Lives in Nara.',
+          importance: 0.8,
+          keywords: ['nara'],
+          type: 'life_event',
+        },
+        {
+          confidence: 0.9,
+          content: 'Lives in Osaka.',
+          importance: 0.8,
+          keywords: ['osaka'],
+          type: 'life_event',
+        },
+      ],
     }),
-    /osaka rejected/,
-  )
+    extractorId: 'cutpoint-extractor',
+    store: gated,
+    turn: {
+      ...turn,
+      sourceMessageId: 'cutpoints:1',
+      userMessage: 'I live in Nara. I live in Osaka.',
+    },
+  })
+  assert.deepEqual(later.outcomes, ['rejected', 'rejected'])
+  assert.equal(later.memoriesWritten, 0)
   const rows = store.listMemories(SCOPE)
-  assert.equal(rows.some(({ content }) => content === 'Lives in Nara.'), true)
-  assert.equal(rows.some(({ content }) => content === 'Lives in Osaka.'), false)
+  assert.deepEqual(rows, [])
+  assertNoMutation(store)
 })
 
-test('session summaries require event time and expose only exact skip/completion shapes', async () => {
-  const { gated } = await openWorkspace('adapter-summary-shapes')
+test('session summaries require event time and complete with governed refusal shape', async () => {
+  const { gated, store } = await openWorkspace('adapter-summary-shapes')
   const turn = {
     assistantMessage: 'I will remember that.',
     palariId: SCOPE.palariId,
@@ -706,12 +701,13 @@ test('session summaries require event time and expose only exact skip/completion
     turn: { ...turn, eventAt: FIXED_NOW.toISOString() },
   })
   assert.deepEqual(Object.keys(completed), ['outcome', 'sourceBoundary', 'status'])
-  assert.equal(completed.outcome, 'inserted')
+  assert.equal(completed.outcome, 'rejected')
   assert.equal(completed.status, 'completed')
+  assertNoMutation(store)
 })
 
-test('session summary covers every skip and completed compatibility outcome shape', async () => {
-  const { gated } = await openWorkspace('adapter-summary-matrix')
+test('session summary covers every skip and the one governed completion outcome', async () => {
+  const { gated, store } = await openWorkspace('adapter-summary-matrix')
   const turn = {
     assistantMessage: 'I will remember that preference.',
     eventAt: FIXED_NOW.toISOString(),
@@ -745,15 +741,15 @@ test('session summary covers every skip and completed compatibility outcome shap
     assert.equal(result.status, 'skipped')
   }
 
-  const inserted = writeSessionSummaryMemory({ store: gated, turn })
-  const duplicate = writeSessionSummaryMemory({ store: gated, turn })
-  assert.deepEqual(inserted, {
-    outcome: 'inserted',
-    sourceBoundary: inserted.sourceBoundary,
+  const first = writeSessionSummaryMemory({ store: gated, turn })
+  const repeated = writeSessionSummaryMemory({ store: gated, turn })
+  assert.deepEqual(first, {
+    outcome: 'rejected',
+    sourceBoundary: first.sourceBoundary,
     status: 'completed',
   })
-  assert.equal(duplicate.outcome, 'duplicate_bumped')
-  assert.deepEqual(Object.keys(duplicate), ['outcome', 'sourceBoundary', 'status'])
+  assert.equal(repeated.outcome, 'rejected')
+  assert.deepEqual(Object.keys(repeated), ['outcome', 'sourceBoundary', 'status'])
 
   const rejectedWorkspace = await openWorkspace('adapter-summary-rejected', {
     policy: { demote: 0, promote: 0.8, permanent: 0.9, ratify: 1 },
@@ -764,9 +760,11 @@ test('session summary covers every skip and completed compatibility outcome shap
   })
   assert.deepEqual(Object.keys(rejected), ['outcome', 'sourceBoundary', 'status'])
   assert.equal(rejected.outcome, 'rejected')
+  assertNoMutation(store)
+  assertNoMutation(rejectedWorkspace.store)
 })
 
-test('scheduler obtains a real gated handle, binds event time, and respects summary enablement', async () => {
+test('scheduler obtains a real gated handle while extraction and summaries remain refused', async () => {
   const root = await tempDir()
   const manager = createWorkspaceMemoryManager({
     clock: () => FIXED_NOW,
@@ -796,8 +794,7 @@ test('scheduler obtains a real gated handle, binds event time, and respects summ
     const gated = await manager.forWorkspace('scheduler-real')
     const summaries = gated.listMemories(SCOPE)
       .filter(({ type }) => type === 'session_summary')
-    assert.equal(summaries.length, 1)
-    assert.equal(summaries[0].valid_from, '2026-07-20T10:11:12.000Z')
+    assert.equal(summaries.length, 0)
 
     const extractionOnly = createMemoryExtractionScheduler({
       extractor: () => ({
@@ -826,8 +823,9 @@ test('scheduler obtains a real gated handle, binds event time, and respects summ
     await extractionOnly.drain()
     assert.equal(
       gated.listMemories(SCOPE).filter(({ type }) => type === 'session_summary').length,
-      1,
+      0,
     )
+    assertNoMutation(gated)
   } finally {
     await manager.close()
   }

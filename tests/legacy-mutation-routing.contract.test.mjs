@@ -86,6 +86,18 @@ function proposeFixture(gated, overrides = {}) {
   })
 }
 
+const TERMINAL_STORAGE_REFUSAL = Object.freeze({
+  code: 'legacy_terminal_storage_refused',
+  message: 'Terminal deletion of a governed memory store is refused.',
+  name: 'LegacyMutationError',
+})
+
+function isTerminalStorageRefusal(error) {
+  return error?.name === TERMINAL_STORAGE_REFUSAL.name &&
+    error?.code === TERMINAL_STORAGE_REFUSAL.code &&
+    error?.message === TERMINAL_STORAGE_REFUSAL.message
+}
+
 async function exists(path) {
   try {
     await access(path)
@@ -245,6 +257,17 @@ function a2InstrumentationChildMain(payload) {
 
   function injectedStateValue(record, key) {
     const scenario = record.scenario
+    if (
+      key === 'transaction' && record.rollbackReturned &&
+      scenario?.rollbackProof !== undefined &&
+      scenario.rollbackProof.used !== true
+    ) {
+      scenario.rollbackProof.used = true
+      if (scenario.rollbackProof.throw !== undefined) {
+        throw stableError(scenario.rollbackProof.throw)
+      }
+      return scenario.rollbackProof.value
+    }
     if (key === 'open') {
       if (record.closeReturned && scenario?.closeProof !== undefined) {
         const proof = scenario.closeProof
@@ -284,6 +307,7 @@ function a2InstrumentationChildMain(payload) {
       args,
       closeReturned: false,
       operationOrdinal: 0,
+      rollbackReturned: false,
       scenario,
       stateOverride: null,
       statePair: 0,
@@ -397,6 +421,7 @@ function a2InstrumentationChildMain(payload) {
       scenario.controlThrow.timing === 'before'
     ) throw stableError(scenario.controlThrow.label)
     const result = apply(nativeDbExec, record.target, [sql])
+    if (normalized === 'ROLLBACK') record.rollbackReturned = true
     if (
       scenario?.enabled && normalized === scenario.controlThrow?.sql &&
       scenario.controlThrow.timing === 'after'
@@ -586,17 +611,11 @@ function a2InstrumentationChildMain(payload) {
         : Buffer.from(loaded.source).toString('utf8')
       source = insertAfter(
         source,
-        '    const userClock = options.clock\n',
-        "    globalThis.__a2ConstructionHook?.('coordinator')\n",
-      )
-      source = insertAfter(
-        source,
-        '    const router = createLegacyMutationRouter(\n' +
-          '      db,\n' +
-          '      userClock === undefined ? {} : { clock: userClock },\n' +
-          '    )\n',
-        "    globalThis.__a2ConstructionHook?.('router')\n" +
-          "    globalThis.__a2ConstructionHook?.('registry-entry')\n",
+        '    bridge = createGovernedMemoryBridge(db, {\n' +
+          '      workspaceId,\n' +
+          '      authorityRoot,\n' +
+          '    })\n',
+        "    globalThis.__a2ConstructionHook?.('bridge')\n",
       )
       source = insertAfter(
         source,
@@ -663,7 +682,10 @@ function a2InstrumentationChildMain(payload) {
       await runtime.deleteKernelStoreRuntimeFile(options)
       violations.push(`${label}: poisoned delete unexpectedly succeeded`)
     } catch (error) {
-      if (error?.code !== 'legacy_store_open') {
+      if (
+        error?.code !== 'legacy_terminal_storage_refused' ||
+        error?.message !== 'Terminal deletion of a governed memory store is refused.'
+      ) {
         violations.push(`${label}: poisoned delete returned ${tokenForError(error)}`)
       }
     }
@@ -681,8 +703,44 @@ function a2InstrumentationChildMain(payload) {
       : [tokenForError(error)]
   }
 
+  function errorContainsIdentity(error, expected, seen = new Set()) {
+    if (error === expected) return true
+    if (
+      error === null ||
+      (typeof error !== 'object' && typeof error !== 'function') ||
+      seen.has(error)
+    ) return false
+    seen.add(error)
+    if (errorContainsIdentity(error.cause, expected, seen)) return true
+    if (error instanceof AggregateError) {
+      for (const nested of error.errors) {
+        if (errorContainsIdentity(nested, expected, seen)) return true
+      }
+    }
+    return false
+  }
+
   async function runOperationalMatrix() {
     const violations = []
+    const errorCodes = []
+    const allowedErrorCodes = new Set([
+      'governance_checkpoint_invalid',
+      'governance_clock_invalid',
+      'governance_config_invalid',
+      'governance_identifier_collision',
+      'governance_internal_invariant',
+      'governance_journal_invalid',
+      'governance_meta_invalid',
+      'governance_migration_invalid',
+      'governance_projection_invalid',
+      'governance_schema_invalid',
+      'mutation_begin_failed',
+      'mutation_cleanup_failed',
+      'mutation_commit_failed',
+      'mutation_commit_outcome_unknown',
+      'mutation_connection_policy',
+      'mutation_transaction_ownership_lost',
+    ])
     const baseline = makeScenario()
     activeScenario = baseline
     const baselineRuntime = await importRuntime('operational-baseline')
@@ -715,10 +773,17 @@ function a2InstrumentationChildMain(payload) {
         violations.push(`${label}: a handle escaped`)
         escapedHandle.close()
       }
-      if (caught !== stableError(label)) {
-        violations.push(
-          `${label}: primary identity changed to ${tokenForError(caught)}`,
-        )
+      const injected = stableError(label)
+      if (caught !== injected) {
+        if (!allowedErrorCodes.has(caught?.code)) {
+          violations.push(
+            `${label}: error owner changed to ${tokenForError(caught)}`,
+          )
+        }
+        if (!errorContainsIdentity(caught, injected)) {
+          violations.push(`${label}: injected cause identity was lost`)
+        }
+        if (!errorCodes.includes(caught?.code)) errorCodes.push(caught?.code)
       }
       if (scenario.closeCalls.length !== 1) {
         violations.push(`${label}: close count ${scenario.closeCalls.length}`)
@@ -733,6 +798,7 @@ function a2InstrumentationChildMain(payload) {
     }
 
     return {
+      errorCodes: errorCodes.sort(),
       firstOperations: operations.slice(0, 4),
       lastOperations: operations.slice(-4),
       operationCount: operations.length,
@@ -804,213 +870,261 @@ function a2InstrumentationChildMain(payload) {
 
   async function runStateMatrix() {
     const primary = 'primary'
-    const schema = 'legacy_schema_invalid'
-    const invalidState = 'Bootstrap transaction state is invalid.'
-    const badRollback = 'Bootstrap rollback did not end the transaction.'
     const badClose = 'Bootstrap close did not close the connection.'
-    const postBeginFailure = {
+    const governedBootstrapFailure = {
       primaryLabel: primary,
       primaryMatch: 'prepare:SELECT type, name, tbl_name, sql',
     }
     const definitions = [
       {
-        name: 'oracle-mismatch',
+        name: 'connection-policy-oracle-mismatch',
         scenario: { rowMismatch: true },
-        tokens: [schema], rollbackCount: 0, poisoned: false,
+        tokens: ['mutation_connection_policy'], rollbackCount: 0,
+        poisoned: false,
       },
       {
-        name: 'initial-active',
+        name: 'run-rejects-initial-active-transaction',
         scenario: {
           stateOverrides: {
-            1: { openValue: true, transactionValue: true },
+            2: { openValue: true, transactionValue: true },
           },
         },
-        tokens: [schema], rollbackCount: 0, poisoned: false,
+        tokens: ['mutation_transaction_active'], rollbackCount: 0,
+        poisoned: false,
       },
       {
-        name: 'initial-getter-throw',
+        name: 'coordinator-open-getter-throw',
         scenario: { stateOverrides: { 1: { openThrow: 'initial-getter' } } },
-        tokens: [schema], cause: 'initial-getter', rollbackCount: 0, poisoned: true,
+        tokens: ['mutation_invalid_argument'], cause: 'initial-getter',
+        rollbackCount: 0, poisoned: false,
       },
       {
-        name: 'initial-nonboolean',
+        name: 'coordinator-open-nonboolean',
         scenario: { stateOverrides: { 1: { openValue: 'yes' } } },
-        tokens: [schema], rollbackCount: 0, poisoned: true,
+        tokens: ['mutation_connection_invalid'], rollbackCount: 0,
+        poisoned: false,
+      },
+      {
+        name: 'run-open-returned-closed',
+        scenario: {
+          stateOverrides: {
+            2: { openValue: false, transactionValue: false },
+          },
+        },
+        tokens: ['mutation_connection_invalid'], rollbackCount: 0,
+        poisoned: false,
+      },
+      {
+        name: 'run-transaction-getter-throw',
+        scenario: {
+          stateOverrides: {
+            2: { openValue: true, transactionThrow: 'initial-transaction' },
+          },
+        },
+        tokens: ['mutation_connection_invalid'], cause: 'initial-transaction',
+        rollbackCount: 0, poisoned: false,
+      },
+      {
+        name: 'run-transaction-nonboolean',
+        scenario: {
+          stateOverrides: {
+            2: { openValue: true, transactionValue: 'inactive' },
+          },
+        },
+        tokens: ['mutation_connection_invalid'], rollbackCount: 0,
+        poisoned: false,
+      },
+      {
+        name: 'begin-returned-closed',
+        scenario: {
+          stateOverrides: {
+            3: { openValue: false, transactionValue: false },
+          },
+        },
+        tokens: ['mutation_begin_failed'], rollbackCount: 0,
+        poisoned: false,
       },
       {
         name: 'begin-returned-inactive',
         scenario: {
           stateOverrides: {
-            2: { openValue: true, transactionValue: false },
+            3: { openValue: true, transactionValue: false },
           },
         },
-        tokens: [schema], rollbackCount: 0, poisoned: false,
+        tokens: ['mutation_begin_failed'], rollbackCount: 0,
+        poisoned: false,
       },
       {
-        name: 'begin-returned-impossible',
+        name: 'begin-state-getter-throw',
         scenario: {
-          stateOverrides: {
-            2: { openValue: false, transactionValue: true },
-          },
+          stateOverrides: { 3: { openThrow: 'begin-state' } },
         },
-        tokens: [schema, invalidState], rollbackCount: 0, poisoned: true,
+        tokens: ['mutation_begin_failed'], cause: 'begin-state',
+        rollbackCount: 0, poisoned: false,
       },
       {
-        name: 'post-begin-transaction-getter-throw',
+        name: 'begin-state-nonboolean',
         scenario: {
           stateOverrides: {
-            2: { openValue: true, transactionThrow: 'post-begin-getter' },
+            3: { openValue: true, transactionValue: 'active' },
           },
         },
-        tokens: [schema, 'post-begin-getter'], cause: 'post-begin-getter',
-        rollbackCount: 0, poisoned: true,
+        tokens: ['mutation_begin_failed'], rollbackCount: 0,
+        poisoned: false,
       },
       {
-        name: 'post-begin-transaction-nonboolean',
+        name: 'first-lease-returned-inactive',
         scenario: {
           stateOverrides: {
-            2: { openValue: true, transactionValue: 'active' },
+            4: { openValue: true, transactionValue: false },
           },
         },
-        tokens: [schema, invalidState], rollbackCount: 0, poisoned: true,
+        tokens: ['mutation_transaction_ownership_lost'], rollbackCount: 1,
+        poisoned: false,
+      },
+      {
+        name: 'first-lease-state-getter-throw',
+        scenario: {
+          stateOverrides: { 4: { openThrow: 'lease-state' } },
+        },
+        tokens: ['mutation_transaction_ownership_lost'], cause: 'lease-state',
+        rollbackCount: 1, poisoned: false,
       },
       {
         name: 'pre-commit-returned-inactive',
         scenario: {
           stateOverrides: {
-            3: { openValue: true, transactionValue: false },
+            5: { openValue: true, transactionValue: false },
           },
         },
-        tokens: [schema], rollbackCount: 0, poisoned: false,
+        tokens: ['mutation_transaction_ownership_lost'], rollbackCount: 0,
+        poisoned: false,
+      },
+      {
+        name: 'pre-commit-state-getter-throw',
+        scenario: {
+          stateOverrides: { 5: { openThrow: 'pre-commit-state' } },
+        },
+        tokens: ['mutation_transaction_ownership_lost'],
+        cause: 'pre-commit-state', rollbackCount: 0, poisoned: false,
       },
       {
         name: 'commit-returned-active',
         scenario: { commitMode: 'return-active' },
-        tokens: [schema], rollbackCount: 1, poisoned: false,
+        tokens: ['mutation_commit_outcome_unknown'], rollbackCount: 0,
+        poisoned: false,
       },
       {
         name: 'commit-returned-closed',
         scenario: {
           stateOverrides: {
-            4: { openValue: false, transactionValue: false },
+            6: { openValue: false, transactionValue: false },
           },
         },
-        tokens: [schema], rollbackCount: 0, poisoned: false,
+        tokens: ['mutation_commit_outcome_unknown'], rollbackCount: 0,
+        poisoned: false,
+      },
+      {
+        name: 'commit-state-getter-throw',
+        scenario: {
+          stateOverrides: { 6: { openThrow: 'commit-state' } },
+        },
+        tokens: ['mutation_commit_outcome_unknown'], cause: 'commit-state',
+        rollbackCount: 0, poisoned: false,
       },
       {
         name: 'commit-throw-active',
         scenario: {
           controlThrow: { label: primary, sql: 'COMMIT', timing: 'before' },
         },
-        tokens: [primary], rollbackCount: 1, poisoned: false,
+        tokens: ['mutation_commit_failed'], cause: primary, rollbackCount: 1,
+        poisoned: false,
       },
       {
         name: 'commit-throw-inactive',
         scenario: {
           controlThrow: { label: primary, sql: 'COMMIT', timing: 'after' },
         },
-        tokens: [primary], rollbackCount: 0, poisoned: false,
+        tokens: ['mutation_commit_outcome_unknown'], cause: primary,
+        rollbackCount: 0, poisoned: false,
       },
       {
-        name: 'commit-throw-unreadable',
-        scenario: {
-          controlThrow: { label: primary, sql: 'COMMIT', timing: 'before' },
-          stateOverrides: { 4: { openThrow: 'state-inspection' } },
-        },
-        tokens: [primary, 'state-inspection'], rollbackCount: 0, poisoned: true,
-      },
-      {
-        name: 'commit-throw-nonboolean',
-        scenario: {
-          controlThrow: { label: primary, sql: 'COMMIT', timing: 'before' },
-          stateOverrides: { 4: { openValue: 1 } },
-        },
-        tokens: [primary, invalidState], rollbackCount: 0, poisoned: true,
-      },
-      {
-        name: 'post-stage-auto-rollback',
+        name: 'governed-bootstrap-auto-rollback',
         scenario: {
           autoRollbackMatch: 'prepare:SELECT type, name, tbl_name, sql',
           primaryLabel: primary,
         },
-        tokens: [primary], rollbackCount: 0, poisoned: false,
+        tokens: ['mutation_transaction_ownership_lost'],
+        cause: 'governance_schema_invalid', rollbackCount: 0,
+        poisoned: false,
       },
       {
         name: 'rollback-command-throw',
         scenario: {
-          ...postBeginFailure,
+          ...governedBootstrapFailure,
           rollbackThrow: 'rollback-cleanup',
         },
-        tokens: [primary, 'rollback-cleanup'], rollbackCount: 1, poisoned: true,
-      },
-      {
-        name: 'rollback-returned-closed',
-        scenario: {
-          ...postBeginFailure,
-          stateOverrides: {
-            4: { openValue: false, transactionValue: false },
-          },
-        },
-        tokens: [primary, badRollback], rollbackCount: 1, poisoned: true,
+        tokens: ['mutation_cleanup_failed'], rollbackCount: 1,
+        poisoned: false,
       },
       {
         name: 'rollback-returned-active',
         scenario: {
-          ...postBeginFailure,
-          stateOverrides: {
-            4: { openValue: true, transactionValue: true },
-          },
+          ...governedBootstrapFailure,
+          rollbackProof: { used: false, value: true },
         },
-        tokens: [primary, badRollback], rollbackCount: 1, poisoned: true,
-      },
-      {
-        name: 'rollback-proof-getter-throw',
-        scenario: {
-          ...postBeginFailure,
-          stateOverrides: { 4: { openThrow: 'rollback-proof' } },
-        },
-        tokens: [primary, 'rollback-proof'], rollbackCount: 1, poisoned: true,
+        tokens: ['mutation_cleanup_failed'], rollbackCount: 1,
+        poisoned: false,
       },
       {
         name: 'close-command-throw',
-        scenario: { ...postBeginFailure, closeThrow: 'close-cleanup' },
-        tokens: [primary, 'close-cleanup'], rollbackCount: 1, poisoned: true,
+        scenario: {
+          ...governedBootstrapFailure,
+          closeThrow: 'close-cleanup',
+        },
+        tokens: ['governance_schema_invalid', 'close-cleanup'],
+        rollbackCount: 1, poisoned: true,
       },
       {
         name: 'close-returned-open',
-        scenario: { ...postBeginFailure, closeProof: { value: true } },
-        tokens: [primary, badClose], rollbackCount: 1, poisoned: true,
+        scenario: {
+          ...governedBootstrapFailure,
+          closeProof: { value: true },
+        },
+        tokens: ['governance_schema_invalid', badClose], rollbackCount: 1,
+        poisoned: true,
       },
       {
         name: 'close-proof-getter-throw',
         scenario: {
-          ...postBeginFailure,
+          ...governedBootstrapFailure,
           closeProof: { throw: 'close-proof' },
         },
-        tokens: [primary, 'close-proof'], rollbackCount: 1, poisoned: true,
+        tokens: ['governance_schema_invalid', 'close-proof'], rollbackCount: 1,
+        poisoned: true,
       },
       {
         name: 'inspection-and-close-order',
         scenario: {
           closeThrow: 'close-cleanup',
           controlThrow: { label: primary, sql: 'COMMIT', timing: 'before' },
-          stateOverrides: { 4: { openThrow: 'state-inspection' } },
+          stateOverrides: { 6: { openThrow: 'state-inspection' } },
         },
-        tokens: [primary, 'state-inspection', 'close-cleanup'],
+        tokens: ['mutation_commit_outcome_unknown', 'close-cleanup'],
         rollbackCount: 0, poisoned: true,
       },
       {
         name: 'rollback-and-close-order',
         scenario: {
-          ...postBeginFailure,
+          ...governedBootstrapFailure,
           closeThrow: 'close-cleanup',
           rollbackThrow: 'rollback-cleanup',
         },
-        tokens: [primary, 'rollback-cleanup', 'close-cleanup'],
+        tokens: ['mutation_cleanup_failed', 'close-cleanup'],
         rollbackCount: 1, poisoned: true,
       },
     ]
-    for (const stage of ['coordinator', 'router', 'registry-entry', 'handle']) {
+    for (const stage of ['bridge', 'handle']) {
       definitions.push({
         name: `post-commit-${stage}`,
         scenario: { constructionStage: stage, primaryLabel: stage },
@@ -1094,26 +1208,24 @@ function a2InstrumentationChildMain(payload) {
         violations.push(`manager closed precedence ${tokenForError(error)}`)
       }
     }
-    for (const workspaceId of ['alpha', 'zeta']) {
+    for (const workspaceId of ['alpha', 'middle', 'zeta']) {
       try {
         await store.deleteKernelStoreFile({
           memoryRootDir: payload.directory,
           workspaceId,
         })
-        violations.push(`${workspaceId}: deletion followed failed close`)
+        violations.push(`${workspaceId}: terminal deletion unexpectedly succeeded`)
       } catch (error) {
-        if (error?.code !== 'legacy_store_open') {
-          violations.push(`${workspaceId}: deletion returned ${tokenForError(error)}`)
+        if (
+          error?.code !== 'legacy_terminal_storage_refused' ||
+          error?.message !== 'Terminal deletion of a governed memory store is refused.'
+        ) {
+          violations.push(`${workspaceId}: terminal refusal returned ${tokenForError(error)}`)
         }
       }
     }
-    try {
-      await store.deleteKernelStoreFile({
-        memoryRootDir: payload.directory,
-        workspaceId: 'middle',
-      })
-    } catch (error) {
-      violations.push(`middle: deletion after successful close failed: ${tokenForError(error)}`)
+    if (scenario.rmCalls.length !== 0) {
+      violations.push(`manager terminal refusal reached rm ${JSON.stringify(scenario.rmCalls)}`)
     }
     return { closeOrder, error: serializeError(caught), violations }
   }
@@ -1258,30 +1370,29 @@ function a2InstrumentationChildMain(payload) {
       }
       if (definition.poisoned) {
         const before = operationalRecords.length
-        for (const operation of ['open', 'delete']) {
-          try {
-            if (operation === 'open') {
-              await store.createKernelStore(fileOptions)
-            } else {
-              await store.deleteKernelStoreFile(fileOptions)
-            }
-            violations.push(`${definition.name}: poisoned ${operation} succeeded`)
-          } catch (error) {
-            if (error?.code !== 'legacy_store_open') {
-              violations.push(
-                `${definition.name}: poisoned ${operation} ${tokenForError(error)}`,
-              )
-            }
+        try {
+          await store.createKernelStore(fileOptions)
+          violations.push(`${definition.name}: poisoned open succeeded`)
+        } catch (error) {
+          if (error?.code !== 'legacy_store_open') {
+            violations.push(
+              `${definition.name}: poisoned open ${tokenForError(error)}`,
+            )
           }
         }
         if (operationalRecords.length !== before) {
           violations.push(`${definition.name}: poison reconstructed SQLite`)
         }
-      } else {
-        try {
-          await store.deleteKernelStoreFile(fileOptions)
-        } catch (error) {
-          violations.push(`${definition.name}: cleanup delete ${tokenForError(error)}`)
+      }
+      try {
+        await store.deleteKernelStoreFile(fileOptions)
+        violations.push(`${definition.name}: terminal deletion unexpectedly succeeded`)
+      } catch (error) {
+        if (
+          error?.code !== 'legacy_terminal_storage_refused' ||
+          error?.message !== 'Terminal deletion of a governed memory store is refused.'
+        ) {
+          violations.push(`${definition.name}: terminal refusal ${tokenForError(error)}`)
         }
       }
     }
@@ -1393,7 +1504,10 @@ function a2InstrumentationChildMain(payload) {
               }
               violations.push(`poisoned alias ${operation} succeeded`)
             } catch (error) {
-              if (error?.code !== 'legacy_store_open') {
+              const expectedCode = operation === 'open'
+                ? 'legacy_store_open'
+                : 'legacy_terminal_storage_refused'
+              if (error?.code !== expectedCode) {
                 violations.push(`poisoned alias ${operation} ${tokenForError(error)}`)
               }
             }
@@ -1433,8 +1547,19 @@ function a2InstrumentationChildMain(payload) {
       }
       try {
         await runtime.deleteKernelStoreRuntimeFile(options)
+        violations.push('terminal deletion after successful close succeeded')
       } catch (error) {
-        violations.push(`successful release remained blocked: ${tokenForError(error)}`)
+        if (
+          error?.code !== 'legacy_terminal_storage_refused' ||
+          error?.message !== 'Terminal deletion of a governed memory store is refused.'
+        ) {
+          violations.push(`successful release refusal changed: ${tokenForError(error)}`)
+        }
+      }
+      try {
+        await NativeFsPromises.access(base.dbPath)
+      } catch {
+        violations.push('terminal refusal removed a successfully closed database')
       }
     }
 
@@ -1457,14 +1582,21 @@ function a2InstrumentationChildMain(payload) {
         const base = await runtime.createKernelStoreRuntime(relativeOptions)
         try {
           await runtime.deleteKernelStoreRuntimeFile(absoluteOptions)
-          violations.push('absolute alias deleted a relative live handle')
+          violations.push('absolute alias terminal deletion unexpectedly succeeded')
         } catch (error) {
-          if (error?.code !== 'legacy_store_open') {
+          if (error?.code !== 'legacy_terminal_storage_refused') {
             violations.push(`relative/absolute alias refusal ${tokenForError(error)}`)
           }
         }
         base.close()
-        await runtime.deleteKernelStoreRuntimeFile(absoluteOptions)
+        try {
+          await runtime.deleteKernelStoreRuntimeFile(absoluteOptions)
+          violations.push('closed absolute alias terminal deletion unexpectedly succeeded')
+        } catch (error) {
+          if (error?.code !== 'legacy_terminal_storage_refused') {
+            violations.push(`closed alias refusal ${tokenForError(error)}`)
+          }
+        }
       } finally {
         process.chdir(originalCwd)
       }
@@ -1473,136 +1605,95 @@ function a2InstrumentationChildMain(payload) {
     return { violations }
   }
 
-  async function runDeletionAndQueueMatrix() {
+  async function runTerminalRefusalMatrix() {
     const violations = []
-    const runtime = await importRuntime('deletion-queue')
-
-    {
-      const scenario = makeScenario()
-      activeScenario = scenario
-      const options = optionsFor('artifact-delete')
-      const base = await runtime.createKernelStoreRuntime(options)
-      const dbPath = base.dbPath
-      base.close()
-      const artifacts = [dbPath, `${dbPath}-wal`, `${dbPath}-shm`, `${dbPath}-journal`]
-      for (let index = 1; index < artifacts.length; index += 1) {
-        await NativeFsPromises.writeFile(artifacts[index], `artifact-${index}`)
-      }
-      const deleted = await runtime.deleteKernelStoreRuntimeFile(options)
-      if (deleted.removed !== true || deleted.dbPath !== dbPath) {
-        violations.push('artifact deletion returned a false success shape')
-      }
-      for (const artifact of artifacts) {
-        try {
-          await NativeFsPromises.access(artifact)
-          violations.push(`artifact survived deletion: ${artifact}`)
-        } catch (error) {
-          if (error?.code !== 'ENOENT') throw error
-        }
-      }
-      const fresh = await runtime.createKernelStoreRuntime(options)
-      if (fresh.listMemories().length !== 0) {
-        violations.push('fresh reopen after terminal deletion retained rows')
-      }
-      fresh.close()
-      await runtime.deleteKernelStoreRuntimeFile(options)
+    const runtime = await importRuntime('terminal-refusal')
+    const scenario = makeScenario()
+    activeScenario = scenario
+    const options = optionsFor('terminal-artifacts')
+    const base = await runtime.createKernelStoreRuntime(options)
+    const dbPath = base.dbPath
+    base.close()
+    const artifacts = [dbPath, `${dbPath}-wal`, `${dbPath}-shm`, `${dbPath}-journal`]
+    for (let index = 1; index < artifacts.length; index += 1) {
+      await NativeFsPromises.writeFile(artifacts[index], `artifact-${index}`)
     }
 
-    {
-      const scenario = makeScenario({
-        rmFailure: { label: 'remove-failure', suffix: '-shm', used: false },
+    let optionObservations = 0
+    const hostileRecord = {}
+    for (const key of ['memoryEnabled', 'memoryRootDir', 'statePath', 'workspaceId']) {
+      Object.defineProperty(hostileRecord, key, {
+        get() {
+          optionObservations += 1
+          throw new Error(`terminal option observed: ${key}`)
+        },
       })
-      activeScenario = scenario
-      const options = optionsFor('remove-failure')
-      const base = await runtime.createKernelStoreRuntime(options)
-      const dbPath = base.dbPath
-      base.close()
-      const artifacts = [dbPath, `${dbPath}-wal`, `${dbPath}-shm`, `${dbPath}-journal`]
-      for (let index = 1; index < artifacts.length; index += 1) {
-        await NativeFsPromises.writeFile(artifacts[index], `artifact-${index}`)
-      }
+    }
+    const hostileProxy = new Proxy(Object.create(null), {
+      get() {
+        optionObservations += 1
+        throw new Error('terminal proxy get trap ran')
+      },
+      getOwnPropertyDescriptor() {
+        optionObservations += 1
+        throw new Error('terminal proxy descriptor trap ran')
+      },
+      getPrototypeOf() {
+        optionObservations += 1
+        throw new Error('terminal proxy prototype trap ran')
+      },
+      has() {
+        optionObservations += 1
+        throw new Error('terminal proxy has trap ran')
+      },
+      ownKeys() {
+        optionObservations += 1
+        throw new Error('terminal proxy ownKeys trap ran')
+      },
+    })
+
+    const cases = [
+      ['F-01', hostileRecord],
+      ['F-02', undefined],
+      ['F-03', hostileProxy],
+    ]
+    const beforeOperations = operationalRecords.length
+    for (const [label, input] of cases) {
       let caught
-      let returned
       try {
-        returned = await runtime.deleteKernelStoreRuntimeFile(options)
+        await runtime.deleteKernelStoreRuntimeFile(input)
+        violations.push(`${label}: terminal deletion unexpectedly succeeded`)
       } catch (error) {
         caught = error
       }
-      if (caught !== stableError('remove-failure') || returned !== undefined) {
-        violations.push(`removal failure identity/result ${tokenForError(caught)}`)
-      }
-      const firstCalls = scenario.rmCalls.slice()
       if (
-        firstCalls.length !== 3 ||
-        firstCalls[0] !== dbPath || firstCalls[1] !== `${dbPath}-wal` ||
-        firstCalls[2] !== `${dbPath}-shm`
-      ) violations.push(`removal failure order ${JSON.stringify(firstCalls)}`)
-      for (const [artifact, shouldExist] of [
-        [dbPath, false],
-        [`${dbPath}-wal`, false],
-        [`${dbPath}-shm`, true],
-        [`${dbPath}-journal`, true],
-      ]) {
-        let present = true
-        try {
-          await NativeFsPromises.access(artifact)
-        } catch (error) {
-          if (error?.code !== 'ENOENT') throw error
-          present = false
-        }
-        if (present !== shouldExist) {
-          violations.push(`removal failure artifact state ${artifact}: ${present}`)
-        }
+        caught?.name !== 'LegacyMutationError' ||
+        caught?.code !== 'legacy_terminal_storage_refused' ||
+        caught?.message !== 'Terminal deletion of a governed memory store is refused.'
+      ) violations.push(`${label}: terminal reason ${tokenForError(caught)}`)
+    }
+    if (optionObservations !== 0) {
+      violations.push(`terminal refusal observed ${optionObservations} option traps`)
+    }
+    if (scenario.rmCalls.length !== 0) {
+      violations.push(`terminal refusal reached rm ${JSON.stringify(scenario.rmCalls)}`)
+    }
+    if (operationalRecords.length !== beforeOperations) {
+      violations.push('terminal refusal reached native SQLite construction')
+    }
+    for (const artifact of artifacts) {
+      try {
+        await NativeFsPromises.access(artifact)
+      } catch (error) {
+        violations.push(`terminal refusal removed artifact ${artifact}: ${tokenForError(error)}`)
       }
-      await runtime.deleteKernelStoreRuntimeFile(options)
     }
 
-    {
-      const scenario = makeScenario()
-      activeScenario = scenario
-      const serializedOptions = optionsFor('serialized')
-      const independentOptions = optionsFor('independent')
-      const seed = await runtime.createKernelStoreRuntime(serializedOptions)
-      seed.close()
-      armPause(scenario, 'rm', 'serialized.memory.sqlite')
-      const deletion = runtime.deleteKernelStoreRuntimeFile(serializedOptions)
-      await scenario.pauseReached
-      const samePathCreation = runtime.createKernelStoreRuntime(serializedOptions)
-      let samePathSettled = false
-      samePathCreation.then(
-        () => { samePathSettled = true },
-        () => { samePathSettled = true },
-      )
-      const independentCreation = runtime.createKernelStoreRuntime(independentOptions)
-      let independentTimeout
-      let independent
-      try {
-        independent = await Promise.race([
-          independentCreation,
-          new Promise((_, reject) => {
-            independentTimeout = setTimeout(
-              () => reject(new Error('independent path was blocked')),
-              2_000,
-            )
-          }),
-        ])
-      } finally {
-        clearTimeout(independentTimeout)
-      }
-      if (samePathSettled) {
-        violations.push('same-path create escaped before deletion finished')
-      }
-      independent.close()
-      scenario.releasePause()
-      const deleted = await deletion
-      const samePath = await samePathCreation
-      if (deleted.removed !== true || samePath.status().status !== 'enabled') {
-        violations.push('serialized delete/create settlement was invalid')
-      }
-      samePath.close()
-      await runtime.deleteKernelStoreRuntimeFile(serializedOptions)
-      await runtime.deleteKernelStoreRuntimeFile(independentOptions)
+    const reopened = await runtime.createKernelStoreRuntime(options)
+    if (reopened.status().status !== 'enabled') {
+      violations.push('terminal refusal poisoned a later open')
     }
+    reopened.close()
 
     return { violations }
   }
@@ -1613,7 +1704,7 @@ function a2InstrumentationChildMain(payload) {
     if (payload.mode === 'manager') return runManagerCloseMatrix()
     if (payload.mode === 'manager-races') return runManagerFailureAndRaceMatrix()
     if (payload.mode === 'direct-lifecycle') return runDirectCloseAndAliasMatrix()
-    if (payload.mode === 'deletion-queue') return runDeletionAndQueueMatrix()
+    if (payload.mode === 'terminal-refusal') return runTerminalRefusalMatrix()
     throw new Error(`unknown instrumentation mode: ${payload.mode}`)
   }
 
@@ -1773,13 +1864,54 @@ ${tails[history]};
   db.close()
 }
 
-test('M2-A2-04 runtime/store namespaces and immutable compatibility sets are exact', () => {
+function seedHistoricalMemory(dbPath, overrides = {}) {
+  const row = {
+    id: 'mem_10000000-0000-4000-8000-000000000001',
+    palari_id: 'palari-a',
+    user_id: 'user-a',
+    type: 'preference',
+    content: 'A2 read dispatch survives governed bridge migration.',
+    keywords: 'routing bridge captured dispatch',
+    importance: 0.8,
+    valid_from: '2026-07-21T12:00:00.000Z',
+    valid_until: null,
+    access_count: 0,
+    last_accessed: null,
+    created_at: '2026-07-21T12:00:00.000Z',
+    shared: 0,
+    confidence: 0.9,
+    acquisition_mode: 'direct',
+    created_by_pipeline: 0,
+    fictional: 0,
+    last_decayed_at: null,
+    source_message_id: null,
+    content_hash: 'caller-mismatch',
+    source_kind: 'user_message',
+    extractor: null,
+    ...overrides,
+  }
+  const db = new DatabaseSync(dbPath)
+  db.prepare(`
+    INSERT INTO memories (
+      id, palari_id, user_id, type, content, keywords, importance,
+      valid_from, valid_until, access_count, last_accessed, created_at,
+      shared, confidence, acquisition_mode, created_by_pipeline, fictional,
+      last_decayed_at, source_message_id, content_hash, source_kind, extractor
+    ) VALUES (
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    )
+  `).run(...CANONICAL_MEMORY_KEYS.map((key) => row[key]))
+  db.close()
+  return row
+}
+
+test('M2-B-04 runtime/store namespaces and immutable compatibility sets are exact', () => {
   assert.deepEqual(Object.keys(runtimeModule).sort(), [
     'acquisitionModes',
     'assertKernelStoreCapability',
     'createKernelStoreRuntime',
     'deleteKernelStoreRuntimeFile',
-    'executeLegacyStoreIntent',
+    'executeGovernedStoreIntent',
     'externalMemorySourceKinds',
     'extractMemoryQueryKeywords',
     'memoryAddWriters',
@@ -1821,8 +1953,11 @@ test('M2-A2-04 runtime/store namespaces and immutable compatibility sets are exa
   assert.equal(memoryTypes.has('rogue'), false)
 })
 
-test('M2-A2-04 safe base is exact, read-only, branded, and projects canonical rows', async () => {
+test('M2-B-04 safe base is exact, read-only, branded, and projects canonical rows', async () => {
   const directory = await temporaryDirectory()
+  const dbPath = join(directory, 'contract.memory.sqlite')
+  seedHistoricalSchema(dbPath, 'current')
+  const seeded = seedHistoricalMemory(dbPath)
   const base = await openBase(directory)
   assert.equal(Object.isFrozen(base), true)
   assert.deepEqual(Reflect.ownKeys(base), [
@@ -1849,22 +1984,25 @@ test('M2-A2-04 safe base is exact, read-only, branded, and projects canonical ro
 
   const gated = createGatedStore(base)
   const result = proposeFixture(gated)
-  assert.equal(result.outcome, 'inserted')
-  const first = base.getMemoryById(result.memory.id)
-  const second = base.getMemoryById(result.memory.id)
+  assert.deepEqual(result, {
+    outcome: 'rejected',
+    reasons: ['governance_refused'],
+  })
+  const first = base.getMemoryById(seeded.id)
+  const second = base.getMemoryById(seeded.id)
   assert.deepEqual(Object.keys(first), CANONICAL_MEMORY_KEYS)
   assert.notEqual(first, second)
   first.content = 'caller-local mutation'
-  assert.notEqual(base.getMemoryById(result.memory.id).content, first.content)
+  assert.notEqual(base.getMemoryById(seeded.id).content, first.content)
   gated.close()
   assert.equal(base.status().status, 'closed')
   assert.throws(
-    () => base.getMemoryById(result.memory.id),
+    () => base.getMemoryById(seeded.id),
     (error) => error.code === 'legacy_store_closed',
   )
 })
 
-test('M2-A2-04 disabled base remains inert before and after close', async () => {
+test('M2-B-04 disabled base remains inert before and after close', async () => {
   const base = await createKernelStore({ memoryEnabled: false })
   const gated = createGatedStore(base)
   assert.deepEqual(Reflect.ownKeys(base), [
@@ -1894,7 +2032,7 @@ test('M2-A2-04 disabled base remains inert before and after close', async () => 
   })
 })
 
-test('M2-A2-04 recall validates time before SQLite but skips it for empty scope', async () => {
+test('M2-B-04 recall validates time before SQLite but skips it for empty scope', async () => {
   const directory = await temporaryDirectory()
   const base = await openBase(directory)
   let inspected = 0
@@ -1917,7 +2055,7 @@ test('M2-A2-04 recall validates time before SQLite but skips it for empty scope'
   base.close()
 })
 
-test('M2-A2-06 terminal deletion refuses live handles and removes after close', async () => {
+test('M2-B-06 terminal deletion refuses unconditionally and preserves storage', async () => {
   const directory = await temporaryDirectory()
   const options = {
     memoryEnabled: true,
@@ -1928,16 +2066,17 @@ test('M2-A2-06 terminal deletion refuses live handles and removes after close', 
   assert.equal(await exists(base.dbPath), true)
   await assert.rejects(
     deleteKernelStoreFile(options),
-    (error) => error.code === 'legacy_store_open',
+    isTerminalStorageRefusal,
   )
   base.close()
-  const deleted = await deleteKernelStoreFile(options)
-  assert.deepEqual(Object.keys(deleted), ['dbPath', 'removed'])
-  assert.equal(deleted.removed, true)
-  assert.equal(await exists(deleted.dbPath), false)
+  await assert.rejects(
+    deleteKernelStoreFile(options),
+    isTerminalStorageRefusal,
+  )
+  assert.equal(await exists(base.dbPath), true)
 })
 
-test('M2-A2-06 direct create and delete reject proxies without invoking traps', async () => {
+test('M2-B-06 direct create rejects proxies while terminal refusal observes nothing', async () => {
   let trapCalls = 0
   const options = new Proxy({}, {
     get() {
@@ -1951,12 +2090,12 @@ test('M2-A2-06 direct create and delete reject proxies without invoking traps', 
   )
   await assert.rejects(
     deleteKernelStoreFile(options),
-    (error) => error.code === 'legacy_path_invalid',
+    isTerminalStorageRefusal,
   )
   assert.equal(trapCalls, 0)
 })
 
-test('M2-A2-06 directory symlink aliases share canonical path and live count', async () => {
+test('M2-B-06 directory symlink aliases share canonical open paths while deletion refuses', async () => {
   const directory = await temporaryDirectory()
   const realRoot = join(directory, 'real')
   const aliasRoot = join(directory, 'alias')
@@ -1975,16 +2114,20 @@ test('M2-A2-06 directory symlink aliases share canonical path and live count', a
       memoryRootDir: realRoot,
       workspaceId: 'same-path',
     }),
-    (error) => error.code === 'legacy_store_open',
+    isTerminalStorageRefusal,
   )
   alias.close()
-  await deleteKernelStoreFile({
-    memoryRootDir: aliasRoot,
-    workspaceId: 'same-path',
-  })
+  await assert.rejects(
+    deleteKernelStoreFile({
+      memoryRootDir: aliasRoot,
+      workspaceId: 'same-path',
+    }),
+    isTerminalStorageRefusal,
+  )
+  assert.equal(await exists(alias.dbPath), true)
 })
 
-test('M2-A2-06 direct opens are distinct and deletion waits for every handle', async () => {
+test('M2-B-06 direct opens are distinct and deletion refuses at every live count', async () => {
   const directory = await temporaryDirectory()
   const options = {
     memoryEnabled: true,
@@ -2000,15 +2143,18 @@ test('M2-A2-06 direct opens are distinct and deletion waits for every handle', a
   first.close()
   await assert.rejects(
     deleteKernelStoreFile(options),
-    (error) => error.code === 'legacy_store_open',
+    isTerminalStorageRefusal,
   )
   second.close()
-  const [deletedFirst, deletedSecond] = await Promise.all([
+  const [deletedFirst, deletedSecond] = await Promise.allSettled([
     deleteKernelStoreFile(options),
     deleteKernelStoreFile(options),
   ])
-  assert.equal(deletedFirst.removed, true)
-  assert.equal(deletedSecond.removed, true)
+  assert.equal(deletedFirst.status, 'rejected')
+  assert.equal(deletedSecond.status, 'rejected')
+  assert.equal(isTerminalStorageRefusal(deletedFirst.reason), true)
+  assert.equal(isTerminalStorageRefusal(deletedSecond.reason), true)
+  assert.equal(await exists(first.dbPath), true)
 })
 
 test('M2-A2-06 an existing main-file symlink is rejected before native open', async () => {
@@ -2028,7 +2174,7 @@ test('M2-A2-06 an existing main-file symlink is rejected before native open', as
   )
 })
 
-test('M2-A2-04 unknown persisted trigger fails the runtime manifest', async () => {
+test('M2-B-04 unknown persisted trigger fails the governed runtime manifest', async () => {
   const directory = await temporaryDirectory()
   const base = await openBase(directory, 'invalid-trigger')
   const dbPath = base.dbPath
@@ -2046,16 +2192,11 @@ test('M2-A2-04 unknown persisted trigger fails the runtime manifest', async () =
 
   await assert.rejects(
     openBase(directory, 'invalid-trigger'),
-    (error) => error.code === 'legacy_schema_invalid',
+    (error) => error.code === 'governance_schema_invalid',
   )
-  const deleted = await deleteKernelStoreFile({
-    memoryRootDir: directory,
-    workspaceId: 'invalid-trigger',
-  })
-  assert.equal(deleted.removed, true, 'failed bootstrap closed its native handle')
 })
 
-test('M2-A2-04 all three historical memories column orders migrate and project identically', async () => {
+test('M2-B-04 all three historical memories column orders migrate and project identically', async () => {
   const directory = await temporaryDirectory()
   const histories = [
     ['current', [
@@ -2089,7 +2230,7 @@ test('M2-A2-04 all three historical memories column orders migrate and project i
   }
 })
 
-test('M2-A2-04 manifest rejects external-to-CDX and CDX-to-unrelated foreign keys', async () => {
+test('M2-B-04 manifest rejects external-to-CDX and CDX-to-unrelated foreign keys', async () => {
   const directory = await temporaryDirectory()
 
   const external = await openBase(directory, 'external-fk')
@@ -2104,7 +2245,7 @@ test('M2-A2-04 manifest rejects external-to-CDX and CDX-to-unrelated foreign key
   externalDb.close()
   await assert.rejects(
     openBase(directory, 'external-fk'),
-    (error) => error.code === 'legacy_schema_invalid',
+    (error) => error.code === 'governance_schema_invalid',
   )
 
   const cdx = await openBase(directory, 'cdx-fk')
@@ -2128,31 +2269,40 @@ test('M2-A2-04 manifest rejects external-to-CDX and CDX-to-unrelated foreign key
   cdxDb.close()
   await assert.rejects(
     openBase(directory, 'cdx-fk'),
-    (error) => error.code === 'legacy_schema_invalid',
+    (error) => error.code === 'governance_migration_invalid',
   )
 })
 
-test('M2-A2-04 row oracle rejects unsafe access counts but permits mismatching hashes', async () => {
+test('M2-B-04 row oracle rejects unsafe access counts but permits mismatching hashes', async () => {
   const directory = await temporaryDirectory()
+  const dbPath = join(directory, 'row-oracle.memory.sqlite')
+  seedHistoricalSchema(dbPath, 'current')
+  const seeded = seedHistoricalMemory(dbPath)
   const base = await openBase(directory, 'row-oracle')
   const gated = createGatedStore(base)
-  const applied = proposeFixture(gated, { content_hash: 'caller-mismatch' })
-  assert.equal(applied.memory.content_hash, 'caller-mismatch')
-  const dbPath = base.dbPath
+  assert.deepEqual(proposeFixture(gated), {
+    outcome: 'rejected',
+    reasons: ['governance_refused'],
+  })
   gated.close()
 
   const accepted = await openBase(directory, 'row-oracle')
-  assert.equal(accepted.getMemoryById(applied.memory.id).content_hash, 'caller-mismatch')
+  assert.equal(accepted.getMemoryById(seeded.id).content_hash, 'caller-mismatch')
   accepted.close()
 
-  const raw = new DatabaseSync(dbPath)
+  const unsafePath = join(directory, 'unsafe-row.memory.sqlite')
+  seedHistoricalSchema(unsafePath, 'current')
+  const unsafe = seedHistoricalMemory(unsafePath, {
+    id: 'mem_10000000-0000-4000-8000-000000000002',
+  })
+  const raw = new DatabaseSync(unsafePath)
   raw.exec('PRAGMA ignore_check_constraints = ON')
   raw.prepare('UPDATE memories SET access_count = -1 WHERE id = ?')
-    .run(applied.memory.id)
+    .run(unsafe.id)
   raw.close()
   await assert.rejects(
-    openBase(directory, 'row-oracle'),
-    (error) => error.code === 'legacy_schema_invalid',
+    openBase(directory, 'unsafe-row'),
+    (error) => error.code === 'governance_schema_invalid',
   )
 })
 
@@ -2196,14 +2346,18 @@ test('M2-A2-05 manager close wins an in-flight creation and revokes it before ex
     (error) => error.code === 'legacy_manager_closed',
   )
   await closing
-  await deleteKernelStoreFile({
-    memoryRootDir: directory,
-    workspaceId: 'close-race',
-  })
 })
 
-test('M2-A2-04 post-import prototype poisoning cannot redirect native/read dispatch', async () => {
+test('M2-B-04 post-import prototype poisoning cannot redirect native/read dispatch', async () => {
   const directory = await temporaryDirectory('brain-a2-poison-')
+  const poisonedId = 'mem_10000000-0000-4000-8000-000000000003'
+  const poisonedPath = join(directory, 'poisoned-runtime.memory.sqlite')
+  seedHistoricalSchema(poisonedPath, 'current')
+  seedHistoricalMemory(poisonedPath, {
+    content: 'Captured dispatch survives prototype poisoning.',
+    id: poisonedId,
+    keywords: 'captured dispatch',
+  })
   const storeUrl = new URL('../src/store.mjs', import.meta.url).href
   const gateUrl = new URL('../src/gate.mjs', import.meta.url).href
   const routerUrl = new URL('../src/legacy-mutation-router.mjs', import.meta.url).href
@@ -2263,7 +2417,11 @@ test('M2-A2-04 post-import prototype poisoning cannot redirect native/read dispa
           user_id: 'user-a',
         },
       })
-      const row = base.getMemoryById(applied.memory.id)
+      if (
+        applied.outcome !== 'rejected' ||
+        applied.reasons[0] !== 'governance_refused'
+      ) throw new Error('governed proposal was not refused')
+      const row = base.getMemoryById(${JSON.stringify(poisonedId)})
       const hits = base.searchMemories('captured', { palariId: 'palari-a', userId: 'user-a' })
       const recalled = base.recallMemories('captured', {
         now: '2026-07-22T12:00:00.000Z',
@@ -2293,17 +2451,29 @@ test('M2-A2-04 post-import prototype poisoning cannot redirect native/read dispa
   assert.equal(child.stdout, 'PASS')
 })
 
-test('M2-A2-04 every captured post-open bootstrap operation fails closed and is reusable', async () => {
+test('M2-B-04 every governed bootstrap operation fails closed with exact ownership and is reusable', async () => {
   const directory = await temporaryDirectory('brain-a2-bootstrap-operations-')
   const result = runA2Instrumentation('operations', directory)
   assert.equal(result.operationCount >= 50, true)
+  assert.deepEqual(result.errorCodes, [
+    'governance_checkpoint_invalid',
+    'governance_identifier_collision',
+    'governance_journal_invalid',
+    'governance_meta_invalid',
+    'governance_migration_invalid',
+    'governance_projection_invalid',
+    'governance_schema_invalid',
+    'mutation_begin_failed',
+    'mutation_commit_failed',
+    'mutation_connection_policy',
+  ])
   assert.deepEqual(result.violations, [])
 })
 
-test('M2-A2-04 bootstrap state, cleanup, poison, and post-commit construction matrix is exact', async () => {
+test('M2-B-04 bridge bootstrap state, cleanup, poison, and post-bridge construction matrix is exact', async () => {
   const directory = await temporaryDirectory('brain-a2-bootstrap-states-')
   const result = runA2Instrumentation('states', directory)
-  assert.equal(result.caseCount, 30)
+  assert.equal(result.caseCount, 31)
   assert.deepEqual(result.failures, [])
 })
 
@@ -2360,10 +2530,6 @@ test('M2-A2-05 manager publishes its flight before reentrant workspace coercion'
     assert.equal(outerHandle, nestedHandle)
     await manager.close()
     assert.equal(outerHandle.status().status, 'closed')
-    await deleteKernelStoreFile({
-      memoryRootDir: directory,
-      workspaceId: 'same workspace',
-    })
   } finally {
     try {
       outerHandle?.close()
@@ -2401,10 +2567,6 @@ test('M2-A2-05 manager snapshots its path once and detaches later mutable change
   assert.equal(reopened.dbPath.startsWith(secondDirectory), false)
   assert.equal(coercions, 1)
   await manager.close()
-  await deleteKernelStoreFile({
-    memoryRootDir: firstDirectory,
-    workspaceId: 'detached path',
-  })
 })
 
 test('M2-A2-05 manager snapshots only the selected lazy path branch', async () => {
@@ -2506,14 +2668,14 @@ test('M2-A2-05 manager snapshots only the selected lazy path branch', async () =
   assert.equal(unusedPathCoercions, 0)
 })
 
-test('M2-A2-06 direct close is release-once and poison closes every canonical alias', async () => {
+test('M2-B-06 direct close is release-once and poison closes every canonical alias', async () => {
   const directory = await temporaryDirectory('brain-a2-close-aliases-')
   const result = runA2Instrumentation('direct-lifecycle', directory)
   assert.deepEqual(result.violations, [])
 })
 
-test('M2-A2-06 deletion owns four artifacts, preserves native failure, and serializes by path', async () => {
-  const directory = await temporaryDirectory('brain-a2-deletion-queue-')
-  const result = runA2Instrumentation('deletion-queue', directory)
+test('M2-B-06 terminal refusal observes no options and preserves every artifact', async () => {
+  const directory = await temporaryDirectory('brain-b6-terminal-refusal-')
+  const result = runA2Instrumentation('terminal-refusal', directory)
   assert.deepEqual(result.violations, [])
 })

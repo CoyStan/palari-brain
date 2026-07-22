@@ -15,7 +15,6 @@ import { after, test } from 'node:test'
 
 import {
   createKernelStore,
-  deleteKernelStoreFile,
   workspaceMemoryDbPath,
 } from '../src/store.mjs'
 import { bootstrapCdxB2InTransaction } from '../src/cdx-b2-journal.mjs'
@@ -166,7 +165,15 @@ function withIndependentDatabase(dbPath, callback) {
 }
 
 function assertSchemaInvalid(error) {
-  return error?.code === 'legacy_schema_invalid'
+  return error?.code === 'governance_schema_invalid'
+}
+
+function assertMigrationInvalid(error) {
+  return error?.code === 'governance_migration_invalid'
+}
+
+function assertProjectionInvalid(error) {
+  return error?.code === 'governance_projection_invalid'
 }
 
 function rewriteStoredSql(db, name, before, after) {
@@ -207,8 +214,6 @@ async function expectManifestRejection(
   } finally {
     if (escaped !== undefined) escaped.close()
   }
-  const removed = await deleteKernelStoreFile(options)
-  assert.equal(removed.removed, true)
 }
 
 async function expectManifestAcceptance(directory, workspaceId, mutate) {
@@ -220,7 +225,6 @@ async function expectManifestAcceptance(directory, workspaceId, mutate) {
   const reopened = await createKernelStore(options)
   assert.equal(reopened.status().status, 'enabled')
   reopened.close()
-  await deleteKernelStoreFile(options)
 }
 
 function seedHistoricalSchema(
@@ -616,7 +620,6 @@ test('M2-A2-04 all three historical physical orders expose identical exact read 
           .map((row) => row.name)
         assert.deepEqual(names, physicalOrder)
       })
-      await deleteKernelStoreFile(options)
     })
   }
 })
@@ -637,7 +640,7 @@ test('M2-A2-04 table, FTS/shadow/config, index, and autoindex mutations fail clo
     ['fts-config-missing-version', (db) => {
       db.exec("DELETE FROM memory_fts_config WHERE k = 'version'")
     }, (error) =>
-      error?.code === 'legacy_schema_invalid' ||
+      error?.code === 'governance_schema_invalid' ||
       error?.code === 'ERR_SQLITE_ERROR'],
     ['fts-config-wrong-version', (db) => {
       db.exec("UPDATE memory_fts_config SET v = 5 WHERE k = 'version'")
@@ -808,6 +811,7 @@ test('M2-A2-04 FK and migration manifests reject every representative drift fami
       `)
     }],
     ['extra-fk-on-cdx-table', (db) => {
+      db.exec('PRAGMA foreign_keys = OFF')
       db.exec(`
         ALTER TABLE memory_migrations RENAME TO old_migrations;
         CREATE TABLE unrelated_migration(id TEXT PRIMARY KEY);
@@ -824,27 +828,28 @@ test('M2-A2-04 FK and migration manifests reject every representative drift fami
     ['migration-extra-row', (db) => {
       db.prepare('INSERT INTO memory_migrations(id, applied_at) VALUES (?, ?)')
         .run('CDX-ROGUE', ROW_TIME)
-    }],
+    }, assertMigrationInvalid],
     ['migration-malformed-time', (db) => {
       db.exec("UPDATE memory_migrations SET applied_at = 'not-an-iso-time' WHERE id = 'CDX-M1'")
-    }],
+    }, assertMigrationInvalid],
     ['migration-nontext-time', (db) => {
       db.exec("UPDATE memory_migrations SET applied_at = 7 WHERE id = 'CDX-M1'")
-    }],
+    }, assertMigrationInvalid],
     ['migration-case-id', (db) => {
       db.exec(`
         DELETE FROM memory_migrations WHERE id = 'CDX-M1';
         INSERT INTO memory_migrations(id, applied_at)
           VALUES ('cdx-m1', '2026-07-21T00:00:01.000Z');
       `)
-    }],
+    }, assertMigrationInvalid],
   ]
 
-  for (const [name, mutate] of cases) {
+  for (const [name, mutate, predicate] of cases) {
     await t.test(name, () => expectManifestRejection(
       directory,
       `fk-migration-${name}`,
       mutate,
+      predicate,
     ))
   }
 })
@@ -857,7 +862,6 @@ test('M2-A2-04 nonhistorical order, constraint, and case variants are refused', 
     const options = optionsFor(directory, workspaceId)
     seedHistoricalSchema(workspaceMemoryDbPath(options), 'fourth_order')
     await assert.rejects(createKernelStore(options), assertSchemaInvalid)
-    await deleteKernelStoreFile(options)
   })
 
   const caseSeeds = [
@@ -887,7 +891,6 @@ test('M2-A2-04 nonhistorical order, constraint, and case variants are refused', 
         { schemaTransform },
       )
       await assert.rejects(createKernelStore(options), assertSchemaInvalid)
-      await deleteKernelStoreFile(options)
     })
   }
 
@@ -936,13 +939,13 @@ test('M2-A2-04 FK check, quick check, FTS parity, and FTS integrity reject corru
     ['fts-parity-missing', (db) => {
       seedValidMemory(db)
       db.exec("DELETE FROM memory_fts WHERE memory_id = 'mem_manifest_matrix'")
-    }, assertSchemaInvalid],
+    }, assertProjectionInvalid],
     ['fts-parity-extra', (db) => {
       db.prepare(`
         INSERT INTO memory_fts(rowid, memory_id, palari_id, content, keywords)
         VALUES (?, ?, ?, ?, ?)
       `).run(99_999, 'fts-extra', 'palari-matrix', 'fts extra row', 'fts,extra')
-    }, assertSchemaInvalid],
+    }, assertProjectionInvalid],
     ['quick-check-page-alias', (db) => {
       db.exec('CREATE TABLE quick_check_probe(value TEXT)')
       db.exec('PRAGMA writable_schema = ON')
@@ -956,7 +959,7 @@ test('M2-A2-04 FK check, quick check, FTS parity, and FTS integrity reject corru
       db.exec(`PRAGMA schema_version = ${version + 1}`)
       db.exec('PRAGMA writable_schema = OFF')
     }, (error) =>
-      error?.code === 'legacy_schema_invalid' ||
+      error?.code === 'governance_schema_invalid' ||
       error?.code === 'ERR_SQLITE_CORRUPT'],
     ['fts-integrity-shadow-block', (db) => {
       seedValidMemory(db)
@@ -966,7 +969,7 @@ test('M2-A2-04 FK check, quick check, FTS parity, and FTS integrity reject corru
         WHERE id = (SELECT id FROM memory_fts_data ORDER BY id LIMIT 1)
       `)
     }, (error) =>
-      error?.code === 'legacy_schema_invalid' ||
+      error?.code === 'governance_schema_invalid' ||
       error?.code === 'ERR_SQLITE_CORRUPT' ||
       error?.code === 'ERR_SQLITE_ERROR'],
   ]
@@ -1004,13 +1007,14 @@ test('M2-A2-04 connection policy, TEMP trigger, quick-check, and FTS command rea
       const result = runInstrumentedManifestOpen(directory, workspaceId, mode)
       if (mode === 'fts-integrity-command') {
         assert.deepEqual(result, {
-          code: 'ERR_MATRIX_FTS_INTEGRITY',
-          message: 'injected FTS integrity command failure',
+          code: 'OPENED',
+          message: null,
         })
+      } else if (mode.startsWith('pragma-')) {
+        assert.equal(result.code, 'mutation_connection_policy')
       } else {
-        assert.equal(result.code, 'legacy_schema_invalid')
+        assert.equal(result.code, 'governance_schema_invalid')
       }
-      await deleteKernelStoreFile(options)
     })
   }
 })
@@ -1039,12 +1043,11 @@ test('M2-B-03 historical opener main-scopes the B2 FK allowlist under a TEMP sam
   assert.deepEqual(
     runInstrumentedManifestOpen(directory, workspaceId, 'b2-fk-temp-shadow'),
     {
-      code: 'legacy_schema_invalid',
-      message: 'The CDX-M1 runtime schema does not match the required manifest.',
-      stage: 'b2-allowlist',
+      code: 'governance_schema_invalid',
+      message: 'The CDX-B2 schema is invalid.',
+      stage: 'other',
     },
   )
-  await deleteKernelStoreFile(options)
 })
 
 test('M2-A2-04 non-STRICT memory row oracle rejects every scalar type/domain family', async (t) => {
@@ -1129,16 +1132,20 @@ test('M2-A2-04 supplied mismatching content hashes remain accepted compatibility
   const directory = await temporaryDirectory()
   const workspaceId = 'row-mismatching-hash-accepted'
   const options = optionsFor(directory, workspaceId)
+  const dbPath = workspaceMemoryDbPath(options)
+  seedHistoricalSchema(dbPath, 'current', { withRow: true })
   const initial = await createKernelStore(options)
-  const dbPath = initial.dbPath
+  assert.equal(initial.dbPath, dbPath)
   initial.close()
-  withIndependentDatabase(dbPath, (db) => seedValidMemory(db))
+  withIndependentDatabase(dbPath, (db) => {
+    db.prepare('UPDATE memories SET content_hash = ? WHERE id = ?')
+      .run('hash-mutated-after-checkpoint', 'mem_manifest_matrix')
+  })
 
   const reopened = await createKernelStore(options)
   assert.equal(
     reopened.getMemoryById('mem_manifest_matrix').content_hash,
-    'hash-mem_manifest_matrix',
+    'hash-mutated-after-checkpoint',
   )
   reopened.close()
-  await deleteKernelStoreFile(options)
 })

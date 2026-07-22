@@ -1,9 +1,9 @@
-// Supported CDX-M1 store boundary — V2-M2-A2.
+// Supported CDX-M1 store boundary — V2-M2-B.
 //
-// The native connection, bootstrap owner, coordinator, router, lease, plans,
-// and semantic DML remain private to kernel-store-runtime/router. This module
-// publishes only the safe base factory, gated workspace manager, compatibility
-// value sets/helpers, and serialized terminal file-deletion door.
+// The native connection, bootstrap owner, bridge, coordinator, lease, plans,
+// authority audience, and semantic DML remain private to internal modules.
+// This module publishes only the safe base factory, gated workspace manager,
+// compatibility value sets/helpers, and unconditional terminal refusal.
 
 import { dirname, resolve } from 'node:path'
 import { types as utilTypes } from 'node:util'
@@ -29,6 +29,9 @@ import {
   workspaceMemoryDbPath,
 } from './kernel-store-runtime.mjs'
 import { LegacyMutationError } from './legacy-mutation-router.mjs'
+import {
+  captureWorkspaceAuthorityProvider,
+} from './workspace-manager-authority.mjs'
 
 const reflectApply = Reflect.apply
 const reflectConstruct = Reflect.construct
@@ -125,10 +128,7 @@ function captureManagerOptions(options) {
   })
 }
 
-function captureManagerPath(options, enabled) {
-  if (!enabled) {
-    return objectFreeze({ memoryRootDir: null, statePath: null })
-  }
+function captureManagerPath(options) {
   const memoryRootDir = options.memoryRootDir
   const statePath = options.statePath
   if (!memoryRootDir && !statePath) {
@@ -182,10 +182,16 @@ export async function createKernelStore(options = {}) {
 export const deleteKernelStoreFile = deleteKernelStoreRuntimeFile
 
 export function createWorkspaceMemoryManager(options = {}) {
-  const captured = captureManagerOptions(options)
+  const source = options ?? {}
+  const captured = captureManagerOptions(source)
   const config = managerConfig(captured)
-  const capturedPath = captureManagerPath(captured, config.enabled)
+  const capturedPath = config.enabled
+    ? captureManagerPath(captured)
+    : objectFreeze({ memoryRootDir: null, statePath: null })
   const probe = config.enabled ? probeMemorySqliteDriver() : null
+  const authorityRootForWorkspace = config.enabled
+    ? captureWorkspaceAuthorityProvider(source)
+    : undefined
   const entries = new nativeMap()
   const state = {
     closePromise: null,
@@ -231,7 +237,11 @@ export function createWorkspaceMemoryManager(options = {}) {
         // Publish the flight before native creation begins. Manager path and
         // policy inputs were already detached at construction.
         await undefined
+        const authorityRoot = authorityRootForWorkspace === undefined
+          ? undefined
+          : reflectApply(authorityRootForWorkspace, undefined, [workspaceId])
         base = await createKernelStoreRuntime({
+          authorityRoot,
           clock: captured.clock,
           env: captured.env,
           memoryEnabled: config.enabled,

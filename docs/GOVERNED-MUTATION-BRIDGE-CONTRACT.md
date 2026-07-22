@@ -653,6 +653,22 @@ bridge, db, coordinator, lease, journal state, authority audience, or child
 applier. All three methods are receiver-independent captured closures; calling
 them with another `this` does not change their bridge identity.
 
+`src/workspace-manager-authority.mjs` is the manager-only construction adapter
+with exactly one export and no default:
+
+```js
+export function captureWorkspaceAuthorityProvider(options)
+```
+
+Only `src/store.mjs` imports it. It imports only `node:util` and the exact
+`MemoryAuthorityError` identity from `src/memory-authority-runtime.mjs`,
+performs only the trap-free own-descriptor/provider check in the authority
+contract, and returns only the captured provider or `undefined`. It never
+invokes a provider or accepts, returns, or stores an authority carrier,
+database, coordinator, router, bridge, lease, or handle. This internal edge
+does not widen the exact public or runtime authority namespaces, and store
+contains no authority namespace name.
+
 The updated `src/kernel-store-runtime.mjs` namespace is exactly:
 
 ```text
@@ -866,6 +882,10 @@ The production graph must prove:
   control/B2 DML;
 - no proposal/model/adapter/extractor/manager-facing object exposes authority,
   connection, coordinator, lease, plan, journal writer, or projection applier;
+- the sole manager-provider capture edge is exactly
+  `store.mjs -> workspace-manager-authority.mjs -> memory-authority-runtime.mjs`;
+  no other production module imports the adapter, and it has no B1, database,
+  coordinator, router, bridge, filesystem, clock, or I/O dependency;
 - no production import reaches quarantined `src/memory-store.mjs`;
 - B2 schema code is an immutable dependency leaf; and
 - `docs/MEMORY-BUNDLE-CONTRACT.md`, all seven B1 production modules, and

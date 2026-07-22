@@ -16,10 +16,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { DatabaseSync, StatementSync } from 'node:sqlite'
 import { TextEncoder, types as utilTypes } from 'node:util'
 
-import {
-  assertActiveMutationLease,
-  createMutationCoordinator,
-} from './mutation-coordinator.mjs'
+import { assertActiveMutationLease } from './mutation-coordinator.mjs'
 
 const reflectApply = Reflect.apply
 const reflectConstruct = Reflect.construct
@@ -110,6 +107,7 @@ const ERROR_PAIRS = objectFreeze({
   legacy_schema_invalid: 'The CDX-M1 runtime schema does not match the required manifest.',
   legacy_store_open: 'The memory database has a supported live or blocked connection.',
   legacy_path_invalid: 'A valid memory database path is required.',
+  legacy_terminal_storage_refused: 'Terminal deletion of a governed memory store is refused.',
 })
 const ERROR_CODE_SET = new Set(reflectOwnKeys(ERROR_PAIRS))
 
@@ -360,10 +358,24 @@ const RECALL_CAPTURE_KEYS = objectFreeze([
   'storeTime',
 ])
 const LIFECYCLE_KEYS = objectFreeze(['intentKind', 'now', 'palariId'])
+const GOVERNED_ERASURE_PROJECTION_INPUT_KEYS = objectFreeze([
+  'id',
+  'palariId',
+  'userId',
+])
+const GOVERNED_ERASURE_PROJECTION_COUNT_KEYS = objectFreeze([
+  'target_count',
+  'fts_count',
+  'link_count',
+])
+const GOVERNED_TARGET_ID_PATTERN =
+  /^mem_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+const GOVERNED_SCOPE_ID_PATTERN = /^[a-z][a-z0-9_-]{0,63}$/
 
 const invalidContentHash = objectFreeze({ invalidContentHash: true })
 const capturedStates = new WeakMap()
 const planStates = new WeakMap()
+const governedErasureProjectionTokenStates = new WeakMap()
 
 function isOrdinaryRecord(value) {
   if (
@@ -448,34 +460,6 @@ function deepFreeze(value) {
     }
   }
   return freezeRecord(value)
-}
-
-function mutableCopy(value) {
-  if (value === null || typeof value !== 'object') return value
-  if (arrayIsArray(value)) {
-    const result = []
-    for (let index = 0; index < value.length; index += 1) {
-      reflectApply(arrayPush, result, [mutableCopy(value[index])])
-    }
-    return result
-  }
-  const result = {}
-  const keys = reflectApply(reflectOwnKeys, undefined, [value])
-  for (let index = 0; index < keys.length; index += 1) {
-    const key = keys[index]
-    if (typeof key !== 'string') continue
-    const descriptor = reflectApply(
-      reflectGetOwnPropertyDescriptor,
-      undefined,
-      [value, key],
-    )
-    if (
-      descriptor === undefined ||
-      !reflectApply(objectHasOwnProperty, descriptor, ['value'])
-    ) continue
-    defineData(result, key, mutableCopy(descriptor.value))
-  }
-  return result
 }
 
 function trimString(value) {
@@ -2258,6 +2242,155 @@ export function applyLegacyMutationEffectInTransaction(lease, db, effectValue) {
   }
 }
 
+function captureGovernedErasureProjectionInput(input) {
+  if (!isOrdinaryRecord(input)) {
+    throw legacyFailure('legacy_effect_invalid')
+  }
+  const keys = reflectApply(reflectOwnKeys, undefined, [input])
+  if (keys.length !== GOVERNED_ERASURE_PROJECTION_INPUT_KEYS.length) {
+    throw legacyFailure('legacy_effect_invalid')
+  }
+  const values = []
+  for (
+    let index = 0;
+    index < GOVERNED_ERASURE_PROJECTION_INPUT_KEYS.length;
+    index += 1
+  ) {
+    const key = GOVERNED_ERASURE_PROJECTION_INPUT_KEYS[index]
+    if (keys[index] !== key) throw legacyFailure('legacy_effect_invalid')
+    const descriptor = reflectApply(
+      reflectGetOwnPropertyDescriptor,
+      undefined,
+      [input, key],
+    )
+    if (
+      descriptor === undefined ||
+      !reflectApply(objectHasOwnProperty, descriptor, ['value']) ||
+      typeof descriptor.value !== 'string'
+    ) {
+      throw legacyFailure('legacy_effect_invalid')
+    }
+    reflectApply(arrayPush, values, [descriptor.value])
+  }
+  const id = values[0]
+  const palariId = values[1]
+  const userId = values[2]
+  if (
+    !reflectApply(regexpTest, GOVERNED_TARGET_ID_PATTERN, [id]) ||
+    !reflectApply(regexpTest, GOVERNED_SCOPE_ID_PATTERN, [palariId]) ||
+    !reflectApply(regexpTest, GOVERNED_SCOPE_ID_PATTERN, [userId])
+  ) {
+    throw legacyFailure('legacy_effect_invalid')
+  }
+  return { id, palariId, userId }
+}
+
+function readGovernedErasureProjectionCounts(db, input) {
+  const row = statementGetRow(
+    db,
+    `SELECT
+       (SELECT COUNT(*)
+          FROM main.memories
+         WHERE id = ?
+           AND palari_id = ?
+           AND user_id = ?
+           AND shared = 0) AS target_count,
+       (SELECT COUNT(*)
+          FROM main.memory_fts
+         WHERE memory_id = ?) AS fts_count,
+       (SELECT COUNT(*)
+          FROM main.memory_links
+         WHERE from_memory_id = ? OR to_memory_id = ?) AS link_count`,
+    [
+      input.id,
+      input.palariId,
+      input.userId,
+      input.id,
+      input.id,
+      input.id,
+    ],
+  )
+  if (
+    row === null ||
+    typeof row !== 'object' ||
+    reflectApply(isProxy, undefined, [row])
+  ) {
+    throw legacyFailure('legacy_effect_cardinality')
+  }
+  const keys = reflectApply(reflectOwnKeys, undefined, [row])
+  if (keys.length !== GOVERNED_ERASURE_PROJECTION_COUNT_KEYS.length) {
+    throw legacyFailure('legacy_effect_cardinality')
+  }
+  const counts = []
+  for (
+    let index = 0;
+    index < GOVERNED_ERASURE_PROJECTION_COUNT_KEYS.length;
+    index += 1
+  ) {
+    const key = GOVERNED_ERASURE_PROJECTION_COUNT_KEYS[index]
+    const descriptor = reflectApply(
+      reflectGetOwnPropertyDescriptor,
+      undefined,
+      [row, key],
+    )
+    if (
+      keys[index] !== key ||
+      descriptor === undefined ||
+      !reflectApply(objectHasOwnProperty, descriptor, ['value']) ||
+      !reflectApply(numberIsSafeInteger, undefined, [descriptor.value]) ||
+      descriptor.value < 0
+    ) {
+      throw legacyFailure('legacy_effect_cardinality')
+    }
+    reflectApply(arrayPush, counts, [descriptor.value])
+  }
+  return counts
+}
+
+export function prepareGovernedErasureProjectionInTransaction(
+  lease,
+  db,
+  input,
+) {
+  assertActiveMutationLease(lease, db)
+  const captured = captureGovernedErasureProjectionInput(input)
+  const counts = readGovernedErasureProjectionCounts(db, captured)
+  const targetCount = counts[0]
+  const ftsCount = counts[1]
+  const linkCount = counts[2]
+  if (targetCount !== 1 || ftsCount !== 1 || linkCount !== 0) {
+    throw legacyFailure('legacy_effect_cardinality')
+  }
+  const token = freezeRecord({ __proto__: null })
+  reflectApply(weakMapSet, governedErasureProjectionTokenStates, [token, {
+    db,
+    id: captured.id,
+    lease,
+    state: 'ready',
+  }])
+  return token
+}
+
+export function applyGovernedErasureProjectionInTransaction(lease, db, token) {
+  assertActiveMutationLease(lease, db)
+  const state = reflectApply(
+    weakMapGet,
+    governedErasureProjectionTokenStates,
+    [token],
+  )
+  if (state === undefined) throw legacyFailure('legacy_plan_invalid')
+  if (state.db !== db || state.lease !== lease) {
+    throw legacyFailure('legacy_plan_stale')
+  }
+  if (state.state !== 'ready') throw legacyFailure('legacy_plan_applied')
+  state.state = 'consumed'
+  statementRunOne(
+    db,
+    'DELETE FROM main.memories WHERE id = ?',
+    [state.id],
+  )
+}
+
 function captureRouterOptions(options) {
   if (options === undefined) return () => reflectConstruct(nativeDate, [])
   if (!isOrdinaryRecord(options)) throw legacyFailure('legacy_invalid_argument')
@@ -2278,7 +2411,6 @@ function captureRouterOptions(options) {
 
 export function createLegacyMutationRouter(db, options = undefined) {
   const clock = captureRouterOptions(options)
-  const coordinator = createMutationCoordinator(db)
   const routerState = { db, router: null }
 
   const capture = function capture(intent) {
@@ -2360,22 +2492,7 @@ export function createLegacyMutationRouter(db, options = undefined) {
     }
   }
 
-  const execute = function execute(intent) {
-    const captured = capture(intent)
-    const captureState = reflectApply(weakMapGet, capturedStates, [captured])
-    if (captureState.pureResult !== null) {
-      return mutableCopy(captureState.pureResult)
-    }
-    let plannedResult
-    coordinator.run((lease) => {
-      const plan = resolve(lease, captured)
-      apply(lease, plan)
-      plannedResult = plan.result
-    })
-    return mutableCopy(plannedResult)
-  }
-
-  const router = freezeRecord({ apply, capture, execute, resolve })
+  const router = freezeRecord({ apply, capture, resolve })
   routerState.router = router
   return router
 }

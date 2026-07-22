@@ -222,6 +222,35 @@ record with exactly these own keys and derived values:
 It contains no root, grant, audience, reservation, callback, secret,
 serialized capability, caller object, or model-controlled authority field.
 
+### 2.3 Manager-only provider-capture surface
+
+`src/workspace-manager-authority.mjs` has exactly one named export and no
+default export:
+
+```js
+captureWorkspaceAuthorityProvider(options) -> function | undefined
+```
+
+This construction-only descriptor/error adapter is neither a host operation
+nor an authority capability. Only `src/store.mjs` imports it, and only at the
+already-required manager construction ordinal after carrier, configuration,
+path, and driver-probe work. Its argument is the already-validated non-Proxy
+manager source. With captured `Reflect.getOwnPropertyDescriptor`,
+`Object.hasOwn`, and `node:util.types.isProxy`, it implements section 4.1
+exactly: an inherited or missing field and an own-data exact `undefined`
+return `undefined`; an own accessor is rejected without invocation; a
+non-function or Proxy data value is rejected; and an accepted function is
+returned by identity. Both rejection branches throw the exact
+`MemoryAuthorityError` `authority_invalid_argument` pair.
+
+The adapter imports only `node:util` and the error identity from
+`src/memory-authority-runtime.mjs`. It never invokes the provider and never
+accepts, returns, or stores a root, grant, audience, reservation, database, or
+handle. It does not widen the exact five-name public authority namespace or
+twelve-name runtime namespace and does not re-export the error. The store
+imports only this neutral capture function and contains, imports, and
+re-exports none of the twelve authority namespace names.
+
 ## 3. Exact records and scalar grammar
 
 An exact ordinary input record is a non-null, non-Proxy object whose

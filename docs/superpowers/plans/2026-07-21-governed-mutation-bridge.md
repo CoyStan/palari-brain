@@ -48,6 +48,10 @@ unchanged and non-authoritative.
   trusted time, and burn/release/retire law.
 - **Add `src/memory-authority.mjs`** — exact five-export host surface: one
   error class plus four operations.
+- **Add `src/workspace-manager-authority.mjs`** — exact one-export,
+  manager-only provider descriptor/error adapter. Only store imports it; it
+  imports only `node:util` and the authority runtime, invokes no provider, and
+  accepts/returns no authority carrier.
 - **Add `src/governed-mutation-dispositions.mjs`** — frozen data-only exact
   registry and four-export evaluator surface copied mechanically from the
   reviewed documentation artifact.
@@ -306,11 +310,16 @@ wiring is claimed by these checked boxes.
 - [ ] Prove manager root provider is trusted/synchronous, called outside every
   transaction only for enabled creation, never returned, and retired on all
   publication/close races.
+- [ ] Pin the manager authority adapter's exact one-export namespace and sole
+  `store -> adapter -> authority runtime` edge; prove store contains no
+  authority namespace name and the adapter invokes no provider or carrier.
 
 ### M2-B-06 GREEN
 
 - [ ] Rewire gate/store/manager/producers to safe refusal surfaces and the
   separate delete grant argument.
+- [ ] Route construction-only provider capture through the exact manager
+  authority adapter without widening a public or authority-runtime namespace.
 - [ ] Reject with exact `legacy_terminal_storage_refused` from the async
   runtime function before option capture; keep the public export as its alias.
 - [ ] Update static graphs only for the reviewed modules/edges.

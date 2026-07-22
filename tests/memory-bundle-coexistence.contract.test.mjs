@@ -20,6 +20,8 @@ import { fileURLToPath } from 'node:url'
 import * as applyModule from '../src/memory-bundle-apply.mjs'
 import * as publicModule from '../src/memory-bundle.mjs'
 import { createGatedStore } from '../src/gate.mjs'
+import { createLegacyMutationRouter } from '../src/legacy-mutation-router.mjs'
+import { createMutationCoordinator } from '../src/mutation-coordinator.mjs'
 import { createKernelStore } from '../src/store.mjs'
 import {
   EXPECTED_AUTOINDEX_NAMES,
@@ -37,6 +39,12 @@ const FIXED_CDX_NOW = new Date('2026-07-20T14:00:00.000Z')
 const BUNDLE_CREATED_AT = '2026-07-18T11:58:00.000Z'
 const BUNDLE_STREAM_UUID = '00000000-0000-4000-8000-000000000001'
 const CDX_SCOPE = { palariId: 'palari-a', userId: 'user-1' }
+const HISTORICAL_POLICY = Object.freeze({
+  demote: 0,
+  promote: 0.25,
+  permanent: 0.6,
+  ratify: 0.75,
+})
 
 const BUNDLE_SOURCE_FILES = Object.freeze([
   'memory-bundle-apply.mjs',
@@ -69,6 +77,7 @@ const A2_RUNTIME_SOURCE_FILES = Object.freeze([
 const M2B_AUTHORITY_SOURCE_FILES = Object.freeze([
   'memory-authority-runtime.mjs',
   'memory-authority.mjs',
+  'workspace-manager-authority.mjs',
 ])
 
 const M2B_DISPOSITION_SOURCE_FILES = Object.freeze([
@@ -78,6 +87,10 @@ const M2B_DISPOSITION_SOURCE_FILES = Object.freeze([
 const M2B_B2_SOURCE_FILES = Object.freeze([
   'cdx-b2-journal.mjs',
   'cdx-b2-schema.mjs',
+])
+
+const M2B_BRIDGE_SOURCE_FILES = Object.freeze([
+  'governed-memory-bridge.mjs',
 ])
 
 const DORMANT_SOURCE_FILES = Object.freeze([
@@ -90,6 +103,7 @@ const SEALED_PRODUCTION_MODULES = Object.freeze([
   ...M2B_AUTHORITY_SOURCE_FILES.map((name) => `src/${name}`),
   ...M2B_DISPOSITION_SOURCE_FILES.map((name) => `src/${name}`),
   ...M2B_B2_SOURCE_FILES.map((name) => `src/${name}`),
+  ...M2B_BRIDGE_SOURCE_FILES.map((name) => `src/${name}`),
   ...BUNDLE_SOURCE_FILES.map((name) => `src/${name}`),
 ])
 
@@ -215,6 +229,57 @@ function makeCdxProposal({
   }
 }
 
+function makeHistoricalCdxIntent(proposal) {
+  return {
+    intentKind: 'legacy_proposal',
+    op: proposal.op,
+    policy: HISTORICAL_POLICY,
+    producer: 'explicit_proposal',
+    proposalKind: proposal.kind,
+    provenance: {
+      actor: proposal.provenance.actor,
+      eventAt: proposal.provenance.eventAt,
+      extractor: proposal.provenance.extractor,
+      sourceKind: proposal.provenance.sourceKind,
+      sourceMessageId: proposal.provenance.sourceMessageId,
+      writer: proposal.provenance.writer,
+    },
+    record: {
+      id: proposal.record.id,
+      palari_id: proposal.record.palari_id,
+      user_id: proposal.record.user_id,
+      type: proposal.record.type,
+      content: proposal.record.content,
+      keywords: proposal.record.keywords,
+      importance: proposal.record.importance,
+      valid_from: proposal.record.valid_from,
+      valid_until: proposal.record.valid_until,
+      last_accessed: proposal.record.last_accessed,
+      created_at: proposal.record.created_at,
+      shared: proposal.record.shared,
+      confidence: proposal.record.confidence,
+      acquisition_mode: proposal.record.acquisition_mode,
+      fictional: proposal.record.fictional,
+      last_decayed_at: proposal.record.last_decayed_at,
+      source_message_id: proposal.record.source_message_id,
+      content_hash: proposal.record.content_hash,
+    },
+    scope: { palariId: null, userId: null },
+    target: proposal.target ?? null,
+  }
+}
+
+function applyHistoricalCdxMutation(router, coordinator, proposal) {
+  const captured = router.capture(makeHistoricalCdxIntent(proposal))
+  let result
+  coordinator.run((lease) => {
+    const plan = router.resolve(lease, captured)
+    router.apply(lease, plan)
+    result = plan.result
+  })
+  return result
+}
+
 function gateProbe(gated, memoryId) {
   return {
     memory: gated.getMemoryById(memoryId),
@@ -281,20 +346,32 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
     gated = createGatedStore(store)
     const dbPath = store.dbPath
     db = new DatabaseSync(dbPath)
+    const historicalRouter = createLegacyMutationRouter(db, {
+      clock: () => FIXED_CDX_NOW,
+    })
+    const historicalCoordinator = createMutationCoordinator(db)
 
-    const first = gated.propose(makeCdxProposal({
-      content: 'Auburn marmot was the original M1-14 preference.',
-      id: 'm114_cdx_original',
-      keywords: ['auburn', 'marmot'],
-    }))
+    const first = applyHistoricalCdxMutation(
+      historicalRouter,
+      historicalCoordinator,
+      makeCdxProposal({
+        content: 'Auburn marmot was the original M1-14 preference.',
+        id: 'm114_cdx_original',
+        keywords: ['auburn', 'marmot'],
+      }),
+    )
     assert.equal(first.outcome, 'inserted')
-    const second = gated.propose(makeCdxProposal({
-      content: 'Cobalt narwhal is now the M1-14 preference.',
-      id: 'm114_cdx_successor',
-      keywords: ['cobalt', 'narwhal'],
-      op: 'supersede',
-      target: first.memory.id,
-    }))
+    const second = applyHistoricalCdxMutation(
+      historicalRouter,
+      historicalCoordinator,
+      makeCdxProposal({
+        content: 'Cobalt narwhal is now the M1-14 preference.',
+        id: 'm114_cdx_successor',
+        keywords: ['cobalt', 'narwhal'],
+        op: 'supersede',
+        target: first.memory.id,
+      }),
+    )
     assert.equal(second.outcome, 'superseded')
     assert.deepEqual(
       gated.searchMemories('cobalt narwhal', { ...CDX_SCOPE, limit: 10 })
@@ -312,6 +389,7 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
         relation: 'supersedes',
       })],
     )
+    db.exec('PRAGMA recursive_triggers = OFF')
 
     const schemaBefore = readSchema(db)
     const cdxBefore = snapshotCdx(db)
@@ -378,13 +456,17 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
     assert.deepEqual(initialized.events, [])
     assert.deepEqual(initialized.atoms, [])
 
-    const ordinary = gated.propose(makeCdxProposal({
-      content: 'Verdigris kestrel is an ordinary post-init working note.',
-      id: 'm114_cdx_post_init',
-      keywords: ['verdigris', 'kestrel'],
-      kind: 'promote',
-      type: 'working',
-    }))
+    const ordinary = applyHistoricalCdxMutation(
+      historicalRouter,
+      historicalCoordinator,
+      makeCdxProposal({
+        content: 'Verdigris kestrel is an ordinary post-init working note.',
+        id: 'm114_cdx_post_init',
+        keywords: ['verdigris', 'kestrel'],
+        kind: 'promote',
+        type: 'working',
+      }),
+    )
     assert.equal(ordinary.outcome, 'inserted')
     assert.deepEqual(snapshotBundle(db), initialized)
     assert.deepEqual(
@@ -425,13 +507,17 @@ test('M1-14 bundle coexists with the real gated CDX-M1 workspace without dual wr
       EXPECTED_REQUIRED_PRAGMAS,
     )
 
-    const postApplyCdx = gated.propose(makeCdxProposal({
-      content: 'Saffron osprey proves the CDX gate still writes after bundle apply.',
-      id: 'm114_cdx_post_apply',
-      keywords: ['saffron', 'osprey'],
-      kind: 'promote',
-      type: 'working',
-    }))
+    const postApplyCdx = applyHistoricalCdxMutation(
+      historicalRouter,
+      historicalCoordinator,
+      makeCdxProposal({
+        content: 'Saffron osprey proves the CDX gate still writes after bundle apply.',
+        id: 'm114_cdx_post_apply',
+        keywords: ['saffron', 'osprey'],
+        kind: 'promote',
+        type: 'working',
+      }),
+    )
     assert.equal(postApplyCdx.outcome, 'inserted')
     assert.deepEqual(
       gated.searchMemories('saffron osprey', { ...CDX_SCOPE, limit: 10 })
@@ -497,8 +583,8 @@ test('M1-14 A2 plus isolated M2-B modules keep B1 ownership isolated', () => {
   const actualSourceFiles = readdirSync(sourceDirectory)
     .filter((name) => name.endsWith('.mjs'))
     .toSorted(compareBinary)
-  assert.equal(SEALED_PRODUCTION_MODULES.length, 28)
-  assert.equal(new Set(SEALED_PRODUCTION_MODULES).size, 28)
+  assert.equal(SEALED_PRODUCTION_MODULES.length, 30)
+  assert.equal(new Set(SEALED_PRODUCTION_MODULES).size, 30)
   assert.deepEqual(
     actualSourceFiles,
     [
@@ -506,12 +592,14 @@ test('M1-14 A2 plus isolated M2-B modules keep B1 ownership isolated', () => {
       ...M2B_AUTHORITY_SOURCE_FILES,
       ...M2B_DISPOSITION_SOURCE_FILES,
       ...M2B_B2_SOURCE_FILES,
+      ...M2B_BRIDGE_SOURCE_FILES,
       ...BUNDLE_SOURCE_FILES,
       ...DORMANT_SOURCE_FILES,
     ].toSorted(compareBinary),
   )
 
   const productionSet = new Set(SEALED_PRODUCTION_MODULES)
+  const managerAuthorityAdapterImporters = []
   for (const repoPath of SEALED_PRODUCTION_MODULES) {
     const path = join(REPO_ROOT, repoPath)
     const source = readFileSync(path, 'utf8')
@@ -519,6 +607,9 @@ test('M1-14 A2 plus isolated M2-B modules keep B1 ownership isolated', () => {
       const importedPath = pathFromSpecifier(path, specifier)
       if (importedPath === null) continue
       const importedRepoPath = relative(REPO_ROOT, importedPath)
+      if (importedRepoPath === 'src/workspace-manager-authority.mjs') {
+        managerAuthorityAdapterImporters.push(repoPath)
+      }
       assert.ok(
         productionSet.has(importedRepoPath),
         `${repoPath} imports a module outside the sealed graph: ${importedRepoPath}`,
@@ -530,6 +621,7 @@ test('M1-14 A2 plus isolated M2-B modules keep B1 ownership isolated', () => {
       )
     }
   }
+  assert.deepEqual(managerAuthorityAdapterImporters, ['src/store.mjs'])
 
   for (const name of A2_RUNTIME_SOURCE_FILES) {
     const source = readFileSync(join(sourceDirectory, name), 'utf8')
@@ -569,7 +661,9 @@ test('M1-14 A2 plus isolated M2-B modules keep B1 ownership isolated', () => {
       specifiers,
       name === 'memory-authority-runtime.mjs'
         ? ['node:util']
-        : ['./memory-authority-runtime.mjs'],
+        : name === 'memory-authority.mjs'
+          ? ['./memory-authority-runtime.mjs']
+          : ['node:util', './memory-authority-runtime.mjs'],
       `${name} gained an unreviewed dependency`,
     )
     assert.doesNotMatch(
@@ -614,6 +708,30 @@ test('M1-14 A2 plus isolated M2-B modules keep B1 ownership isolated', () => {
       source,
       /\.\/memory-store\.mjs|\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:main\.)?memory_bundle_/i,
       `${name} reaches the dormant raw store or B1 DML`,
+    )
+  }
+
+  for (const name of M2B_BRIDGE_SOURCE_FILES) {
+    const source = readFileSync(join(sourceDirectory, name), 'utf8')
+    assert.deepEqual(
+      literalImportSpecifiers(source),
+      [
+        'node:crypto',
+        'node:sqlite',
+        'node:util',
+        './cdx-b2-journal.mjs',
+        './cdx-b2-schema.mjs',
+        './governed-mutation-dispositions.mjs',
+        './memory-authority-runtime.mjs',
+        './legacy-mutation-router.mjs',
+        './mutation-coordinator.mjs',
+      ],
+      `${name} gained an unreviewed dependency`,
+    )
+    assert.doesNotMatch(
+      source,
+      /\.\/memory-bundle(?:-[a-z]+)?\.mjs|\.\/memory-store\.mjs/,
+      `${name} reaches B1 or the dormant raw store`,
     )
   }
 
@@ -695,20 +813,52 @@ test('M2-A2-07 semantic mutation, transaction, capability, and plan graphs are c
     semanticDmlCount += matches.length
   }
   assert.deepEqual(semanticDmlFiles, ['src/legacy-mutation-router.mjs'])
-  assert.equal(semanticDmlCount, 8, 'one exact SQL child for each A2 effect kind')
+  assert.equal(
+    semanticDmlCount,
+    9,
+    'eight historical effect statements plus one governed projection delete',
+  )
 
   const routerSource = sources.get('src/legacy-mutation-router.mjs')
-  const childApplier = sourceSpan(
+  const historicalApplier = sourceSpan(
     routerSource,
     'export function applyLegacyMutationEffectInTransaction',
+    'function captureGovernedErasureProjectionInput',
+  )
+  const governedProjection = sourceSpan(
+    routerSource,
+    'export function applyGovernedErasureProjectionInTransaction',
     'function captureRouterOptions',
   )
-  for (const match of routerSource.matchAll(
+  const routerSemanticDml = [...routerSource.matchAll(
     /\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:main\.)?(?:memories|memory_links)\b/gi,
-  )) {
+  )]
+  assert.equal(
+    routerSemanticDml.filter((match) =>
+      match.index >= historicalApplier.start &&
+      match.index < historicalApplier.end).length,
+    8,
+    'the historical structural applier retains exactly eight DML statements',
+  )
+  assert.deepEqual(
+    routerSemanticDml
+      .filter((match) =>
+        match.index >= governedProjection.start &&
+        match.index < governedProjection.end)
+      .map((match) => match[0]),
+    ['DELETE FROM main.memories'],
+    'the governed projection owns exactly its one target delete',
+  )
+  for (const match of routerSemanticDml) {
+    const inHistoricalApplier =
+      match.index >= historicalApplier.start &&
+      match.index < historicalApplier.end
+    const inGovernedProjection =
+      match.index >= governedProjection.start &&
+      match.index < governedProjection.end
     assert.ok(
-      match.index >= childApplier.start && match.index < childApplier.end,
-      `semantic DML escaped the lease-checked child applier: ${match[0]}`,
+      inHistoricalApplier || inGovernedProjection,
+      `semantic DML escaped both lease-checked projection children: ${match[0]}`,
     )
   }
 
@@ -739,7 +889,8 @@ test('M2-A2-07 semantic mutation, transaction, capability, and plan graphs are c
     'src/mutation-coordinator.mjs',
   ])
 
-  assert.deepEqual(pathsMatching(/\bexecuteLegacyStoreIntent\b/), [
+  assert.deepEqual(pathsMatching(/\bexecuteLegacyStoreIntent\b/), [])
+  assert.deepEqual(pathsMatching(/\bexecuteGovernedStoreIntent\b/), [
     'src/gate.mjs',
     'src/kernel-store-runtime.mjs',
   ])
@@ -748,16 +899,33 @@ test('M2-A2-07 semantic mutation, transaction, capability, and plan graphs are c
     'src/kernel-store-runtime.mjs',
   ])
   assert.deepEqual(pathsMatching(/\bcreateLegacyMutationRouter\b/), [
-    'src/kernel-store-runtime.mjs',
     'src/legacy-mutation-router.mjs',
   ])
+  assert.deepEqual(
+    pathsMatching(/\bapplyLegacyMutationEffectInTransaction\b/),
+    ['src/legacy-mutation-router.mjs'],
+  )
+  for (const governedProjectionName of [
+    'prepareGovernedErasureProjectionInTransaction',
+    'applyGovernedErasureProjectionInTransaction',
+  ]) {
+    assert.deepEqual(
+      pathsMatching(new RegExp(`\\b${governedProjectionName}\\b`)),
+      [
+        'src/governed-memory-bridge.mjs',
+        'src/legacy-mutation-router.mjs',
+      ],
+      `${governedProjectionName} gained an unreviewed production path`,
+    )
+  }
   assert.deepEqual(pathsMatching(/\bcreateMutationCoordinator\b/), [
-    'src/legacy-mutation-router.mjs',
+    'src/governed-memory-bridge.mjs',
     'src/mutation-coordinator.mjs',
   ])
   assert.deepEqual(pathsMatching(/\bimport\(/), [])
   assert.deepEqual(pathsMatching(/from\s*['"]node:sqlite['"]/), [
     'src/cdx-b2-journal.mjs',
+    'src/governed-memory-bridge.mjs',
     'src/kernel-store-runtime.mjs',
     'src/legacy-mutation-router.mjs',
     'src/memory-bundle-runtime.mjs',
@@ -765,7 +933,9 @@ test('M2-A2-07 semantic mutation, transaction, capability, and plan graphs are c
   ])
 
   const gateSource = sources.get('src/gate.mjs')
-  const routedIntents = [...gateSource.matchAll(/intentKind:\s*'([^']+)'/g)]
+  const routedIntents = [...gateSource.matchAll(
+    /'(legacy_(?:delete_memory|forget_topic|proposal|record_recall_inclusion|run_lifecycle))'/g,
+  )]
     .map((match) => match[1])
   assert.deepEqual([...new Set(routedIntents)].toSorted(compareBinary), [
     'legacy_delete_memory',
@@ -777,8 +947,8 @@ test('M2-A2-07 semantic mutation, transaction, capability, and plan graphs are c
   const gatedIntentSections = [
     [
       'gate.propose',
-      'function captureExplicitProposal',
-      'export function createMemoryGate',
+      '  function propose(proposal) {',
+      '  const gate = ObjectFreeze',
       'legacy_proposal',
     ],
     [
@@ -789,7 +959,7 @@ test('M2-A2-07 semantic mutation, transaction, capability, and plan graphs are c
     ],
     [
       'deleteMemory',
-      '    deleteMemory(id, optionsValue) {',
+      '    deleteMemory(id, optionsValue, authorityGrant) {',
       '    enabled,',
       'legacy_delete_memory',
     ],
@@ -815,9 +985,12 @@ test('M2-A2-07 semantic mutation, transaction, capability, and plan graphs are c
   for (const [name, start, end, expectedIntent] of gatedIntentSections) {
     const section = sourceSpan(gateSource, start, end).source
     assert.deepEqual(
-      literalValues(section, /intentKind:\s*'([^']+)'/g),
+      literalValues(
+        section,
+        /'(legacy_(?:delete_memory|forget_topic|proposal|record_recall_inclusion|run_lifecycle))'/g,
+      ),
       [expectedIntent],
-      `${name} must map to exactly one sealed intent`,
+      `${name} must map to exactly one sealed governed route`,
     )
   }
 
@@ -1057,12 +1230,17 @@ test('M1-14 dependency, namespace, schema, and provider-free boundaries remain c
   const expectedLocalGraph = new Set([
     ...roots,
     ...BUNDLE_SOURCE_FILES.map((name) => `src/${name}`),
+    'src/cdx-b2-journal.mjs',
     'src/cdx-b2-schema.mjs',
     'src/gate.mjs',
+    'src/governed-memory-bridge.mjs',
+    'src/governed-mutation-dispositions.mjs',
     'src/kernel-store-runtime.mjs',
     'src/legacy-mutation-router.mjs',
+    'src/memory-authority-runtime.mjs',
     'src/mutation-coordinator.mjs',
     'src/store.mjs',
+    'src/workspace-manager-authority.mjs',
   ])
   const forbiddenBuiltins = new Set([
     'node:dgram',

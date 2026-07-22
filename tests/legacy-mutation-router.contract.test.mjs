@@ -9,13 +9,17 @@ import * as routerModule from '../src/legacy-mutation-router.mjs'
 import {
   LegacyMutationError,
   applyLegacyMutationEffectInTransaction,
-  createLegacyMutationRouter,
+  createLegacyMutationRouter as createProductionLegacyMutationRouter,
   legacyMutationEffectKinds,
   legacyMutationIntentKinds,
 } from '../src/legacy-mutation-router.mjs'
 
 const instrumentationFixture = fileURLToPath(new URL(
   './fixtures/legacy-mutation-router-instrumentation-child.mjs',
+  import.meta.url,
+))
+const testOwnedRouterLoader = fileURLToPath(new URL(
+  './fixtures/legacy-mutation-router-test-owned-loader.mjs',
   import.meta.url,
 ))
 
@@ -59,6 +63,49 @@ function assertDeepFrozen(value) {
       assertDeepFrozen(descriptor.value)
     }
   }
+}
+
+function mutableCopy(value) {
+  if (Array.isArray(value)) {
+    const result = []
+    for (let index = 0; index < value.length; index += 1) {
+      result.push(mutableCopy(value[index]))
+    }
+    return result
+  }
+  if (value !== null && typeof value === 'object') {
+    const result = {}
+    for (const key of Object.keys(value)) result[key] = mutableCopy(value[key])
+    return result
+  }
+  return value
+}
+
+function executeWithTestOwnedCoordinator(router, coordinator, intent) {
+  const captured = router.capture(intent)
+  let result
+  coordinator.run((lease) => {
+    const plan = router.resolve(lease, captured)
+    router.apply(lease, plan)
+    result = mutableCopy(plan.result)
+  })
+  return result
+}
+
+// Historical A2 golden cases continue to exercise the exact capture, resolve,
+// and apply closures. Transaction ownership now belongs to this test helper,
+// never to the production router instance.
+function createLegacyMutationRouter(db, options = undefined) {
+  const router = createProductionLegacyMutationRouter(db, options)
+  const coordinator = createMutationCoordinator(db)
+  return Object.freeze({
+    apply: router.apply,
+    capture: router.capture,
+    execute(intent) {
+      return executeWithTestOwnedCoordinator(router, coordinator, intent)
+    },
+    resolve: router.resolve,
+  })
 }
 
 function exactRows(db, table, orderBy = 'id') {
@@ -230,13 +277,54 @@ function seed(db, values = {}) {
   return row
 }
 
+test('M2-B-05 production router is the exact frozen three-phase surface', () => {
+  const db = createDatabase()
+  const router = createProductionLegacyMutationRouter(db, {
+    clock: () => fixedTime,
+  })
+  const coordinator = createMutationCoordinator(db)
+
+  try {
+    assert.deepEqual(Reflect.ownKeys(router), ['apply', 'capture', 'resolve'])
+    assert.equal(Object.getPrototypeOf(router), Object.prototype)
+    assert.equal(Object.isFrozen(router), true)
+    for (const key of Reflect.ownKeys(router)) {
+      const descriptor = Object.getOwnPropertyDescriptor(router, key)
+      assert.equal(typeof descriptor.value, 'function')
+      assert.equal(descriptor.enumerable, true)
+      assert.equal(descriptor.writable, false)
+      assert.equal(descriptor.configurable, false)
+    }
+
+    const result = executeWithTestOwnedCoordinator(
+      router,
+      coordinator,
+      proposalEnvelope({
+        record: baseRecord({
+          id: 'mem_00000000-0000-4000-8000-000000000100',
+        }),
+      }),
+    )
+    assert.equal(result.outcome, 'inserted')
+    assert.equal(
+      db.prepare('SELECT COUNT(*) count FROM memories WHERE id = ?')
+        .get('mem_00000000-0000-4000-8000-000000000100').count,
+      1,
+    )
+  } finally {
+    db.close()
+  }
+})
+
 test('M2-A2-01 exact namespace vocabularies, errors, capture, and dispatch hardening', () => {
   assert.deepEqual(Object.keys(routerModule), [
     'LegacyMutationError',
+    'applyGovernedErasureProjectionInTransaction',
     'applyLegacyMutationEffectInTransaction',
     'createLegacyMutationRouter',
     'legacyMutationEffectKinds',
     'legacyMutationIntentKinds',
+    'prepareGovernedErasureProjectionInTransaction',
   ])
   assert.deepEqual(legacyMutationIntentKinds, [
     'legacy_proposal',
@@ -266,14 +354,23 @@ test('M2-A2-01 exact namespace vocabularies, errors, capture, and dispatch harde
   let clockCalls = 0
   let idCalls = 0
   let keywordCalls = 0
-  const router = createLegacyMutationRouter(db, {
+  const router = createProductionLegacyMutationRouter(db, {
     clock: () => {
       clockCalls += 1
       return fixedTime
     },
   })
-  assert.deepEqual(Object.keys(router), ['apply', 'capture', 'execute', 'resolve'])
+  const coordinator = createMutationCoordinator(db)
+  assert.deepEqual(Reflect.ownKeys(router), ['apply', 'capture', 'resolve'])
+  assert.equal(Object.getPrototypeOf(router), Object.prototype)
   assert.ok(Object.isFrozen(router))
+  for (const key of Reflect.ownKeys(router)) {
+    const descriptor = Object.getOwnPropertyDescriptor(router, key)
+    assert.equal(typeof descriptor.value, 'function')
+    assert.equal(descriptor.enumerable, true)
+    assert.equal(descriptor.writable, false)
+    assert.equal(descriptor.configurable, false)
+  }
   const record = baseRecord({
     id: { toString() { idCalls += 1; return ' captured-id ' } },
     keywords: [{ toString() { keywordCalls += 1; return ' source ' } }],
@@ -305,7 +402,10 @@ test('M2-A2-01 exact namespace vocabularies, errors, capture, and dispatch harde
     Set.prototype.has = () => { throw new Error('live Set dispatch') }
     DatabaseSync.prototype.prepare = () => { throw new Error('live prepare') }
     StatementSync.prototype.run = () => { throw new Error('live run') }
-    assert.equal(router.execute(captured).outcome, 'inserted')
+    assert.equal(
+      executeWithTestOwnedCoordinator(router, coordinator, captured).outcome,
+      'inserted',
+    )
   } finally {
     Set.prototype.has = originalSetHas
     DatabaseSync.prototype.prepare = originalPrepare
@@ -739,7 +839,12 @@ test('M2-A2-01 capture detaches ignored actor/writer values and extraction is ad
 
 test('M2-A2-01 module-evaluation dispatch, phase purity, and insert cardinality stay captured', () => {
   for (const mode of ['crypto', 'keywords', 'phases', 'cardinality', 'visibility']) {
-    const child = spawnSync(process.execPath, [instrumentationFixture, mode], {
+    const child = spawnSync(process.execPath, [
+      '--experimental-loader',
+      testOwnedRouterLoader,
+      instrumentationFixture,
+      mode,
+    ], {
       encoding: 'utf8',
     })
     assert.equal(
@@ -926,6 +1031,216 @@ test('M2-A2-01 direct child applies all eight exact effects under one active lea
         },
       )
     }
+  } finally {
+    db.close()
+  }
+})
+
+test('M2-B-05 governed erasure projection token is exact, lease-bound, and one-use', () => {
+  const prepare = routerModule.prepareGovernedErasureProjectionInTransaction
+  const apply = routerModule.applyGovernedErasureProjectionInTransaction
+  assert.equal(typeof prepare, 'function')
+  assert.equal(typeof apply, 'function')
+
+  const targetId = 'mem_00000000-0000-4000-8000-000000000101'
+  const survivorId = 'mem_00000000-0000-4000-8000-000000000102'
+  const db = createDatabase()
+  const otherDb = createDatabase()
+  seed(db, { id: targetId, type: 'preference' })
+  seed(db, { id: survivorId, type: 'working' })
+  db.exec(`
+    CREATE TABLE main.projection_delete_audit (
+      id TEXT NOT NULL
+    );
+    CREATE TRIGGER main.projection_delete_audit_trigger
+    AFTER DELETE ON main.memories BEGIN
+      INSERT INTO projection_delete_audit(id) VALUES (old.id);
+    END;
+  `)
+  const coordinator = createMutationCoordinator(db)
+  const otherCoordinator = createMutationCoordinator(otherDb)
+
+  try {
+    coordinator.run((lease) => {
+      const beforePrepare = durableSnapshot(db)
+      const token = prepare(lease, db, {
+        id: targetId,
+        palariId: 'palari-a',
+        userId: 'user-a',
+      })
+
+      assert.equal(Object.getPrototypeOf(token), null)
+      assert.equal(Object.isFrozen(token), true)
+      assert.deepEqual(Reflect.ownKeys(token), [])
+      assert.deepEqual(durableSnapshot(db), beforePrepare, 'prepare must perform no DML')
+      assert.equal(
+        db.prepare('SELECT COUNT(*) count FROM projection_delete_audit').get().count,
+        0,
+      )
+
+      assert.throws(
+        () => apply({}, db, token),
+        { code: 'mutation_invalid_argument' },
+      )
+      assert.throws(
+        () => apply(lease, db, Object.freeze(Object.create(null))),
+        {
+          name: 'LegacyMutationError',
+          code: 'legacy_plan_invalid',
+          message: legacyErrors.legacy_plan_invalid,
+        },
+      )
+      otherCoordinator.run((otherLease) => {
+        assert.throws(
+          () => apply(otherLease, otherDb, token),
+          {
+            name: 'LegacyMutationError',
+            code: 'legacy_plan_stale',
+            message: legacyErrors.legacy_plan_stale,
+          },
+        )
+      })
+
+      assert.equal(apply(lease, db, token), undefined)
+      assert.equal(
+        db.prepare('SELECT COUNT(*) count FROM memories WHERE id = ?')
+          .get(targetId).count,
+        0,
+      )
+      assert.equal(
+        db.prepare('SELECT COUNT(*) count FROM memory_fts WHERE memory_id = ?')
+          .get(targetId).count,
+        0,
+      )
+      assert.equal(
+        db.prepare('SELECT COUNT(*) count FROM memories WHERE id = ?')
+          .get(survivorId).count,
+        1,
+      )
+      assert.equal(
+        db.prepare('SELECT COUNT(*) count FROM projection_delete_audit WHERE id = ?')
+          .get(targetId).count,
+        1,
+        'the token must issue exactly one target delete',
+      )
+      assert.throws(
+        () => apply(lease, db, token),
+        {
+          name: 'LegacyMutationError',
+          code: 'legacy_plan_applied',
+          message: legacyErrors.legacy_plan_applied,
+        },
+      )
+    })
+
+    let retiredLeaseToken
+    coordinator.run((lease) => {
+      retiredLeaseToken = prepare(lease, db, {
+        id: survivorId,
+        palariId: 'palari-a',
+        userId: 'user-a',
+      })
+    })
+    coordinator.run((lease) => {
+      assert.throws(
+        () => apply(lease, db, retiredLeaseToken),
+        {
+          name: 'LegacyMutationError',
+          code: 'legacy_plan_stale',
+          message: legacyErrors.legacy_plan_stale,
+        },
+      )
+    })
+    assert.equal(
+      db.prepare('SELECT COUNT(*) count FROM memories WHERE id = ?')
+        .get(survivorId).count,
+      1,
+      'a stale token must retain its exact target',
+    )
+  } finally {
+    otherDb.close()
+    db.close()
+  }
+})
+
+test('M2-B-05 governed erasure projection rejects malformed state and exact delete cardinality drift', () => {
+  const prepare = routerModule.prepareGovernedErasureProjectionInTransaction
+  const apply = routerModule.applyGovernedErasureProjectionInTransaction
+  assert.equal(typeof prepare, 'function')
+  assert.equal(typeof apply, 'function')
+
+  const targetId = 'mem_00000000-0000-4000-8000-000000000103'
+  const db = createDatabase()
+  seed(db, { id: targetId, type: 'project' })
+  const coordinator = createMutationCoordinator(db)
+  const forcedRollback = new Error('test-owned projection rollback')
+  let consumedToken
+
+  try {
+    coordinator.run((lease) => {
+      assert.throws(
+        () => prepare(lease, db, null),
+        {
+          name: 'LegacyMutationError',
+          code: 'legacy_effect_invalid',
+          message: legacyErrors.legacy_effect_invalid,
+        },
+      )
+      assert.throws(
+        () => prepare(lease, db, {
+          id: 'mem_00000000-0000-4000-8000-000000000999',
+          palariId: 'palari-a',
+          userId: 'user-a',
+        }),
+        {
+          name: 'LegacyMutationError',
+          code: 'legacy_effect_cardinality',
+          message: legacyErrors.legacy_effect_cardinality,
+        },
+      )
+    })
+
+    assert.throws(
+      () => coordinator.run((lease) => {
+        consumedToken = prepare(lease, db, {
+          id: targetId,
+          palariId: 'palari-a',
+          userId: 'user-a',
+        })
+        const sabotage = db.prepare('DELETE FROM main.memories WHERE id = ?')
+          .run(targetId)
+        assert.equal(sabotage.changes, 1)
+        assert.throws(
+          () => apply(lease, db, consumedToken),
+          {
+            name: 'LegacyMutationError',
+            code: 'legacy_effect_cardinality',
+            message: legacyErrors.legacy_effect_cardinality,
+          },
+        )
+        assert.throws(
+          () => apply(lease, db, consumedToken),
+          {
+            name: 'LegacyMutationError',
+            code: 'legacy_plan_applied',
+            message: legacyErrors.legacy_plan_applied,
+          },
+        )
+        throw forcedRollback
+      }),
+      (error) => error === forcedRollback,
+    )
+    assert.equal(
+      db.prepare('SELECT COUNT(*) count FROM memories WHERE id = ?')
+        .get(targetId).count,
+      1,
+    )
+    assert.equal(
+      db.prepare('SELECT COUNT(*) count FROM memory_fts WHERE memory_id = ?')
+        .get(targetId).count,
+      1,
+      'the test-owned rollback must restore both target and FTS membership',
+    )
   } finally {
     db.close()
   }

@@ -61,6 +61,27 @@ function inspectDatabase(dbPath, callback) {
   }
 }
 
+function assertGovernanceRefused(result) {
+  assert.deepEqual(result, {
+    outcome: 'rejected',
+    reasons: ['governance_refused'],
+  })
+}
+
+function assertNoGovernedMutation(store) {
+  inspectDatabase(store.dbPath, (db) => {
+    assert.equal(db.prepare(
+      'SELECT count(*) AS count FROM main.memories',
+    ).get().count, 0)
+    assert.equal(db.prepare(
+      'SELECT count(*) AS count FROM main.memory_links',
+    ).get().count, 0)
+    assert.equal(db.prepare(
+      'SELECT count(*) AS count FROM main.cdx_b2_decisions',
+    ).get().count, 0)
+  })
+}
+
 const SCOPE = { palari_id: 'palari-a', user_id: 'user-1' }
 
 function userProposal(overrides = {}) {
@@ -460,9 +481,10 @@ test('enabled base, gate, and gated surfaces are exact frozen branded capabiliti
   mutablePolicy.permanent = 0.96
   mutablePolicy.ratify = 0.97
   assertPolicySnapshot(gate.policy, admissionPolicyDefaults)
-  assert.equal(gate.propose(userProposal({
+  assertGovernanceRefused(gate.propose(userProposal({
     record: { ...userProposal().record, confidence: 0.5 },
-  })).outcome, 'inserted')
+  })))
+  assertNoGovernedMutation(base)
 
   gated.close()
 })
@@ -678,20 +700,18 @@ test('exported compatibility collections cannot mutate private runtime admission
   assert.equal(memoryMutationActors.has('rogue_actor'), false)
   assert.equal(externalMemorySourceKinds.has('rogue_source'), false)
 
-  const { gated } = await openGated('private-admission-sets')
+  const { gated, store } = await openGated('private-admission-sets')
   try {
     const invalidType = gated.propose(userProposal({
       kind: 'permanent',
       record: { ...userProposal().record, type: 'rogue_type' },
     }))
-    assert.equal(invalidType.outcome, 'rejected')
-    assert.ok(invalidType.reasons.includes('kind_type_mismatch'))
+    assertGovernanceRefused(invalidType)
 
     const invalidWriter = gated.propose(userProposal({
       provenance: { sourceKind: 'user_message', writer: 'rogue_writer' },
     }))
-    assert.equal(invalidWriter.outcome, 'rejected')
-    assert.ok(invalidWriter.reasons.includes('invalid_writer'))
+    assertGovernanceRefused(invalidWriter)
 
     const invalidSource = gated.propose(userProposal({
       provenance: {
@@ -699,49 +719,35 @@ test('exported compatibility collections cannot mutate private runtime admission
         writer: 'explicit_user_action',
       },
     }))
-    assert.equal(invalidSource.outcome, 'rejected')
-    assert.ok(invalidSource.reasons.includes('invalid_source_kind'))
+    assertGovernanceRefused(invalidSource)
 
-    assert.throws(
-      () => gated.deleteMemory('missing', { actor: 'rogue_actor' }),
-      (error) =>
-        error?.constructor === Error &&
-        error.message === 'Unauthorized memory mutation actor "rogue_actor".',
+    assert.deepEqual(
+      gated.deleteMemory('missing', { actor: 'rogue_actor' }),
+      { deleted: false, reason: 'governance_refused' },
     )
 
-    assert.equal(gated.propose(userProposal({
+    assertGovernanceRefused(gated.propose(userProposal({
       record: {
         ...userProposal().record,
         content: 'Private admission snapshots remain unchanged.',
       },
-    })).outcome, 'inserted')
+    })))
+    assertNoGovernedMutation(store)
   } finally {
     gated.close()
   }
 })
 
-test('proposal structure pins kind/op precedence and ignores inapplicable fields', async () => {
-  const { gated } = await openGated('proposal-structure')
-  assert.deepEqual(gated.propose(), {
-    outcome: 'rejected',
-    reasons: ['invalid_kind'],
-  })
-  assert.throws(
-    () => gated.propose(null),
-    (error) => error?.code === 'legacy_invalid_argument',
-  )
+test('unsupported proposals refuse before inspecting kind, op, or nested structure', async () => {
+  const { gated, store } = await openGated('proposal-structure')
+  assertGovernanceRefused(gated.propose())
+  assertGovernanceRefused(gated.propose(null))
   for (const kind of ['toString', 'constructor', '__proto__']) {
     const proposal = Object.create(null)
     proposal.kind = kind
-    assert.deepEqual(gated.propose(proposal), {
-      outcome: 'rejected',
-      reasons: ['invalid_kind'],
-    })
+    assertGovernanceRefused(gated.propose(proposal))
   }
-  assert.deepEqual(gated.propose({ kind: 'promote', op: null }), {
-    outcome: 'rejected',
-    reasons: ['invalid_op'],
-  })
+  assertGovernanceRefused(gated.propose({ kind: 'promote', op: null }))
 
   let ignoredReads = 0
   const add = userProposal()
@@ -750,7 +756,7 @@ test('proposal structure pins kind/op precedence and ignores inapplicable fields
     scope: { enumerable: true, get() { ignoredReads += 1; return {} } },
     target: { enumerable: true, get() { ignoredReads += 1; return 'ignored' } },
   })
-  assert.equal(gated.propose(add).outcome, 'inserted')
+  assertGovernanceRefused(gated.propose(add))
   assert.equal(ignoredReads, 0)
 
   const recordAccessor = {
@@ -761,10 +767,8 @@ test('proposal structure pins kind/op precedence and ignores inapplicable fields
     enumerable: true,
     get() { throw new Error('known accessor must not run') },
   })
-  assert.throws(
-    () => gated.propose(recordAccessor),
-    (error) => error?.code === 'legacy_invalid_argument',
-  )
+  assertGovernanceRefused(gated.propose(recordAccessor))
+  assertNoGovernedMutation(store)
 })
 
 test('gated capability rejects spoofs; enabled close wins before hostile input', async () => {
@@ -793,62 +797,54 @@ test('bounded U4 law: candidate add/supersede shortcuts are absent (partial C5)'
   assert.ok(Object.isFrozen(gated), 'gated surface is frozen')
 })
 
-test('bounded U4 law: a gated candidate write lands with provenance (partial C5, GAP-1)', async () => {
+test('bounded U4 law: a gated candidate is refused without CDX or B2 mutation', async () => {
   const { gated, store } = await openGated()
   const result = gated.propose(userProposal())
-  assert.equal(result.outcome, 'inserted')
-  const row = store.getMemoryById(result.memory.id)
-  assert.ok(row)
-  assert.equal(row.source_kind, 'user_message', 'CDX-M1 source_kind column populated')
-  assert.equal(row.extractor, null)
+  assertGovernanceRefused(result)
+  assertNoGovernedMutation(store)
 })
 
-test('CDX-M1 migration is recorded in memory_migrations (GAP-1)', async () => {
+test('CDX-M1 and CDX-B2 migrations are recorded before publication', async () => {
   const { store } = await openGated()
   const rows = inspectDatabase(store.dbPath, (db) =>
-    db.prepare('SELECT id FROM memory_migrations ORDER BY id').all())
-  assert.ok(rows.some((r) => r.id === 'CDX-M1'))
+    db.prepare('SELECT id FROM memory_migrations ORDER BY id').all()
+      .map(({ id }) => id))
+  assert.deepEqual(rows, ['CDX-B2', 'CDX-M0', 'CDX-M1'])
 })
 
-test('admit: provenance fields are required — sourceKind and writer (C1/C5)', async () => {
-  const { gated } = await openGated()
+test('unsupported proposal refusal does not infer authority from provenance fields', async () => {
+  const { gated, store } = await openGated()
   const noSource = gated.propose(userProposal({ provenance: { writer: 'explicit_user_action' } }))
-  assert.equal(noSource.outcome, 'rejected')
-  assert.ok(noSource.reasons.includes('source_kind_required'))
+  assertGovernanceRefused(noSource)
   const noWriter = gated.propose(userProposal({ provenance: { sourceKind: 'user_message' } }))
-  assert.equal(noWriter.outcome, 'rejected')
-  assert.ok(noWriter.reasons.includes('writer_required'))
+  assertGovernanceRefused(noWriter)
+  assertNoGovernedMutation(store)
 })
 
-test('admit: extracted provenance requires eventAt and extractor; validFrom stamps from eventAt, never wall clock (C2, GAP-4, GAP-1)', async () => {
+test('unsupported extraction proposals refuse regardless of event time or extractor', async () => {
   const { gated, store } = await openGated()
   const base = userProposal({
     provenance: { sourceKind: 'user_message', writer: 'background_extraction' },
   })
   const noEvent = gated.propose(base)
-  assert.equal(noEvent.outcome, 'rejected')
-  assert.ok(noEvent.reasons.includes('event_time_required'))
+  assertGovernanceRefused(noEvent)
 
   const noExtractor = gated.propose({
     ...base,
     provenance: { ...base.provenance, eventAt: EVENT_AT },
   })
-  assert.equal(noExtractor.outcome, 'rejected')
-  assert.ok(noExtractor.reasons.includes('extractor_required'))
+  assertGovernanceRefused(noExtractor)
 
   const ok = gated.propose({
     ...base,
     provenance: { ...base.provenance, eventAt: EVENT_AT, extractor: 'stub-extractor-v1' },
   })
-  assert.equal(ok.outcome, 'inserted')
-  const row = store.getMemoryById(ok.memory.id)
-  assert.equal(row.valid_from, EVENT_AT, 'evidence time, not wall clock')
-  assert.equal(row.extractor, 'stub-extractor-v1')
-  assert.equal(row.acquisition_mode, 'extracted')
+  assertGovernanceRefused(ok)
+  assertNoGovernedMutation(store)
 })
 
-test('admit: threshold order demote < promote < permanent < ratify is enforced (C6, GAP-2)', async () => {
-  const { gated } = await openGated()
+test('policy threshold order remains exact but cannot authorize unsupported proposals', async () => {
+  const { gated, store } = await openGated()
   const d = admissionPolicyDefaults
   assert.ok(d.demote < d.promote && d.promote < d.permanent && d.permanent < d.ratify)
   assert.throws(() => createAdmissionPolicy({ demote: 0.9 }), /order/i, 'disordered policy refused')
@@ -859,37 +855,36 @@ test('admit: threshold order demote < promote < permanent < ratify is enforced (
     kind: 'permanent',
     record: { ...userProposal().record, confidence: midConfidence, type: 'preference' },
   }))
-  assert.equal(permanentTry.outcome, 'rejected')
-  assert.ok(permanentTry.reasons.includes('below_threshold'))
+  assertGovernanceRefused(permanentTry)
   const promoteTry = gated.propose(userProposal({
     record: { ...userProposal().record, confidence: midConfidence },
   }))
-  assert.equal(promoteTry.outcome, 'inserted')
+  assertGovernanceRefused(promoteTry)
+  assertNoGovernedMutation(store)
 })
 
-test('admit: proposal kind must match the type partition (C6)', async () => {
-  const { gated } = await openGated()
+test('type partition labels cannot authorize an unsupported proposal', async () => {
+  const { gated, store } = await openGated()
   const promotePermanent = gated.propose(userProposal({
     kind: 'promote',
     record: { ...userProposal().record, type: 'preference' },
   }))
-  assert.equal(promotePermanent.outcome, 'rejected')
-  assert.ok(promotePermanent.reasons.includes('kind_type_mismatch'))
+  assertGovernanceRefused(promotePermanent)
   const permanentTransient = gated.propose(userProposal({
     kind: 'permanent',
     record: { ...userProposal().record, type: 'working' },
   }))
-  assert.equal(permanentTransient.outcome, 'rejected')
-  assert.ok(permanentTransient.reasons.includes('kind_type_mismatch'))
+  assertGovernanceRefused(permanentTransient)
+  assertNoGovernedMutation(store)
 })
 
-test('external source content cannot mint without marking; what lands carries origin (C7)', async () => {
+test('external source labels cannot mint authority or write a memory (C7)', async () => {
   const { gated, store } = await openGated()
   // baseline law inherited: external sourceKind only via background_extraction
   const externalDirect = gated.propose(userProposal({
     provenance: { sourceKind: 'source_document', writer: 'explicit_user_action' },
   }))
-  assert.equal(externalDirect.outcome, 'rejected')
+  assertGovernanceRefused(externalDirect)
 
   const externalExtracted = gated.propose(userProposal({
     provenance: {
@@ -899,117 +894,122 @@ test('external source content cannot mint without marking; what lands carries or
       writer: 'background_extraction',
     },
   }))
-  assert.equal(externalExtracted.outcome, 'inserted')
-  const row = store.getMemoryById(externalExtracted.memory.id)
-  assert.equal(row.source_kind, 'source_document', 'origin column set')
-  assert.ok(row.keywords.includes('source:source_document'), 'origin keyword marking kept (baseline surface)')
+  assertGovernanceRefused(externalExtracted)
+  assertNoGovernedMutation(store)
 })
 
-test('resolve: supersession is demote-and-promote with a link; history survives (C3)', async () => {
+test('supersession proposals are refused before memory or link mutation (C3)', async () => {
   const { gated, store } = await openGated()
   const v1 = gated.propose(userProposal({
     kind: 'permanent',
     record: { ...userProposal().record, confidence: 0.9, content: 'Prefers tea over coffee.', keywords: ['tea'], type: 'preference' },
   }))
-  assert.equal(v1.outcome, 'inserted')
+  assertGovernanceRefused(v1)
   const v2 = gated.propose({
     kind: 'permanent',
     op: 'supersede',
     provenance: { sourceKind: 'user_message', writer: 'explicit_user_action' },
     record: { ...userProposal().record, confidence: 0.9, content: 'Prefers coffee now — switched in May.', keywords: ['coffee'], type: 'preference' },
-    target: v1.memory.id,
+    target: 'untrusted_supersession_target',
   })
-  assert.equal(v2.outcome, 'superseded')
-  const old = store.getMemoryById(v1.memory.id)
-  assert.ok(old, 'counterfactual history survives')
-  assert.ok(old.valid_until, 'old row demoted via validity, not erased')
-  const link = inspectDatabase(store.dbPath, (db) => db.prepare(
-    'SELECT relation FROM memory_links WHERE from_memory_id = ? AND to_memory_id = ?',
-  ).get(v2.memory.id, v1.memory.id))
-  assert.equal(link?.relation, 'supersedes')
+  assertGovernanceRefused(v2)
+  assertNoGovernedMutation(store)
 })
 
-test('resolve: supersession is type-safe across the partition (C4, GAP-3)', async () => {
-  const { gated } = await openGated()
+test('cross-partition supersession labels remain unable to authorize mutation', async () => {
+  const { gated, store } = await openGated()
   const perm = gated.propose(userProposal({
     kind: 'permanent',
     record: { ...userProposal().record, confidence: 0.9, content: 'Values pre-commitment.', type: 'opinion' },
   }))
+  assertGovernanceRefused(perm)
   const crossPartition = gated.propose({
     kind: 'promote',
     op: 'supersede',
     provenance: { sourceKind: 'user_message', writer: 'explicit_user_action' },
     record: { ...userProposal().record, content: 'Transient note trying to overwrite an opinion.', type: 'working' },
-    target: perm.memory.id,
+    target: 'untrusted_cross_partition_target',
   })
-  assert.equal(crossPartition.outcome, 'rejected')
-  assert.ok(crossPartition.reasons.includes('type_partition_mismatch'))
+  assertGovernanceRefused(crossPartition)
+  assertNoGovernedMutation(store)
 })
 
-test('resolve: duplicates bump instead of duplicating (baseline dedup surfaces through the gate)', async () => {
-  const { gated } = await openGated()
+test('repeated unsupported candidates remain refusals rather than duplicate writes', async () => {
+  const { gated, store } = await openGated()
   const first = gated.propose(userProposal())
-  assert.equal(first.outcome, 'inserted')
+  assertGovernanceRefused(first)
   const second = gated.propose(userProposal())
-  assert.equal(second.outcome, 'duplicate_bumped')
+  assertGovernanceRefused(second)
+  assertNoGovernedMutation(store)
 })
 
-test('demote: end_validity stamps valid_until; delete_transient refuses permanent rows (C6)', async () => {
+test('demotion and transient-delete proposal labels are both refused without mutation', async () => {
   const { gated, store } = await openGated()
   const note = gated.propose(userProposal())
+  assertGovernanceRefused(note)
   const demoted = gated.propose({
     kind: 'demote',
     op: 'end_validity',
     provenance: { actor: 'lifecycle_job' },
-    target: note.memory.id,
+    target: 'untrusted_demote_target',
   })
-  assert.equal(demoted.outcome, 'demoted')
-  assert.ok(store.getMemoryById(note.memory.id).valid_until)
+  assertGovernanceRefused(demoted)
 
   const perm = gated.propose(userProposal({
     kind: 'permanent',
     record: { ...userProposal().record, confidence: 0.9, content: 'Permanent: sister lives in Oaxaca.', type: 'relationship' },
   }))
+  assertGovernanceRefused(perm)
   const badDelete = gated.propose({
     kind: 'demote',
     op: 'delete_transient',
     provenance: { actor: 'lifecycle_job' },
-    target: perm.memory.id,
+    target: 'untrusted_permanent_target',
   })
-  assert.equal(badDelete.outcome, 'rejected')
-  assert.ok(badDelete.reasons.includes('not_transient'))
+  assertGovernanceRefused(badDelete)
+  assertNoGovernedMutation(store)
 })
 
-test('ratify: sharing is ceremonial — explicit user action at the highest threshold (C6)', async () => {
+test('sharing remains unregistered for both pipeline and user-labelled ratification', async () => {
   const { gated, store } = await openGated()
   const note = gated.propose(userProposal({
     kind: 'permanent',
     record: { ...userProposal().record, confidence: 0.9, content: 'Speaks Spanish and Nahuatl.', type: 'entity' },
   }))
+  assertGovernanceRefused(note)
   const pipelineShare = gated.propose({
     kind: 'ratify',
     op: 'share',
     provenance: { eventAt: EVENT_AT, extractor: 'stub-extractor-v1', sourceKind: 'user_message', writer: 'background_extraction' },
-    target: note.memory.id,
+    target: 'untrusted_share_target',
   })
-  assert.equal(pipelineShare.outcome, 'rejected')
-  assert.ok(pipelineShare.reasons.includes('ratify_requires_user'))
+  assertGovernanceRefused(pipelineShare)
 
   const userShare = gated.propose({
     kind: 'ratify',
     op: 'share',
     provenance: { sourceKind: 'user_message', writer: 'explicit_user_action' },
-    target: note.memory.id,
+    target: 'untrusted_share_target',
   })
-  assert.equal(userShare.outcome, 'ratified')
-  assert.equal(Boolean(store.getMemoryById(note.memory.id).shared), true)
+  assertGovernanceRefused(userShare)
+  assertNoGovernedMutation(store)
 })
 
-test('ownership methods remain frozen gated adapters to legacy intents (C17/C18)', async () => {
-  const { gated } = await openGated()
+test('ownership adapters retain exact governed refusal and inert result shapes (C17/C18)', async () => {
+  const { gated, store } = await openGated()
   const note = gated.propose(userProposal())
-  assert.ok(gated.getMemoryById(note.memory.id))
+  assertGovernanceRefused(note)
   const forgotten = gated.topicForget('estimate', { palariId: SCOPE.palari_id, userId: SCOPE.user_id }, { actor: 'explicit_user_action' })
-  assert.equal(forgotten.count, 1)
-  assert.equal(gated.getMemoryById(note.memory.id), null)
+  assert.deepEqual(forgotten, { count: 0, deleted: [] })
+  assert.deepEqual(gated.recordRecallInclusion(['missing']), {
+    touched: [],
+    touchedCount: 0,
+  })
+  assert.deepEqual(gated.runLifecycleJobs({}), {
+    decayed: 0,
+    deleted: 0,
+    skipped: 0,
+    touched: 0,
+  })
+  assertNoGovernedMutation(store)
 })

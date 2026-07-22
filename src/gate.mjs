@@ -1,14 +1,16 @@
-// V2-M2-A2 legacy compatibility gate.
+// V2-M2-B governed compatibility gate.
 //
 // This module is the public adapter from the established proposal/mutation
-// surface to the closed five-intent router. It owns no database connection,
-// SQL, transaction, clock, random source, or raw mutation capability.
+// surface to the private governed bridge held by the store runtime. It owns no
+// authority, database connection, SQL, transaction, clock, random source, or
+// raw mutation capability. Only separately granted deletion can reach the
+// bridge's ratified erasure path; every other current route refuses.
 
 import { types as nodeUtilTypes } from 'node:util'
 
 import {
   assertKernelStoreCapability,
-  executeLegacyStoreIntent,
+  executeGovernedStoreIntent,
 } from './kernel-store-runtime.mjs'
 import { LegacyMutationError } from './legacy-mutation-router.mjs'
 
@@ -205,9 +207,9 @@ function assertActiveBase(base) {
   if (base.status().status === 'closed') throw storeClosed()
 }
 
-function executeForState(state, intent) {
+function executeForState(state, routeKind, input = undefined) {
   assertEnabledStateLive(state)
-  return executeLegacyStoreIntent(state.base, intent)
+  return executeGovernedStoreIntent(state.base, routeKind, input)
 }
 
 export const admissionPolicyDefaults = ObjectFreeze({
@@ -319,9 +321,7 @@ export function createMemoryGate(base, options = {}) {
       return { outcome: 'rejected', reasons: ['memory_disabled'] }
     }
     assertEnabledStateLive(state)
-    const captured = captureExplicitProposal(proposal, policy)
-    if (captured?.outcome === 'rejected') return captured
-    return executeForState(state, captured)
+    return executeForState(state, 'legacy_proposal')
   }
 
   const gate = ObjectFreeze({ policy, propose })
@@ -348,29 +348,7 @@ export function proposeExtractedMemoryCandidate(gated, input) {
   if (!state.enabled) {
     return { outcome: 'rejected', reasons: ['memory_disabled'] }
   }
-  if (!isOrdinaryRecord(input)) throw invalidArgument()
-
-  const provenance = captureKnownRecord(
-    ownDataValue(input, 'provenance'),
-    provenanceKeys,
-  )
-  const record = captureKnownRecord(ownDataValue(input, 'record'), recordKeys)
-  const scope = captureKnownRecord(ownDataValue(input, 'scope'), scopeKeys)
-  const proposalKind = isPermanentType(record.type)
-    ? 'permanent'
-    : 'promote'
-
-  return executeForState(state, {
-    intentKind: 'legacy_proposal',
-    op: 'add',
-    policy: state.policy,
-    producer: 'extraction_candidate',
-    proposalKind,
-    provenance,
-    record,
-    scope,
-    target: null,
-  })
+  return executeForState(state, 'legacy_proposal')
 }
 
 export function createGatedStore(base, options = {}) {
@@ -384,24 +362,25 @@ export function createGatedStore(base, options = {}) {
     status: base.status,
   })
 
-  function inertOrExecute(inert, buildIntent) {
+  function inertOrExecute(inert, routeKind, input = undefined) {
     if (!enabled) return inert()
     assertEnabledStateLive(state)
-    return executeForState(state, buildIntent())
+    return executeForState(state, routeKind, input)
   }
 
   const gated = ObjectFreeze({
     close: base.close,
     config: base.config,
     dbPath: base.dbPath,
-    deleteMemory(id, optionsValue) {
+    deleteMemory(id, optionsValue, authorityGrant) {
       return inertOrExecute(
         () => ({ deleted: false, reason: 'memory_disabled' }),
-        () => ({
-          intentKind: 'legacy_delete_memory',
-          actor: captureOptionalRecordField(optionsValue, 'actor'),
+        'legacy_delete_memory',
+        {
           id,
-        }),
+          options: optionsValue,
+          authorityGrant,
+        },
       )
     },
     enabled,
@@ -413,22 +392,13 @@ export function createGatedStore(base, options = {}) {
     recordRecallInclusion(memoryIds, optionsValue) {
       return inertOrExecute(
         () => ({ touched: [], touchedCount: 0 }),
-        () => ({
-          intentKind: 'legacy_record_recall_inclusion',
-          actor: captureOptionalRecordField(optionsValue, 'actor'),
-          bumpAmount: captureOptionalRecordField(optionsValue, 'bumpAmount'),
-          memoryIds,
-        }),
+        'legacy_record_recall_inclusion',
       )
     },
     runLifecycleJobs(optionsValue) {
       return inertOrExecute(
         () => ({ decayed: 0, deleted: 0, skipped: 0, touched: 0 }),
-        () => ({
-          intentKind: 'legacy_run_lifecycle',
-          now: captureOptionalRecordField(optionsValue, 'now'),
-          palariId: captureOptionalRecordField(optionsValue, 'palariId'),
-        }),
+        'legacy_run_lifecycle',
       )
     },
     searchMemories: base.searchMemories,
@@ -436,13 +406,7 @@ export function createGatedStore(base, options = {}) {
     topicForget(query, scopeValue, optionsValue) {
       return inertOrExecute(
         () => ({ count: 0, deleted: [] }),
-        () => ({
-          intentKind: 'legacy_forget_topic',
-          actor: captureOptionalRecordField(optionsValue, 'actor'),
-          palariId: captureOptionalRecordField(scopeValue, 'palariId'),
-          query,
-          userId: captureOptionalRecordField(scopeValue, 'userId'),
-        }),
+        'legacy_forget_topic',
       )
     },
   })

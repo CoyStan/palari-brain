@@ -2,11 +2,12 @@
 // Completion law: recall tests green against fixture memories.
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { join } from 'node:path'
+import { mkdtemp, mkdir, rm } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { DatabaseSync } from 'node:sqlite'
 
-import { createKernelStore } from '../src/store.mjs'
+import { createKernelStore, workspaceMemoryDbPath } from '../src/store.mjs'
 import { createGatedStore } from '../src/gate.mjs'
 import {
   briefingDiagnostics,
@@ -14,6 +15,11 @@ import {
   confidenceBucket,
   recallAndBrief,
 } from '../src/recall.mjs'
+import {
+  seedB2Link,
+  seedB2Memory,
+  seedCdxM1Schema,
+} from './helpers/cdx-b2-fixtures.mjs'
 
 const tempDirs = []
 async function tempDir() {
@@ -29,100 +35,174 @@ const FIXED_NOW = new Date('2026-07-18T12:00:00.000Z')
 const EVENT_AT = '2026-05-02T09:30:00.000Z'
 const SCOPE = { palariId: 'palari-a', userId: 'user-1' }
 
-async function openFixtureStore() {
+async function openFixtureStore(seed = undefined) {
   const root = await tempDir()
-  const store = await createKernelStore({
+  const options = {
     clock: () => FIXED_NOW,
     memoryEnabled: true,
     statePath: join(root, 'workspace-state.json'),
     workspaceId: 'contract-recall',
-  })
+  }
+  if (seed !== undefined) {
+    const dbPath = workspaceMemoryDbPath(options)
+    await mkdir(dirname(dbPath), { recursive: true })
+    const db = new DatabaseSync(dbPath)
+    try {
+      seedCdxM1Schema(db, 0, { withRows: false })
+      seed(db)
+    } finally {
+      db.close()
+    }
+  }
+  const store = await createKernelStore(options)
   const gated = createGatedStore(store)
   return { gated, store }
 }
 
-const USER_PROV = { sourceKind: 'user_message', writer: 'explicit_user_action' }
+const FIXTURE_IDS = Object.freeze({
+  extracted: 'historical_oaxaca',
+  otherUserPrivate: 'historical_other_private',
+  preference: 'historical_preference',
+  webDerived: 'historical_web_result',
+})
 
-function seedFixtures(gated) {
-  const out = {}
-  out.preference = gated.propose({
-    kind: 'permanent',
-    op: 'add',
-    provenance: USER_PROV,
-    record: {
-      confidence: 0.9, content: 'Prefers macroeconomic briefs before espresso.', importance: 0.9,
-      keywords: ['macroeconomic', 'espresso'], palari_id: SCOPE.palariId, type: 'preference', user_id: SCOPE.userId,
+function seedFixtures(db) {
+  const rows = [
+    {
+      acquisitionMode: 'direct',
+      confidence: 0.9,
+      content: 'Prefers macroeconomic briefs before espresso.',
+      createdByPipeline: 0,
+      id: FIXTURE_IDS.preference,
+      importance: 0.9,
+      keywords: 'macroeconomic espresso',
+      memoryType: 'preference',
+      sourceKind: 'user_message',
+      userId: SCOPE.userId,
+      validFrom: FIXED_NOW.toISOString(),
     },
-  })
-  out.extracted = gated.propose({
-    kind: 'permanent',
-    op: 'add',
-    provenance: { eventAt: EVENT_AT, extractor: 'stub-extractor-v1', sourceKind: 'user_message', writer: 'background_extraction' },
-    record: {
-      confidence: 0.8, content: 'Sister moved to Oaxaca in spring.', importance: 0.7,
-      keywords: ['oaxaca', 'sister'], palari_id: SCOPE.palariId, type: 'life_event', user_id: SCOPE.userId,
+    {
+      acquisitionMode: 'extracted',
+      confidence: 0.8,
+      content: 'Sister moved to Oaxaca in spring.',
+      createdByPipeline: 1,
+      extractor: 'stub-extractor-v1',
+      id: FIXTURE_IDS.extracted,
+      importance: 0.7,
+      keywords: 'oaxaca sister',
+      memoryType: 'life_event',
+      sourceKind: 'user_message',
+      userId: SCOPE.userId,
+      validFrom: EVENT_AT,
     },
-  })
-  out.webDerived = gated.propose({
-    kind: 'promote',
-    op: 'add',
-    provenance: { eventAt: EVENT_AT, extractor: 'stub-extractor-v1', sourceKind: 'web_result', writer: 'background_extraction' },
-    record: {
-      confidence: 0.5, content: 'The espresso machine model was recalled by its maker.', importance: 0.6,
-      keywords: ['espresso', 'recall-notice'], palari_id: SCOPE.palariId, type: 'working', user_id: SCOPE.userId,
+    {
+      acquisitionMode: 'extracted',
+      confidence: 0.5,
+      content: 'The espresso machine model was recalled by its maker.',
+      createdByPipeline: 1,
+      extractor: 'stub-extractor-v1',
+      id: FIXTURE_IDS.webDerived,
+      importance: 0.6,
+      keywords: 'espresso recall-notice',
+      memoryType: 'working',
+      sourceKind: 'web_result',
+      userId: SCOPE.userId,
+      validFrom: EVENT_AT,
     },
-  })
-  out.otherUserPrivate = gated.propose({
-    kind: 'promote',
-    op: 'add',
-    provenance: USER_PROV,
-    record: {
-      confidence: 0.9, content: 'user-2 private espresso stash location.', importance: 0.9,
-      keywords: ['espresso'], palari_id: SCOPE.palariId, type: 'working', user_id: 'user-2',
+    {
+      acquisitionMode: 'direct',
+      confidence: 0.9,
+      content: 'user-2 private espresso stash location.',
+      createdByPipeline: 0,
+      id: FIXTURE_IDS.otherUserPrivate,
+      importance: 0.9,
+      keywords: 'espresso',
+      memoryType: 'working',
+      sourceKind: 'user_message',
+      userId: 'user-2',
+      validFrom: FIXED_NOW.toISOString(),
     },
-  })
-  for (const [name, r] of Object.entries(out)) {
-    assert.notEqual(r.outcome, 'rejected', `fixture ${name} must land: ${r.reasons}`)
+  ]
+  const update = db.prepare(`
+    UPDATE main.memories
+       SET importance = ?, confidence = ?, acquisition_mode = ?,
+           created_by_pipeline = ?, source_kind = ?, extractor = ?
+     WHERE id = ?
+  `)
+  for (const row of rows) {
+    seedB2Memory(db, {
+      content: row.content,
+      createdAt: FIXED_NOW.toISOString(),
+      id: row.id,
+      keywords: row.keywords,
+      memoryType: row.memoryType,
+      palariId: SCOPE.palariId,
+      userId: row.userId,
+      validFrom: row.validFrom,
+    })
+    update.run(
+      row.importance,
+      row.confidence,
+      row.acquisitionMode,
+      row.createdByPipeline,
+      row.sourceKind,
+      row.extractor ?? null,
+      row.id,
+    )
   }
-  return out
 }
 
 test('recall: FTS hits against fixtures, scoped, budgeted, measured (C9/C10)', async () => {
-  const { gated } = await openFixtureStore()
-  const fx = seedFixtures(gated)
+  const { gated } = await openFixtureStore(seedFixtures)
   const recall = gated.recallMemories('espresso preferences', {
     contextBudget: 12, now: FIXED_NOW, palariId: SCOPE.palariId, userId: SCOPE.userId,
   })
   const ids = recall.memories.map((m) => m.id)
-  assert.ok(ids.includes(fx.preference.memory.id), 'direct FTS hit recalled')
-  assert.ok(ids.includes(fx.webDerived.memory.id), 'transient FTS hit recalled')
-  assert.ok(!ids.includes(fx.otherUserPrivate.memory.id), 'other user private excluded (C9)')
+  assert.ok(ids.includes(FIXTURE_IDS.preference), 'direct FTS hit recalled')
+  assert.ok(ids.includes(FIXTURE_IDS.webDerived), 'transient FTS hit recalled')
+  assert.ok(!ids.includes(FIXTURE_IDS.otherUserPrivate), 'other user private excluded (C9)')
   assert.ok(recall.memories.length <= 12, 'context budget respected')
   assert.ok(Number.isFinite(recall.latencyMs) && recall.totalCandidates >= recall.memories.length, 'measured, not presumed')
 })
 
 test('recall: superseded values are not confidently recalled (C15)', async () => {
-  const { gated } = await openFixtureStore()
-  const v1 = gated.propose({
-    kind: 'permanent', op: 'add', provenance: USER_PROV,
-    record: { confidence: 0.9, content: 'Favorite conference is Jackson Hole.', keywords: ['conference'], palari_id: SCOPE.palariId, type: 'preference', user_id: SCOPE.userId },
+  const oldId = 'historical_conference_old'
+  const newId = 'historical_conference_new'
+  const { gated } = await openFixtureStore((db) => {
+    seedB2Memory(db, {
+      content: 'Favorite conference is Jackson Hole.',
+      id: oldId,
+      keywords: 'conference',
+      palariId: SCOPE.palariId,
+      userId: SCOPE.userId,
+      validFrom: EVENT_AT,
+      validUntil: '2026-06-01T00:00:00.000Z',
+    })
+    seedB2Memory(db, {
+      content: 'Favorite conference is now Lindau.',
+      id: newId,
+      keywords: 'conference',
+      palariId: SCOPE.palariId,
+      userId: SCOPE.userId,
+      validFrom: '2026-06-01T00:00:00.000Z',
+    })
+    seedB2Link(db, {
+      fromMemoryId: newId,
+      id: 'historical_conference_supersedes',
+      relation: 'supersedes',
+      toMemoryId: oldId,
+    })
   })
-  const v2 = gated.propose({
-    kind: 'permanent', op: 'supersede', provenance: USER_PROV, target: v1.memory.id,
-    record: { confidence: 0.9, content: 'Favorite conference is now Lindau.', keywords: ['conference'], palari_id: SCOPE.palariId, type: 'preference', user_id: SCOPE.userId },
-  })
-  assert.equal(v2.outcome, 'superseded')
   const recall = gated.recallMemories('favorite conference', {
     contextBudget: 12, now: FIXED_NOW, palariId: SCOPE.palariId, userId: SCOPE.userId,
   })
   const ids = recall.memories.map((m) => m.id)
-  assert.ok(ids.includes(v2.memory.id), 'newer value recalled')
-  assert.ok(!ids.includes(v1.memory.id), 'superseded value absent from default recall')
+  assert.ok(ids.includes(newId), 'newer value recalled')
+  assert.ok(!ids.includes(oldId), 'superseded value absent from default recall')
 })
 
 test('briefing v1: per-memory line carries timestamp, attribution, confidence bucket (C12)', async () => {
-  const { gated } = await openFixtureStore()
-  const fx = seedFixtures(gated)
+  const { gated } = await openFixtureStore(seedFixtures)
   const recall = gated.recallMemories('espresso oaxaca', {
     contextBudget: 12, now: FIXED_NOW, palariId: SCOPE.palariId, userId: SCOPE.userId,
   })
@@ -169,8 +249,7 @@ test('honesty: empty recall yields an explicit absence briefing, never invention
 })
 
 test('C16 property: every briefed content line maps to a stored row', async () => {
-  const { gated, store } = await openFixtureStore()
-  seedFixtures(gated)
+  const { gated, store } = await openFixtureStore(seedFixtures)
   const recall = gated.recallMemories('espresso oaxaca macroeconomic', {
     contextBudget: 12, now: FIXED_NOW, palariId: SCOPE.palariId, userId: SCOPE.userId,
   })
@@ -182,17 +261,16 @@ test('C16 property: every briefed content line maps to a stored row', async () =
   }
 })
 
-test('recallAndBrief: orchestration records inclusion and reports measurement (C10)', async () => {
-  const { gated, store } = await openFixtureStore()
-  const fx = seedFixtures(gated)
+test('recallAndBrief: orchestration reports measurement while governed inclusion telemetry is inert (C10)', async () => {
+  const { gated, store } = await openFixtureStore(seedFixtures)
   const result = recallAndBrief(gated, 'espresso preferences', SCOPE, { maxChars: 1800, now: FIXED_NOW })
   assert.equal(result.status, 'included')
   assert.ok(result.included.length >= 1)
   assert.ok(Number.isFinite(result.latencyMs))
   assert.ok(result.totalCandidates >= result.included.length)
-  assert.ok(result.recallInclusionTouched >= 1, 'inclusion telemetry recorded')
-  const touched = store.getMemoryById(fx.preference.memory.id)
-  assert.ok(touched.last_accessed, 'included memory access recorded (needle survival measured)')
+  assert.equal(result.recallInclusionTouched, 0)
+  const untouched = store.getMemoryById(FIXTURE_IDS.preference)
+  assert.equal(untouched.last_accessed, null)
 })
 
 test('recallAndBrief: disabled or absent memory reports honestly instead of briefing (C14)', async () => {
@@ -232,8 +310,7 @@ test('recallAndBrief rejects arbitrary recall/inclusion-shaped sinks before call
 })
 
 test('needle survival is measurable: briefing presence in a final prompt is a number, not a hope (C10)', async () => {
-  const { gated } = await openFixtureStore()
-  seedFixtures(gated)
+  const { gated } = await openFixtureStore(seedFixtures)
   const result = recallAndBrief(gated, 'espresso', SCOPE, { now: FIXED_NOW })
   const prompt = `System preamble\n${result.text}\nUser question: what do I drink?`
   const diag = briefingDiagnostics({ briefingText: result.text, promptText: prompt })
