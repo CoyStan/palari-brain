@@ -283,34 +283,48 @@ test('M2-B-06 scheduler and disabled capabilities preserve precedence without au
       memoryEnabled: true,
       memoryRootDir: directory,
     })
+    let extractionCalls = 0
+    let sourceMessageIdReads = 0
     const scheduler = createMemoryExtractionScheduler({
-      extractor: async () => ({
-        memories: [{
-          confidence: 1,
-          content: 'User preference: amber coffee.',
-          importance: 1,
-          keywords: ['amber', 'coffee'],
-          shared: false,
-          sourceKind: 'user_message',
-          type: 'preference',
-        }],
-      }),
+      extractor: async () => {
+        extractionCalls += 1
+        return {
+          memories: [{
+            confidence: 1,
+            content: 'User preference: amber coffee.',
+            importance: 1,
+            keywords: ['amber', 'coffee'],
+            shared: false,
+            sourceKind: 'user_message',
+            type: 'preference',
+          }],
+        }
+      },
       extractorId: 'm2b06-scheduler-extractor',
       memoryManager: manager,
       sessionSummaryEnabled: true,
     })
-    assert.equal(scheduler.schedule({
+    const scheduledTurn = {
       assistantMessage: 'Understood.',
       eventAt: '2026-07-21T12:00:00.000Z',
       palariId: 'palari-refusal',
-      sourceMessageId: 'scheduler-message-refusal',
       sourceRefCount: 0,
       userId: 'user-refusal',
       userMessage: 'I prefer amber coffee.',
       workspaceId: 'scheduler-refusal',
-    }).scheduled, true)
+    }
+    Object.defineProperty(scheduledTurn, 'sourceMessageId', {
+      enumerable: true,
+      get() {
+        sourceMessageIdReads += 1
+        return 'scheduler-message-refusal'
+      },
+    })
+    assert.equal(scheduler.schedule(scheduledTurn).scheduled, true)
     await scheduler.drain()
     assert.equal(scheduler.pendingCount(), 0)
+    assert.equal(extractionCalls, 1)
+    assert.equal(sourceMessageIdReads, 3)
     const store = await manager.forWorkspace('scheduler-refusal')
     assert.deepEqual(mutationSnapshot(store.dbPath), {
       decisions: 0,

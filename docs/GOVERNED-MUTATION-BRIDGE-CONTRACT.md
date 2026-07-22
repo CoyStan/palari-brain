@@ -1,9 +1,10 @@
 # Governed Mutation Bridge Contract — Palari v2 M2-B
 
-**Status:** reviewed normative M2-B contract cut point; production
-implementation remains pending. Three independent final reviews ended with
-zero blockers or majors. Nothing in this document authorizes a live provider
-call, dataset download, benchmark run, publication, or terminal store deletion.
+**Status:** reviewed normative M2-B contract implemented at `0017fee` and
+pending only the repository certification/status cut point. Three fresh final
+implementation reviews ended with zero blockers or majors. Nothing in this
+document authorizes a live provider call, dataset download, benchmark run,
+publication, or terminal store deletion.
 
 This contract is one normative set with:
 

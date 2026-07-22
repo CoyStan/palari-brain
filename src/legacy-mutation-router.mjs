@@ -8,9 +8,11 @@
 //   apps/palari-local-workbench/scripts/workspace-backend/memory-extraction.mjs
 //     upstream blob d8367ceb900c; local pre-A2 blob
 //     eb8336ca92d8add299a5b89e1dffe81b153a3f71
-// Intentional deltas and the exact compatibility law are sealed in
-// docs/LEGACY-MUTATION-ROUTING-CONTRACT.md. This module does not establish
-// authority, admission, canonical state, a journal, or a source of truth.
+// Intentional deltas for A2 and the exact compatibility law are sealed in
+// docs/LEGACY-MUTATION-ROUTING-CONTRACT.md. The M2-B governed projection pair
+// is separately sealed in docs/GOVERNED-MUTATION-BRIDGE-CONTRACT.md. This
+// module does not establish authority, admission, canonical state, a journal,
+// or a source of truth.
 
 import { createHash, randomUUID } from 'node:crypto'
 import { DatabaseSync, StatementSync } from 'node:sqlite'

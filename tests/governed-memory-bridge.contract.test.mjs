@@ -5,6 +5,7 @@ import { test } from 'node:test'
 
 import * as bridgeModule from '../src/governed-memory-bridge.mjs'
 import { GovernedMemoryError as JournalGovernedMemoryError } from '../src/cdx-b2-journal.mjs'
+import { initializeMemoryBundle } from '../src/memory-bundle-apply.mjs'
 import {
   MemoryAuthorityError,
   createMemoryAuthorityRoot,
@@ -127,6 +128,20 @@ function createTrapValue() {
 
 function scalar(db, sql, parameter) {
   return db.prepare(sql).get(parameter).value
+}
+
+function snapshotB1(db) {
+  return {
+    atoms: db.prepare(`
+      SELECT * FROM main.memory_bundle_atoms ORDER BY memory_id COLLATE BINARY
+    `).all(),
+    events: db.prepare(`
+      SELECT * FROM main.memory_bundle_events ORDER BY sequence
+    `).all(),
+    meta: db.prepare(`
+      SELECT * FROM main.memory_bundle_meta ORDER BY singleton
+    `).all(),
+  }
 }
 
 function assertCanonicalTimestamp(value) {
@@ -443,6 +458,56 @@ test('M2-B-05 one ratified private zero-link erasure co-commits exact receipts a
       1,
       scenario.fixture.db,
     )
+  } finally {
+    scenario.close()
+  }
+})
+
+test('M2-B-05 valid B2 erasure leaves initialized B1 table rows unchanged', () => {
+  const targetId = b2Identifier('mem_', 521)
+  const scenario = createBoundScenario({
+    seed(db) {
+      seedB2Memory(db, {
+        id: targetId,
+        palariId: PALARI_ID,
+        userId: USER_ID,
+        memoryType: 'preference',
+        content: 'B1 coexistence erasure canary',
+        keywords: 'b1 coexistence canary',
+        shared: 0,
+      })
+    },
+  })
+  try {
+    assert.equal(initializeMemoryBundle(scenario.fixture.db, {
+      clock: () => new Date('2026-07-22T00:00:00.000Z'),
+      idFactory: () => '00000000-0000-4000-8000-000000000521',
+    }), undefined)
+    const b1Before = snapshotB1(scenario.fixture.db)
+    const grant = issueMemoryAuthorityGrant(
+      scenario.root,
+      grantInput(targetId, 521),
+    )
+    assert.equal(
+      scenario.bridge.erase(targetId, undefined, grant).deleted,
+      true,
+    )
+    assert.deepEqual(snapshotB1(scenario.fixture.db), b1Before)
+    assert.equal(
+      scalar(
+        scenario.fixture.db,
+        'SELECT count(*) AS value FROM main.memories WHERE id = ?',
+        targetId,
+      ),
+      0,
+    )
+    assertDecision(scenario.fixture, {
+      activity: scenario.activity(),
+      effectCount: 2,
+      outcome: 'applied',
+      reasonCode: null,
+      targetId,
+    })
   } finally {
     scenario.close()
   }

@@ -772,25 +772,39 @@ test('scheduler obtains a real gated handle while extraction and summaries remai
     memoryRootDir: root,
   })
   try {
+    let extractionCalls = 0
+    let summarySourceMessageReads = 0
     const scheduler = createMemoryExtractionScheduler({
-      extractor: () => ({ memories: [] }),
+      extractor: () => {
+        extractionCalls += 1
+        return { memories: [] }
+      },
       extractorId: 'scheduler-extractor',
       memoryManager: manager,
       sessionSummaryEnabled: true,
     })
-    const scheduled = scheduler.schedule({
+    const scheduledTurn = {
       assistantMessage: 'I will remember that.',
       eventAt: '2026-07-20T10:11:12.000Z',
       palariId: SCOPE.palariId,
-      sourceMessageId: 'scheduler:0',
       sourceRefCount: 0,
       userId: SCOPE.userId,
       userMessage: 'I prefer tea.',
       workspaceId: 'scheduler-real',
+    }
+    Object.defineProperty(scheduledTurn, 'sourceMessageId', {
+      enumerable: true,
+      get() {
+        summarySourceMessageReads += 1
+        return 'scheduler:0'
+      },
     })
+    const scheduled = scheduler.schedule(scheduledTurn)
     assert.equal(scheduled.scheduled, true)
     await scheduler.drain()
     assert.equal(scheduler.pendingCount(), 0)
+    assert.equal(extractionCalls, 1)
+    assert.equal(summarySourceMessageReads, 1)
     const gated = await manager.forWorkspace('scheduler-real')
     const summaries = gated.listMemories(SCOPE)
       .filter(({ type }) => type === 'session_summary')
