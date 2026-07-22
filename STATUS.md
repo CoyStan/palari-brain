@@ -2,15 +2,14 @@
 
 Loop state: RUNNING
 Baseline source commit (palari-v05 main): 190a4ad2
-Next: V2-M2-B Task 5 / M2-B-05 — IMPLEMENT THE PRODUCTION BRIDGE AND
-RATIFIED ERASURE. Follow the sealed plan: first write the RED sole-A1-owner,
-seven-export historical-router, governed-token, authority-order, canonical-
-patch, full target matrix, refusal/receipt, fault-ordinal, clock/ledger race,
-and second-connection visibility proofs; then refactor A2 into a transaction-
-neutral planner/projection applier and route only the exact ratified private
-zero-link erasure through the bridge. Do not begin Task 6 producer/terminal
-refusal work before Task 5 passes. CDX-M1 remains runtime/read authority,
-exact B1 remains unchanged/non-authoritative, and parent M2/M2-B remain open.
+Next: V2-M3 — GATE REPAIR + CANDIDATE RECEIPTS. Implement strict extraction
+schema, keep authority fields outside model control, type assistant evidence,
+widen ordinary-user evidence coverage without weakening the injection
+boundary, repair governed supersession semantics, and make every candidate
+outcome observable. Follow STATUS order and the source-of-truth hierarchy;
+do not treat completed V2-M2 refusal behavior as permission to invent an
+operation or authority constant. CDX-M1 remains runtime/read authority and
+exact B1 remains unchanged/non-authoritative.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish without a
@@ -189,7 +188,7 @@ new explicit founder GO. Results remain under gitignored evals/results/.
   dual write. The bundle remains `sourceOfTruth:false`; CDX-M1 remains runtime
   authority. No physical-deletion, deletion-proof, signature, cryptographic
   audit, external-anchor, provider, benchmark, or publication claim was made.
-- [ ] V2-M2 — One-connection mutation seam. Refactor current projection
+- [x] V2-M2 — One-connection mutation seam. Refactor current projection
   writes to borrow the gate coordinator's transaction; close direct
   semantic bypasses and co-commit governed decisions with projection effects.
   The independently reviewed staged contract and certified historical A1 plan
@@ -231,7 +230,7 @@ new explicit founder GO. Results remain under gitignored evals/results/.
     B2 journaling/co-commit and terminal-route disposition remain M2-B work,
     exact B1 remains unchanged/non-authoritative, CDX-M1 stays runtime/read
     authority, and parent M2 remains open.
-  - [ ] V2-M2-B — bind a trusted authority root outside proposals; add a
+  - [x] V2-M2-B — bind a trusted authority root outside proposals; add a
     provenance-pinned, Unified-Spec-conforming governed operation contract,
     disjoint CDX-B2 journal, and legacy checkpoint; every A2 legacy intent maps
     to a valid governed operation or deterministic refusal, and governed
@@ -307,9 +306,57 @@ new explicit founder GO. Results remain under gitignored evals/results/.
     reviews report zero blockers or majors. No bridge/runtime/producer wiring,
     transaction control, semantic CDX/B1 DML, or source-of-truth claim was
     added; Next is Task 5/M2-B-05 and U8 remains sealed.
+    Task 5 / M2-B-05 DONE 2026-07-22 at `0017fee`: the governed bridge is the
+    sole production A1 transaction owner; the historical router is an exact
+    transaction-neutral plan/projection child with no production `execute`
+    door. One trusted, authority-bound `ratify|ratified_user` private zero-link
+    erasure now co-commits its exact B2 decision, atom-then-FTS effects, CDX
+    atom/FTS projection, and head advance. The full target cross-product,
+    authority/capture precedence, every fault ordinal, known/unknown commit,
+    clock and competing-ledger races, close/reopen, and second-connection
+    visibility are executable. Valid-B2 erasure with an initialized B1 leaves
+    all B1 table rows unchanged.
+    Task 6 / M2-B-06 DONE 2026-07-22 at `0017fee`: every unsupported proposal,
+    ownership, topic, recall, lifecycle, extraction, summary, scheduler, and
+    implicit semantic route returns its exact deterministic refusal with no B2
+    decision/effect and no CDX projection. Task 5's valid-grant target-state
+    refusals separately commit a decision-only record. Whole-store deletion
+    now rejects immediately through the exact thirteenth legacy error and
+    performs no filesystem call. The trusted synchronous manager authority
+    provider is captured only through exact one-export
+    `workspace-manager-authority`; the reviewed production graph has exactly
+    30 nodes and the sole manager-provider capture edge is
+    `store -> workspace-manager-authority -> authority runtime`. The other
+    reviewed authority-runtime imports perform kernel preflight or bridge
+    lifecycle operations, not provider capture. Store and proposal-facing
+    sources contain no authority namespace disclosure.
+    Task 7 / M2-B certification DONE 2026-07-22 with implementation `0017fee`
+    and falsifier hardening `d7bd9f9`. Completion PASS on exact Node 22.22.2 /
+    SQLite 3.51.2: M2-B core 237/237, A1/A2 195/195, exact B1 164/164,
+    product regressions 77/77, and full suite 673/673, all with zero failures,
+    skips, or todos. Three fresh independent reviews—spec/authority,
+    producer closure, and SQLite/atomicity/replay—ended with zero blockers or
+    majors; follow-up probes closed scheduler non-vacuity and valid-B2/B1
+    coexistence coverage. The remaining bounded coverage note is that the
+    bridge atomicity suite does not drive every already-exhaustive A1 error
+    code through the one inspected settlement mapper; this is not a correctness
+    finding. Protected B1 production/document bytes remain exact to
+    `1d65bb0`; package dependencies are unchanged. Certified
+    SHA-256 values: bridge
+    `2e275837e64cedad21c315d6456a3b94cd4aef78c2daf0d56f70561642f9dc5c`,
+    manager adapter
+    `4e675183e73e6240818d6793c1d38372f2fe69a3bc15646f5428aeb5ab6e8afe`,
+    router
+    `b9b4142aa94d538aad14b0a56e1929cca4d98e5d4149669843237b0118455ca9`,
+    authority contract
+    `4222f19679abe8642d20999f32e543c854d9558c750246e183b6651582cc8570`,
+    and governed bridge contract
+    `fbdb2a170fe04b7c0c4eb93cf01a47647fb64a270eb27c61a11ab7231c2c87c5`.
   CDX-M1 remains runtime/read authority and exact CDX-B1 remains unchanged and
-  non-authoritative throughout these proofs. Parent M2 stays open until M2-B
-  passes the complete production matrix.
+  non-authoritative throughout these proofs. Parent M2 is complete at this
+  bounded production falsifier; no B1 or runtime/read-authority cutover,
+  external authenticity, provider, benchmark, spend, publication, or terminal
+  deletion claim is made. Next is V2-M3 and U8 remains sealed.
 - [ ] V2-M3 — Gate repair + candidate receipts. Strict extraction schema,
   authority fields not model-controlled, assistant evidence typed,
   ordinary user evidence coverage widened without weakening injection
@@ -435,3 +482,12 @@ checks, and documented blind spots are non-vacuously covered. Protected B1
 bytes are unchanged and three final reviews found zero blockers/majors. No
 bridge/runtime/producer or source-of-truth claim; Next is M2-B-05 and U8
 remains sealed.
+2026-07-22 — V2-M2-B Tasks 5–7 — 0017fee+d7bd9f9 — Implemented and certified
+the trusted governed production bridge: exact private zero-link ratified
+erasure co-commits B2 decision/effects and CDX atom/FTS projection; every other
+current semantic and terminal route refuses with zero effects. M2-B 237/237,
+A1/A2 195/195, B1 164/164, product 77/77, and full 673/673 PASS on Node
+22.22.2 / SQLite 3.51.2; protected B1 bytes are unchanged and three final
+reviews found zero blockers/majors. Parent M2 is complete, Next is V2-M3,
+CDX-M1 remains runtime/read authority, exact B1 remains non-authoritative, and
+U8 remains sealed.

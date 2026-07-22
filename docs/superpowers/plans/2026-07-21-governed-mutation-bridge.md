@@ -253,39 +253,39 @@ wiring is claimed by these checked boxes.
 
 ### M2-B-05 RED
 
-- [ ] Prove bridge is sole production A1 owner and router `execute` is absent
+- [x] Prove bridge is sole production A1 owner and router `execute` is absent
   from every production root.
-- [ ] Pin the exact seven-export router namespace, exact historical
+- [x] Pin the exact seven-export router namespace, exact historical
   `['apply','capture','resolve']` instance, and governed projection token:
   null prototype, frozen, zero-key, same db/lease/id, one-use, exact error
   translation, one delete, one-row cardinality, and exact `undefined` return.
-- [ ] Validate/reserve authority before legacy id/options trap; capture before
+- [x] Validate/reserve authority before legacy id/options trap; capture before
   activity check; check before A1; no untrusted operation during A1.
-- [ ] Assert exact patch bytes/Admit C1–C8/full resolver and demonstrate that
+- [x] Assert exact patch bytes/Admit C1–C8/full resolver and demonstrate that
   caller actor/policy/confidence/source/time cannot affect them.
-- [ ] Seed permanent/transient × own/general/shared/cross-user/cross-Palari ×
+- [x] Seed permanent/transient × own/general/shared/cross-user/cross-Palari ×
   current/ended × zero/multiple links; accept only exact private zero-link own
   targets with exactly one FTS row.
-- [ ] Commit exact target refusals under valid grants and no decision for all
+- [x] Commit exact target refusals under valid grants and no decision for all
   pre-gate authority/compatibility refusals.
-- [ ] Require applied receipt order atom then FTS and exactly one branded CDX
+- [x] Require applied receipt order atom then FTS and exactly one branded CDX
   delete; prove link set unchanged.
-- [ ] Force every decision/effect/projection/postcondition/head/commit ordinal;
+- [x] Force every decision/effect/projection/postcondition/head/commit ordinal;
   prove all-or-nothing B2/CDX and exact grant release/burn/retire state.
-- [ ] Close/reopen with a new root and a lower native observed time; require
+- [x] Close/reopen with a new root and a lower native observed time; require
   the post-verifier/pre-nonce `governance_clock_invalid` ordinal, rollback,
   bridge poison, and authority retirement rather than a generic trigger error.
-- [ ] Publish two zero-head generations with different ledger candidates;
+- [x] Publish two zero-head generations with different ledger candidates;
   after one establishes sequence one, require the loser's next A1 attempt to
   roll back as `authority_scope_mismatch`, append no decision, and retire its
   incompatible root/audience.
-- [ ] Observe from a second connection: neither side before commit, both after.
+- [x] Observe from a second connection: neither side before commit, both after.
 
 ### M2-B-05 GREEN
 
-- [ ] Refactor A2 into transaction-neutral historical planner/projection
+- [x] Refactor A2 into transaction-neutral historical planner/projection
   applier with test-owned coordinator.
-- [ ] Implement the governed prepare/apply projection pair, exact
+- [x] Implement the governed prepare/apply projection pair, exact
   patch/transition/paired plan, and route production deletion only through the
   bridge.
 
@@ -293,52 +293,52 @@ wiring is claimed by these checked boxes.
 
 ### M2-B-06 RED
 
-- [ ] Replay every A2 golden branch, producer, batch, implicit consequence,
+- [x] Replay every A2 golden branch, producer, batch, implicit consequence,
   trap, and effect ordinal through the production surface.
-- [ ] Require create/duplicate/supersession/link/demotion/share/topic/recall/
+- [x] Require create/duplicate/supersession/link/demotion/share/topic/recall/
   lifecycle/extraction/summary/scheduler paths to produce their exact refusal
   shape and zero CDX mutation.
-- [ ] Prove disabled/liveness/authority/input precedence and absence of
+- [x] Prove disabled/liveness/authority/input precedence and absence of
   authority inference or disclosure.
-- [ ] Instrument both direct runtime and public terminal delete exports; prove
+- [x] Instrument both direct runtime and public terminal delete exports; prove
   each immediately returns a native Promise rejected with the same exact
   error, observes no options/path, and calls no filesystem function for
   F-01/F-02/F-03. Prove the old `rm` path is unreachable/removed.
-- [ ] Extend the existing `LegacyMutationError` vocabulary from exactly twelve
+- [x] Extend the existing `LegacyMutationError` vocabulary from exactly twelve
   to exactly thirteen pairs with only `legacy_terminal_storage_refused` and
   its pinned message; re-prove every old pair and unknown-code constructor law.
-- [ ] Prove manager root provider is trusted/synchronous, called outside every
+- [x] Prove manager root provider is trusted/synchronous, called outside every
   transaction only for enabled creation, never returned, and retired on all
   publication/close races.
-- [ ] Pin the manager authority adapter's exact one-export namespace and sole
+- [x] Pin the manager authority adapter's exact one-export namespace and sole
   `store -> adapter -> authority runtime` edge; prove store contains no
   authority namespace name and the adapter invokes no provider or carrier.
 
 ### M2-B-06 GREEN
 
-- [ ] Rewire gate/store/manager/producers to safe refusal surfaces and the
+- [x] Rewire gate/store/manager/producers to safe refusal surfaces and the
   separate delete grant argument.
-- [ ] Route construction-only provider capture through the exact manager
+- [x] Route construction-only provider capture through the exact manager
   authority adapter without widening a public or authority-runtime namespace.
-- [ ] Reject with exact `legacy_terminal_storage_refused` from the async
+- [x] Reject with exact `legacy_terminal_storage_refused` from the async
   runtime function before option capture; keep the public export as its alias.
-- [ ] Update static graphs only for the reviewed modules/edges.
+- [x] Update static graphs only for the reviewed modules/edges.
 
 ## Task 7 — Complete M2 production falsifier and certification
 
-- [ ] Run focused authority/registry/schema/journal/bridge/terminal suites.
-- [ ] Run A1, historical A2 planner, exact B1, pre-M2 regression, complete
+- [x] Run focused authority/registry/schema/journal/bridge/terminal suites.
+- [x] Run A1, historical A2 planner, exact B1, pre-M2 regression, complete
   production matrix, static source graph, and full suite repeatedly.
-- [ ] Review the bounded coexistence source-inventory test diff separately and
+- [x] Review the bounded coexistence source-inventory test diff separately and
   prove it only classifies the exact M2-B modules/edges; protected B1 behavior,
   capabilities, and production bytes remain unchanged.
-- [ ] Verify exact Node/SQLite and zero dependency/provenance drift.
-- [ ] Compare protected B1/raw extraction bytes to `1d65bb0`; review any
+- [x] Verify exact Node/SQLite and zero dependency/provenance drift.
+- [x] Compare protected B1/raw extraction bytes to `1d65bb0`; review any
   test-inventory-only B1 diff separately.
-- [ ] Obtain three fresh final reviews: spec/authority; exhaustive producer
+- [x] Obtain three fresh final reviews: spec/authority; exhaustive producer
   closure; SQLite/atomicity/replay. Resolve every blocker and major.
-- [ ] Update docs/status with exact counts/hashes/commits/nonclaims and Next M3.
-- [ ] Commit coherent cut points as `BRAIN V2-M2-B: ...`, push the branch, then
+- [x] Update docs/status with exact counts/hashes/commits/nonclaims and Next M3.
+- [x] Commit coherent cut points as `BRAIN V2-M2-B: ...`, push the branch, then
   fast-forward/push `main` only after the full conjunction passes.
 
 Expected final M2 state: exact ratified private zero-link erasure co-commits;

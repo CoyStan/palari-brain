@@ -1,7 +1,10 @@
 # Transaction Coordinator Contract — Palari v2 M2-A1
 
-**Status:** normative only for V2-M2-A1. Passing this contract does not
-complete V2-M2 and does not authorize advancing to V2-M3.
+**Status:** normative only for the historical V2-M2-A1 cut point. Passing this
+contract did not complete V2-M2 or authorize advancing to V2-M3. Parent M2 was
+later completed by the separately governed M2-B implementation `0017fee` and
+completion hardening `d7bd9f9`; statements below that M2 “stays open” describe
+the A1 cut point and do not override current `STATUS.md`.
 **Date:** 2026-07-21.
 **Derived from:** the Unified Specification at
 `c9af823c7dee29d29fd937d44527f3b78d8d3845`, especially Part 4

@@ -1,8 +1,10 @@
 # Governed Mutation Bridge Contract — Palari v2 M2-B
 
-**Status:** reviewed normative M2-B contract implemented at `0017fee` and
-pending only the repository certification/status cut point. Three fresh final
-implementation reviews ended with zero blockers or majors. Nothing in this
+**Status:** reviewed normative M2-B contract implemented at `0017fee`,
+completion-falsifier hardened at `d7bd9f9`, and certified by the Task 7
+repository cut point. Three fresh final implementation reviews ended with
+zero blockers or majors. Parent V2-M2 is complete at this bounded production
+falsifier; this is not a runtime/read-authority cutover. Nothing in this
 document authorizes a live provider call, dataset download, benchmark run,
 publication, or terminal store deletion.
 

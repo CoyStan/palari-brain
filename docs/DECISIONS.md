@@ -535,3 +535,53 @@ dates. Agents record; the founder decides.
   spend, dataset, score, publication, or announcement. CDX-M1 remains runtime/
   read authority, exact B1 remains unchanged and non-authoritative, parent
   M2/M2-B remain open, and Next is Task 5/M2-B-05.
+- 2026-07-22 (V2-M2-B Tasks 5–7 certification) **The bounded one-connection
+  production falsifier is complete; CDX-M1 remains runtime/read authority.**
+  Implementation `0017fee` makes `src/governed-memory-bridge.mjs` the sole
+  production A1 owner and reduces the historical router to its exact
+  transaction-neutral plan/projection surface. Only a trusted one-use grant
+  for the pinned `ratify|ratified_user`, strength-`1.0`, private zero-link
+  erasure maps: its B2 decision, ordered atom/FTS effects, CDX atom/FTS delete,
+  and head advance co-commit. Every other current A2 intent/effect, producer,
+  batch, implicit consequence, and terminal storage route deterministically
+  refuses before semantic DML. Whole-store deletion performs no filesystem
+  call. The production store captures the trusted manager provider only
+  through exact one-export `src/workspace-manager-authority.mjs`; the reviewed
+  source inventory is exactly 30 nodes with sole manager-provider capture edge
+  `store -> workspace-manager-authority -> authority runtime`. Other reviewed
+  authority-runtime imports perform kernel preflight or bridge lifecycle
+  operations, not provider capture. This resolves the prior namespace/
+  inventory ambiguity without exposing authority to proposals or returned
+  handles. Task 6 unsupported routes create no B2 decision/effect and no CDX
+  projection; Task 5 valid-grant target-state refusals separately commit a
+  decision-only record.
+
+  Completion hardening `d7bd9f9` adds non-vacuous scheduler extraction and
+  summary probes, a valid-B2 successful-erasure proof that initialized B1
+  table rows remain unchanged, and the explicit governed-contract provenance
+  in the historical router. On exact Node 22.22.2 / SQLite 3.51.2, M2-B core
+  passes 237/237, A1/A2 195/195, exact B1 164/164, product regressions 77/77,
+  and the full suite 673/673, with zero failures, skips, or todos. Three fresh
+  independent final reviews—spec/authority, exhaustive producer closure, and
+  SQLite/atomicity/replay—report zero blockers or majors; follow-up review
+  closes both raised substantive coverage gaps. One bounded nonclaim remains:
+  bridge atomicity does not exercise every exhaustively tested A1 error code
+  through the single inspected settlement mapper. Protected B1 document and
+  production bytes remain exact to `1d65bb0`, and package dependencies are
+  unchanged.
+
+  Certified SHA-256 values are governed bridge
+  `2e275837e64cedad21c315d6456a3b94cd4aef78c2daf0d56f70561642f9dc5c`,
+  manager authority adapter
+  `4e675183e73e6240818d6793c1d38372f2fe69a3bc15646f5428aeb5ab6e8afe`,
+  historical router
+  `b9b4142aa94d538aad14b0a56e1929cca4d98e5d4149669843237b0118455ca9`,
+  authority contract
+  `4222f19679abe8642d20999f32e543c854d9558c750246e183b6651582cc8570`,
+  and governed bridge contract
+  `fbdb2a170fe04b7c0c4eb93cf01a47647fb64a270eb27c61a11ab7231c2c87c5`.
+  Parent V2-M2 is therefore complete at this falsifier and Next is V2-M3.
+  This does not make B1 authoritative, cut runtime/read authority over from
+  CDX-M1, prove external authenticity or coherent-forgery resistance, restore
+  refused candidate/topic/terminal features, resume sealed U8 question
+  `1568498a`, call a provider, spend, download data, score, publish, or announce.

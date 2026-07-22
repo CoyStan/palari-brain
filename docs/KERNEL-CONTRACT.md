@@ -7,18 +7,20 @@ disagree, the spec wins and this file gets fixed.
 
 **V2-M1/V2-M2 precedence:** this contract continues to govern the current
 CDX-M1 runtime. `docs/MEMORY-BUNDLE-CONTRACT.md` governs only the
-non-authoritative coexistence substrate. M1 introduces no second runtime
-write door and changes no lifecycle, visibility, sharing, deletion,
-retrieval, or gate behavior. M2-A2 implementation commit `e6bbc51` closes the
-supported **in-file CDX-M1 raw writer graph**: branded gated producers submit
-exactly five legacy intents, whose possible semantic SQL is exactly eight
-lease-checked effects under A1. That bounded compatibility closure is not full
-one-gate conformance. Current caller identity and policy inputs are not trusted
-authority, the recorded legacy semantic defects still require M2-B
-map-or-refuse, and terminal whole-file destruction remains a separately
-serialized storage route. Parent M2 therefore stays open until a governed
-operation contract and journal co-commit every accepted projection effect or
-deterministically refuse it.
+non-authoritative coexistence substrate. M1 introduced no second runtime write
+door. M2-A2 implementation commit `e6bbc51` closed the supported **in-file
+CDX-M1 raw writer graph** behind exactly five legacy intents and eight
+lease-checked historical effects. M2-B implementation `0017fee` and
+completion hardening `d7bd9f9` now bind trusted host authority outside
+proposals, map only the exact ratified private zero-link erasure to the
+governed operation, and deterministically refuse every other current semantic
+branch before CDX mutation. Each accepted erasure co-commits its B2 decision,
+ordered effects, CDX atom/FTS projection, and journal head under A1. Terminal
+whole-file destruction is an unconditional governed refusal, not a false
+same-file co-commit. The complete production matrix leaves no supported
+in-file production bypass, so parent V2-M2 is closed at this bounded
+falsifier. CDX-M1 remains runtime/read authority and exact B1 remains unchanged
+and non-authoritative; no runtime cutover is claimed.
 
 `docs/MUTATION-SEAM-CONTRACT.md` is subordinate and normative only for
 V2-M2-A1 transaction ownership. A1 changes no memory policy or runtime path.
@@ -26,19 +28,18 @@ V2-M2-A1 transaction ownership. A1 changes no memory policy or runtime path.
 for M2-A2's closed compatibility routing boundary: exactly five legacy
 intents, eight CDX projection effects, deterministic lease-bound plans, safe
 returned handles, producer closure, and explicit bootstrap/file-lifecycle
-classification. Neither subunit may claim canonical patch conformance.
-M2-B must bind a minimal trusted authority root outside proposals and
-define a provenance-pinned, Unified-Spec-conforming governed operation
-contract before co-committing a disjoint CDX-B2 decision/effect journal with
-every projection effect. Every A2 intent/effect must map to that contract or be
-deterministically refused; legacy labels cannot become B2 vocabulary. M2-B
-must not confuse creation confidence with evidence strength, automatically
-erase lifecycle decay, mutate permanent canonical payloads, retain unresolved
-canonical type-partition debt, or invent founder-amendable constants. Exact
-CDX-B1 remains unchanged. Current caller-supplied identity/writer strings are
-not trusted authority. V2-M3 still owns strict extractor schema, richer
-evidence derivation, assistant evidence, supersession repair, and complete
-candidate observability; it cannot waive the M2 map-or-refuse falsifier.
+classification. Neither A1 nor A2 claims canonical patch conformance.
+`docs/GOVERNED-MUTATION-BRIDGE-CONTRACT.md` governs M2-B's trusted authority,
+provenance-pinned operation, disjoint CDX-B2 journal, exhaustive map-or-refuse
+matrix, and co-commit law. Legacy labels never become B2 vocabulary; current
+caller-supplied identity, writer, policy, confidence, source, and time values
+cannot mint authority. The certified bridge neither confuses creation
+confidence with evidence strength, automatically erases lifecycle decay,
+mutates permanent canonical payloads, carries type-partition debt into
+canonical state, nor invents founder-amendable constants. V2-M3 still owns
+strict extractor schema, richer evidence derivation, assistant evidence,
+supersession repair, and complete candidate observability; it extends the
+closed M2 boundary rather than weakening it.
 
 **M2-B scoped structural amendment:** the reference patch kernel has no
 `ratify` Apply handler, while Part 4 requires storage erasure to be a separate

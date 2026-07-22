@@ -15,21 +15,24 @@ result until the founder gates it.
 Most agent-memory frameworks auto-retain every exchange and invisibly
 inject recall. Palari's kernel deliberately does not:
 
-- **One gate (governing law; current conformance debt).** Every durable
+- **One gate (governing law; bounded M2 falsifier complete).** Every durable
   memory mutation must arrive as a typed proposal through Admit → Resolve
   → Apply; a direct durable write is a defect, never an exception.
-  Candidate add/supersede writes on the current CDX-M1 gated surface,
-  including LongMemEval ingest, follow this path. Exported raw extraction
-  and session-summary helpers, ownership deletion/topic-forget, lifecycle,
-  recall-inclusion telemetry, and internal link mutations still have
-  durable bypasses. V2-M2 must close that complete mutation matrix before
-  any bundle/runtime cutover.
+  V2-M2 leaves no supported in-file production bypass: one exact trusted,
+  ratified, private zero-link erasure co-commits its governed journal and CDX
+  atom/FTS projection, while candidate creation/supersession, links, lifecycle,
+  topic-forget, recall telemetry, extraction/summary/scheduler writes, and
+  whole-store deletion deterministically refuse. V2-M3 restores governed
+  candidate operations and receipts. CDX-M1 remains runtime/read authority;
+  this is not a bundle cutover.
 - **Provenance.** Every memory knows where it came from (pipeline,
   source, confidence-at-creation). Source-derived text cannot silently
   become user memory — that boundary is tested, not promised.
-- **Visibility & consent.** Memory is a per-workspace SQLite file the
-  user can inspect, correct, and delete. Deletion removes FTS and link
-  residue. The user owns the diary.
+- **Visibility & consent.** Memory is a per-workspace SQLite file the user can
+  inspect. The currently enabled governed deletion is deliberately narrow: an
+  authorized private zero-link erasure removes the atom and its FTS membership;
+  linked, shared, general, cross-scope, topic, and whole-store deletion refuse
+  until their own authority and receipt substrates exist.
 - **Honest absence.** "I don't have a memory of that" is a scored,
   first-class answer.
 

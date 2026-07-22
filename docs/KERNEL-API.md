@@ -28,21 +28,22 @@ router. `docs/LEGACY-MUTATION-ROUTING-CONTRACT.md` governs M2-A2: it routes the
 complete supported in-file semantic DML surface as exactly five legacy
 compatibility intents and eight transaction-neutral effects, retires raw
 returned mutation/database capabilities, and classifies bootstrap and terminal
-file destruction honestly. The latter remains a separate legacy storage route,
-so A2 does not claim overall one-gate conformance or implement the Unified
-Specification's canonical patch calculus. M2-B must bind a minimal
-trusted authority root outside proposals, define a provenance-pinned
-Unified-Spec-conforming governed operation contract, and co-commit a disjoint
-CDX-B2 decision/effect journal with every CDX projection effect. Every A2
-legacy intent/effect must map to that governed contract or be deterministically
-refused; compatibility labels never become B2 vocabulary. Production may not
-derive authority from current caller-controlled `writer`, `actor`, `palari_id`,
-or `user_id` fields, confuse creation confidence with evidence strength,
-automatically erase on lifecycle decay, mutate permanent canonical payloads,
-or carry the current type-partition debt into canonical state. V2-M3 retains
-strict extractor schema, richer evidence derivation, assistant evidence,
-corrected supersession policy, and complete candidate observability. CDX-M1
-stays runtime/read authority and exact CDX-B1 stays unchanged and
+file destruction honestly. The latter was a separate legacy storage route, so
+A2 alone did not claim overall one-gate conformance or implement the Unified
+Specification's canonical patch calculus. M2-B implementation `0017fee` and
+completion hardening `d7bd9f9` now bind the minimal trusted authority root
+outside proposals, apply the provenance-pinned governed operation contract,
+and co-commit the disjoint CDX-B2 decision/effect journal with the sole mapped
+CDX projection effect. Every other A2 intent/effect deterministically refuses;
+compatibility labels never become B2 vocabulary. Production does not derive
+authority from caller-controlled `writer`, `actor`, `palari_id`, or `user_id`
+fields, confuse creation confidence with evidence strength, automatically
+erase on lifecycle decay, mutate permanent canonical payloads, or carry the
+current type-partition debt into canonical state. The complete M2 production
+matrix leaves no supported in-file bypass, so parent M2 is closed. V2-M3
+retains strict extractor schema, richer evidence derivation, assistant
+evidence, corrected supersession policy, and complete candidate observability.
+CDX-M1 stays runtime/read authority and exact CDX-B1 stays unchanged and
 non-authoritative until separately authorized evidence supports a later
 cutover.
 
@@ -73,9 +74,8 @@ operation, not a false SQLite co-commit. This closes the supported in-file raw
 writer graph only. It does not authenticate current callers, repair recorded
 legacy semantics, define canonical patches or a trusted authority root,
 journal decisions, make B1 authoritative, or establish overall one-gate
-conformance. M2-B must map every compatibility branch to a governed operation
-or refuse it and co-commit every accepted decision/journal/effect set. Parent
-M2 remains open.
+conformance. Those bounded debts are closed only by the certified M2-B bridge
+described below; the historical A2 claim remains narrow.
 
 **M2-B scoped operation ruling:** the governed bridge may expose only the
 `FB1-4.ratified-erasure-apply-v1` structural Apply amendment recorded in
@@ -90,6 +90,19 @@ separate ratified storage operation, not payload mutation or correction. All
 other target states refuse or roll back exactly as the governed contract
 specifies. This does not add a general `ratify` handler or authorize demotion,
 edge writes, shared/general/cross-scope erasure, or any other mutation.
+
+**M2-B certified production boundary (`0017fee` + `d7bd9f9`):** the bridge is
+the sole production A1 owner. A trusted synchronous manager adapter captures
+one authority provider outside transaction and proposal surfaces; its exact
+manager-provider capture edge is
+`store -> workspace-manager-authority -> authority runtime`.
+Only an authority-bound private zero-link erasure reaches the exact historical
+projection token. Its B2 decision, ordered atom/FTS effects, CDX deletion, and
+head transition are one transaction. Candidate creation, duplication,
+supersession, link/demotion/share/topic/recall/lifecycle/extraction/summary/
+scheduler writes and terminal storage deletion retain exact refusal shapes and
+zero semantic effects. This closes the V2-M2 falsifier, not the remaining
+feature debts or a source-of-truth cutover.
 
 ## 1. Kernel boundary
 
@@ -400,11 +413,10 @@ C3/C4 (permanent vs transient rules), briefing·bullet 2 → C12/C13
 clause row names an interface section, an explicit exclusion, or a recorded
 conformance debt. The only process-only mappings are C13 and the reporting
 half of C14, routed to the evals discipline. Traceability is complete as an
-honest map, not a claim that every feature is enabled. M2-B must implement and
-certify its trusted authority, exact ratified-erasure operation, exhaustive
-refusals, and decision/journal/effect co-commit before parent M2 closes; M3 and
-the separately reviewed topic/terminal authority substrates retain the named
-feature debts.
+honest map, not a claim that every feature is enabled. M2-B has certified its
+trusted authority, exact ratified-erasure operation, exhaustive refusals, and
+decision/journal/effect co-commit, closing parent M2. M3 and the separately
+reviewed topic/terminal authority substrates retain the named feature debts.
 
 — Fable 5, U2, 2026-07-18. Design derived, gaps recorded, nothing
 forked silently.
