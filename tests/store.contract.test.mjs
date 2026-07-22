@@ -1,24 +1,17 @@
-// CDX-M1 safe store contract after V2-M2-A2 routing.
+// U3 contract tests — store + schema + FTS (KERNEL-API §3, contract C1/C9/C17/C18/C19).
+// Zero-dependency: node:test + node:assert. Run: npm test (node --test tests/).
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, access, mkdir } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { mkdtemp, rm, access } from 'node:fs/promises'
+import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { DatabaseSync } from 'node:sqlite'
 
-import { createGatedStore } from '../src/gate.mjs'
 import {
   createKernelStore,
   deleteKernelStoreFile,
   permanentMemoryTypes,
   transientMemoryTypes,
-  workspaceMemoryDbPath,
 } from '../src/store.mjs'
-import {
-  seedB2Link,
-  seedB2Memory,
-  seedCdxM1Schema,
-} from './helpers/cdx-b2-fixtures.mjs'
 
 const tempDirs = []
 async function tempDir() {
@@ -27,37 +20,25 @@ async function tempDir() {
   return dir
 }
 after(async () => {
-  await Promise.all(tempDirs.splice(0).map((directory) =>
-    rm(directory, { force: true, recursive: true })))
+  await Promise.all(tempDirs.splice(0).map((d) => rm(d, { force: true, recursive: true })))
 })
 
 const FIXED_NOW = new Date('2026-07-18T12:00:00.000Z')
 
-async function openStore(workspaceId = 'contract-store', seed = undefined) {
+async function openStore(workspaceId = 'contract-store') {
   const root = await tempDir()
-  const options = {
+  return createKernelStore({
     clock: () => FIXED_NOW,
     memoryEnabled: true,
     statePath: join(root, 'workspace-state.json'),
     workspaceId,
-  }
-  if (seed !== undefined) {
-    const dbPath = workspaceMemoryDbPath(options)
-    await mkdir(dirname(dbPath), { recursive: true })
-    const db = new DatabaseSync(dbPath)
-    try {
-      seedCdxM1Schema(db, 0, { withRows: false })
-      seed(db)
-    } finally {
-      db.close()
-    }
-  }
-  const base = await createKernelStore(options)
-  return { base, gated: createGatedStore(base), root }
+  })
 }
 
-function addFixture(gated, overrides = {}) {
-  const record = {
+const USER_WRITE = { sourceKind: 'user_message', writer: 'explicit_user_action' }
+
+function addFixture(store, overrides = {}, writeOptions = USER_WRITE) {
+  return store.addMemory({
     confidence: 0.9,
     content: 'Quetzali prefers pre-registered predictions before any scoring run.',
     importance: 0.8,
@@ -66,334 +47,122 @@ function addFixture(gated, overrides = {}) {
     type: 'preference',
     user_id: 'user-1',
     ...overrides,
-  }
-  return gated.propose({
-    kind: permanentMemoryTypes.has(record.type) ? 'permanent' : 'promote',
-    op: 'add',
-    provenance: { sourceKind: 'user_message', writer: 'explicit_user_action' },
-    record,
-  })
+  }, writeOptions)
 }
 
-function inspectDatabase(dbPath, callback) {
-  const db = new DatabaseSync(dbPath, { readOnly: true })
-  try {
-    return callback(db)
-  } finally {
-    db.close()
-  }
+async function pathExists(p) {
+  try { await access(p); return true } catch { return false }
 }
 
-async function pathExists(path) {
-  try {
-    await access(path)
-    return true
-  } catch {
-    return false
-  }
-}
-
-test('safe base exposes exact read-only surface; unsupported gated add is refused without a write', async () => {
-  const { base, gated } = await openStore()
-  assert.deepEqual(Object.keys(base), [
-    'close',
-    'config',
-    'dbPath',
-    'enabled',
-    'getMemoryById',
-    'listMemories',
-    'publicStatus',
-    'recallMemories',
-    'searchMemories',
-    'status',
-  ])
-  for (const forbidden of [
-    'addMemory',
-    'addMemoryLink',
-    'bumpImportance',
-    'db',
-    'initializeSchema',
-    'insertMemory',
-    'supersedeMemory',
-    'touchMemory',
-  ]) {
-    assert.equal(base[forbidden], undefined, `${forbidden} is not exposed`)
-  }
-  assert.ok(Object.isFrozen(base))
-
-  const result = addFixture(gated)
-  assert.deepEqual(result, {
-    outcome: 'rejected',
-    reasons: ['governance_refused'],
-  })
-  assert.deepEqual(base.listMemories({ palariId: 'palari-a' }), [])
-  inspectDatabase(base.dbPath, (db) => {
-    assert.equal(db.prepare(
-      'SELECT count(*) AS count FROM main.memories',
-    ).get().count, 0)
-    assert.equal(db.prepare(
-      'SELECT count(*) AS count FROM main.cdx_b2_decisions',
-    ).get().count, 0)
-  })
-  gated.close()
+test('create: gated add inserts an atom with provenance and content hash (C1)', async () => {
+  const store = await openStore()
+  const result = addFixture(store)
+  assert.equal(result.outcome, 'inserted')
+  const row = store.getMemoryById(result.memory.id)
+  assert.ok(row, 'row readable by id')
+  assert.equal(row.palari_id, 'palari-a')
+  assert.equal(row.user_id, 'user-1')
+  assert.equal(row.type, 'preference')
+  assert.equal(row.acquisition_mode, 'direct') // explicit_user_action => direct
+  assert.equal(Boolean(row.created_by_pipeline), false)
+  assert.ok(row.content_hash, 'content hash recorded')
+  assert.ok(row.valid_from, 'validity start stamped')
+  assert.equal(row.valid_until, null)
+  store.close()
 })
 
-test('type partition exports are immutable, disjoint, and cover schema types', () => {
-  for (const type of permanentMemoryTypes) assert.ok(!transientMemoryTypes.has(type))
+test('create: unauthorized writer is rejected (baseline write door)', async () => {
+  const store = await openStore()
+  assert.throws(() => addFixture(store, {}, { sourceKind: 'user_message', writer: 'rogue_pipeline' }))
+  store.close()
+})
+
+test('type partition: permanent and transient sets are disjoint and cover schema types (C1)', () => {
+  for (const t of permanentMemoryTypes) assert.ok(!transientMemoryTypes.has(t))
   assert.ok(permanentMemoryTypes.has('preference'))
   assert.ok(transientMemoryTypes.has('working'))
-  assert.equal(permanentMemoryTypes.add, undefined)
-  assert.equal(transientMemoryTypes.delete, undefined)
 })
 
-test('FTS and Palari scope remain exact through safe reads', async () => {
-  const { base, gated } = await openStore('fts-read-scope', (db) => {
-    seedB2Memory(db, {
-      content: 'Quetzali prefers pre-registered predictions before scoring.',
-      id: 'historical_predictions',
-      keywords: 'predictions preregistration',
-      palariId: 'palari-a',
-      userId: 'user-1',
-    })
-  })
-  const hits = base.searchMemories('predictions', {
-    palariId: 'palari-a',
-    userId: 'user-1',
-  })
+test('FTS + palari scoping: search finds by keyword only inside the palari scope (C9)', async () => {
+  const store = await openStore()
+  addFixture(store)
+  const hits = store.searchMemories('predictions', { palariId: 'palari-a', userId: 'user-1' })
   assert.equal(hits.length, 1)
-  assert.equal(base.searchMemories('predictions', {
-    palariId: 'palari-b',
-    userId: 'user-1',
-  }).length, 0)
-  const noScope = base.recallMemories('predictions', {
-    now: FIXED_NOW,
-    palariId: '',
-    userId: 'user-1',
-  })
+  const wrongPalari = store.searchMemories('predictions', { palariId: 'palari-b', userId: 'user-1' })
+  assert.equal(wrongPalari.length, 0)
+  // mandatory predicate: recall without palariId returns empty, never leaks
+  const noScope = store.recallMemories('predictions', { now: FIXED_NOW, palariId: '', userId: 'user-1' })
   assert.equal(noScope.memories.length, 0)
   assert.equal(noScope.totalCandidates, 0)
-  gated.close()
+  store.close()
 })
 
-test('user scope preserves own + general + shared and hides other private rows', async () => {
-  const { base, gated } = await openStore('historical-user-scope', (db) => {
-    const rows = [
-      ['own-private', 'user-1 private: prefers espresso before analysis.', 'user-1', 0],
-      ['general', 'general: the workspace tracks espresso stock.', null, 0],
-      ['other-shared', 'user-2 shared: espresso machine fixed on Tuesday.', 'user-2', 1],
-      ['other-private', 'user-2 private: espresso budget worries.', 'user-2', 0],
-    ]
-    for (const [id, content, userId, shared] of rows) {
-      seedB2Memory(db, {
-        content,
-        id,
-        keywords: 'espresso',
-        palariId: 'palari-a',
-        shared,
-        userId,
-      })
-      if (userId === null) {
-        db.prepare('UPDATE main.memories SET user_id = NULL WHERE id = ?')
-          .run(id)
-      }
-    }
-  })
+test('user scoping: own + general + shared are visible; another user’s private row is not (C9)', async () => {
+  const store = await openStore()
+  addFixture(store, { content: 'user-1 private: prefers espresso before analysis.', keywords: ['espresso'] })
+  addFixture(store, { content: 'general: the workspace tracks espresso stock.', keywords: ['espresso'], user_id: null })
+  addFixture(store, { content: 'user-2 shared: espresso machine fixed on Tuesday.', keywords: ['espresso'], shared: true, user_id: 'user-2' })
+  addFixture(store, { content: 'user-2 private: espresso budget worries.', keywords: ['espresso'], user_id: 'user-2' })
 
-  const rows = base.searchMemories('espresso', {
-    palariId: 'palari-a',
-    userId: 'user-1',
-  })
-  assert.equal(rows.length, 3)
-  assert.ok(!rows.some(({ content }) => content.includes('user-2 private')))
-  gated.close()
+  const forUser1 = store.searchMemories('espresso', { palariId: 'palari-a', userId: 'user-1' })
+  const contents = forUser1.map((r) => r.content).sort()
+  assert.equal(forUser1.length, 3, 'own + general + shared visible')
+  assert.ok(!contents.some((c) => c.includes('user-2 private')), 'other user’s private row invisible')
+  store.close()
 })
 
-test('ungranted routed delete is refused and preserves memory, FTS, links, and B2 head', async () => {
-  const { base, gated } = await openStore('refused-delete', (db) => {
-    seedB2Memory(db, {
-      content: 'The first deletion-cascade preference.',
-      id: 'delete_cascade_old',
-      keywords: 'deletion cascade',
-      palariId: 'palari-a',
-      userId: 'user-1',
-    })
-    seedB2Memory(db, {
-      content: 'The replacement deletion-cascade preference.',
-      id: 'delete_cascade_new',
-      keywords: 'deletion cascade',
-      palariId: 'palari-a',
-      userId: 'user-1',
-    })
-    seedB2Link(db, {
-      fromMemoryId: 'delete_cascade_new',
-      id: 'delete_cascade_link',
-      relation: 'supersedes',
-      toMemoryId: 'delete_cascade_old',
-    })
-  })
+test('delete: removes the row and leaves no FTS or link residue (C17)', async () => {
+  const store = await openStore()
+  const a = addFixture(store)
+  const b = addFixture(store, { content: 'Linked note about prediction discipline.', keywords: ['predictions'] })
+  store.addMemoryLink({ fromMemoryId: a.memory.id, toMemoryId: b.memory.id })
 
-  const deleted = gated.deleteMemory('delete_cascade_old', {
-    actor: 'explicit_user_action',
-  })
-  assert.deepEqual(deleted, {
-    deleted: false,
-    reason: 'governance_refused',
-  })
-  assert.ok(base.getMemoryById('delete_cascade_old'))
-  inspectDatabase(base.dbPath, (db) => {
-    assert.equal(db.prepare(
-      'SELECT count(*) AS count FROM main.memory_fts WHERE memory_id = ?',
-    ).get('delete_cascade_old').count, 1)
-    assert.equal(db.prepare(`
-      SELECT count(*) AS count
-      FROM main.memory_links
-      WHERE from_memory_id = ? OR to_memory_id = ?
-    `).get('delete_cascade_old', 'delete_cascade_old').count, 1)
-    assert.equal(db.prepare(
-      'SELECT count(*) AS count FROM main.cdx_b2_decisions',
-    ).get().count, 0)
-  })
-  gated.close()
+  const del = store.deleteMemory(a.memory.id, { actor: 'explicit_user_action' })
+  assert.ok(del)
+  assert.equal(store.getMemoryById(a.memory.id), null)
+  // FTS residue-free: raw FTS table has no row for the deleted id
+  const ftsRows = store.db.prepare('SELECT memory_id FROM memory_fts WHERE memory_id = ?').all(a.memory.id)
+  assert.equal(ftsRows.length, 0, 'no FTS residue')
+  // link residue-free: cascade removed the link
+  const linkRows = store.db.prepare('SELECT id FROM memory_links WHERE from_memory_id = ? OR to_memory_id = ?').all(a.memory.id, a.memory.id)
+  assert.equal(linkRows.length, 0, 'no link residue')
+  store.close()
 })
 
-test('topic forget returns its inert refusal shape and preserves every checkpoint row', async () => {
-  const ids = ['mine', 'general', 'theirs', 'off-topic', 'other-palari']
-  const { base, gated } = await openStore('refused-topic-forget', (db) => {
-    const rows = [
-      ['mine', 'user-1: the tax filing deadline moved.', 'tax filing', 'palari-a', 'user-1'],
-      ['general', 'general: tax season notes for the workspace.', 'tax', 'palari-a', null],
-      ['theirs', 'user-2 private: tax anxiety journaling.', 'tax', 'palari-a', 'user-2'],
-      ['off-topic', 'user-1: prefers walking meetings.', 'walking', 'palari-a', 'user-1'],
-      ['other-palari', 'palari-b: tax memo elsewhere.', 'tax', 'palari-b', 'user-1'],
-    ]
-    for (const [id, content, keywords, palariId, userId] of rows) {
-      seedB2Memory(db, { content, id, keywords, palariId, userId })
-    }
-  })
+test('topic-forget: removes matching rows visible to the requesting scope only (C18)', async () => {
+  const store = await openStore()
+  const mine = addFixture(store, { content: 'user-1: the tax filing deadline moved.', keywords: ['tax', 'filing'] })
+  const general = addFixture(store, { content: 'general: tax season notes for the workspace.', keywords: ['tax'], user_id: null })
+  const theirs = addFixture(store, { content: 'user-2 private: tax anxiety journaling.', keywords: ['tax'], user_id: 'user-2' })
+  const offTopic = addFixture(store, { content: 'user-1: prefers walking meetings.', keywords: ['walking'] })
+  const otherPalari = addFixture(store, { content: 'palari-b: tax memo elsewhere.', keywords: ['tax'], palari_id: 'palari-b' })
 
-  const result = gated.topicForget(
-    'tax',
-    { palariId: 'palari-a', userId: 'user-1' },
-    { actor: 'explicit_user_action' },
-  )
-  assert.deepEqual(result, { count: 0, deleted: [] })
-  for (const id of ids) assert.ok(base.getMemoryById(id))
-  inspectDatabase(base.dbPath, (db) => {
-    assert.equal(db.prepare(
-      'SELECT count(*) AS count FROM main.cdx_b2_decisions',
-    ).get().count, 0)
-  })
-  gated.close()
+  const result = store.topicForget('tax', { palariId: 'palari-a', userId: 'user-1' }, { actor: 'explicit_user_action' })
+  const deletedIds = result.deleted.sort()
+  assert.deepEqual(deletedIds, [mine.memory.id, general.memory.id].sort(), 'own + general matching rows removed')
+  assert.equal(store.getMemoryById(theirs.memory.id)?.content?.includes('user-2 private'), true, 'other user’s private row survives')
+  assert.ok(store.getMemoryById(offTopic.memory.id), 'off-topic row survives')
+  assert.ok(store.getMemoryById(otherPalari.memory.id), 'other palari untouched')
+  // residue-free for the forgotten rows
+  for (const id of deletedIds) {
+    assert.equal(store.db.prepare('SELECT memory_id FROM memory_fts WHERE memory_id = ?').all(id).length, 0)
+  }
+  store.close()
 })
 
-test('CDX-M0/M1/B2 bootstrap is complete before handle publication', async () => {
-  const { base, gated } = await openStore()
-  const rows = inspectDatabase(base.dbPath, (db) => db.prepare(
-    'SELECT id FROM main.memory_migrations ORDER BY id',
-  ).all().map(({ id }) => id))
-  assert.deepEqual(rows, ['CDX-B2', 'CDX-M0', 'CDX-M1'])
-  gated.close()
-})
-
-test('terminal workspace deletion is refused before and after safe-handle close', async () => {
+test('ownership: one SQLite file per workspace; deletable as a unit (C19)', async () => {
   const root = await tempDir()
   const statePath = join(root, 'workspace-state.json')
-  const base = await createKernelStore({
+  const store = await createKernelStore({
     clock: () => FIXED_NOW,
     memoryEnabled: true,
     statePath,
     workspaceId: 'ownership-check',
   })
-  const gated = createGatedStore(base)
-  assert.ok(base.dbPath.endsWith('ownership-check.memory.sqlite'))
-  assert.ok(await pathExists(base.dbPath))
-  await assert.rejects(
-    deleteKernelStoreFile({ statePath, workspaceId: 'ownership-check' }),
-    (error) => error?.code === 'legacy_terminal_storage_refused',
-  )
-  gated.close()
-  await assert.rejects(
-    deleteKernelStoreFile({ statePath, workspaceId: 'ownership-check' }),
-    (error) => error?.code === 'legacy_terminal_storage_refused',
-  )
-  assert.equal(await pathExists(base.dbPath), true)
-})
-
-test('enabled reads recheck liveness after every caller-controlled capture phase', async () => {
-  const cases = [
-    {
-      invoke(base) {
-        return base.getMemoryById({
-          toString() {
-            base.close()
-            return 'missing'
-          },
-        })
-      },
-      label: 'getMemoryById id coercion',
-    },
-    {
-      invoke(base) {
-        return base.listMemories({
-          palariId: {
-            toString() {
-              base.close()
-              return 'palari-a'
-            },
-          },
-          userId: 'user-1',
-        })
-      },
-      label: 'listMemories scope coercion',
-    },
-    {
-      invoke(base) {
-        return base.searchMemories({
-          toString() {
-            base.close()
-            return ''
-          },
-        }, { palariId: 'palari-a' })
-      },
-      label: 'searchMemories early-return query coercion',
-    },
-    {
-      invoke(base) {
-        return base.recallMemories({
-          toString() {
-            base.close()
-            return 'predictions'
-          },
-        }, {
-          now: FIXED_NOW,
-          palariId: 'palari-a',
-          userId: 'user-1',
-        })
-      },
-      label: 'recallMemories query coercion',
-    },
-    {
-      invoke(base) {
-        return base.recallMemories('ignored', {
-          palariId: {
-            toString() {
-              base.close()
-              return ''
-            },
-          },
-          userId: 'user-1',
-        })
-      },
-      label: 'recallMemories empty-scope early return',
-    },
-  ]
-
-  for (const { invoke, label } of cases) {
-    const { base } = await openStore(`read-close-${label}`)
-    assert.throws(
-      () => invoke(base),
-      (error) => error?.code === 'legacy_store_closed',
-      label,
-    )
-  }
+  addFixture(store)
+  assert.ok(store.dbPath.endsWith('ownership-check.memory.sqlite'))
+  assert.ok(await pathExists(store.dbPath), 'store is a real file on disk')
+  store.close()
+  await deleteKernelStoreFile({ statePath, workspaceId: 'ownership-check' })
+  assert.equal(await pathExists(store.dbPath), false, 'whole store deletable as a unit')
 })

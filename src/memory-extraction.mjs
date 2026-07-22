@@ -1,25 +1,21 @@
-// Adapted for V2-M2-A2 from palari-v05 @
-// 190a4ad2f8d5187f5f21222048dd11efb2ad9991:
+// Extracted from palari-v05 @ 190a4ad2f8d5187f5f21222048dd11efb2ad9991
 //   apps/palari-local-workbench/scripts/workspace-backend/memory-extraction.mjs
-//   upstream blob d8367ceb900c; local pre-A2 blob
-//   eb8336ca92d8add299a5b89e1dffe81b153a3f71.
-// The original routing-budget import remains severed through
-// ./routing-budgets.mjs. A2 replaces the extraction/session-summary raw-store
-// write regions with branded gate proposals, moves contradiction selection
-// into the transaction-time legacy router, and binds scheduler provenance.
-// See docs/LEGACY-MUTATION-ROUTING-CONTRACT.md §4.1/§7.4/§10.
+//   (blob d8367ceb900c, 950 lines) — verbatim except one severed
+//   import: './assistant-routing-policy.mjs' -> './routing-budgets.mjs'
+//   (vendored budget values; see that file and docs/SOURCE-MAP.md).
+// NOTE (one-gate law): runMemoryExtractionPass writes via
+// store.addMemory/supersedeMemory (the baseline door). The kernel
+// ingest path (U7) wraps this with a gate-shim so extraction writes
+// emit WriteProposals through gate.propose — recorded in STATUS U4/U5
+// notes. U5, Fable 5, 2026-07-18.
 import { performance } from 'node:perf_hooks'
 
-import {
-  assertGatedStoreCapability,
-  proposeExtractedMemoryCandidate,
-} from './gate.mjs'
-import { trigramShingleSimilarity } from './kernel-store-runtime.mjs'
 import {
   extractMemoryQueryKeywords,
   externalMemorySourceKinds,
   memoryTypes,
-} from './store.mjs'
+  trigramShingleSimilarity,
+} from './memory-store.mjs'
 import {
   assistantRoleRequestOutputBudgetTokens,
   assistantRoleThinkingBudgetTokens,
@@ -95,9 +91,8 @@ function redactTransientMemoryDetails(value) {
 }
 
 function sourceTextsForTurn(turn = {}) {
-  const sourceTexts = turn.sourceTexts
-  return Array.isArray(sourceTexts)
-    ? sourceTexts.map((text) => String(text ?? '')).filter(Boolean)
+  return Array.isArray(turn.sourceTexts)
+    ? turn.sourceTexts.map((text) => String(text ?? '')).filter(Boolean)
     : []
 }
 
@@ -373,59 +368,6 @@ function memoryEvidenceMentions(value) {
   return { hasNegation, spans }
 }
 
-// This token filter is shared only by the source-boundary polarity check.
-// Transaction-time contradiction/topic resolution owns its separate private
-// copy in the legacy router; keeping this local helper does not restore a
-// producer-side store read or target-selection path.
-function preferenceTopicTokens(value, keywords = []) {
-  const stopWords = new Set([
-    'user',
-    'mira',
-    'owner',
-    'preference',
-    'preferences',
-    'prefer',
-    'prefers',
-    'preferred',
-    'like',
-    'likes',
-    'love',
-    'loves',
-    'want',
-    'wants',
-    'morning',
-    'afternoon',
-    'evening',
-    'night',
-    'daily',
-    'weekly',
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-    'sunday',
-    'concise',
-    'careful',
-    'short',
-    'long',
-  ])
-  return new Set(
-    [
-      ...String(value ?? '').split(/[^A-Za-z0-9]+/),
-      ...(Array.isArray(keywords) ? keywords : []),
-    ]
-      .map((token) => token.trim().toLowerCase())
-      .filter((token) => token.length > 2 && !stopWords.has(token))
-      .map((token) =>
-        token.length > 4 && token.endsWith('s')
-          ? token.slice(0, -1)
-          : token,
-      ),
-  )
-}
-
 function polarityAlignedCandidateEvidence(candidateContent, sourceText) {
   const candidateEvidence = memoryEvidenceMentions(candidateContent)
   const sourceEvidence = memoryEvidenceMentions(sourceText)
@@ -586,10 +528,6 @@ function addMemorySourceBoundaryOutcome(contract, boundary) {
 export function memorySessionSummaryBoundary(turn = {}) {
   const sourceInjectionFlag = sourceTextsForTurn(turn).some((sourceText) => memorySourceInstructionPattern.test(sourceText))
   const sourceReferenced = Number(turn.sourceRefCount) > 0
-  return sessionSummaryBoundaryFrom(sourceInjectionFlag, sourceReferenced)
-}
-
-function sessionSummaryBoundaryFrom(sourceInjectionFlag, sourceReferenced) {
   return {
     source_kind: 'user_message',
     write_eligible: !sourceReferenced,
@@ -598,11 +536,12 @@ function sessionSummaryBoundaryFrom(sourceInjectionFlag, sourceReferenced) {
   }
 }
 
-function sanitizeSessionSummaryText(value, sourceTexts = []) {
+function sanitizeSessionSummaryText(value, turn = {}) {
   const text = clampText(value, 220)
   if (memorySourceInstructionPattern.test(text)) {
     return '[untrusted source instruction redacted]'
   }
+  const sourceTexts = sourceTextsForTurn(turn)
   if (sourceTexts.some((sourceText) => sourceCandidateOverlap(text, sourceText))) {
     return '[untrusted source text redacted]'
   }
@@ -644,6 +583,98 @@ function normalizeExtractedMemory(candidate = {}) {
     sourceKind,
     type,
   }
+}
+
+function isExplicitContradiction(content) {
+  return /\b(no longer|not anymore|does not|do not|never|instead of|changed from)\b/i.test(String(content ?? ''))
+}
+
+function preferenceTopicTokens(value, keywords = []) {
+  const stopWords = new Set([
+    'user',
+    'mira',
+    'owner',
+    'preference',
+    'preferences',
+    'prefer',
+    'prefers',
+    'preferred',
+    'like',
+    'likes',
+    'love',
+    'loves',
+    'want',
+    'wants',
+    'morning',
+    'afternoon',
+    'evening',
+    'night',
+    'daily',
+    'weekly',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
+    'concise',
+    'careful',
+    'short',
+    'long',
+  ])
+  return new Set(
+    [...String(value ?? '').split(/[^A-Za-z0-9]+/), ...(Array.isArray(keywords) ? keywords : [])]
+      .map((token) => token.trim().toLowerCase())
+      .filter((token) => token.length > 2 && !stopWords.has(token))
+      .map((token) => token.length > 4 && token.endsWith('s') ? token.slice(0, -1) : token),
+  )
+}
+
+function preferenceTopicOverlap(left = {}, right = {}) {
+  const leftTokens = preferenceTopicTokens(left.content, left.keywords)
+  const rightTokens = preferenceTopicTokens(right.content, right.keywords)
+  if (!leftTokens.size || !rightTokens.size) return 0
+  let shared = 0
+  for (const token of leftTokens) {
+    if (rightTokens.has(token)) shared += 1
+  }
+  return shared
+}
+
+function findContradictedMemory({ candidate = {}, store, turn = {} } = {}) {
+  if (typeof store?.listMemories !== 'function') {
+    return null
+  }
+  const memories = store.listMemories({ palariId: turn.palariId })
+    .filter((memory) =>
+      memory.type === candidate.type &&
+      (String(memory.user_id ?? '') === String(turn.userId ?? '') || !memory.user_id || memory.shared),
+    )
+  let best = null
+  if (isExplicitContradiction(candidate.content)) {
+    for (const memory of memories) {
+      const similarity = trigramShingleSimilarity(memory.content, candidate.content)
+      if (similarity >= 0.35 && (!best || similarity > best.similarity)) {
+        best = { memory, similarity }
+      }
+    }
+    if (best) return best
+  }
+  if (candidate.type === 'preference') {
+    for (const memory of memories) {
+      if (memoryContainsTransientDetail(memory.content)) continue
+      const topicOverlap = preferenceTopicOverlap(candidate, memory)
+      if (topicOverlap <= 0) continue
+      const similarity = trigramShingleSimilarity(memory.content, candidate.content)
+      if (similarity >= 0.85) continue
+      const score = topicOverlap + similarity
+      if (!best || score > best.score) {
+        best = { memory, score, similarity }
+      }
+    }
+  }
+  return best
 }
 
 export function normalizeMemoryExtractionPayload(payload) {
@@ -743,66 +774,41 @@ export function buildMemoryExtractionRequest({ turn = {} } = {}) {
   }
 }
 
-export async function runMemoryExtractionPass(input = {}) {
-  const store = input.store
-  assertGatedStoreCapability(store)
-  if (!store.enabled) {
+export async function runMemoryExtractionPass({
+  extractor,
+  logger,
+  store,
+  turn = {},
+} = {}) {
+  if (!store?.enabled) {
     return { memoriesWritten: 0, reason: 'memory_disabled', status: 'skipped' }
   }
-  const extractor = input.extractor
-  assertGatedStoreCapability(store)
   if (typeof extractor !== 'function') {
     return { memoriesWritten: 0, reason: 'extractor_missing', status: 'skipped' }
-  }
-  const turn = input.turn ?? {}
-  const rawEventAt = turn.eventAt
-  const eventAt = rawEventAt
-    ? String(rawEventAt).trim()
-    : ''
-  assertGatedStoreCapability(store)
-  if (!eventAt) {
-    return { memoriesWritten: 0, reason: 'event_time_missing', status: 'dropped' }
-  }
-  const rawExtractorId = input.extractorId
-  const normalizedExtractorId = rawExtractorId
-    ? String(rawExtractorId).trim()
-    : ''
-  assertGatedStoreCapability(store)
-  if (!normalizedExtractorId) {
-    return { memoriesWritten: 0, reason: 'extractor_id_missing', status: 'dropped' }
   }
   let payload
   try {
     payload = await extractor({ turn })
   } catch (error) {
-    assertGatedStoreCapability(store)
-    const logger = input.logger
     logger?.warn?.('memory extraction failed', {
       category: error?.category ?? 'extractor_error',
     })
-    assertGatedStoreCapability(store)
     return { memoriesWritten: 0, reason: 'extractor_error', status: 'dropped' }
   }
-  assertGatedStoreCapability(store)
   let normalized
   try {
     normalized = normalizeMemoryExtractionPayload(payload)
   } catch (error) {
-    assertGatedStoreCapability(store)
-    const logger = input.logger
     logger?.warn?.('memory extraction payload dropped', {
       category: error?.name ?? 'invalid_json',
     })
-    assertGatedStoreCapability(store)
     return { memoriesWritten: 0, reason: 'invalid_payload', status: 'dropped' }
   }
-  assertGatedStoreCapability(store)
   let memoriesWritten = 0
   const outcomes = []
   const sourceBoundary = emptyMemorySourceBoundaryContract()
   for (const candidate of normalized.memories) {
     const boundary = memorySourceBoundaryForCandidate({ candidate, turn })
-    assertGatedStoreCapability(store)
     addMemorySourceBoundaryOutcome(sourceBoundary, boundary)
     if (memoryCandidateContainsTransientDetail(candidate)) {
       outcomes.push('dropped_transient_detail')
@@ -812,6 +818,7 @@ export async function runMemoryExtractionPass(input = {}) {
       outcomes.push('dropped_source_boundary')
       continue
     }
+    const sourceKind = boundary.source_kind
     const record = {
       confidence: candidate.confidence,
       content: candidate.content,
@@ -824,26 +831,22 @@ export async function runMemoryExtractionPass(input = {}) {
       type: candidate.type,
       user_id: turn.userId,
     }
-    const result = proposeExtractedMemoryCandidate(store, {
-      provenance: {
-        eventAt,
-        extractor: normalizedExtractorId,
-        sourceKind: boundary.source_kind,
-        sourceMessageId: turn.sourceMessageId,
+    const contradiction = findContradictedMemory({ candidate, store, turn })
+    if (contradiction) {
+      const result = store.supersedeMemory(contradiction.memory.id, record, {
+        sourceKind,
         writer: 'background_extraction',
-      },
-      record,
-      scope: {
-        palariId: turn.palariId,
-        userId: turn.userId,
-      },
-    })
-    if (result.outcome === 'rejected') {
-      outcomes.push('rejected')
+      })
+      outcomes.push('superseded')
+      memoriesWritten += 1
       continue
     }
+    const result = store.addMemory(record, {
+      sourceKind,
+      writer: 'background_extraction',
+    })
     outcomes.push(result.outcome)
-    if (result.outcome === 'inserted' || result.outcome === 'superseded') {
+    if (result.outcome === 'inserted') {
       memoriesWritten += 1
     }
   }
@@ -855,79 +858,44 @@ export async function runMemoryExtractionPass(input = {}) {
   }
 }
 
-export function writeSessionSummaryMemory(input = {}) {
-  const store = input.store
-  assertGatedStoreCapability(store)
-  const { turn = {} } = input
+export function writeSessionSummaryMemory({
+  store,
+  turn = {},
+} = {}) {
   // v04 memory spec §4.4 / v05 M4: conversation summaries become
   // transient recall context; they are never direct user-visible claims.
-  const sourceReferenced = Number(turn.sourceRefCount) > 0
-  const sourceTexts = sourceTextsForTurn(turn)
-  const sourceInjectionFlag = sourceTexts.some((sourceText) =>
-    memorySourceInstructionPattern.test(sourceText))
-  const sourceBoundary = sessionSummaryBoundaryFrom(
-    sourceInjectionFlag,
-    sourceReferenced,
-  )
-  assertGatedStoreCapability(store)
-  if (sourceReferenced) {
-    return { reason: 'source_referenced_turn', sourceBoundary, status: 'skipped' }
+  if (Number(turn.sourceRefCount) > 0) {
+    return { reason: 'source_referenced_turn', sourceBoundary: memorySessionSummaryBoundary(turn), status: 'skipped' }
   }
-  if (!store.enabled) {
-    return { reason: 'memory_disabled', sourceBoundary, status: 'skipped' }
+  if (!store?.enabled) {
+    return { reason: 'memory_disabled', sourceBoundary: memorySessionSummaryBoundary(turn), status: 'skipped' }
   }
-  const rawUserMessage = turn.userMessage
-  const rawAssistantMessage = turn.assistantMessage
-  const userMessage = sanitizeSessionSummaryText(rawUserMessage, sourceTexts)
-  const assistantMessage = sanitizeSessionSummaryText(
-    rawAssistantMessage,
-    sourceTexts,
-  )
-  assertGatedStoreCapability(store)
+  const userMessage = sanitizeSessionSummaryText(turn.userMessage, turn)
+  const assistantMessage = sanitizeSessionSummaryText(turn.assistantMessage, turn)
   if (!userMessage || !assistantMessage) {
-    return { reason: 'missing_turn_text', sourceBoundary, status: 'skipped' }
+    return { reason: 'missing_turn_text', sourceBoundary: memorySessionSummaryBoundary(turn), status: 'skipped' }
   }
-  const rawEventAt = turn.eventAt
-  const eventAt = rawEventAt
-    ? String(rawEventAt).trim()
-    : ''
-  assertGatedStoreCapability(store)
-  if (!eventAt) {
-    return { reason: 'event_time_missing', sourceBoundary, status: 'skipped' }
-  }
-  const userName = turn.userName
-  const palariName = turn.palariName
-  const sourceMessageId = turn.sourceMessageId
-  const palariId = turn.palariId
-  const userId = turn.userId
   const content = clampMemoryContent(
-    `Session summary: ${userName || 'Owner'} asked "${userMessage}". ${palariName || 'Palari'} replied "${assistantMessage}".`,
+    `Session summary: ${turn.userName || 'Owner'} asked "${userMessage}". ${turn.palariName || 'Palari'} replied "${assistantMessage}".`,
   )
   const keywords = extractMemoryQueryKeywords(`${userMessage} ${assistantMessage}`, { limit: 10 })
-  const result = store.propose({
-    kind: 'promote',
-    op: 'add',
-    provenance: {
-      eventAt,
-      sourceKind: 'user_message',
-      sourceMessageId,
-      writer: 'session_summary',
-    },
-    record: {
-      confidence: 0.7,
-      content,
-      importance: 0.55,
-      keywords,
-      palari_id: palariId,
-      shared: false,
-      source_message_id: sourceMessageId,
-      type: 'session_summary',
-      user_id: userId,
-    },
+  const result = store.addMemory({
+    confidence: 0.7,
+    content,
+    importance: 0.55,
+    keywords,
+    palari_id: turn.palariId,
+    shared: false,
+    source_message_id: turn.sourceMessageId,
+    type: 'session_summary',
+    user_id: turn.userId,
+  }, {
+    sourceKind: 'user_message',
+    writer: 'session_summary',
   })
   return {
     outcome: result.outcome,
-    sourceBoundary,
+    sourceBoundary: memorySessionSummaryBoundary(turn),
     status: 'completed',
   }
 }
@@ -935,16 +903,12 @@ export function writeSessionSummaryMemory(input = {}) {
 export function createMemoryExtractionScheduler({
   clock = () => performance.now(),
   extractor,
-  extractorId,
   logger,
   llmHarness,
   memoryManager,
   sessionSummaryEnabled = false,
 } = {}) {
   const pending = new Set()
-  const capturedExtractorId = extractorId
-    ? String(extractorId).trim()
-    : ''
   const resolveExtractor = () =>
     extractor ??
     (typeof llmHarness?.extractMemories === 'function'
@@ -971,10 +935,8 @@ export function createMemoryExtractionScheduler({
       const task = (async () => {
         const workspaceId = String(turn.workspaceId ?? '').trim()
         const store = await memoryManager.forWorkspace(workspaceId)
-        assertGatedStoreCapability(store)
         const extraction = await runMemoryExtractionPass({
           extractor: resolveExtractor(),
-          extractorId: capturedExtractorId,
           logger,
           store,
           turn,
@@ -988,10 +950,7 @@ export function createMemoryExtractionScheduler({
         }
       })()
       pending.add(task)
-      void task.then(
-        () => pending.delete(task),
-        () => pending.delete(task),
-      )
+      task.finally(() => pending.delete(task))
       return {
         scheduled: true,
         scheduleDurationMs: Math.max(0, clock() - started),

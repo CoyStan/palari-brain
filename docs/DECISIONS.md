@@ -585,3 +585,15 @@ dates. Agents record; the founder decides.
   CDX-M1, prove external authenticity or coherent-forgery resistance, restore
   refused candidate/topic/terminal features, resume sealed U8 question
   `1568498a`, call a provider, spend, download data, score, publish, or announce.
+- 2026-07-22 (FOUNDER — direction review, in session) **Full trim
+  ratified.** The v2 proof machinery (bundle substrate, mutation
+  coordinator, legacy router, authority core, disposition registry,
+  B2 journal, governed bridge — 66 files, ~20k source lines and
+  their test matrices) is removed from main and preserved intact at
+  git tag `v2-proof-archive`. The U8-cut kernel surface (gated
+  store, recall/briefing v1, gated adapter ingest, LongMemEval
+  loader) is restored as the working tree, made installable
+  (src/index.mjs entry point, examples/quickstart.mjs), and the
+  charter is rewritten around the product loop and the
+  journey-bank comparison. Executed mechanically per
+  TRIM-CONTRACT.md. U8 stays sealed; the publish gate stays closed.

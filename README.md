@@ -1,82 +1,99 @@
 # Palari Brain
 
-> **Direction review, July 22, 2026:** We overbuilt this project relative to
-> the original goal of giving a chatbot better memory. Read the candid
-> postmortem: **[We Messed This Up Big](WE-MESSED-UP.md)**.
+A governed memory kernel for chat assistants, in one SQLite file per
+workspace: one admission gate for every durable write, provenance on
+every atom, supersession that keeps history, deletion that removes FTS
+and link residue, honest absence, and a write boundary that external
+documents cannot cross.
 
-The governed memory kernel of Palari was extracted as a standalone, testable
-system. The repository was created with one public objective:
+Extracted from the running palari-v05 assistant (baseline `190a4ad2`)
+and kept deliberately small: zero dependencies, Node >= 22.5
+(node:sqlite), roughly three thousand lines of source, one test
+command.
 
-> **Score governed memory on LongMemEval, honestly, and extend the
-> benchmark with the safety section it lacks.**
+## Quickstart
 
-Status: founder direction review. Autonomous implementation is paused at a
-coherent cut point while the project is compared with the original product
-goal (see `WE-MESSED-UP.md` and `STATUS.md`). Nothing here is published as a
-result until the founder gates it.
+```bash
+npm test              # 48 contract tests, offline, zero dependencies
+npm run quickstart    # the whole product loop in one script, offline
+```
+
+The quickstart demonstrates, deterministically and with no API key:
+
+1. **remember** — a stated preference enters through the gate;
+2. **recall** — a later conversation gets a provenance-carrying
+   briefing;
+3. **correct** — supersession closes the old value and links it; the
+   history survives in the file;
+4. **forget** — topic deletion removes matching rows and their FTS and
+   link residue;
+5. **honest absence** — the same question now abstains instead of
+   guessing;
+6. **injection boundary** — a poisoned document cannot mint memory,
+   while the same fact asserted by the user can.
+
+## Using it in an assistant
+
+```js
+import {
+  createKernelStore, createGatedStore,
+  ingestChatTurn, answerQuestion, stubProvider,
+} from 'palari-brain'
+
+const store = await createKernelStore({
+  memoryEnabled: true,
+  statePath: '/path/to/workspace-state.json',
+  workspaceId: 'my-workspace',
+})
+const gated = createGatedStore(store)
+
+await ingestChatTurn(gated, {
+  userMessage, assistantMessage, eventAt,
+  palariId, userId, sourceMessageId,
+}, { extractor, extractorId })
+
+const { answer, abstained } = await answerQuestion(gated, {
+  provider, question, palariId, userId,
+})
+```
+
+`extractor` and `provider` are injected async functions: plug a
+language model in production, or the deterministic stubs
+(`deterministicMockMemoryExtraction`, `stubProvider`) for offline use.
+The kernel itself never reads an API key.
 
 ## What "governed memory" means
 
-Some simple agent-memory integrations automatically retain exchanges and
-inject recalled text. Palari's kernel deliberately takes a stricter approach:
+Most agent-memory frameworks auto-retain what a model extracts and
+invisibly inject recall. This kernel deliberately does not:
 
-- **One gate (governing law; bounded M2 falsifier complete).** Every durable
-  memory mutation must arrive as a typed proposal through Admit → Resolve
-  → Apply; a direct durable write is a defect, never an exception.
-  V2-M2 leaves no supported in-file production bypass: one exact trusted,
-  ratified, private zero-link erasure co-commits its governed journal and CDX
-  atom/FTS projection, while candidate creation/supersession, links, lifecycle,
-  topic-forget, recall telemetry, extraction/summary/scheduler writes, and
-  whole-store deletion deterministically refuse. V2-M3 restores governed
-  candidate operations and receipts. CDX-M1 remains runtime/read authority;
-  this is not a bundle cutover.
-- **Provenance.** Every memory knows where it came from (pipeline,
-  source, confidence-at-creation). Source-derived text cannot silently
-  become user memory — that boundary is tested, not promised.
-- **Visibility & consent.** Memory is a per-workspace SQLite file the user can
-  inspect. The currently enabled governed deletion is deliberately narrow: an
-  authorized private zero-link erasure removes the atom and its FTS membership;
-  linked, shared, general, cross-scope, topic, and whole-store deletion refuse
-  until their own authority and receipt substrates exist.
-- **Honest absence.** "I don't have a memory of that" is a scored,
-  first-class answer.
+- **One gate.** Every durable memory write is a typed proposal through
+  an admission gate with evidence thresholds. Producers propose;
+  nothing writes directly.
+- **Provenance.** Every memory records where it came from (writer,
+  source kind, extractor, evidence time, confidence-at-creation).
+  Source-derived text cannot silently become user memory — that
+  boundary is tested, not promised.
+- **Visibility and consent.** Memory is a per-workspace SQLite file
+  the user can inspect, correct, and delete. Deletion removes FTS and
+  link residue. The user owns the diary.
+- **Honest absence.** "I have no stored memory of that" is a
+  first-class, scored answer — never papered over.
 
-The original research bet was that governance costs some raw recall and wins
-on knowledge-updates, abstention, and injection resistance. LongMemEval scores
-the first three; the proposed extension would score the fourth. The current
-direction review asks whether pursuing that research bet serves the original
-assistant product goal. No extension work is authorized while that gate is
-open.
+## Status and history
 
-## The wider Palari system
+- Direction: product-led. The next work is a journey bank of concrete
+  assistant-memory scenarios and a measured comparison of this kernel
+  against established memory frameworks. See `STATUS.md`.
+- The 2026-07 v2 proof machinery (governed bundle substrate, atomic
+  decision journal, authority core) is preserved at the git tag
+  `v2-proof-archive` and is not part of the working tree. The candid
+  postmortem of that phase is `WE-MESSED-UP.md`.
+- The U8 live evaluation slice is SEALED (see `STATUS.md`); no scores
+  are published here.
+- Reference docs: `docs/KERNEL-API.md` (design + surface),
+  `docs/KERNEL-CONTRACT.md` (distilled contract),
+  `docs/SOURCE-MAP.md` (provenance from palari-v05),
+  `docs/DECISIONS.md` (append-only decision log).
 
-| Piece | Repo | Role |
-|---|---|---|
-| Product (Sofia) | [palari-v05](https://github.com/CoyStan/palari-v05) | The living app this kernel is extracted from |
-| Control plane | [palari-company-os](https://github.com/CoyStan/palari-company-os) | Write boundaries + proof-carrying acceptance for AI work |
-| Specification | [The Palari Brain — Unified Specification](https://github.com/CoyStan/palari-v05/tree/claude/palari-brain-adoption-staging/docs/spec-palari-brain) | The book this repo implements (Parts 4–5 are the kernel's normative spec) |
-| This repo | palari-brain | Memory kernel + LongMemEval adapter + results |
-
-## Layout (target)
-
-```
-kernel/     the extracted memory system (store, gate, extract, recall, brief)
-adapter/    LongMemEval harness: their histories in, kernel answers out
-evals/      slices, run reports, pre-registered predictions
-docs/       kernel contract, references, decisions
-data/       (gitignored) benchmark datasets — never committed
-```
-
-## The v2.0 architecture
-
-The v2 design — memory engines as swappable, certified commodities under a
-governed journal — remains documented in
-[docs/PALARI-V2-ARCHITECTURE.md](docs/PALARI-V2-ARCHITECTURE.md).
-It does not authorize further implementation while the founder direction gate
-in `STATUS.md` is unresolved.
-
-## Ground rules
-
-Results are reported failing-categories-first. Predictions are written
-before runs. Scores are never published without founder acceptance.
-See `AGENTS.md` for the full working charter.
+License: MIT.

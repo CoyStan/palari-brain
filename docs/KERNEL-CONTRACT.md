@@ -5,69 +5,6 @@ agent working in this repo. The full spec (with evidence tags and
 rationale) is linked in REFERENCES.md; where this file and the spec
 disagree, the spec wins and this file gets fixed.
 
-**V2-M1/V2-M2 precedence:** this contract continues to govern the current
-CDX-M1 runtime. `docs/MEMORY-BUNDLE-CONTRACT.md` governs only the
-non-authoritative coexistence substrate. M1 introduced no second runtime write
-door. M2-A2 implementation commit `e6bbc51` closed the supported **in-file
-CDX-M1 raw writer graph** behind exactly five legacy intents and eight
-lease-checked historical effects. M2-B implementation `0017fee` and
-completion hardening `d7bd9f9` now bind trusted host authority outside
-proposals, map only the exact ratified private zero-link erasure to the
-governed operation, and deterministically refuse every other current semantic
-branch before CDX mutation. Each accepted erasure co-commits its B2 decision,
-ordered effects, CDX atom/FTS projection, and journal head under A1. Terminal
-whole-file destruction is an unconditional governed refusal, not a false
-same-file co-commit. The complete production matrix leaves no supported
-in-file production bypass, so parent V2-M2 is closed at this bounded
-falsifier. CDX-M1 remains runtime/read authority and exact B1 remains unchanged
-and non-authoritative; no runtime cutover is claimed.
-
-`docs/MUTATION-SEAM-CONTRACT.md` is subordinate and normative only for
-V2-M2-A1 transaction ownership. A1 changes no memory policy or runtime path.
-`docs/LEGACY-MUTATION-ROUTING-CONTRACT.md` is subordinate and normative only
-for M2-A2's closed compatibility routing boundary: exactly five legacy
-intents, eight CDX projection effects, deterministic lease-bound plans, safe
-returned handles, producer closure, and explicit bootstrap/file-lifecycle
-classification. Neither A1 nor A2 claims canonical patch conformance.
-`docs/GOVERNED-MUTATION-BRIDGE-CONTRACT.md` governs M2-B's trusted authority,
-provenance-pinned operation, disjoint CDX-B2 journal, exhaustive map-or-refuse
-matrix, and co-commit law. Legacy labels never become B2 vocabulary; current
-caller-supplied identity, writer, policy, confidence, source, and time values
-cannot mint authority. The certified bridge neither confuses creation
-confidence with evidence strength, automatically erases lifecycle decay,
-mutates permanent canonical payloads, carries type-partition debt into
-canonical state, nor invents founder-amendable constants. V2-M3 still owns
-strict extractor schema, richer evidence derivation, assistant evidence,
-supersession repair, and complete candidate observability; it extends the
-closed M2 boundary rather than weakening it.
-
-**M2-B scoped structural amendment:** the reference patch kernel has no
-`ratify` Apply handler, while Part 4 requires storage erasure to be a separate
-ratified operation with its sidecars erased in that operation. Profile
-`FB1-4.ratified-erasure-apply-v1` therefore adds exactly one pure transition:
-an admitted and solely kept `ratify|ratified_user -> provenance`, strength
-`1.0`, ledger-rank-`1` patch may consume one present, same-Palari, same-user,
-private atom and its exactly-one FTS membership only when it has zero incident
-links. Missing, scope, shared, and incident-link states are governed refusals;
-projection mismatch is an internal rollback failure. Atom type and
-current/ended class do not change that erasure decision. Erasing a permanent
-atom consumes its storage membership after explicit ratification; it does not
-edit or correct permanent payload and does not relax demote-and-promote
-linearity. The amendment changes no registry constant and authorizes no edge
-write, demotion, payload correction, shared/general/cross-scope erasure, or
-other Apply handler. Exact authority, transition, journal, and co-commit rules
-are subordinate in `docs/GOVERNED-MUTATION-BRIDGE-CONTRACT.md` and its three
-normative appendices.
-
-M2-A1 certification at implementation commit `07d65ad` establishes only one
-synchronous transaction owner and opaque lexical, connection-bound leases.
-It changes no memory policy or runtime mutation path, closes no durable bypass,
-and grants no canonical authority. Its native state checks prove only that a
-transaction is active/inactive at each boundary; SQLite's exposed
-`isTransaction` state cannot identify a transaction replaced inside caller
-code, so A1 makes no native transaction-identity claim. CDX-M1 remains runtime
-authority and exact B1 remains unchanged and non-authoritative.
-
 ## Memory atoms (Part 4)
 
 - An atom carries: content, type, importance, confidence, provenance
@@ -128,12 +65,3 @@ authority and exact B1 remains unchanged and non-authoritative.
   user/palari scope only.
 - The store is a per-workspace SQLite file: portable, inspectable,
   deletable as a unit.
-
-**M2-B bounded availability:** these remain target kernel capabilities, not a
-claim that every deletion form is enabled by M2-B. The scoped amendment can
-ratify only a private exact-user zero-link atom, so its accepted operation
-removes the row and FTS membership with an already-empty incident-link set.
-Linked-atom erasure, topic forget, and whole-file destruction are deterministic
-governed refusals at this cut point because no edge patch or external terminal
-receipt substrate is registered. Their unavailable behavior is explicit
-conformance debt, not a silent weakening of the target contract.

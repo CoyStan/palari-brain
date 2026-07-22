@@ -1,13 +1,25 @@
 {
   "name": "palari-brain",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "Palari governed-memory kernel: gated candidate writes, provenance on every atom, honest absence. Spec-first; extracted from palari-v05 @ 190a4ad2.",
+  "description": "Palari governed-memory kernel: one admission gate, provenance on every atom, supersession with history, honest absence, and a write boundary external content cannot cross. Extracted from palari-v05 @ 190a4ad2.",
   "type": "module",
+  "license": "MIT",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src",
+    "examples",
+    "docs/KERNEL-API.md",
+    "docs/KERNEL-CONTRACT.md"
+  ],
   "engines": {
-    "node": ">=22.22.2"
+    "node": ">=22.5"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "quickstart": "node examples/quickstart.mjs"
   }
 }

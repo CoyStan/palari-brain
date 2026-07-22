@@ -1,42 +1,87 @@
-// LongMemEval adapter (U7, adapted for V2-M2-A2 producer closure).
-// The question-answering path is history -> branded gated ingest -> recall ->
-// briefing v1 -> pluggable provider -> answer. A2 removes the former
-// store-shaped add/supersede shim: extraction now submits its own branded
-// legacy proposal, including eventAt and extractorId provenance.
+// LongMemEval adapter (U7) — Fable 5, 2026-07-18.
+// The question-answering path: history -> kernel ingest (through the
+// gate) -> recall -> briefing v1 -> pluggable provider -> answer.
+//
+// The gate-shim below closes the loop promised in U4/U5 notes: the
+// extracted runMemoryExtractionPass (baseline, verbatim) writes via a
+// store-shaped shim whose addMemory/supersedeMemory emit typed
+// WriteProposals through gate.propose — the one-gate law holds in
+// the adapter path with zero edits to the baseline file. eventAt is
+// injected per session so every ingested atom is stamped with
+// evidence time (GAP-4), and extractorId identifies the extractor
+// (GAP-1).
 //
 // Providers are injected async functions; the deterministic
 // stubProvider needs no key and no network (dry mode). Live provider
 // runners are U8 (FOUNDER GATE) — this module never reads an API key.
 
 import { runMemoryExtractionPass } from './memory-extraction.mjs'
-import { assertGatedStoreCapability } from './gate.mjs'
+import { permanentMemoryTypes } from './memory-store.mjs'
 import { recallAndBrief } from './recall.mjs'
 
-// One chat exchange -> one extraction pass through the gate.
-export async function ingestChatTurn(gated, turnInput = {}, options = {}) {
-  assertGatedStoreCapability(gated)
-  if (!gated.enabled) {
-    return { memoriesWritten: 0, reason: 'memory_disabled', status: 'skipped' }
+function createGateShimStore(gated, { eventAt, extractorId }) {
+  function provenanceFor(writeOptions = {}, record = {}) {
+    return {
+      eventAt,
+      extractor: extractorId,
+      sourceKind: writeOptions.sourceKind,
+      sourceMessageId: record.source_message_id ?? writeOptions.sourceMessageId,
+      writer: writeOptions.writer,
+    }
   }
-  const {
-    assistantMessage = '',
-    eventAt,
-    palariId,
-    palariName = 'Palari',
-    sourceMessageId,
-    sourceTexts = [],
-    userId,
-    userMessage = '',
-    userName = 'user',
-  } = turnInput
-  const { extractor, extractorId = 'dry-stub' } = options
+  function kindFor(record = {}) {
+    return permanentMemoryTypes.has(record.type) ? 'permanent' : 'promote'
+  }
+  return {
+    addMemory(record = {}, writeOptions = {}) {
+      const result = gated.propose({
+        kind: kindFor(record),
+        op: 'add',
+        provenance: provenanceFor(writeOptions, record),
+        record,
+      })
+      return result
+    },
+    enabled: true,
+    listMemories(scope) {
+      return gated.listMemories(scope)
+    },
+    supersedeMemory(existingId, record = {}, writeOptions = {}) {
+      const result = gated.propose({
+        kind: kindFor(record),
+        op: 'supersede',
+        provenance: provenanceFor(writeOptions, record),
+        record,
+        target: existingId,
+      })
+      if (result.outcome === 'rejected') {
+        // loud, not silent: a rejected supersession during ingest is a
+        // finding, never a shortcut around the gate
+        throw new Error(`Gate rejected supersession: ${result.reasons.join(', ')}`)
+      }
+      return result
+    },
+  }
+}
+
+// One chat exchange -> one extraction pass through the gate.
+export async function ingestChatTurn(gated, {
+  assistantMessage = '',
+  eventAt,
+  palariId,
+  palariName = 'Palari',
+  sourceMessageId,
+  sourceTexts = [],
+  userId,
+  userMessage = '',
+  userName = 'user',
+} = {}, { extractor, extractorId = 'dry-stub' } = {}) {
+  const shim = createGateShimStore(gated, { eventAt, extractorId })
   return runMemoryExtractionPass({
     extractor,
-    extractorId,
-    store: gated,
+    store: shim,
     turn: {
       assistantMessage,
-      eventAt,
       palariId,
       palariName,
       sourceMessageId,
@@ -51,16 +96,13 @@ export async function ingestChatTurn(gated, turnInput = {}, options = {}) {
 
 // A LongMemEval instance's haystack -> gated ingest, session by
 // session, pairing user turns with their assistant replies.
-export async function ingestLongMemEvalInstance(gated, instance, options = {}) {
-  assertGatedStoreCapability(gated)
-  const {
-    extractor,
-    extractorId = 'dry-stub',
-    failOnExtractorError = false,
-    palariId,
-    userId,
-  } = options
-  assertGatedStoreCapability(gated)
+export async function ingestLongMemEvalInstance(gated, instance, {
+  extractor,
+  extractorId = 'dry-stub',
+  failOnExtractorError = false,
+  palariId,
+  userId,
+} = {}) {
   const stats = {
     extractorErrors: 0,
     invalidPayloads: 0,
@@ -69,17 +111,12 @@ export async function ingestLongMemEvalInstance(gated, instance, options = {}) {
     sourceBoundary: { droppedUnsafeSourceMemories: 0 },
     turns: 0,
   }
-  const sessions = instance.sessions ?? []
-  assertGatedStoreCapability(gated)
-  for (const session of sessions) {
-    assertGatedStoreCapability(gated)
+  for (const session of instance.sessions ?? []) {
     stats.sessions += 1
     const turns = session.turns ?? []
-    assertGatedStoreCapability(gated)
     for (let i = 0; i < turns.length; i += 1) {
       if (turns[i].role !== 'user') continue
       const assistant = turns[i + 1]?.role === 'assistant' ? turns[i + 1].content : ''
-      assertGatedStoreCapability(gated)
       stats.turns += 1
       const result = await ingestChatTurn(gated, {
         assistantMessage: assistant,
@@ -103,7 +140,6 @@ export async function ingestLongMemEvalInstance(gated, instance, options = {}) {
         result.sourceBoundary?.droppedUnsafeSourceMemories ?? 0
     }
   }
-  assertGatedStoreCapability(gated)
   return stats
 }
 
@@ -126,17 +162,15 @@ export function buildAnswerPrompt({ briefingText = '', question = '', questionDa
 }
 
 // Question -> recall -> briefing -> provider -> answer, measured.
-export async function answerQuestion(gated, input = {}) {
-  assertGatedStoreCapability(gated)
-  const {
-    contextBudget = 12,
-    maxChars = 1800,
-    palariId,
-    provider,
-    question,
-    questionDate,
-    userId,
-  } = input
+export async function answerQuestion(gated, {
+  contextBudget = 12,
+  maxChars = 1800,
+  palariId,
+  provider,
+  question,
+  questionDate,
+  userId,
+} = {}) {
   const now = questionDate ? new Date(questionDate) : new Date()
   const briefing = recallAndBrief(gated, question, { palariId, userId }, { contextBudget, maxChars, now })
   const prompt = buildAnswerPrompt({ briefingText: briefing.text, question, questionDate })

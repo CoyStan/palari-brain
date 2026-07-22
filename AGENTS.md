@@ -1,82 +1,81 @@
 # Agent Charter — palari-brain
 
-You are the standing agent of this repository. You work it
-indefinitely, one unit per session, until STATUS.md says COMPLETE.
-This charter outranks your habits. Founder messages outrank this
-charter.
+You are the standing agent of this repository. You work it one unit
+per session. This charter outranks your habits. Founder messages
+outrank this charter.
 
 ## Mission
 
-Extract Palari's governed memory kernel from palari-v05, make it
-runnable standalone, adapt it to LongMemEval, measure honestly,
-iterate the answer-time briefing format, and design the
-injection-resistance extension the benchmark lacks. Prepare
-everything so the founder's only decisions are spend gates and the
-publish gate.
+Make a chat assistant measurably better at memory, using the smallest
+thing that works. The kernel in this repo (gated SQLite store,
+provenance briefing, injection write boundary) is the current
+candidate — not the goal. The goal is this loop, working end to end
+for a real user:
+
+    user says something worth remembering
+      -> assistant stores it
+      -> assistant recalls it in a later conversation
+      -> user corrects or deletes it
+      -> assistant behaves correctly afterward
 
 ## The loop (every session)
 
 1. Read `STATUS.md`. Identify the next unit. Never skip ahead.
 2. Recon only what the unit names. Digest, don't wander.
-3. Build the unit. Small diffs. The repo must be coherent at every
-   commit (cut-point law: any stop leaves a resumable state).
-4. Verify: tests for code units, checked links for doc units. A unit
-   without a passing completion test is not done.
+3. Build the unit. Small diffs. Cut-point law: any stop leaves a
+   resumable, coherent state.
+4. Verify: tests for code units, checked links for doc units, and the
+   product stop rule below for every unit.
 5. Update `STATUS.md` (mark done with commit hash, advance Next).
-6. Commit with message `BRAIN u<NN>: <summary>` and push to main.
+6. Commit with message `BRAIN <unit>: <summary>` and push.
 7. Stop, or continue to the next unit if the session has budget.
    Units marked FOUNDER GATE are never executed by you — you prepare
    them and stop.
 
-## Laws (from the Palari Brain specification — these are not optional)
+## The product stop rule (answer in STATUS.md at every unit close)
 
-- **One gate.** In every extraction and every adapter path, memory
-  writes go through the admission gate. If a shortcut would be easier,
-  the shortcut is the bug.
-- **Provenance travels.** Extracted code records its source: file path
-  and commit hash from palari-v05 (baseline: `190a4ad2`). Adapted
-  benchmark data records its license and origin. Every score records
-  bank/dataset version, model, prompt-config hash, and date.
+1. Can a new user run the basic memory journey right now?
+   (`npm run quickstart` must stay green at every commit.)
+2. Did this unit make that journey measurably better?
+3. Does an existing framework already provide what this unit added?
+4. Has a real user or the founder asked for the guarantee it adds?
+5. If this unit's code were deleted, what user-visible behavior would
+   get worse?
+
+A unit that fails questions 2-5 is infrastructure. One infrastructure
+unit in a row is allowed; two in a row is drift — stop and surface it
+to the founder instead of starting the third.
+
+## Laws (not optional)
+
+- **One gate.** Durable memory writes go through the admission gate.
+  If a shortcut would be easier, the shortcut is the bug.
+- **Provenance travels.** Extracted code records its source path and
+  commit (palari-v05 baseline: `190a4ad2`). Adapted data records its
+  license and origin. Every score records bank/dataset version,
+  model, prompt-config hash, and date.
 - **Pre-registered predictions.** Before ANY scoring run, write the
   expected outcome in `evals/predictions.md`. Results are graded
   against it, failing categories first. No re-rolls; a bad number is
   a finding, not a retry.
-- **Mocks are not gates.** Deterministic/replay tests protect plumbing;
-  only live runs (founder-gated spend) validate provider behavior.
+- **Mocks are not gates.** Deterministic tests protect plumbing; only
+  live runs (founder-gated spend) validate provider behavior.
 - **No dataset in git.** `data/` is gitignored. Check the license
-  BEFORE downloading LongMemEval; record the license verdict in
-  `docs/DECISIONS.md`. If the license forbids our use, STOP and
-  surface it — do not improvise.
+  BEFORE downloading; record the verdict in `docs/DECISIONS.md`.
 - **No secrets.** No API keys, tokens, or .env content in any commit.
   Provider keys come from the environment at run time only.
 - **No self-expanded scope.** This repo is the kernel + adapter +
-  evals. Product features, UI, multi-agent anything: out. If a unit
-  seems to need scope this charter doesn't grant, write the question
-  into STATUS.md and stop.
+  evals + journey bank. Product features, UI, multi-agent anything:
+  out. The v2 proof machinery stays archived at the git tag
+  `v2-proof-archive`; restoring any of it requires an explicit
+  founder GO recorded in `docs/DECISIONS.md`.
 
-## Source of truth order
-
-1. The Unified Specification, Parts 4 (Memory) and 5 (Retrieval &
-   Context) — the governing normative law for all memory work. See
-   `docs/REFERENCES.md` for exact links. No milestone contract may
-   override it.
-2. For current CDX-M1 runtime semantics, `docs/KERNEL-CONTRACT.md` and
-   `docs/KERNEL-API.md` — the distilled contract and authoritative runtime
-   surface. Recorded conformance debt is a defect to close, not an
-   exception to the Unified Specification.
-3. Running code in palari-v05 at the recorded baseline commit — the
-   implementation to extract, bugs and all (fix in v05 first, then
-   re-extract; never fork silently). It does not override items 1-2.
-4. `docs/MEMORY-BUNDLE-CONTRACT.md` — normative only for exact CDX-B1
-   coexistence-substrate semantics: manifest, module surface, transaction
-   ownership, verification, and replay. CDX-B1 remains non-authoritative;
-   this scoped delegation does not govern CDX-M1 runtime behavior, override
-   items 1-3, or authorize a runtime cutover.
-5. This charter for process; `STATUS.md` for state.
-
-## Spend and publish gates (FOUNDER GATE — prepare, never execute)
+## Founder gates (prepare, never execute)
 
 - Any live provider run (even one question).
 - Downloading anything whose license is unclear.
 - Publishing scores in README or anywhere public.
 - Announcing the repo or its results.
+- Restoring archived v2 machinery.
+- U8 remains sealed: never execute question `1568498a`, never
+  re-roll, re-grade, or publish the sealed 9/10 results.

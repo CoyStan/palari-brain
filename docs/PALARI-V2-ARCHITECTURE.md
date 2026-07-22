@@ -1,11 +1,13 @@
 # Palari v2.0 — The Governed Stack Over Commodity Engines
 
-Status: north-star architecture, commissioned by the founder
-2026-07-18. This document GUIDES future development across all Palari
-repos. It does not interrupt the current STATUS.md queue; queue
-amendments derived from it follow the normal ratification path. It is
-written to be self-standing: no other document is required to
-understand it.
+Status: ARCHIVED NORTH STAR (2026-07-22, direction review). The
+two-plane thesis — commodity engines below, a thin governed Palari
+plane above — remains the standing architecture. Its section-7 build
+order (M1-M6) was executed through M2, judged overbuilt relative to
+the product need, and halted; see WE-MESSED-UP.md and the
+`v2-proof-archive` git tag. Engine adoption is now decided by the
+journey-bank comparison in STATUS.md, not by this document's
+milestone ladder.
 
 ---
 
