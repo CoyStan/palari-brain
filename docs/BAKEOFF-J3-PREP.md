@@ -46,14 +46,24 @@ Sources: [exact package manifest](https://raw.githubusercontent.com/mem0ai/mem0/
 [exact repository license](https://raw.githubusercontent.com/mem0ai/mem0/5e7adc4d1264bb49ab20cf8c70e4807295d77ae2/LICENSE), and
 [npm provenance](https://registry.npmjs.org/-/npm/v1/attestations/mem0ai@3.1.1).
 
-**INSTALLED AND REVIEWED, NOT CALLED.** J3 uses `mem0ai` only from eval code,
+**INSTALLED, IMPLEMENTED, AND OFFLINE-TESTED; NOT CALLED.** J3 uses `mem0ai`
+only from eval code,
 and the committed package lists `mem0ai@3.1.1` under `devDependencies`, with
 no production `dependencies`. The install resolved the package's optional
 `better-sqlite3` peer for its local vector store; no additional direct
 dependency was added. The adapter path is
-`evals/arms/mem0-live-arm.mjs`; it is **NOT WRITTEN**. The matching kernel
-adapter will live at `evals/arms/kernel-live-arm.mjs`, and the gated runner at
-`evals/run-bakeoff-live.mjs`; neither exists yet. The official Mem0 Node
+`evals/arms/mem0-live-arm.mjs`; the matching kernel adapter is
+`evals/arms/kernel-live-arm.mjs`, and the gated runner is
+`evals/run-bakeoff-live.mjs`. Their local meter owns the exact provider
+endpoints, key, retries, usage accounting, call/token/spend ceilings, and a
+durable no-reroll checkpoint ledger. Offline tests use a localhost fake
+provider and exercise the real Mem0 OSS package without an external call.
+For fair historical replay, the adapter carries each frozen turn's `eventAt`
+through Mem0's ordinary metadata field and uses it as briefing `valid_from`;
+Mem0's own `createdAt` remains the observed time. This mirrors the kernel's
+event/observation split without changing Mem0's model, extraction prompt,
+retrieval, or frozen provider configuration.
+The official Mem0 Node
 quickstart documents the package and the OSS import surface:
 [Mem0 Node SDK Quickstart](https://docs.mem0.ai/open-source/node-quickstart)
 (checked 2026-07-23). Provider support and package behavior must be reconfirmed
