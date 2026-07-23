@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J3 ENGINEERING REPAIR — CYCLE 2 PRE-RUN FROZEN
+Loop state: J3 ENGINEERING REPAIR — CYCLE 2 CLOSED, CYCLE 3 NEXT
 (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
@@ -86,7 +86,7 @@ session itself).
     Its full local transcript, checkpoint, ledger, reports, artifact manifest,
     and prediction grade are preserved under gitignored `evals/results/`.
     No live score entered git or was published. The run is closed.
-  - [ ] J3-H2 — PRE-RUN FROZEN 2026-07-23 (`this commit`).
+  - [x] J3-H2 — DONE 2026-07-23 (`this commit`).
     `j3-live-v3`: the complete H1 evidence was graded locally; the smallest
     causal extraction, replay-time, answer, and live-oracle repairs are
     independently reviewed, preregistered, and offline-verified. Exact config
@@ -95,7 +95,10 @@ session itself).
     `0b3bb2c39bc32e82264b18383a7037ae59139e443becae6839a024349e854e68`.
     The governed dry reference is now intentionally 41/44 because background
     extraction cannot ratify the cross-user standup; the preserved v0.5
-    comparator remains 42/44. No v3 provider call has occurred.
+    comparator remains 42/44. The one-shot run completed its full paired plan;
+    its terminal ledger, transcript, checkpoint, report, and manifest audits
+    pass, and every FINAL prediction was graded locally. Full evidence remains
+    gitignored; no live score entered git or was published. V3 is closed.
   - [ ] J3-H3 — `j3-live-v4`: grade H2 first, make the smallest
     evidence-backed repair, preregister, verify, and run once.
 - [ ] J4 — FOUNDER GATE: not started. The pre-registered decision rule
@@ -104,10 +107,11 @@ session itself).
 
 ## Next
 
-J3-H2. Commit and push the reviewed pre-run freeze, then invoke
-`j3-live-v3` exactly once from that pushed cut point. Preserve and locally
-grade its terminal artifacts before any v4 repair. Do not resume or rerun v1
-or v2; do not start J4.
+J3-H3. From the closed v3 evidence, make only the smallest independently
+reviewed extraction-prompt, dated-conflict answer, and prospective
+semantic-abstention repairs. Freeze a fresh `j3-live-v4` configuration and
+FINAL prediction before any provider call; verify offline, commit, and push
+the cut point. Do not resume or rerun v1, v2, or v3; do not start J4.
 
 ## Log
 
@@ -174,6 +178,10 @@ extraction score contract, replay timestamps, Mem0 confidence projection,
 positive answer path, and live abstention oracle; froze exact v3 predictions,
 config, and predecessor hashes. Suite 98/98, dry bake-off, and quickstart
 green; no v3 provider call occurred.
+2026-07-23 — J3-H2 close-out — this commit — Invoked `j3-live-v3` once,
+completed the paired plan, verified its full ignored forensic bundle, and
+graded every FINAL prediction locally. No live score entered git; v3 is
+closed and Next advances to the fresh preregistered v4 cycle.
 
 ## Product stop-rule record
 
@@ -443,3 +451,24 @@ green; no v3 provider call occurred.
    safe visible abstention with irrelevant retrieval or hide poisoned durable
    evidence. This is one product repair plus the minimum measurement repair
    needed to test it honestly.
+
+### J3-H2 close-out
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green at the pushed pre-run cut point.
+2. Did this unit make that journey measurably better? The one-shot live run
+   completed and produced causal evidence that separates extraction,
+   conflict-answering, authority, history, and source-boundary behavior.
+   User-visible improvement is not claimed from a score in tracked files.
+3. Does an existing framework already provide what this unit added? Mem0
+   supplies the comparison engine, but it does not supply this paired Palari
+   bank, governed kernel path, immutable predecessor chain, or forensic
+   prediction grade.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly required at least three self-healing live cycles with
+   retained transcripts and evidence-backed minimal repair between cycles.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? Runtime behavior would not immediately change, but the
+   third repair would lose its causal basis and could weaken sharing or
+   injection guarantees merely to improve a number. This is authorized live
+   evaluation evidence preceding the final mandatory repair cycle.

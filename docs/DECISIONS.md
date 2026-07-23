@@ -720,3 +720,14 @@ dates. Agents record; the founder decides.
   Independent structural and adversarial reviews found no remaining paid-run
   blocker after the authority and no-evidence fixes. The 98-test suite, dry
   bake-off, and quickstart pass. No v3 provider call has occurred.
+- 2026-07-23 (J3-H2 terminal execution record) `j3-live-v3` was invoked
+  exactly once from its frozen pushed commit and completed the full paired
+  plan. Its terminal ledger, transcript, checkpoint, report, artifact, and
+  credential-safety audits pass, and every immutable FINAL prediction was
+  graded locally with misses analyzed first. Complete raw evidence and the
+  local prediction grade remain under gitignored `evals/results/`; no live
+  score, prompt, response, transcript, or raw result entered git or was
+  published. Independent kernel, Mem0, and forensic reviews converge on the
+  bounded prospective repair surface for the separately configured third
+  cycle. V3 is closed and may not be resumed, rerun, or retroactively
+  regraded. J4 and the publish gate remain closed.
