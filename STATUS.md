@@ -21,18 +21,15 @@ the founder review of the bank rides the J3 gate (founder decision
 in session, since the seed bank was authored in the direction-review
 session itself).
 
-- [~] J1 — Journey bank. SEEDED 2026-07-22 (direction-review
-  session): evals/journey-bank.mjs (schema+loader), evals/harness.mjs
-  (arm interface + runner + written-count vacuity guard),
-  evals/arms/kernel-arm.mjs (reference arm), evals/journeys.json
-  (11 journeys, 17 probes, all expectTotalWritten pinned),
-  tests/journeys.contract.test.mjs (baseline PINNED: 26/28 graded
-  checks pass, exactly 2 findings, both predicted BEFORE first run
-  and confirmed by it: correction-espresso-04:p2 temporal-history
-  gap; conflict-cities-05:p2 un-cued conflicting re-assertions both
-  briefed). Suite 51/51; `npm run bakeoff` exit 0. REMAINING (per
-  BAKEOFF-CONTRACT J1.1-J1.2): extend to 16 journeys, re-pin,
-  docs/JOURNEY-BANK.md.
+- [~] J1 — Journey bank.
+  - [x] J1.1 — DONE 2026-07-23 (`this commit`; exact SHA will be
+    backfilled by J1.2). Extended the bank to 16 journeys and 25
+    probes; kernel baseline pinned at 39/41 graded checks with exactly
+    the two unchanged known findings (`correction-espresso-04:p2`,
+    `conflict-cities-05:p2`). Suite 51/51; `npm run bakeoff` and
+    `npm run quickstart` green.
+  - [ ] J1.2 — Document the bank and scoring dimensions in
+    docs/JOURNEY-BANK.md.
 - [ ] J2 — Bake-off harness completion, dry (per BAKEOFF-CONTRACT
   J2.1-J2.4): ungoverned-baseline contrast arm with pinned leak
   results, docs/BAKEOFF-J3-PREP.md + DRAFT predictions file,
@@ -58,3 +55,27 @@ src/index.mjs + examples/quickstart.mjs + the surface test; suite
 kernel reference arm, 11 journeys; baseline pinned 26/28 with 2
 predicted-and-confirmed findings; 51/51 green; continuation handed
 to BAKEOFF-CONTRACT.md.
+2026-07-23 — J1.1 — this commit — Extended the bank to 16 journeys
+and 25 probes; pinned the kernel at 39/41 with exactly the two
+unchanged known findings; suite 51/51, bakeoff and quickstart green.
+
+## Product stop-rule record
+
+### J1.1
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It did not
+   change runtime behavior; it broadened measurement with forgetting,
+   opinion, relationship, abstention, and cross-user-isolation cases.
+3. Does an existing framework already provide what this unit added?
+   Frameworks provide related memory behaviors and eval datasets, but
+   not this repository's deterministic cross-arm fixtures and pinned
+   Palari baseline.
+4. Has a real user or the founder asked for the guarantee it adds?
+   Yes — the founder-ratified BAKEOFF-CONTRACT.md names these five
+   journeys exactly.
+5. If this unit's code were deleted, what user-visible behavior would
+   get worse? Runtime behavior would not immediately change, but
+   regressions in those five user-visible behaviors would cease to be
+   detected. This is evaluation infrastructure, not a product feature.

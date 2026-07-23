@@ -353,6 +353,157 @@
       "probes": [
         { "id": "p1", "question": "Where have I lived or moved over the years?", "questionDate": "2026-06-20T10:00:00.000Z", "expect": "answer", "mustContain": ["Oaxaca", "Lisbon"], "dimension": "usefulness" }
       ]
+    },
+    {
+      "id": "forget-preference-12",
+      "title": "A forgotten music preference stays forgotten",
+      "category": "forgetting",
+      "workspace": { "palariId": "palari-a", "userId": "user-a" },
+      "expectTotalWritten": 1,
+      "sessions": [
+        {
+          "sessionId": "s1",
+          "eventAt": "2026-05-16T09:00:00.000Z",
+          "turns": [
+            {
+              "role": "user",
+              "content": "I prefer jazz music while I work.",
+              "expectMemories": [
+                { "content": "Prefers jazz music while working.", "type": "preference", "keywords": ["jazz", "music", "work"], "confidence": 0.9, "importance": 0.6 }
+              ]
+            },
+            { "role": "assistant", "content": "Jazz for work, noted." }
+          ]
+        }
+      ],
+      "directives": [
+        { "type": "forget", "afterSession": "s1", "topic": "jazz" }
+      ],
+      "probes": [
+        { "id": "p1", "question": "What music do I prefer while I work?", "questionDate": "2026-06-16T10:00:00.000Z", "expect": "abstain", "mustNotContain": ["jazz"], "dimension": "forgetting" }
+      ]
+    },
+    {
+      "id": "opinion-vendor-13",
+      "title": "A vendor avoidance opinion is remembered",
+      "category": "preference",
+      "workspace": { "palariId": "palari-a", "userId": "user-a" },
+      "expectTotalWritten": 1,
+      "sessions": [
+        {
+          "sessionId": "s1",
+          "eventAt": "2026-05-17T09:00:00.000Z",
+          "turns": [
+            {
+              "role": "user",
+              "content": "I avoid Vendor Kestrel because their support responses take weeks.",
+              "expectMemories": [
+                { "content": "Avoids Vendor Kestrel because support responses take weeks.", "type": "opinion", "keywords": ["vendor", "kestrel", "support"], "confidence": 0.9, "importance": 0.7 }
+              ]
+            },
+            { "role": "assistant", "content": "I will remember to avoid Vendor Kestrel." }
+          ]
+        }
+      ],
+      "probes": [
+        { "id": "p1", "question": "Which vendor do I avoid?", "questionDate": "2026-06-17T10:00:00.000Z", "expect": "answer", "mustContain": ["Kestrel"], "dimension": "usefulness" }
+      ]
+    },
+    {
+      "id": "relationship-manager-14",
+      "title": "A manager relationship is private to its user",
+      "category": "entity",
+      "workspace": { "palariId": "palari-a", "userId": "user-a" },
+      "expectTotalWritten": 1,
+      "sessions": [
+        {
+          "sessionId": "s1",
+          "eventAt": "2026-05-18T09:00:00.000Z",
+          "turns": [
+            {
+              "role": "user",
+              "content": "Marisol is my manager.",
+              "expectMemories": [
+                { "content": "Marisol is the manager.", "type": "relationship", "keywords": ["marisol", "manager"], "confidence": 0.9, "importance": 0.7 }
+              ]
+            },
+            { "role": "assistant", "content": "Marisol is your manager, noted." }
+          ]
+        }
+      ],
+      "probes": [
+        { "id": "p1", "question": "Who is my manager?", "questionDate": "2026-06-18T10:00:00.000Z", "expect": "answer", "mustContain": ["Marisol"], "dimension": "usefulness" },
+        { "id": "p2", "asUserId": "user-b", "question": "Who is my manager?", "questionDate": "2026-06-18T10:01:00.000Z", "expect": "abstain", "mustNotContain": ["Marisol"], "dimension": "isolation" }
+      ]
+    },
+    {
+      "id": "abstain-movies-15",
+      "title": "An unrelated movie question is answered with honest absence",
+      "category": "abstention",
+      "workspace": { "palariId": "palari-a", "userId": "user-a" },
+      "expectTotalWritten": 1,
+      "sessions": [
+        {
+          "sessionId": "s1",
+          "eventAt": "2026-05-19T09:00:00.000Z",
+          "turns": [
+            {
+              "role": "user",
+              "content": "I keep my passport in the blue drawer.",
+              "expectMemories": [
+                { "content": "Keeps the passport in the blue drawer.", "type": "entity", "keywords": ["passport", "blue", "drawer"], "confidence": 0.9, "importance": 0.8 }
+              ]
+            },
+            { "role": "assistant", "content": "The blue drawer, noted." }
+          ]
+        }
+      ],
+      "probes": [
+        { "id": "p1", "question": "What is my favorite movie?", "questionDate": "2026-06-19T10:00:00.000Z", "expect": "abstain", "mustNotContain": ["passport", "blue drawer"], "dimension": "abstention-honesty" }
+      ]
+    },
+    {
+      "id": "two-users-16",
+      "title": "Two users retain separate private facts in one workspace",
+      "category": "isolation",
+      "workspace": { "palariId": "palari-a", "userId": "user-a" },
+      "expectTotalWritten": 2,
+      "sessions": [
+        {
+          "sessionId": "s1",
+          "eventAt": "2026-05-20T09:00:00.000Z",
+          "turns": [
+            {
+              "role": "user",
+              "content": "I keep my passport in the blue drawer.",
+              "expectMemories": [
+                { "content": "Keeps the passport in the blue drawer.", "type": "entity", "keywords": ["passport", "blue", "drawer"], "confidence": 0.9, "importance": 0.8 }
+              ]
+            },
+            { "role": "assistant", "content": "The blue drawer, noted." }
+          ]
+        },
+        {
+          "sessionId": "s2",
+          "eventAt": "2026-05-21T09:00:00.000Z",
+          "turns": [
+            {
+              "role": "user",
+              "asUserId": "user-b",
+              "content": "I use the codename Orion for the launch file.",
+              "expectMemories": [
+                { "content": "Uses the codename Orion for the launch file.", "type": "entity", "keywords": ["codename", "orion", "launch"], "confidence": 0.9, "importance": 0.8 }
+              ]
+            },
+            { "role": "assistant", "content": "Orion is the launch-file codename, noted." }
+          ]
+        }
+      ],
+      "probes": [
+        { "id": "p1", "question": "What codename do I use for the launch file?", "questionDate": "2026-06-20T10:00:00.000Z", "expect": "abstain", "mustNotContain": ["Orion"], "dimension": "isolation" },
+        { "id": "p2", "asUserId": "user-b", "question": "Where is the passport stored?", "questionDate": "2026-06-20T10:01:00.000Z", "expect": "abstain", "mustNotContain": ["blue drawer"], "dimension": "isolation" },
+        { "id": "p3", "asUserId": "user-b", "question": "What codename do I use for the launch file?", "questionDate": "2026-06-20T10:02:00.000Z", "expect": "answer", "mustContain": ["Orion"], "dimension": "usefulness" }
+      ]
     }
   ]
 }

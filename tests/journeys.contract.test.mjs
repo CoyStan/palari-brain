@@ -1,5 +1,5 @@
 // J1 contract: the journey bank validates against its schema, and the
-// kernel reference arm's dry baseline is pinned — 26/28 probes pass
+// kernel reference arm's dry baseline is pinned — 39/41 probes pass
 // with exactly two KNOWN findings (temporal-history recall; plain
 // conflicting re-assertions both briefed). A change to either number
 // is a behavior change and must be a deliberate finding, not noise.
@@ -39,16 +39,16 @@ function minimalJourney(overrides = {}) {
 test('journey bank loads, validates, and covers the charter categories', async () => {
   const bank = await loadJourneyBankFile(BANK_URL)
   assert.equal(bank.version, 1)
-  assert.equal(bank.journeys.length, 11, 'seeded bank size')
+  assert.equal(bank.journeys.length, 16, 'extended bank size')
   const categories = new Set(bank.journeys.map((j) => j.category))
   for (const required of ['preference', 'correction', 'conflict', 'forgetting', 'isolation', 'injection', 'multi-session']) {
     assert.ok(categories.has(required), `category ${required} present`)
   }
   for (const c of categories) assert.ok(journeyCategories.has(c))
   const probeCount = bank.journeys.reduce((n, j) => n + j.probes.length, 0)
-  assert.equal(probeCount, 17, 'seeded probe count')
+  assert.equal(probeCount, 25, 'extended probe count')
   assert.ok(bank.journeys.every((j) => Number.isInteger(j.expectTotalWritten)),
-    'every seeded journey pins its written count (vacuity guard)')
+    'every journey pins its written count (vacuity guard)')
 })
 
 test('validator rejects malformed journeys', async () => {
@@ -64,15 +64,15 @@ test('validator rejects malformed journeys', async () => {
   assert.throws(() => loadJourneyBank({ version: 2, journeys: [minimalJourney()] }), /version must be 1/)
 })
 
-test('kernel reference arm: dry baseline is 26/28 with exactly the two known findings', async () => {
+test('kernel reference arm: dry baseline is 39/41 with exactly the two known findings', async () => {
   const raw = await readFile(BANK_URL, 'utf8')
   const bank = loadJourneyBank(raw)
   const report = await runBank([createKernelArm()], bank)
   assert.equal(report.arms.length, 1)
   const arm = report.arms[0]
   assert.equal(arm.name, 'palari-brain-kernel')
-  assert.equal(arm.summary.totalProbes, 28, '17 probes + 11 written-count checks')
-  assert.equal(arm.summary.passedProbes, 26)
+  assert.equal(arm.summary.totalProbes, 41, '25 probes + 16 written-count checks')
+  assert.equal(arm.summary.passedProbes, 39)
   assert.equal(arm.summary.failedProbes, 2)
   const findingIds = arm.summary.findings
     .map((f) => `${f.journeyId}:${f.probeId}`)
