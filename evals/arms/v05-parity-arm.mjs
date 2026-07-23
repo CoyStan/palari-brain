@@ -1,8 +1,8 @@
 // Contrast arm: the memory path deployed by palari-v05 today.
 // CORRECTED per BAKEOFF-CONTRACT §7 Amendment A2: production v05 does
 // not write candidates through the raw door directly — chat-turn ingest
-// runs runMemoryExtractionPass (byte-identical file in v05 main), which
-// INCLUDES the injection source boundary and contradiction supersession.
+// runs the preserved v05 runMemoryExtractionPass, which INCLUDES the
+// injection source boundary and contradiction supersession.
 // What v05 lacks versus the kernel arm is the typed admission gate
 // (raw addMemory/supersedeMemory writers), eventAt evidence-time
 // provenance (wall clock becomes valid_from), and briefing v1
@@ -13,7 +13,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 import { createKernelStore } from '../../src/store.mjs'
-import { runMemoryExtractionPass } from '../../src/memory-extraction.mjs'
+import { runMemoryExtractionPass } from '../../src/v05-memory-extraction.mjs'
 import { buildMemoryBriefing } from '../../src/memory-briefing.mjs'
 
 const ABSENCE = 'I have no stored memories relevant to this question.'

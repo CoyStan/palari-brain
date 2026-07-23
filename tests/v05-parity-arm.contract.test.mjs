@@ -1,21 +1,26 @@
 // A1.2 deployed-path contrast, CORRECTED per Amendment A2: production
-// v05 ingests chat turns through runMemoryExtractionPass (byte-identical
-// file in v05 main), so the source boundary and contradiction
+// v05 ingests chat turns through the preserved v05 extraction module, so the
+// source boundary and contradiction
 // supersession run there too. With the arm routed through the real
-// deployed path, v05-current-memory TIES the kernel on dry behavior
-// probes at 42/44, failing only the same two known findings. The
-// kernel's upgrade value is therefore NOT dry-probe wins: it is the
+// deployed path, v05-current-memory remains at 42/44 with the same two
+// historical findings. The governed kernel additionally denies inferred
+// sharing, so its current dry score is intentionally one point lower. The
+// kernel's upgrade value is therefore not raw dry-probe wins: it is the
 // typed admission gate closing the raw-door writer class, eventAt
 // evidence-time provenance (v05 stamps wall clock), and briefing v1
 // attribution — none of which these behavior probes observe.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 
 import { loadJourneyBankFile } from '../evals/journey-bank.mjs'
 import { runBank } from '../evals/harness.mjs'
 import { createV05ParityArm } from '../evals/arms/v05-parity-arm.mjs'
 
 const BANK_URL = new URL('../evals/journeys.json', import.meta.url)
+const V05_EXTRACTION_URL =
+  new URL('../src/v05-memory-extraction.mjs', import.meta.url)
 
 function probe(arm, journeyId, probeId) {
   return arm.journeys
@@ -23,7 +28,15 @@ function probe(arm, journeyId, probeId) {
     ?.probes.find((result) => result.probeId === probeId)
 }
 
-test('v05 current-memory (deployed extraction path) ties the kernel at 42/44', async () => {
+test('v05 extraction comparator remains pinned to the preserved baseline bytes', async () => {
+  const source = await readFile(V05_EXTRACTION_URL)
+  assert.equal(
+    createHash('sha256').update(source).digest('hex'),
+    '770889c34c02a4c1f9162318c2b32786f6922ff288924627d681a10f92561a9f',
+  )
+})
+
+test('v05 current-memory preserves the deployed 42/44 baseline', async () => {
   const bank = await loadJourneyBankFile(BANK_URL)
   const report = await runBank([createV05ParityArm()], bank)
   assert.equal(report.arms.length, 1)

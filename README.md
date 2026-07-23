@@ -7,14 +7,14 @@ and link residue, honest absence, and a write boundary that external
 documents cannot cross.
 
 Extracted from the running palari-v05 assistant (baseline `190a4ad2`)
-and kept deliberately small: zero dependencies, Node >= 22.5
+and kept deliberately small: zero production dependencies, Node >= 22.5
 (node:sqlite), roughly three thousand lines of source, one test
 command.
 
 ## Quickstart
 
 ```bash
-npm test              # 54 contract tests, offline, zero dependencies
+npm test              # 98 contract tests, offline
 npm run quickstart    # the whole product loop in one script, offline
 ```
 
@@ -43,18 +43,17 @@ comparable.
 npm run bakeoff
 ```
 
-The current reference kernel passes 42/44; its known findings are
+The current governed kernel passes 41/44. Its findings are
 `correction-espresso-04:p2` (superseded history is unavailable to
 as-of recall) and `conflict-cities-05:p2` (uncued reassertions leave
-both conflicting facts current). The deployed v0.5 parity arm — routed
-through the same extraction pass production runs — TIES the kernel at
-42/44 with the same two findings: on dry behavior probes, the deployed
-memory is already this good, because the injection boundary and
-supersession live in the extraction pass both share. What the kernel
-adds is not visible to these probes: the typed admission gate (closing
-the raw-door writer class), evidence-time provenance, and briefing v1
-attribution. The deliberately ungoverned baseline passes 33/44 —
-that 9-probe gap is what the shared boundary is worth. See [the
+both conflicting facts current), plus `shared-standup-08`: background
+extraction cannot mark a fact shared because sharing requires a separate
+explicit user ratification. The preserved deployed v0.5 parity arm remains
+at 42/44 with the first two findings; its extra point comes from accepting
+the scripted shared flag without that authority boundary. The deliberately
+ungoverned baseline passes 33/44. The governed kernel's value is the typed
+admission gate, source-document boundary, private scope, evidence-time
+provenance, and briefing attribution—not a larger dry score. See [the
 J1.2 authoring guide](docs/JOURNEY-BANK.md) for the fixture and scoring
 rules, and [the J3 preparation
 runbook](docs/BAKEOFF-J3-PREP.md) for the founder-gated live comparison.

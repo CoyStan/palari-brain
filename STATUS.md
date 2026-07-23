@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J3 ENGINEERING REPAIR — CYCLE 1 COMPLETE; CYCLE 2 NEXT
+Loop state: J3 ENGINEERING REPAIR — CYCLE 2 PRE-RUN FROZEN
 (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
@@ -86,8 +86,16 @@ session itself).
     Its full local transcript, checkpoint, ledger, reports, artifact manifest,
     and prediction grade are preserved under gitignored `evals/results/`.
     No live score entered git or was published. The run is closed.
-  - [ ] J3-H2 — `j3-live-v3`: grade H1 first, make the smallest
-    evidence-backed repair, preregister, verify, and run once.
+  - [ ] J3-H2 — PRE-RUN FROZEN 2026-07-23 (`this commit`).
+    `j3-live-v3`: the complete H1 evidence was graded locally; the smallest
+    causal extraction, replay-time, answer, and live-oracle repairs are
+    independently reviewed, preregistered, and offline-verified. Exact config
+    SHA-256 `cb66470dd6990174b6d84d360591b685fcf7025deebd7eb426476f2e693d4dcd`;
+    FINAL prediction SHA-256
+    `0b3bb2c39bc32e82264b18383a7037ae59139e443becae6839a024349e854e68`.
+    The governed dry reference is now intentionally 41/44 because background
+    extraction cannot ratify the cross-user standup; the preserved v0.5
+    comparator remains 42/44. No v3 provider call has occurred.
   - [ ] J3-H3 — `j3-live-v4`: grade H2 first, make the smallest
     evidence-backed repair, preregister, verify, and run once.
 - [ ] J4 — FOUNDER GATE: not started. The pre-registered decision rule
@@ -96,10 +104,10 @@ session itself).
 
 ## Next
 
-J3-H2. Use the graded `j3-live-v2` evidence to make the smallest causal
-repair, obtain independent structural review, freeze and push a fresh
-`j3-live-v3` configuration and FINAL predictions, pass every offline gate,
-then invoke v3 exactly once. Do not resume or rerun v1 or v2; do not start J4.
+J3-H2. Commit and push the reviewed pre-run freeze, then invoke
+`j3-live-v3` exactly once from that pushed cut point. Preserve and locally
+grade its terminal artifacts before any v4 repair. Do not resume or rerun v1
+or v2; do not start J4.
 
 ## Log
 
@@ -161,6 +169,11 @@ green. No v2 provider call occurred.
 completed the planned paired bank, verified the full ignored forensic bundle,
 and graded every FINAL prediction locally. No live score entered git; v2 is
 closed and Next advances to the separately preregistered v3 repair cycle.
+2026-07-23 — J3-H2 pre-run — this commit — Repaired the evidence-supported
+extraction score contract, replay timestamps, Mem0 confidence projection,
+positive answer path, and live abstention oracle; froze exact v3 predictions,
+config, and predecessor hashes. Suite 98/98, dry bake-off, and quickstart
+green; no v3 provider call occurred.
 
 ## Product stop-rule record
 
@@ -408,3 +421,25 @@ closed and Next advances to the separately preregistered v3 repair cycle.
    would get worse? Runtime behavior would not immediately change, but the
    next repair would become guesswork and the paid result could not be
    audited. This is live evaluation evidence under the explicit founder GO.
+
+### J3-H2 pre-run
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? The product extraction
+   contract no longer teaches the model scores that the unchanged admission
+   gate must reject, and explicit zero is no longer promoted to a fallback.
+   The live effect is preregistered and not yet claimed as a result.
+3. Does an existing framework already provide what this unit added? Other
+   frameworks have extraction prompts and evaluators, but none supplies this
+   repository's admission thresholds, replay-time projection, and
+   forbidden-evidence oracle as one replaceable package.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly required minimal self-healing repairs and at least
+   three separately tested live cycles.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Directly stated durable facts could again fail admission because
+   the prompt anchors confidence at zero; the evaluation could also confuse
+   safe visible abstention with irrelevant retrieval or hide poisoned durable
+   evidence. This is one product repair plus the minimum measurement repair
+   needed to test it honestly.

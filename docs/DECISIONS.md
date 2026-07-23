@@ -685,3 +685,38 @@ dates. Agents record; the founder decides.
   raw response, or transcript entered git or was published. This run is
   closed and may not be resumed or rerun; the next authorized work is a fresh,
   separately preregistered `j3-live-v3` repair cycle. J4 remains closed.
+- 2026-07-23 (FOUNDER GO — J3-H2/H3 self-healing continuation, in
+  session) The founder instructed the agent to fix every evidence-supported
+  defect minimally, test after each repair, and complete at least three live
+  cycles before reporting back. This later instruction permits changing
+  product code when retained live evidence identifies the product as the
+  cause; it supersedes the earlier blanket `src/` freeze only to that extent.
+  The cumulative $5 cap, immutable run IDs, preregistration, local-only raw
+  evidence, closed publish gate, and closed J4 gate remain unchanged.
+- 2026-07-23 (J3-H2 evidence repair, before any v3 call) Complete v2
+  transcripts show normal short completions rather than token exhaustion.
+  The smallest causal repair is: remove the kernel extraction prompt's
+  zero-score anchor while preserving explicit numeric zero and explicit-user
+  authority over sharing; replay both arms at authored event time; stop
+  treating Mem0 similarity as factual
+  confidence; clarify the identical positive answer path; and grade visible
+  abstention separately from retrieval emptiness while retaining
+  forbidden-evidence checks for forgetting, injection, and isolation and
+  requiring recalled evidence for any scored answer. Mem0's
+  native prompt, package, search, source serialization, scope filters, and
+  shared-plane behavior remain untouched. No v3 provider call has occurred.
+- 2026-07-23 (J3-H2 pre-run freeze) The kernel-specific extraction policy is
+  now a thin wrapper; the v0.5 comparator imports the preserved prior bytes
+  directly (SHA-256
+  `770889c34c02a4c1f9162318c2b32786f6922ff288924627d681a10f92561a9f`).
+  Background extraction is mechanically private even if a model returns
+  `shared:true`; sharing still requires the gate's explicit-user ratification.
+  This intentionally changes the governed dry reference to 41/44 on
+  `shared-standup-08:p1`, while the frozen bank and v0.5's 42/44 comparator
+  remain unchanged. The exact v3 config SHA-256 is
+  `cb66470dd6990174b6d84d360591b685fcf7025deebd7eb426476f2e693d4dcd`;
+  its FINAL prediction SHA-256 is
+  `0b3bb2c39bc32e82264b18383a7037ae59139e443becae6839a024349e854e68`.
+  Independent structural and adversarial reviews found no remaining paid-run
+  blocker after the authority and no-evidence fixes. The 98-test suite, dry
+  bake-off, and quickstart pass. No v3 provider call has occurred.

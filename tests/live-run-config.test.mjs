@@ -10,6 +10,7 @@ import {
   loadLiveRunConfig,
   validateLiveRunConfig,
 } from '../evals/live-run-config.mjs'
+import { LIVE_ANSWER_SYSTEM_V3 } from '../evals/live-runtime.mjs'
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
@@ -146,6 +147,57 @@ async function makeFixture(t) {
   return { ...fixture, configText }
 }
 
+async function makeV3Fixture(t) {
+  const fixture = await makeFixture(t)
+  const predictionsPath = 'evals/predictions/j3-live-v3.md'
+  const predictionsText = '# FINAL v3 predictions\n'
+  const meterPath = 'evals/results/j3-live-v2/meter.jsonl'
+  const meterText = ''
+  const configPath = join(
+    fixture.repoRoot,
+    'evals',
+    'live-runs',
+    'j3-live-v3.json',
+  )
+  await mkdir(join(fixture.repoRoot, 'evals', 'predictions'), {
+    recursive: true,
+  })
+  await mkdir(join(fixture.repoRoot, 'evals', 'results', 'j3-live-v2'), {
+    recursive: true,
+  })
+  await writeFile(
+    join(fixture.repoRoot, ...predictionsPath.split('/')),
+    predictionsText,
+  )
+  await writeFile(
+    join(fixture.repoRoot, ...meterPath.split('/')),
+    meterText,
+  )
+
+  const config = structuredClone(fixture.config)
+  config.runId = 'j3-live-v3'
+  config.predictions = {
+    path: predictionsPath,
+    sha256: sha256(predictionsText),
+  }
+  config.kernelPromptHash = '5ba10ded111524e2'
+  config.manifest.answerSystem = LIVE_ANSWER_SYSTEM_V3
+  config.budget.predecessors.push({
+    runId: 'j3-live-v2',
+    meterPath,
+    meterSha256: sha256(meterText),
+    accountedUsd: 0,
+  })
+  const configText = `${JSON.stringify(config, null, 2)}\n`
+  await writeFile(configPath, configText)
+  return {
+    ...fixture,
+    config,
+    configPath,
+    configText,
+  }
+}
+
 test('loads a valid v2 config, hashes exact source text, and deeply freezes it', async (t) => {
   const fixture = await makeFixture(t)
 
@@ -178,6 +230,28 @@ test('loads a valid v2 config, hashes exact source text, and deeply freezes it',
     repoRoot: fixture.repoRoot,
   })
   assert.deepEqual(directlyValidated, loaded)
+})
+
+test('loads the reviewed v3 extraction and answer revision without relaxing v2 pins', async (t) => {
+  const fixture = await makeV3Fixture(t)
+  const loaded = await loadLiveRunConfig({
+    repoRoot: fixture.repoRoot,
+    runId: 'j3-live-v3',
+  })
+  assert.equal(loaded.config.kernelPromptHash, '5ba10ded111524e2')
+  assert.equal(loaded.config.manifest.answerSystem, LIVE_ANSWER_SYSTEM_V3)
+
+  const changed = structuredClone(fixture.config)
+  changed.manifest.answerSystem += ' unreviewed'
+  const changedText = `${JSON.stringify(changed, null, 2)}\n`
+  await writeFile(fixture.configPath, changedText)
+  await assert.rejects(
+    loadLiveRunConfig({
+      repoRoot: fixture.repoRoot,
+      runId: 'j3-live-v3',
+    }),
+    { code: 'SERIES_PIN_MISMATCH' },
+  )
 })
 
 test('rejects sealed v1 before attempting to read a config', async (t) => {

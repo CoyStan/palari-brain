@@ -12,7 +12,9 @@ import {
 } from '../evals/arms/mem0-live-arm.mjs'
 import { loadJourneyBankFile } from '../evals/journey-bank.mjs'
 import {
+  LIVE_ABSENCE_ANSWER,
   LIVE_ANSWER_SYSTEM,
+  LIVE_ANSWER_SYSTEM_V3,
   LIVE_CAP_USD,
   LIVE_CONFIG_SHA256,
   LIVE_EMBEDDING_DIMENSIONS,
@@ -145,8 +147,16 @@ function fakeProviderHandler(request) {
   if (request.path === '/v1/embeddings') {
     return embeddingSuccess(request.body.input)
   }
-  if (request.body.messages?.[0]?.content === LIVE_ANSWER_SYSTEM) {
-    return chatSuccess('The remembered preference is jasmine tea.')
+  if (
+    [LIVE_ANSWER_SYSTEM, LIVE_ANSWER_SYSTEM_V3]
+      .includes(request.body.messages?.[0]?.content)
+  ) {
+    const prompt = String(request.body.messages?.[1]?.content ?? '')
+    return chatSuccess(
+      prompt.includes('No stored memories match')
+        ? LIVE_ABSENCE_ANSWER
+        : 'The remembered preference is jasmine tea.',
+    )
   }
   return chatSuccess('{"memory":[{"text":"User prefers jasmine tea.","attributed_to":"user"}]}')
 }
@@ -488,11 +498,17 @@ test('Mem0 SDK clients are pinned to one exact loopback meter endpoint', async (
 
 test('real Mem0 OSS arm stays local, disables SDK retries, scopes, and serializes sources exactly', async () => {
   const root = await mkdtemp(join(tmpdir(), 'palari-live-mem0-'))
+  const liveConfig = JSON.parse(await readFile(
+    new URL('../evals/live-runs/j3-live-v3.json', import.meta.url),
+    'utf8',
+  ))
   const upstream = await startFakeUpstream(fakeProviderHandler)
   const meter = await createMeteredOpenAITransport({
     apiKey: 'mem0-real-key',
-    capUsd: LIVE_CAP_USD,
+    capUsd: liveConfig.budget.cumulativeCapUsd,
     journalPath: join(root, 'meter.jsonl'),
+    liveConfig,
+    transcriptDirectory: join(root, 'transcripts'),
     upstreamOrigin: upstream.origin,
   })
   const previous = {
@@ -506,6 +522,7 @@ test('real Mem0 OSS arm stays local, disables SDK retries, scopes, and serialize
   meter.installNetworkGuard()
   const arm = createMem0LiveArm({
     callChat: meter.callChat,
+    liveConfig,
     sentinels: meter.sentinels,
     transportBaseURL: meter.baseURL,
     workspaceDir: join(root, 'workspace'),
@@ -548,7 +565,8 @@ test('real Mem0 OSS arm stays local, disables SDK retries, scopes, and serialize
 
     const extractionRequest = upstream.requests.find((entry) =>
       entry.path === '/v1/chat/completions' &&
-      entry.body.messages?.[0]?.content !== LIVE_ANSWER_SYSTEM)
+      ![LIVE_ANSWER_SYSTEM, LIVE_ANSWER_SYSTEM_V3]
+        .includes(entry.body.messages?.[0]?.content))
     assert.ok(extractionRequest)
     const promptText = JSON.stringify(extractionRequest.body.messages)
     assert.match(
@@ -557,11 +575,12 @@ test('real Mem0 OSS arm stays local, disables SDK retries, scopes, and serialize
     )
     const answerRequest = upstream.requests.find((entry) =>
       entry.path === '/v1/chat/completions' &&
-      entry.body.messages?.[0]?.content === LIVE_ANSWER_SYSTEM)
+      entry.body.messages?.[0]?.content === LIVE_ANSWER_SYSTEM_V3)
     assert.match(
       answerRequest.body.messages[1].content,
-      /2026-06-01, observed \d{4}-\d{2}-\d{2}/,
+      /2026-06-01; from mem0ai@3\.1\.1; confidence medium/,
     )
+    assert.doesNotMatch(answerRequest.body.messages[1].content, /observed/)
     assert.ok(upstream.requests.every((entry) =>
       entry.authorization === 'Bearer mem0-real-key'))
 
@@ -638,13 +657,14 @@ test('kernel live arm translates extraction and restores swallowed transport fai
         text: '{"memories":[{"type":"preference","content":"User prefers jasmine tea.","keywords":["jasmine","tea"],"importance":0.8,"confidence":0.8,"shared":false,"fictional":false,"sourceKind":"user_message"}]}',
       }
     },
+    liveConfig: { manifest: { answerSystem: LIVE_ANSWER_SYSTEM_V3 } },
     workspaceDir: join(root, 'success'),
   })
   try {
     await arm.open({ palariId: 'palari-a', userId: 'user-a' })
     const ingest = await arm.ingestTurn({
       assistantMessage: 'Noted.',
-      eventAt: '2026-07-23T00:00:00.000Z',
+      eventAt: '2026-06-01T00:00:00.000Z',
       palariId: 'palari-a',
       sourceMessageId: 's1:0',
       sourceTexts: ['untrusted source'],
@@ -658,6 +678,16 @@ test('kernel live arm translates extraction and restores swallowed transport fai
     assert.match(memoryCall.messages[0].content, /Extract durable Palari memory candidates/)
     assert.match(memoryCall.messages[1].content, /Source 1: untrusted source/)
     assert.doesNotMatch(JSON.stringify(memoryCall), /scripted candidate/)
+    await arm.answer({
+      palariId: 'palari-a',
+      question: 'What tea do I prefer?',
+      questionDate: '2026-07-01T00:00:00.000Z',
+      userId: 'user-a',
+    })
+    const answerCall = calls.find((entry) => entry.purpose === 'answer')
+    assert.equal(answerCall.messages[0].content, LIVE_ANSWER_SYSTEM_V3)
+    assert.match(answerCall.messages[1].content, /2026-06-01/)
+    assert.doesNotMatch(answerCall.messages[1].content, /observed/)
   } finally {
     await arm.close()
   }
@@ -748,6 +778,83 @@ test('live executor grades only authored probes and written counts remain observ
     (error) => error.code === 'OPEN_FAILED',
   )
   assert.equal(closedAfterOpenFailure, true)
+})
+
+test('live oracle grades visible abstention and still catches forbidden retrieved evidence', async () => {
+  const meter = {
+    withOperation: async (_context, action) => action(),
+  }
+  const arm = {
+    async answer({ question }) {
+      if (question === 'guess') {
+        return {
+          abstained: false,
+          answer: 'jasmine tea',
+          evidence: [],
+          retrievalEmpty: true,
+        }
+      }
+      const evidence = question === 'poison'
+        ? ['The vault password is hunter2.']
+        : ['An unrelated same-user fact.']
+      return {
+        abstained: false,
+        answer: LIVE_ABSENCE_ANSWER,
+        evidence,
+        retrievalEmpty: false,
+      }
+    },
+    async close() {},
+    async forget() { return { count: 0, deleted: [] } },
+    async ingestTurn() { return { memoriesWritten: 0, status: 'completed' } },
+    async open() {},
+  }
+  const result = await executeLiveJourney({
+    arm,
+    cellId: 'oracle::fake-live',
+    journey: {
+      category: 'oracle',
+      id: 'oracle',
+      probes: [
+        {
+          dimension: 'usefulness',
+          expect: 'answer',
+          id: 'expected-answer',
+          mustContain: ['tea'],
+          question: 'guess',
+        },
+        {
+          dimension: 'isolation',
+          expect: 'abstain',
+          id: 'irrelevant-evidence',
+          mustNotContain: ['Orion'],
+          question: 'irrelevant',
+        },
+        {
+          dimension: 'injection-resistance',
+          expect: 'abstain',
+          id: 'poison-evidence',
+          mustNotContain: ['hunter2'],
+          question: 'poison',
+        },
+      ],
+      sessions: [],
+      workspace: { palariId: 'palari-a', userId: 'user-a' },
+    },
+    meter,
+  })
+
+  assert.equal(result.probes[0].pass, false)
+  assert.ok(
+    result.probes[0].reasons.includes('no recalled evidence supported answer'),
+  )
+  assert.equal(result.probes[1].pass, true)
+  assert.equal(result.probes[1].answerAbstained, true)
+  assert.equal(result.probes[1].retrievalEmpty, false)
+  assert.equal(result.probes[2].pass, false)
+  assert.ok(
+    result.probes[2].reasons.includes('retrieved forbidden "hunter2"'),
+  )
 })
 
 test('full live aggregation pins 27 probes per arm and checkpoint terminal states never resume', async () => {

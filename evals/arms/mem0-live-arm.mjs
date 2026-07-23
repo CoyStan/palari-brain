@@ -10,6 +10,7 @@ import { join } from 'node:path'
 import { buildAnswerPrompt } from '../../src/adapter.mjs'
 import { buildBriefingV1 } from '../../src/recall.mjs'
 import {
+  LIVE_ABSENCE_ANSWER,
   LIVE_ANSWER_SYSTEM,
   LIVE_EMBEDDING_DIMENSIONS,
   LIVE_EMBEDDING_MODEL,
@@ -95,13 +96,14 @@ function mem0Briefing(results, questionDate) {
       memories: results.map((entry) => {
         const evidenceTime = entry.metadata?.palariEventAt ?? entry.createdAt
         return {
-          confidence: Number.isFinite(entry.score) ? entry.score : 0.5,
+          // Mem0's score is search similarity, not factual confidence.
+          confidence: 0.5,
           content: entry.memory,
-          created_at: entry.createdAt,
+          created_at: evidenceTime,
           extractor: 'mem0ai@3.1.1',
           id: entry.id,
           importance: 0.5,
-          last_accessed: entry.updatedAt ?? entry.createdAt,
+          last_accessed: evidenceTime,
           rpath: 'recent',
           type: 'working',
           valid_from: evidenceTime,
@@ -267,10 +269,13 @@ export function createMem0LiveArm({
         ],
         purpose: 'answer',
       })
+      const answer = String(response.text)
       return {
-        abstained: results.length === 0,
-        answer: response.text,
+        abstained: answer.trim() === LIVE_ABSENCE_ANSWER,
+        answer,
+        answerAbstained: answer.trim() === LIVE_ABSENCE_ANSWER,
         evidence: results.map((entry) => entry.memory),
+        retrievalEmpty: results.length === 0,
       }
     },
 

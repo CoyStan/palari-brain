@@ -118,6 +118,18 @@ U2 (`docs/KERNEL-API.md`) and the extraction is U3–U5.
   - `node:perf_hooks`.
   - **Provider:** none imported. The LLM is the injected `extractor`
     callback — the founder-gated live seam (U8+).
+- **Local H2 split (2026-07-23):**
+  - `src/v05-memory-extraction.mjs` preserves the previously extracted local
+    baseline bytes exactly (SHA-256
+    `770889c34c02a4c1f9162318c2b32786f6922ff288924627d681a10f92561a9f`);
+    the `v05-current-memory` comparator imports this file directly.
+  - `src/memory-extraction.mjs` is now the small kernel policy wrapper. It
+    delegates source-boundary, contradiction, write, and scheduling behavior
+    to the preserved implementation while repairing score anchors, preserving
+    explicit zero for admission, and mechanically forcing background
+    extraction to remain private until an explicit-user ratification.
+  This split prevents product repairs from silently changing the baseline
+  comparator or overstating byte-identical provenance.
 
 ### 3. `…/workspace-backend/memory-briefing.mjs`
 - **Blob @ baseline:** `69578eb05beb` · **118 lines**

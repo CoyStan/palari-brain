@@ -2,12 +2,12 @@
 // The question-answering path: history -> kernel ingest (through the
 // gate) -> recall -> briefing v1 -> pluggable provider -> answer.
 //
-// The gate-shim below closes the loop promised in U4/U5 notes: the
-// extracted runMemoryExtractionPass (baseline, verbatim) writes via a
+// The gate-shim below closes the loop promised in U4/U5 notes: the kernel
+// extraction-policy wrapper delegates the preserved v05 pass through a
 // store-shaped shim whose addMemory/supersedeMemory emit typed
-// WriteProposals through gate.propose — the one-gate law holds in
-// the adapter path with zero edits to the baseline file. eventAt is
-// injected per session so every ingested atom is stamped with
+// WriteProposals through gate.propose. The one-gate law holds without
+// changing the separately preserved v05 comparator. eventAt is injected per
+// session so every ingested atom is stamped with
 // evidence time (GAP-4), and extractorId identifies the extractor
 // (GAP-1).
 //

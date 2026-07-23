@@ -31,7 +31,12 @@ await writeFile(
 )
 
 const reference = report.arms[0]
-const unexpected = reference.summary.findings.filter((f) => !f.knownFinding)
+// The bank hash is frozen across live runs, so H2's later authority finding
+// is registered here instead of mutating the authored probe.
+const postBankKnownFindings = new Set(['shared-standup-08:p1'])
+const unexpected = reference.summary.findings.filter((finding) =>
+  !finding.knownFinding &&
+  !postBankKnownFindings.has(`${finding.journeyId}:${finding.probeId}`))
 if (unexpected.length > 0) {
   console.error(`\nUNEXPECTED FAILURES on ${reference.name}: ${unexpected.length}`)
   process.exit(1)

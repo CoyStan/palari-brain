@@ -118,7 +118,11 @@ The generic live runner must:
 - stop distinctly on empty output, truncation, malformed provider usage,
   transport exhaustion, or spend/call/token ceilings;
 - write a terminal report and manifest even when the bank is partial; and
-- leave `src/` frozen. These cycles repair the evaluator, not the product.
+- keep product code frozen unless the preceding cycle's retained evidence
+  causally identifies a product defect and the founder has authorized fixing
+  it. The later cycle-2 instruction did so for the extraction score contract;
+  evaluator findings must still be repaired in eval code rather than hidden
+  by changing the product.
 
 Hidden chain-of-thought is not returned by the API and cannot be recorded.
 Only provider-supplied reasoning-token counts are retained.

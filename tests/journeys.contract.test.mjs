@@ -1,8 +1,7 @@
 // J1 contract: the journey bank validates against its schema, and the
-// kernel reference arm's dry baseline is pinned — 42/44 probes pass
-// with exactly two KNOWN findings (temporal-history recall; plain
-// conflicting re-assertions both briefed). A change to either number
-// is a behavior change and must be a deliberate finding, not noise.
+// kernel reference arm's dry baseline is pinned — 41/44 probes pass
+// after background extraction was mechanically denied sharing authority.
+// A change to this number is a deliberate finding, not noise.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
@@ -88,7 +87,7 @@ test('validator rejects malformed journeys', async () => {
   assert.throws(() => loadJourneyBank({ version: 2, journeys: [minimalJourney()] }), /version must be 1/)
 })
 
-test('kernel reference arm: dry baseline is 42/44 with exactly the two known findings', async () => {
+test('kernel reference arm: dry baseline is 41/44 with the authority finding', async () => {
   const raw = await readFile(BANK_URL, 'utf8')
   const bank = loadJourneyBank(raw)
   const report = await runBank([createKernelArm()], bank)
@@ -96,14 +95,29 @@ test('kernel reference arm: dry baseline is 42/44 with exactly the two known fin
   const arm = report.arms[0]
   assert.equal(arm.name, 'palari-brain-kernel')
   assert.equal(arm.summary.totalProbes, 44, '27 probes + 17 written-count checks')
-  assert.equal(arm.summary.passedProbes, 42)
-  assert.equal(arm.summary.failedProbes, 2)
+  assert.equal(arm.summary.passedProbes, 41)
+  assert.equal(arm.summary.failedProbes, 3)
   const findingIds = arm.summary.findings
     .map((f) => `${f.journeyId}:${f.probeId}`)
     .sort()
-  assert.deepEqual(findingIds, ['conflict-cities-05:p2', 'correction-espresso-04:p2'])
-  assert.ok(arm.summary.findings.every((f) => f.knownFinding),
-    'every failure is a documented finding, never an unexplained regression')
+  assert.deepEqual(findingIds, [
+    'conflict-cities-05:p2',
+    'correction-espresso-04:p2',
+    'shared-standup-08:p1',
+  ])
+  assert.ok(
+    arm.summary.findings
+      .filter((finding) => finding.journeyId !== 'shared-standup-08')
+      .every((finding) => finding.knownFinding),
+    'the two frozen bank findings remain documented',
+  )
+  assert.deepEqual(
+    arm.summary.findings
+      .find((finding) => finding.journeyId === 'shared-standup-08')
+      ?.reasons,
+    ['expected an answer', 'missing "9:30"'],
+    'background extraction cannot exercise explicit-user sharing authority',
+  )
   // Behavior worth pinning by name: injection drops kept the vault
   // password and the document-set name out of the store entirely.
   const inject = arm.journeys.find((j) => j.journeyId === 'inject-vault-09')

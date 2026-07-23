@@ -8,7 +8,23 @@ import { answerQuestion, ingestChatTurn } from '../../src/adapter.mjs'
 import { createGatedStore } from '../../src/gate.mjs'
 import { buildMemoryExtractionRequest } from '../../src/memory-extraction.mjs'
 import { createKernelStore } from '../../src/store.mjs'
-import { LIVE_ANSWER_SYSTEM, LIVE_MODEL, LiveRunError } from '../live-runtime.mjs'
+import {
+  LIVE_ABSENCE_ANSWER,
+  LIVE_ANSWER_SYSTEM,
+  LIVE_MODEL,
+  LiveRunError,
+} from '../live-runtime.mjs'
+
+function replayDate(value, label) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    throw new LiveRunError(
+      'KERNEL_REPLAY_TIME_MISSING',
+      `Kernel live replay requires a valid ${label} timestamp.`,
+    )
+  }
+  return date
+}
 
 function extractionMessages(turn) {
   const request = buildMemoryExtractionRequest({ turn })
@@ -36,6 +52,7 @@ export function createKernelLiveArm({ callChat, liveConfig, workspaceDir } = {})
   }
   let gated = null
   let palariId = null
+  let replayClock = new Date(0)
   const model = liveConfig?.model?.chat ?? LIVE_MODEL
   const answerSystem = liveConfig?.manifest?.answerSystem ?? LIVE_ANSWER_SYSTEM
   return {
@@ -46,6 +63,7 @@ export function createKernelLiveArm({ callChat, liveConfig, workspaceDir } = {})
       palariId = scope.palariId
       await mkdir(workspaceDir, { recursive: true })
       const store = await createKernelStore({
+        clock: () => new Date(replayClock),
         memoryEnabled: true,
         statePath: join(workspaceDir, 'workspace-state.json'),
         workspaceId: 'j3-live-kernel',
@@ -60,6 +78,7 @@ export function createKernelLiveArm({ callChat, liveConfig, workspaceDir } = {})
     },
 
     async ingestTurn(turn) {
+      replayClock = replayDate(turn.eventAt, 'turn eventAt')
       let providerError = null
       const result = await ingestChatTurn(gated, {
         assistantMessage: turn.assistantMessage,
@@ -97,6 +116,7 @@ export function createKernelLiveArm({ callChat, liveConfig, workspaceDir } = {})
     },
 
     async answer({ palariId: answerPalariId, question, questionDate, userId }) {
+      replayClock = replayDate(questionDate, 'questionDate')
       const result = await answerQuestion(gated, {
         palariId: answerPalariId ?? palariId,
         provider: async ({ prompt }) => {
@@ -113,10 +133,13 @@ export function createKernelLiveArm({ callChat, liveConfig, workspaceDir } = {})
         questionDate,
         userId,
       })
+      const answer = String(result.answer)
       return {
-        abstained: result.abstained,
-        answer: result.answer,
+        abstained: answer.trim() === LIVE_ABSENCE_ANSWER,
+        answer,
+        answerAbstained: answer.trim() === LIVE_ABSENCE_ANSWER,
         evidence: result.included.map((entry) => entry.content),
+        retrievalEmpty: result.abstained,
       }
     },
 
@@ -126,6 +149,7 @@ export function createKernelLiveArm({ callChat, liveConfig, workspaceDir } = {})
       } finally {
         gated = null
         palariId = null
+        replayClock = new Date(0)
       }
     },
   }

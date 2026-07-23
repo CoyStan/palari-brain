@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os'
 import { createKernelStore } from '../src/store.mjs'
 import { createGatedStore } from '../src/gate.mjs'
 import { loadLongMemEvalInstances } from '../src/longmemeval.mjs'
+import { buildMemoryExtractionRequest } from '../src/memory-extraction.mjs'
 import {
   answerQuestion,
   ingestChatTurn,
@@ -163,6 +164,84 @@ test('ingest accounting: provider extraction failures are counted, never mistake
   })
   assert.equal(stats.extractorErrors, stats.turns)
   assert.equal(stats.memoriesWritten, 0)
+})
+
+test('extraction contract uses realistic score anchors and preserves explicit zero confidence', async () => {
+  const request = buildMemoryExtractionRequest({
+    turn: {
+      assistantMessage: 'Noted.',
+      eventAt: '2026-07-18T00:00:00.000Z',
+      palariId: SCOPE.palariId,
+      userId: SCOPE.userId,
+      userMessage: 'I am briefly considering the Halcyon project.',
+    },
+  })
+  const system = request.systemInstruction.parts
+    .map((part) => part.text)
+    .join('\n')
+  assert.doesNotMatch(system, /"importance":0\.0|"confidence":0\.0/)
+  assert.match(system, /confidence 0\.9 for an explicit direct user statement/)
+  assert.match(system, /Always set shared=false/)
+
+  const { gated } = await openWorkspace('adapter-zero-confidence')
+  try {
+    const result = await ingestChatTurn(gated, {
+      assistantMessage: 'Noted.',
+      eventAt: '2026-07-18T00:00:00.000Z',
+      sourceMessageId: 'zero:0',
+      sourceTexts: [],
+      userMessage: 'I am briefly considering the Halcyon project.',
+      ...SCOPE,
+    }, {
+      extractor: () => ({
+        memories: [{
+          confidence: 0,
+          content: 'User is briefly considering the Halcyon project.',
+          importance: 0,
+          keywords: ['halcyon'],
+          shared: false,
+          sourceKind: 'user_message',
+          type: 'recent_life',
+        }],
+      }),
+      extractorId: 'zero-score-fixture',
+    })
+    assert.equal(result.memoriesWritten, 0)
+
+    const sharedAttempt = await ingestChatTurn(gated, {
+      assistantMessage: 'Noted.',
+      eventAt: '2026-07-18T00:01:00.000Z',
+      sourceMessageId: 'shared:0',
+      sourceTexts: [],
+      userMessage: 'Our company standup is at 9:30.',
+      ...SCOPE,
+    }, {
+      extractor: () => ({
+        memories: [{
+          confidence: 0.9,
+          content: 'Company standup is at 9:30.',
+          importance: 0.7,
+          keywords: ['company', 'standup'],
+          shared: true,
+          sourceKind: 'user_message',
+          type: 'entity',
+        }],
+      }),
+      extractorId: 'shared-flag-fixture',
+    })
+    assert.equal(sharedAttempt.memoriesWritten, 1)
+    const ownerRows = gated.listMemories(SCOPE)
+    const standup = ownerRows.find((row) => row.content.includes('standup'))
+    assert.ok(standup)
+    assert.equal(Boolean(standup.shared), false)
+    const otherUserRows = gated.listMemories({
+      palariId: SCOPE.palariId,
+      userId: 'other-user',
+    })
+    assert.ok(!otherUserRows.some((row) => row.id === standup.id))
+  } finally {
+    gated.close()
+  }
 })
 
 test('injection boundary: source-document instructions cannot mint memories during ingest (C7)', async () => {
