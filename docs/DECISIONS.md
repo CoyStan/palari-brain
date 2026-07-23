@@ -832,3 +832,13 @@ dates. Agents record; the founder decides.
   a valid wrong answer remains a finding, never a retry. No completed question
   is rerun, no configurations are mixed into one score, and the publish gate
   remains closed.
+- 2026-07-23 (FOUNDER GO — J4 Tranche 1) The founder explicitly authorized
+  exactly the first five preordered LongMemEval-S questions under a $2.50
+  cumulative hard cap, followed by a mandatory stop and private report. The
+  cap includes the compatibility smoke request, both providers, and every
+  retry. This GO opens only the J4.2 Palari-only implementation, smoke, and
+  first five questions using `gemini-3.5-flash-lite` for memory writing and
+  answering and the official pinned `gpt-4o-2024-08-06` judge. It does not
+  authorize question 6, any later tranche, Mem0, S-490, rerolls, publication,
+  or announcement. All 60 predictions, the complete execution order, prompts,
+  settings, and code must be FINAL and pushed before the first provider call.

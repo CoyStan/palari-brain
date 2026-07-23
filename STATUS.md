@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4 EXTERNAL VALIDATION — SPEND-FREE PREP COMPLETE;
-STAGE 1 TRANCHE 1 CAP + CREDENTIAL GATE (2026-07-23).
+Loop state: J4 EXTERNAL VALIDATION — TRANCHE 1 FOUNDER GO RECORDED;
+PRE-RUN IMPLEMENTATION (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -131,12 +131,13 @@ session itself).
     later ten-question pauses, cumulative cost forecasts, and fresh GO per
     tranche. No runner was built, no provider was called, and no cap was
     adopted.
-  - [ ] J4.2 — TRANCHE 1 FOUNDER CAP + CREDENTIAL GATE. Exactly five
+  - [ ] J4.2 — TRANCHE 1 FOUNDER GO RECORDED / PRE-RUN. Exactly five
     preordered questions: approximately $0.81 expected, $2.05 conservative,
-    **$2.50 cumulative hard stop** including smoke and retries. Requires
-    explicit adoption of that exact scope and cap, both runtime keys, FINAL
-    predictions for all 60 questions, offline-tested separate J4 adapter,
-    aggregate meter and runner, and clean pushed main.
+    **$2.50 cumulative hard stop** including smoke and retries. The founder
+    adopted that exact scope and cap on 2026-07-23; both runtime keys are
+    available. FINAL predictions for all 60 questions, the offline-tested
+    separate J4 adapter, aggregate meter and runner, and a clean pushed main
+    remain required before the first call.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -149,13 +150,12 @@ session itself).
 
 ## Next
 
-J4.2 TRANCHE 1 FOUNDER CAP + CREDENTIAL GATE. Await explicit authority for
-exactly five questions under a $2.50 cumulative cap. Then build/freeze the
-separate J4 Palari adapter, aggregate meter, staged runner, full-S60 FINAL
-predictions, and per-question circuit breaker; verify from clean pushed main;
-run no more than the authorized tranche and report. Do not resume or rerun U8
-or J3 v1–v4. Do not automatically continue to question 6, run Mem0, start
-S-490, publish a score, or announce a result.
+J4.2 PRE-RUN IMPLEMENTATION. Build/freeze the separate J4 Palari adapter,
+aggregate meter, staged runner, full-S60 FINAL predictions, and per-question
+circuit breaker; verify from clean pushed main; run the in-cap smoke and no
+more than the authorized first five questions; then report and stop. Do not
+resume or rerun U8 or J3 v1–v4. Do not automatically continue to question 6,
+run Mem0, start S-490, publish a score, or announce a result.
 
 ## Log
 
@@ -243,12 +243,16 @@ provider boundary, public Mem0 evidence caveat, reproducible $9.97/$25.14
 forecast, and proposed $30 hard stop. No provider was called; suite 115/115,
 dry bake-off, and quickstart are green; Next is the exact Stage 1 cap and
 credential gate.
-2026-07-23 — J4.1a — this commit — Replaced the uninterrupted S-60 plan with
+2026-07-23 — J4.1a — 5c44380 — Replaced the uninterrupted S-60 plan with
 a pinned per-question circuit-breaker requirement and mandatory 5, then
 10-question founder pauses; pinned cross-type order and
 $2.50/$7.50/$12.50/$17.50/$22.50/$27.50/$30 cumulative proposed caps. No
 provider was called; suite 116/116, dry bake-off, and quickstart are green;
 Next is exact five-question/$2.50 authority.
+2026-07-23 — J4.2 GO — this commit — Recorded the founder's exact first-five
+LongMemEval-S authority and cumulative $2.50 cap, including both providers,
+the compatibility smoke, and retries. Both runtime credentials are available;
+no provider was called. Next is the frozen, tested, pushed pre-run cut point.
 
 ## Product stop-rule record
 
