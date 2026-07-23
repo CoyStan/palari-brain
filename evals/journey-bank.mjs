@@ -61,6 +61,14 @@ export function validateJourney(j) {
     for (const t of s.turns) {
       if (t.role !== 'user' && t.role !== 'assistant') fail(j.id, `bad role ${t.role}`)
       if (!nonEmpty(t.content)) fail(j.id, 'turn content required')
+      if ((t.asUserId !== undefined || t.asPalariId !== undefined) && t.role !== 'user') {
+        fail(j.id, 'actor overrides only on user turns')
+      }
+      for (const field of ['asUserId', 'asPalariId']) {
+        if (t[field] !== undefined && !nonEmpty(t[field])) {
+          fail(j.id, `turn ${field} must be a non-empty string`)
+        }
+      }
       if (t.expectMemories !== undefined) {
         if (t.role !== 'user') fail(j.id, 'expectMemories only on user turns')
         if (!Array.isArray(t.expectMemories)) fail(j.id, 'expectMemories must be an array')
@@ -88,6 +96,11 @@ export function validateJourney(j) {
     probeIds.add(p.id)
     if (!nonEmpty(p.question)) fail(j.id, `probe ${p.id}: question required`)
     if (!isoDate(p.questionDate)) fail(j.id, `probe ${p.id}: questionDate must be ISO date`)
+    for (const field of ['asUserId', 'asPalariId']) {
+      if (p[field] !== undefined && !nonEmpty(p[field])) {
+        fail(j.id, `probe ${p.id}: ${field} must be a non-empty string`)
+      }
+    }
     if (p.expect !== 'answer' && p.expect !== 'abstain') fail(j.id, `probe ${p.id}: expect must be answer|abstain`)
     if (p.expect === 'abstain' && (p.mustContain ?? []).length > 0) {
       fail(j.id, `probe ${p.id}: abstain probes cannot require mustContain`)

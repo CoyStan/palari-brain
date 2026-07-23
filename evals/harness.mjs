@@ -12,7 +12,7 @@
 //                                  eventAt, sourceMessageId, sourceTexts,
 //                                  candidates, palariId, userId }
 //   arm.forget(topic, { userId })  user-initiated topic deletion
-//   arm.answer({ question, questionDate, userId })
+//   arm.answer({ question, questionDate, palariId, userId })
 //                                  -> { answer: string, abstained: bool }
 //   arm.close()
 
@@ -47,7 +47,7 @@ export async function runJourney(arm, journey) {
           assistantMessage: assistant,
           candidates: turns[i].expectMemories ?? [],
           eventAt: session.eventAt,
-          palariId,
+          palariId: turns[i].asPalariId ?? palariId,
           sourceMessageId: `${session.sessionId}:${i}`,
           sourceTexts: turns[i].sourceTexts ?? [],
           userId: turns[i].asUserId ?? userId,
@@ -72,6 +72,7 @@ export async function runJourney(arm, journey) {
     }
     for (const probe of journey.probes) {
       const result = await arm.answer({
+        palariId: probe.asPalariId ?? palariId,
         question: probe.question,
         questionDate: probe.questionDate,
         userId: probe.asUserId ?? userId,

@@ -47,9 +47,9 @@ export function createKernelArm() {
     async forget(topic, { userId } = {}) {
       return gated.topicForget(topic, { palariId, userId })
     },
-    async answer({ question, questionDate, userId }) {
+    async answer({ palariId: answerPalariId, question, questionDate, userId }) {
       const result = await answerQuestion(gated, {
-        palariId,
+        palariId: answerPalariId ?? palariId,
         provider: stubProvider,
         question,
         questionDate,

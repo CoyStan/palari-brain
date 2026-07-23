@@ -504,6 +504,34 @@
         { "id": "p2", "asUserId": "user-b", "question": "Where is the passport stored?", "questionDate": "2026-06-20T10:01:00.000Z", "expect": "abstain", "mustNotContain": ["blue drawer"], "dimension": "isolation" },
         { "id": "p3", "asUserId": "user-b", "question": "What codename do I use for the launch file?", "questionDate": "2026-06-20T10:02:00.000Z", "expect": "answer", "mustContain": ["Orion"], "dimension": "usefulness" }
       ]
+    },
+    {
+      "id": "palari-scoping-17",
+      "title": "A private work fact stays scoped to its Palari",
+      "category": "isolation",
+      "workspace": { "palariId": "palari-default", "userId": "user-a" },
+      "expectTotalWritten": 1,
+      "sessions": [
+        {
+          "sessionId": "s1",
+          "eventAt": "2026-05-22T09:00:00.000Z",
+          "turns": [
+            {
+              "role": "user",
+              "asPalariId": "palari-a",
+              "content": "I use the Juniper queue for urgent support tickets.",
+              "expectMemories": [
+                { "content": "Uses the Juniper queue for urgent support tickets.", "type": "entity", "keywords": ["juniper", "queue", "support", "tickets"], "confidence": 0.9, "importance": 0.7 }
+              ]
+            },
+            { "role": "assistant", "content": "The Juniper queue is for urgent support, noted." }
+          ]
+        }
+      ],
+      "probes": [
+        { "id": "p1", "asPalariId": "palari-a", "question": "Which queue do I use for urgent support tickets?", "questionDate": "2026-06-22T10:00:00.000Z", "expect": "answer", "mustContain": ["Juniper"], "dimension": "usefulness" },
+        { "id": "p2", "asPalariId": "palari-b", "question": "Which queue do I use for urgent support tickets?", "questionDate": "2026-06-22T10:01:00.000Z", "expect": "abstain", "mustNotContain": ["Juniper"], "dimension": "isolation" }
+      ]
     }
   ]
 }

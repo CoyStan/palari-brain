@@ -41,11 +41,14 @@ session itself).
     J3 runbook, current
     cost envelope, draft per-category predictions, deployment reality,
     and verbatim J4 decision rule. No provider was installed or called.
-  - [x] J2.3 — DONE 2026-07-23 (`this commit`; exact SHA will be
-    backfilled by A1.1). The dry runner now renders the cross-arm
+  - [x] J2.3 — DONE 2026-07-23 (`0ed2787`). The dry runner now renders
+    the cross-arm
     dimension table and per-arm findings to ignored
     `evals/results/bakeoff-dry-report.md`.
-  - [ ] A1.1 — Add explicit Palari-scope journey support and coverage.
+  - [x] A1.1 — DONE 2026-07-23 (`this commit`; exact SHA will be
+    backfilled by A1.2). Added validated user/Palari actor overrides
+    and `palari-scoping-17`; the 17-journey kernel is pinned at 42/44
+    while the ungoverned arm leaks Juniper across the Palari boundary.
   - [ ] A1.2 — Add the v0.5-parity arm.
   - [ ] J2.4 — Publish the honest dry baseline in README and close J2.
 - [ ] J3 — FOUNDER GATE: live bake-off runs. Small spend, all arms,
@@ -79,9 +82,12 @@ source-document and cross-user leaks; all standing gates green.
 2026-07-23 — J2.2 — 9634250 — Prepared the founder-gated live
 runbook and draft predictions with a 92-call, $0.02721 pre-contingency
 estimate and $0.25 proposed cap; installed/called nothing; all gates green.
-2026-07-23 — J2.3 — this commit — Added deterministic Markdown
+2026-07-23 — J2.3 — 0ed2787 — Added deterministic Markdown
 comparison rendering and ignored local report output; suite 53/53 and all
 standing gates green.
+2026-07-23 — A1.1 — this commit — Added explicit per-turn/probe Palari
+scoping and a 17th journey; kernel 42/44, ungoverned 33/44 with the expected
+Juniper scope leak; all standing gates green.
 
 ## Product stop-rule record
 
@@ -173,4 +179,22 @@ standing gates green.
 5. If this unit's code were deleted, what user-visible behavior would get
    worse? Runtime behavior would not immediately change, but the founder would
    lose the comparison artifact used to inspect evidence before J4. This is
+   evaluation infrastructure under the explicitly authorized sequence.
+
+### A1.1
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It did not change the
+   runtime journey; it added a measured guarantee that a work fact for one
+   Palari cannot answer the same user's question to another Palari.
+3. Does an existing framework already provide what this unit added? Frameworks
+   support namespaces and filters, but this bank now measures the deployed
+   app's Palari-specific scope directly and identically across arms.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — parent
+   app recon found multiple live Palari personas, and Amendment A1 explicitly
+   requires this journey.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Runtime behavior would not immediately change, but a cross-Palari
+   disclosure regression could pass the bake-off unnoticed. This remains
    evaluation infrastructure under the explicitly authorized sequence.
