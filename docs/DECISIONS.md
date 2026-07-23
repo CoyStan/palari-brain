@@ -637,3 +637,29 @@ dates. Agents record; the founder decides.
   requires a separately versioned, explicitly founder-authorized,
   cost-capped, and pre-registered unit; the existing FINAL predictions
   remain immutable. J4 remains closed pending founder direction.
+- 2026-07-23 (FOUNDER GO — J3 engineering repair, in session)
+  **Three fresh self-healing live cycles are authorized.** Run
+  `j3-live-v2`, `j3-live-v3`, and `j3-live-v4` as separately configured,
+  pre-registered, one-shot cycles; never resume or rerun closed
+  `j3-live-v1`. Fix only what the preceding evidence supports, run the full
+  offline verification battery before every live invocation, retain complete
+  raw transcripts and terminal artifacts under gitignored `evals/results/`,
+  and use independent agents when a module or structure must be reconsidered.
+  The combined conservative spend cap is **$5.00 USD**, inclusive of
+  `j3-live-v1`'s $0.01897402 accounted spend. The founder conditionally
+  offered up to $15 only if competitor research first justified a much
+  larger token allowance. Research did not justify that expansion, so it is
+  not adopted. The publish gate remains closed and J4 remains a founder
+  decision after these repair cycles.
+- 2026-07-23 (J3 token-budget repair) The v1 proxy's 500-token extraction
+  allowance was not representative: installed `mem0ai@3.1.1` sets no OpenAI
+  output cap; current Mem0 Python defaults to 2,000; Graphiti 0.29.2 and
+  GPT-5/5.1 Letta 0.16.8 use 16,384; LangMem inherits its caller's model
+  configuration. OpenAI counts invisible reasoning inside
+  `max_completion_tokens`. The first repair therefore freezes `minimal`
+  reasoning, 16,384 extraction tokens, and 2,048 shared-answer tokens for
+  both arms. An increase to 25,000 is allowed only if instrumented output
+  remains ceiling-bound. Letta's 128,000 newer-model full-agent allowance
+  does not justify a $15 ceiling or a 128,000-token standalone extractor.
+  Exact sources and cost arithmetic are recorded in
+  `docs/BAKEOFF-J3-HEALING.md`.

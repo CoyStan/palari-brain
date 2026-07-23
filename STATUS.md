@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J3 LIVE EXECUTION TERMINALLY STOPPED — FOUNDER
-DIRECTION REQUIRED (2026-07-23).
+Loop state: J3 ENGINEERING REPAIR — CYCLE 1 IN PROGRESS
+(2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point,
@@ -10,12 +10,13 @@ three-arm dry bake-off and the paired J3 live adapters. The v2 proof machinery
 (V2-M1 through V2-M2-B) is preserved at git tag `v2-proof-archive`
 and is OUT of the working tree. Read `WE-MESSED-UP.md` for why.
 
-The founder-authorized J3 live runner was invoked once. It stopped
+The first founder-authorized J3 live runner was invoked once. It stopped
 fail-closed before the paired bank completed after a non-retryable
 provider rejection. The durable checkpoint and partial grade remain
 under gitignored `evals/results/`; no live score is committed or
-published. That run is closed: do not resume or rerun it. J4 remains
-unopened.
+published. That run is closed: do not resume or rerun it. The founder has
+now authorized three separately versioned engineering-repair cycles under
+`docs/BAKEOFF-J3-HEALING.md`, with a cumulative $5 cap. J4 remains unopened.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -76,19 +77,24 @@ session itself).
   fail-closed provider-error rule before the paired bank completed.
   Results remain gitignored; no live score entered git. The existing
   run is closed and may not be resumed or rerun.
+- [ ] J3-H — FOUNDER GO 2026-07-23. Three fresh, immutable engineering
+  repair cycles; combined conservative spend capped at $5 including v1.
+  - [ ] J3-H1 — `j3-live-v2`: repair v1's artificial completion ceiling
+    and diagnostic blindness; preregister, verify offline, then run once.
+  - [ ] J3-H2 — `j3-live-v3`: grade H1 first, make the smallest
+    evidence-backed repair, preregister, verify, and run once.
+  - [ ] J3-H3 — `j3-live-v4`: grade H2 first, make the smallest
+    evidence-backed repair, preregister, verify, and run once.
 - [ ] J4 — FOUNDER GATE: not started. The pre-registered decision rule
   cannot be applied mechanically to an incomplete live bank. Any
   direction decision requires a new explicit founder instruction.
 
 ## Next
 
-FOUNDER GATE. The founder must choose whether to close J3 as
-inconclusive and supply an explicit direction, or authorize a
-separately named and versioned live unit. Any new live unit requires
-its own explicit GO, hard spend cap, frozen provider configuration,
-and pre-registered predictions before any call. The existing FINAL
-predictions remain immutable. Do not resume or rerun `j3-live-v1`,
-call a provider, or start J4 without that new authority.
+J3-H1. Implement and offline-verify the generic versioned runner and
+full ignored transcript channel, then freeze and push the
+`j3-live-v2` configuration and FINAL predictions before its one live
+invocation. Do not resume or rerun `j3-live-v1`; do not start J4.
 
 ## Log
 
@@ -136,6 +142,10 @@ bake-off once; it stopped fail-closed before bank completion on a
 non-retryable provider rejection and was partially graded from its
 ignored checkpoint. No live score entered git; the run is closed and
 J4 remains founder-gated.
+2026-07-23 — J3-H GO — this commit — Recorded the founder's three-cycle
+engineering-repair authority, immutable run IDs, cumulative $5 ceiling,
+competitor-calibrated token decision, transcript requirements, and unchanged
+publish/J4 gates; all standing offline checks remain green.
 
 ## Product stop-rule record
 
@@ -323,3 +333,23 @@ J4 remains founder-gated.
    failed. This is evaluation infrastructure. No further
    infrastructure or provider work is authorized before the founder
    gate is resolved.
+
+### J3-H gate record
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No runtime behavior
+   changed; it made the authorized repair cycles bounded, reproducible, and
+   explicit before more live spend.
+3. Does an existing framework already provide what this unit added? Provider
+   and memory-framework defaults informed the token choice, but they do not
+   provide this repository's cumulative budget, immutable run chain, or
+   Palari journey transcripts.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly authorized at least three self-healing cycles, full
+   retained evidence, and a combined spend cap.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Runtime memory would not immediately change, but the next live
+   attempts could repeat v1, exceed the combined cap, or lose the evidence
+   needed to repair the evaluator. This is one authorized infrastructure
+   unit preceding the live evidence work.
