@@ -46,9 +46,11 @@ Sources: [exact package manifest](https://raw.githubusercontent.com/mem0ai/mem0/
 [exact repository license](https://raw.githubusercontent.com/mem0ai/mem0/5e7adc4d1264bb49ab20cf8c70e4807295d77ae2/LICENSE), and
 [npm provenance](https://registry.npmjs.org/-/npm/v1/attestations/mem0ai@3.1.1).
 
-**NOT INSTALLED YET.** J3 uses `mem0ai` only from eval code, so the committed
-package must list it under `devDependencies`, with no production
-`dependencies`. The adapter path is
+**INSTALLED AND REVIEWED, NOT CALLED.** J3 uses `mem0ai` only from eval code,
+and the committed package lists `mem0ai@3.1.1` under `devDependencies`, with
+no production `dependencies`. The install resolved the package's optional
+`better-sqlite3` peer for its local vector store; no additional direct
+dependency was added. The adapter path is
 `evals/arms/mem0-live-arm.mjs`; it is **NOT WRITTEN**. The matching kernel
 adapter will live at `evals/arms/kernel-live-arm.mjs`, and the gated runner at
 `evals/run-bakeoff-live.mjs`; neither exists yet. The official Mem0 Node
@@ -110,8 +112,17 @@ forget directives. For this estimate, budget one extraction or
 memory-processing provider call per user turn per arm and one answer call per
 probe per arm: 49 modeled LLM calls per arm, 98 across two arms. The authored
 user, assistant, and attached-source turn text is 1,811 characters and the
-probe questions are 834 characters, but the estimate deliberately budgets
-much more for system prompts, memory briefings, and structured output.
+probe questions are 834 characters.
+
+Post-install review corrected one pre-install assumption before any provider
+call: `mem0ai@3.1.1` carries a 33,655-character native extraction system
+prompt, and a trivial synthetic offline request serialized to 35,540 UTF-8
+bytes. The former shared 2,000-input-token allowance was therefore not a
+conservative Mem0 bound. The revised estimate separates the kernel and Mem0
+memory calls and reserves 60,000 input tokens for every Mem0 ingest. That is
+deliberately above the installed prompt envelope plus this bank's dynamic
+content: no journey has more than two user turns, and each preceding
+memory-extraction response is itself capped at 500 completion tokens.
 
 Pricing was rechecked at GO time on 2026-07-23 and is unchanged: OpenAI lists
 GPT-5 nano at $0.05 per million input tokens and $0.40 per million output
@@ -123,10 +134,11 @@ tokens on its
 
 | Work | Bank-derived calls | Conservative tokens per call | Budgeted tokens | Cost |
 | --- | ---: | ---: | ---: | ---: |
-| Extraction/memory processing, two arms | 22 × 2 = 44 | 2,000 input + 500 output | 88,000 input + 22,000 output | $0.01320 |
+| Kernel extraction | 22 | 2,000 input + 500 output | 44,000 input + 11,000 output | $0.00660 |
+| Mem0 native memory processing | 22 | 60,000 input + 500 output | 1,320,000 input + 11,000 output | $0.07040 |
 | Probe answers, two arms | 27 × 2 = 54 | 3,000 input + 300 output | 162,000 input + 16,200 output | $0.01458 |
 | Mem0 embedding envelope | (22 × 4) + 27 + 2 = 117 | 500 input | 58,500 input | $0.00117 |
-| **Estimated ceiling before contingency** | **98 modeled LLM + 117 embedding envelopes** | — | — | **$0.02895** |
+| **Estimated ceiling before contingency** | **98 modeled LLM + 117 embedding envelopes** | — | — | **$0.09275** |
 
 The embedding line is a conservative token envelope, not a prediction of 117
 literal HTTP calls: it allows four 500-token envelopes per Mem0 ingest turn,
@@ -134,11 +146,12 @@ one per answer search, and one per forget directive. Mem0 batching, extracted
 memory/entity fan-out, delete cleanup, and SDK retries are data-dependent, so
 the adapter must intercept and measure every OpenAI transport attempt and
 usage record, including Mem0-internal calls. Calls beyond these assumptions
-consume the same hard cap. The revised **$0.02895** ceiling is below the
-founder's $0.10 pre-run stop threshold by **$0.07105**. The authorized
-**$0.25** cap is about 8.64 times the estimate and remains a hard maximum, not
-a target. Retries consume it, and model or package behavior that makes the cap
-unenforceable is a blocker.
+consume the same hard cap. The post-install **$0.09275** ceiling is below the
+founder's $0.10 pre-run stop threshold by **$0.00725**. The authorized
+**$0.25** cap is about 2.70 times the revised estimate and remains a hard
+maximum, not a target. The founder later offered up to $2 if needed; this run
+does not need or adopt that larger allowance. Retries consume the $0.25 cap,
+and model or package behavior that makes the cap unenforceable is a blocker.
 
 ## Deployment reality and J4 consequence
 

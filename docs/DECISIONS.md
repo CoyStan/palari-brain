@@ -609,3 +609,13 @@ dates. Agents record; the founder decides.
   carries a stale MIT label; those packaging inconsistencies do not change
   the permissive verdict, but they remain recorded. This authorizes no
   dependency beyond `mem0ai`, no live score in git, and no publication.
+- 2026-07-23 (J3 post-install cost correction) The installed
+  `mem0ai@3.1.1` native extraction prompt is 33,655 characters, and a trivial
+  synthetic offline request serialized to 35,540 UTF-8 bytes. The
+  pre-install 2,000-input-token allowance was not conservative for Mem0.
+  Reserving 60,000 input tokens for each of the bank's 22 Mem0 ingest calls
+  raises the pre-contingency ceiling from $0.02895 to **$0.09275**, still
+  $0.00725 below the founder's $0.10 stop threshold. The founder later
+  offered up to $2 if needed; it is not needed or adopted. The operational
+  hard cap remains the pre-registered **$0.25**, and no provider call
+  participated in this correction.
