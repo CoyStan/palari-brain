@@ -27,16 +27,22 @@ session itself).
     the two unchanged known findings (`correction-espresso-04:p2`,
     `conflict-cities-05:p2`). Suite 51/51; `npm run bakeoff` and
     `npm run quickstart` green.
-  - [x] J1.2 — DONE 2026-07-23 (`this commit`; exact SHA will be
-    backfilled by J2.1). `docs/JOURNEY-BANK.md` now documents the
+  - [x] J1.2 — DONE 2026-07-23 (`5906873`).
+    `docs/JOURNEY-BANK.md` now documents the
     actual schema, eight scoring dimensions, authoring rules,
     dry/live boundary, and pinned baseline.
-- [ ] J2 — Bake-off harness completion, dry (per BAKEOFF-CONTRACT
-  J2.1-J2.4): ungoverned-baseline contrast arm with pinned leak
-  results, docs/BAKEOFF-J3-PREP.md + DRAFT predictions file,
-  markdown report renderer writing to gitignored evals/results/,
-  README + STATUS close-out. No live calls, no dependencies, src/
-  frozen.
+- [~] J2 — Bake-off harness completion, dry.
+  - [x] J2.1 — DONE 2026-07-23 (`this commit`; exact SHA will be
+    backfilled by J2.2). Added the `ungoverned-baseline` contrast arm
+    and pinned it at 31/41: all usefulness checks pass, while ten
+    checks expose correction, injection-boundary, and user-isolation
+    failures including `hunter2`, `Admin`, and cross-user facts.
+  - [ ] J2.2 — Prepare the founder-gated live runbook and draft
+    predictions; do not install or execute live providers.
+  - [ ] J2.3 — Add the dry Markdown report renderer.
+  - [ ] A1.1 — Add explicit Palari-scope journey support and coverage.
+  - [ ] A1.2 — Add the v0.5-parity arm.
+  - [ ] J2.4 — Publish the honest dry baseline in README and close J2.
 - [ ] J3 — FOUNDER GATE: live bake-off runs. Small spend, all arms,
   pre-registered predictions appended to evals/predictions.md first.
   Prepared by the agent; executed only on an explicit founder GO.
@@ -59,9 +65,12 @@ to BAKEOFF-CONTRACT.md.
 2026-07-23 — J1.1 — eebdb91 — Extended the bank to 16 journeys
 and 25 probes; pinned the kernel at 39/41 with exactly the two
 unchanged known findings; suite 51/51, bakeoff and quickstart green.
-2026-07-23 — J1.2 — this commit — Documented the validated journey
+2026-07-23 — J1.2 — 5906873 — Documented the validated journey
 schema, all eight score dimensions, authoring rules, dry/live boundary,
 and the pinned 39/41 kernel baseline; all standing gates green.
+2026-07-23 — J2.1 — this commit — Added and pinned the deliberately
+ungoverned shared-memory arm at 31/41; its ten failures concretely expose
+source-document and cross-user leaks; all standing gates green.
 
 ## Product stop-rule record
 
@@ -101,3 +110,21 @@ and the pinned 39/41 kernel baseline; all standing gates green.
    could author invalid or misleading journeys without a standalone guide.
    This is the second evaluation-infrastructure unit in a row; continuation
    is authorized by the higher-priority founder-ratified bake-off sequence.
+
+### J2.1
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It did not change the
+   runtime journey; it made the value of the existing write and scope gates
+   measurable against a 31/41 naive baseline.
+3. Does an existing framework already provide what this unit added? Memory
+   frameworks have benchmarks, but none provides this repository's exact
+   same-bank, intentionally ungoverned local contrast.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder-ratified contract requires this contrast before any live spend.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Runtime behavior would not immediately change, but the repository
+   would lose direct evidence that its gate prevents document injection and
+   user-scope leaks. This is evaluation infrastructure; continued execution
+   remains explicitly authorized by the founder-ratified task sequence.

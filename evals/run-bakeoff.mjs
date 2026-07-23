@@ -11,10 +11,11 @@ import { dirname, join } from 'node:path'
 import { loadJourneyBankFile } from './journey-bank.mjs'
 import { runBank, renderReportLines } from './harness.mjs'
 import { createKernelArm } from './arms/kernel-arm.mjs'
+import { createUngovernedArm } from './arms/ungoverned-arm.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const bank = await loadJourneyBankFile(join(here, 'journeys.json'))
-const arms = [createKernelArm()]
+const arms = [createKernelArm(), createUngovernedArm()]
 
 const report = await runBank(arms, bank)
 for (const line of renderReportLines(report)) console.log(line)
