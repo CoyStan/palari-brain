@@ -42,6 +42,7 @@ import {
 import {
   J4LiveError,
   createJ4MeteredTransport,
+  reconcileJ4Ledger,
 } from './longmemeval-live-meter.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -202,12 +203,15 @@ export function buildJ4ImmutableIdentity({
   datasetSha256,
   predictionsSha256,
 } = {}) {
+  const openingAccountedUsd = Number(config?.predecessor?.accountedUsd)
   if (!config || !/^[a-f0-9]{64}$/.test(String(configSha256 ?? '')) ||
     !/^[a-f0-9]{64}$/.test(String(datasetSha256 ?? '')) ||
-    !/^[a-f0-9]{64}$/.test(String(predictionsSha256 ?? ''))) {
+    !/^[a-f0-9]{64}$/.test(String(predictionsSha256 ?? '')) ||
+    !Number.isFinite(openingAccountedUsd) ||
+    openingAccountedUsd < 0) {
     throw new J4LiveError(
       'IDENTITY_INPUT_INVALID',
-      'J4 immutable identity requires config, dataset, and prediction hashes.',
+      'J4 immutable identity requires config, dataset, prediction, and opening-spend provenance.',
     )
   }
   const artifacts = (config.artifacts ?? []).map((entry) => ({
@@ -220,6 +224,8 @@ export function buildJ4ImmutableIdentity({
     datasetSha256,
     executionOrderSha256: config.population.executionOrderSha256,
     models: clone(config.models),
+    openingAccountedUsd,
+    predecessor: clone(config.predecessor),
     predictionsSha256,
     runId: config.runId,
     schemaVersion: 1,
@@ -755,6 +761,192 @@ export async function verifyJ4ArtifactManifest(runDir) {
   return manifest
 }
 
+function repositoryEvidencePath(repoRoot, path, label) {
+  if (typeof path !== 'string' ||
+    !path ||
+    path.startsWith('/') ||
+    path.includes('\\') ||
+    path.split('/').some((segment) =>
+      !segment || segment === '.' || segment === '..')) {
+    throw new J4LiveError(
+      'PREDECESSOR_PATH_INVALID',
+      `J4 predecessor ${label} is not a safe repository-relative path.`,
+    )
+  }
+  const root = resolve(repoRoot)
+  const absolute = resolve(root, path)
+  const fromRoot = relative(root, absolute)
+  if (!fromRoot ||
+    fromRoot === '..' ||
+    fromRoot.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`)) {
+    throw new J4LiveError(
+      'PREDECESSOR_PATH_INVALID',
+      `J4 predecessor ${label} escapes the repository.`,
+    )
+  }
+  return absolute
+}
+
+function assertPinnedSha256(value, label) {
+  if (!/^[a-f0-9]{64}$/.test(String(value ?? ''))) {
+    throw new J4LiveError(
+      'PREDECESSOR_SCHEMA',
+      `J4 predecessor ${label} must be one SHA-256.`,
+    )
+  }
+}
+
+function sameUsd(left, right) {
+  return Number.isFinite(Number(left)) &&
+    Number.isFinite(Number(right)) &&
+    Math.abs(Number(left) - Number(right)) <= 1e-12
+}
+
+export async function verifyJ4PredecessorBundle({
+  predecessor,
+  repoRoot = J4_REPO_ROOT,
+} = {}) {
+  if (!predecessor ||
+    typeof predecessor !== 'object' ||
+    Array.isArray(predecessor) ||
+    typeof predecessor.runId !== 'string' ||
+    predecessor.status !== 'failed' ||
+    predecessor.completedQuestions !== 0 ||
+    !Number.isFinite(predecessor.accountedUsd) ||
+    predecessor.accountedUsd < 0) {
+    throw new J4LiveError(
+      'PREDECESSOR_SCHEMA',
+      'J4 replacement-run predecessor metadata is invalid.',
+    )
+  }
+  for (const [field, label] of [
+    ['artifactManifestSha256', 'artifact manifest hash'],
+    ['checkpointSha256', 'checkpoint hash'],
+    ['meterSha256', 'meter hash'],
+  ]) {
+    assertPinnedSha256(predecessor[field], label)
+  }
+  const expectedRoot = `evals/results/${predecessor.runId}`
+  const expectedPaths = {
+    artifactManifestPath: `${expectedRoot}/artifact-manifest.json`,
+    checkpointPath: `${expectedRoot}/checkpoint.json`,
+    meterPath: `${expectedRoot}/meter.jsonl`,
+  }
+  for (const [field, expected] of Object.entries(expectedPaths)) {
+    if (predecessor[field] !== expected) {
+      throw new J4LiveError(
+        'PREDECESSOR_PATH_INVALID',
+        `J4 predecessor ${field} differs from its canonical run path.`,
+      )
+    }
+  }
+
+  const manifestPath = repositoryEvidencePath(
+    repoRoot,
+    predecessor.artifactManifestPath,
+    'artifact manifest',
+  )
+  const checkpointPath = repositoryEvidencePath(
+    repoRoot,
+    predecessor.checkpointPath,
+    'checkpoint',
+  )
+  const meterPath = repositoryEvidencePath(
+    repoRoot,
+    predecessor.meterPath,
+    'meter',
+  )
+  const runDir = dirname(manifestPath)
+  const [manifestMetadata, manifestText, checkpointText, meterText] =
+    await Promise.all([
+      lstat(manifestPath),
+      readFile(manifestPath, 'utf8'),
+      readFile(checkpointPath, 'utf8'),
+      readFile(meterPath, 'utf8'),
+    ])
+  if (!manifestMetadata.isFile() ||
+    manifestMetadata.isSymbolicLink() ||
+    (manifestMetadata.mode & 0o777) !== 0o600) {
+    throw new J4LiveError(
+      'PREDECESSOR_MANIFEST_INVALID',
+      'J4 predecessor artifact manifest must be a mode-0600 regular file.',
+    )
+  }
+  if (sha256(manifestText) !== predecessor.artifactManifestSha256 ||
+    sha256(checkpointText) !== predecessor.checkpointSha256 ||
+    sha256(meterText) !== predecessor.meterSha256) {
+    throw new J4LiveError(
+      'PREDECESSOR_HASH_MISMATCH',
+      'J4 predecessor evidence differs from its frozen hashes.',
+    )
+  }
+
+  let checkpoint
+  try {
+    checkpoint = JSON.parse(checkpointText)
+  } catch (error) {
+    throw new J4LiveError(
+      'PREDECESSOR_CHECKPOINT_INVALID',
+      'J4 predecessor checkpoint is not valid JSON.',
+      { cause: error },
+    )
+  }
+  const completedQuestions = Array.isArray(checkpoint.questions)
+    ? checkpoint.questions.filter((cell) =>
+        cell?.status === 'completed').length
+    : -1
+  if (checkpoint.identity?.runId !== predecessor.runId ||
+    checkpoint.status !== predecessor.status ||
+    checkpoint.smoke?.status !== 'failed' ||
+    completedQuestions !== predecessor.completedQuestions ||
+    checkpoint.questions.some((cell) => cell?.status !== 'pending') ||
+    !sameUsd(checkpoint.meter?.accounted?.usd, predecessor.accountedUsd) ||
+    !sameUsd(checkpoint.meter?.measured?.usd, predecessor.accountedUsd) ||
+    Number(checkpoint.meter?.uncertain?.usd) !== 0) {
+    throw new J4LiveError(
+      'PREDECESSOR_CHECKPOINT_MISMATCH',
+      'J4 predecessor is not the exact terminal failed-smoke, zero-question run.',
+    )
+  }
+
+  const [manifest, ledger] = await Promise.all([
+    verifyJ4ArtifactManifest(runDir),
+    reconcileJ4Ledger(meterPath),
+  ])
+  if (manifest.schemaVersion !== 1 ||
+    manifest.runId !== predecessor.runId ||
+    !Array.isArray(manifest.artifacts) ||
+    !manifest.artifacts.some((entry) =>
+      entry.path === 'checkpoint.json' &&
+      entry.sha256 === predecessor.checkpointSha256) ||
+    !manifest.artifacts.some((entry) =>
+      entry.path === 'meter.jsonl' &&
+      entry.sha256 === predecessor.meterSha256) ||
+    ledger.attempts !== 1 ||
+    ledger.logicalRequests.writer !== 1 ||
+    Object.keys(ledger.logicalRequests).some((purpose) =>
+      purpose !== 'writer') ||
+    ledger.retries.length !== 0 ||
+    !sameUsd(ledger.accounted.usd, predecessor.accountedUsd) ||
+    !sameUsd(ledger.measured.usd, predecessor.accountedUsd) ||
+    ledger.uncertain.usd !== 0) {
+    throw new J4LiveError(
+      'PREDECESSOR_METER_MISMATCH',
+      'J4 predecessor manifest or meter differs from the terminal smoke evidence.',
+    )
+  }
+  return {
+    accountedUsd: predecessor.accountedUsd,
+    artifactManifestSha256: predecessor.artifactManifestSha256,
+    checkpointSha256: predecessor.checkpointSha256,
+    completedQuestions,
+    measuredUsd: predecessor.accountedUsd,
+    meterSha256: predecessor.meterSha256,
+    runId: predecessor.runId,
+    status: predecessor.status,
+  }
+}
+
 export function buildJ4JudgeBody(instance, hypothesis) {
   return {
     max_tokens: LONGMEMEVAL_JUDGE_REQUEST.maxTokens,
@@ -1041,6 +1233,30 @@ export function buildJ4PrivateReport({
   meter,
   results,
 } = {}) {
+  const openingAccountedUsd =
+    Number(checkpoint?.identity?.openingAccountedUsd)
+  const currentAccountedUsd = Number(meter?.accounted?.usd)
+  const currentMeasuredUsd = Number(meter?.measured?.usd)
+  const cumulativeCapUsd =
+    Number(checkpoint?.invocations?.at(-1)?.capUsd)
+  if (![openingAccountedUsd, currentAccountedUsd, currentMeasuredUsd]
+    .every((value) => Number.isFinite(value) && value >= 0)) {
+    throw new J4LiveError(
+      'REPORT_SPEND_INVALID',
+      'J4 report cannot reconcile opening and current-run spend.',
+    )
+  }
+  const combinedAccountedUsd =
+    Number((openingAccountedUsd + currentAccountedUsd).toFixed(12))
+  const combinedMeasuredUsd =
+    Number((openingAccountedUsd + currentMeasuredUsd).toFixed(12))
+  if (Number.isFinite(cumulativeCapUsd) &&
+    combinedAccountedUsd > cumulativeCapUsd + 1e-12) {
+    throw new J4LiveError(
+      'REPORT_SPEND_CAP',
+      'J4 combined predecessor and current-run spend exceeds its cap.',
+    )
+  }
   const missesFirst = [...results].sort((left, right) =>
     Number(left.judge.correct) - Number(right.judge.correct) ||
     left.questionId.localeCompare(right.questionId))
@@ -1067,6 +1283,16 @@ export function buildJ4PrivateReport({
     predictionMisses,
     runId: checkpoint.identity.runId,
     schemaVersion: 1,
+    spend: {
+      combinedAccountedUsd,
+      combinedMeasuredUsd,
+      cumulativeCapUsd: Number.isFinite(cumulativeCapUsd)
+        ? cumulativeCapUsd
+        : null,
+      currentAccountedUsd,
+      currentMeasuredUsd,
+      openingAccountedUsd,
+    },
     status: checkpoint.status,
   }
 }
@@ -1080,8 +1306,10 @@ function renderJ4PrivateReport(report) {
     `- Status: ${report.status}`,
     `- Completed questions: ${report.completedQuestions}`,
     `- Preliminary official accuracy: ${report.officialAccuracy.correct}/${report.officialAccuracy.total}`,
-    `- Accounted spend: $${Number(report.meter?.accounted?.usd ?? 0).toFixed(6)}`,
-    `- Measured spend: $${Number(report.meter?.measured?.usd ?? 0).toFixed(6)}`,
+    `- Opening accounted spend: $${report.spend.openingAccountedUsd.toFixed(7)}`,
+    `- Current-run accounted spend: $${report.spend.currentAccountedUsd.toFixed(7)}`,
+    `- Combined accounted spend: $${report.spend.combinedAccountedUsd.toFixed(7)}`,
+    `- Combined measured spend: $${report.spend.combinedMeasuredUsd.toFixed(7)}`,
     `- Provider retries: ${report.meter?.retries?.length ?? 0}`,
     '',
     '## Misses first',
@@ -1187,7 +1415,10 @@ export async function executeJ4AuthorizedTranche({
   checkpoint.invocations.push({
     administrativeHead,
     authoritySha256,
+    availableCurrentRunCapUsd:
+      invocation.capUsd - checkpoint.identity.openingAccountedUsd,
     capUsd: invocation.capUsd,
+    openingAccountedUsd: checkpoint.identity.openingAccountedUsd,
     startedAt: isoNow(now),
     targetQuestions: invocation.targetQuestions,
   })
@@ -1446,6 +1677,8 @@ export async function main({
     dependencies.createMeteredTransport ?? createJ4MeteredTransport
   const auditTrackedFiles =
     dependencies.auditTrackedFiles ?? auditJ4TrackedFiles
+  const verifyPredecessor =
+    dependencies.verifyPredecessor ?? verifyJ4PredecessorBundle
   const questionRunner =
     dependencies.runQuestion ?? runKernelLongMemEvalQuestion
   const log = dependencies.log ?? console.log
@@ -1519,6 +1752,23 @@ export async function main({
       checkpointSha256: predecessorCheckpointSha256,
       config: loaded.config,
     })
+    const predecessorAudit = await verifyPredecessor({
+      predecessor: loaded.config.predecessor,
+      repoRoot,
+    })
+    if (!sameUsd(
+      predecessorAudit.accountedUsd,
+      checkpoint.identity.openingAccountedUsd,
+    )) {
+      throw new J4LiveError(
+        'PREDECESSOR_OPENING_SPEND_MISMATCH',
+        'J4 predecessor evidence differs from immutable opening spend.',
+      )
+    }
+    checkpoint.predecessorAudit ??= {
+      ...predecessorAudit,
+      completedAt: isoNow(),
+    }
 
     // This is the first point at which either key is read.
     const runtime = assertEnvironment(
@@ -1549,8 +1799,17 @@ export async function main({
     await chmod(paths.transcriptDirectory, 0o700)
 
     await writeCheckpoint(paths, checkpoint)
+    const availableCurrentRunCapUsd =
+      runtime.capUsd - predecessorAudit.accountedUsd
+    if (!Number.isFinite(availableCurrentRunCapUsd) ||
+      availableCurrentRunCapUsd <= 0) {
+      throw new J4LiveError(
+        'PREDECESSOR_SPEND_CAP',
+        'J4 predecessor spend leaves no positive current-run cap.',
+      )
+    }
     const transport = await meterFactory({
-      capUsd: runtime.capUsd,
+      capUsd: availableCurrentRunCapUsd,
       geminiApiKey: runtime.geminiApiKey,
       journalPath: paths.ledgerPath,
       limits: j4Config.j4LimitsForCumulativeQuestions(

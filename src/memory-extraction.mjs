@@ -34,6 +34,7 @@ export {
 const KERNEL_EXTRACTION_SYSTEM = [
   'Extract durable Palari memory candidates from the completed turn.',
   'Return exactly one JSON object with a "memories" array and no other text. Each memory object must contain type, content, keywords, importance, confidence, shared, fictional, and sourceKind.',
+  'Set sourceKind to exactly one of: user_message, source_document, tool_output, web_result.',
   'Choose exactly one type for each memory from: preference, relationship, opinion, entity, life_event, working, project, recent_life, session_summary. Choose by meaning, not list order. The type must be one value, never the whole list or a joined value.',
   'A request or instruction to the assistant is not itself a durable fact.',
   'When a user sentence combines a durable fact with a request to remember it, keep only the factual clause. Omit request and reporting wrappers such as "please remember that", "User stated", "User asked", or "User instructed the assistant".',

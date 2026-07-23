@@ -10,8 +10,9 @@ import {
   chronologicalJ4Sessions,
   runKernelLongMemEvalQuestion,
 } from '../evals/arms/kernel-longmemeval-live-arm.mjs'
+import { buildMemoryExtractionRequest } from '../src/memory-extraction.mjs'
 
-function extraction(content, keyword) {
+function extraction(content, keyword, sourceKind = 'user_message') {
   return JSON.stringify({
     memories: [{
       confidence: 0.9,
@@ -20,7 +21,7 @@ function extraction(content, keyword) {
       importance: 0.8,
       keywords: [keyword],
       shared: false,
-      sourceKind: 'user_message',
+      sourceKind,
       type: 'preference',
     }],
   })
@@ -106,6 +107,36 @@ test('J4 extraction prevalidation rejects malformed or missing memories immediat
   assert.deepEqual(
     assertExactExtractionEnvelope('{"memories":[]}'),
     { memories: [] },
+  )
+})
+
+test('J4 writer prompt and validator share one exact sourceKind vocabulary', () => {
+  const instruction =
+    'Set sourceKind to exactly one of: user_message, source_document, tool_output, web_result.'
+  const request = buildMemoryExtractionRequest({ turn: {} })
+  const systemText = request.systemInstruction.parts
+    .map((part) => String(part.text ?? ''))
+    .join('\n')
+
+  assert.equal(systemText.split(instruction).length - 1, 1)
+  for (const sourceKind of [
+    'user_message',
+    'source_document',
+    'tool_output',
+    'web_result',
+  ]) {
+    assert.equal(
+      assertExactExtractionEnvelope(
+        extraction('User prefers tea.', 'tea', sourceKind),
+      ).memories[0].sourceKind,
+      sourceKind,
+    )
+  }
+  assert.throws(
+    () => assertExactExtractionEnvelope(
+      extraction('User prefers tea.', 'tea', 'user'),
+    ),
+    /invalid frozen field value/,
   )
 })
 

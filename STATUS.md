@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4 EXTERNAL VALIDATION — TRANCHE 1 TERMINAL BEFORE
-QUESTION 1; FOUNDER GATE (2026-07-23).
+Loop state: J4 EXTERNAL VALIDATION — REPLACEMENT TRANCHE 1 PRE-RUN
+FROZEN; LIVE INVOCATION NEXT (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -24,7 +24,11 @@ writer compatibility smoke and stopped fail-closed before question 1 because
 the live candidate violated a frozen extraction enum that the prompt had not
 enumerated. The terminal private bundle remains under gitignored
 `evals/results/`; no benchmark score is committed or published. This run is
-closed and must not be resumed or rerolled.
+closed and must not be resumed or rerolled. The founder authorized a fresh v2
+replacement identity with only the missing `sourceKind` vocabulary added to
+the extraction prompt. Its pre-run contract is frozen and offline-verified;
+the v1 bundle remains immutable, its measured `$0.0004494` is carried against
+the unchanged `$2.50` cumulative cap, and no v2 provider call has occurred.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -151,6 +155,22 @@ session itself).
     private manifest, meter, transcripts, permissions, and credential audit
     verify; no benchmark score exists or entered git. The run is closed and
     cannot be rerun.
+  - [ ] J4.2R — REPLACEMENT TRANCHE 1 AUTHORIZED / PRE-RUN FROZEN
+    2026-07-23 (`this commit`). The fresh `j4-longmemeval-s60-v2` identity
+    adds only the exact four-value `sourceKind` prompt instruction and the
+    mechanical evidence, estimate, versioning, and cumulative-budget changes
+    needed to test it. The v1 tracked inputs and ignored terminal bundle remain
+    hash-pinned and unchanged; all 60 FINAL outcome rows remain byte-identical.
+    Config SHA-256
+    `7f63c0ea2e9e5f4e27e965d60118ce28e6b95e1aa7c74de0784a455d9e38df68`;
+    FINAL prediction SHA-256
+    `ccdf0b9bd8cc12256657c574d3189d6f4aebb9dd5e6e60ee0aaaaee63671714f`.
+    The runner verifies the preserved failed-smoke predecessor before reading
+    keys, charges its `$0.0004494`, gives the fresh meter exactly `$2.4995506`,
+    runs one new compatibility smoke, and cannot execute beyond the same first
+    five questions. Suite 161/161, dry bake-off, quickstart, credential-byte
+    scan, and two independent pre-run audits are green. No v2 provider call
+    has occurred.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -158,20 +178,19 @@ session itself).
     automatic continuation.
   - [ ] J4.4 — SEPARATE EXPANSION GATE. Full distractor-heavy S-490 or a paid
     matched Mem0 run may be considered only if Stage 1 is inconclusive. S-490
-    is approximately $81.62 expected and $205.84 conservative; no cap is
+    is approximately $82.43 expected and $206.92 conservative; no cap is
     proposed or adopted.
 
 ## Next
 
-FOUNDER GATE — J4 REPLACEMENT-RUN DECISION. If the founder wants to continue,
-the minimum honest successor is a new run identity that explicitly enumerates
-the extraction `sourceKind` vocabulary, adds a contract test for that
-instruction, freezes new artifact hashes, reviews the still-FINAL outcome
-predictions against the changed prompt, and carries this terminal smoke's
-measured spend into the successor cumulative budget. A fresh capped GO is
-required before any provider call. Do not delete, reset, resume, or reroll the
-terminal J4 run; do not continue to question 1 or question 6, run Mem0, start
-S-490, publish a score, or announce a result. U8 and J3 v1–v4 remain closed.
+Execute the founder-authorized `j4-longmemeval-s60-v2` exactly once from its
+clean, pushed pre-run cut point: preserve and verify v1; charge its measured
+`$0.0004494`; make one fresh writer compatibility smoke; if that passes, run
+exactly the same first five questions under the fresh `$2.4995506` meter; then
+stop and report against the unchanged `$2.50` cumulative cap. Any terminal
+failure is a finding, not permission to resume or reroll. Do not execute
+question 6 or any later tranche, run Mem0, start S-490, publish a score, or
+announce a result. U8 and J3 v1–v4 remain closed.
 
 ## Log
 
@@ -279,6 +298,12 @@ runner once; its only compatibility smoke exposed an extraction prompt/schema
 mismatch and stopped before question 1. The ignored forensic bundle verifies,
 no benchmark score exists or entered git, and the run is closed at a fresh
 founder gate.
+2026-07-23 — J4.2R pre-run — this commit — Preserved and hash-pinned the
+terminal v1 evidence, added only the exact `sourceKind` vocabulary instruction,
+carried its `$0.0004494` against the `$2.50` cap, froze a fresh v2 identity with
+unchanged prediction rows and exact `$2.4995506` meter, and verified the new
+smoke/five-question boundary. Suite 161/161, dry bake-off, quickstart, secret
+scan, and two independent audits are green; no v2 provider call occurred.
 
 ## Product stop-rule record
 
@@ -701,3 +726,26 @@ founder gate.
    mismatch would have consumed the benchmark workload and produced invalid
    evidence. The circuit breaker prevented that drift and now stops at the
    required founder gate.
+
+### J4.2R replacement pre-run cut point
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? The extractor now tells
+   the model the exact `sourceKind` vocabulary already enforced by the
+   unchanged admission contract. The live effect is preregistered and is not
+   claimed before the replacement run.
+3. Does an existing framework already provide what this unit added? Gemini
+   provides structured generation and LongMemEval provides the benchmark, but
+   neither knows this repository's local admission enum. The product change is
+   one sentence; the remaining work only preserves evidence and budget truth.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly authorized a replacement run with only this prompt fix,
+   preservation of the failed run, its spend carried forward, one smoke, and
+   exactly the same first five questions.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Valid user facts could still be rejected when the extractor invents
+   an undocumented source label, and the paid replacement evidence could
+   silently omit its predecessor spend or reroll the failed run. This is the
+   smallest product contract repair plus the required resumable live-run
+   boundary.

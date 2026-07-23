@@ -25,13 +25,34 @@ import {
   SEALED_U8_QUESTION_IDS,
 } from './longmemeval-plan.mjs'
 
-export const J4_LIVE_RUN_ID = 'j4-longmemeval-s60-v1'
+export const J4_LIVE_RUN_ID = 'j4-longmemeval-s60-v2'
 export const J4_LIVE_CONFIG_PATH =
   `evals/live-runs/${J4_LIVE_RUN_ID}.json`
 export const J4_LIVE_AUTHORITY_PATH =
   `evals/live-runs/${J4_LIVE_RUN_ID}.authority.json`
+export const J4_LIVE_PREDICTIONS_PATH =
+  `evals/predictions/${J4_LIVE_RUN_ID}.json`
 export const J4_GEMINI_MODEL = 'gemini-3.5-flash-lite'
 export const J4_LIVE_RESULTS_ROOT = 'evals/results'
+export const J4_CARRIED_ACCOUNTED_USD = 0.0004494
+export const J4_FRESH_METER_CAP_USD = 2.4995506
+export const J4_REPLACEMENT_PREDECESSOR = Object.freeze({
+  accountedUsd: J4_CARRIED_ACCOUNTED_USD,
+  artifactManifestPath:
+    'evals/results/j4-longmemeval-s60-v1/artifact-manifest.json',
+  artifactManifestSha256:
+    '271c9685ffdd15392d71452a4d7e223958e340266b89d983402d02bced8448ad',
+  checkpointPath:
+    'evals/results/j4-longmemeval-s60-v1/checkpoint.json',
+  checkpointSha256:
+    'f985bdd31e43ca6c9bc4e02c03864f9431e7a72953daba456a3aefaea8cfa215',
+  completedQuestions: 0,
+  meterPath: 'evals/results/j4-longmemeval-s60-v1/meter.jsonl',
+  meterSha256:
+    'e819c456ddf40de85ea73706087fd208f38653a7e597967f0500242c50ba6a90',
+  runId: 'j4-longmemeval-s60-v1',
+  status: 'failed',
+})
 export const J4_PREDICTION_ROWS_SHA256 =
   '12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351'
 export const J4_REQUIRED_ARTIFACT_PATHS = Object.freeze([
@@ -392,6 +413,12 @@ function validatePredictions(value) {
     },
     writer: {
       maxOutputTokens: J4_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
+      sourceKindVocabulary: [
+        'user_message',
+        'source_document',
+        'tool_output',
+        'web_result',
+      ],
       thinkingLevel: J4_GEMINI_GENERATION_LIMITS.thinkingLevel,
     },
   }, 'prediction prompt config')
@@ -399,7 +426,7 @@ function validatePredictions(value) {
     cumulativeHardCapUsd: 2.5,
     date: '2026-07-23',
     document: 'docs/DECISIONS.md',
-    entry: 'FOUNDER GO — J4 Tranche 1',
+    entry: 'FOUNDER GO — J4 replacement run',
     questions: 5,
   }, 'prediction founder decision reference')
   if (value.method?.finalizedBeforeProviderCalls !== true) {
@@ -511,7 +538,7 @@ function validatePredictions(value) {
       'lexical FTS recall with a five-term query limit and no stemming',
     ],
     note:
-      'Finalized before any J4 provider call; outcomes derive from direct-user write-boundary and lexical FTS recall hypotheses.',
+      'Prediction rows were finalized before any J4 provider call and reviewed byte-for-byte unchanged before the v2 replacement run after the vocabulary-only sourceKind prompt fix.',
   }, 'prediction method')
   return value
 }
@@ -524,6 +551,7 @@ function validateConfig(config) {
     'limits',
     'models',
     'population',
+    'predecessor',
     'predictions',
     'pricesUsdPerToken',
     'prompts',
@@ -566,6 +594,11 @@ function validateConfig(config) {
     sealedQuestionIds: SEALED_U8_QUESTION_IDS,
     trancheManifestSha256: J4_STAGED_TRANCHE_MANIFEST_SHA256,
   }, 'population contract')
+  assertEqual(
+    config.predecessor,
+    J4_REPLACEMENT_PREDECESSOR,
+    'replacement predecessor and carried spend',
+  )
   assertEqual(config.tranches, J4_PROPOSED_TRANCHE_GATES, 'tranche gates')
   assertEqual(config.prompts, {
     answerTemplateSha256: j4Sha256(J4_OFFICIAL_FACT_TEMPLATE),
@@ -578,8 +611,7 @@ function validateConfig(config) {
     'prediction reference',
   )
   assertSha(config.predictions.sha256, 'prediction hash')
-  if (config.predictions.path !==
-    'evals/predictions/j4-longmemeval-s60.json') {
+  if (config.predictions.path !== J4_LIVE_PREDICTIONS_PATH) {
     throw new J4ConfigError(
       'CONFIG_MISMATCH',
       'J4 config prediction path differs from the frozen contract.',

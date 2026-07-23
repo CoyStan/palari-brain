@@ -10,10 +10,16 @@ import {
   SEALED_U8_QUESTION_IDS,
 } from '../evals/longmemeval-plan.mjs'
 
-const PREDICTIONS_URL = new URL(
+const V1_PREDICTIONS_URL = new URL(
   '../evals/predictions/j4-longmemeval-s60.json',
   import.meta.url,
 )
+const V2_PREDICTIONS_URL = new URL(
+  '../evals/predictions/j4-longmemeval-s60-v2.json',
+  import.meta.url,
+)
+const V1_PREDICTIONS_SHA256 =
+  '07a262c01efa13697266c4e5d52829b518e9e16076e7b6046c78122ae0011028'
 const ROW_ARRAY_SHA256 =
   '12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351'
 
@@ -21,11 +27,24 @@ function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
 }
 
-async function loadPredictions() {
-  return JSON.parse(await readFile(PREDICTIONS_URL, 'utf8'))
+async function loadPredictions(url = V2_PREDICTIONS_URL) {
+  return JSON.parse(await readFile(url, 'utf8'))
 }
 
-test('J4 S-60 predictions are FINAL, complete, ordered, and U8-free', async () => {
+test('J4 v1 predictions remain byte-for-byte sealed and v2 carries every row unchanged', async () => {
+  const v1Text = await readFile(V1_PREDICTIONS_URL, 'utf8')
+  const v1 = JSON.parse(v1Text)
+  const v2 = await loadPredictions()
+
+  assert.equal(sha256(v1Text), V1_PREDICTIONS_SHA256)
+  assert.deepEqual(v2.predictions, v1.predictions)
+  assert.equal(
+    sha256(JSON.stringify(v1.predictions)),
+    ROW_ARRAY_SHA256,
+  )
+})
+
+test('J4 S-60 v2 predictions are FINAL, complete, ordered, and U8-free', async () => {
   const document = await loadPredictions()
   const rows = document.predictions
   const firstIds = new Set(J4_FIRST_TRANCHE_QUESTION_IDS)
@@ -38,6 +57,7 @@ test('J4 S-60 predictions are FINAL, complete, ordered, and U8-free', async () =
 
   assert.equal(document.schemaVersion, 1)
   assert.equal(document.status, 'FINAL')
+  assert.equal(document.runId, 'j4-longmemeval-s60-v2')
   assert.deepEqual(document.models, {
     writer: 'gemini-3.5-flash-lite',
     answer: 'gemini-3.5-flash-lite',
@@ -47,6 +67,12 @@ test('J4 S-60 predictions are FINAL, complete, ordered, and U8-free', async () =
     writer: {
       maxOutputTokens: 512,
       thinkingLevel: 'MINIMAL',
+      sourceKindVocabulary: [
+        'user_message',
+        'source_document',
+        'tool_output',
+        'web_result',
+      ],
     },
     answer: {
       maxOutputTokens: 256,
@@ -62,13 +88,13 @@ test('J4 S-60 predictions are FINAL, complete, ordered, and U8-free', async () =
   assert.deepEqual(document.decisionReference, {
     date: '2026-07-23',
     document: 'docs/DECISIONS.md',
-    entry: 'FOUNDER GO — J4 Tranche 1',
+    entry: 'FOUNDER GO — J4 replacement run',
     questions: 5,
     cumulativeHardCapUsd: 2.5,
   })
   assert.deepEqual(document.method, {
     finalizedBeforeProviderCalls: true,
-    note: 'Finalized before any J4 provider call; outcomes derive from direct-user write-boundary and lexical FTS recall hypotheses.',
+    note: 'Prediction rows were finalized before any J4 provider call and reviewed byte-for-byte unchanged before the v2 replacement run after the vocabulary-only sourceKind prompt fix.',
     hypotheses: [
       'direct-user write boundary',
       'lexical FTS recall with a five-term query limit and no stemming',
@@ -103,7 +129,7 @@ test('J4 S-60 predictions are FINAL, complete, ordered, and U8-free', async () =
   }
 })
 
-test('J4 S-60 predictions pin totals, failure stages, and the first tranche', async () => {
+test('J4 S-60 v2 predictions pin totals, failure stages, and the first tranche', async () => {
   const document = await loadPredictions()
   const rows = document.predictions
   const correct = rows.filter((row) => row.predictedOfficialCorrect)
@@ -170,7 +196,7 @@ test('J4 S-60 predictions pin totals, failure stages, and the first tranche', as
   )
 })
 
-test('J4 S-60 prediction row serialization is hash-pinned', async () => {
+test('J4 S-60 v2 prediction row serialization is hash-pinned', async () => {
   const document = await loadPredictions()
   const observed = sha256(JSON.stringify(document.predictions))
 

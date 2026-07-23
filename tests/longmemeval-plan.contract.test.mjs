@@ -259,12 +259,12 @@ test('local canonical LongMemEval-S reproduces the pinned J4 manifest', async (t
   )
   assert.deepEqual(
     tranches.map((tranche) => Number(tranche.expectedCumulativeUsd.toFixed(7))),
-    [0.8132255, 2.4489228, 4.1551807, 5.8227683, 7.4936052, 9.1360465, 9.9736455],
+    [0.8212649, 2.4731349, 4.1963962, 5.8805348, 7.5679431, 9.2266519, 10.0725399],
   )
   assert.deepEqual(
     tranches.map((tranche) =>
       Number(tranche.conservativeCumulativeUsd.toFixed(7))),
-    [2.0471537, 6.1650673, 10.4761512, 14.6816991, 18.8939964, 23.0321808, 25.1416396],
+    [2.0578727, 6.1973503, 10.5311052, 14.7587211, 18.9931134, 23.1529878, 25.2734986],
   )
   assert.deepEqual(
     tranches.map((tranche) => tranche.questionIdsSha256),
@@ -380,10 +380,10 @@ test('published J4 estimates are reproducible and maxima match live limits', () 
   const s490Conservative = estimatePalariLongMemEvalCost(J4_S490_STATS, {
     assumptions: J4_CONSERVATIVE_COST_ASSUMPTIONS,
   })
-  assert.equal(Number(s60Expected.totalUsd.toFixed(7)), 9.9736455)
-  assert.equal(Number(s60Conservative.totalUsd.toFixed(7)), 25.1416396)
-  assert.equal(Number(s490Expected.totalUsd.toFixed(7)), 81.6210118)
-  assert.equal(Number(s490Conservative.totalUsd.toFixed(7)), 205.8428606)
+  assert.equal(Number(s60Expected.totalUsd.toFixed(7)), 10.0725399)
+  assert.equal(Number(s60Conservative.totalUsd.toFixed(7)), 25.2734986)
+  assert.equal(Number(s490Expected.totalUsd.toFixed(7)), 82.4311063)
+  assert.equal(Number(s490Conservative.totalUsd.toFixed(7)), 206.9229866)
   assert.deepEqual(s60Expected.calls, {
     gemini: 14_711,
     judge: 60,

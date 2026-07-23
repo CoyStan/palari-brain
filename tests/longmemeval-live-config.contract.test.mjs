@@ -10,18 +10,24 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import {
+  J4_CARRIED_ACCOUNTED_USD,
   J4_GEMINI_ANSWER_GENERATION,
   J4_CUMULATIVE_LIMITS,
+  J4_FRESH_METER_CAP_USD,
   J4_GEMINI_MODEL,
   J4_GEMINI_WRITER_GENERATION,
+  J4_LIVE_AUTHORITY_PATH,
+  J4_LIVE_PREDICTIONS_PATH,
   J4_LIVE_RUN_ID,
   J4_OFFICIAL_FACT_TEMPLATE,
+  J4_REPLACEMENT_PREDECESSOR,
   J4_TRANCHE_1_LIMITS,
   assertJ4LiveEnvironment,
   buildJ4AnswerBody,
   buildJ4AnswerPrompt,
   buildJ4WriterBody,
   j4ExecutionQuestionIds,
+  j4Sha256,
   loadJ4LiveAuthority,
   loadJ4LiveConfig,
 } from '../evals/longmemeval-live-config.mjs'
@@ -31,6 +37,18 @@ import {
 } from '../evals/longmemeval-plan.mjs'
 
 const REPO_ROOT = new URL('..', import.meta.url).pathname
+const J4_V1_CONFIG_SHA256 =
+  '7e3619893e66984e4548c84cb23ab6c097f8372fbd29028b592e99a4f649d5ce'
+const J4_V1_AUTHORITY_SHA256 =
+  '4354ee1f952694c756d0ec4e64d7facbc734456301e58ac2d9a930cb57609c13'
+const J4_V1_PREDICTIONS_SHA256 =
+  '07a262c01efa13697266c4e5d52829b518e9e16076e7b6046c78122ae0011028'
+const J4_V2_CONFIG_SHA256 =
+  '7f63c0ea2e9e5f4e27e965d60118ce28e6b95e1aa7c74de0784a455d9e38df68'
+const J4_V2_AUTHORITY_SHA256 =
+  '51091b6d280c099c32f12e2a75a0e11c85e9690a2dd92cee3c24a5ffc7a4a253'
+const J4_V2_PREDICTIONS_SHA256 =
+  'ccdf0b9bd8cc12256657c574d3189d6f4aebb9dd5e6e60ee0aaaaee63671714f'
 
 test('J4 provider bodies freeze the selected model protocol and official prompt', () => {
   assert.equal(J4_GEMINI_MODEL, 'gemini-3.5-flash-lite')
@@ -164,11 +182,20 @@ test('J4 execution order is complete, U8-free, and starts at the exact gate', ()
 test('J4 administrative authority exactly clamps runtime scope without reading keys', async () => {
   const loaded = await loadJ4LiveAuthority({ repoRoot: REPO_ROOT })
   assert.equal(loaded.authority.runId, J4_LIVE_RUN_ID)
+  assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v2')
   assert.equal(loaded.authority.cumulativeQuestions, 5)
   assert.equal(loaded.authority.cumulativeCapUsd, 2.5)
   assert.equal(loaded.authority.fromCumulativeQuestions, 0)
   assert.equal(loaded.authority.previousCheckpointSha256, null)
-  assert.match(loaded.authoritySha256, /^[a-f0-9]{64}$/)
+  assert.equal(loaded.authoritySha256, J4_V2_AUTHORITY_SHA256)
+  assert.equal(J4_CARRIED_ACCOUNTED_USD, 0.0004494)
+  assert.equal(J4_FRESH_METER_CAP_USD, 2.4995506)
+  assert.equal(
+    Number((
+      loaded.authority.cumulativeCapUsd - J4_CARRIED_ACCOUNTED_USD
+    ).toFixed(7)),
+    J4_FRESH_METER_CAP_USD,
+  )
 
   const config = {
     tranches: [{
@@ -216,22 +243,44 @@ test('J4 administrative authority exactly clamps runtime scope without reading k
   )
 
   const authorityText = await readFile(
-    new URL('../evals/live-runs/j4-longmemeval-s60-v1.authority.json',
-      import.meta.url),
+    new URL(`../${J4_LIVE_AUTHORITY_PATH}`, import.meta.url),
     'utf8',
   )
   assert.doesNotMatch(authorityText, /(?:sk-|AIza|api[_-]?key)/i)
 })
 
-test('J4 real config loads every exact artifact and rejects omission or tampering', async () => {
-  const loaded = await loadJ4LiveConfig({ repoRoot: REPO_ROOT })
-  assert.equal(loaded.config.artifacts.length, 19)
-  assert.equal(
-    loaded.predictionsSha256,
-    '07a262c01efa13697266c4e5d52829b518e9e16076e7b6046c78122ae0011028',
-  )
-  assert.match(loaded.configSha256, /^[a-f0-9]{64}$/)
+test('J4 v1 frozen inputs remain byte-identical after replacement setup', async () => {
+  const [config, authority, predictions] = await Promise.all([
+    readFile(new URL(
+      '../evals/live-runs/j4-longmemeval-s60-v1.json',
+      import.meta.url,
+    )),
+    readFile(new URL(
+      '../evals/live-runs/j4-longmemeval-s60-v1.authority.json',
+      import.meta.url,
+    )),
+    readFile(new URL(
+      '../evals/predictions/j4-longmemeval-s60.json',
+      import.meta.url,
+    )),
+  ])
+  assert.equal(j4Sha256(config), J4_V1_CONFIG_SHA256)
+  assert.equal(j4Sha256(authority), J4_V1_AUTHORITY_SHA256)
+  assert.equal(j4Sha256(predictions), J4_V1_PREDICTIONS_SHA256)
+})
 
+test('J4 v2 real config pins replacement provenance and exact artifacts', async () => {
+  const loaded = await loadJ4LiveConfig({ repoRoot: REPO_ROOT })
+  assert.equal(loaded.config.runId, 'j4-longmemeval-s60-v2')
+  assert.equal(loaded.config.artifacts.length, 19)
+  assert.deepEqual(loaded.config.predecessor, J4_REPLACEMENT_PREDECESSOR)
+  assert.equal(loaded.config.predictions.path, J4_LIVE_PREDICTIONS_PATH)
+  assert.equal(loaded.predictionsSha256, J4_V2_PREDICTIONS_SHA256)
+  assert.equal(loaded.configSha256, J4_V2_CONFIG_SHA256)
+})
+
+test('J4 v2 config rejects omissions and artifact or predecessor tampering', async () => {
+  const loaded = await loadJ4LiveConfig({ repoRoot: REPO_ROOT })
   const temporary = await mkdtemp(join(tmpdir(), 'palari-j4-config-'))
   try {
     const omitted = structuredClone(loaded.config)
@@ -260,6 +309,25 @@ test('J4 real config loads every exact artifact and rejects omission or tamperin
         repoRoot: REPO_ROOT,
       }),
       /tracked artifact changed/,
+    )
+
+    const predecessorTampered = structuredClone(loaded.config)
+    predecessorTampered.predecessor.accountedUsd = 0.0004495
+    const predecessorTamperedPath = join(
+      temporary,
+      'predecessor-tampered.json',
+    )
+    await writeFile(
+      predecessorTamperedPath,
+      `${JSON.stringify(predecessorTampered)}\n`,
+      { mode: 0o600 },
+    )
+    await assert.rejects(
+      loadJ4LiveConfig({
+        configPath: predecessorTamperedPath,
+        repoRoot: REPO_ROOT,
+      }),
+      /replacement predecessor and carried spend/,
     )
   } finally {
     await rm(temporary, { force: true, recursive: true })

@@ -182,7 +182,7 @@ export const J4_S60_STATS = Object.freeze({
   questions: 60,
   sessions: 2_837,
   userTurns: 14_651,
-  writerRequestContentChars: 56_451_611,
+  writerRequestContentChars: 57_770_201,
 })
 
 export const J4_S490_STATS = Object.freeze({
@@ -193,7 +193,7 @@ export const J4_S490_STATS = Object.freeze({
   questions: 490,
   sessions: 23_387,
   userTurns: 120_014,
-  writerRequestContentChars: 461_415_030,
+  writerRequestContentChars: 472_216_290,
 })
 
 function sha256(value) {

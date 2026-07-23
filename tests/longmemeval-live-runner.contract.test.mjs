@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, open, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -37,6 +38,7 @@ import {
   planJ4Invocation,
   runJ4SmokeSuite,
   verifyJ4ArtifactManifest,
+  verifyJ4PredecessorBundle,
 } from '../evals/run-longmemeval-live.mjs'
 
 const TYPES = [
@@ -47,6 +49,40 @@ const TYPES = [
   'single-session-user',
   'temporal-reasoning',
 ]
+const OPENING_ACCOUNTED_USD = 0.0004494
+const VALID_MEMORY_JSON = JSON.stringify({
+  memories: [{
+    confidence: 0.9,
+    content: 'User prefers blue.',
+    fictional: false,
+    importance: 0.8,
+    keywords: ['blue', 'prefer'],
+    shared: false,
+    sourceKind: 'user_message',
+    type: 'preference',
+  }],
+})
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+function syntheticPredecessor() {
+  const runId = 'j4-longmemeval-s60-v1'
+  const root = `evals/results/${runId}`
+  return {
+    accountedUsd: OPENING_ACCOUNTED_USD,
+    artifactManifestPath: `${root}/artifact-manifest.json`,
+    artifactManifestSha256: '1'.repeat(64),
+    checkpointPath: `${root}/checkpoint.json`,
+    checkpointSha256: '2'.repeat(64),
+    completedQuestions: 0,
+    meterPath: `${root}/meter.jsonl`,
+    meterSha256: '3'.repeat(64),
+    runId,
+    status: 'failed',
+  }
+}
 
 function syntheticPopulation() {
   const ids = j4ExecutionQuestionIds()
@@ -130,6 +166,7 @@ function config() {
       executionOrderSha256: 'b'.repeat(64),
       trancheManifestSha256: 'c'.repeat(64),
     },
+    predecessor: syntheticPredecessor(),
     predictions: {
       path: 'evals/predictions/j4-test.json',
     },
@@ -231,6 +268,133 @@ async function makePaths(root) {
   }
 }
 
+async function makePredecessorBundle(root) {
+  const predecessor = syntheticPredecessor()
+  const runDir = join(root, 'evals', 'results', predecessor.runId)
+  await mkdir(runDir, { recursive: true, mode: 0o700 })
+  const usage = {
+    geminiInputTokens: 498,
+    geminiOutputTokens: 120,
+    judgeInputTokens: 0,
+    judgeOutputTokens: 0,
+    usd: 0.00044940000000000003,
+  }
+  const zero = {
+    geminiInputTokens: 0,
+    geminiOutputTokens: 0,
+    judgeInputTokens: 0,
+    judgeOutputTokens: 0,
+    usd: 0,
+  }
+  const checkpointText = `${JSON.stringify({
+    identity: { runId: predecessor.runId },
+    invocations: [{ completedQuestions: 0 }],
+    meter: {
+      accounted: usage,
+      attempts: 1,
+      logicalRequests: { writer: 1 },
+      measured: usage,
+      retries: [],
+      sequence: 2,
+      uncertain: zero,
+    },
+    questions: Array.from({ length: 60 }, (_, index) => ({
+      ordinal: index + 1,
+      status: 'pending',
+    })),
+    schemaVersion: 1,
+    smoke: { status: 'failed' },
+    status: 'failed',
+  }, null, 2)}\n`
+  const requestSha256 = '4'.repeat(64)
+  const transcriptStartedSha256 = '5'.repeat(64)
+  const transcriptSha256 = '6'.repeat(64)
+  const transcriptFile = 'smoke-attempt-1.json'
+  const meterText = [
+    {
+      attempt: 1,
+      attemptId: 'smoke:gemini-writer:attempt:1',
+      cellId: 'j4-compatibility-smoke',
+      endpoint: 'gemini-generate-content',
+      model: J4_GEMINI_MODEL,
+      operationId: 'smoke:gemini-writer',
+      provider: 'gemini',
+      purpose: 'writer',
+      requestSha256,
+      reservation: {
+        geminiInputTokens: 3_136,
+        geminiOutputTokens: 512,
+        judgeInputTokens: 0,
+        judgeOutputTokens: 0,
+        usd: 0.0022208,
+      },
+      schemaVersion: 1,
+      sequence: 1,
+      transcriptFile,
+      transcriptStartedSha256,
+      type: 'attempt_started',
+    },
+    {
+      attemptId: 'smoke:gemini-writer:attempt:1',
+      modelVersion: J4_GEMINI_MODEL,
+      operationId: 'smoke:gemini-writer',
+      outcome: 'success',
+      requestSha256,
+      retryable: false,
+      schemaVersion: 1,
+      sequence: 2,
+      transcriptFile,
+      transcriptSha256,
+      type: 'attempt_terminal',
+      usage,
+      usageDetails: {
+        cachedInputTokens: 0,
+        candidateTokens: 120,
+        thoughtTokens: 0,
+      },
+    },
+  ].map((event) => JSON.stringify(event)).join('\n') + '\n'
+  const checkpointPath = join(runDir, 'checkpoint.json')
+  const meterPath = join(runDir, 'meter.jsonl')
+  await atomicWriteJ4(checkpointPath, checkpointText)
+  await atomicWriteJ4(meterPath, meterText)
+  const artifacts = [
+    {
+      bytes: Buffer.byteLength(checkpointText),
+      mode: '600',
+      path: 'checkpoint.json',
+      sha256: sha256(checkpointText),
+    },
+    {
+      bytes: Buffer.byteLength(meterText),
+      mode: '600',
+      path: 'meter.jsonl',
+      sha256: sha256(meterText),
+    },
+  ]
+  const manifestText = `${JSON.stringify({
+    artifacts,
+    generatedAt: '2026-07-23T00:00:00.000Z',
+    runId: predecessor.runId,
+    schemaVersion: 1,
+  }, null, 2)}\n`
+  await atomicWriteJ4(join(runDir, 'artifact-manifest.json'), manifestText)
+  return {
+    descriptor: {
+      ...predecessor,
+      artifactManifestSha256: sha256(manifestText),
+      checkpointSha256: sha256(checkpointText),
+      meterSha256: sha256(meterText),
+    },
+    paths: {
+      checkpointPath,
+      manifestPath: join(runDir, 'artifact-manifest.json'),
+      meterPath,
+      runDir,
+    },
+  }
+}
+
 function fakeTransport({ judgeText = 'no' } = {}) {
   const state = meterSnapshot()
   let answerCalls = 0
@@ -253,7 +417,7 @@ function fakeTransport({ judgeText = 'no' } = {}) {
         (state.logicalRequests[request.purpose] ?? 0) + 1
       const response = validGeminiResponse(
         request.purpose === 'writer'
-          ? '{"memories":[]}'
+          ? VALID_MEMORY_JSON
           : 'synthetic answer',
       )
       addUsage(response.usage)
@@ -312,6 +476,16 @@ function fakeMainDependencies({
   meterFactory,
   population = syntheticPopulation(),
   runQuestion = runFakeQuestion,
+  verifyPredecessor = async ({ predecessor }) => ({
+    accountedUsd: predecessor.accountedUsd,
+    artifactManifestSha256: predecessor.artifactManifestSha256,
+    checkpointSha256: predecessor.checkpointSha256,
+    completedQuestions: predecessor.completedQuestions,
+    measuredUsd: predecessor.accountedUsd,
+    meterSha256: predecessor.meterSha256,
+    runId: predecessor.runId,
+    status: predecessor.status,
+  }),
 } = {}) {
   const active = config()
   return {
@@ -357,6 +531,7 @@ function fakeMainDependencies({
       return Buffer.from('synthetic canonical dataset')
     },
     runQuestion,
+    verifyPredecessor,
   }
 }
 
@@ -448,6 +623,8 @@ test('immutable evaluation identity excludes administrative head and tranche aut
   assert.deepEqual(first, second)
   assert.equal(first.administrativeHead, undefined)
   assert.equal(first.authoritySha256, undefined)
+  assert.equal(first.openingAccountedUsd, OPENING_ACCOUNTED_USD)
+  assert.deepEqual(first.predecessor, active.predecessor)
 })
 
 test('checkpoint and invocation plan require a contiguous prefix and exact from boundary', () => {
@@ -580,7 +757,7 @@ test('compatibility smoke is exactly one metered Gemini JSON-writer request', as
   const result = await runJ4SmokeSuite({
     async callGemini(request) {
       calls.push(request)
-      return validGeminiResponse()
+      return validGeminiResponse(VALID_MEMORY_JSON)
     },
   })
   assert.equal(calls.length, 1)
@@ -798,6 +975,71 @@ test('exclusive lock and private artifact audit enforce modes and reject secrets
   }
 })
 
+test('replacement preflight verifies the pinned terminal failed-smoke bundle and opening spend', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'palari-j4-predecessor-'))
+  try {
+    const fixture = await makePredecessorBundle(root)
+    const evidence = await verifyJ4PredecessorBundle({
+      predecessor: fixture.descriptor,
+      repoRoot: root,
+    })
+    assert.deepEqual(evidence, {
+      accountedUsd: OPENING_ACCOUNTED_USD,
+      artifactManifestSha256:
+        fixture.descriptor.artifactManifestSha256,
+      checkpointSha256: fixture.descriptor.checkpointSha256,
+      completedQuestions: 0,
+      measuredUsd: OPENING_ACCOUNTED_USD,
+      meterSha256: fixture.descriptor.meterSha256,
+      runId: fixture.descriptor.runId,
+      status: 'failed',
+    })
+
+    await atomicWriteJ4(
+      fixture.paths.checkpointPath,
+      `${await readFile(fixture.paths.checkpointPath, 'utf8')} `,
+    )
+    await assert.rejects(
+      verifyJ4PredecessorBundle({
+        predecessor: fixture.descriptor,
+        repoRoot: root,
+      }),
+      (error) => error.code === 'PREDECESSOR_HASH_MISMATCH',
+    )
+  } finally {
+    await rm(root, { force: true, recursive: true })
+  }
+})
+
+test('replacement preflight rejects nonterminal metadata and unsafe predecessor paths', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'palari-j4-predecessor-bad-'))
+  try {
+    const fixture = await makePredecessorBundle(root)
+    await assert.rejects(
+      verifyJ4PredecessorBundle({
+        predecessor: {
+          ...fixture.descriptor,
+          completedQuestions: 1,
+        },
+        repoRoot: root,
+      }),
+      (error) => error.code === 'PREDECESSOR_SCHEMA',
+    )
+    await assert.rejects(
+      verifyJ4PredecessorBundle({
+        predecessor: {
+          ...fixture.descriptor,
+          checkpointPath: '../checkpoint.json',
+        },
+        repoRoot: root,
+      }),
+      (error) => error.code === 'PREDECESSOR_PATH_INVALID',
+    )
+  } finally {
+    await rm(root, { force: true, recursive: true })
+  }
+})
+
 test('tracked-file audit rejects captured credentials and credential-shaped values', async () => {
   const root = await mkdtemp(join(tmpdir(), 'palari-j4-tracked-audit-'))
   try {
@@ -860,7 +1102,27 @@ test('main passes frozen limits, scrubs provider aliases, and stops at five', as
       meterOptions.limits,
       j4LimitsForCumulativeQuestions(5),
     )
+    assert.equal(
+      meterOptions.capUsd,
+      2.5 - OPENING_ACCOUNTED_USD,
+    )
     assert.equal(outcome.report.completedQuestions, 5)
+    assert.equal(
+      outcome.report.spend.openingAccountedUsd,
+      OPENING_ACCOUNTED_USD,
+    )
+    assert.equal(
+      outcome.report.spend.combinedAccountedUsd,
+      Number((
+        OPENING_ACCOUNTED_USD +
+        outcome.report.spend.currentAccountedUsd
+      ).toFixed(12)),
+    )
+    assert.ok(outcome.report.spend.combinedAccountedUsd <= 2.5)
+    assert.equal(
+      outcome.checkpoint.invocations[0].availableCurrentRunCapUsd,
+      2.5 - OPENING_ACCOUNTED_USD,
+    )
     assert.equal(outcome.checkpoint.questions[5].status, 'pending')
     for (const name of J4_GOOGLE_CREDENTIAL_ALIASES) {
       assert.equal(env[name], J4_DENY_GEMINI_KEY)
@@ -909,6 +1171,53 @@ test('main rejects a checkpointless stale run directory before key capture', asy
         repoRoot: root,
       }),
       (error) => error.code === 'STALE_RUN_DIRECTORY',
+    )
+    assert.equal(secretReads, 0)
+  } finally {
+    await rm(root, { force: true, recursive: true })
+  }
+})
+
+test('main verifies predecessor evidence before either provider key is captured', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-predecessor-'))
+  let secretReads = 0
+  const env = {
+    PALARI_J4_CONFIRM_SPEND: '1',
+    PALARI_J4_CUMULATIVE_QUESTIONS: '5',
+    PALARI_J4_SPEND_CAP_USD: '2.5',
+  }
+  Object.defineProperties(env, {
+    GEMINI_API_KEY: {
+      enumerable: true,
+      get() {
+        secretReads += 1
+        return 'must-not-be-read'
+      },
+    },
+    OPENAI_API_KEY: {
+      enumerable: true,
+      get() {
+        secretReads += 1
+        return 'must-not-be-read'
+      },
+    },
+  })
+  try {
+    await assert.rejects(
+      main({
+        args: ['--run', J4_LIVE_RUN_ID],
+        dependencies: fakeMainDependencies({
+          async verifyPredecessor() {
+            throw Object.assign(
+              new Error('pinned predecessor changed'),
+              { code: 'PREDECESSOR_HASH_MISMATCH' },
+            )
+          },
+        }),
+        env,
+        repoRoot: root,
+      }),
+      (error) => error.code === 'PREDECESSOR_HASH_MISMATCH',
     )
     assert.equal(secretReads, 0)
   } finally {

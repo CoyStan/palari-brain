@@ -875,3 +875,18 @@ dates. Agents record; the founder decides.
   the prompt, contract-test it, freeze new hashes, review predictions against
   the changed prompt, carry forward the measured smoke spend, and receive a
   fresh capped founder GO before any provider call.
+- 2026-07-23 (FOUNDER GO — J4 replacement run) The founder explicitly
+  authorized a fresh `j4-longmemeval-s60-v2` identity, preserving the terminal
+  v1 run, with only the missing extraction `sourceKind` vocabulary made
+  explicit. V2 must use the same models, settings, execution order, unchanged
+  60 prediction rows, one new compatibility smoke, and exactly the same first
+  five benchmark questions, then stop and report. The v1 smoke's measured
+  `$0.0004494` remains charged against the same `$2.50` cumulative hard cap;
+  therefore the fresh v2 meter may account for at most `$2.4995506`, including
+  every retry. The v1 config, authority, predictions, checkpoint, meter,
+  transcript, report, and artifact manifest remain immutable and cannot be
+  deleted, reset, resumed, or rerolled. This GO does not authorize question 6,
+  a later tranche, Mem0, S-490, publication, announcement, or any product or
+  evaluation change beyond the vocabulary-only prompt-contract fix and the
+  mechanical versioning, evidence, estimate, and budget updates required to
+  execute it honestly.
