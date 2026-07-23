@@ -11,7 +11,11 @@ import { tmpdir } from 'node:os'
 import { createKernelStore } from '../src/store.mjs'
 import { createGatedStore } from '../src/gate.mjs'
 import { loadLongMemEvalInstances } from '../src/longmemeval.mjs'
-import { buildMemoryExtractionRequest } from '../src/memory-extraction.mjs'
+import {
+  buildMemoryExtractionRequest,
+  memorySourceBoundaryForCandidate,
+  normalizeMemoryExtractionPayload,
+} from '../src/memory-extraction.mjs'
 import {
   answerQuestion,
   ingestChatTurn,
@@ -180,8 +184,91 @@ test('extraction contract uses realistic score anchors and preserves explicit ze
     .map((part) => part.text)
     .join('\n')
   assert.doesNotMatch(system, /"importance":0\.0|"confidence":0\.0/)
+  assert.doesNotMatch(system, /"type":"[^"]*\|/)
+  assert.doesNotMatch(system, /\["durable","fact"\]/)
   assert.match(system, /confidence 0\.9 for an explicit direct user statement/)
+  assert.match(system, /Choose exactly one type/)
+  assert.match(system, /keep only the factual clause/)
+  assert.match(system, /do not replace durable terms with synonyms/)
+  assert.match(system, /adding the base form of each durable verb/)
   assert.match(system, /Always set shared=false/)
+  assert.throws(
+    () => normalizeMemoryExtractionPayload({
+      memories: [{
+        confidence: 0.9,
+        content: 'User prefers jasmine tea.',
+        importance: 0.8,
+        keywords: ['jasmine', 'tea'],
+        type: 'preference|entity',
+      }],
+    }),
+    /Unsupported extracted memory type/,
+  )
+
+  const exactCity = normalizeMemoryExtractionPayload({
+    memories: [{
+      confidence: 0.9,
+      content: 'User lives in Lisbon these days.',
+      importance: 0.8,
+      keywords: ['Lisbon', 'live'],
+      type: 'life_event',
+    }],
+  }).memories[0]
+  const paraphrasedCity = {
+    ...exactCity,
+    content: 'User currently lives in Lisbon.',
+  }
+  const cityTurn = {
+    sourceTexts: [],
+    userMessage: 'I live in Lisbon these days.',
+  }
+  assert.equal(
+    memorySourceBoundaryForCandidate({
+      candidate: paraphrasedCity,
+      turn: cityTurn,
+    }).write_eligible,
+    false,
+  )
+  assert.equal(
+    memorySourceBoundaryForCandidate({
+      candidate: exactCity,
+      turn: cityTurn,
+    }).write_eligible,
+    true,
+  )
+
+  const allergyTurn = {
+    sourceTexts: [],
+    userMessage: 'I am allergic to penicillin, please remember that.',
+  }
+  assert.equal(
+    memorySourceBoundaryForCandidate({
+      candidate: {
+        confidence: 0.9,
+        content: 'User is allergic to penicillin.',
+        importance: 0.9,
+        keywords: ['allergic', 'penicillin'],
+        sourceKind: 'user_message',
+        type: 'entity',
+      },
+      turn: allergyTurn,
+    }).write_eligible,
+    true,
+  )
+  assert.equal(
+    memorySourceBoundaryForCandidate({
+      candidate: {
+        confidence: 0.9,
+        content: 'User stated: I am allergic to penicillin. Please remember that.',
+        importance: 0.9,
+        keywords: ['allergic', 'penicillin'],
+        sourceKind: 'user_message',
+        type: 'entity',
+      },
+      turn: allergyTurn,
+    }).write_eligible,
+    false,
+  )
 
   const { gated } = await openWorkspace('adapter-zero-confidence')
   try {
@@ -241,6 +328,40 @@ test('extraction contract uses realistic score anchors and preserves explicit ze
     assert.ok(!otherUserRows.some((row) => row.id === standup.id))
   } finally {
     gated.close()
+  }
+
+  const { gated: recallGate } = await openWorkspace('adapter-exact-keywords')
+  try {
+    const result = await ingestChatTurn(recallGate, {
+      assistantMessage: 'Lisbon, noted.',
+      eventAt: '2026-06-20T09:00:00.000Z',
+      sourceMessageId: 'city:0',
+      sourceTexts: [],
+      userMessage: 'I live in Lisbon these days.',
+      ...SCOPE,
+    }, {
+      extractor: () => ({
+        memories: [{
+          confidence: 0.9,
+          content: 'User lives in Lisbon these days.',
+          importance: 0.8,
+          keywords: ['Lisbon', 'live'],
+          shared: false,
+          sourceKind: 'user_message',
+          type: 'life_event',
+        }],
+      }),
+      extractorId: 'exact-wording-fixture',
+    })
+    assert.equal(result.memoriesWritten, 1)
+    const recall = recallGate.recallMemories('What city do I live in?', {
+      ...SCOPE,
+      now: new Date('2026-07-01T10:00:00.000Z'),
+    })
+    assert.ok(recall.memories.some((memory) =>
+      memory.content === 'User lives in Lisbon these days.'))
+  } finally {
+    recallGate.close()
   }
 })
 

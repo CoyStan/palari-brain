@@ -9,10 +9,10 @@ import { createGatedStore } from '../../src/gate.mjs'
 import { buildMemoryExtractionRequest } from '../../src/memory-extraction.mjs'
 import { createKernelStore } from '../../src/store.mjs'
 import {
-  LIVE_ABSENCE_ANSWER,
   LIVE_ANSWER_SYSTEM,
   LIVE_MODEL,
   LiveRunError,
+  isLiveAbsenceAnswer,
 } from '../live-runtime.mjs'
 
 function replayDate(value, label) {
@@ -53,6 +53,7 @@ export function createKernelLiveArm({ callChat, liveConfig, workspaceDir } = {})
   let gated = null
   let palariId = null
   let replayClock = new Date(0)
+  const answerAbstention = liveConfig?.manifest?.answerAbstention
   const model = liveConfig?.model?.chat ?? LIVE_MODEL
   const answerSystem = liveConfig?.manifest?.answerSystem ?? LIVE_ANSWER_SYSTEM
   return {
@@ -134,10 +135,14 @@ export function createKernelLiveArm({ callChat, liveConfig, workspaceDir } = {})
         userId,
       })
       const answer = String(result.answer)
+      const answerAbstained = isLiveAbsenceAnswer(answer, {
+        mode: answerAbstention,
+        question,
+      })
       return {
-        abstained: answer.trim() === LIVE_ABSENCE_ANSWER,
+        abstained: answerAbstained,
         answer,
-        answerAbstained: answer.trim() === LIVE_ABSENCE_ANSWER,
+        answerAbstained,
         evidence: result.included.map((entry) => entry.content),
         retrievalEmpty: result.abstained,
       }

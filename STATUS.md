@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J3 ENGINEERING REPAIR — CYCLE 2 CLOSED, CYCLE 3 NEXT
+Loop state: J3 ENGINEERING REPAIR — CYCLE 3 PRE-RUN FROZEN
 (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
@@ -99,19 +99,25 @@ session itself).
     its terminal ledger, transcript, checkpoint, report, and manifest audits
     pass, and every FINAL prediction was graded locally. Full evidence remains
     gitignored; no live score entered git or was published. V3 is closed.
-  - [ ] J3-H3 — `j3-live-v4`: grade H2 first, make the smallest
-    evidence-backed repair, preregister, verify, and run once.
+  - [ ] J3-H3 — PRE-RUN FROZEN 2026-07-23 (`this commit`).
+    `j3-live-v4`: the complete H2 evidence was graded locally; the smallest
+    extraction-prompt, dated-conflict answer, and order-aware semantic-
+    abstention repairs are independently reviewed, preregistered, and
+    offline-verified. Exact config SHA-256
+    `1ee30c98de735d3f0e0f8de53eea580be968ec4ed2c81d2dea8579668f49851b`;
+    FINAL prediction SHA-256
+    `176783abd50b5c91c9ac5295e86e4e5ad3171a84a4abc517199be2ee6ba70946`.
+    No v4 provider call has occurred.
 - [ ] J4 — FOUNDER GATE: not started. The pre-registered decision rule
   cannot be applied mechanically to an incomplete live bank. Any
   direction decision requires a new explicit founder instruction.
 
 ## Next
 
-J3-H3. From the closed v3 evidence, make only the smallest independently
-reviewed extraction-prompt, dated-conflict answer, and prospective
-semantic-abstention repairs. Freeze a fresh `j3-live-v4` configuration and
-FINAL prediction before any provider call; verify offline, commit, and push
-the cut point. Do not resume or rerun v1, v2, or v3; do not start J4.
+Commit and push the frozen J3-H3 cut point, then invoke `j3-live-v4` exactly
+once. Preserve and audit its complete ignored evidence, grade the immutable
+FINAL predictions with misses first, close the third authorized repair cycle,
+and stop at J4. Do not resume or rerun v1, v2, or v3; do not start J4.
 
 ## Log
 
@@ -182,6 +188,11 @@ green; no v3 provider call occurred.
 completed the paired plan, verified its full ignored forensic bundle, and
 graded every FINAL prediction locally. No live score entered git; v3 is
 closed and Next advances to the fresh preregistered v4 cycle.
+2026-07-23 — J3-H3 pre-run — this commit — Repaired only the v3-supported
+kernel extraction prompt, shared dated-conflict answer instruction, and
+order-aware semantic-absence oracle; froze exact v4 predictions, config, and
+predecessor hashes. Suite 100/100, dry bake-off, and quickstart green; no v4
+provider call occurred.
 
 ## Product stop-rule record
 
@@ -472,3 +483,24 @@ closed and Next advances to the fresh preregistered v4 cycle.
    third repair would lose its causal basis and could weaken sharing or
    injection guarantees merely to improve a number. This is authorized live
    evaluation evidence preceding the final mandatory repair cycle.
+
+### J3-H3 pre-run
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? The product extractor
+   now asks for one valid type, fact-only source-faithful content, and
+   searchable base verbs. The prospective live effect is preregistered and is
+   not claimed as a result before the one-shot run.
+3. Does an existing framework already provide what this unit added? Other
+   frameworks provide extraction prompts and answer policies, but not this
+   repository's unchanged admission/source boundary plus paired, provenance-
+   pinned oracle. The repair remains deliberately prompt-sized.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly required minimal self-healing fixes, independent
+   structural review, and at least three separately tested live cycles.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Direct durable facts could again be rejected because the extractor
+   copied an invalid joined type, retained a request wrapper, or omitted the
+   terms recall needs. The dated-answer and bounded-absence changes are the
+   minimum shared measurement repairs needed to test those facts honestly.

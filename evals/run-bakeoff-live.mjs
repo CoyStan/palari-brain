@@ -917,6 +917,7 @@ export async function main({
             arm,
             cellId: cell.cellId,
             journey,
+            liveConfig,
             meter: transport,
           })
           const resultFile = join('cells', `${safeCellPath(cell.cellId)}.json`)

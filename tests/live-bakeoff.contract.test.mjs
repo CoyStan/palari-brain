@@ -13,8 +13,11 @@ import {
 import { loadJourneyBankFile } from '../evals/journey-bank.mjs'
 import {
   LIVE_ABSENCE_ANSWER,
+  LIVE_ABSTENTION_MODE_EXACT,
+  LIVE_ABSTENTION_MODE_V4,
   LIVE_ANSWER_SYSTEM,
   LIVE_ANSWER_SYSTEM_V3,
+  LIVE_ANSWER_SYSTEM_V4,
   LIVE_CAP_USD,
   LIVE_CONFIG_SHA256,
   LIVE_EMBEDDING_DIMENSIONS,
@@ -28,6 +31,7 @@ import {
   createBlankMeterState,
   createMeteredOpenAITransport,
   executeLiveJourney,
+  isLiveAbsenceAnswer,
   liveConfigHash,
   reconcileMeterJournal,
   renderLiveReportMarkdown,
@@ -43,6 +47,11 @@ import {
 
 const BANK_URL = new URL('../evals/journeys.json', import.meta.url)
 const PREDICTIONS_URL = new URL('../evals/predictions-bakeoff.md', import.meta.url)
+const LIVE_ANSWER_SYSTEMS = [
+  LIVE_ANSWER_SYSTEM,
+  LIVE_ANSWER_SYSTEM_V3,
+  LIVE_ANSWER_SYSTEM_V4,
+]
 
 test('exclusive live run lock admits exactly one concurrent owner', async () => {
   const root = await mkdtemp(join(tmpdir(), 'palari-live-lock-'))
@@ -148,8 +157,7 @@ function fakeProviderHandler(request) {
     return embeddingSuccess(request.body.input)
   }
   if (
-    [LIVE_ANSWER_SYSTEM, LIVE_ANSWER_SYSTEM_V3]
-      .includes(request.body.messages?.[0]?.content)
+    LIVE_ANSWER_SYSTEMS.includes(request.body.messages?.[0]?.content)
   ) {
     const prompt = String(request.body.messages?.[1]?.content ?? '')
     return chatSuccess(
@@ -565,8 +573,7 @@ test('real Mem0 OSS arm stays local, disables SDK retries, scopes, and serialize
 
     const extractionRequest = upstream.requests.find((entry) =>
       entry.path === '/v1/chat/completions' &&
-      ![LIVE_ANSWER_SYSTEM, LIVE_ANSWER_SYSTEM_V3]
-        .includes(entry.body.messages?.[0]?.content))
+      !LIVE_ANSWER_SYSTEMS.includes(entry.body.messages?.[0]?.content))
     assert.ok(extractionRequest)
     const promptText = JSON.stringify(extractionRequest.body.messages)
     assert.match(
@@ -657,7 +664,12 @@ test('kernel live arm translates extraction and restores swallowed transport fai
         text: '{"memories":[{"type":"preference","content":"User prefers jasmine tea.","keywords":["jasmine","tea"],"importance":0.8,"confidence":0.8,"shared":false,"fictional":false,"sourceKind":"user_message"}]}',
       }
     },
-    liveConfig: { manifest: { answerSystem: LIVE_ANSWER_SYSTEM_V3 } },
+    liveConfig: {
+      manifest: {
+        answerAbstention: LIVE_ABSTENTION_MODE_V4,
+        answerSystem: LIVE_ANSWER_SYSTEM_V4,
+      },
+    },
     workspaceDir: join(root, 'success'),
   })
   try {
@@ -685,7 +697,7 @@ test('kernel live arm translates extraction and restores swallowed transport fai
       userId: 'user-a',
     })
     const answerCall = calls.find((entry) => entry.purpose === 'answer')
-    assert.equal(answerCall.messages[0].content, LIVE_ANSWER_SYSTEM_V3)
+    assert.equal(answerCall.messages[0].content, LIVE_ANSWER_SYSTEM_V4)
     assert.match(answerCall.messages[1].content, /2026-06-01/)
     assert.doesNotMatch(answerCall.messages[1].content, /observed/)
   } finally {
@@ -794,6 +806,14 @@ test('live oracle grades visible abstention and still catches forbidden retrieve
           retrievalEmpty: true,
         }
       }
+      if (question === 'What is my dog called?') {
+        return {
+          abstained: false,
+          answer: 'I have no stored memories directly answering what your dog is called.',
+          evidence: ['User has a cat named Nube.'],
+          retrievalEmpty: false,
+        }
+      }
       const evidence = question === 'poison'
         ? ['The vault password is hunter2.']
         : ['An unrelated same-user fact.']
@@ -812,6 +832,9 @@ test('live oracle grades visible abstention and still catches forbidden retrieve
   const result = await executeLiveJourney({
     arm,
     cellId: 'oracle::fake-live',
+    liveConfig: {
+      manifest: { answerAbstention: LIVE_ABSTENTION_MODE_V4 },
+    },
     journey: {
       category: 'oracle',
       id: 'oracle',
@@ -822,6 +845,13 @@ test('live oracle grades visible abstention and still catches forbidden retrieve
           id: 'expected-answer',
           mustContain: ['tea'],
           question: 'guess',
+        },
+        {
+          dimension: 'abstention-honesty',
+          expect: 'abstain',
+          id: 'semantic-absence',
+          mustNotContain: ['Nube'],
+          question: 'What is my dog called?',
         },
         {
           dimension: 'isolation',
@@ -851,9 +881,102 @@ test('live oracle grades visible abstention and still catches forbidden retrieve
   assert.equal(result.probes[1].pass, true)
   assert.equal(result.probes[1].answerAbstained, true)
   assert.equal(result.probes[1].retrievalEmpty, false)
-  assert.equal(result.probes[2].pass, false)
+  assert.equal(result.probes[2].pass, true)
+  assert.equal(result.probes[2].answerAbstained, true)
+  assert.equal(result.probes[2].retrievalEmpty, false)
+  assert.equal(result.probes[3].pass, false)
   assert.ok(
-    result.probes[2].reasons.includes('retrieved forbidden "hunter2"'),
+    result.probes[3].reasons.includes('retrieved forbidden "hunter2"'),
+  )
+})
+
+test('v4 semantic absence accepts only a bounded question restatement', () => {
+  const question = 'What is my dog called?'
+  const observed =
+    'I have no stored memories directly answering what your dog is called.'
+  assert.equal(
+    isLiveAbsenceAnswer(LIVE_ABSENCE_ANSWER, {
+      mode: LIVE_ABSTENTION_MODE_EXACT,
+      question,
+    }),
+    true,
+  )
+  assert.equal(
+    isLiveAbsenceAnswer(observed, {
+      mode: LIVE_ABSTENTION_MODE_EXACT,
+      question,
+    }),
+    false,
+  )
+  assert.equal(
+    isLiveAbsenceAnswer(observed, {
+      mode: LIVE_ABSTENTION_MODE_V4,
+      question,
+    }),
+    true,
+  )
+  assert.equal(
+    isLiveAbsenceAnswer(
+      'I have no stored memory directly answering what your dog is called.',
+      { mode: LIVE_ABSTENTION_MODE_V4, question },
+    ),
+    true,
+  )
+  for (const [restatedQuestion, sourceQuestion] of [
+    ['who your accountant is', 'Who is my accountant?'],
+    ['what project you are working on', 'What project am I working on?'],
+    [
+      'what music you prefer while you work',
+      'What music do I prefer while I work?',
+    ],
+    ['where the passport is stored', 'Where is the passport stored?'],
+    [
+      'which queue you use for urgent support tickets',
+      'Which queue do I use for urgent support tickets?',
+    ],
+  ]) {
+    assert.equal(
+      isLiveAbsenceAnswer(
+        `I have no stored memories directly answering ${restatedQuestion}.`,
+        { mode: LIVE_ABSTENTION_MODE_V4, question: sourceQuestion },
+      ),
+      true,
+    )
+  }
+  for (const unsafe of [
+    'I have no stored memories directly answering what your dog is called, but Nube is your cat.',
+    'I have no stored memories directly answering what your dog is called. Nube is your cat.',
+    'I have no stored memories directly answering what your dog is called.\nNube.',
+    'I have no stored memories directly answering what your dog is called: Nube.',
+    'I have no stored memories directly answering what your cat is called.',
+    'I have no stored memories directly answering what called your dog is.',
+    'I have no stored memories directly answering what my dog is called.',
+    'I have no stored memories directly answering what your dog is called Nube.',
+  ]) {
+    assert.equal(
+      isLiveAbsenceAnswer(unsafe, {
+        mode: LIVE_ABSTENTION_MODE_V4,
+        question,
+      }),
+      false,
+    )
+  }
+  assert.equal(
+    isLiveAbsenceAnswer(
+      'I have no stored memories directly answering your dog is called Nube.',
+      {
+        mode: LIVE_ABSTENTION_MODE_V4,
+        question: 'Is my dog called Nube?',
+      },
+    ),
+    false,
+  )
+  assert.throws(
+    () => isLiveAbsenceAnswer(observed, {
+      mode: 'unregistered',
+      question,
+    }),
+    (error) => error.code === 'BAD_ABSTENTION_MODE',
   )
 })
 

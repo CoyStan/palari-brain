@@ -130,6 +130,15 @@ U2 (`docs/KERNEL-API.md`) and the extraction is U3–U5.
     extraction to remain private until an explicit-user ratification.
   This split prevents product repairs from silently changing the baseline
   comparator or overstating byte-identical provenance.
+- **Local H3 prompt revision (2026-07-23):**
+  - Only the kernel wrapper's extraction instructions changed. They now
+    require one enum value, fact-only content, source-faithful wording, and
+    traceable keywords including durable base verbs. The resulting prompt
+    manifest hash is `8c1106c3a2e76de3`.
+  - The preserved v0.5 file remains byte-identical at SHA-256
+    `770889c34c02a4c1f9162318c2b32786f6922ff288924627d681a10f92561a9f`.
+    Admission thresholds, source eligibility, background sharing authority,
+    supersession, and the one-gate write path are unchanged.
 
 ### 3. `…/workspace-backend/memory-briefing.mjs`
 - **Blob @ baseline:** `69578eb05beb` · **118 lines**

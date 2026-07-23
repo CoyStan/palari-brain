@@ -10,12 +10,12 @@ import { join } from 'node:path'
 import { buildAnswerPrompt } from '../../src/adapter.mjs'
 import { buildBriefingV1 } from '../../src/recall.mjs'
 import {
-  LIVE_ABSENCE_ANSWER,
   LIVE_ANSWER_SYSTEM,
   LIVE_EMBEDDING_DIMENSIONS,
   LIVE_EMBEDDING_MODEL,
   LIVE_MODEL,
   LiveRunError,
+  isLiveAbsenceAnswer,
 } from '../live-runtime.mjs'
 
 function scopeFilters(userId, agentId) {
@@ -131,6 +131,7 @@ export function createMem0LiveArm({
   }
   let memory = null
   let palariId = null
+  const answerAbstention = liveConfig?.manifest?.answerAbstention
   const answerSystem = liveConfig?.manifest?.answerSystem ?? LIVE_ANSWER_SYSTEM
   const embeddingDimensions = liveConfig?.model?.embeddingDimensions ??
     LIVE_EMBEDDING_DIMENSIONS
@@ -270,10 +271,14 @@ export function createMem0LiveArm({
         purpose: 'answer',
       })
       const answer = String(response.text)
+      const answerAbstained = isLiveAbsenceAnswer(answer, {
+        mode: answerAbstention,
+        question,
+      })
       return {
-        abstained: answer.trim() === LIVE_ABSENCE_ANSWER,
+        abstained: answerAbstained,
         answer,
-        answerAbstained: answer.trim() === LIVE_ABSENCE_ANSWER,
+        answerAbstained,
         evidence: results.map((entry) => entry.memory),
         retrievalEmpty: results.length === 0,
       }

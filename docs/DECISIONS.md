@@ -731,3 +731,31 @@ dates. Agents record; the founder decides.
   bounded prospective repair surface for the separately configured third
   cycle. V3 is closed and may not be resumed, rerun, or retroactively
   regraded. J4 and the publish gate remain closed.
+- 2026-07-23 (J3-H3 evidence repair, before any v4 call) Complete v3
+  evidence isolated three minimal prospective changes: stop teaching the
+  kernel extractor a joined enum value or request/reporting wrappers while
+  preserving source-faithful durable terms and searchable base verbs; tell
+  both arms' identical answer prompt how to choose between dated current
+  facts; and recognize a tightly bounded standalone semantic absence without
+  weakening forbidden-evidence checks. Admission thresholds, lexical source
+  eligibility, explicit-user sharing authority, supersession, the preserved
+  v0.5 comparator, bank, model, Mem0 extraction/search/scope, and token
+  allowances remain unchanged. An adversarial review found that the first
+  semantic classifier draft compared unordered token bags; before freeze it
+  was replaced with ordered WH-restatement matching that permits only
+  auxiliary inversion or one dropped do-support token and rejects yes/no
+  declaratives, reordered content, wrong perspective, and appended facts. No
+  v4 provider call has occurred.
+- 2026-07-23 (J3-H3 pre-run freeze) The exact `j3-live-v4` configuration
+  SHA-256 is
+  `1ee30c98de735d3f0e0f8de53eea580be968ec4ed2c81d2dea8579668f49851b`;
+  its FINAL prediction SHA-256 is
+  `176783abd50b5c91c9ac5295e86e4e5ad3171a84a4abc517199be2ee6ba70946`.
+  The kernel prompt-manifest hash is `8c1106c3a2e76de3`; preserved v0.5 bytes
+  remain SHA-256
+  `770889c34c02a4c1f9162318c2b32786f6922ff288924627d681a10f92561a9f`.
+  Independent extraction, oracle, and paid-preflight reviews found no
+  remaining live blocker after the order-aware correction. The 100-test
+  suite, dry bake-off, and quickstart pass. No v4 provider call has occurred;
+  this freeze authorizes only the already founder-approved single v4
+  invocation and publishes no live evidence.

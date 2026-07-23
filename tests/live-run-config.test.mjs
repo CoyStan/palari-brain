@@ -10,7 +10,11 @@ import {
   loadLiveRunConfig,
   validateLiveRunConfig,
 } from '../evals/live-run-config.mjs'
-import { LIVE_ANSWER_SYSTEM_V3 } from '../evals/live-runtime.mjs'
+import {
+  LIVE_ABSTENTION_MODE_V4,
+  LIVE_ANSWER_SYSTEM_V3,
+  LIVE_ANSWER_SYSTEM_V4,
+} from '../evals/live-runtime.mjs'
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
@@ -198,6 +202,55 @@ async function makeV3Fixture(t) {
   }
 }
 
+async function makeV4Fixture(t) {
+  const fixture = await makeV3Fixture(t)
+  const predictionsPath = 'evals/predictions/j3-live-v4.md'
+  const predictionsText = '# FINAL v4 predictions\n'
+  const meterPath = 'evals/results/j3-live-v3/meter.jsonl'
+  const meterText = ''
+  const configPath = join(
+    fixture.repoRoot,
+    'evals',
+    'live-runs',
+    'j3-live-v4.json',
+  )
+  await mkdir(join(fixture.repoRoot, 'evals', 'results', 'j3-live-v3'), {
+    recursive: true,
+  })
+  await writeFile(
+    join(fixture.repoRoot, ...predictionsPath.split('/')),
+    predictionsText,
+  )
+  await writeFile(
+    join(fixture.repoRoot, ...meterPath.split('/')),
+    meterText,
+  )
+
+  const config = structuredClone(fixture.config)
+  config.runId = 'j3-live-v4'
+  config.predictions = {
+    path: predictionsPath,
+    sha256: sha256(predictionsText),
+  }
+  config.kernelPromptHash = '8c1106c3a2e76de3'
+  config.manifest.answerAbstention = LIVE_ABSTENTION_MODE_V4
+  config.manifest.answerSystem = LIVE_ANSWER_SYSTEM_V4
+  config.budget.predecessors.push({
+    runId: 'j3-live-v3',
+    meterPath,
+    meterSha256: sha256(meterText),
+    accountedUsd: 0,
+  })
+  const configText = `${JSON.stringify(config, null, 2)}\n`
+  await writeFile(configPath, configText)
+  return {
+    ...fixture,
+    config,
+    configPath,
+    configText,
+  }
+}
+
 test('loads a valid v2 config, hashes exact source text, and deeply freezes it', async (t) => {
   const fixture = await makeFixture(t)
 
@@ -252,6 +305,39 @@ test('loads the reviewed v3 extraction and answer revision without relaxing v2 p
     }),
     { code: 'SERIES_PIN_MISMATCH' },
   )
+})
+
+test('loads only the reviewed v4 extraction, conflict, and abstention revision', async (t) => {
+  const fixture = await makeV4Fixture(t)
+  const loaded = await loadLiveRunConfig({
+    repoRoot: fixture.repoRoot,
+    runId: 'j3-live-v4',
+  })
+  assert.equal(loaded.config.kernelPromptHash, '8c1106c3a2e76de3')
+  assert.equal(loaded.config.manifest.answerSystem, LIVE_ANSWER_SYSTEM_V4)
+  assert.equal(
+    loaded.config.manifest.answerAbstention,
+    LIVE_ABSTENTION_MODE_V4,
+  )
+
+  for (const mutate of [
+    (config) => { config.manifest.answerSystem += ' unreviewed' },
+    (config) => { config.manifest.answerAbstention = 'unreviewed' },
+  ]) {
+    const changed = structuredClone(fixture.config)
+    mutate(changed)
+    await writeFile(
+      fixture.configPath,
+      `${JSON.stringify(changed, null, 2)}\n`,
+    )
+    await assert.rejects(
+      loadLiveRunConfig({
+        repoRoot: fixture.repoRoot,
+        runId: 'j3-live-v4',
+      }),
+      { code: 'SERIES_PIN_MISMATCH' },
+    )
+  }
 })
 
 test('rejects sealed v1 before attempting to read a config', async (t) => {

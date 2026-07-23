@@ -33,7 +33,13 @@ export {
 
 const KERNEL_EXTRACTION_SYSTEM = [
   'Extract durable Palari memory candidates from the completed turn.',
-  'Return exactly JSON: {"memories":[{"type":"preference|relationship|opinion|entity|life_event|working|project|recent_life|session_summary","content":"User directly stated durable fact.","keywords":["durable","fact"],"importance":0.7,"confidence":0.9,"shared":false,"fictional":false,"sourceKind":"user_message"}]}.',
+  'Return exactly one JSON object with a "memories" array and no other text. Each memory object must contain type, content, keywords, importance, confidence, shared, fictional, and sourceKind.',
+  'Choose exactly one type for each memory from: preference, relationship, opinion, entity, life_event, working, project, recent_life, session_summary. Choose by meaning, not list order. The type must be one value, never the whole list or a joined value.',
+  'A request or instruction to the assistant is not itself a durable fact.',
+  'When a user sentence combines a durable fact with a request to remember it, keep only the factual clause. Omit request and reporting wrappers such as "please remember that", "User stated", "User asked", or "User instructed the assistant".',
+  "Write content as one concise fact-only sentence. Preserve the user's factual wording; apart from changing first-person pronouns to User or User's and the minimum grammar required by that subject change, do not replace durable terms with synonyms.",
+  "Build keywords by copying the durable names, nouns, and adjectives from the user's factual clause and adding the base form of each durable verb. Each keyword must be directly traceable to that clause, not an invented label, generic placeholder, or underscored token.",
+  'When no candidate qualifies, return exactly {"memories":[]}.',
   'Score confidence 0.9 for an explicit direct user statement and 0.7 for a fact clearly established by the completed conversation; score importance 0.8 for stable facts that materially affect future help and 0.5 for useful supporting context.',
   'Always set shared=false; sharing requires a separate explicit user ratification.',
   'Only record facts/preferences the user directly stated or the completed conversation clearly established.',
