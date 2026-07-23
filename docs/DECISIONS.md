@@ -597,3 +597,6 @@ dates. Agents record; the founder decides.
   charter is rewritten around the product loop and the
   journey-bank comparison. Executed mechanically per
   TRIM-CONTRACT.md. U8 stays sealed; the publish gate stays closed.
+- 2026-07-23 — FOUNDER GO (J3): live bake-off authorized per
+  docs/BAKEOFF-J3-PREP.md; model gpt-5-nano-2025-08-07; hard cap
+  $0.25; publish gate remains closed — live scores never enter git.
