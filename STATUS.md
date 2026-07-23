@@ -32,13 +32,15 @@ session itself).
     actual schema, eight scoring dimensions, authoring rules,
     dry/live boundary, and pinned baseline.
 - [~] J2 — Bake-off harness completion, dry.
-  - [x] J2.1 — DONE 2026-07-23 (`this commit`; exact SHA will be
-    backfilled by J2.2). Added the `ungoverned-baseline` contrast arm
+  - [x] J2.1 — DONE 2026-07-23 (`20a15e4`). Added the
+    `ungoverned-baseline` contrast arm
     and pinned it at 31/41: all usefulness checks pass, while ten
     checks expose correction, injection-boundary, and user-isolation
     failures including `hunter2`, `Admin`, and cross-user facts.
-  - [ ] J2.2 — Prepare the founder-gated live runbook and draft
-    predictions; do not install or execute live providers.
+  - [x] J2.2 — DONE 2026-07-23 (`this commit`; exact SHA will be
+    backfilled by J2.3). Prepared the no-execution J3 runbook, current
+    cost envelope, draft per-category predictions, deployment reality,
+    and verbatim J4 decision rule. No provider was installed or called.
   - [ ] J2.3 — Add the dry Markdown report renderer.
   - [ ] A1.1 — Add explicit Palari-scope journey support and coverage.
   - [ ] A1.2 — Add the v0.5-parity arm.
@@ -68,9 +70,12 @@ unchanged known findings; suite 51/51, bakeoff and quickstart green.
 2026-07-23 — J1.2 — 5906873 — Documented the validated journey
 schema, all eight score dimensions, authoring rules, dry/live boundary,
 and the pinned 39/41 kernel baseline; all standing gates green.
-2026-07-23 — J2.1 — this commit — Added and pinned the deliberately
+2026-07-23 — J2.1 — 20a15e4 — Added and pinned the deliberately
 ungoverned shared-memory arm at 31/41; its ten failures concretely expose
 source-document and cross-user leaks; all standing gates green.
+2026-07-23 — J2.2 — this commit — Prepared the founder-gated live
+runbook and draft predictions with a 92-call, $0.02721 pre-contingency
+estimate and $0.25 proposed cap; installed/called nothing; all gates green.
 
 ## Product stop-rule record
 
@@ -128,3 +133,21 @@ source-document and cross-user leaks; all standing gates green.
    would lose direct evidence that its gate prevents document injection and
    user-scope leaks. This is evaluation infrastructure; continued execution
    remains explicitly authorized by the founder-ratified task sequence.
+
+### J2.2
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It did not change the
+   runtime journey; it made the first live comparison bounded, priced, and
+   falsifiable before any money can be spent.
+3. Does an existing framework already provide what this unit added? Provider
+   and framework docs describe their own setup, but not this bank's call
+   count, predictions, deployment seam, or founder gate.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder-ratified contract explicitly requires this preparation.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Runtime behavior would not immediately change, but a future live
+   comparison could spend money or interpret results without a recorded cap,
+   prediction, or decision rule. This is evaluation infrastructure under the
+   explicitly authorized sequence.
