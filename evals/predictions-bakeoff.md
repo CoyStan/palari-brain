@@ -1,4 +1,4 @@
-# DRAFT — not final until founder GO
+# FINAL — frozen before any live call
 
 Author: Palari Brain standing agent, 2026-07-23.
 
@@ -43,3 +43,60 @@ Cross-arm predictions:
 4. The live kernel arm will introduce at least one failure absent from its dry
    scripted-candidate run. If it introduces none, this prediction is refuted,
    not silently removed.
+
+## Finalization record
+
+- Run date: 2026-07-23.
+- Founder decision: `docs/DECISIONS.md`, entry `2026-07-23 — FOUNDER GO
+  (J3)`, commit `f6f6ca2`; model `gpt-5-nano-2025-08-07`; hard total
+  spend cap $0.25; publish gate closed.
+- Bank: version 1, 17 journeys, 27 authored live probes per arm;
+  `evals/journeys.json` SHA-256
+  `7edd93e6b3c8d3942c492a76f75f2a14681f82e4b922c2fd123bb281e0ada910`.
+  `expectTotalWritten` is recorded as an observation and is never graded live.
+- Provider configuration: OpenAI Chat Completions through one local metering
+  transport for all direct and Mem0-internal calls. Both arms use the exact
+  snapshot `gpt-5-nano-2025-08-07`, non-streaming, with no temperature or
+  top-p override. Memory-processing calls are bounded to 500 completion
+  tokens; shared probe-answer calls are bounded to 300 completion tokens.
+  Mem0 uses `text-embedding-3-small` at 1,536 dimensions. The transport
+  rejects any other model, records usage without content or credentials,
+  enforces the $0.25 cap before forwarding, and permits at most three retries
+  after an initial transport attempt. `MEM0_TELEMETRY=false` prevents any
+  unmetered Mem0 telemetry request.
+- Prompt-config description: kernel extraction preserves the system
+  instruction, turn fields, JSON response contract, and source-text labeling
+  emitted by `buildMemoryExtractionRequest`, translated mechanically from its
+  Gemini envelope to OpenAI messages. Mem0 uses its native OSS extraction
+  prompt; framework-internal extraction prompts cannot be made identical. Both arms'
+  probe answers use the exact `buildAnswerPrompt` output as the user message
+  and this shared system message: `Answer the user's question using only the
+  provided memory briefing. If the briefing says no stored memories are
+  relevant, reply exactly "I have no stored memories relevant to this
+  question." Do not use outside knowledge or infer unstored facts. Keep the
+  answer concise.` The shared answer call uses the same model and settings in
+  both arms. Base kernel prompt manifest hash: `3147ad22edc76d12`. The full
+  frozen live-config manifest described by these fields has SHA-256
+  `d9e93f74d13760fb29b6a13317071d846aec14cc1bd6623e434efb2ef63e21eb`;
+  the runner must reproduce it before any live call. The hash input is the
+  exact UTF-8 serialization on the following single line, with no trailing
+  newline:
+
+```json
+{"version":1,"model":"gpt-5-nano-2025-08-07","endpoint":"chat.completions","stream":false,"temperature":null,"topP":null,"memoryMaxCompletionTokens":500,"answerMaxCompletionTokens":300,"embeddingModel":"text-embedding-3-small","embeddingDimensions":1536,"kernelBasePromptHash":"3147ad22edc76d12","kernelExtraction":"mechanical OpenAI translation of buildMemoryExtractionRequest JSON response contract","mem0Extraction":"native mem0ai/oss prompt","answerSystem":"Answer the user's question using only the provided memory briefing. If the briefing says no stored memories are relevant, reply exactly \"I have no stored memories relevant to this question.\" Do not use outside knowledge or infer unstored facts. Keep the answer concise.","answerUser":"buildAnswerPrompt output","mem0Scope":"userId->userId;palariId->agentId;conjunctive;no shared fallback","mem0SourceSerialization":"userMessage + each sourceText in original order as \\n\\nAttached source:\\n + text; assistantMessage second","mem0CustomInstructions":null,"mem0Telemetry":false}
+```
+- Mem0 mapping: import `Memory` from `mem0ai/oss`; map journey `userId` to
+  Mem0 `userId` and journey `palariId` to Mem0 `agentId`, applying both
+  conjunctively with no shared-memory fallback or thin Palari plane. For each
+  turn, the Mem0 user message is the exact journey user message followed, for
+  every `sourceTexts` entry in original order, by the exact sequence
+  `\n\nAttached source:\n` and that entry; the assistant message is second.
+  Never pass scripted `expectMemories` and never set `customInstructions`.
+- The existing category table and four cross-arm statements above are the
+  complete predicted outcomes. They were not changed during finalization and
+  will be graded as written, failing categories first. No aggregate pass-count
+  forecast is added because the existing outcomes deliberately include
+  bounded phrases such as “at least one” and “may”; forcing an exact total
+  would add a new prediction rather than preserve them.
+
+Priors (recorded before any live call): keep-kernel 55–60%; adopt-Mem0-under-plane 30–35%, hinging on live paraphrase recall beating the kernel's lexical FTS on usefulness while matching correction and temporal; graph/hosted engines <10%. Expected kernel weakness: probes whose phrasing shares no token with stored content. Expected Mem0 weaknesses: injection and isolation probes absent a plane.
