@@ -46,8 +46,15 @@ npm run bakeoff
 The current reference kernel passes 42/44; its known findings are
 `correction-espresso-04:p2` (superseded history is unavailable to
 as-of recall) and `conflict-cities-05:p2` (uncued reassertions leave
-both conflicting facts current). The deployed v0.5 parity arm passes
-38/44, and the deliberately ungoverned baseline passes 33/44. See [the
+both conflicting facts current). The deployed v0.5 parity arm — routed
+through the same extraction pass production runs — TIES the kernel at
+42/44 with the same two findings: on dry behavior probes, the deployed
+memory is already this good, because the injection boundary and
+supersession live in the extraction pass both share. What the kernel
+adds is not visible to these probes: the typed admission gate (closing
+the raw-door writer class), evidence-time provenance, and briefing v1
+attribution. The deliberately ungoverned baseline passes 33/44 —
+that 9-probe gap is what the shared boundary is worth. See [the
 J1.2 authoring guide](docs/JOURNEY-BANK.md) for the fixture and scoring
 rules, and [the J3 preparation
 runbook](docs/BAKEOFF-J3-PREP.md) for the founder-gated live comparison.

@@ -1,13 +1,19 @@
 // Contrast arm: the memory path deployed by palari-v05 today.
-// Scripted candidates go straight to the raw store with background-extraction
-// authority: no admission gate, no eventAt provenance, and no source-boundary
-// prefilter. The raw store's own accept/refuse behavior remains untouched.
+// CORRECTED per BAKEOFF-CONTRACT §7 Amendment A2: production v05 does
+// not write candidates through the raw door directly — chat-turn ingest
+// runs runMemoryExtractionPass (byte-identical file in v05 main), which
+// INCLUDES the injection source boundary and contradiction supersession.
+// What v05 lacks versus the kernel arm is the typed admission gate
+// (raw addMemory/supersedeMemory writers), eventAt evidence-time
+// provenance (wall clock becomes valid_from), and briefing v1
+// (attribution/confidence surfaces); briefing v0 answers below.
 
 import { mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 import { createKernelStore } from '../../src/store.mjs'
+import { runMemoryExtractionPass } from '../../src/memory-extraction.mjs'
 import { buildMemoryBriefing } from '../../src/memory-briefing.mjs'
 
 const ABSENCE = 'I have no stored memories relevant to this question.'
@@ -29,31 +35,24 @@ export function createV05ParityArm() {
       if (!store.enabled) throw new Error('v05 parity arm: store disabled (need Node >= 22.5)')
     },
     async ingestTurn(turn) {
-      const outcomes = []
-      let memoriesWritten = 0
-      for (const candidate of turn.candidates ?? []) {
-        const sourceKind = String(
-          candidate.sourceKind ?? candidate.source_kind ?? 'user_message',
-        ).trim() || 'user_message'
-        const result = store.addMemory({
-          confidence: candidate.confidence,
-          content: candidate.content,
-          fictional: Boolean(candidate.fictional),
-          importance: candidate.importance,
-          keywords: candidate.keywords,
-          palari_id: turn.palariId ?? palariId,
-          shared: Boolean(candidate.shared),
-          source_message_id: turn.sourceMessageId,
-          type: candidate.type,
-          user_id: turn.userId,
-        }, {
-          sourceKind,
-          writer: 'background_extraction',
-        })
-        outcomes.push(result.outcome)
-        if (result.outcome === 'inserted') memoriesWritten += 1
-      }
-      return { memoriesWritten, outcomes }
+      const sourceTexts = turn.sourceTexts ?? []
+      // The deployed path: extraction pass over the raw store — source
+      // boundary and supersession run; no gate, no eventAt injection.
+      return runMemoryExtractionPass({
+        extractor: () => ({ memories: turn.candidates ?? [] }),
+        store,
+        turn: {
+          assistantMessage: turn.assistantMessage,
+          palariId: turn.palariId ?? palariId,
+          palariName: 'Palari',
+          sourceMessageId: turn.sourceMessageId,
+          sourceRefCount: sourceTexts.length,
+          sourceTexts,
+          userId: turn.userId,
+          userMessage: turn.userMessage,
+          userName: 'user',
+        },
+      })
     },
     async forget(topic, { userId } = {}) {
       return store.topicForget(topic, { palariId, userId })

@@ -52,13 +52,17 @@ session itself).
     actor overrides
     and `palari-scoping-17`; the 17-journey kernel is pinned at 42/44
     while the ungoverned arm leaks Juniper across the Palari boundary.
-  - [x] A1.2 — DONE 2026-07-23 (`7855ce4`). Added
-    `v05-current-memory`, pinned at 38/44:
-    raw writes preserve user/Palari isolation but do not supersede
-    corrections and admit both poisoned source-document candidates.
+  - [x] A1.2 — DONE 2026-07-23 (`7855ce4`), CORRECTED per Amendment A2
+    (founder session, 2026-07-23): the original arm wrote through the
+    raw door and scored 38/44, understating v05 — production ingest
+    runs the extraction pass, whose source boundary and supersession
+    v05 shares byte-identically. Re-routed through
+    runMemoryExtractionPass, `v05-current-memory` TIES the kernel at
+    42/44 with the same two known findings. The A1.2 spec was the
+    bug; the executor implemented it faithfully.
   - [x] J2.4 — DONE 2026-07-23 (`this commit`). Published the honest
-    42/44 reference, 38/44 deployed-path, and 33/44 ungoverned dry
-    baselines in README and closed J2.
+    dry baselines in README (post-A2: 42/44 reference, 42/44
+    deployed-path tie, 33/44 ungoverned) and closed J2.
 - [ ] J3 — FOUNDER GATE: live bake-off runs. Small spend, all arms,
   pre-registered predictions finalized in
   `evals/predictions-bakeoff.md` first.
@@ -110,6 +114,11 @@ isolation probes pass; suite 54/54 and all standing gates green.
 2026-07-23 — J2.4 — this commit — Published the honest three-arm dry
 baseline, closed J1/J2, and stopped at the J3 founder gate; suite 54/54 and
 all standing gates green.
+2026-07-23 — A2 — this commit — Founder-session fairness correction:
+v05 parity arm re-routed through the production extraction pass
+(source boundary + supersession included); result is an honest 42/44
+TIE with the kernel, same two known findings; README/STATUS/pins
+updated; the A1.2 spec, not the executor, was at fault. Suite 54/54.
 
 ## Product stop-rule record
 
@@ -226,8 +235,9 @@ all standing gates green.
 1. Can a new user run the basic memory journey now? Yes —
    `npm run quickstart` is green.
 2. Did this unit make that journey measurably better? It did not change the
-   runtime journey; it measured the deployed beta's actual path at 38/44
-   instead of treating the newer kernel as a proxy.
+   runtime journey; it measured the deployed beta's actual path (42/44
+   after the Amendment A2 correction routed it through the real
+   extraction pass) instead of treating the newer kernel as a proxy.
 3. Does an existing framework already provide what this unit added? No
    external framework can reproduce this repository's parent-app parity path;
    the arm is the local control needed for the later external comparison.

@@ -364,6 +364,27 @@ the founder):
 > exceptions, measured as bank dimensions, that may overrule a
 > tie: local-file data residency and user inspectability.
 
+## §7b AMENDMENT A2 (2026-07-23, founder session — fairness correction)
+
+A1.2 as originally specified routed candidates through the RAW store
+door with "no source-boundary prefilter." That spec was WRONG about
+the deployed parent app: production v05 ingests chat turns through
+`runMemoryExtractionPass` — the same byte-identical file this repo
+carries — which includes the injection source boundary and
+contradiction supersession. The executor implemented A1.2 faithfully;
+the spec was the bug, and its 38/44 result understated v05 and
+overstated the kernel's dry advantage. Corrected in the founder
+session: the arm now ingests through `runMemoryExtractionPass` over
+the raw store (no gate, no eventAt — true deployed behavior), and the
+honest pinned result is a 42/44 TIE with the kernel, failing only the
+same two known findings. The kernel's remaining upgrade value over
+deployed v05 is: the typed admission gate (closing the raw-door
+writer class no probe exercises), eventAt evidence-time provenance
+(the as-of-recall foundation), and briefing v1 attribution. The
+ungoverned baseline (33/44) remains the measure of what the shared
+extraction boundary is worth. No task may re-widen this gap by
+weakening the v05 arm.
+
 ## §8 Handoff note from the seeding session
 
 The two pinned findings are genuine, useful product measurements —
