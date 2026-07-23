@@ -1,10 +1,12 @@
 # STATUS — single source of truth for the loop
 
-Loop state: TRIMMED — product-led direction (2026-07-22).
+Loop state: J1/J2 COMPLETE — waiting at the J3 FOUNDER GATE
+(2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point,
-examples/quickstart.mjs, 48-test suite). The v2 proof machinery
+examples/quickstart.mjs, 54-test suite), plus the 17-journey,
+three-arm dry bake-off. The v2 proof machinery
 (V2-M1 through V2-M2-B) is preserved at git tag `v2-proof-archive`
 and is OUT of the working tree. Read `WE-MESSED-UP.md` for why.
 
@@ -21,17 +23,18 @@ the founder review of the bank rides the J3 gate (founder decision
 in session, since the seed bank was authored in the direction-review
 session itself).
 
-- [x] J1 — Journey bank.
+- [x] J1 — DONE (`eebdb91`, `5906873`). Journey bank.
   - [x] J1.1 — DONE 2026-07-23 (`eebdb91`). Extended the bank to 16 journeys and 25
     probes; kernel baseline pinned at 39/41 graded checks with exactly
     the two unchanged known findings (`correction-espresso-04:p2`,
     `conflict-cities-05:p2`). Suite 51/51; `npm run bakeoff` and
     `npm run quickstart` green.
   - [x] J1.2 — DONE 2026-07-23 (`5906873`).
-    `docs/JOURNEY-BANK.md` now documents the
-    actual schema, eight scoring dimensions, authoring rules,
+    `docs/JOURNEY-BANK.md` documents the core schema as of J1.2,
+    eight scoring dimensions, authoring rules,
     dry/live boundary, and pinned baseline.
-- [~] J2 — Bake-off harness completion, dry.
+- [x] J2 — DONE (`20a15e4`, `9634250`, `0ed2787`, `7cd9298`,
+  `7855ce4`, and this J2.4 commit). Bake-off harness completion, dry.
   - [x] J2.1 — DONE 2026-07-23 (`20a15e4`). Added the
     `ungoverned-baseline` contrast arm
     and pinned it at 31/41: all usefulness checks pass, while ten
@@ -49,17 +52,27 @@ session itself).
     actor overrides
     and `palari-scoping-17`; the 17-journey kernel is pinned at 42/44
     while the ungoverned arm leaks Juniper across the Palari boundary.
-  - [x] A1.2 — DONE 2026-07-23 (`this commit`; exact SHA will be
-    backfilled by J2.4). Added `v05-current-memory`, pinned at 38/44:
+  - [x] A1.2 — DONE 2026-07-23 (`7855ce4`). Added
+    `v05-current-memory`, pinned at 38/44:
     raw writes preserve user/Palari isolation but do not supersede
     corrections and admit both poisoned source-document candidates.
-  - [ ] J2.4 — Publish the honest dry baseline in README and close J2.
+  - [x] J2.4 — DONE 2026-07-23 (`this commit`). Published the honest
+    42/44 reference, 38/44 deployed-path, and 33/44 ungoverned dry
+    baselines in README and closed J2.
 - [ ] J3 — FOUNDER GATE: live bake-off runs. Small spend, all arms,
-  pre-registered predictions appended to evals/predictions.md first.
+  pre-registered predictions finalized in
+  `evals/predictions-bakeoff.md` first.
   Prepared by the agent; executed only on an explicit founder GO.
 - [ ] J4 — FOUNDER GATE: direction decision from the bake-off report
   — adopt a framework under the thin Palari plane, keep this kernel
   as the engine, or a named hybrid. Recorded in docs/DECISIONS.md.
+
+## Next
+
+J3 — FOUNDER GATE: the founder must decide whether to give GO for the
+live spend and adapter work exactly bounded in
+`docs/BAKEOFF-J3-PREP.md`; until that explicit GO is recorded in
+`docs/DECISIONS.md`, do not install a provider or execute a live call.
 
 ## Log
 
@@ -91,9 +104,12 @@ standing gates green.
 2026-07-23 — A1.1 — 7cd9298 — Added explicit per-turn/probe Palari
 scoping and a 17th journey; kernel 42/44, ungoverned 33/44 with the expected
 Juniper scope leak; all standing gates green.
-2026-07-23 — A1.2 — this commit — Added the deployed v0.5 parity arm,
+2026-07-23 — A1.2 — 7855ce4 — Added the deployed v0.5 parity arm,
 pinned at 38/44: correction and source-boundary gaps measured, while all five
 isolation probes pass; suite 54/54 and all standing gates green.
+2026-07-23 — J2.4 — this commit — Published the honest three-arm dry
+baseline, closed J1/J2, and stopped at the J3 founder gate; suite 54/54 and
+all standing gates green.
 
 ## Product stop-rule record
 
@@ -221,3 +237,38 @@ isolation probes pass; suite 54/54 and all standing gates green.
    worse? Runtime behavior would not immediately change, but the founder could
    mistake kernel improvements for behavior already deployed to users. This
    is evaluation infrastructure under the explicitly authorized sequence.
+
+### J1 close-out
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this work make that journey measurably better? It did not change
+   runtime behavior; it expanded the measured product surface to 17 journeys
+   and 44 graded checks.
+3. Does an existing framework already provide what this work added? Other
+   frameworks have evaluations, but not this deterministic Palari journey bank
+   with identical fixtures and scopes for every arm.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder ratified the journey-bank contract and its Amendment A1.
+5. If this work were deleted, what user-visible behavior would get worse?
+   Runtime behavior would not immediately change, but regressions in recall,
+   correction, deletion, abstention, injection safety, and actor isolation
+   would no longer be caught. J1 is evaluation infrastructure.
+
+### J2 close-out
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this work make that journey measurably better? It did not change
+   runtime behavior; it measured the reference kernel, the deployed v0.5 path,
+   and a deliberately ungoverned arm on the same 44 checks.
+3. Does an existing framework already provide what this work added? Existing
+   memory frameworks are the subject of the still-gated live comparison; J2
+   added local evidence and reporting, not another memory engine.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder ratified the dry bake-off sequence and its J4 decision rule.
+5. If this work were deleted, what user-visible behavior would get worse?
+   Runtime behavior would not immediately change, but the founder would lose
+   the evidence needed to decide whether this kernel earns its maintenance
+   cost. J2 is evaluation infrastructure; no further infrastructure work is
+   authorized before the J3 founder decision.

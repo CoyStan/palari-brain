@@ -14,7 +14,7 @@ command.
 ## Quickstart
 
 ```bash
-npm test              # 48 contract tests, offline, zero dependencies
+npm test              # 54 contract tests, offline, zero dependencies
 npm run quickstart    # the whole product loop in one script, offline
 ```
 
@@ -31,6 +31,26 @@ The quickstart demonstrates, deterministically and with no API key:
    guessing;
 6. **injection boundary** — a poisoned document cannot mint memory,
    while the same fact asserted by the user can.
+
+## Comparing memory engines
+
+The journey bank runs 17 offline user-memory scenarios as 44 graded
+checks across every arm. Each arm receives the same scripted writes,
+questions, scopes, and expected outcomes so its failures stay directly
+comparable.
+
+```bash
+npm run bakeoff
+```
+
+The current reference kernel passes 42/44; its known findings are
+`correction-espresso-04:p2` (superseded history is unavailable to
+as-of recall) and `conflict-cities-05:p2` (uncued reassertions leave
+both conflicting facts current). The deployed v0.5 parity arm passes
+38/44, and the deliberately ungoverned baseline passes 33/44. See [the
+J1.2 authoring guide](docs/JOURNEY-BANK.md) for the fixture and scoring
+rules, and [the J3 preparation
+runbook](docs/BAKEOFF-J3-PREP.md) for the founder-gated live comparison.
 
 ## Using it in an assistant
 
@@ -82,9 +102,11 @@ invisibly inject recall. This kernel deliberately does not:
 
 ## Status and history
 
-- Direction: product-led. The next work is a journey bank of concrete
-  assistant-memory scenarios and a measured comparison of this kernel
-  against established memory frameworks. See `STATUS.md`.
+- Direction: product-led. The journey bank of concrete assistant-memory
+  scenarios and the measured dry comparison against local controls are
+  complete. The next decision is the
+  J3 founder gate for a bounded live comparison with an established
+  memory framework. See `STATUS.md`.
 - The 2026-07 v2 proof machinery (governed bundle substrate, atomic
   decision journal, authority core) is preserved at the git tag
   `v2-proof-archive` and is not part of the working tree. The candid
@@ -93,6 +115,8 @@ invisibly inject recall. This kernel deliberately does not:
   are published here.
 - Reference docs: `docs/KERNEL-API.md` (design + surface),
   `docs/KERNEL-CONTRACT.md` (distilled contract),
+  `docs/JOURNEY-BANK.md` (fixtures + scoring),
+  `docs/BAKEOFF-J3-PREP.md` (founder-gated live runbook),
   `docs/SOURCE-MAP.md` (provenance from palari-v05),
   `docs/DECISIONS.md` (append-only decision log).
 
