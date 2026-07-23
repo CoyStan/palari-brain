@@ -600,3 +600,12 @@ dates. Agents record; the founder decides.
 - 2026-07-23 — FOUNDER GO (J3): live bake-off authorized per
   docs/BAKEOFF-J3-PREP.md; model gpt-5-nano-2025-08-07; hard cap
   $0.25; publish gate remains closed — live scores never enter git.
+- 2026-07-23 (J3 license gate) `mem0ai@3.1.1` is permitted for the
+  founder-authorized eval-only install. Its npm manifest and the exact
+  `mem0ai/mem0` source at git commit
+  `5e7adc4d1264bb49ab20cf8c70e4807295d77ae2` identify Apache-2.0, a
+  permissive OSS license, and npm provenance binds the package to that
+  source. The registry tarball omits a license file and a nested OSS README
+  carries a stale MIT label; those packaging inconsistencies do not change
+  the permissive verdict, but they remain recorded. This authorizes no
+  dependency beyond `mem0ai`, no live score in git, and no publication.

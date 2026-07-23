@@ -1,22 +1,22 @@
 # J3 live bake-off preparation
 
-Status: **PREPARED, NOT AUTHORIZED**. This file is a runbook for a future
-founder-gated unit. Nothing here is permission to install a dependency, write
-a live adapter, set a key, or call a provider.
+Status: **FOUNDER GO RECORDED — NOT YET RUN**. The founder authorized J3 on
+2026-07-23 for `gpt-5-nano-2025-08-07` under a hard total cap of **$0.25**.
+The publish gate remains closed, and no live score may enter git.
 
 ## Gate
 
-Execution requires an explicit **FOUNDER GO** with a spend cap recorded in
+The required **FOUNDER GO** and spend cap are recorded in
 `docs/DECISIONS.md`. Before the first provider call, the draft in
 `evals/predictions-bakeoff.md` must be finalized by appending the model,
-provider configuration, prompt-config hash, run date, numeric predictions,
-and the recorded decision reference. A bad result is graded and kept; it is
-never re-rolled.
+provider configuration, prompt-config description, run date, recorded
+decision reference, and founder-supplied priors. Existing predicted outcomes
+are immutable. A bad result is graded and kept; it is never re-rolled.
 
 ## Planned live arms
 
-The live bank will compare two memory engines over identical turns, probes,
-user scopes, model, and answer prompt:
+The authorized live bank will compare two memory engines over identical
+turns, probes, user scopes, model, and answer prompt:
 
 1. **Palari Brain kernel.** The existing gated SQLite store, with a real LLM
    extractor replacing the scripted dry candidates and the same LLM producing
@@ -26,20 +26,37 @@ user scopes, model, and answer prompt:
    required by the J4 decision rule, not the deliberately naive dry contrast
    arm.
 
-The future dependency command is exactly:
+The dependency command is exactly:
 
 ```sh
 npm install mem0ai
 ```
 
-**NOT INSTALLED.** The future adapter path is
+License rechecked before installation on 2026-07-23: npm `latest` is
+`mem0ai@3.1.1`, whose exact package manifest declares `Apache-2.0` and points
+to `mem0ai/mem0`. npm registry `gitHead` and provenance bind that package to
+git commit `5e7adc4d1264bb49ab20cf8c70e4807295d77ae2`, whose repository root
+contains the Apache License 2.0. This is a permissive OSS license, so the J3
+license gate passes. The registry tarball omits a license file and a nested
+source-tree OSS README has a stale MIT label, but the formal npm manifest and
+repository license agree on Apache-2.0; the packaging caveat is recorded in
+`docs/DECISIONS.md`.
+
+Sources: [exact package manifest](https://raw.githubusercontent.com/mem0ai/mem0/5e7adc4d1264bb49ab20cf8c70e4807295d77ae2/mem0-ts/package.json),
+[exact repository license](https://raw.githubusercontent.com/mem0ai/mem0/5e7adc4d1264bb49ab20cf8c70e4807295d77ae2/LICENSE), and
+[npm provenance](https://registry.npmjs.org/-/npm/v1/attestations/mem0ai@3.1.1).
+
+**NOT INSTALLED YET.** J3 uses `mem0ai` only from eval code, so the committed
+package must list it under `devDependencies`, with no production
+`dependencies`. The adapter path is
 `evals/arms/mem0-live-arm.mjs`; it is **NOT WRITTEN**. The matching kernel
 adapter will live at `evals/arms/kernel-live-arm.mjs`, and the gated runner at
 `evals/run-bakeoff-live.mjs`; neither exists yet. The official Mem0 Node
 quickstart documents the package and the OSS import surface:
 [Mem0 Node SDK Quickstart](https://docs.mem0.ai/open-source/node-quickstart)
 (checked 2026-07-23). Provider support and package behavior must be reconfirmed
-after installation and before predictions become final.
+after installation and before the live run. Any mismatch blocks the run;
+FINAL predictions do not change.
 
 ## Secrets and runtime controls
 
@@ -57,64 +74,71 @@ arguments, files, `.env` content, logs, or committed artifacts.
 
 The OSS arm does not use a hosted Mem0 account, so no `MEM0_API_KEY` is
 planned. If implementation recon shows a different credential or provider is
-required, stop, update this estimate and the draft predictions, and obtain a
-new founder decision before any call.
+required, stop and obtain a new founder decision before any call. Do not
+change the FINAL predictions file.
 
-## Mechanical run sequence after a future GO
+## Mechanical run sequence after GO
 
-These steps are intentionally not runnable today because the dependency,
-adapters, and live runner do not exist.
+The GO is recorded. Execute these steps once and in order:
 
 1. Record the founder's GO, model snapshot, and spend cap in
-   `docs/DECISIONS.md`.
+   `docs/DECISIONS.md`, commit, and push.
 2. Recheck the package license and current provider prices; record any changed
-   assumption before installing.
-3. Run `npm install mem0ai` and review the dependency and lockfile diff.
-4. Implement `evals/arms/kernel-live-arm.mjs`,
+   assumption, update this estimate, commit, and push before installing.
+3. Finalize and commit `evals/predictions-bakeoff.md`; it is immutable after
+   that commit. Push it before installing or calling a provider.
+4. Verify the existing environment `OPENAI_API_KEY` is non-empty without
+   printing it; if absent, stop `BLOCKED-NO-KEY`.
+5. Run `npm install mem0ai`, move its committed declaration to
+   `devDependencies`, and review the dependency and lockfile diff.
+6. Implement `evals/arms/kernel-live-arm.mjs`,
    `evals/arms/mem0-live-arm.mjs`, and `evals/run-bakeoff-live.mjs` with hard
    call, token, and spend ceilings. Do not weaken the shared bank.
-5. Run offline adapter tests only. No connectivity probe is exempt from the
-   founder gate.
-6. Append the final pre-registration to `evals/predictions-bakeoff.md` before
-   the first live call.
-7. Export the approved environment variables in the invoking shell and run
+7. Run offline adapter tests only. No connectivity probe is exempt from the
+   founder gate. Commit and push the reviewed dependency, lockfile, adapters,
+   runner, and tests before the live run.
+8. Export the approved environment variables in the invoking shell and run
    `node evals/run-bakeoff-live.mjs` once.
-8. Preserve raw results locally under ignored `evals/results/`; grade every
+9. Preserve raw results locally under ignored `evals/results/`; grade every
    prediction, failing categories first. Do not publish without a separate
    founder GO.
 
 ## Call and cost estimate
 
-The current 16-journey bank has 21 user turns, 25 authored probes, and two
+The current 17-journey bank has 22 user turns, 27 authored probes, and two
 forget directives. For this estimate, budget one extraction or
 memory-processing provider call per user turn per arm and one answer call per
-probe per arm: 46 modeled LLM calls per arm, 92 across two arms. The authored
-user, assistant, and attached-source turn text is 1,713 characters and the
-probe questions are 738 characters, but the estimate deliberately budgets
+probe per arm: 49 modeled LLM calls per arm, 98 across two arms. The authored
+user, assistant, and attached-source turn text is 1,811 characters and the
+probe questions are 834 characters, but the estimate deliberately budgets
 much more for system prompts, memory briefings, and structured output.
 
-Pricing checked 2026-07-23: OpenAI lists GPT-5 nano at $0.05 per million input
-tokens and $0.40 per million output tokens in its
+Pricing was rechecked at GO time on 2026-07-23 and is unchanged: OpenAI lists
+GPT-5 nano at $0.05 per million input tokens and $0.40 per million output
+tokens in its
 [official model page](https://developers.openai.com/api/docs/models/gpt-5-nano).
 The planned Mem0 embedder, `text-embedding-3-small`, is $0.02 per million input
 tokens on its
 [official model page](https://developers.openai.com/api/docs/models/text-embedding-3-small).
-Prices must be rechecked at GO time.
 
 | Work | Bank-derived calls | Conservative tokens per call | Budgeted tokens | Cost |
 | --- | ---: | ---: | ---: | ---: |
-| Extraction/memory processing, two arms | 21 × 2 = 42 | 2,000 input + 500 output | 84,000 input + 21,000 output | $0.01260 |
-| Probe answers, two arms | 25 × 2 = 50 | 3,000 input + 300 output | 150,000 input + 15,000 output | $0.01350 |
-| Mem0 embedding envelope | (21 × 4) + 25 + 2 = 111 | 500 input | 55,500 input | $0.00111 |
-| **Estimated ceiling before contingency** | **92 modeled LLM + 111 embedding** | — | — | **$0.02721** |
+| Extraction/memory processing, two arms | 22 × 2 = 44 | 2,000 input + 500 output | 88,000 input + 22,000 output | $0.01320 |
+| Probe answers, two arms | 27 × 2 = 54 | 3,000 input + 300 output | 162,000 input + 16,200 output | $0.01458 |
+| Mem0 embedding envelope | (22 × 4) + 27 + 2 = 117 | 500 input | 58,500 input | $0.00117 |
+| **Estimated ceiling before contingency** | **98 modeled LLM + 117 embedding envelopes** | — | — | **$0.02895** |
 
-The embedding line allows four embeddings per Mem0 write, one per answer
-search, and one per forget directive; the adapter must measure actual use.
-Mem0-internal LLM or embedding calls beyond these assumptions consume the
-same hard cap. A proposed founder cap of **$0.25** is more than nine times
-this estimate and is still a hard maximum, not a target. Retries consume the
-same cap, and model or package behavior that makes the cap unenforceable is a
-blocker.
+The embedding line is a conservative token envelope, not a prediction of 117
+literal HTTP calls: it allows four 500-token envelopes per Mem0 ingest turn,
+one per answer search, and one per forget directive. Mem0 batching, extracted
+memory/entity fan-out, delete cleanup, and SDK retries are data-dependent, so
+the adapter must intercept and measure every OpenAI transport attempt and
+usage record, including Mem0-internal calls. Calls beyond these assumptions
+consume the same hard cap. The revised **$0.02895** ceiling is below the
+founder's $0.10 pre-run stop threshold by **$0.07105**. The authorized
+**$0.25** cap is about 8.64 times the estimate and remains a hard maximum, not
+a target. Retries consume it, and model or package behavior that makes the cap
+unenforceable is a blocker.
 
 ## Deployment reality and J4 consequence
 
