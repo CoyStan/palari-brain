@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4 EXTERNAL VALIDATION — TRANCHE 1 PRE-RUN FROZEN;
-LIVE INVOCATION NEXT (2026-07-23).
+Loop state: J4 EXTERNAL VALIDATION — TRANCHE 1 TERMINAL BEFORE
+QUESTION 1; FOUNDER GATE (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -18,8 +18,13 @@ under gitignored `evals/results/`; no live score is committed or
 published. That run is closed: do not resume or rerun it. The three
 separately versioned engineering-repair cycles authorized under
 `docs/BAKEOFF-J3-HEALING.md` are now complete within their cumulative $5 cap.
-The founder has opened J4 for independent LongMemEval validation and selected
-Gemini 3.5 Flash-Lite. No J4 provider call has occurred.
+The founder opened J4 for independent LongMemEval validation and selected
+Gemini 3.5 Flash-Lite. The one authorized J4 invocation executed its single
+writer compatibility smoke and stopped fail-closed before question 1 because
+the live candidate violated a frozen extraction enum that the prompt had not
+enumerated. The terminal private bundle remains under gitignored
+`evals/results/`; no benchmark score is committed or published. This run is
+closed and must not be resumed or rerolled.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -131,18 +136,21 @@ session itself).
     later ten-question pauses, cumulative cost forecasts, and fresh GO per
     tranche. No runner was built, no provider was called, and no cap was
     adopted.
-  - [ ] J4.2 — TRANCHE 1 PRE-RUN FROZEN (`this commit`). Exactly five
-    preordered questions: approximately $0.81 expected, $2.05 conservative,
-    **$2.50 cumulative hard stop** including smoke and retries. The founder
-    adopted that exact scope and cap on 2026-07-23. All 60 predictions are
-    FINAL; the separate adapter, aggregate meter, one-smoke/five-question
-    runner, private evidence audit, and later-tranche predecessor gate are
-    offline-tested and hash-frozen. Config SHA-256
+  - [ ] J4.2 — TERMINAL / INCOMPLETE 2026-07-23. The frozen pre-run
+    implementation was committed and pushed at `a6ab150`; suite 154/154, dry
+    bake-off, and quickstart were green. Config SHA-256
     `7e3619893e66984e4548c84cb23ab6c097f8372fbd29028b592e99a4f649d5ce`;
     FINAL prediction SHA-256
     `07a262c01efa13697266c4e5d52829b518e9e16076e7b6046c78122ae0011028`.
-    Suite 154/154, dry bake-off, and quickstart are green. No J4 provider
-    call has occurred; push this cut point, invoke once, then stop and report.
+    Its one authorized invocation made only the single Gemini writer smoke.
+    The provider response was transport-valid and parseable, but its candidate
+    used a source-kind value outside the frozen enum. The product prompt had
+    required that field without enumerating the accepted vocabulary, so this
+    is a prompt/schema mismatch rather than a model or key failure. The runner
+    stopped before any benchmark question, answer call, or judge call. The
+    private manifest, meter, transcripts, permissions, and credential audit
+    verify; no benchmark score exists or entered git. The run is closed and
+    cannot be rerun.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -155,13 +163,15 @@ session itself).
 
 ## Next
 
-J4.2 LIVE INVOCATION. From the clean pushed pre-run cut point, run the one
-in-cap Gemini writer smoke and no more than the authorized first five
-questions under the aggregate $2.50 cap; verify and grade the ignored private
-bundle, record only execution/closure without scores in tracked STATUS, then
-report and stop. Do not resume or rerun U8 or J3 v1–v4. Do not automatically
-continue to question 6, run Mem0, start S-490, publish a score, or announce a
-result.
+FOUNDER GATE — J4 REPLACEMENT-RUN DECISION. If the founder wants to continue,
+the minimum honest successor is a new run identity that explicitly enumerates
+the extraction `sourceKind` vocabulary, adds a contract test for that
+instruction, freezes new artifact hashes, reviews the still-FINAL outcome
+predictions against the changed prompt, and carries this terminal smoke's
+measured spend into the successor cumulative budget. A fresh capped GO is
+required before any provider call. Do not delete, reset, resume, or reroll the
+terminal J4 run; do not continue to question 1 or question 6, run Mem0, start
+S-490, publish a score, or announce a result. U8 and J3 v1–v4 remain closed.
 
 ## Log
 
@@ -264,6 +274,11 @@ one-smoke/five-question runner, strict extraction envelope, aggregate
 reservation meter, official answer/judge paths, immutable artifact identity,
 private forensic bundle, and later-tranche predecessor gate. Suite 154/154,
 dry bake-off, and quickstart are green; no provider was called.
+2026-07-23 — J4.2 terminal — this commit — Invoked the pushed `a6ab150`
+runner once; its only compatibility smoke exposed an extraction prompt/schema
+mismatch and stopped before question 1. The ignored forensic bundle verifies,
+no benchmark score exists or entered git, and the run is closed at a fresh
+founder gate.
 
 ## Product stop-rule record
 
@@ -666,3 +681,23 @@ dry bake-off, and quickstart are green; no provider was called.
    result from malformed writes. This is the resumable pre-call cut point
    inside J4.2, not another prep-only unit: the next action is the live
    evidence invocation already authorized by the founder.
+
+### J4.2 terminal live invocation
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` was green at the pushed pre-run cut point.
+2. Did this unit make that journey measurably better? No. It produced no
+   benchmark score; it exposed a real mismatch between the extraction prompt
+   and validator before that mismatch could contaminate five questions.
+3. Does an existing framework already provide what this unit added? Gemini
+   provides structured generation and LongMemEval provides the benchmark, but
+   neither can infer an undocumented local enum. The compatibility smoke is
+   local safety infrastructure.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly required a five-question circuit breaker because a
+   previous broken evaluation continued too far.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Product behavior would not change, but the hidden prompt/schema
+   mismatch would have consumed the benchmark workload and produced invalid
+   evidence. The circuit breaker prevented that drift and now stops at the
+   required founder gate.

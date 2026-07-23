@@ -860,3 +860,18 @@ dates. Agents record; the founder decides.
   `DECISIONS.md`, `STATUS.md`, and administrative commit; it may not change
   those evaluation bytes or rerun a completed question. No provider call was
   made while resolving this protocol.
+- 2026-07-23 (J4.2 TERMINAL — compatibility smoke) The pushed frozen runner
+  at `a6ab150` was invoked once under the founder's first-tranche authority.
+  Its only provider operation was the one metered Gemini writer smoke. The
+  response was transport-valid, used the pinned model, finished normally, and
+  contained parseable JSON, but the candidate supplied a source-kind value
+  outside the validator's frozen enum. The extraction prompt required a
+  `sourceKind` field without enumerating its accepted vocabulary. The runner
+  therefore stopped fail-closed before question 1, before any answer or judge
+  call, and without producing a benchmark score. The ignored private evidence
+  bundle passes manifest, meter, permissions, and credential-safety checks.
+  This run is terminal and must not be deleted, reset, resumed, or rerolled.
+  Any successor must use a new run identity, explicitly document the enum in
+  the prompt, contract-test it, freeze new hashes, review predictions against
+  the changed prompt, carry forward the measured smoke spend, and receive a
+  fresh capped founder GO before any provider call.
