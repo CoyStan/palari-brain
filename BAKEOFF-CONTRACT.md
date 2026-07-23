@@ -344,6 +344,26 @@ unit in the parent repo; and that a future v05 Postgres cutover
 would reopen the storage-driver question — recorded as a J4
 decision input, not built.
 
+The doc MUST also quote, verbatim, this pre-registered J4 decision
+rule (it guards against home-team bias and may only be changed by
+the founder):
+
+> J4 DECISION RULE (pre-registered before any live run). The dry
+> report alone can NEVER decide J4: it contains no real external
+> framework, so it can only compare our own variants. The
+> reuse-vs-keep decision is made on the LIVE bank (J3) with at
+> least one real external arm (Mem0 first). An external framework
+> is ADOPTED as the engine if it matches or beats the kernel on
+> the usefulness, correction, and temporal dimensions and its
+> isolation/injection gaps are closable by the thin Palari plane
+> (write boundary + briefing + scoping in front of it). The kernel
+> stays the engine only by WINNING on the journeys, never by
+> default or familiarity. Ties on memory behavior break TOWARD the
+> external framework — maintenance we keep is a cost forever,
+> code we delete is free — with exactly two founder-weighable
+> exceptions, measured as bank dimensions, that may overrule a
+> tie: local-file data residency and user inspectability.
+
 ## §8 Handoff note from the seeding session
 
 The two pinned findings are genuine, useful product measurements —
