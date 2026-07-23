@@ -676,3 +676,12 @@ dates. Agents record; the founder decides.
   suite, dry bake-off, and quickstart pass; `src/` is unchanged. This freeze
   authorizes only the already founder-approved single v2 invocation and
   publishes no live evidence.
+- 2026-07-23 (J3-H1 terminal execution record) `j3-live-v2` was invoked
+  exactly once from its frozen pushed commit, completed its full paired plan,
+  and was graded against its immutable FINAL predictions. The terminal ledger
+  and transcript audits pass, the combined conservative spend remains within
+  the founder's $5 ceiling, and the full raw evidence plus local prediction
+  grade remain under gitignored `evals/results/`. No live score, raw prompt,
+  raw response, or transcript entered git or was published. This run is
+  closed and may not be resumed or rerun; the next authorized work is a fresh,
+  separately preregistered `j3-live-v3` repair cycle. J4 remains closed.

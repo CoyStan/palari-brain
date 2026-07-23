@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J3 ENGINEERING REPAIR — CYCLE 1 IN PROGRESS
+Loop state: J3 ENGINEERING REPAIR — CYCLE 1 COMPLETE; CYCLE 2 NEXT
 (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
@@ -79,12 +79,13 @@ session itself).
   run is closed and may not be resumed or rerun.
 - [ ] J3-H — FOUNDER GO 2026-07-23. Three fresh, immutable engineering
   repair cycles; combined conservative spend capped at $5 including v1.
-  - [ ] J3-H1 — `j3-live-v2`: repair v1's artificial completion ceiling
+  - [x] J3-H1 — DONE 2026-07-23 (`this commit`). `j3-live-v2`:
+    repaired v1's artificial completion ceiling
     and diagnostic blindness; preregister, verify offline, then run once.
-    PRE-RUN FROZEN 2026-07-23: FINAL predictions, exact versioned
-    configuration, cumulative predecessor accounting, complete ignored
-    transcripts, and terminal failure artifacts are ready; 94/94 tests and
-    all standing offline gates pass. No v2 provider call has occurred.
+    The one-shot run completed and was graded against its FINAL predictions.
+    Its full local transcript, checkpoint, ledger, reports, artifact manifest,
+    and prediction grade are preserved under gitignored `evals/results/`.
+    No live score entered git or was published. The run is closed.
   - [ ] J3-H2 — `j3-live-v3`: grade H1 first, make the smallest
     evidence-backed repair, preregister, verify, and run once.
   - [ ] J3-H3 — `j3-live-v4`: grade H2 first, make the smallest
@@ -95,10 +96,10 @@ session itself).
 
 ## Next
 
-J3-H1. Commit and push the frozen generic versioned runner, full ignored
-transcript channel, `j3-live-v2` configuration, and FINAL predictions; then
-invoke `j3-live-v2` exactly once and grade its terminal evidence. Do not
-resume or rerun `j3-live-v1`; do not start J4.
+J3-H2. Use the graded `j3-live-v2` evidence to make the smallest causal
+repair, obtain independent structural review, freeze and push a fresh
+`j3-live-v3` configuration and FINAL predictions, pass every offline gate,
+then invoke v3 exactly once. Do not resume or rerun v1 or v2; do not start J4.
 
 ## Log
 
@@ -156,6 +157,10 @@ request/response transcripts, conservative predecessor/spend enforcement,
 paired-only partial grading, and terminal forensic bundles. Two independent
 reviews found no live-blocking issue; suite 94/94, dry bake-off, and quickstart
 green. No v2 provider call occurred.
+2026-07-23 — J3-H1 close-out — this commit — Invoked `j3-live-v2` once,
+completed the planned paired bank, verified the full ignored forensic bundle,
+and graded every FINAL prediction locally. No live score entered git; v2 is
+closed and Next advances to the separately preregistered v3 repair cycle.
 
 ## Product stop-rule record
 
@@ -384,3 +389,22 @@ green. No v2 provider call occurred.
    could again yield empty memories, lose the causal error evidence, or
    undercount interrupted attempts. This is authorized evaluation
    infrastructure; `src/` remains frozen.
+
+### J3-H1 close-out
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? It did not change
+   runtime behavior. It produced complete live evidence that identifies
+   specific, bounded defects for the next authorized repair.
+3. Does an existing framework already provide what this unit added? The
+   provider and Mem0 supplied behavior, but neither supplies this exact paired
+   Palari bank, gate comparison, immutable predecessor chain, or local
+   transcript audit.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder required at least three self-healing live cycles with complete
+   retained evidence and prediction grading.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? Runtime behavior would not immediately change, but the
+   next repair would become guesswork and the paid result could not be
+   audited. This is live evaluation evidence under the explicit founder GO.
