@@ -14,10 +14,11 @@ import { runBank, renderReportLines } from './harness.mjs'
 import { renderReportMarkdown } from './report-markdown.mjs'
 import { createKernelArm } from './arms/kernel-arm.mjs'
 import { createUngovernedArm } from './arms/ungoverned-arm.mjs'
+import { createV05ParityArm } from './arms/v05-parity-arm.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const bank = await loadJourneyBankFile(join(here, 'journeys.json'))
-const arms = [createKernelArm(), createUngovernedArm()]
+const arms = [createKernelArm(), createUngovernedArm(), createV05ParityArm()]
 
 const report = await runBank(arms, bank)
 for (const line of renderReportLines(report)) console.log(line)

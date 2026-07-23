@@ -45,11 +45,14 @@ session itself).
     the cross-arm
     dimension table and per-arm findings to ignored
     `evals/results/bakeoff-dry-report.md`.
-  - [x] A1.1 — DONE 2026-07-23 (`this commit`; exact SHA will be
-    backfilled by A1.2). Added validated user/Palari actor overrides
+  - [x] A1.1 — DONE 2026-07-23 (`7cd9298`). Added validated user/Palari
+    actor overrides
     and `palari-scoping-17`; the 17-journey kernel is pinned at 42/44
     while the ungoverned arm leaks Juniper across the Palari boundary.
-  - [ ] A1.2 — Add the v0.5-parity arm.
+  - [x] A1.2 — DONE 2026-07-23 (`this commit`; exact SHA will be
+    backfilled by J2.4). Added `v05-current-memory`, pinned at 38/44:
+    raw writes preserve user/Palari isolation but do not supersede
+    corrections and admit both poisoned source-document candidates.
   - [ ] J2.4 — Publish the honest dry baseline in README and close J2.
 - [ ] J3 — FOUNDER GATE: live bake-off runs. Small spend, all arms,
   pre-registered predictions appended to evals/predictions.md first.
@@ -85,9 +88,12 @@ estimate and $0.25 proposed cap; installed/called nothing; all gates green.
 2026-07-23 — J2.3 — 0ed2787 — Added deterministic Markdown
 comparison rendering and ignored local report output; suite 53/53 and all
 standing gates green.
-2026-07-23 — A1.1 — this commit — Added explicit per-turn/probe Palari
+2026-07-23 — A1.1 — 7cd9298 — Added explicit per-turn/probe Palari
 scoping and a 17th journey; kernel 42/44, ungoverned 33/44 with the expected
 Juniper scope leak; all standing gates green.
+2026-07-23 — A1.2 — this commit — Added the deployed v0.5 parity arm,
+pinned at 38/44: correction and source-boundary gaps measured, while all five
+isolation probes pass; suite 54/54 and all standing gates green.
 
 ## Product stop-rule record
 
@@ -198,3 +204,20 @@ Juniper scope leak; all standing gates green.
    worse? Runtime behavior would not immediately change, but a cross-Palari
    disclosure regression could pass the bake-off unnoticed. This remains
    evaluation infrastructure under the explicitly authorized sequence.
+
+### A1.2
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It did not change the
+   runtime journey; it measured the deployed beta's actual path at 38/44
+   instead of treating the newer kernel as a proxy.
+3. Does an existing framework already provide what this unit added? No
+   external framework can reproduce this repository's parent-app parity path;
+   the arm is the local control needed for the later external comparison.
+4. Has a real user or the founder asked for the guarantee it adds? Yes —
+   Amendment A1 requires the deployed-path comparison before J4.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Runtime behavior would not immediately change, but the founder could
+   mistake kernel improvements for behavior already deployed to users. This
+   is evaluation infrastructure under the explicitly authorized sequence.
