@@ -1,8 +1,12 @@
 # J3 live bake-off preparation
 
-Status: **FOUNDER GO RECORDED — NOT YET RUN**. The founder authorized J3 on
-2026-07-23 for `gpt-5-nano-2025-08-07` under a hard total cap of **$0.25**.
-The publish gate remains closed, and no live score may enter git.
+Status: **EXECUTED ONCE — TERMINALLY STOPPED; FOUNDER DIRECTION REQUIRED**.
+The founder authorized J3 on 2026-07-23 for
+`gpt-5-nano-2025-08-07` under a hard total cap of **$0.25**. That
+authorization was consumed by one run, which stopped before completing the
+bank on a non-retryable provider error. Raw results and the partial grade
+remain gitignored. The publish gate remains closed, and no live score may
+enter git.
 
 ## Gate
 
@@ -46,7 +50,7 @@ Sources: [exact package manifest](https://raw.githubusercontent.com/mem0ai/mem0/
 [exact repository license](https://raw.githubusercontent.com/mem0ai/mem0/5e7adc4d1264bb49ab20cf8c70e4807295d77ae2/LICENSE), and
 [npm provenance](https://registry.npmjs.org/-/npm/v1/attestations/mem0ai@3.1.1).
 
-**INSTALLED, IMPLEMENTED, AND OFFLINE-TESTED; NOT CALLED.** J3 uses `mem0ai`
+**INSTALLED, IMPLEMENTED, OFFLINE-TESTED, AND RUN ONCE.** J3 uses `mem0ai`
 only from eval code,
 and the committed package lists `mem0ai@3.1.1` under `devDependencies`, with
 no production `dependencies`. The install resolved the package's optional
@@ -88,6 +92,19 @@ The OSS arm does not use a hosted Mem0 account, so no `MEM0_API_KEY` is
 planned. If implementation recon shows a different credential or provider is
 required, stop and obtain a new founder decision before any call. Do not
 change the FINAL predictions file.
+
+## Execution outcome
+
+The one authorized J3 run stopped terminally before the full paired bank
+completed. Its durable checkpoint, raw cell artifacts, meter journal, and
+partial prediction grade remain under gitignored `evals/results/`. The
+comparison is incomplete and does not satisfy the pre-registered J4 decision
+rule, so it selects neither engine.
+
+The consumed run must not be resumed, re-rolled, or silently repaired. Any
+further live attempt requires a separately versioned run with a newly frozen
+provider configuration and predictions plus a new explicit founder GO. The
+existing FINAL predictions remain immutable.
 
 ## Mechanical run sequence after GO
 

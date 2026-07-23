@@ -1,14 +1,21 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J1/J2 COMPLETE — waiting at the J3 FOUNDER GATE
-(2026-07-23).
+Loop state: J3 LIVE EXECUTION TERMINALLY STOPPED — FOUNDER
+DIRECTION REQUIRED (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point,
-examples/quickstart.mjs, 54-test suite), plus the 17-journey,
-three-arm dry bake-off. The v2 proof machinery
+examples/quickstart.mjs, 66-test suite), plus the 17-journey,
+three-arm dry bake-off and the paired J3 live adapters. The v2 proof machinery
 (V2-M1 through V2-M2-B) is preserved at git tag `v2-proof-archive`
 and is OUT of the working tree. Read `WE-MESSED-UP.md` for why.
+
+The founder-authorized J3 live runner was invoked once. It stopped
+fail-closed before the paired bank completed after a non-retryable
+provider rejection. The durable checkpoint and partial grade remain
+under gitignored `evals/results/`; no live score is committed or
+published. That run is closed: do not resume or rerun it. J4 remains
+unopened.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -63,20 +70,25 @@ session itself).
   - [x] J2.4 — DONE 2026-07-23 (`this commit`). Published the honest
     dry baselines in README (post-A2: 42/44 reference, 42/44
     deployed-path tie, 33/44 ungoverned) and closed J2.
-- [ ] J3 — FOUNDER GATE: live bake-off runs. Small spend, all arms,
-  pre-registered predictions finalized in
-  `evals/predictions-bakeoff.md` first.
-  Prepared by the agent; executed only on an explicit founder GO.
-- [ ] J4 — FOUNDER GATE: direction decision from the bake-off report
-  — adopt a framework under the thin Palari plane, keep this kernel
-  as the engine, or a named hybrid. Recorded in docs/DECISIONS.md.
+- [ ] J3 — TERMINAL / INCOMPLETE 2026-07-23. The single authorized
+  live execution ran once and was graded only to the extent supported
+  by its terminal checkpoint. It stopped under the runbook's
+  fail-closed provider-error rule before the paired bank completed.
+  Results remain gitignored; no live score entered git. The existing
+  run is closed and may not be resumed or rerun.
+- [ ] J4 — FOUNDER GATE: not started. The pre-registered decision rule
+  cannot be applied mechanically to an incomplete live bank. Any
+  direction decision requires a new explicit founder instruction.
 
 ## Next
 
-J3 — FOUNDER GATE: the founder must decide whether to give GO for the
-live spend and adapter work exactly bounded in
-`docs/BAKEOFF-J3-PREP.md`; until that explicit GO is recorded in
-`docs/DECISIONS.md`, do not install a provider or execute a live call.
+FOUNDER GATE. The founder must choose whether to close J3 as
+inconclusive and supply an explicit direction, or authorize a
+separately named and versioned live unit. Any new live unit requires
+its own explicit GO, hard spend cap, frozen provider configuration,
+and pre-registered predictions before any call. The existing FINAL
+predictions remain immutable. Do not resume or rerun `j3-live-v1`,
+call a provider, or start J4 without that new authority.
 
 ## Log
 
@@ -119,6 +131,11 @@ v05 parity arm re-routed through the production extraction pass
 (source boundary + supersession included); result is an honest 42/44
 TIE with the kernel, same two known findings; README/STATUS/pins
 updated; the A1.2 spec, not the executor, was at fault. Suite 54/54.
+2026-07-23 — J3 — this commit — Invoked the single authorized live
+bake-off once; it stopped fail-closed before bank completion on a
+non-retryable provider rejection and was partially graded from its
+ignored checkpoint. No live score entered git; the run is closed and
+J4 remains founder-gated.
 
 ## Product stop-rule record
 
@@ -282,3 +299,27 @@ updated; the A1.2 spec, not the executor, was at fault. Suite 54/54.
    the evidence needed to decide whether this kernel earns its maintenance
    cost. J2 is evaluation infrastructure; no further infrastructure work is
    authorized before the J3 founder decision.
+
+### J3 terminal close-out
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No. It changed
+   no runtime behavior and did not produce a complete engine
+   comparison. It exposed a failure in the shared live measurement
+   configuration.
+3. Does an existing framework already provide what this unit added?
+   Mem0 provides the external memory engine being tested, but neither
+   Mem0 nor its documentation provides this repository's paired,
+   Palari-scoped journey evidence. The incomplete run did not
+   establish whether Mem0 can replace the kernel.
+4. Has a real user or the founder asked for the guarantee it adds?
+   Yes. The founder explicitly authorized this bounded live
+   comparison.
+5. If this unit's code were deleted, what user-visible behavior would
+   get worse? Existing runtime memory behavior would not worsen, but
+   the repository would lose its bounded, checkpointed path for
+   comparing engines and the evidence that this live configuration
+   failed. This is evaluation infrastructure. No further
+   infrastructure or provider work is authorized before the founder
+   gate is resolved.

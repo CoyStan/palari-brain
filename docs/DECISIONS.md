@@ -619,3 +619,21 @@ dates. Agents record; the founder decides.
   offered up to $2 if needed; it is not needed or adopted. The operational
   hard cap remains the pre-registered **$0.25**, and no provider call
   participated in this correction.
+- 2026-07-23 (J3 terminal execution record) The single
+  founder-authorized `j3-live-v1` execution was invoked once and is
+  now closed. It completed 27 of 34 planned arm-journey cells. The
+  next cell, `relationship-manager-14::mem0-oss-live` probe `p2`,
+  stopped on a non-retryable OpenAI HTTP 400; the six remaining cells
+  were never called. No transport retry occurred because the response
+  was classified as non-retryable. The exact provider error body was
+  deliberately not persisted, so no more specific cause is claimed.
+  During the completed work neither arm produced an admitted memory.
+  That is a diagnostic observation, not a score, and means the partial
+  evidence cannot establish comparative engine behavior under the J4
+  decision rule. Checkpoints, raw outputs, scored dimensions, and the
+  partial grade remain under gitignored `evals/results/`; no live score,
+  prompt text, response text, or raw artifact entered git or was
+  published. This run may not be resumed or rerun. A further attempt
+  requires a separately versioned, explicitly founder-authorized,
+  cost-capped, and pre-registered unit; the existing FINAL predictions
+  remain immutable. J4 remains closed pending founder direction.
