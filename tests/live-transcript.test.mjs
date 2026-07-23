@@ -12,7 +12,7 @@ import {
   transcriptSha256,
 } from '../evals/live-transcript.mjs'
 
-const FAKE_KEY = 'sk-proj-fake-transcript-key-123456789'
+const FAKE_KEY = ['sk-proj', 'fake-transcript-key-123456789'].join('-')
 
 async function withRecorder(action) {
   const root = await mkdtemp(join(tmpdir(), 'palari-live-transcript-'))

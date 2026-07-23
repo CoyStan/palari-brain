@@ -1,0 +1,622 @@
+{
+  "schemaVersion": 1,
+  "status": "FINAL",
+  "frozenAt": "2026-07-23",
+  "runId": "j4-longmemeval-s60-v1",
+  "models": {
+    "writer": "gemini-3.5-flash-lite",
+    "answer": "gemini-3.5-flash-lite",
+    "judge": "gpt-4o-2024-08-06"
+  },
+  "promptConfig": {
+    "writer": {
+      "maxOutputTokens": 512,
+      "thinkingLevel": "MINIMAL"
+    },
+    "answer": {
+      "maxOutputTokens": 256,
+      "thinkingLevel": "MINIMAL",
+      "template": "official-longmemeval-fact-memory",
+      "chainOfThought": false
+    },
+    "judge": {
+      "parser": "official-response-contains-yes",
+      "unchanged": true
+    }
+  },
+  "decisionReference": {
+    "date": "2026-07-23",
+    "document": "docs/DECISIONS.md",
+    "entry": "FOUNDER GO — J4 Tranche 1",
+    "questions": 5,
+    "cumulativeHardCapUsd": 2.5
+  },
+  "method": {
+    "finalizedBeforeProviderCalls": true,
+    "note": "Finalized before any J4 provider call; outcomes derive from direct-user write-boundary and lexical FTS recall hypotheses.",
+    "hypotheses": [
+      "direct-user write boundary",
+      "lexical FTS recall with a five-term query limit and no stemming"
+    ]
+  },
+  "population": {
+    "selectedQuestionIdsSha256": "c720306125284ae03813ed131a044cd6b22d5301ad817da2907a6043768baa3a",
+    "executionOrderSha256": "be3309ba3fdb742b258b47affa801066bd5e02c45d4d71ba41724f85f6870b48",
+    "questions": 60
+  },
+  "rowArraySha256": "12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351",
+  "summary": {
+    "predictedCorrect": 36,
+    "predictedIncorrect": 24,
+    "failureStages": {
+      "write": 8,
+      "retrieval": 16,
+      "answer": 0
+    },
+    "byType": {
+      "knowledge-update": "9/10",
+      "multi-session": "6/10",
+      "single-session-assistant": "0/10",
+      "single-session-preference": "4/10",
+      "single-session-user": "10/10",
+      "temporal-reasoning": "7/10"
+    }
+  },
+  "basisDefinitions": {
+    "ABSTENTION_TARGET_ABSENT": "The asked target is absent; nearby evidence identifies a different target, so the evidence-bounded answerer should state insufficiency.",
+    "ASSISTANT_BOUNDARY": "The required value appears only in assistant-origin content and is predicted not to pass the direct-user evidence boundary.",
+    "DIRECT_FACT_LEXICAL": "A single direct-user fact has a discriminating query match or extractor-preserved base verb.",
+    "LATEST_FACT_LEXICAL": "The latest direct-user fact has a discriminating first-five FTS term or extractor-preserved base verb; dated briefing makes the required current value available.",
+    "LEXICAL_MORPHOLOGY": "The required fact is predicted to miss because FTS query terms and stored terms differ only by unsupported morphology.",
+    "LEXICAL_PARAPHRASE": "The required fact is predicted to be written but missed because the question and stored fact use different lexical forms.",
+    "LEXICAL_PREFIX": "Generic leading question language consumes the five-term FTS query budget before discriminating terms.",
+    "LEXICAL_RELATION": "The question describes a relation or ordering while omitting the stored entity identity, leaving no discriminating FTS term.",
+    "MULTI_FACT_COMPLETE": "Every direct-user fact required for the aggregate has a discriminating query match or extractor-preserved base verb.",
+    "PARTIAL_REQUIRED_SET": "Only part of the evidence required for an aggregate or comparison is predicted to reach the briefing.",
+    "PREFERENCE_LEXICAL": "Direct preference-supporting evidence shares topical first-five FTS terms with the question.",
+    "PREFERENCE_STANDING": "Direct user evidence is predicted to become a preference, which standing recall includes even without lexical identity.",
+    "TEMPORAL_COMPLETE": "Every event needed for the answer is expected to survive direct-user extraction and lexical recall with event dates; only bounded arithmetic or ordering remains."
+  },
+  "predictions": [
+    {
+      "ordinal": 1,
+      "questionId": "08e075c7",
+      "questionType": "knowledge-update",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "LATEST_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 2,
+      "questionId": "09d032c9",
+      "questionType": "single-session-preference",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_PARAPHRASE"
+    },
+    {
+      "ordinal": 3,
+      "questionId": "16c90bf4",
+      "questionType": "single-session-assistant",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "write",
+      "basisCode": "ASSISTANT_BOUNDARY"
+    },
+    {
+      "ordinal": 4,
+      "questionId": "5e1b23de",
+      "questionType": "temporal-reasoning",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "TEMPORAL_COMPLETE"
+    },
+    {
+      "ordinal": 5,
+      "questionId": "80ec1f4f_abs",
+      "questionType": "multi-session",
+      "isAbstention": true,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "ABSTENTION_TARGET_ABSENT"
+    },
+    {
+      "ordinal": 6,
+      "questionId": "0977f2af",
+      "questionType": "knowledge-update",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_RELATION"
+    },
+    {
+      "ordinal": 7,
+      "questionId": "0a34ad58",
+      "questionType": "single-session-preference",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_PREFIX"
+    },
+    {
+      "ordinal": 8,
+      "questionId": "0edc2aef",
+      "questionType": "single-session-preference",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "PREFERENCE_STANDING"
+    },
+    {
+      "ordinal": 9,
+      "questionId": "10d9b85a",
+      "questionType": "multi-session",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_MORPHOLOGY"
+    },
+    {
+      "ordinal": 10,
+      "questionId": "1192316e",
+      "questionType": "multi-session",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "MULTI_FACT_COMPLETE"
+    },
+    {
+      "ordinal": 11,
+      "questionId": "18bc8abd",
+      "questionType": "knowledge-update",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "LATEST_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 12,
+      "questionId": "19b5f2b3",
+      "questionType": "single-session-user",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "DIRECT_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 13,
+      "questionId": "1a1907b4",
+      "questionType": "single-session-preference",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "PREFERENCE_STANDING"
+    },
+    {
+      "ordinal": 14,
+      "questionId": "2133c1b5",
+      "questionType": "knowledge-update",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "LATEST_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 15,
+      "questionId": "2133c1b5_abs",
+      "questionType": "knowledge-update",
+      "isAbstention": true,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "ABSTENTION_TARGET_ABSENT"
+    },
+    {
+      "ordinal": 16,
+      "questionId": "25e5aa4f",
+      "questionType": "single-session-user",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "DIRECT_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 17,
+      "questionId": "2698e78f_abs",
+      "questionType": "knowledge-update",
+      "isAbstention": true,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "ABSTENTION_TARGET_ABSENT"
+    },
+    {
+      "ordinal": 18,
+      "questionId": "32260d93",
+      "questionType": "single-session-preference",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_PARAPHRASE"
+    },
+    {
+      "ordinal": 19,
+      "questionId": "35a27287",
+      "questionType": "single-session-preference",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "PREFERENCE_STANDING"
+    },
+    {
+      "ordinal": 20,
+      "questionId": "36b9f61e",
+      "questionType": "multi-session",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "MULTI_FACT_COMPLETE"
+    },
+    {
+      "ordinal": 21,
+      "questionId": "37d43f65",
+      "questionType": "single-session-user",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "DIRECT_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 22,
+      "questionId": "38146c39",
+      "questionType": "single-session-preference",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_PARAPHRASE"
+    },
+    {
+      "ordinal": 23,
+      "questionId": "3e321797",
+      "questionType": "single-session-assistant",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "write",
+      "basisCode": "ASSISTANT_BOUNDARY"
+    },
+    {
+      "ordinal": 24,
+      "questionId": "3f1e9474",
+      "questionType": "single-session-user",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "DIRECT_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 25,
+      "questionId": "561fabcd",
+      "questionType": "single-session-assistant",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_PREFIX"
+    },
+    {
+      "ordinal": 26,
+      "questionId": "5a4f22c0",
+      "questionType": "knowledge-update",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "LATEST_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 27,
+      "questionId": "6071bd76",
+      "questionType": "knowledge-update",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "LATEST_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 28,
+      "questionId": "65240037",
+      "questionType": "single-session-assistant",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "write",
+      "basisCode": "ASSISTANT_BOUNDARY"
+    },
+    {
+      "ordinal": 29,
+      "questionId": "6a27ffc2",
+      "questionType": "knowledge-update",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "LATEST_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 30,
+      "questionId": "7024f17c",
+      "questionType": "multi-session",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "PARTIAL_REQUIRED_SET"
+    },
+    {
+      "ordinal": 31,
+      "questionId": "7527f7e2",
+      "questionType": "single-session-user",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "DIRECT_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 32,
+      "questionId": "76d63226",
+      "questionType": "single-session-user",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "DIRECT_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 33,
+      "questionId": "7a8d0b71",
+      "questionType": "single-session-assistant",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "write",
+      "basisCode": "ASSISTANT_BOUNDARY"
+    },
+    {
+      "ordinal": 34,
+      "questionId": "8077ef71",
+      "questionType": "temporal-reasoning",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "TEMPORAL_COMPLETE"
+    },
+    {
+      "ordinal": 35,
+      "questionId": "80ec1f4f",
+      "questionType": "multi-session",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "PARTIAL_REQUIRED_SET"
+    },
+    {
+      "ordinal": 36,
+      "questionId": "87f22b4a",
+      "questionType": "multi-session",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "MULTI_FACT_COMPLETE"
+    },
+    {
+      "ordinal": 37,
+      "questionId": "8a137a7f",
+      "questionType": "single-session-user",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "DIRECT_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 38,
+      "questionId": "95228167",
+      "questionType": "single-session-preference",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_PREFIX"
+    },
+    {
+      "ordinal": 39,
+      "questionId": "982b5123_abs",
+      "questionType": "temporal-reasoning",
+      "isAbstention": true,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "ABSTENTION_TARGET_ABSENT"
+    },
+    {
+      "ordinal": 40,
+      "questionId": "a3838d2b",
+      "questionType": "temporal-reasoning",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "PARTIAL_REQUIRED_SET"
+    },
+    {
+      "ordinal": 41,
+      "questionId": "af8d2e46",
+      "questionType": "single-session-user",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "DIRECT_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 42,
+      "questionId": "b01defab",
+      "questionType": "knowledge-update",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "LATEST_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 43,
+      "questionId": "b6025781",
+      "questionType": "single-session-preference",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "PREFERENCE_LEXICAL"
+    },
+    {
+      "ordinal": 44,
+      "questionId": "b759caee",
+      "questionType": "single-session-assistant",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "write",
+      "basisCode": "ASSISTANT_BOUNDARY"
+    },
+    {
+      "ordinal": 45,
+      "questionId": "c14c00dd",
+      "questionType": "single-session-user",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "DIRECT_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 46,
+      "questionId": "caf9ead2",
+      "questionType": "single-session-user",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "DIRECT_FACT_LEXICAL"
+    },
+    {
+      "ordinal": 47,
+      "questionId": "d24813b1",
+      "questionType": "single-session-preference",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_PREFIX"
+    },
+    {
+      "ordinal": 48,
+      "questionId": "dc439ea3",
+      "questionType": "single-session-assistant",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "write",
+      "basisCode": "ASSISTANT_BOUNDARY"
+    },
+    {
+      "ordinal": 49,
+      "questionId": "e9327a54",
+      "questionType": "single-session-assistant",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "write",
+      "basisCode": "ASSISTANT_BOUNDARY"
+    },
+    {
+      "ordinal": 50,
+      "questionId": "eeda8a6d_abs",
+      "questionType": "multi-session",
+      "isAbstention": true,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "ABSTENTION_TARGET_ABSENT"
+    },
+    {
+      "ordinal": 51,
+      "questionId": "f523d9fe",
+      "questionType": "single-session-assistant",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_PREFIX"
+    },
+    {
+      "ordinal": 52,
+      "questionId": "fca762bc",
+      "questionType": "single-session-assistant",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "write",
+      "basisCode": "ASSISTANT_BOUNDARY"
+    },
+    {
+      "ordinal": 53,
+      "questionId": "gpt4_194be4b3",
+      "questionType": "multi-session",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_PARAPHRASE"
+    },
+    {
+      "ordinal": 54,
+      "questionId": "gpt4_1d80365e",
+      "questionType": "temporal-reasoning",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "TEMPORAL_COMPLETE"
+    },
+    {
+      "ordinal": 55,
+      "questionId": "gpt4_2d58bcd6",
+      "questionType": "temporal-reasoning",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "TEMPORAL_COMPLETE"
+    },
+    {
+      "ordinal": 56,
+      "questionId": "gpt4_2f56ae70",
+      "questionType": "temporal-reasoning",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "TEMPORAL_COMPLETE"
+    },
+    {
+      "ordinal": 57,
+      "questionId": "gpt4_59149c78",
+      "questionType": "temporal-reasoning",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "LEXICAL_PARAPHRASE"
+    },
+    {
+      "ordinal": 58,
+      "questionId": "gpt4_7de946e7",
+      "questionType": "temporal-reasoning",
+      "isAbstention": false,
+      "predictedOfficialCorrect": false,
+      "predictedFailureStage": "retrieval",
+      "basisCode": "PARTIAL_REQUIRED_SET"
+    },
+    {
+      "ordinal": 59,
+      "questionId": "gpt4_88806d6e",
+      "questionType": "temporal-reasoning",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "TEMPORAL_COMPLETE"
+    },
+    {
+      "ordinal": 60,
+      "questionId": "gpt4_e05b82a6",
+      "questionType": "multi-session",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "MULTI_FACT_COMPLETE"
+    }
+  ]
+}

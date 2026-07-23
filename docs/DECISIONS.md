@@ -842,3 +842,21 @@ dates. Agents record; the founder decides.
   authorize question 6, any later tranche, Mem0, S-490, rerolls, publication,
   or announcement. All 60 predictions, the complete execution order, prompts,
   settings, and code must be FINAL and pushed before the first provider call.
+- 2026-07-23 (J4.2 pre-run protocol resolution) The one authorized
+  compatibility request is a metered Gemini JSON-writer smoke. The answer and
+  judge paths first execute on question 1 and fail closed there if unavailable
+  or invalid. Tranche 1 has 1,201 base benchmark calls plus this one smoke call
+  and permitted retries, all in the same $2.50 ledger.
+  Sessions replay in stable chronological `eventAt` order with original array
+  order breaking ties. Missing, malformed, or non-array extraction payloads
+  stop on that turn; they cannot become silent zero-write observations. After
+  a completed non-abstention question, zero admitted memories is the one
+  mechanical product-result pause condition; ordinary wrong answers and zero
+  recall remain findings. A valid nonempty judge completion is graded by the
+  unchanged upstream contains-yes parser even when oddly worded. Evaluation
+  identity is the run ID plus hash-pinned dataset, config, prompts, models,
+  predictions, order, and implementation artifacts. A later founder GO may
+  change only the separately tracked administrative authority record,
+  `DECISIONS.md`, `STATUS.md`, and administrative commit; it may not change
+  those evaluation bytes or rerun a completed question. No provider call was
+  made while resolving this protocol.

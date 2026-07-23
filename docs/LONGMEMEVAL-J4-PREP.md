@@ -136,9 +136,11 @@ output tokens, 500 answer input tokens, 100 answer output tokens, 500 judge
 input tokens, and 10 judge output tokens. The conservative case uses three
 characters per token, 128 protocol-overhead tokens per writer call, a 512-token
 writer maximum, 900 answer input tokens, a 256-token answer maximum, 800 judge
-input tokens, and the same 10-token judge maximum. The compatibility preflight
-must compare these assumptions with provider-reported token counts before the
-population run.
+input tokens, and the same 10-token judge maximum. The one compatibility
+preflight request is a small, metered Gemini JSON-writer request that compares
+these assumptions with provider-reported token counts before the population
+run. The Gemini answer and OpenAI judge paths first execute on question 1 and
+fail closed there if unavailable or invalid.
 
 The $30 value is a spend stop, not a promise that all questions finish. The
 runner reserves each attempt before dispatch, retains that reservation if
@@ -158,8 +160,8 @@ lexicographic order. Execution-order SHA-256 is
 The seven-tranche manifest SHA-256 is
 `f034d21feaccab6b3066c135c00dbc269691668bedd2a9173ceb1e3e25b12861`.
 All 60 per-question predictions, provider settings, prompts, code hashes, and
-this order must be `FINAL` before the compatibility smoke request or question
-1. Results from an early tranche may never change later predictions.
+this order must be `FINAL` before the compatibility smoke request or question 1.
+Results from an early tranche may never change later predictions.
 
 | Tranche | New questions | Cumulative questions | Expected cumulative | Conservative cumulative | Proposed cumulative cap |
 |---:|---:|---:|---:|---:|---:|
@@ -188,20 +190,24 @@ representative score sample:
 
 Together they exercise the update, preference, standard, temporal, and
 abstention judge prompts; assistant-origin ingestion; and multi-session
-absence. The compatibility smoke request is additional to these five
-benchmark questions and is charged inside the same $2.50 cap.
+absence. The compatibility smoke request is additional to these five benchmark
+questions and is charged inside the same $2.50 cap. Tranche 1 therefore has
+1,201 base benchmark calls (1,191 writers, five answers, five judges) plus the
+one smoke call and any permitted retries.
 
 Before dispatching the next question, the runner must verify the preceding
 question's complete checkpoint, transcript, model identity, finish reasons,
 usage reconciliation, ledger, and secret scan. It stops immediately—even
 before reaching five—on any non-retryable transport error, exhausted permitted
-retries, schema error, blocked/empty/truncated answer, invalid judge response,
+retries, schema error, blocked/empty/truncated answer, invalid judge transport,
 missing required audit evidence, usage inconsistency, secret-scan failure,
 cross-question workspace/source-ID leak, or ledger/checkpoint mismatch. A
-correctly executed but wrong answer or zero recall is a product finding, not
-an operational error or a reroll. A zero-memory or otherwise catastrophic
-product result may trigger an immediate founder pause, but the completed
-question stays closed.
+nonempty but unusual judge response remains an official parser result, usually
+false, rather than an operational retry. A correctly executed but wrong answer
+or zero recall is a product finding, not an operational error or a reroll.
+Exactly one product-result condition forces an early pause: after a complete
+non-abstention question, zero admitted memory rows pauses before the next
+question. The completed question stays closed.
 
 After exactly 5, 15, 25, 35, 45, 55, and 60 cumulative questions, the runner
 must stop. The private founder report includes every per-question outcome,
@@ -210,9 +216,12 @@ retry, token count, reservation, and measured cumulative spend. Prefix results
 are diagnostic and non-representative: they are not published as benchmark
 scores or used to revise predictions. The founder decides whether the system
 is working well enough to authorize the next tranche. Continuation must use
-the same run ID, commit, config, prompts, models, predictions, and hashes and
-resume only the next undispatched operation. No completed question is rerun;
-any code/config change closes the run; and results from different
+the same run ID, dataset, evaluation config, prompts, models, predictions,
+execution order, and hash-pinned evaluation artifacts and resume only the next
+undispatched operation. Founder authority, `DECISIONS.md`, `STATUS.md`, and
+the administrative Git commit may advance between tranches; they are
+invocation evidence, not evaluation identity. No completed question is rerun;
+any evaluation-code/config change closes the run; and results from different
 configurations are never combined into one score.
 
 ## Required live implementation
@@ -225,11 +234,13 @@ ledger. The closed J3 runner and arms stay unchanged.
    counts, workload stats, and current extraction-prompt character count all
    match.
 2. Replay each selected question into an isolated Palari workspace using the
-   benchmark's user/assistant pair granularity and original event times.
+   benchmark's user/assistant pair granularity. Sessions use stable
+   chronological `eventAt` order, with original array order as the tie-breaker,
+   and every write retains its original event time.
 3. Use native Google GenerateContent calls for memory writing and answering.
    Enforce 512 writer and 256 answer output tokens, explicit minimal thinking,
    and validate `modelVersion`, candidates, finish reason, and usage.
-4. Charge Gemini output as candidate plus thinking tokens. A compatibility
+4. Charge Gemini output as candidate plus thinking tokens. The compatibility
    smoke request is terminal if returned usage can exceed the enforced output
    maximum or cannot be reconciled.
 5. Send only the official judge calls to OpenAI. Pin the snapshot and exact
@@ -269,7 +280,8 @@ Before the first J4 provider call, all of the following must be true:
   hash-pinned;
 - focused tests, full `npm test`, `npm run bakeoff`, and
   `npm run quickstart` pass from a clean, pushed `main`;
-- one compatibility smoke request is charged inside the $2.50 cap.
+- one Gemini JSON-writer compatibility smoke request is charged inside the
+  $2.50 cap.
 
 Raw answers, scores, reports, and transcripts remain gitignored. `STATUS.md`
 may record only that a run occurred and closed, never the numbers. Publishing

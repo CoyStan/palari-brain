@@ -1,0 +1,318 @@
+{
+  "schemaVersion": 1,
+  "runId": "j4-longmemeval-s60-v1",
+  "runDate": "2026-07-23",
+  "dataset": {
+    "path": "data/longmemeval_s_cleaned.json",
+    "sha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+  },
+  "models": {
+    "answer": "gemini-3.5-flash-lite",
+    "judge": "gpt-4o-2024-08-06",
+    "writer": "gemini-3.5-flash-lite"
+  },
+  "generation": {
+    "answerMaxOutputTokens": 256,
+    "judgeMaxTokens": 10,
+    "judgeN": 1,
+    "judgeTemperature": 0,
+    "thinkingLevel": "MINIMAL",
+    "writerMaxOutputTokens": 512
+  },
+  "pricesUsdPerToken": {
+    "geminiInput": 0.0000003,
+    "geminiOutputIncludingThinking": 0.0000025,
+    "judgeInput": 0.0000025,
+    "judgeOutput": 0.00001
+  },
+  "population": {
+    "executionOrderSha256": "be3309ba3fdb742b258b47affa801066bd5e02c45d4d71ba41724f85f6870b48",
+    "questions": 60,
+    "sealedQuestionIds": [
+      "001be529",
+      "00ca467f",
+      "0100672e",
+      "01493427",
+      "031748ae",
+      "031748ae_abs",
+      "06878be2",
+      "08f4fc43",
+      "0e5e2d1a",
+      "1568498a"
+    ],
+    "trancheManifestSha256": "f034d21feaccab6b3066c135c00dbc269691668bedd2a9173ceb1e3e25b12861"
+  },
+  "tranches": [
+    {
+      "cumulativeCapUsd": 2.5,
+      "cumulativeQuestions": 5,
+      "questions": 5
+    },
+    {
+      "cumulativeCapUsd": 7.5,
+      "cumulativeQuestions": 15,
+      "questions": 10
+    },
+    {
+      "cumulativeCapUsd": 12.5,
+      "cumulativeQuestions": 25,
+      "questions": 10
+    },
+    {
+      "cumulativeCapUsd": 17.5,
+      "cumulativeQuestions": 35,
+      "questions": 10
+    },
+    {
+      "cumulativeCapUsd": 22.5,
+      "cumulativeQuestions": 45,
+      "questions": 10
+    },
+    {
+      "cumulativeCapUsd": 27.5,
+      "cumulativeQuestions": 55,
+      "questions": 10
+    },
+    {
+      "cumulativeCapUsd": 30,
+      "cumulativeQuestions": 60,
+      "questions": 5
+    }
+  ],
+  "limits": [
+    {
+      "cumulativeCapUsd": 2.5,
+      "cumulativeQuestions": 5,
+      "meter": {
+        "maxAttempts": 4808,
+        "maxLogicalRequests": {
+          "answer": 5,
+          "judge": 5,
+          "writer": 1192
+        },
+        "maxTokens": {
+          "geminiInput": 8333333,
+          "geminiOutputIncludingThinking": 1000000,
+          "judgeInput": 1000000,
+          "judgeOutput": 250000
+        },
+        "maxResponseBytes": 4194304,
+        "requestTimeoutMs": 60000,
+        "retryLimit": 3
+      }
+    },
+    {
+      "cumulativeCapUsd": 7.5,
+      "cumulativeQuestions": 15,
+      "meter": {
+        "maxAttempts": 14472,
+        "maxLogicalRequests": {
+          "answer": 15,
+          "judge": 15,
+          "writer": 3588
+        },
+        "maxTokens": {
+          "geminiInput": 25000000,
+          "geminiOutputIncludingThinking": 3000000,
+          "judgeInput": 3000000,
+          "judgeOutput": 750000
+        },
+        "maxResponseBytes": 4194304,
+        "requestTimeoutMs": 60000,
+        "retryLimit": 3
+      }
+    },
+    {
+      "cumulativeCapUsd": 12.5,
+      "cumulativeQuestions": 25,
+      "meter": {
+        "maxAttempts": 24628,
+        "maxLogicalRequests": {
+          "answer": 25,
+          "judge": 25,
+          "writer": 6107
+        },
+        "maxTokens": {
+          "geminiInput": 41666666,
+          "geminiOutputIncludingThinking": 5000000,
+          "judgeInput": 5000000,
+          "judgeOutput": 1250000
+        },
+        "maxResponseBytes": 4194304,
+        "requestTimeoutMs": 60000,
+        "retryLimit": 3
+      }
+    },
+    {
+      "cumulativeCapUsd": 17.5,
+      "cumulativeQuestions": 35,
+      "meter": {
+        "maxAttempts": 34516,
+        "maxLogicalRequests": {
+          "answer": 35,
+          "judge": 35,
+          "writer": 8559
+        },
+        "maxTokens": {
+          "geminiInput": 58333333,
+          "geminiOutputIncludingThinking": 7000000,
+          "judgeInput": 7000000,
+          "judgeOutput": 1750000
+        },
+        "maxResponseBytes": 4194304,
+        "requestTimeoutMs": 60000,
+        "retryLimit": 3
+      }
+    },
+    {
+      "cumulativeCapUsd": 22.5,
+      "cumulativeQuestions": 45,
+      "meter": {
+        "maxAttempts": 44416,
+        "maxLogicalRequests": {
+          "answer": 45,
+          "judge": 45,
+          "writer": 11014
+        },
+        "maxTokens": {
+          "geminiInput": 75000000,
+          "geminiOutputIncludingThinking": 9000000,
+          "judgeInput": 9000000,
+          "judgeOutput": 2250000
+        },
+        "maxResponseBytes": 4194304,
+        "requestTimeoutMs": 60000,
+        "retryLimit": 3
+      }
+    },
+    {
+      "cumulativeCapUsd": 27.5,
+      "cumulativeQuestions": 55,
+      "meter": {
+        "maxAttempts": 54136,
+        "maxLogicalRequests": {
+          "answer": 55,
+          "judge": 55,
+          "writer": 13424
+        },
+        "maxTokens": {
+          "geminiInput": 91666666,
+          "geminiOutputIncludingThinking": 11000000,
+          "judgeInput": 11000000,
+          "judgeOutput": 2750000
+        },
+        "maxResponseBytes": 4194304,
+        "requestTimeoutMs": 60000,
+        "retryLimit": 3
+      }
+    },
+    {
+      "cumulativeCapUsd": 30,
+      "cumulativeQuestions": 60,
+      "meter": {
+        "maxAttempts": 59088,
+        "maxLogicalRequests": {
+          "answer": 60,
+          "judge": 60,
+          "writer": 14652
+        },
+        "maxTokens": {
+          "geminiInput": 100000000,
+          "geminiOutputIncludingThinking": 12000000,
+          "judgeInput": 12000000,
+          "judgeOutput": 3000000
+        },
+        "maxResponseBytes": 4194304,
+        "requestTimeoutMs": 60000,
+        "retryLimit": 3
+      }
+    }
+  ],
+  "prompts": {
+    "answerTemplateSha256": "00410c8193a84a2bdb96f86ea1c806ccdc6379f6144060ab03a5fa195f32009e",
+    "extractionPromptSha256": "5c9604fe2b384a01018176e29fba000e0ddf05f825afca258d2e2c2305acdc1a",
+    "judgeSourceSha256": "ecce9c4c79dc89d99534ac17b383a5cbb5b9f0c69ee98adaf0684742e3d95251"
+  },
+  "predictions": {
+    "path": "evals/predictions/j4-longmemeval-s60.json",
+    "sha256": "07a262c01efa13697266c4e5d52829b518e9e16076e7b6046c78122ae0011028"
+  },
+  "artifacts": [
+    {
+      "path": "evals/arms/kernel-longmemeval-live-arm.mjs",
+      "sha256": "a5efea10eb48f1e28bf825cd03b438b01e725d127e29755e26236f5d079e31f3"
+    },
+    {
+      "path": "evals/live-transcript.mjs",
+      "sha256": "b42fb4809c992b09b6e22506cd61e5cbffa108f693ab6cd8790152620439100d"
+    },
+    {
+      "path": "evals/longmemeval-judge.mjs",
+      "sha256": "5f953cd6f56cfcbb5de8246a7b79a5c7f63199dcd07861c5d8d0fe0bb4cff3ee"
+    },
+    {
+      "path": "evals/longmemeval-live-config.mjs",
+      "sha256": "5653381e5921142648f52784a089aa316b0afdbff7891ac6e74ff8f201bb2b36"
+    },
+    {
+      "path": "evals/longmemeval-live-meter.mjs",
+      "sha256": "288b38506ffe456edb56958ea8c2aee7837dca49e50033f349544e08a48829fb"
+    },
+    {
+      "path": "evals/longmemeval-plan.mjs",
+      "sha256": "e0b49f2c99595693b8409f0b62b1e2233053c0402a86f4aeac08b739c53dc92d"
+    },
+    {
+      "path": "evals/run-longmemeval-live.mjs",
+      "sha256": "3495a701cc21ab86d7dd2b4cb4068ab84816d05fc12c2964ea07cb0bd3c3a83d"
+    },
+    {
+      "path": "src/adapter.mjs",
+      "sha256": "4e1cf61d69828e0b7fdf005dec8b6e0bb8e1298e2e12259464bcef86b9a33a91"
+    },
+    {
+      "path": "src/gate.mjs",
+      "sha256": "afb9856791bdbcc25240db0ba0bbab316d8e61133ec5773f9ddcb97baab9ec8a"
+    },
+    {
+      "path": "src/gemini.mjs",
+      "sha256": "0084aa1e6e97c1cf40588a3f1b5125abe3c330bcc2edd5576f8d3f05fe8b96d1"
+    },
+    {
+      "path": "src/longmemeval.mjs",
+      "sha256": "2835bd11edcaf4d121ac4ad77410a9a361dd25d0cbbffab4aeac39c3de14d9d9"
+    },
+    {
+      "path": "src/memory-briefing.mjs",
+      "sha256": "604174dfd9e8ac71436bd89069247d719d80180602ff4bb3b47013cb895fdd4b"
+    },
+    {
+      "path": "src/memory-extraction.mjs",
+      "sha256": "517325737343fd108e5c81fd1d7da09025b0babd85936410819d774254ae4fa5"
+    },
+    {
+      "path": "src/memory-store.mjs",
+      "sha256": "9661594e1a747a9dd1dcfa06936e21ed3c1d942da43ddf12069510dba9c63414"
+    },
+    {
+      "path": "src/recall.mjs",
+      "sha256": "b4242dbb95a12c5e4cbc70c2bcff0d2e0ccdb4f09114a70b881fafc8ffee87ef"
+    },
+    {
+      "path": "src/routing-budgets.mjs",
+      "sha256": "821f8834a4b9a1bfc9109140c684968033e98ffcd9acd3c6ffed25571d80b966"
+    },
+    {
+      "path": "src/store.mjs",
+      "sha256": "55c43e27925938c0ceb21bb74438fb203df0a19709213f78329408e686593b45"
+    },
+    {
+      "path": "src/util.mjs",
+      "sha256": "84473cf2b3b604279069336e49af55d277eb44b3b3bd1b87efa0201ae99d0140"
+    },
+    {
+      "path": "src/v05-memory-extraction.mjs",
+      "sha256": "770889c34c02a4c1f9162318c2b32786f6922ff288924627d681a10f92561a9f"
+    }
+  ]
+}

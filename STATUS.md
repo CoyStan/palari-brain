@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4 EXTERNAL VALIDATION — TRANCHE 1 FOUNDER GO RECORDED;
-PRE-RUN IMPLEMENTATION (2026-07-23).
+Loop state: J4 EXTERNAL VALIDATION — TRANCHE 1 PRE-RUN FROZEN;
+LIVE INVOCATION NEXT (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -131,13 +131,18 @@ session itself).
     later ten-question pauses, cumulative cost forecasts, and fresh GO per
     tranche. No runner was built, no provider was called, and no cap was
     adopted.
-  - [ ] J4.2 — TRANCHE 1 FOUNDER GO RECORDED / PRE-RUN. Exactly five
+  - [ ] J4.2 — TRANCHE 1 PRE-RUN FROZEN (`this commit`). Exactly five
     preordered questions: approximately $0.81 expected, $2.05 conservative,
     **$2.50 cumulative hard stop** including smoke and retries. The founder
-    adopted that exact scope and cap on 2026-07-23; both runtime keys are
-    available. FINAL predictions for all 60 questions, the offline-tested
-    separate J4 adapter, aggregate meter and runner, and a clean pushed main
-    remain required before the first call.
+    adopted that exact scope and cap on 2026-07-23. All 60 predictions are
+    FINAL; the separate adapter, aggregate meter, one-smoke/five-question
+    runner, private evidence audit, and later-tranche predecessor gate are
+    offline-tested and hash-frozen. Config SHA-256
+    `7e3619893e66984e4548c84cb23ab6c097f8372fbd29028b592e99a4f649d5ce`;
+    FINAL prediction SHA-256
+    `07a262c01efa13697266c4e5d52829b518e9e16076e7b6046c78122ae0011028`.
+    Suite 154/154, dry bake-off, and quickstart are green. No J4 provider
+    call has occurred; push this cut point, invoke once, then stop and report.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -150,12 +155,13 @@ session itself).
 
 ## Next
 
-J4.2 PRE-RUN IMPLEMENTATION. Build/freeze the separate J4 Palari adapter,
-aggregate meter, staged runner, full-S60 FINAL predictions, and per-question
-circuit breaker; verify from clean pushed main; run the in-cap smoke and no
-more than the authorized first five questions; then report and stop. Do not
-resume or rerun U8 or J3 v1–v4. Do not automatically continue to question 6,
-run Mem0, start S-490, publish a score, or announce a result.
+J4.2 LIVE INVOCATION. From the clean pushed pre-run cut point, run the one
+in-cap Gemini writer smoke and no more than the authorized first five
+questions under the aggregate $2.50 cap; verify and grade the ignored private
+bundle, record only execution/closure without scores in tracked STATUS, then
+report and stop. Do not resume or rerun U8 or J3 v1–v4. Do not automatically
+continue to question 6, run Mem0, start S-490, publish a score, or announce a
+result.
 
 ## Log
 
@@ -253,6 +259,11 @@ Next is exact five-question/$2.50 authority.
 LongMemEval-S authority and cumulative $2.50 cap, including both providers,
 the compatibility smoke, and retries. Both runtime credentials are available;
 no provider was called. Next is the frozen, tested, pushed pre-run cut point.
+2026-07-23 — J4.2 pre-run — this commit — Froze all 60 predictions, the exact
+one-smoke/five-question runner, strict extraction envelope, aggregate
+reservation meter, official answer/judge paths, immutable artifact identity,
+private forensic bundle, and later-tranche predecessor gate. Suite 154/154,
+dry bake-off, and quickstart are green; no provider was called.
 
 ## Product stop-rule record
 
@@ -631,3 +642,27 @@ no provider was called. Next is the frozen, tested, pushed pre-run cut point.
    founder safety amendment. No third prep-only unit is allowed: the next
    authorized unit must produce the five-question live evidence or stop at a
    genuine gate.
+
+### J4.2 frozen pre-run cut point
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? It has not changed the
+   product path or claimed a live result. It makes the already-authorized
+   external measurement executable without silently treating malformed
+   extraction as empty memory or spending beyond the first human checkpoint.
+3. Does an existing framework already provide what this unit added?
+   LongMemEval supplies the benchmark and official judge, while Gemini
+   supplies the model. This code adds only the Palari adapter, literal founder
+   boundary, aggregate meter, and evidence integrity needed to run them
+   against the actual gated kernel.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder authorized exactly five questions under $2.50, required a stop and
+   report, and specifically asked that a broken first question not consume
+   the full run.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Current chatbot behavior would not change, but the authorized
+   external test could again overrun, reroll, mix configurations, or report a
+   result from malformed writes. This is the resumable pre-call cut point
+   inside J4.2, not another prep-only unit: the next action is the live
+   evidence invocation already authorized by the founder.

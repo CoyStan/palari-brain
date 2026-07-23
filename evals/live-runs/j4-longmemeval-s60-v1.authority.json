@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "runId": "j4-longmemeval-s60-v1",
+  "founderGoDate": "2026-07-23",
+  "decisionReference": "docs/DECISIONS.md — FOUNDER GO — J4 Tranche 1",
+  "fromCumulativeQuestions": 0,
+  "cumulativeQuestions": 5,
+  "cumulativeCapUsd": 2.5,
+  "previousCheckpointSha256": null
+}
