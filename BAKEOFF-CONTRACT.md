@@ -266,9 +266,85 @@ founder gates. Report and end.
 - [ ] J2.1 — ungoverned-baseline arm + pinned contrast test
 - [ ] J2.2 — docs/BAKEOFF-J3-PREP.md + DRAFT predictions file
 - [ ] J2.3 — markdown report renderer + local report artifact
+- [ ] A1.1 — per-palari scoping journey (bank at 17) + harness plumb
+- [ ] A1.2 — v05-parity arm + pinned baseline
 - [ ] J2.4 — README section + STATUS close-out, then STOP
 
-## §7 Handoff note from the seeding session
+Execution order: J1.1, J1.2, J2.1, J2.2, J2.3, A1.1, A1.2, J2.4.
+
+## §7 AMENDMENT A1 (2026-07-22, after parent-app recon — founder-ratified)
+
+Recon of the parent app CoyStan/palari-v05 at its current `main`
+(`066335b`) established three facts that sharpen this contract:
+(1) v05's production memory files (`memory-store.mjs`,
+`memory-extraction.mjs`, `memory-briefing.mjs`) are byte-identical
+to this kernel's extraction baseline — the kernel is a strict
+superset of what the deployed beta runs today; (2) the beta runtime
+is the node workbench backend with one SQLite file per workspace —
+no Postgres in the live path (the sql/ cutover work is planning,
+not wired); (3) multiple palaries now serve one deployment (Sofia,
+the Maeve pilot), so per-palari memory scoping is a live product
+dimension. Two tasks are added (executed after J2.3, before J2.4)
+and J2.2 gains content requirements.
+
+### A1.1 — Per-palari scoping journey (bank to exactly 17)
+
+Plumb optional actor overrides through the harness, evals files
+only: in `evals/journey-bank.mjs` allow optional non-empty-string
+`asUserId`/`asPalariId` on user turns and probes; in
+`evals/harness.mjs` pass `palariId: turns[i].asPalariId ?? palariId`
+on ingest and `{ question, questionDate, userId, palariId:
+probe.asPalariId ?? palariId }` to `arm.answer`; in
+`evals/arms/kernel-arm.mjs` accept the per-call `palariId` override
+in both `ingestTurn` (already honored) and `answer`. Then add
+journey `palari-scoping-17` (category `isolation`): the workspace
+user tells palari-a a work fact in s1; probes — p1 asking palari-a
+answers it; p2 with `asPalariId: "palari-b"` abstains and leaks
+nothing (dimension `isolation`). `expectTotalWritten: 1`. Update
+all pinned counts (17 journeys) in both arm baseline tests.
+Completion test: `npm test` green with new pins; `npm run bakeoff`
+exit 0 reporting 17 journeys.
+
+### A1.2 — v05-parity arm (the decision-relevant contrast)
+
+Create `evals/arms/v05-parity-arm.mjs`, name `v05-current-memory`:
+what the deployed parent app does today, built ONLY from this
+repo's own files (no v05 import): open a real kernel store via
+`createKernelStore` but write candidates directly through the RAW
+store door `store.addMemory(record, { sourceKind, writer:
+'background_extraction' })` with NO gate, NO eventAt provenance
+(v05 baseline behavior), skipping nothing — every candidate is
+attempted regardless of `sourceKind`; answer via
+`store.recallMemories` + `buildMemoryBriefing` from
+`src/memory-briefing.mjs` (briefing v0), abstaining with the exact
+stub abstention sentence when the briefing has no included
+entries; `forget` via `store.topicForget`. NOTE: the raw store
+door still enforces its own write-boundary checks — whatever
+passes or is refused IS the measurement; do not work around
+refusals. Register as a third arm in `evals/run-bakeoff.mjs`
+(reference-arm exit rule unchanged). Add
+`tests/v05-parity-arm.contract.test.mjs` pinning its actual
+results exactly as the other arm tests do, with a comment naming
+each divergence from the kernel arm (expected shape, verify then
+pin: eventAt-less provenance and any injection/scoping
+differences). Completion test: `npm test` green; `npm run bakeoff`
+exit 0 printing three arm blocks.
+
+### A1 additions to J2.2's document
+
+`docs/BAKEOFF-J3-PREP.md` must also record, each in one or two
+sentences: the deployment reality (workbench node backend, one
+SQLite file per workspace, memory files byte-identical to this
+kernel's baseline — zero drift); that the J4 decision option
+"keep this kernel as the engine" concretely means upgrading v05's
+~60-line briefing seam (`buildAssistantMemoryBriefing` in
+`assistant-brain.mjs`) to `createGatedStore` + `recallAndBrief`,
+staged behind v05's flag discipline as a FOUNDER-GATED follow-on
+unit in the parent repo; and that a future v05 Postgres cutover
+would reopen the storage-driver question — recorded as a J4
+decision input, not built.
+
+## §8 Handoff note from the seeding session
 
 The two pinned findings are genuine, useful product measurements —
 the temporal-recall gap is exactly where Graphiti/Zep-class engines
