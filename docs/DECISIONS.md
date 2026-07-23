@@ -818,3 +818,17 @@ dates. Agents record; the founder decides.
   decision. Full protocol, assumptions, and pinned population hashes are in
   `docs/LONGMEMEVAL-J4-PREP.md`; no provider was called and no score was
   created.
+- 2026-07-23 (FOUNDER DIRECTION — J4 staged circuit breaker) The founder
+  rejected an uninterrupted S-60 run because an earlier evaluation was
+  visibly broken on question 1 yet continued through the full population. J4
+  must now execute at most five mechanically preordered questions, report, and
+  stop. Every later tranche is ten new questions except the final five and
+  requires a fresh founder GO after reviewing the preceding private evidence.
+  The immutable cumulative boundaries are 5/15/25/35/45/55/60; proposed
+  cumulative caps are
+  $2.50/$7.50/$12.50/$17.50/$22.50/$27.50/$30. None is adopted by this entry.
+  All 60 predictions and the entire order freeze before question 1. Health is
+  audited after every question and any operational defect stops immediately;
+  a valid wrong answer remains a finding, never a retry. No completed question
+  is rerun, no configurations are mixed into one score, and the publish gate
+  remains closed.

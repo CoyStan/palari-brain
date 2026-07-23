@@ -87,6 +87,32 @@ export const J4_PUBLIC_SAMPLE_QUESTION_IDS = Object.freeze([
   'gpt4_e05b82a6',
 ])
 
+export const J4_STAGED_EXECUTION_ORDER_SHA256 =
+  'be3309ba3fdb742b258b47affa801066bd5e02c45d4d71ba41724f85f6870b48'
+
+export const J4_STAGED_TRANCHE_MANIFEST_SHA256 =
+  'f034d21feaccab6b3066c135c00dbc269691668bedd2a9173ceb1e3e25b12861'
+
+export const J4_FIRST_TRANCHE_QUESTION_IDS = Object.freeze([
+  '08e075c7',
+  '09d032c9',
+  '16c90bf4',
+  '5e1b23de',
+  '80ec1f4f_abs',
+])
+
+// Every cap is cumulative across the one immutable run. Each tranche requires
+// a fresh founder GO; none of these proposed values is self-authorizing.
+export const J4_PROPOSED_TRANCHE_GATES = Object.freeze([
+  Object.freeze({ cumulativeCapUsd: 2.5, cumulativeQuestions: 5, questions: 5 }),
+  Object.freeze({ cumulativeCapUsd: 7.5, cumulativeQuestions: 15, questions: 10 }),
+  Object.freeze({ cumulativeCapUsd: 12.5, cumulativeQuestions: 25, questions: 10 }),
+  Object.freeze({ cumulativeCapUsd: 17.5, cumulativeQuestions: 35, questions: 10 }),
+  Object.freeze({ cumulativeCapUsd: 22.5, cumulativeQuestions: 45, questions: 10 }),
+  Object.freeze({ cumulativeCapUsd: 27.5, cumulativeQuestions: 55, questions: 10 }),
+  Object.freeze({ cumulativeCapUsd: 30, cumulativeQuestions: 60, questions: 5 }),
+])
+
 export const J4_PUBLIC_HARNESS_PROVENANCE = Object.freeze({
   commit: '4b61c5d31b9c668a12b4f5e78064248a02c82d2b',
   license: 'Apache-2.0',
@@ -411,6 +437,78 @@ export function assertJ4PinnedS60(instances = []) {
   return { ...stats, totals: observed }
 }
 
+export function orderJ4PinnedS60ForStagedRun(instances = []) {
+  assertJ4PinnedS60(instances)
+  const byId = new Map(
+    instances.map((instance) => [instance.questionId, instance]),
+  )
+  const sentinelIds = new Set(J4_FIRST_TRANCHE_QUESTION_IDS)
+  const orderedIds = [
+    ...J4_FIRST_TRANCHE_QUESTION_IDS,
+    ...instances
+      .map((instance) => instance.questionId)
+      .filter((id) => !sentinelIds.has(id))
+      .sort(),
+  ]
+  const ordered = orderedIds.map((id) => byId.get(id))
+  assertExact(
+    'J4 staged execution-order SHA-256',
+    sha256(ordered.map((instance) => instance.questionId).join('\n')),
+    J4_STAGED_EXECUTION_ORDER_SHA256,
+  )
+  assertExact(
+    'J4 staged execution-order question count',
+    ordered.length,
+    J4_S60_STATS.questions,
+  )
+  return ordered
+}
+
+export function buildJ4StagedTranches(instances = []) {
+  const ordered = orderJ4PinnedS60ForStagedRun(instances)
+  let start = 0
+  const tranches = J4_PROPOSED_TRANCHE_GATES.map((gate, index) => {
+    assertExact(
+      `J4 tranche ${index + 1} start`,
+      start + gate.questions,
+      gate.cumulativeQuestions,
+    )
+    const questionIds = ordered
+      .slice(start, gate.cumulativeQuestions)
+      .map((instance) => instance.questionId)
+    const cumulative = ordered.slice(0, gate.cumulativeQuestions)
+    const stats = longMemEvalStats(cumulative)
+    const writer = palariWriterRequestContentStats(cumulative)
+    stats.totals.writerRequestContentChars = writer.chars
+    const expected = estimatePalariLongMemEvalCost(stats)
+    const conservative = estimatePalariLongMemEvalCost(stats, {
+      assumptions: J4_CONSERVATIVE_COST_ASSUMPTIONS,
+    })
+    const tranche = {
+      ...gate,
+      conservativeCumulativeUsd: conservative.totalUsd,
+      expectedCumulativeUsd: expected.totalUsd,
+      index: index + 1,
+      questionIds,
+      questionIdsSha256: sha256(questionIds.join('\n')),
+      start,
+      stats,
+    }
+    start = gate.cumulativeQuestions
+    return tranche
+  })
+  assertExact(
+    'J4 staged tranche-manifest SHA-256',
+    sha256(
+      tranches
+        .map((tranche) => `${tranche.index}:${tranche.questionIds.join(',')}`)
+        .join('\n'),
+    ),
+    J4_STAGED_TRANCHE_MANIFEST_SHA256,
+  )
+  return tranches
+}
+
 export function longMemEvalSelectionManifest(instances = [], {
   additionalQuestionIds = [],
   datasetSha256,
@@ -445,7 +543,9 @@ export function prepareJ4PinnedS60({ raw } = {}) {
     variant: 'longmemeval_s_cleaned.public-harness-derived-s60.u8-excluded',
   })
   manifest.stats = stats
-  return { manifest, selected }
+  const executionOrder = orderJ4PinnedS60ForStagedRun(selected)
+  const tranches = buildJ4StagedTranches(selected)
+  return { executionOrder, manifest, selected, tranches }
 }
 
 function nonNegative(value, label) {

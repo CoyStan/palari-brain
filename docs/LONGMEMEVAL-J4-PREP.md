@@ -145,6 +145,76 @@ runner reserves each attempt before dispatch, retains that reservation if
 usage is unknown, and stops before projected aggregate spend can cross the
 cap. Retry spend comes from the same cap.
 
+## Mandatory staged execution
+
+The founder requires an early human checkpoint because an earlier live
+evaluation was visibly broken on its first question but continued spending.
+J4 therefore never receives one authorization to run all 60 questions.
+
+The 60 selected IDs are ordered before any result exists. Five operational
+sentinels exercise every official judge prompt branch; the other 55 retain
+lexicographic order. Execution-order SHA-256 is
+`be3309ba3fdb742b258b47affa801066bd5e02c45d4d71ba41724f85f6870b48`.
+The seven-tranche manifest SHA-256 is
+`f034d21feaccab6b3066c135c00dbc269691668bedd2a9173ceb1e3e25b12861`.
+All 60 per-question predictions, provider settings, prompts, code hashes, and
+this order must be `FINAL` before the compatibility smoke request or question
+1. Results from an early tranche may never change later predictions.
+
+| Tranche | New questions | Cumulative questions | Expected cumulative | Conservative cumulative | Proposed cumulative cap |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 5 | 5 | $0.8132255 | $2.0471537 | **$2.50** |
+| 2 | 10 | 15 | $2.4489228 | $6.1650673 | **$7.50** |
+| 3 | 10 | 25 | $4.1551807 | $10.4761512 | **$12.50** |
+| 4 | 10 | 35 | $5.8227683 | $14.6816991 | **$17.50** |
+| 5 | 10 | 45 | $7.4936052 | $18.8939964 | **$22.50** |
+| 6 | 10 | 55 | $9.1360465 | $23.0321808 | **$27.50** |
+| 7 | 5 | 60 | $9.9736455 | $25.1416396 | **$30** |
+
+Caps are cumulative, include the smoke request and every retry, and are not
+automatically adopted. Tranche 1 requires an exact founder GO for five
+questions and a $2.50 cumulative cap. After its report, each later tranche
+requires a new founder GO adopting that row's cumulative question count and
+cap. There is no “continue if green” automation.
+
+The first five IDs are mechanically fixed operational sentinels, not a
+representative score sample:
+
+1. `08e075c7` — knowledge update
+2. `09d032c9` — single-session preference
+3. `16c90bf4` — single-session assistant
+4. `5e1b23de` — temporal reasoning
+5. `80ec1f4f_abs` — multi-session abstention
+
+Together they exercise the update, preference, standard, temporal, and
+abstention judge prompts; assistant-origin ingestion; and multi-session
+absence. The compatibility smoke request is additional to these five
+benchmark questions and is charged inside the same $2.50 cap.
+
+Before dispatching the next question, the runner must verify the preceding
+question's complete checkpoint, transcript, model identity, finish reasons,
+usage reconciliation, ledger, and secret scan. It stops immediately—even
+before reaching five—on any non-retryable transport error, exhausted permitted
+retries, schema error, blocked/empty/truncated answer, invalid judge response,
+missing required audit evidence, usage inconsistency, secret-scan failure,
+cross-question workspace/source-ID leak, or ledger/checkpoint mismatch. A
+correctly executed but wrong answer or zero recall is a product finding, not
+an operational error or a reroll. A zero-memory or otherwise catastrophic
+product result may trigger an immediate founder pause, but the completed
+question stays closed.
+
+After exactly 5, 15, 25, 35, 45, 55, and 60 cumulative questions, the runner
+must stop. The private founder report includes every per-question outcome,
+preliminary prediction observation, write/retrieval/answer/judge diagnostic,
+retry, token count, reservation, and measured cumulative spend. Prefix results
+are diagnostic and non-representative: they are not published as benchmark
+scores or used to revise predictions. The founder decides whether the system
+is working well enough to authorize the next tranche. Continuation must use
+the same run ID, commit, config, prompts, models, predictions, and hashes and
+resume only the next undispatched operation. No completed question is rerun;
+any code/config change closes the run; and results from different
+configurations are never combined into one score.
+
 ## Required live implementation
 
 J4 gets a separate config, runner, adapter, prediction file, and aggregate
@@ -168,7 +238,9 @@ ledger. The closed J3 runner and arms stay unchanged.
    secret-scanned request/response evidence under gitignored `evals/results/`.
 7. Enforce one aggregate cap before every dispatch. Splitting Google and
    OpenAI into independent caps is forbidden.
-8. Checkpoint a question only after ingest, answer, and judge evidence are
+8. Enforce the committed execution order, current tranche boundary, immediate
+   per-question circuit breaker, and fresh-founder-GO requirement above.
+   Checkpoint a question only after ingest, answer, and judge evidence are
    durable. A transport failure may retry the call at most three times. A
    malformed success, blocked/empty response, or exhausted retry stops the run.
    A checkpointed question is never rerun.
@@ -187,7 +259,8 @@ a separate founder decision after Stage 1 evidence exists.
 
 Before the first J4 provider call, all of the following must be true:
 
-- the founder explicitly adopts the exact $30 Stage 1 hard cap;
+- the founder explicitly authorizes exactly the first five questions and
+  adopts the exact $2.50 cumulative Tranche 1 hard cap;
 - `GEMINI_API_KEY` and `OPENAI_API_KEY` are present without being printed;
 - the separate adapter, meter, runner, and official answer prompt are complete
   and offline-tested;
@@ -196,11 +269,12 @@ Before the first J4 provider call, all of the following must be true:
   hash-pinned;
 - focused tests, full `npm test`, `npm run bakeoff`, and
   `npm run quickstart` pass from a clean, pushed `main`;
-- one compatibility smoke request is charged inside the cap.
+- one compatibility smoke request is charged inside the $2.50 cap.
 
 Raw answers, scores, reports, and transcripts remain gitignored. `STATUS.md`
 may record only that a run occurred and closed, never the numbers. Publishing
-or announcing any result remains a separate founder gate.
+or announcing any result remains a separate founder gate. No later tranche is
+authorized by a Tranche 1 GO.
 
 ## Sources verified 2026-07-23
 

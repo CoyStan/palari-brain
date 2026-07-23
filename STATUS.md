@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: J4 EXTERNAL VALIDATION — SPEND-FREE PREP COMPLETE;
-STAGE 1 CAP + CREDENTIAL GATE (2026-07-23).
+STAGE 1 TRANCHE 1 CAP + CREDENTIAL GATE (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -119,31 +119,43 @@ session itself).
 - [ ] J4 — IN PROGRESS / LIVE SPEND GATED. The founder opened independent
   LongMemEval validation, selected `gemini-3.5-flash-lite`, and challenged the
   need to pay for another Mem0 execution. Stage 1 is Palari-only.
-  - [x] J4.1 — SPEND-FREE PREP DONE 2026-07-23 (`this commit`). Pinned the
+  - [x] J4.1 — SPEND-FREE PREP DONE 2026-07-23 (`362dcba`). Pinned the
     MIT scorer, Apache public-harness sampling provenance, mandatory U8
     exclusion guard, canonical dataset validator, exact public-harness-derived
     S-60 IDs, reproducible prompt-sized Palari-only cost assumptions, and the
     managed-Mem0 comparison caveat. No J3 code was changed, no provider was
     called, and no result was created.
-  - [ ] J4.2 — FOUNDER CAP + CREDENTIAL GATE. Proposed distractor-heavy S-60
-    Stage 1: approximately $9.97 expected, $25.14 conservative planning case,
-    **$30 hard stop**. Requires explicit adoption of that exact cap, both
-    runtime keys, FINAL predictions, offline-tested separate J4 adapter,
-    aggregate meter and runner, clean pushed main, and one in-cap compatibility
-    smoke request.
-  - [ ] J4.3 — SEPARATE FOUNDER GATE. Full distractor-heavy S-490 or a paid
+  - [x] J4.1a — STAGED-RUN SAFETY PREP DONE 2026-07-23 (`this commit`).
+    Mechanically pinned the cross-type execution order, required per-question
+    circuit-breaker behavior, mandatory founder report after five questions,
+    later ten-question pauses, cumulative cost forecasts, and fresh GO per
+    tranche. No runner was built, no provider was called, and no cap was
+    adopted.
+  - [ ] J4.2 — TRANCHE 1 FOUNDER CAP + CREDENTIAL GATE. Exactly five
+    preordered questions: approximately $0.81 expected, $2.05 conservative,
+    **$2.50 cumulative hard stop** including smoke and retries. Requires
+    explicit adoption of that exact scope and cap, both runtime keys, FINAL
+    predictions for all 60 questions, offline-tested separate J4 adapter,
+    aggregate meter and runner, and clean pushed main.
+  - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
+    cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
+    questions except the final five. Each requires a fresh GO raising the
+    cumulative cap to $7.50/$12.50/$17.50/$22.50/$27.50/$30 respectively. No
+    automatic continuation.
+  - [ ] J4.4 — SEPARATE EXPANSION GATE. Full distractor-heavy S-490 or a paid
     matched Mem0 run may be considered only if Stage 1 is inconclusive. S-490
     is approximately $81.62 expected and $205.84 conservative; no cap is
     proposed or adopted.
 
 ## Next
 
-J4.2 FOUNDER CAP + CREDENTIAL GATE. Await explicit adoption of the proposed
-$30 S-60 cap. Then build/freeze the separate J4 Palari adapter, aggregate
-meter, runner, and FINAL predictions; verify from clean pushed main; run one
-checkpointed population at most once. Do not resume or rerun U8 or J3 v1–v4.
-Do not run Mem0, start S-490, publish a score, or announce a result under the
-Stage 1 authority.
+J4.2 TRANCHE 1 FOUNDER CAP + CREDENTIAL GATE. Await explicit authority for
+exactly five questions under a $2.50 cumulative cap. Then build/freeze the
+separate J4 Palari adapter, aggregate meter, staged runner, full-S60 FINAL
+predictions, and per-question circuit breaker; verify from clean pushed main;
+run no more than the authorized tranche and report. Do not resume or rerun U8
+or J3 v1–v4. Do not automatically continue to question 6, run Mem0, start
+S-490, publish a score, or announce a result.
 
 ## Log
 
@@ -224,13 +236,19 @@ completed and independently audited the paired plan, graded every immutable
 FINAL prediction locally, and closed all three authorized repair cycles. No
 live score entered git; no fourth rerun is justified; Next is the J4 founder
 gate.
-2026-07-23 — J4.1 — this commit — Opened founder-directed independent
+2026-07-23 — J4.1 — 362dcba — Opened founder-directed independent
 validation spend-free: pinned the public-harness-derived S-60 population,
 canonical dataset checks, official scorer, U8 exclusions, Gemini/OpenAI
 provider boundary, public Mem0 evidence caveat, reproducible $9.97/$25.14
 forecast, and proposed $30 hard stop. No provider was called; suite 115/115,
 dry bake-off, and quickstart are green; Next is the exact Stage 1 cap and
 credential gate.
+2026-07-23 — J4.1a — this commit — Replaced the uninterrupted S-60 plan with
+a pinned per-question circuit-breaker requirement and mandatory 5, then
+10-question founder pauses; pinned cross-type order and
+$2.50/$7.50/$12.50/$17.50/$22.50/$27.50/$30 cumulative proposed caps. No
+provider was called; suite 116/116, dry bake-off, and quickstart are green;
+Next is exact five-question/$2.50 authority.
 
 ## Product stop-rule record
 
@@ -587,3 +605,25 @@ credential gate.
    This is one infrastructure unit. A second prep-only unit would be drift:
    after the exact cap gate, the next coherent unit must produce the
    preregistered external evidence or stop on a genuine live blocker.
+
+### J4.1a staged-run safety amendment
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? It changed no product
+   answer behavior. It specifies and pins the controls that the J4.2 runner
+   must enforce to prevent a visibly broken live evaluation from consuming
+   the remainder of the S-60 budget.
+3. Does an existing framework already provide what this unit added? Public
+   harnesses checkpoint and resume, but this founder-requested five-question
+   review boundary and cumulative Palari cap schedule are local run controls.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly cited the prior question-1 failure and required five
+   questions, a report, then later batches of ten.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Product behavior would not change, but a broken provider or adapter
+   could again spend through the full evaluation before human review. This is
+   a second consecutive infrastructure cut point only because of the explicit
+   founder safety amendment. No third prep-only unit is allowed: the next
+   authorized unit must produce the five-question live evidence or stop at a
+   genuine gate.

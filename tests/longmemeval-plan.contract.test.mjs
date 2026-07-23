@@ -6,21 +6,27 @@ import assert from 'node:assert/strict'
 import {
   J4_CONSERVATIVE_COST_ASSUMPTIONS,
   J4_EXPECTED_COST_ASSUMPTIONS,
+  J4_FIRST_TRANCHE_QUESTION_IDS,
   J4_GEMINI_GENERATION_LIMITS,
   J4_PRICES_USD_PER_MILLION,
+  J4_PROPOSED_TRANCHE_GATES,
   J4_PUBLIC_HARNESS_PROVENANCE,
   J4_PUBLIC_SAMPLE_QUESTION_IDS,
   J4_S_DATASET_CONTRACT,
   J4_S490_STATS,
   J4_S60_STATS,
+  J4_STAGED_EXECUTION_ORDER_SHA256,
+  J4_STAGED_TRANCHE_MANIFEST_SHA256,
   SEALED_U8_QUESTION_IDS,
   assertJ4CanonicalS,
   assertJ4PinnedS60,
   assertLongMemEvalExclusions,
+  buildJ4StagedTranches,
   estimatePalariLongMemEvalCost,
   excludeLongMemEvalQuestions,
   longMemEvalSelectionManifest,
   longMemEvalStats,
+  orderJ4PinnedS60ForStagedRun,
   palariWriterRequestContentStats,
   prepareJ4PinnedS60,
   selectPinnedLongMemEvalSample,
@@ -106,6 +112,49 @@ test('public-harness-derived S-60 population and provenance are hash-pinned', ()
   )
 })
 
+test('J4 staged gates are exactly 5, then tens, with fresh cumulative caps', () => {
+  assert.deepEqual(
+    J4_PROPOSED_TRANCHE_GATES.map((gate) => gate.questions),
+    [5, 10, 10, 10, 10, 10, 5],
+  )
+  assert.deepEqual(
+    J4_PROPOSED_TRANCHE_GATES.map((gate) => gate.cumulativeQuestions),
+    [5, 15, 25, 35, 45, 55, 60],
+  )
+  assert.deepEqual(
+    J4_PROPOSED_TRANCHE_GATES.map((gate) => gate.cumulativeCapUsd),
+    [2.5, 7.5, 12.5, 17.5, 22.5, 27.5, 30],
+  )
+  assert.deepEqual(J4_FIRST_TRANCHE_QUESTION_IDS, [
+    '08e075c7',
+    '09d032c9',
+    '16c90bf4',
+    '5e1b23de',
+    '80ec1f4f_abs',
+  ])
+  const sentinels = new Set(J4_FIRST_TRANCHE_QUESTION_IDS)
+  const executionOrder = [
+    ...J4_FIRST_TRANCHE_QUESTION_IDS,
+    ...J4_PUBLIC_SAMPLE_QUESTION_IDS
+      .filter((questionId) => !sentinels.has(questionId))
+      .sort(),
+  ]
+  assert.equal(
+    sha256(executionOrder.join('\n')),
+    J4_STAGED_EXECUTION_ORDER_SHA256,
+  )
+  let start = 0
+  const manifestRows = J4_PROPOSED_TRANCHE_GATES.map((gate, index) => {
+    const questionIds = executionOrder.slice(start, gate.cumulativeQuestions)
+    start = gate.cumulativeQuestions
+    return `${index + 1}:${questionIds.join(',')}`
+  })
+  assert.equal(
+    sha256(manifestRows.join('\n')),
+    J4_STAGED_TRANCHE_MANIFEST_SHA256,
+  )
+})
+
 test('J4 canonical dataset validation fails closed before selection', () => {
   assert.equal(J4_S_DATASET_CONTRACT.questions, 500)
   assert.match(J4_S_DATASET_CONTRACT.sha256, /^[a-f0-9]{64}$/)
@@ -171,7 +220,8 @@ test('local canonical LongMemEval-S reproduces the pinned J4 manifest', async (t
     }
     throw error
   }
-  const { manifest, selected } = prepareJ4PinnedS60({ raw })
+  const { executionOrder, manifest, selected, tranches } =
+    prepareJ4PinnedS60({ raw })
   assert.equal(selected.length, J4_S60_STATS.questions)
   assert.equal(manifest.datasetSha256, J4_S_DATASET_CONTRACT.sha256)
   assert.equal(
@@ -181,6 +231,68 @@ test('local canonical LongMemEval-S reproduces the pinned J4 manifest', async (t
   assert.deepEqual(
     manifest.stats.totals,
     J4_S60_STATS,
+  )
+  assert.equal(
+    sha256(executionOrder.map((instance) => instance.questionId).join('\n')),
+    J4_STAGED_EXECUTION_ORDER_SHA256,
+  )
+  assert.deepEqual(
+    executionOrder.slice(0, 5).map((instance) => instance.questionId),
+    J4_FIRST_TRANCHE_QUESTION_IDS,
+  )
+  assert.deepEqual(
+    executionOrder.slice(0, 5).map((instance) => ({
+      isAbstention: instance.isAbstention,
+      questionType: instance.questionType,
+    })),
+    [
+      { isAbstention: false, questionType: 'knowledge-update' },
+      { isAbstention: false, questionType: 'single-session-preference' },
+      { isAbstention: false, questionType: 'single-session-assistant' },
+      { isAbstention: false, questionType: 'temporal-reasoning' },
+      { isAbstention: true, questionType: 'multi-session' },
+    ],
+  )
+  assert.deepEqual(
+    tranches.map((tranche) => tranche.questionIds.length),
+    [5, 10, 10, 10, 10, 10, 5],
+  )
+  assert.deepEqual(
+    tranches.map((tranche) => Number(tranche.expectedCumulativeUsd.toFixed(7))),
+    [0.8132255, 2.4489228, 4.1551807, 5.8227683, 7.4936052, 9.1360465, 9.9736455],
+  )
+  assert.deepEqual(
+    tranches.map((tranche) =>
+      Number(tranche.conservativeCumulativeUsd.toFixed(7))),
+    [2.0471537, 6.1650673, 10.4761512, 14.6816991, 18.8939964, 23.0321808, 25.1416396],
+  )
+  assert.deepEqual(
+    tranches.map((tranche) => tranche.questionIdsSha256),
+    [
+      'cd90bc30cb5d71b1d4cf375d21d6aefee3b50a91a25df2d6ce78b678177325e7',
+      '8288c3b3c92dadef8d9baa54db7a60c5ebb76f6cd82ee30964ae4fa2dacc169b',
+      '4d23bc3dddcf90523cee0f13e16b550f26b01756be4b28ec85b783004a9292f9',
+      'bf6d2d68d2d5e728ad8b69ab3bb9a75508d8d832e3a8d30e716ffd32299c10d6',
+      'ab4f03ab1c8405f6c8d3a8735c2429f9b67657bfea90a78166c50dab35c45f50',
+      '64596009d46b13e948c5b2db56962fc9d31fdc52675c1821fc72b004f4063511',
+      '5254e81467cd26f47e0e55bf6f266c51690d4a6b89530cf06fff8a69ad5b3466',
+    ],
+  )
+  assert.equal(
+    sha256(
+      tranches
+        .map((tranche) => `${tranche.index}:${tranche.questionIds.join(',')}`)
+        .join('\n'),
+    ),
+    J4_STAGED_TRANCHE_MANIFEST_SHA256,
+  )
+  assert.deepEqual(
+    buildJ4StagedTranches(selected).map((tranche) => tranche.questionIds),
+    tranches.map((tranche) => tranche.questionIds),
+  )
+  assert.deepEqual(
+    orderJ4PinnedS60ForStagedRun(selected).map((instance) => instance.questionId),
+    executionOrder.map((instance) => instance.questionId),
   )
 })
 
