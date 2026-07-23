@@ -1,12 +1,13 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J3 ENGINEERING REPAIR — THREE CYCLES COMPLETE; J4 FOUNDER GATE
-(2026-07-23).
+Loop state: J4 EXTERNAL VALIDATION — SPEND-FREE PREP COMPLETE;
+STAGE 1 CAP + CREDENTIAL GATE (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
-TRIM-CONTRACT.md and made installable (src/index.mjs entry point,
-examples/quickstart.mjs, 66-test suite), plus the 17-journey,
-three-arm dry bake-off and the paired J3 live adapters. The v2 proof machinery
+TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
+examples/quickstart.mjs), plus the 17-journey, three-arm dry bake-off,
+paired J3 live adapters, and spend-free external LongMemEval planning
+surface. The v2 proof machinery
 (V2-M1 through V2-M2-B) is preserved at git tag `v2-proof-archive`
 and is OUT of the working tree. Read `WE-MESSED-UP.md` for why.
 
@@ -17,7 +18,8 @@ under gitignored `evals/results/`; no live score is committed or
 published. That run is closed: do not resume or rerun it. The three
 separately versioned engineering-repair cycles authorized under
 `docs/BAKEOFF-J3-HEALING.md` are now complete within their cumulative $5 cap.
-J4 remains unopened.
+The founder has opened J4 for independent LongMemEval validation and selected
+Gemini 3.5 Flash-Lite. No J4 provider call has occurred.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -114,18 +116,34 @@ session itself).
     pass, and every FINAL prediction was graded locally with misses first.
     Complete evidence remains gitignored; no live score entered git or was
     published. V4 and the three-cycle repair sequence are closed.
-- [ ] J4 — FOUNDER GATE: not started. The pre-registered decision rule
-  now has a complete paired live run to inspect. Applying it or choosing a
-  product direction requires a new explicit founder instruction.
+- [ ] J4 — IN PROGRESS / LIVE SPEND GATED. The founder opened independent
+  LongMemEval validation, selected `gemini-3.5-flash-lite`, and challenged the
+  need to pay for another Mem0 execution. Stage 1 is Palari-only.
+  - [x] J4.1 — SPEND-FREE PREP DONE 2026-07-23 (`this commit`). Pinned the
+    MIT scorer, Apache public-harness sampling provenance, mandatory U8
+    exclusion guard, canonical dataset validator, exact public-harness-derived
+    S-60 IDs, reproducible prompt-sized Palari-only cost assumptions, and the
+    managed-Mem0 comparison caveat. No J3 code was changed, no provider was
+    called, and no result was created.
+  - [ ] J4.2 — FOUNDER CAP + CREDENTIAL GATE. Proposed distractor-heavy S-60
+    Stage 1: approximately $9.97 expected, $25.14 conservative planning case,
+    **$30 hard stop**. Requires explicit adoption of that exact cap, both
+    runtime keys, FINAL predictions, offline-tested separate J4 adapter,
+    aggregate meter and runner, clean pushed main, and one in-cap compatibility
+    smoke request.
+  - [ ] J4.3 — SEPARATE FOUNDER GATE. Full distractor-heavy S-490 or a paid
+    matched Mem0 run may be considered only if Stage 1 is inconclusive. S-490
+    is approximately $81.62 expected and $205.84 conservative; no cap is
+    proposed or adopted.
 
 ## Next
 
-J4 FOUNDER GATE. Review the complete local three-cycle evidence and the
-pre-registered decision rule. Do not resume or rerun v1–v4, make another
-provider call, publish a live score, or begin structural work without a new
-explicit founder instruction. No optional fourth cycle is justified: the
-remaining repeatable defects require structural product choices rather than
-a minimal fixture-independent repair.
+J4.2 FOUNDER CAP + CREDENTIAL GATE. Await explicit adoption of the proposed
+$30 S-60 cap. Then build/freeze the separate J4 Palari adapter, aggregate
+meter, runner, and FINAL predictions; verify from clean pushed main; run one
+checkpointed population at most once. Do not resume or rerun U8 or J3 v1–v4.
+Do not run Mem0, start S-490, publish a score, or announce a result under the
+Stage 1 authority.
 
 ## Log
 
@@ -206,6 +224,13 @@ completed and independently audited the paired plan, graded every immutable
 FINAL prediction locally, and closed all three authorized repair cycles. No
 live score entered git; no fourth rerun is justified; Next is the J4 founder
 gate.
+2026-07-23 — J4.1 — this commit — Opened founder-directed independent
+validation spend-free: pinned the public-harness-derived S-60 population,
+canonical dataset checks, official scorer, U8 exclusions, Gemini/OpenAI
+provider boundary, public Mem0 evidence caveat, reproducible $9.97/$25.14
+forecast, and proposed $30 hard stop. No provider was called; suite 115/115,
+dry bake-off, and quickstart are green; Next is the exact Stage 1 cap and
+credential gate.
 
 ## Product stop-rule record
 
@@ -539,3 +564,26 @@ gate.
    lose the complete evidence needed to choose between hardening the kernel,
    wrapping an existing engine with the admission plane, or stopping. Further
    tiny patches would overfit this bank, so the unit stops at the founder gate.
+
+### J4.1 spend-free external-validation prep
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? No user-visible answer
+   behavior changed. It prepared an independent measurement capable of
+   falsifying the value inferred from Palari's own journey bank.
+3. Does an existing framework already provide what this unit added? Yes —
+   LongMemEval provides the dataset and official answer scorer, and Mem0
+   publishes a reusable benchmark harness and contextual results. This unit
+   adds only the minimum Palari selection, sealed-run exclusion, provenance,
+   and bounded execution contract needed to use those public measurements
+   honestly; it explicitly avoids rebuilding or rerunning Mem0.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly asked for popular external recall evaluations, approved
+   the direction, said GO, and selected Gemini 3.5 Flash-Lite to lower cost.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Current runtime behavior would not worsen, but the next product
+   decision would fall back to our invented bank and unaudited cost guesses.
+   This is one infrastructure unit. A second prep-only unit would be drift:
+   after the exact cap gate, the next coherent unit must produce the
+   preregistered external evidence or stop on a genuine live blocker.

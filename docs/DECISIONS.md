@@ -781,3 +781,40 @@ dates. Agents record; the founder decides.
   or reroll stochastic behavior rather than make a minimal general repair.
   No fourth provider call is justified under the product stop rule. J4 and
   publication remain closed pending a new explicit founder instruction.
+- 2026-07-23 (FOUNDER GO — J4 independent validation, in session)
+  **J4 is opened for an external memory benchmark.** The founder approved the
+  proposed independent-evaluation direction and then, before any J4 provider
+  call, selected `gemini-3.5-flash-lite` for the Palari memory writer and
+  answerer. Explicit minimal thinking is fixed. Classic LongMemEval is the
+  first benchmark. The ten-question U8 slice stays sealed as one unit and is
+  excluded from every J4 population; no completed or incomplete U8 question
+  may be executed or graded. The publish gate remains closed.
+- 2026-07-23 (J4 founder challenge — do not pay to rediscover Mem0's public
+  result) The founder asked why Mem0 needed to be rerun and directed the work
+  toward Palari in an existing public measurement. Stage 1 is therefore
+  Palari-only on LongMemEval-S. Mem0's reported 94.4% is managed Platform v3,
+  top-200 vendor evidence with proprietary optimizations; the pinned public
+  benchmark commit's result artifact still says 93.4%, and the exact updated
+  run is absent. It is contextual, not a matched OSS baseline. A paid Mem0 run
+  is deferred unless the Palari result makes configuration-controlled evidence
+  decision-relevant.
+- 2026-07-23 (J4 spend-free preparation) Google currently marks
+  `gemini-3.5-flash-lite` GA at $0.30/M input and $2.50/M output tokens,
+  including thinking. J4 sends explicit `MINIMAL`, caps writer output at 512
+  tokens and answer output at 256, and uses a single aggregate ledger. Official
+  LongMemEval answer grading stays pinned to `gpt-4o-2024-08-06`; its exact
+  upstream prompt, settings, and permissive contains-yes parser are adapted
+  from MIT source commit
+  `9e0b455f4ef0e2ab8f2e582289761153549043fc`. Oracle-490 is neither selected
+  nor needed for Stage 1. The preliminary, public-harness-derived S-60
+  population is estimated at $9.9736455 expected and $25.1416396 under the
+  committed conservative assumptions, with a proposed $30 aggregate hard
+  stop. The estimate uses the exact current extraction-message size plus
+  explicit protocol overhead, not raw history plus an undersized prompt
+  allowance. That cap is not adopted by this entry: an exact founder cap, both
+  runtime keys, FINAL predictions, pushed code, and green offline verification
+  remain mandatory before any call. The full S-490 population is approximately
+  $81.62 expected and $205.84 conservative and remains a separate, unopened
+  decision. Full protocol, assumptions, and pinned population hashes are in
+  `docs/LONGMEMEVAL-J4-PREP.md`; no provider was called and no score was
+  created.

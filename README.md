@@ -14,7 +14,7 @@ command.
 ## Quickstart
 
 ```bash
-npm test              # 98 contract tests, offline
+npm test              # contract tests, offline
 npm run quickstart    # the whole product loop in one script, offline
 ```
 
