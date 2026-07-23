@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J3 ENGINEERING REPAIR — CYCLE 3 PRE-RUN FROZEN
+Loop state: J3 ENGINEERING REPAIR — THREE CYCLES COMPLETE; J4 FOUNDER GATE
 (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
@@ -14,9 +14,10 @@ The first founder-authorized J3 live runner was invoked once. It stopped
 fail-closed before the paired bank completed after a non-retryable
 provider rejection. The durable checkpoint and partial grade remain
 under gitignored `evals/results/`; no live score is committed or
-published. That run is closed: do not resume or rerun it. The founder has
-now authorized three separately versioned engineering-repair cycles under
-`docs/BAKEOFF-J3-HEALING.md`, with a cumulative $5 cap. J4 remains unopened.
+published. That run is closed: do not resume or rerun it. The three
+separately versioned engineering-repair cycles authorized under
+`docs/BAKEOFF-J3-HEALING.md` are now complete within their cumulative $5 cap.
+J4 remains unopened.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -77,16 +78,17 @@ session itself).
   fail-closed provider-error rule before the paired bank completed.
   Results remain gitignored; no live score entered git. The existing
   run is closed and may not be resumed or rerun.
-- [ ] J3-H — FOUNDER GO 2026-07-23. Three fresh, immutable engineering
-  repair cycles; combined conservative spend capped at $5 including v1.
-  - [x] J3-H1 — DONE 2026-07-23 (`this commit`). `j3-live-v2`:
+- [x] J3-H — DONE 2026-07-23. Three fresh, immutable engineering repair
+  cycles completed; combined conservative spend stayed within the $5 cap
+  including v1.
+  - [x] J3-H1 — DONE 2026-07-23 (`c10e285`, `7b5c3c8`). `j3-live-v2`:
     repaired v1's artificial completion ceiling
     and diagnostic blindness; preregister, verify offline, then run once.
     The one-shot run completed and was graded against its FINAL predictions.
     Its full local transcript, checkpoint, ledger, reports, artifact manifest,
     and prediction grade are preserved under gitignored `evals/results/`.
     No live score entered git or was published. The run is closed.
-  - [x] J3-H2 — DONE 2026-07-23 (`this commit`).
+  - [x] J3-H2 — DONE 2026-07-23 (`3d1cec2`, `0472635`).
     `j3-live-v3`: the complete H1 evidence was graded locally; the smallest
     causal extraction, replay-time, answer, and live-oracle repairs are
     independently reviewed, preregistered, and offline-verified. Exact config
@@ -99,7 +101,7 @@ session itself).
     its terminal ledger, transcript, checkpoint, report, and manifest audits
     pass, and every FINAL prediction was graded locally. Full evidence remains
     gitignored; no live score entered git or was published. V3 is closed.
-  - [ ] J3-H3 — PRE-RUN FROZEN 2026-07-23 (`this commit`).
+  - [x] J3-H3 — DONE 2026-07-23 (`cb84ac7`, `this commit`).
     `j3-live-v4`: the complete H2 evidence was graded locally; the smallest
     extraction-prompt, dated-conflict answer, and order-aware semantic-
     abstention repairs are independently reviewed, preregistered, and
@@ -107,17 +109,23 @@ session itself).
     `1ee30c98de735d3f0e0f8de53eea580be968ec4ed2c81d2dea8579668f49851b`;
     FINAL prediction SHA-256
     `176783abd50b5c91c9ac5295e86e4e5ad3171a84a4abc517199be2ee6ba70946`.
-    No v4 provider call has occurred.
+    The one-shot run completed its full paired plan; ledger, transcript,
+    checkpoint, report, manifest, permissions, and credential-safety audits
+    pass, and every FINAL prediction was graded locally with misses first.
+    Complete evidence remains gitignored; no live score entered git or was
+    published. V4 and the three-cycle repair sequence are closed.
 - [ ] J4 — FOUNDER GATE: not started. The pre-registered decision rule
-  cannot be applied mechanically to an incomplete live bank. Any
-  direction decision requires a new explicit founder instruction.
+  now has a complete paired live run to inspect. Applying it or choosing a
+  product direction requires a new explicit founder instruction.
 
 ## Next
 
-Commit and push the frozen J3-H3 cut point, then invoke `j3-live-v4` exactly
-once. Preserve and audit its complete ignored evidence, grade the immutable
-FINAL predictions with misses first, close the third authorized repair cycle,
-and stop at J4. Do not resume or rerun v1, v2, or v3; do not start J4.
+J4 FOUNDER GATE. Review the complete local three-cycle evidence and the
+pre-registered decision rule. Do not resume or rerun v1–v4, make another
+provider call, publish a live score, or begin structural work without a new
+explicit founder instruction. No optional fourth cycle is justified: the
+remaining repeatable defects require structural product choices rather than
+a minimal fixture-independent repair.
 
 ## Log
 
@@ -169,30 +177,35 @@ J4 remains founder-gated.
 engineering-repair authority, immutable run IDs, cumulative $5 ceiling,
 competitor-calibrated token decision, transcript requirements, and unchanged
 publish/J4 gates; all standing offline checks remain green.
-2026-07-23 — J3-H1 pre-run — this commit — Froze the generic one-shot
+2026-07-23 — J3-H1 pre-run — c10e285 — Froze the generic one-shot
 versioned runner, exact v2 config and FINAL predictions, complete ignored
 request/response transcripts, conservative predecessor/spend enforcement,
 paired-only partial grading, and terminal forensic bundles. Two independent
 reviews found no live-blocking issue; suite 94/94, dry bake-off, and quickstart
 green. No v2 provider call occurred.
-2026-07-23 — J3-H1 close-out — this commit — Invoked `j3-live-v2` once,
+2026-07-23 — J3-H1 close-out — 7b5c3c8 — Invoked `j3-live-v2` once,
 completed the planned paired bank, verified the full ignored forensic bundle,
 and graded every FINAL prediction locally. No live score entered git; v2 is
 closed and Next advances to the separately preregistered v3 repair cycle.
-2026-07-23 — J3-H2 pre-run — this commit — Repaired the evidence-supported
+2026-07-23 — J3-H2 pre-run — 3d1cec2 — Repaired the evidence-supported
 extraction score contract, replay timestamps, Mem0 confidence projection,
 positive answer path, and live abstention oracle; froze exact v3 predictions,
 config, and predecessor hashes. Suite 98/98, dry bake-off, and quickstart
 green; no v3 provider call occurred.
-2026-07-23 — J3-H2 close-out — this commit — Invoked `j3-live-v3` once,
+2026-07-23 — J3-H2 close-out — 0472635 — Invoked `j3-live-v3` once,
 completed the paired plan, verified its full ignored forensic bundle, and
 graded every FINAL prediction locally. No live score entered git; v3 is
 closed and Next advances to the fresh preregistered v4 cycle.
-2026-07-23 — J3-H3 pre-run — this commit — Repaired only the v3-supported
+2026-07-23 — J3-H3 pre-run — cb84ac7 — Repaired only the v3-supported
 kernel extraction prompt, shared dated-conflict answer instruction, and
 order-aware semantic-absence oracle; froze exact v4 predictions, config, and
 predecessor hashes. Suite 100/100, dry bake-off, and quickstart green; no v4
 provider call occurred.
+2026-07-23 — J3-H3 close-out — this commit — Invoked `j3-live-v4` once,
+completed and independently audited the paired plan, graded every immutable
+FINAL prediction locally, and closed all three authorized repair cycles. No
+live score entered git; no fourth rerun is justified; Next is the J4 founder
+gate.
 
 ## Product stop-rule record
 
@@ -504,3 +517,25 @@ provider call occurred.
    copied an invalid joined type, retained a request wrapper, or omitted the
    terms recall needs. The dated-answer and bounded-absence changes are the
    minimum shared measurement repairs needed to test those facts honestly.
+
+### J3-H3 close-out
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? The live run confirmed
+   that the bounded repair improved some intended behaviors, but not reliably
+   enough to claim the whole product loop solved. Exact results and prediction
+   misses remain in the ignored local grade rather than tracked prose.
+3. Does an existing framework already provide what this unit added? Mem0
+   remains the comparison engine and provides useful recall behaviors, but
+   the run also confirms that it does not itself provide this product's hard
+   source-document admission or shared plane. The kernel's remaining lexical,
+   history, and sharing gaps are not unique inventions to pursue blindly.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly required at least three self-healing cycles, complete
+   transcripts, independent structural review, and a bounded spend.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? The extraction repair would be lost and the founder would
+   lose the complete evidence needed to choose between hardening the kernel,
+   wrapping an existing engine with the admission plane, or stopping. Further
+   tiny patches would overfit this bank, so the unit stops at the founder gate.

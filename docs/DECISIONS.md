@@ -759,3 +759,25 @@ dates. Agents record; the founder decides.
   suite, dry bake-off, and quickstart pass. No v4 provider call has occurred;
   this freeze authorizes only the already founder-approved single v4
   invocation and publishes no live evidence.
+- 2026-07-23 (J3-H3 terminal execution record) `j3-live-v4` was invoked
+  exactly once from pushed commit
+  `cb84ac7589a9fe9cb08482dfdb6738e298770840` and completed the full paired
+  plan. Its ledger, transcript, checkpoint, report, artifact-manifest,
+  permission, and credential-safety audits pass, and every immutable FINAL
+  prediction was graded locally with misses analyzed first. Complete raw
+  evidence and the local prediction grade remain under gitignored
+  `evals/results/`; no live score, raw execution request, response, transcript,
+  or raw result entered git or was published. Independent forensic, causal,
+  and oracle reviews found no remaining evaluator defect that could justify a
+  rerun.
+  V4 and all three authorized engineering-repair cycles are closed and may not
+  be resumed, rerun, or retroactively regraded.
+- 2026-07-23 (J3-H stopping decision) The founder's optional extra-cycle
+  authority was considered and not exercised. The remaining repeatable gaps
+  require schema-constrained extraction, deterministic lexical normalization
+  or semantic retrieval, explicit sharing/history paths, or an admission
+  plane around Mem0. An alias for one invalid type, an allergy-specific stem,
+  more answer wording, or an unchanged paid invocation would tune to fixtures
+  or reroll stochastic behavior rather than make a minimal general repair.
+  No fourth provider call is justified under the product stop rule. J4 and
+  publication remain closed pending a new explicit founder instruction.
