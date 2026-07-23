@@ -81,6 +81,10 @@ session itself).
   repair cycles; combined conservative spend capped at $5 including v1.
   - [ ] J3-H1 — `j3-live-v2`: repair v1's artificial completion ceiling
     and diagnostic blindness; preregister, verify offline, then run once.
+    PRE-RUN FROZEN 2026-07-23: FINAL predictions, exact versioned
+    configuration, cumulative predecessor accounting, complete ignored
+    transcripts, and terminal failure artifacts are ready; 94/94 tests and
+    all standing offline gates pass. No v2 provider call has occurred.
   - [ ] J3-H2 — `j3-live-v3`: grade H1 first, make the smallest
     evidence-backed repair, preregister, verify, and run once.
   - [ ] J3-H3 — `j3-live-v4`: grade H2 first, make the smallest
@@ -91,10 +95,10 @@ session itself).
 
 ## Next
 
-J3-H1. Implement and offline-verify the generic versioned runner and
-full ignored transcript channel, then freeze and push the
-`j3-live-v2` configuration and FINAL predictions before its one live
-invocation. Do not resume or rerun `j3-live-v1`; do not start J4.
+J3-H1. Commit and push the frozen generic versioned runner, full ignored
+transcript channel, `j3-live-v2` configuration, and FINAL predictions; then
+invoke `j3-live-v2` exactly once and grade its terminal evidence. Do not
+resume or rerun `j3-live-v1`; do not start J4.
 
 ## Log
 
@@ -146,6 +150,12 @@ J4 remains founder-gated.
 engineering-repair authority, immutable run IDs, cumulative $5 ceiling,
 competitor-calibrated token decision, transcript requirements, and unchanged
 publish/J4 gates; all standing offline checks remain green.
+2026-07-23 — J3-H1 pre-run — this commit — Froze the generic one-shot
+versioned runner, exact v2 config and FINAL predictions, complete ignored
+request/response transcripts, conservative predecessor/spend enforcement,
+paired-only partial grading, and terminal forensic bundles. Two independent
+reviews found no live-blocking issue; suite 94/94, dry bake-off, and quickstart
+green. No v2 provider call occurred.
 
 ## Product stop-rule record
 
@@ -353,3 +363,24 @@ publish/J4 gates; all standing offline checks remain green.
    attempts could repeat v1, exceed the combined cap, or lose the evidence
    needed to repair the evaluator. This is one authorized infrastructure
    unit preceding the live evidence work.
+
+### J3-H1 pre-run
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No runtime behavior
+   changed. It removed the evaluator's artificial 500/300-token ceiling and
+   made the next live comparison complete enough to diagnose rather than
+   silently discard provider behavior.
+3. Does an existing framework already provide what this unit added? Provider
+   SDKs expose calls and framework defaults informed the allowance, but none
+   provides this repository's immutable paired bank, admission-boundary arm,
+   cumulative run-chain accounting, or exact local forensic bundle.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly authorized three self-healing cycles and required every
+   available transcript and result to be retained for analysis.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Runtime behavior would not immediately change, but paid bake-offs
+   could again yield empty memories, lose the causal error evidence, or
+   undercount interrupted attempts. This is authorized evaluation
+   infrastructure; `src/` remains frozen.

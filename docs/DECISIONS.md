@@ -663,3 +663,16 @@ dates. Agents record; the founder decides.
   does not justify a $15 ceiling or a 128,000-token standalone extractor.
   Exact sources and cost arithmetic are recorded in
   `docs/BAKEOFF-J3-HEALING.md`.
+- 2026-07-23 (J3-H1 pre-run freeze) `j3-live-v2` is frozen before any
+  provider call. Its exact run-configuration SHA-256 is
+  `e6ce5a87645c7880d54cc53bf9a79fcd05e04a7438927cf219c80546bdebe247`;
+  its FINAL prediction SHA-256 is
+  `eb8cf3f0f3bef8cf93b4c7b8c4513b163443b19831519c5ee5723878b0424ccc`.
+  The evaluator pins eval-only `mem0ai@3.1.1`, the unchanged 17-journey
+  bank/model/prices/prompts, `minimal` reasoning, 16,384 extraction tokens,
+  2,048 answer tokens, the cumulative $5 predecessor chain, exact ignored
+  request/response transcripts, and one-shot terminal bundles. Two
+  independent read-only reviews found no live-blocking issue. The 94-test
+  suite, dry bake-off, and quickstart pass; `src/` is unchanged. This freeze
+  authorizes only the already founder-approved single v2 invocation and
+  publishes no live evidence.

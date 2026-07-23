@@ -27,7 +27,7 @@ function extractionMessages(turn) {
   return messages
 }
 
-export function createKernelLiveArm({ callChat, workspaceDir } = {}) {
+export function createKernelLiveArm({ callChat, liveConfig, workspaceDir } = {}) {
   if (typeof callChat !== 'function') {
     throw new TypeError('kernel live arm requires callChat')
   }
@@ -36,6 +36,8 @@ export function createKernelLiveArm({ callChat, workspaceDir } = {}) {
   }
   let gated = null
   let palariId = null
+  const model = liveConfig?.model?.chat ?? LIVE_MODEL
+  const answerSystem = liveConfig?.manifest?.answerSystem ?? LIVE_ANSWER_SYSTEM
   return {
     name: 'palari-brain-kernel-live',
 
@@ -81,7 +83,7 @@ export function createKernelLiveArm({ callChat, workspaceDir } = {}) {
             throw error
           }
         },
-        extractorId: `openai:${LIVE_MODEL}`,
+        extractorId: `openai:${model}`,
       })
       // runMemoryExtractionPass deliberately converts extractor exceptions to
       // an observation. A transport failure is different: the run contract
@@ -100,7 +102,7 @@ export function createKernelLiveArm({ callChat, workspaceDir } = {}) {
         provider: async ({ prompt }) => {
           const response = await callChat({
             messages: [
-              { role: 'system', content: LIVE_ANSWER_SYSTEM },
+              { role: 'system', content: answerSystem },
               { role: 'user', content: prompt },
             ],
             purpose: 'answer',

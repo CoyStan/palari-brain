@@ -1,0 +1,75 @@
+{
+  "version": 2,
+  "runId": "j3-live-v2",
+  "runDate": "2026-07-23",
+  "bank": {
+    "path": "evals/journeys.json",
+    "sha256": "7edd93e6b3c8d3942c492a76f75f2a14681f82e4b922c2fd123bb281e0ada910",
+    "journeys": 17,
+    "turns": 22,
+    "probes": 27,
+    "directives": 2
+  },
+  "predictions": {
+    "path": "evals/predictions/j3-live-v2.md",
+    "sha256": "eb8cf3f0f3bef8cf93b4c7b8c4513b163443b19831519c5ee5723878b0424ccc"
+  },
+  "kernelPromptHash": "3147ad22edc76d12",
+  "model": {
+    "chat": "gpt-5-nano-2025-08-07",
+    "embedding": "text-embedding-3-small",
+    "embeddingDimensions": 1536
+  },
+  "completion": {
+    "memory": {
+      "maxTokens": 16384,
+      "reasoningEffort": "minimal"
+    },
+    "answer": {
+      "maxTokens": 2048,
+      "reasoningEffort": "minimal"
+    }
+  },
+  "pricesUsdPerMillion": {
+    "chatInput": 0.05,
+    "chatOutput": 0.4,
+    "embeddingInput": 0.02
+  },
+  "limits": {
+    "maxAttemptsPerLogicalRequest": 4,
+    "maxChatInputTokens": 6500000,
+    "maxChatLogicalRequests": 98,
+    "maxChatOutputTokens": 900000,
+    "maxEmbeddingInputTokens": 1000000,
+    "maxEmbeddingLogicalRequests": 192,
+    "maxRequestBytes": 60000,
+    "maxTotalAttempts": 1160,
+    "upstreamTimeoutMs": 120000
+  },
+  "budget": {
+    "cumulativeCapUsd": 5,
+    "openingAccountedUsd": 0.01897402,
+    "predecessors": [
+      {
+        "runId": "j3-live-v1",
+        "meterPath": "evals/results/j3-live-v1/meter.jsonl",
+        "meterSha256": "522d803fe2783bd74a199f030685812c0b600a596cce1ab21dc9cf97cbb97b6b",
+        "accountedUsd": 0.01897402
+      }
+    ]
+  },
+  "manifest": {
+    "endpoint": "chat.completions",
+    "stream": false,
+    "temperature": null,
+    "topP": null,
+    "kernelExtraction": "mechanical OpenAI translation of buildMemoryExtractionRequest JSON response contract",
+    "mem0Extraction": "native mem0ai/oss prompt",
+    "answerSystem": "Answer the user's question using only the provided memory briefing. If the briefing says no stored memories are relevant, reply exactly \"I have no stored memories relevant to this question.\" Do not use outside knowledge or infer unstored facts. Keep the answer concise.",
+    "answerUser": "buildAnswerPrompt output",
+    "mem0Scope": "userId->userId;palariId->agentId;conjunctive;no shared fallback",
+    "mem0SourceSerialization": "userMessage + each sourceText in original order as \\n\\nAttached source:\\n + text; assistantMessage second",
+    "mem0CustomInstructions": null,
+    "mem0Telemetry": false
+  }
+}

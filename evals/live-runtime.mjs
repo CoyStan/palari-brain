@@ -11,6 +11,7 @@ import { dirname } from 'node:path'
 
 import { buildPromptConfigManifest, promptConfigHash } from '../src/eval-prompt-config.mjs'
 import { gradeProbe } from './harness.mjs'
+import { createLiveTranscriptRecorder } from './live-transcript.mjs'
 
 export const LIVE_MODEL = 'gpt-5-nano-2025-08-07'
 export const LIVE_EMBEDDING_MODEL = 'text-embedding-3-small'
@@ -80,11 +81,12 @@ const SENTINELS = Object.freeze({
 const CHAT_INPUT_USD_PER_TOKEN = 0.05 / 1_000_000
 const CHAT_OUTPUT_USD_PER_TOKEN = 0.40 / 1_000_000
 const EMBEDDING_INPUT_USD_PER_TOKEN = 0.02 / 1_000_000
-const RETRYABLE_STATUS = new Set([408, 409, 429, 500, 501, 502, 503, 504])
+const RETRYABLE_STATUS = new Set([408, 409, 429])
 const CHAT_ALLOWED_KEYS = new Set([
   'max_completion_tokens',
   'messages',
   'model',
+  'reasoning_effort',
   'response_format',
 ])
 const EMBEDDING_ALLOWED_KEYS = new Set([
@@ -110,29 +112,83 @@ export function liveConfigHash() {
   return sha256(JSON.stringify(LIVE_CONFIG_MANIFEST))
 }
 
-export function assertFrozenLiveInputs({ bankText, predictionsText } = {}) {
+function runtimeConfig(liveConfig) {
+  if (!liveConfig) {
+    return {
+      answerMaxCompletionTokens: LIVE_CONFIG_MANIFEST.answerMaxCompletionTokens,
+      answerReasoningEffort: null,
+      answerSystem: LIVE_ANSWER_SYSTEM,
+      bankSha256: LIVE_BANK_SHA256,
+      capUsd: LIVE_CAP_USD,
+      embeddingDimensions: LIVE_EMBEDDING_DIMENSIONS,
+      embeddingModel: LIVE_EMBEDDING_MODEL,
+      kernelPromptHash: LIVE_KERNEL_PROMPT_HASH,
+      limits: LIVE_LIMITS,
+      memoryMaxCompletionTokens: LIVE_CONFIG_MANIFEST.memoryMaxCompletionTokens,
+      memoryReasoningEffort: null,
+      model: LIVE_MODEL,
+      openingAccountedUsd: 0,
+      predictionsSha256: LIVE_PREDICTIONS_SHA256,
+      prices: {
+        chatInput: CHAT_INPUT_USD_PER_TOKEN,
+        chatOutput: CHAT_OUTPUT_USD_PER_TOKEN,
+        embeddingInput: EMBEDDING_INPUT_USD_PER_TOKEN,
+      },
+    }
+  }
+  return {
+    answerMaxCompletionTokens: liveConfig.completion.answer.maxTokens,
+    answerReasoningEffort: liveConfig.completion.answer.reasoningEffort,
+    answerSystem: liveConfig.manifest.answerSystem,
+    bankSha256: liveConfig.bank.sha256,
+    capUsd: liveConfig.budget.cumulativeCapUsd,
+    embeddingDimensions: liveConfig.model.embeddingDimensions,
+    embeddingModel: liveConfig.model.embedding,
+    kernelPromptHash: liveConfig.kernelPromptHash,
+    limits: liveConfig.limits,
+    memoryMaxCompletionTokens: liveConfig.completion.memory.maxTokens,
+    memoryReasoningEffort: liveConfig.completion.memory.reasoningEffort,
+    model: liveConfig.model.chat,
+    openingAccountedUsd: liveConfig.budget.openingAccountedUsd,
+    predictionsSha256: liveConfig.predictions.sha256,
+    prices: {
+      chatInput: liveConfig.pricesUsdPerMillion.chatInput / 1_000_000,
+      chatOutput: liveConfig.pricesUsdPerMillion.chatOutput / 1_000_000,
+      embeddingInput: liveConfig.pricesUsdPerMillion.embeddingInput / 1_000_000,
+    },
+  }
+}
+
+export function assertFrozenLiveInputs({
+  bankText,
+  configHash,
+  liveConfig,
+  predictionsText,
+} = {}) {
+  const active = runtimeConfig(liveConfig)
   const checks = {
     bank: sha256(String(bankText ?? '')),
-    config: liveConfigHash(),
+    config: liveConfig ? String(configHash ?? '') : liveConfigHash(),
     kernelPrompt: promptConfigHash(buildPromptConfigManifest()),
     predictions: sha256(String(predictionsText ?? '')),
   }
-  if (checks.bank !== LIVE_BANK_SHA256) {
+  if (checks.bank !== active.bankSha256) {
     throw new LiveRunError('BANK_HASH_MISMATCH', 'Live bank differs from the frozen J3 bank.')
   }
-  if (checks.predictions !== LIVE_PREDICTIONS_SHA256) {
+  if (checks.predictions !== active.predictionsSha256) {
     throw new LiveRunError(
       'PREDICTIONS_HASH_MISMATCH',
       'FINAL live predictions changed after their frozen commit.',
     )
   }
-  if (checks.kernelPrompt !== LIVE_KERNEL_PROMPT_HASH) {
+  if (checks.kernelPrompt !== active.kernelPromptHash) {
     throw new LiveRunError(
       'KERNEL_PROMPT_HASH_MISMATCH',
       'Kernel prompt surface differs from the pre-registered hash.',
     )
   }
-  if (checks.config !== LIVE_CONFIG_SHA256) {
+  if ((!liveConfig && checks.config !== LIVE_CONFIG_SHA256) ||
+    (liveConfig && !/^[a-f0-9]{64}$/.test(checks.config))) {
     throw new LiveRunError(
       'LIVE_CONFIG_HASH_MISMATCH',
       'Live configuration differs from the pre-registered manifest.',
@@ -141,23 +197,24 @@ export function assertFrozenLiveInputs({ bankText, predictionsText } = {}) {
   return checks
 }
 
-export function assertLiveEnvironment(env = process.env) {
+export function assertLiveEnvironment(env = process.env, liveConfig) {
+  const active = runtimeConfig(liveConfig)
   if (env.PALARI_CONFIRM_SPEND !== '1') {
     throw new LiveRunError(
       'SPEND_NOT_CONFIRMED',
       'PALARI_CONFIRM_SPEND must equal 1.',
     )
   }
-  if (env.PALARI_LIVE_MODEL !== LIVE_MODEL) {
+  if (env.PALARI_LIVE_MODEL !== active.model) {
     throw new LiveRunError(
       'MODEL_MISMATCH',
-      `PALARI_LIVE_MODEL must equal ${LIVE_MODEL}.`,
+      `PALARI_LIVE_MODEL must equal ${active.model}.`,
     )
   }
-  if (env.PALARI_LIVE_SPEND_CAP_USD !== String(LIVE_CAP_USD)) {
+  if (env.PALARI_LIVE_SPEND_CAP_USD !== String(active.capUsd)) {
     throw new LiveRunError(
       'CAP_MISMATCH',
-      `PALARI_LIVE_SPEND_CAP_USD must equal ${LIVE_CAP_USD}.`,
+      `PALARI_LIVE_SPEND_CAP_USD must equal ${active.capUsd}.`,
     )
   }
   if (env.MEM0_TELEMETRY !== 'false') {
@@ -170,7 +227,12 @@ export function assertLiveEnvironment(env = process.env) {
   if (!apiKey) {
     throw new LiveRunError('NO_OPENAI_KEY', 'OPENAI_API_KEY is absent.')
   }
-  return { apiKey, capUsd: LIVE_CAP_USD, model: LIVE_MODEL }
+  return {
+    apiKey,
+    capUsd: active.capUsd,
+    model: active.model,
+    openingAccountedUsd: active.openingAccountedUsd,
+  }
 }
 
 export function createBlankMeterState() {
@@ -205,7 +267,7 @@ function cloneJson(value) {
   return JSON.parse(JSON.stringify(value))
 }
 
-function restoreMeterState(initialState) {
+function restoreMeterState(initialState, { allowFatal = false } = {}) {
   const state = createBlankMeterState()
   if (!initialState) return state
   for (const section of ['accounted', 'logicalRequests', 'measured', 'uncertain']) {
@@ -228,13 +290,14 @@ function restoreMeterState(initialState) {
   }
   state.retries = Array.isArray(initialState.retries) ? cloneJson(initialState.retries) : []
   state.fatal = initialState.fatal ? cloneJson(initialState.fatal) : null
-  if (state.fatal) {
+  if (state.fatal && !allowFatal) {
     throw new LiveRunError('RESTORED_FATAL_METER', 'Cannot resume a meter with a fatal state.')
   }
   return state
 }
 
-function assertLedgerUsage(usage, endpoint, label) {
+function assertLedgerUsage(usage, endpoint, label, liveConfig) {
+  const prices = runtimeConfig(liveConfig).prices
   if (!usage || typeof usage !== 'object') {
     throw new LiveRunError('BAD_METER_JOURNAL', `${label} is missing usage accounting.`)
   }
@@ -251,9 +314,9 @@ function assertLedgerUsage(usage, endpoint, label) {
       throw new LiveRunError('BAD_METER_JOURNAL', `${label} has fractional token counts.`)
     }
   }
-  const expectedUsd = usage.chatInputTokens * CHAT_INPUT_USD_PER_TOKEN +
-    usage.chatOutputTokens * CHAT_OUTPUT_USD_PER_TOKEN +
-    usage.embeddingInputTokens * EMBEDDING_INPUT_USD_PER_TOKEN
+  const expectedUsd = usage.chatInputTokens * prices.chatInput +
+    usage.chatOutputTokens * prices.chatOutput +
+    usage.embeddingInputTokens * prices.embeddingInput
   if (Math.abs(expectedUsd - usage.usd) > 1e-12) {
     throw new LiveRunError('BAD_METER_JOURNAL', `${label} has inconsistent USD accounting.`)
   }
@@ -266,17 +329,23 @@ function assertLedgerUsage(usage, endpoint, label) {
   }
 }
 
-function comparableMeterState(value) {
-  const restored = restoreMeterState(value)
+function comparableMeterState(value, { ignoreFatal = false } = {}) {
+  const restored = restoreMeterState(value, { allowFatal: true })
+  if (ignoreFatal) restored.fatal = null
   return safeMeterSnapshot(restored)
 }
 
-function sameMeterState(left, right) {
-  return JSON.stringify(comparableMeterState(left)) ===
-    JSON.stringify(comparableMeterState(right))
+function sameMeterState(left, right, { ignoreFatal = false } = {}) {
+  return JSON.stringify(comparableMeterState(left, { ignoreFatal })) ===
+    JSON.stringify(comparableMeterState(right, { ignoreFatal }))
 }
 
-export async function reconcileMeterJournal(path, expectedState) {
+export async function reconcileMeterJournal(
+  path,
+  expectedState,
+  { allowTerminalFailure = false, liveConfig } = {},
+) {
+  const active = runtimeConfig(liveConfig)
   if (!expectedState) {
     throw new LiveRunError(
       'MISSING_CHECKPOINT_METER',
@@ -315,7 +384,7 @@ export async function reconcileMeterJournal(path, expectedState) {
       if (attempts.has(event.attemptId) ||
         !Number.isSafeInteger(event.attempt) ||
         event.attempt < 1 ||
-        event.attempt > LIVE_LIMITS.maxAttemptsPerLogicalRequest ||
+        event.attempt > active.limits.maxAttemptsPerLogicalRequest ||
         !['chat', 'embeddings'].includes(event.endpoint) ||
         typeof event.logicalId !== 'string' ||
         typeof event.attemptId !== 'string' ||
@@ -324,8 +393,11 @@ export async function reconcileMeterJournal(path, expectedState) {
         typeof event.requestSha256 !== 'string') {
         throw new LiveRunError('BAD_METER_JOURNAL', 'Meter journal has an invalid attempt start.')
       }
-      assertLedgerUsage(event.reservation, event.endpoint, 'Attempt reservation')
-      assertReservationWithinLimits(replay, event.reservation, LIVE_CAP_USD)
+      assertLedgerUsage(event.reservation, event.endpoint, 'Attempt reservation', liveConfig)
+      assertReservationWithinLimits(replay, event.reservation, active.capUsd, {
+        limits: active.limits,
+        openingAccountedUsd: active.openingAccountedUsd,
+      })
       const priorLogical = logical.get(event.logicalId)
       if (!priorLogical) {
         if (event.attempt !== 1) {
@@ -336,8 +408,8 @@ export async function reconcileMeterJournal(path, expectedState) {
         }
         const kind = event.endpoint === 'chat' ? 'chat' : 'embedding'
         const logicalLimit = kind === 'chat'
-          ? LIVE_LIMITS.maxChatLogicalRequests
-          : LIVE_LIMITS.maxEmbeddingLogicalRequests
+          ? active.limits.maxChatLogicalRequests
+          : active.limits.maxEmbeddingLogicalRequests
         if (replay.logicalRequests[kind] + 1 > logicalLimit) {
           throw new LiveRunError(
             'BAD_METER_JOURNAL',
@@ -398,7 +470,12 @@ export async function reconcileMeterJournal(path, expectedState) {
       )
     }
     if (event.outcome === 'succeeded') {
-      assertLedgerUsage(event.usage, started.event.endpoint, 'Measured provider usage')
+      assertLedgerUsage(
+        event.usage,
+        started.event.endpoint,
+        'Measured provider usage',
+        liveConfig,
+      )
       if (event.usage.chatInputTokens > started.event.reservation.chatInputTokens ||
         event.usage.chatOutputTokens > started.event.reservation.chatOutputTokens ||
         event.usage.embeddingInputTokens >
@@ -421,7 +498,7 @@ export async function reconcileMeterJournal(path, expectedState) {
       addUsage(replay.accounted, started.event.reservation)
       if (event.outcome === 'failed' &&
         event.retryable === true &&
-        started.event.attempt < LIVE_LIMITS.maxAttemptsPerLogicalRequest) {
+        started.event.attempt < active.limits.maxAttemptsPerLogicalRequest) {
         if (!Number.isSafeInteger(event.retryDelayMs) ||
           event.retryDelayMs < 0 ||
           event.retryDelayMs > 59_000) {
@@ -453,13 +530,16 @@ export async function reconcileMeterJournal(path, expectedState) {
       'Meter journal contains an attempt without a terminal record; rerun is forbidden.',
     )
   }
-  if ([...logical.values()].some((entry) => entry.lastTerminal?.outcome !== 'succeeded')) {
+  if (!allowTerminalFailure &&
+    [...logical.values()].some((entry) => entry.lastTerminal?.outcome !== 'succeeded')) {
     throw new LiveRunError(
       'TERMINAL_PROVIDER_LEDGER',
       'Meter journal ends with an unsuccessful logical request; rerun is forbidden.',
     )
   }
-  if (!sameMeterState(replay, expectedState)) {
+  if (!sameMeterState(replay, expectedState, {
+    ignoreFatal: allowTerminalFailure,
+  })) {
     throw new LiveRunError(
       'METER_CHECKPOINT_MISMATCH',
       'Durable meter journal does not exactly match the checkpoint snapshot.',
@@ -468,9 +548,9 @@ export async function reconcileMeterJournal(path, expectedState) {
   return safeMeterSnapshot(replay)
 }
 
-async function verifyMeterJournal(path, expectedState) {
+async function verifyMeterJournal(path, expectedState, { liveConfig } = {}) {
   try {
-    return await reconcileMeterJournal(path, expectedState)
+    return await reconcileMeterJournal(path, expectedState, { liveConfig })
   } catch (error) {
     if (error instanceof LiveRunError) throw error
     throw error
@@ -485,6 +565,23 @@ async function appendAndSync(path, value) {
     await handle.sync()
   } finally {
     await handle.close()
+  }
+}
+
+async function ensureMeterJournal(path) {
+  await mkdir(dirname(path), { recursive: true })
+  const handle = await open(path, 'a', 0o600)
+  try {
+    await handle.chmod(0o600)
+    await handle.sync()
+  } finally {
+    await handle.close()
+  }
+  const directory = await open(dirname(path), 'r')
+  try {
+    await directory.sync()
+  } finally {
+    await directory.close()
   }
 }
 
@@ -546,7 +643,8 @@ function validateStringMessages(messages) {
   }
 }
 
-function normalizedProviderRequest({ body, endpoint, purpose }) {
+function normalizedProviderRequest({ body, endpoint, liveConfig, purpose }) {
+  const active = runtimeConfig(liveConfig)
   const allowed = endpoint === 'chat' ? CHAT_ALLOWED_KEYS : EMBEDDING_ALLOWED_KEYS
   for (const key of Object.keys(body)) {
     if (!allowed.has(key)) {
@@ -554,7 +652,7 @@ function normalizedProviderRequest({ body, endpoint, purpose }) {
     }
   }
   if (endpoint === 'chat') {
-    if (body.model !== LIVE_MODEL) {
+    if (body.model !== active.model) {
       throw new LiveRunError('MODEL_MISMATCH', 'Chat request used an unapproved model.')
     }
     validateStringMessages(body.messages)
@@ -565,7 +663,7 @@ function normalizedProviderRequest({ body, endpoint, purpose }) {
       }
       if (body.messages.length !== 2 ||
         body.messages[0].role !== 'system' ||
-        body.messages[0].content !== LIVE_ANSWER_SYSTEM ||
+        body.messages[0].content !== active.answerSystem ||
         body.messages[1].role !== 'user') {
         throw new LiveRunError(
           'ANSWER_PROMPT_MISMATCH',
@@ -580,19 +678,33 @@ function normalizedProviderRequest({ body, endpoint, purpose }) {
       )
     }
     const max = isAnswer
-      ? LIVE_CONFIG_MANIFEST.answerMaxCompletionTokens
-      : LIVE_CONFIG_MANIFEST.memoryMaxCompletionTokens
+      ? active.answerMaxCompletionTokens
+      : active.memoryMaxCompletionTokens
+    const reasoningEffort = isAnswer
+      ? active.answerReasoningEffort
+      : active.memoryReasoningEffort
     if (body.max_completion_tokens !== undefined && body.max_completion_tokens !== max) {
       throw new LiveRunError(
         'TOKEN_LIMIT_MISMATCH',
         'Caller supplied a conflicting completion-token limit.',
       )
     }
-    return { ...body, max_completion_tokens: max }
+    if (body.reasoning_effort !== undefined &&
+      body.reasoning_effort !== reasoningEffort) {
+      throw new LiveRunError(
+        'REASONING_EFFORT_MISMATCH',
+        'Caller supplied a conflicting reasoning-effort setting.',
+      )
+    }
+    return {
+      ...body,
+      max_completion_tokens: max,
+      ...(reasoningEffort === null ? {} : { reasoning_effort: reasoningEffort }),
+    }
   }
 
-  if (body.model !== LIVE_EMBEDDING_MODEL ||
-    body.dimensions !== LIVE_EMBEDDING_DIMENSIONS ||
+  if (body.model !== active.embeddingModel ||
+    body.dimensions !== active.embeddingDimensions ||
     body.encoding_format !== 'float') {
     throw new LiveRunError(
       'EMBEDDING_CONFIG_MISMATCH',
@@ -607,7 +719,8 @@ function normalizedProviderRequest({ body, endpoint, purpose }) {
   return body
 }
 
-function reservationFor(endpoint, bytes, body) {
+function reservationFor(endpoint, bytes, body, liveConfig) {
+  const prices = runtimeConfig(liveConfig).prices
   if (endpoint === 'chat') {
     const inputTokens = bytes + 4096
     const outputTokens = body.max_completion_tokens
@@ -615,8 +728,8 @@ function reservationFor(endpoint, bytes, body) {
       chatInputTokens: inputTokens,
       chatOutputTokens: outputTokens,
       embeddingInputTokens: 0,
-      usd: inputTokens * CHAT_INPUT_USD_PER_TOKEN +
-        outputTokens * CHAT_OUTPUT_USD_PER_TOKEN,
+      usd: inputTokens * prices.chatInput +
+        outputTokens * prices.chatOutput,
     }
   }
   const inputTokens = bytes + 1024
@@ -624,13 +737,14 @@ function reservationFor(endpoint, bytes, body) {
     chatInputTokens: 0,
     chatOutputTokens: 0,
     embeddingInputTokens: inputTokens,
-    usd: inputTokens * EMBEDDING_INPUT_USD_PER_TOKEN,
+    usd: inputTokens * prices.embeddingInput,
   }
 }
 
-function usageForSuccess(endpoint, parsed, reservation, body) {
+function usageForSuccess(endpoint, parsed, reservation, body, liveConfig) {
+  const active = runtimeConfig(liveConfig)
   if (endpoint === 'chat') {
-    if (parsed?.model !== LIVE_MODEL) {
+    if (parsed?.model !== active.model) {
       throw new LiveRunError('RESPONSE_MODEL_MISMATCH', 'Provider returned a different chat model.')
     }
     const input = parsed?.usage?.prompt_tokens
@@ -642,15 +756,36 @@ function usageForSuccess(endpoint, parsed, reservation, body) {
       output > body.max_completion_tokens) {
       throw new LiveRunError('BAD_PROVIDER_USAGE', 'Chat response usage is missing or out of bounds.')
     }
+    const choice = parsed?.choices?.[0]
+    const finishReason = choice?.finish_reason
+    const content = choice?.message?.content
+    if (finishReason === 'length') {
+      throw new LiveRunError(
+        'CHAT_COMPLETION_TRUNCATED',
+        'Provider exhausted the frozen completion allowance.',
+      )
+    }
+    if (finishReason !== 'stop') {
+      throw new LiveRunError(
+        'CHAT_COMPLETION_NOT_STOPPED',
+        `Provider chat completion ended with ${String(finishReason ?? 'no finish reason')}.`,
+      )
+    }
+    if (typeof content !== 'string' || content.trim() === '') {
+      throw new LiveRunError(
+        'CHAT_COMPLETION_EMPTY',
+        'Provider returned no visible chat completion.',
+      )
+    }
     return {
       chatInputTokens: input,
       chatOutputTokens: output,
       embeddingInputTokens: 0,
-      usd: input * CHAT_INPUT_USD_PER_TOKEN + output * CHAT_OUTPUT_USD_PER_TOKEN,
+      usd: input * active.prices.chatInput + output * active.prices.chatOutput,
     }
   }
 
-  if (parsed?.model !== LIVE_EMBEDDING_MODEL) {
+  if (parsed?.model !== active.embeddingModel) {
     throw new LiveRunError(
       'RESPONSE_MODEL_MISMATCH',
       'Provider returned a different embedding model.',
@@ -664,7 +799,7 @@ function usageForSuccess(endpoint, parsed, reservation, body) {
     !Array.isArray(parsed?.data) || parsed.data.length !== expectedCount ||
     parsed.data.some((entry) =>
       !Array.isArray(entry?.embedding) ||
-      entry.embedding.length !== LIVE_EMBEDDING_DIMENSIONS)) {
+      entry.embedding.length !== active.embeddingDimensions)) {
     throw new LiveRunError(
       'BAD_PROVIDER_USAGE',
       'Embedding response usage or vector dimensions are out of bounds.',
@@ -674,7 +809,7 @@ function usageForSuccess(endpoint, parsed, reservation, body) {
     chatInputTokens: 0,
     chatOutputTokens: 0,
     embeddingInputTokens: input,
-    usd: input * EMBEDDING_INPUT_USD_PER_TOKEN,
+    usd: input * active.prices.embeddingInput,
   }
 }
 
@@ -697,19 +832,25 @@ function safeMeterSnapshot(state) {
   return copy
 }
 
-export function assertReservationWithinLimits(state, reservation, capUsd) {
-  if (state.attempts + 1 > LIVE_LIMITS.maxTotalAttempts) {
+export function assertReservationWithinLimits(
+  state,
+  reservation,
+  capUsd,
+  { limits = LIVE_LIMITS, openingAccountedUsd = 0 } = {},
+) {
+  if (state.attempts + 1 > limits.maxTotalAttempts) {
     throw new LiveRunError('ATTEMPT_CAP', 'Provider attempt ceiling reached.')
   }
   if (state.accounted.chatInputTokens + reservation.chatInputTokens >
-      LIVE_LIMITS.maxChatInputTokens ||
+      limits.maxChatInputTokens ||
     state.accounted.chatOutputTokens + reservation.chatOutputTokens >
-      LIVE_LIMITS.maxChatOutputTokens ||
+      limits.maxChatOutputTokens ||
     state.accounted.embeddingInputTokens + reservation.embeddingInputTokens >
-      LIVE_LIMITS.maxEmbeddingInputTokens) {
+      limits.maxEmbeddingInputTokens) {
     throw new LiveRunError('TOKEN_CAP', 'Provider token commitment ceiling reached.')
   }
-  if (state.accounted.usd + reservation.usd > capUsd + Number.EPSILON) {
+  if (openingAccountedUsd + state.accounted.usd + reservation.usd >
+    capUsd + Number.EPSILON) {
     throw new LiveRunError('SPEND_CAP', 'Next provider attempt would exceed the spend cap.')
   }
 }
@@ -742,6 +883,14 @@ function retryDelay(attempt, headers) {
   return Math.max(backoff, providerRetryAfterMs(headers))
 }
 
+function providerRetryable({ headers, status, transportError }) {
+  if (transportError) return true
+  const explicit = headers?.get?.('x-should-retry')
+  if (explicit === 'true') return true
+  if (explicit === 'false') return false
+  return RETRYABLE_STATUS.has(status) || status >= 500
+}
+
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -757,22 +906,44 @@ export async function createMeteredOpenAITransport({
   apiKey,
   capUsd,
   initialState,
+  journalAppender = appendAndSync,
   journalPath,
+  liveConfig,
+  transcriptRecorderFactory = createLiveTranscriptRecorder,
+  transcriptDirectory,
   upstreamOrigin = 'https://api.openai.com',
   upstreamFetch = globalThis.fetch.bind(globalThis),
 } = {}) {
+  const active = runtimeConfig(liveConfig)
   if (!String(apiKey ?? '').trim()) {
     throw new LiveRunError('NO_OPENAI_KEY', 'Meter transport requires a non-empty key.')
   }
-  if (capUsd !== LIVE_CAP_USD) {
-    throw new LiveRunError('CAP_MISMATCH', `Meter cap must equal ${LIVE_CAP_USD}.`)
+  if (capUsd !== active.capUsd) {
+    throw new LiveRunError('CAP_MISMATCH', `Meter cap must equal ${active.capUsd}.`)
   }
   if (!journalPath) {
     throw new LiveRunError('NO_METER_JOURNAL', 'Meter journal path is required.')
   }
-  await verifyMeterJournal(journalPath, initialState ?? createBlankMeterState())
+  if (liveConfig && !transcriptDirectory) {
+    throw new LiveRunError(
+      'NO_TRANSCRIPT_DIRECTORY',
+      'Versioned live runs require a transcript directory.',
+    )
+  }
+  await verifyMeterJournal(
+    journalPath,
+    initialState ?? createBlankMeterState(),
+    { liveConfig },
+  )
+  await ensureMeterJournal(journalPath)
   const state = restoreMeterState(initialState)
   const key = String(apiKey)
+  const transcriptRecorder = transcriptDirectory
+    ? await transcriptRecorderFactory({
+      directory: transcriptDirectory,
+      forbiddenSecrets: [key],
+    })
+    : null
   apiKey = null
   let activeOperation = null
   let guard = null
@@ -780,12 +951,13 @@ export async function createMeteredOpenAITransport({
   let origin = ''
 
   const appendEvent = async (event) => {
-    state.sequence += 1
-    await appendAndSync(journalPath, {
+    const nextSequence = state.sequence + 1
+    await journalAppender(journalPath, {
       ...event,
-      sequence: state.sequence,
+      sequence: nextSequence,
       timestamp: new Date().toISOString(),
     })
+    state.sequence = nextSequence
   }
 
   const setFatal = (error) => {
@@ -815,7 +987,7 @@ export async function createMeteredOpenAITransport({
       if (!activeOperation) {
         return responseJson(res, 409, 'NO_ACTIVE_OPERATION', 'Provider call has no live operation.')
       }
-      const raw = await requestBody(req, LIVE_LIMITS.maxRequestBytes)
+      const raw = await requestBody(req, active.limits.maxRequestBytes)
       let parsed
       try {
         parsed = JSON.parse(raw.toString('utf8'))
@@ -827,30 +999,34 @@ export async function createMeteredOpenAITransport({
         if (state.fatal) {
           return responseJson(res, 409, 'METER_FATAL', 'Meter is in a terminal state.')
         }
-        const outgoing = normalizedProviderRequest({ body: parsed, endpoint, purpose })
+        const outgoing = normalizedProviderRequest({
+          body: parsed,
+          endpoint,
+          liveConfig,
+          purpose,
+        })
         const bodyText = JSON.stringify(outgoing)
         const bytes = Buffer.byteLength(bodyText)
-        if (bytes > LIVE_LIMITS.maxRequestBytes) {
+        if (bytes > active.limits.maxRequestBytes) {
           throw new LiveRunError(
             'REQUEST_TOO_LARGE',
-            `Canonical provider request exceeded ${LIVE_LIMITS.maxRequestBytes} bytes.`,
+            `Canonical provider request exceeded ${active.limits.maxRequestBytes} bytes.`,
           )
         }
         const logicalKind = endpoint === 'chat' ? 'chat' : 'embedding'
         const nextLogical = state.logicalRequests[logicalKind] + 1
         const logicalCap = endpoint === 'chat'
-          ? LIVE_LIMITS.maxChatLogicalRequests
-          : LIVE_LIMITS.maxEmbeddingLogicalRequests
+          ? active.limits.maxChatLogicalRequests
+          : active.limits.maxEmbeddingLogicalRequests
         if (nextLogical > logicalCap) {
           throw new LiveRunError(
             'LOGICAL_CALL_CAP',
             `${logicalKind} logical request ceiling reached.`,
           )
         }
-        state.logicalRequests[logicalKind] = nextLogical
         const logicalId = `${activeOperation.cellId}:${activeOperation.operationId}:${logicalKind}:${nextLogical}`
         const requestSha256 = sha256(bodyText)
-        const reservation = reservationFor(endpoint, bytes, outgoing)
+        const reservation = reservationFor(endpoint, bytes, outgoing, liveConfig)
         const upstreamPath = endpoint === 'chat'
           ? '/v1/chat/completions'
           : '/v1/embeddings'
@@ -858,11 +1034,51 @@ export async function createMeteredOpenAITransport({
         let finalText = ''
 
         for (let attempt = 1;
-          attempt <= LIVE_LIMITS.maxAttemptsPerLogicalRequest;
+          attempt <= active.limits.maxAttemptsPerLogicalRequest;
           attempt += 1) {
-          assertReservationWithinLimits(state, reservation, capUsd)
-          state.attempts += 1
+          assertReservationWithinLimits(state, reservation, capUsd, {
+            limits: active.limits,
+            openingAccountedUsd: active.openingAccountedUsd,
+          })
           const attemptId = `${logicalId}:attempt:${attempt}`
+          const failAfterDispatchPersistence = (error) => {
+            addUsage(state.accounted, reservation)
+            addUsage(state.uncertain, reservation)
+            const failure = new LiveRunError(
+              'ATTEMPT_EVIDENCE_PERSISTENCE_FAILED',
+              'Provider attempt evidence could not be durably finalized; its full reservation was charged.',
+              { cause: error },
+            )
+            setFatal(failure)
+            return failure
+          }
+          const transcript = transcriptRecorder
+            ? await transcriptRecorder.beginAttempt({
+              attempt,
+              attemptId,
+              cellId: activeOperation.cellId,
+              endpoint,
+              metadata: {
+                logicalId,
+                runId: liveConfig.runId,
+              },
+              model: endpoint === 'chat' ? active.model : active.embeddingModel,
+              normalizedRequestBody: bodyText,
+              operationId: activeOperation.operationId,
+              purpose,
+              requestBytes: bytes,
+              settings: endpoint === 'chat'
+                ? {
+                  maxCompletionTokens: outgoing.max_completion_tokens,
+                  reasoningEffort: outgoing.reasoning_effort ?? null,
+                  responseFormat: outgoing.response_format?.type ?? null,
+                }
+                : {
+                  dimensions: outgoing.dimensions,
+                  encodingFormat: outgoing.encoding_format,
+                },
+            })
+            : null
           await appendEvent({
             attempt,
             attemptId,
@@ -873,8 +1089,16 @@ export async function createMeteredOpenAITransport({
             purpose,
             requestSha256,
             reservation,
+            ...(transcript
+              ? {
+                transcriptFile: transcript.transcriptFile,
+                transcriptStartedSha256: transcript.transcriptSha256,
+              }
+              : {}),
             type: 'attempt_started',
           })
+          if (attempt === 1) state.logicalRequests[logicalKind] = nextLogical
+          state.attempts += 1
 
           let upstream
           let text = ''
@@ -888,7 +1112,7 @@ export async function createMeteredOpenAITransport({
               },
               method: 'POST',
               redirect: 'error',
-              signal: AbortSignal.timeout(LIVE_LIMITS.upstreamTimeoutMs),
+              signal: AbortSignal.timeout(active.limits.upstreamTimeoutMs),
             })
             text = await upstream.text()
           } catch (error) {
@@ -896,24 +1120,47 @@ export async function createMeteredOpenAITransport({
           }
 
           if (transportError || !upstream?.ok) {
-            addUsage(state.accounted, reservation)
-            addUsage(state.uncertain, reservation)
             const status = upstream?.status ?? null
-            const retryable = transportError !== null || RETRYABLE_STATUS.has(status)
+            const retryable = providerRetryable({
+              headers: upstream?.headers,
+              status,
+              transportError,
+            })
             const retryDelayMs = retryable &&
-              attempt < LIVE_LIMITS.maxAttemptsPerLogicalRequest
+              attempt < active.limits.maxAttemptsPerLogicalRequest
               ? retryDelay(attempt, upstream?.headers)
               : null
-            await appendEvent({
-              attemptId,
-              outcome: 'failed',
-              requestSha256,
-              retryDelayMs,
-              retryable,
-              status,
-              type: 'attempt_terminal',
-            })
-            if (retryable && attempt < LIVE_LIMITS.maxAttemptsPerLogicalRequest) {
+            try {
+              const terminalTranscript = transcript
+                ? await transcript.finish({
+                  outcome: 'failed',
+                  rawBody: transportError ? null : text,
+                  responseHeaders: upstream?.headers,
+                  status,
+                  transportError,
+                })
+                : null
+              await appendEvent({
+                attemptId,
+                outcome: 'failed',
+                requestSha256,
+                retryDelayMs,
+                retryable,
+                status,
+                ...(terminalTranscript
+                  ? {
+                    transcriptFile: terminalTranscript.transcriptFile,
+                    transcriptSha256: terminalTranscript.transcriptSha256,
+                  }
+                  : {}),
+                type: 'attempt_terminal',
+              })
+            } catch (error) {
+              throw failAfterDispatchPersistence(error)
+            }
+            addUsage(state.accounted, reservation)
+            addUsage(state.uncertain, reservation)
+            if (retryable && attempt < active.limits.maxAttemptsPerLogicalRequest) {
               state.retries.push({
                 attempt,
                 cellId: activeOperation.cellId,
@@ -938,35 +1185,79 @@ export async function createMeteredOpenAITransport({
           }
 
           let responseBody
+          let usage
           try {
             responseBody = JSON.parse(text)
-            const usage = usageForSuccess(endpoint, responseBody, reservation, outgoing)
-            addUsage(state.accounted, usage)
-            addUsage(state.measured, usage)
-            await appendEvent({
-              attemptId,
-              outcome: 'succeeded',
-              requestSha256,
-              status: upstream.status,
-              usage,
-              type: 'attempt_terminal',
-            })
+            usage = usageForSuccess(
+              endpoint,
+              responseBody,
+              reservation,
+              outgoing,
+              liveConfig,
+            )
           } catch (error) {
+            try {
+              const terminalTranscript = transcript
+                ? await transcript.finish({
+                  outcome: 'invalid_success',
+                  rawBody: text,
+                  responseHeaders: upstream.headers,
+                  status: upstream.status,
+                })
+                : null
+              await appendEvent({
+                attemptId,
+                outcome: 'invalid_success',
+                requestSha256,
+                status: upstream.status,
+                ...(terminalTranscript
+                  ? {
+                    transcriptFile: terminalTranscript.transcriptFile,
+                    transcriptSha256: terminalTranscript.transcriptSha256,
+                  }
+                  : {}),
+                type: 'attempt_terminal',
+              })
+            } catch (persistenceError) {
+              throw failAfterDispatchPersistence(persistenceError)
+            }
             addUsage(state.accounted, reservation)
             addUsage(state.uncertain, reservation)
-            await appendEvent({
-              attemptId,
-              outcome: 'invalid_success',
-              requestSha256,
-              status: upstream.status,
-              type: 'attempt_terminal',
-            })
             const failure = error instanceof LiveRunError
               ? error
               : new LiveRunError('BAD_PROVIDER_RESPONSE', 'Provider success JSON is invalid.')
             setFatal(failure)
             return responseJson(res, 502, failure.code, failure.message)
           }
+
+          try {
+            const terminalTranscript = transcript
+              ? await transcript.finish({
+                outcome: 'succeeded',
+                rawBody: text,
+                responseHeaders: upstream.headers,
+                status: upstream.status,
+              })
+              : null
+            await appendEvent({
+              attemptId,
+              outcome: 'succeeded',
+              requestSha256,
+              status: upstream.status,
+              ...(terminalTranscript
+                ? {
+                  transcriptFile: terminalTranscript.transcriptFile,
+                  transcriptSha256: terminalTranscript.transcriptSha256,
+                }
+                : {}),
+              usage,
+              type: 'attempt_terminal',
+            })
+          } catch (error) {
+            throw failAfterDispatchPersistence(error)
+          }
+          addUsage(state.accounted, usage)
+          addUsage(state.measured, usage)
 
           finalResponse = upstream
           finalText = text
@@ -1042,7 +1333,7 @@ export async function createMeteredOpenAITransport({
     }
     const body = {
       messages,
-      model: LIVE_MODEL,
+      model: active.model,
       ...(responseFormat ? { response_format: responseFormat } : {}),
     }
     const response = await upstreamFetch(`${origin}/v1/chat/completions`, {
@@ -1066,6 +1357,7 @@ export async function createMeteredOpenAITransport({
       )
     }
     return {
+      finishReason: parsed?.choices?.[0]?.finish_reason ?? null,
       model: parsed.model,
       text: String(parsed?.choices?.[0]?.message?.content ?? ''),
       usage: cloneJson(parsed.usage),

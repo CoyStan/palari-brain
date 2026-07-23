@@ -113,6 +113,7 @@ function mem0Briefing(results, questionDate) {
 
 export function createMem0LiveArm({
   callChat,
+  liveConfig,
   sentinels,
   transportBaseURL,
   workspaceDir,
@@ -128,6 +129,11 @@ export function createMem0LiveArm({
   }
   let memory = null
   let palariId = null
+  const answerSystem = liveConfig?.manifest?.answerSystem ?? LIVE_ANSWER_SYSTEM
+  const embeddingDimensions = liveConfig?.model?.embeddingDimensions ??
+    LIVE_EMBEDDING_DIMENSIONS
+  const embeddingModel = liveConfig?.model?.embedding ?? LIVE_EMBEDDING_MODEL
+  const model = liveConfig?.model?.chat ?? LIVE_MODEL
 
   return {
     name: 'mem0-oss-live',
@@ -149,8 +155,8 @@ export function createMem0LiveArm({
           config: {
             apiKey: sentinels.mem0Embedding,
             baseURL: transportBaseURL,
-            embeddingDims: LIVE_EMBEDDING_DIMENSIONS,
-            model: LIVE_EMBEDDING_MODEL,
+            embeddingDims: embeddingDimensions,
+            model: embeddingModel,
           },
         },
         historyStore: {
@@ -164,7 +170,7 @@ export function createMem0LiveArm({
           config: {
             apiKey: sentinels.mem0Memory,
             baseURL: transportBaseURL,
-            model: LIVE_MODEL,
+            model,
           },
         },
         vectorStore: {
@@ -172,7 +178,7 @@ export function createMem0LiveArm({
           config: {
             collectionName: 'j3_live_memories',
             dbPath: join(workspaceDir, 'memories.db'),
-            dimension: LIVE_EMBEDDING_DIMENSIONS,
+            dimension: embeddingDimensions,
           },
         },
       })
@@ -191,7 +197,7 @@ export function createMem0LiveArm({
         endpoint: 'embeddings',
       })
       if (memory.config?.customInstructions !== undefined ||
-        memory.config?.vectorStore?.config?.dimension !== LIVE_EMBEDDING_DIMENSIONS) {
+        memory.config?.vectorStore?.config?.dimension !== embeddingDimensions) {
         throw new LiveRunError(
           'MEM0_CONFIG_MISMATCH',
           'Installed Mem0 config differs from the frozen J3 configuration.',
@@ -256,7 +262,7 @@ export function createMem0LiveArm({
       })
       const response = await callChat({
         messages: [
-          { role: 'system', content: LIVE_ANSWER_SYSTEM },
+          { role: 'system', content: answerSystem },
           { role: 'user', content: prompt },
         ],
         purpose: 'answer',
