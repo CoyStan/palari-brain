@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4 EXTERNAL VALIDATION — REPLACEMENT TRANCHE 1 PRE-RUN
-FROZEN; LIVE INVOCATION NEXT (2026-07-23).
+Loop state: J4 EXTERNAL VALIDATION — REPLACEMENT TRANCHE 1 TERMINAL
+DURING QUESTION 1; FOUNDER GATE (2026-07-23).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -28,7 +28,12 @@ closed and must not be resumed or rerolled. The founder authorized a fresh v2
 replacement identity with only the missing `sourceKind` vocabulary added to
 the extraction prompt. Its pre-run contract is frozen and offline-verified;
 the v1 bundle remains immutable, its measured `$0.0004494` is carried against
-the unchanged `$2.50` cumulative cap, and no v2 provider call has occurred.
+the unchanged `$2.50` cumulative cap, and the replacement was invoked once.
+Its compatibility smoke passed and every returned source kind honored the new
+contract, but an extraction during the first benchmark question used a type
+outside the already enumerated frozen vocabulary. The runner stopped before
+completing a question or making any answer or judge call. No benchmark score
+exists; the ignored v2 bundle verifies and the run is closed.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -155,8 +160,8 @@ session itself).
     private manifest, meter, transcripts, permissions, and credential audit
     verify; no benchmark score exists or entered git. The run is closed and
     cannot be rerun.
-  - [ ] J4.2R — REPLACEMENT TRANCHE 1 AUTHORIZED / PRE-RUN FROZEN
-    2026-07-23 (`this commit`). The fresh `j4-longmemeval-s60-v2` identity
+  - [ ] J4.2R — TERMINAL / INCOMPLETE 2026-07-23. The fresh
+    `j4-longmemeval-s60-v2` identity, frozen and pushed at `b916861`,
     adds only the exact four-value `sourceKind` prompt instruction and the
     mechanical evidence, estimate, versioning, and cumulative-budget changes
     needed to test it. The v1 tracked inputs and ignored terminal bundle remain
@@ -169,8 +174,13 @@ session itself).
     keys, charges its `$0.0004494`, gives the fresh meter exactly `$2.4995506`,
     runs one new compatibility smoke, and cannot execute beyond the same first
     five questions. Suite 161/161, dry bake-off, quickstart, credential-byte
-    scan, and two independent pre-run audits are green. No v2 provider call
-    has occurred.
+    scan, and two independent pre-run audits were green. Its one authorized
+    invocation passed the replacement compatibility smoke, confirming the
+    source-kind repair, then stopped fail-closed during question 1 when a
+    writer response used a type outside the already enumerated frozen
+    vocabulary. No question completed, no answer or judge call occurred, and
+    no benchmark score exists. The private bundle passes its forensic audits;
+    v2 is closed and cannot be resumed or rerolled.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -183,14 +193,12 @@ session itself).
 
 ## Next
 
-Execute the founder-authorized `j4-longmemeval-s60-v2` exactly once from its
-clean, pushed pre-run cut point: preserve and verify v1; charge its measured
-`$0.0004494`; make one fresh writer compatibility smoke; if that passes, run
-exactly the same first five questions under the fresh `$2.4995506` meter; then
-stop and report against the unchanged `$2.50` cumulative cap. Any terminal
-failure is a finding, not permission to resume or reroll. Do not execute
-question 6 or any later tranche, run Mem0, start S-490, publish a score, or
-announce a result. U8 and J3 v1–v4 remain closed.
+FOUNDER GATE — J4 REPLACEMENT RUN TERMINAL. Preserve both immutable failed
+runs and their ignored evidence. Do not resume or reroll v1 or v2; do not
+continue question 1, execute question 6 or any later tranche, alter the
+evaluation contract for another attempt, run Mem0, start S-490, publish a
+score, or announce a result without a fresh explicit founder decision. U8 and
+J3 v1–v4 remain closed.
 
 ## Log
 
@@ -304,6 +312,11 @@ carried its `$0.0004494` against the `$2.50` cap, froze a fresh v2 identity with
 unchanged prediction rows and exact `$2.4995506` meter, and verified the new
 smoke/five-question boundary. Suite 161/161, dry bake-off, quickstart, secret
 scan, and two independent audits are green; no v2 provider call occurred.
+2026-07-23 — J4.2R terminal — this commit — Invoked the pushed `b916861`
+runner once. The replacement smoke passed and confirmed the source-kind
+contract, then an out-of-vocabulary type stopped question 1 before completion,
+answering, or judging. The ignored forensic bundle verifies, no benchmark
+score exists or entered git, and both J4 runs are closed at a founder gate.
 
 ## Product stop-rule record
 
@@ -749,3 +762,24 @@ scan, and two independent audits are green; no v2 provider call occurred.
    silently omit its predecessor spend or reroll the failed run. This is the
    smallest product contract repair plus the required resumable live-run
    boundary.
+
+### J4.2R terminal live invocation
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` was green at the pushed pre-run cut point.
+2. Did this unit make that journey measurably better? The compatibility smoke
+   confirmed the new source-kind instruction, but the replacement produced no
+   completed benchmark question and therefore no evidence that the end-to-end
+   user journey improved.
+3. Does an existing framework already provide what this unit added? Gemini and
+   LongMemEval provide the generation and benchmark surfaces. The failure is
+   again at Palari's strict extraction contract, this time despite the type
+   vocabulary already being explicit.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly authorized this one replacement invocation, preservation
+   of v1, cumulative accounting, and a mandatory report.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? Deleting the prompt fix would restore the confirmed
+   source-kind mismatch; deleting the evidence would hide that the one allowed
+   fix was insufficient for this workload. Further evaluation changes or
+   spend require a fresh founder decision.

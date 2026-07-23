@@ -890,3 +890,16 @@ dates. Agents record; the founder decides.
   evaluation change beyond the vocabulary-only prompt-contract fix and the
   mechanical versioning, evidence, estimate, and budget updates required to
   execute it honestly.
+- 2026-07-23 (J4.2R TERMINAL — replacement run) The pushed frozen runner at
+  `b916861` was invoked once under the replacement authority. Its new
+  compatibility smoke passed and confirmed that returned source kinds honored
+  the newly explicit vocabulary. During the first benchmark question, a later
+  writer response used a type outside the separate, already enumerated frozen
+  type vocabulary. The runner stopped fail-closed before completing any
+  question and before any answer or judge call, so no benchmark score exists.
+  The v1 predecessor remained unchanged and charged to the cumulative budget;
+  the v2 ignored evidence bundle passes manifest, ledger, permissions,
+  checkpoint, and credential-safety audits. No raw response, transcript,
+  result, or score entered git or was published. V2 is terminal and may not be
+  resumed or rerolled. Question 6, later tranches, another evaluation change,
+  Mem0, S-490, publication, and announcement remain founder-gated.
