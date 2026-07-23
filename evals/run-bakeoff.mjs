@@ -7,9 +7,11 @@
 
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { mkdir, writeFile } from 'node:fs/promises'
 
 import { loadJourneyBankFile } from './journey-bank.mjs'
 import { runBank, renderReportLines } from './harness.mjs'
+import { renderReportMarkdown } from './report-markdown.mjs'
 import { createKernelArm } from './arms/kernel-arm.mjs'
 import { createUngovernedArm } from './arms/ungoverned-arm.mjs'
 
@@ -19,6 +21,13 @@ const arms = [createKernelArm(), createUngovernedArm()]
 
 const report = await runBank(arms, bank)
 for (const line of renderReportLines(report)) console.log(line)
+const resultsDir = join(here, 'results')
+await mkdir(resultsDir, { recursive: true })
+await writeFile(
+  join(resultsDir, 'bakeoff-dry-report.md'),
+  renderReportMarkdown(report),
+  'utf8',
+)
 
 const reference = report.arms[0]
 const unexpected = reference.summary.findings.filter((f) => !f.knownFinding)

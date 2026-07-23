@@ -37,11 +37,14 @@ session itself).
     and pinned it at 31/41: all usefulness checks pass, while ten
     checks expose correction, injection-boundary, and user-isolation
     failures including `hunter2`, `Admin`, and cross-user facts.
-  - [x] J2.2 — DONE 2026-07-23 (`this commit`; exact SHA will be
-    backfilled by J2.3). Prepared the no-execution J3 runbook, current
+  - [x] J2.2 — DONE 2026-07-23 (`9634250`). Prepared the no-execution
+    J3 runbook, current
     cost envelope, draft per-category predictions, deployment reality,
     and verbatim J4 decision rule. No provider was installed or called.
-  - [ ] J2.3 — Add the dry Markdown report renderer.
+  - [x] J2.3 — DONE 2026-07-23 (`this commit`; exact SHA will be
+    backfilled by A1.1). The dry runner now renders the cross-arm
+    dimension table and per-arm findings to ignored
+    `evals/results/bakeoff-dry-report.md`.
   - [ ] A1.1 — Add explicit Palari-scope journey support and coverage.
   - [ ] A1.2 — Add the v0.5-parity arm.
   - [ ] J2.4 — Publish the honest dry baseline in README and close J2.
@@ -73,9 +76,12 @@ and the pinned 39/41 kernel baseline; all standing gates green.
 2026-07-23 — J2.1 — 20a15e4 — Added and pinned the deliberately
 ungoverned shared-memory arm at 31/41; its ten failures concretely expose
 source-document and cross-user leaks; all standing gates green.
-2026-07-23 — J2.2 — this commit — Prepared the founder-gated live
+2026-07-23 — J2.2 — 9634250 — Prepared the founder-gated live
 runbook and draft predictions with a 92-call, $0.02721 pre-contingency
 estimate and $0.25 proposed cap; installed/called nothing; all gates green.
+2026-07-23 — J2.3 — this commit — Added deterministic Markdown
+comparison rendering and ignored local report output; suite 53/53 and all
+standing gates green.
 
 ## Product stop-rule record
 
@@ -151,3 +157,20 @@ estimate and $0.25 proposed cap; installed/called nothing; all gates green.
    comparison could spend money or interpret results without a recorded cap,
    prediction, or decision rule. This is evaluation infrastructure under the
    explicitly authorized sequence.
+
+### J2.3
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It did not change the
+   runtime journey; it made every arm's dimension scores and failures readable
+   in one reproducible local artifact.
+3. Does an existing framework already provide what this unit added? Generic
+   reporters exist, but this small renderer consumes the repository's existing
+   zero-dependency report shape directly.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — J2.3
+   is an explicit founder-ratified contract task.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Runtime behavior would not immediately change, but the founder would
+   lose the comparison artifact used to inspect evidence before J4. This is
+   evaluation infrastructure under the explicitly authorized sequence.
