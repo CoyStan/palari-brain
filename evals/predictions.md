@@ -37,3 +37,15 @@ configuration it uses. If the run uses the pre-restructure kernel
 Grading notes: report per-category tables; grade each prediction
 CONFIRMED / PARTIAL / REFUTED with one line of evidence; refuted
 predictions are findings about our reasoning, not embarrassments.
+
+## J4 v3 — FINAL before replacement execution
+
+Author: repository execution lane, 2026-07-24. The complete machine-readable
+prediction document is
+`evals/predictions/j4-longmemeval-s60-v3.json`, SHA-256
+`201a41bd326f19d350ab45719f95fcf73a1d5d0159cf60c4ccee9992281460bf`.
+Its 60 outcome rows are byte-identical to v2 and retain row-array SHA-256
+`12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351`.
+No partial v2 provider evidence changed an outcome. The v3 metadata freezes
+the corrected structured-output, no-store, retry, response, two-call smoke,
+and predecessor-accounting contracts before any v3 provider call.

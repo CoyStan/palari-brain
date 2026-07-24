@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4 EXTERNAL VALIDATION — REPLACEMENT TRANCHE 1 TERMINAL
-DURING QUESTION 1; OFFLINE GEMINI CORRECTION DONE; FOUNDER GATE
+Loop state: J4 EXTERNAL VALIDATION — V3 REPLACEMENT FROZEN; EXACT
+TWO-CALL SMOKE AND FIRST FIVE LIVE QUESTIONS FOUNDER-AUTHORIZED
 (2026-07-24).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
@@ -41,6 +41,12 @@ controls, explicit no-store requests, provider-specific retries, stricter
 response/accounting checks, and representative writer and answer smoke
 contracts. U8 and J4 v2 now refuse live execution before data or credential
 access. These corrected bytes have no new run identity or authority.
+The founder has now authorized a fresh `j4-longmemeval-s60-v3` identity from
+the corrected `324b127` cut. V3 preserves and verifies both terminal private
+bundles before credential access, carries their exact `$0.0150692` spend,
+freezes the corrected bytes and unchanged 60 outcome rows, and may execute
+only the writer-and-answer smoke followed by the same first five questions.
+No v3 provider call has occurred at this pre-run cut point.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -202,6 +208,28 @@ session itself).
     contracts and have no executable identity or authority. No provider call
     occurred. Suite 170/170, dry bake-off, quickstart, package dry-run, and
     independent reviews are green.
+  - [x] J4.2V3-P — V3 REPLACEMENT PRE-RUN FROZEN 2026-07-24
+    (`this commit`). The fresh `j4-longmemeval-s60-v3` identity verifies both
+    immutable predecessor bundles and their tracked inputs before credential
+    access, carries their exact `$0.0150692`, and gives the fresh meter
+    `$2.4849308` under the unchanged `$2.50` cap. It freezes the corrected
+    schema-bearing/no-store bytes, both compatibility calls, the same first
+    five questions, and all 60 unchanged outcome rows. Config SHA-256
+    `91bc18330bb92b83b1a28d32d21d8dfbc4ea2b0cffa3044e31c0e5c3a12b6b88`;
+    authority SHA-256
+    `4b4dbc036a23737d6c729e5ee153d362caad0b60f0bae12a64a0bd2da8f71735`;
+    FINAL prediction SHA-256
+    `201a41bd326f19d350ab45719f95fcf73a1d5d0159cf60c4ccee9992281460bf`.
+    Non-secret operator preflight confirmed the existing mode-0600 Gemini and
+    OpenAI secret files; the same AI Studio key already succeeded through the
+    pinned `x-goog-api-key` authorization-header path, and no value was logged.
+    Suite 175/175, dry bake-off, quickstart, package dry-run, predecessor
+    forensics, and restored main-level live-path tests are green. No v3
+    provider call has occurred.
+  - [ ] J4.2V3-E — LIVE EXECUTION AUTHORIZED. Invoke the pushed v3 cut exactly
+    once: writer-and-answer compatibility smoke, then the same first five
+    questions, then mandatory founder stop/report. No question 6, reroll,
+    behavior change, Mem0, S-490, or publication.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -214,20 +242,16 @@ session itself).
 
 ## Next
 
-FOUNDER GATE — J4 REPLACEMENT RUNS TERMINAL; OFFLINE CORRECTION COMPLETE.
-Preserve both immutable failed runs and their ignored evidence. The corrected
-Gemini bytes intentionally have no executable run identity, frozen config or
-artifact hashes, authority, or matching FINAL predictions. Any future provider
-call requires all of those under a new founder GO. Do not resume or reroll v1
-or v2; create another run, continue question 1, execute question 6 or any later
-tranche, run Mem0, start S-490, publish a score, or announce a result without
-a fresh explicit founder decision. A future identity must also refresh cost
-estimates from the schema-bearing request plus both smoke calls and restore
-main-level tests for limit wiring, credential scrubbing, predecessor order,
-stale directories, and terminal bundles before its guard opens. Its non-secret
-operator preflight must confirm the Gemini credential is a current
-authorization key rather than a retiring standard key. U8 and J3 v1–v4 remain
-closed.
+EXECUTE THE AUTHORIZED J4 V3 CUT AFTER ITS PRE-RUN COMMIT IS PUSHED AND THE
+WORKTREE IS CLEAN. Preserve v1/v2 and carry their full spend. Run v3 exactly
+once with `PALARI_J4_CONFIRM_SPEND=1`,
+`PALARI_J4_CUMULATIVE_QUESTIONS=5`, and
+`PALARI_J4_SPEND_CAP_USD=2.5`: the runner performs the two-call compatibility
+smoke and at most the same first five questions, then stops. Do not resume or
+reroll v1/v2, execute question 6 or a later tranche, run Mem0, start S-490,
+change behavior after a finding, publish a score, or announce a result. After
+the invocation, audit and report the ignored private evidence, make only the
+score-free tracked close-out, push, and stop. U8 and J3 v1–v4 remain closed.
 
 ## Log
 
@@ -351,6 +375,11 @@ provider-enforced extraction schema, current request/privacy/retry/response
 contracts, two representative compatibility-smoke request contracts, and
 code-enforced U8/J4 terminal seals. No live identity or provider call; suite
 170/170, bakeoff, quickstart, package dry-run, and independent reviews green.
+2026-07-24 — J4.2V3-P — this commit — Froze the corrected v3 identity,
+two-run predecessor chain, exact cumulative spend, schema-bearing estimate,
+two-call smoke, unchanged prediction rows, first-five boundary, and restored
+main-level safety tests. Suite 175/175 and all standing offline checks green;
+no v3 provider call occurred.
 
 ## Product stop-rule record
 
@@ -840,3 +869,26 @@ code-enforced U8/J4 terminal seals. No live identity or provider call; suite
    logging defaults and transient retries would also be left implicit. The
    code changes the real extraction request, while the live proof remains
    correctly founder-gated.
+
+### J4.2V3 replacement pre-run cut point
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It claims no new product
+   result. It makes the founder-authorized external measurement executable on
+   the already-corrected provider contract without losing predecessor spend
+   or silently passing malformed structured output.
+3. Does an existing framework already provide what this unit added? Gemini
+   provides structured output and LongMemEval provides the benchmark. This
+   unit adds only Palari's immutable adapter identity, strict admission-plane
+   measurement, bounded spend chain, and forensic cut point.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly authorized a v3 replacement from `324b127`, preservation
+   of both prior runs, one writer-and-answer smoke, and exactly the same first
+   five questions.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Current chatbot behavior would not immediately change, but the paid
+   external test could undercount prior spend, repeat terminal work, use
+   unfrozen bytes, overrun question 5, or again fail without a complete
+   private bundle. This is the resumable pre-call half of the authorized live
+   evidence unit, not a claim of product improvement.

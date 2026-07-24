@@ -17,6 +17,10 @@ import {
   J4_S60_STATS,
   J4_STAGED_EXECUTION_ORDER_SHA256,
   J4_STAGED_TRANCHE_MANIFEST_SHA256,
+  J4_V3_COMPATIBILITY_SMOKE_STATS,
+  J4_V3_EXTRACTION_SCHEMA_CONTRACT,
+  J4_V3_FIRST_TRANCHE_COST_ESTIMATE,
+  J4_V3_FIRST_TRANCHE_REQUEST_STATS,
   SEALED_U8_QUESTION_IDS,
   assertJ4CanonicalS,
   assertJ4PinnedS60,
@@ -254,6 +258,10 @@ test('local canonical LongMemEval-S reproduces the pinned J4 manifest', async (t
     ],
   )
   assert.deepEqual(
+    palariWriterRequestContentStats(executionOrder.slice(0, 5)),
+    { calls: 1_191, chars: 4_726_081 },
+  )
+  assert.deepEqual(
     tranches.map((tranche) => tranche.questionIds.length),
     [5, 10, 10, 10, 10, 10, 5],
   )
@@ -358,6 +366,52 @@ test('Palari-only estimate keeps every price and assumption explicit', () => {
     judgeOutput: 4,
   })
   assert.equal(estimate.totalUsd, 222 / 1_000_000)
+})
+
+test('J4 v3 first-five estimate includes the schema and both smoke calls', () => {
+  assert.deepEqual(J4_V3_EXTRACTION_SCHEMA_CONTRACT, {
+    canonicalJsonChars: 808,
+    sha256:
+      '7040c879709509de9022135588403f9d9563e53f63f8560fe2445188a7b20173',
+  })
+  assert.deepEqual(J4_V3_FIRST_TRANCHE_REQUEST_STATS, {
+    questions: 5,
+    userTurns: 1_191,
+    writerRequestContentChars: 4_726_081,
+  })
+  assert.deepEqual(J4_V3_COMPATIBILITY_SMOKE_STATS, {
+    answerCalls: 1,
+    answerRequestBodyChars: 451,
+    writerCalls: 1,
+    writerRequestContentChars: 2_467,
+  })
+  assert.deepEqual(J4_V3_FIRST_TRANCHE_COST_ESTIMATE.expected.calls, {
+    gemini: 1_198,
+    judge: 5,
+    total: 1_203,
+  })
+  assert.deepEqual(J4_V3_FIRST_TRANCHE_COST_ESTIMATE.expected.tokens, {
+    geminiInput: 1_464_065,
+    geminiOutputIncludingThinking: 179_400,
+    judgeInput: 2_500,
+    judgeOutput: 50,
+  })
+  assert.deepEqual(J4_V3_FIRST_TRANCHE_COST_ESTIMATE.conservative.tokens, {
+    geminiInput: 2_055_204,
+    geminiOutputIncludingThinking: 611_840,
+    judgeInput: 4_000,
+    judgeOutput: 50,
+  })
+  assert.equal(
+    Number(J4_V3_FIRST_TRANCHE_COST_ESTIMATE.expected.freshUsd.toFixed(7)),
+    0.8944695,
+  )
+  assert.equal(
+    Number(
+      J4_V3_FIRST_TRANCHE_COST_ESTIMATE.conservative.freshUsd.toFixed(7),
+    ),
+    2.1566612,
+  )
 })
 
 test('published J4 estimates are reproducible and maxima match live limits', () => {

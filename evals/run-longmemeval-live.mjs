@@ -73,6 +73,10 @@ const credentialPatterns = Object.freeze([
   /\bsk-(?:proj-)?[A-Za-z0-9_-]{8,}\b/u,
   /\bAIza[0-9A-Za-z_-]{20,}\b/u,
 ])
+const J4_TERMINAL_RUN_IDS = new Set([
+  'j4-longmemeval-s60-v1',
+  'j4-longmemeval-s60-v2',
+])
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
@@ -111,7 +115,8 @@ function assertExact(actual, expected, code, message) {
 export function parseJ4LiveArgs(args = []) {
   if (args.length !== 2 ||
     args[0] !== '--run' ||
-    args[1] !== j4Config.J4_LIVE_RUN_ID) {
+    (!J4_TERMINAL_RUN_IDS.has(args[1]) &&
+      args[1] !== j4Config.J4_LIVE_RUN_ID)) {
     throw new J4LiveError(
       'RUN_ID_REQUIRED',
       `Invoke exactly: node evals/run-longmemeval-live.mjs --run ${j4Config.J4_LIVE_RUN_ID}`,
@@ -121,15 +126,16 @@ export function parseJ4LiveArgs(args = []) {
 }
 
 export function assertJ4LiveRunOpen(runId) {
-  if (runId === j4Config.J4_LIVE_RUN_ID) {
+  if (J4_TERMINAL_RUN_IDS.has(runId)) {
     throw new J4LiveError(
       'J4_RUN_TERMINAL',
       `J4 run ${runId} is terminal and cannot be resumed or rerolled.`,
     )
   }
+  if (runId === j4Config.J4_LIVE_RUN_ID) return runId
   throw new J4LiveError(
     'RUN_ID_REQUIRED',
-    'No unsealed J4 live-run identity is configured.',
+    'No matching unsealed J4 live-run identity is configured.',
   )
 }
 
@@ -216,7 +222,8 @@ export function buildJ4ImmutableIdentity({
   datasetSha256,
   predictionsSha256,
 } = {}) {
-  const openingAccountedUsd = Number(config?.predecessor?.accountedUsd)
+  const openingAccountedUsd =
+    Number(config?.predecessorChain?.openingAccountedUsd)
   if (!config || !/^[a-f0-9]{64}$/.test(String(configSha256 ?? '')) ||
     !/^[a-f0-9]{64}$/.test(String(datasetSha256 ?? '')) ||
     !/^[a-f0-9]{64}$/.test(String(predictionsSha256 ?? '')) ||
@@ -238,7 +245,7 @@ export function buildJ4ImmutableIdentity({
     executionOrderSha256: config.population.executionOrderSha256,
     models: clone(config.models),
     openingAccountedUsd,
-    predecessor: clone(config.predecessor),
+    predecessorChain: clone(config.predecessorChain),
     predictionsSha256,
     runId: config.runId,
     schemaVersion: 1,
@@ -815,21 +822,30 @@ function sameUsd(left, right) {
     Math.abs(Number(left) - Number(right)) <= 1e-12
 }
 
-export async function verifyJ4PredecessorBundle({
-  predecessor,
-  repoRoot = J4_REPO_ROOT,
-} = {}) {
-  if (!predecessor ||
-    typeof predecessor !== 'object' ||
-    Array.isArray(predecessor) ||
-    typeof predecessor.runId !== 'string' ||
-    predecessor.status !== 'failed' ||
-    predecessor.completedQuestions !== 0 ||
-    !Number.isFinite(predecessor.accountedUsd) ||
-    predecessor.accountedUsd < 0) {
+function assertPredecessorRunDescriptor(run, index) {
+  if (!run ||
+    typeof run !== 'object' ||
+    Array.isArray(run) ||
+    run.runId !== `j4-longmemeval-s60-v${index + 1}` ||
+    run.status !== 'failed' ||
+    !['completed', 'failed'].includes(run.smokeStatus) ||
+    run.completedQuestions !== 0 ||
+    (!Number.isInteger(run.failedQuestionOrdinal) &&
+      run.failedQuestionOrdinal !== null) ||
+    !Number.isInteger(run.attempts) ||
+    run.attempts < 1 ||
+    !run.logicalRequests ||
+    typeof run.logicalRequests !== 'object' ||
+    Array.isArray(run.logicalRequests) ||
+    !Number.isFinite(run.openingAccountedUsd) ||
+    run.openingAccountedUsd < 0 ||
+    !Number.isFinite(run.currentRunAccountedUsd) ||
+    run.currentRunAccountedUsd < 0 ||
+    !run.private ||
+    !run.tracked) {
     throw new J4LiveError(
       'PREDECESSOR_SCHEMA',
-      'J4 replacement-run predecessor metadata is invalid.',
+      'J4 predecessor-chain run metadata is invalid.',
     )
   }
   for (const [field, label] of [
@@ -837,46 +853,130 @@ export async function verifyJ4PredecessorBundle({
     ['checkpointSha256', 'checkpoint hash'],
     ['meterSha256', 'meter hash'],
   ]) {
-    assertPinnedSha256(predecessor[field], label)
+    assertPinnedSha256(run.private[field], label)
   }
-  const expectedRoot = `evals/results/${predecessor.runId}`
-  const expectedPaths = {
-    artifactManifestPath: `${expectedRoot}/artifact-manifest.json`,
-    checkpointPath: `${expectedRoot}/checkpoint.json`,
-    meterPath: `${expectedRoot}/meter.jsonl`,
+  for (const [field, label] of [
+    ['authoritySha256', 'authority hash'],
+    ['configSha256', 'config hash'],
+    ['predictionsSha256', 'predictions hash'],
+  ]) {
+    assertPinnedSha256(run.tracked[field], label)
   }
-  for (const [field, expected] of Object.entries(expectedPaths)) {
-    if (predecessor[field] !== expected) {
+}
+
+function assertCanonicalPredecessorPaths(run) {
+  const privateRoot = `evals/results/${run.runId}`
+  const expectedPrivate = {
+    artifactManifestPath: `${privateRoot}/artifact-manifest.json`,
+    checkpointPath: `${privateRoot}/checkpoint.json`,
+    meterPath: `${privateRoot}/meter.jsonl`,
+  }
+  const expectedPredictionsPath = run.runId.endsWith('-v1')
+    ? 'evals/predictions/j4-longmemeval-s60.json'
+    : `evals/predictions/${run.runId}.json`
+  const expectedTracked = {
+    authorityPath: `evals/live-runs/${run.runId}.authority.json`,
+    configPath: `evals/live-runs/${run.runId}.json`,
+    predictionsPath: expectedPredictionsPath,
+  }
+  for (const [field, expected] of Object.entries({
+    ...expectedPrivate,
+    ...expectedTracked,
+  })) {
+    const actual = Object.hasOwn(run.private, field)
+      ? run.private[field]
+      : run.tracked[field]
+    if (actual !== expected) {
       throw new J4LiveError(
         'PREDECESSOR_PATH_INVALID',
         `J4 predecessor ${field} differs from its canonical run path.`,
       )
     }
   }
+}
 
-  const manifestPath = repositoryEvidencePath(
-    repoRoot,
-    predecessor.artifactManifestPath,
-    'artifact manifest',
+function assertPriorRunLink(checkpoint, priorAudit, run) {
+  if (!priorAudit) {
+    if (run.openingAccountedUsd !== 0 ||
+      Object.hasOwn(checkpoint.identity ?? {}, 'openingAccountedUsd')) {
+      throw new J4LiveError(
+        'PREDECESSOR_CHAIN_MISMATCH',
+        'The first J4 predecessor unexpectedly carries earlier spend.',
+      )
+    }
+    return
+  }
+  const pinned = checkpoint.identity?.predecessor
+  const audited = checkpoint.predecessorAudit
+  if (!sameUsd(run.openingAccountedUsd, priorAudit.cumulativeAccountedUsd) ||
+    !sameUsd(
+      checkpoint.identity?.openingAccountedUsd,
+      priorAudit.cumulativeAccountedUsd,
+    ) ||
+    pinned?.runId !== priorAudit.runId ||
+    audited?.runId !== priorAudit.runId ||
+    !sameUsd(pinned?.accountedUsd, priorAudit.currentRunAccountedUsd) ||
+    !sameUsd(audited?.accountedUsd, priorAudit.currentRunAccountedUsd) ||
+    pinned?.artifactManifestSha256 !==
+      priorAudit.artifactManifestSha256 ||
+    audited?.artifactManifestSha256 !==
+      priorAudit.artifactManifestSha256 ||
+    pinned?.checkpointSha256 !== priorAudit.checkpointSha256 ||
+    audited?.checkpointSha256 !== priorAudit.checkpointSha256 ||
+    pinned?.meterSha256 !== priorAudit.meterSha256 ||
+    audited?.meterSha256 !== priorAudit.meterSha256) {
+    throw new J4LiveError(
+      'PREDECESSOR_CHAIN_MISMATCH',
+      'J4 predecessor evidence does not link to the preceding terminal run.',
+    )
+  }
+}
+
+async function verifyJ4PredecessorRun({
+  priorAudit,
+  repoRoot,
+  run,
+  runIndex,
+}) {
+  assertPredecessorRunDescriptor(run, runIndex)
+  assertCanonicalPredecessorPaths(run)
+  const privatePaths = Object.fromEntries(
+    Object.entries({
+      artifactManifestPath: run.private.artifactManifestPath,
+      checkpointPath: run.private.checkpointPath,
+      meterPath: run.private.meterPath,
+    }).map(([key, path]) => [
+      key,
+      repositoryEvidencePath(repoRoot, path, key),
+    ]),
   )
-  const checkpointPath = repositoryEvidencePath(
-    repoRoot,
-    predecessor.checkpointPath,
-    'checkpoint',
+  const trackedPaths = Object.fromEntries(
+    Object.entries({
+      authorityPath: run.tracked.authorityPath,
+      configPath: run.tracked.configPath,
+      predictionsPath: run.tracked.predictionsPath,
+    }).map(([key, path]) => [
+      key,
+      repositoryEvidencePath(repoRoot, path, key),
+    ]),
   )
-  const meterPath = repositoryEvidencePath(
-    repoRoot,
-    predecessor.meterPath,
-    'meter',
-  )
-  const runDir = dirname(manifestPath)
-  const [manifestMetadata, manifestText, checkpointText, meterText] =
-    await Promise.all([
-      lstat(manifestPath),
-      readFile(manifestPath, 'utf8'),
-      readFile(checkpointPath, 'utf8'),
-      readFile(meterPath, 'utf8'),
-    ])
+  const [
+    manifestMetadata,
+    manifestText,
+    checkpointText,
+    meterText,
+    authorityText,
+    configText,
+    predictionsText,
+  ] = await Promise.all([
+    lstat(privatePaths.artifactManifestPath),
+    readFile(privatePaths.artifactManifestPath, 'utf8'),
+    readFile(privatePaths.checkpointPath, 'utf8'),
+    readFile(privatePaths.meterPath, 'utf8'),
+    readFile(trackedPaths.authorityPath),
+    readFile(trackedPaths.configPath),
+    readFile(trackedPaths.predictionsPath),
+  ])
   if (!manifestMetadata.isFile() ||
     manifestMetadata.isSymbolicLink() ||
     (manifestMetadata.mode & 0o777) !== 0o600) {
@@ -885,12 +985,15 @@ export async function verifyJ4PredecessorBundle({
       'J4 predecessor artifact manifest must be a mode-0600 regular file.',
     )
   }
-  if (sha256(manifestText) !== predecessor.artifactManifestSha256 ||
-    sha256(checkpointText) !== predecessor.checkpointSha256 ||
-    sha256(meterText) !== predecessor.meterSha256) {
+  if (sha256(manifestText) !== run.private.artifactManifestSha256 ||
+    sha256(checkpointText) !== run.private.checkpointSha256 ||
+    sha256(meterText) !== run.private.meterSha256 ||
+    sha256(authorityText) !== run.tracked.authoritySha256 ||
+    sha256(configText) !== run.tracked.configSha256 ||
+    sha256(predictionsText) !== run.tracked.predictionsSha256) {
     throw new J4LiveError(
       'PREDECESSOR_HASH_MISMATCH',
-      'J4 predecessor evidence differs from its frozen hashes.',
+      'J4 predecessor tracked or private evidence differs from its frozen hashes.',
     )
   }
 
@@ -904,59 +1007,128 @@ export async function verifyJ4PredecessorBundle({
       { cause: error },
     )
   }
-  const completedQuestions = Array.isArray(checkpoint.questions)
-    ? checkpoint.questions.filter((cell) =>
-        cell?.status === 'completed').length
-    : -1
-  if (checkpoint.identity?.runId !== predecessor.runId ||
-    checkpoint.status !== predecessor.status ||
-    checkpoint.smoke?.status !== 'failed' ||
-    completedQuestions !== predecessor.completedQuestions ||
-    checkpoint.questions.some((cell) => cell?.status !== 'pending') ||
-    !sameUsd(checkpoint.meter?.accounted?.usd, predecessor.accountedUsd) ||
-    !sameUsd(checkpoint.meter?.measured?.usd, predecessor.accountedUsd) ||
+  const questions = Array.isArray(checkpoint.questions)
+    ? checkpoint.questions
+    : []
+  const completedQuestions = questions.filter((cell) =>
+    cell?.status === 'completed').length
+  const failedOrdinals = questions
+    .map((cell, index) => cell?.status === 'failed' ? index + 1 : null)
+    .filter((value) => value !== null)
+  const expectedFailedOrdinals = run.failedQuestionOrdinal === null
+    ? []
+    : [run.failedQuestionOrdinal]
+  if (checkpoint.identity?.runId !== run.runId ||
+    checkpoint.identity?.configSha256 !== run.tracked.configSha256 ||
+    checkpoint.identity?.predictionsSha256 !==
+      run.tracked.predictionsSha256 ||
+    !checkpoint.invocations?.some((invocation) =>
+      invocation?.authoritySha256 === run.tracked.authoritySha256) ||
+    checkpoint.status !== run.status ||
+    checkpoint.smoke?.status !== run.smokeStatus ||
+    Number(checkpoint.smoke?.logicalOperations ?? 0) !==
+      run.smokeLogicalOperations ||
+    questions.length !== 60 ||
+    completedQuestions !== run.completedQuestions ||
+    JSON.stringify(failedOrdinals) !==
+      JSON.stringify(expectedFailedOrdinals) ||
+    questions.some((cell, index) =>
+      cell?.status !==
+        (index + 1 === run.failedQuestionOrdinal ? 'failed' : 'pending')) ||
+    !sameUsd(
+      checkpoint.meter?.accounted?.usd,
+      run.currentRunAccountedUsd,
+    ) ||
+    !sameUsd(
+      checkpoint.meter?.measured?.usd,
+      run.currentRunAccountedUsd,
+    ) ||
     Number(checkpoint.meter?.uncertain?.usd) !== 0) {
     throw new J4LiveError(
       'PREDECESSOR_CHECKPOINT_MISMATCH',
-      'J4 predecessor is not the exact terminal failed-smoke, zero-question run.',
+      'J4 predecessor differs from its exact terminal zero-score profile.',
     )
   }
+  assertPriorRunLink(checkpoint, priorAudit, run)
 
+  const runDir = dirname(privatePaths.artifactManifestPath)
   const [manifest, ledger] = await Promise.all([
     verifyJ4ArtifactManifest(runDir),
-    reconcileJ4Ledger(meterPath),
+    reconcileJ4Ledger(privatePaths.meterPath),
   ])
   if (manifest.schemaVersion !== 1 ||
-    manifest.runId !== predecessor.runId ||
+    manifest.runId !== run.runId ||
     !Array.isArray(manifest.artifacts) ||
     !manifest.artifacts.some((entry) =>
       entry.path === 'checkpoint.json' &&
-      entry.sha256 === predecessor.checkpointSha256) ||
+      entry.sha256 === run.private.checkpointSha256) ||
     !manifest.artifacts.some((entry) =>
       entry.path === 'meter.jsonl' &&
-      entry.sha256 === predecessor.meterSha256) ||
-    ledger.attempts !== 1 ||
-    ledger.logicalRequests.writer !== 1 ||
-    Object.keys(ledger.logicalRequests).some((purpose) =>
-      purpose !== 'writer') ||
+      entry.sha256 === run.private.meterSha256) ||
+    ledger.attempts !== run.attempts ||
+    JSON.stringify(ledger.logicalRequests) !==
+      JSON.stringify(run.logicalRequests) ||
     ledger.retries.length !== 0 ||
-    !sameUsd(ledger.accounted.usd, predecessor.accountedUsd) ||
-    !sameUsd(ledger.measured.usd, predecessor.accountedUsd) ||
+    !sameUsd(ledger.accounted.usd, run.currentRunAccountedUsd) ||
+    !sameUsd(ledger.measured.usd, run.currentRunAccountedUsd) ||
     ledger.uncertain.usd !== 0) {
     throw new J4LiveError(
       'PREDECESSOR_METER_MISMATCH',
-      'J4 predecessor manifest or meter differs from the terminal smoke evidence.',
+      'J4 predecessor manifest or meter differs from its terminal evidence.',
+    )
+  }
+  const cumulativeAccountedUsd = Number((
+    run.openingAccountedUsd + run.currentRunAccountedUsd
+  ).toFixed(12))
+  return {
+    artifactManifestSha256: run.private.artifactManifestSha256,
+    checkpointSha256: run.private.checkpointSha256,
+    completedQuestions,
+    cumulativeAccountedUsd,
+    currentRunAccountedUsd: run.currentRunAccountedUsd,
+    measuredUsd: run.currentRunAccountedUsd,
+    meterSha256: run.private.meterSha256,
+    runId: run.runId,
+    status: run.status,
+  }
+}
+
+export async function verifyJ4PredecessorBundle({
+  predecessorChain,
+  repoRoot = J4_REPO_ROOT,
+} = {}) {
+  if (!predecessorChain ||
+    typeof predecessorChain !== 'object' ||
+    Array.isArray(predecessorChain) ||
+    !Array.isArray(predecessorChain.runs) ||
+    predecessorChain.runs.length !== 2 ||
+    !Number.isFinite(predecessorChain.openingAccountedUsd) ||
+    predecessorChain.openingAccountedUsd < 0) {
+    throw new J4LiveError(
+      'PREDECESSOR_SCHEMA',
+      'J4 v3 requires the exact two-run predecessor chain.',
+    )
+  }
+  const audits = []
+  for (let index = 0; index < predecessorChain.runs.length; index += 1) {
+    audits.push(await verifyJ4PredecessorRun({
+      priorAudit: audits.at(-1) ?? null,
+      repoRoot,
+      run: predecessorChain.runs[index],
+      runIndex: index,
+    }))
+  }
+  const accountedUsd = audits.at(-1)?.cumulativeAccountedUsd
+  if (!sameUsd(accountedUsd, predecessorChain.openingAccountedUsd)) {
+    throw new J4LiveError(
+      'PREDECESSOR_OPENING_SPEND_MISMATCH',
+      'J4 predecessor-chain sum differs from immutable opening spend.',
     )
   }
   return {
-    accountedUsd: predecessor.accountedUsd,
-    artifactManifestSha256: predecessor.artifactManifestSha256,
-    checkpointSha256: predecessor.checkpointSha256,
-    completedQuestions,
-    measuredUsd: predecessor.accountedUsd,
-    meterSha256: predecessor.meterSha256,
-    runId: predecessor.runId,
-    status: predecessor.status,
+    accountedUsd,
+    measuredUsd: accountedUsd,
+    runs: audits,
   }
 }
 
@@ -1716,7 +1888,7 @@ export async function main({
   repoRoot = J4_REPO_ROOT,
 } = {}) {
   const runId = parseJ4LiveArgs(args)
-  // The current v2 identity is terminal. Keep this before dependency,
+  // Historical identities are terminal. Keep this before dependency,
   // result-path, dataset/config, repository, or credential access.
   assertJ4LiveRunOpen(runId)
 
@@ -1810,7 +1982,7 @@ export async function main({
       config: loaded.config,
     })
     const predecessorAudit = await verifyPredecessor({
-      predecessor: loaded.config.predecessor,
+      predecessorChain: loaded.config.predecessorChain,
       repoRoot,
     })
     if (!sameUsd(

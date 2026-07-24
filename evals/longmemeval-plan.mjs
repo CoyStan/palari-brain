@@ -5,6 +5,7 @@ import {
   longMemEvalQuestionTypes,
 } from '../src/longmemeval.mjs'
 import { buildMemoryExtractionRequest } from '../src/memory-extraction.mjs'
+import { MEMORY_EXTRACTION_RESPONSE_SCHEMA } from '../src/memory-extraction-schema.mjs'
 
 // U8 is sealed as one indivisible artifact. No caller-supplied option may
 // remove these exclusions.
@@ -172,6 +173,27 @@ export const J4_GEMINI_GENERATION_LIMITS = Object.freeze({
   answerMaxOutputTokens: 256,
   thinkingLevel: 'MINIMAL',
   writerMaxOutputTokens: 512,
+})
+
+const J4_EXTRACTION_SCHEMA_JSON =
+  JSON.stringify(MEMORY_EXTRACTION_RESPONSE_SCHEMA)
+
+export const J4_V3_EXTRACTION_SCHEMA_CONTRACT = Object.freeze({
+  canonicalJsonChars: J4_EXTRACTION_SCHEMA_JSON.length,
+  sha256: sha256(J4_EXTRACTION_SCHEMA_JSON),
+})
+
+export const J4_V3_FIRST_TRANCHE_REQUEST_STATS = Object.freeze({
+  questions: 5,
+  userTurns: 1_191,
+  writerRequestContentChars: 4_726_081,
+})
+
+export const J4_V3_COMPATIBILITY_SMOKE_STATS = Object.freeze({
+  answerCalls: 1,
+  answerRequestBodyChars: 451,
+  writerCalls: 1,
+  writerRequestContentChars: 2_467,
 })
 
 export const J4_S60_STATS = Object.freeze({
@@ -564,7 +586,9 @@ export function estimatePalariLongMemEvalCost(
   stats,
   {
     assumptions = J4_EXPECTED_COST_ASSUMPTIONS,
+    compatibilitySmoke = {},
     pricesUsdPerMillion = J4_PRICES_USD_PER_MILLION,
+    writerSchemaCharsPerCall = 0,
   } = {},
 ) {
   const totals = stats?.totals ?? stats
@@ -576,23 +600,45 @@ export function estimatePalariLongMemEvalCost(
   )
   const charsPerToken = nonNegative(assumptions?.charsPerToken, 'charsPerToken')
   if (charsPerToken === 0) throw new Error('charsPerToken must be greater than zero.')
+  const smokeWriterCalls = nonNegative(
+    compatibilitySmoke?.writerCalls ?? 0,
+    'compatibility smoke writer calls',
+  )
+  const smokeAnswerCalls = nonNegative(
+    compatibilitySmoke?.answerCalls ?? 0,
+    'compatibility smoke answer calls',
+  )
+  const smokeWriterChars = nonNegative(
+    compatibilitySmoke?.writerRequestContentChars ?? 0,
+    'compatibility smoke writer content characters',
+  )
+  const schemaChars = nonNegative(
+    writerSchemaCharsPerCall,
+    'writer schema characters per call',
+  )
+  const writerCalls = turns + smokeWriterCalls
+  const answerCalls = questions + smokeAnswerCalls
 
   const geminiInput =
-    Math.ceil(chars / charsPerToken) +
-    turns * nonNegative(
+    Math.ceil((
+      chars +
+      smokeWriterChars +
+      writerCalls * schemaChars
+    ) / charsPerToken) +
+    writerCalls * nonNegative(
       assumptions?.writerProtocolOverheadTokensPerCall,
       'writerProtocolOverheadTokensPerCall',
     ) +
-    questions * nonNegative(
+    answerCalls * nonNegative(
       assumptions?.answerInputTokensPerCall,
       'answerInputTokensPerCall',
     )
   const geminiOutputIncludingThinking =
-    turns * nonNegative(
+    writerCalls * nonNegative(
       assumptions?.writerOutputTokensPerCall,
       'writerOutputTokensPerCall',
     ) +
-    questions * nonNegative(
+    answerCalls * nonNegative(
       assumptions?.answerOutputTokensPerCall,
       'answerOutputTokensPerCall',
     )
@@ -629,9 +675,9 @@ export function estimatePalariLongMemEvalCost(
   }
   return {
     calls: {
-      gemini: turns + questions,
+      gemini: writerCalls + answerCalls,
       judge: questions,
-      total: turns + (questions * 2),
+      total: writerCalls + answerCalls + questions,
     },
     costs,
     tokens: {
@@ -643,3 +689,36 @@ export function estimatePalariLongMemEvalCost(
     totalUsd: Object.values(costs).reduce((total, value) => total + value, 0),
   }
 }
+
+const j4V3ExpectedFirstTranche = estimatePalariLongMemEvalCost(
+  J4_V3_FIRST_TRANCHE_REQUEST_STATS,
+  {
+    compatibilitySmoke: J4_V3_COMPATIBILITY_SMOKE_STATS,
+    writerSchemaCharsPerCall:
+      J4_V3_EXTRACTION_SCHEMA_CONTRACT.canonicalJsonChars,
+  },
+)
+
+const j4V3ConservativeFirstTranche = estimatePalariLongMemEvalCost(
+  J4_V3_FIRST_TRANCHE_REQUEST_STATS,
+  {
+    assumptions: J4_CONSERVATIVE_COST_ASSUMPTIONS,
+    compatibilitySmoke: J4_V3_COMPATIBILITY_SMOKE_STATS,
+    writerSchemaCharsPerCall:
+      J4_V3_EXTRACTION_SCHEMA_CONTRACT.canonicalJsonChars,
+  },
+)
+
+export const J4_V3_FIRST_TRANCHE_COST_ESTIMATE = Object.freeze({
+  conservative: Object.freeze({
+    calls: Object.freeze({ ...j4V3ConservativeFirstTranche.calls }),
+    freshUsd: j4V3ConservativeFirstTranche.totalUsd,
+    tokens: Object.freeze({ ...j4V3ConservativeFirstTranche.tokens }),
+  }),
+  expected: Object.freeze({
+    calls: Object.freeze({ ...j4V3ExpectedFirstTranche.calls }),
+    freshUsd: j4V3ExpectedFirstTranche.totalUsd,
+    tokens: Object.freeze({ ...j4V3ExpectedFirstTranche.tokens }),
+  }),
+  methodVersion: 'j4-v3-schema-and-two-smokes-v1',
+})

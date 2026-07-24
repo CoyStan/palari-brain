@@ -917,3 +917,16 @@ dates. Agents record; the founder decides.
   or publishing a score. Existing v1/v2 config, authority, and prediction
   files remain immutable historical inputs. A future executable J4 identity
   requires a separate founder GO after this offline unit is reviewed.
+- 2026-07-24 (FOUNDER GO — J4 v3 replacement run) The founder explicitly
+  authorized one fresh `j4-longmemeval-s60-v3` execution from commit
+  `324b127`, preserving both terminal predecessors and charging all of their
+  measured spend against the unchanged `$2.50` cumulative hard cap. Before
+  any provider call, v3 must freeze a new identity, authority, configuration,
+  artifact hashes, schema-bearing cost estimate, and FINAL predictions; keep
+  all 60 outcome rows byte-identical to v2; restore the required main-level
+  live-path tests; pass offline verification; and commit and push the clean
+  execution cut. The live invocation may perform exactly the writer-and-answer
+  compatibility smoke followed by the same first five benchmark questions,
+  and must then stop and report. This GO does not authorize question 6, Mem0,
+  S-490, publication, rerolling either predecessor or any v3 failure, or any
+  further behavioral fix.

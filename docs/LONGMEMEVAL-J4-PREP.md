@@ -136,11 +136,12 @@ output tokens, 500 answer input tokens, 100 answer output tokens, 500 judge
 input tokens, and 10 judge output tokens. The conservative case uses three
 characters per token, 128 protocol-overhead tokens per writer call, a 512-token
 writer maximum, 900 answer input tokens, a 256-token answer maximum, 800 judge
-input tokens, and the same 10-token judge maximum. The one compatibility
-preflight request is a small, metered Gemini JSON-writer request that compares
-these assumptions with provider-reported token counts before the population
-run. The Gemini answer and OpenAI judge paths first execute on question 1 and
-fail closed there if unavailable or invalid.
+input tokens, and the same 10-token judge maximum. The original v1/v2
+compatibility preflight used one metered Gemini writer request. The separately
+frozen v3 replacement uses both one writer request and one answer request
+before the population run, because the corrected provider contract changed
+both paths. The OpenAI judge path first executes on question 1 and fails closed
+there if unavailable or invalid.
 
 The $30 value is a spend stop, not a promise that all questions finish. The
 runner reserves each attempt before dispatch, retains that reservation if
@@ -168,6 +169,34 @@ The current first-five expected/conservative projections are
 `$0.8212649/$2.0578727` for v2 alone and `$0.8217143/$2.0583221` including
 the carried smoke.
 
+### V3 replacement amendment
+
+Both earlier identities are terminal and remain immutable. V1 spent
+`$0.0004494`; v2 spent `$0.0146198`; neither completed a benchmark question.
+The v3 replacement therefore opens with exactly `$0.0150692` already charged
+and a fresh-meter ceiling of `$2.4849308` under the unchanged `$2.50`
+cumulative cap. Its chain verifier pins and checks both runs' tracked config,
+authority, and FINAL-prediction bytes plus their ignored checkpoint, meter,
+and artifact-manifest bytes before either provider key is captured.
+
+V3 changes no prediction outcome. Its 60 rows retain SHA-256
+`12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351`.
+The corrected writer request adds the exact 808-character JSON Schema
+(SHA-256
+`7040c879709509de9022135588403f9d9563e53f63f8560fe2445188a7b20173`)
+to all 1,192 possible writer calls: 1,191 first-five user turns plus the
+writer smoke. The answer smoke adds one answer call, for six possible answer
+calls and five judge calls. The two smoke inputs pin 2,467 writer text
+characters and a 451-character answer request body. Expected fresh usage is
+1,464,065 Gemini input,
+179,400 Gemini output-including-thinking, 2,500 judge input, and 50 judge
+output tokens, costing `$0.8944695`; expected cumulative spend is
+`$0.9095387`. The conservative case is 2,055,204 Gemini input, 611,840
+Gemini output-including-thinking, 4,000 judge input, and 50 judge output
+tokens, costing `$2.1566612` fresh and `$2.1717304` cumulative. These are
+planning ceilings, not reservations or score claims; all retries share the
+same hard meter.
+
 The founder requires an early human checkpoint because an earlier live
 evaluation was visibly broken on its first question but continued spending.
 J4 therefore never receives one authorization to run all 60 questions.
@@ -182,6 +211,11 @@ All 60 per-question predictions, provider settings, prompts, code hashes, and
 this order must be `FINAL` before the compatibility smoke request or question 1.
 Results from an early tranche may never change later predictions.
 
+The table below preserves the historical v2 staging forecast. For the active
+v3 Tranche 1, its first row is superseded by the frozen
+`$0.9095387/$2.1717304` expected/conservative cumulative estimates above.
+Every later row must be refreshed under a separate founder GO before use.
+
 | Tranche | New questions | Cumulative questions | Expected cumulative | Conservative cumulative | Proposed cumulative cap |
 |---:|---:|---:|---:|---:|---:|
 | 1 | 5 | 5 | $0.8212649 | $2.0578727 | **$2.50** |
@@ -192,11 +226,12 @@ Results from an early tranche may never change later predictions.
 | 6 | 10 | 55 | $9.2266519 | $23.1529878 | **$27.50** |
 | 7 | 5 | 60 | $10.0725399 | $25.2734986 | **$30** |
 
-Caps are cumulative, include the smoke request and every retry, and are not
-automatically adopted. Tranche 1 requires an exact founder GO for five
-questions and a $2.50 cumulative cap. After its report, each later tranche
-requires a new founder GO adopting that row's cumulative question count and
-cap. There is no “continue if green” automation.
+Caps are cumulative, include the applicable smoke suite and every retry, and
+are not automatically adopted. Tranche 1 requires an exact founder GO for
+five questions and a $2.50 cumulative cap. After its report, each later
+tranche requires a new founder GO plus a refreshed estimate before adopting
+that row's cumulative question count and cap. There is no “continue if green”
+automation.
 
 The first five IDs are mechanically fixed operational sentinels, not a
 representative score sample:
@@ -209,10 +244,11 @@ representative score sample:
 
 Together they exercise the update, preference, standard, temporal, and
 abstention judge prompts; assistant-origin ingestion; and multi-session
-absence. The compatibility smoke request is additional to these five benchmark
-questions and is charged inside the same $2.50 cap. Tranche 1 therefore has
-1,201 base benchmark calls (1,191 writers, five answers, five judges) plus the
-one smoke call and any permitted retries.
+absence. The v3 compatibility suite's writer and answer requests are
+additional to these five benchmark questions and are charged inside the same
+$2.50 cap. Tranche 1 therefore has 1,201 base benchmark calls (1,191 writers,
+five answers, five judges) plus two smoke calls, for 1,203 logical calls before
+any permitted retries.
 
 Before dispatching the next question, the runner must verify the preceding
 question's complete checkpoint, transcript, model identity, finish reasons,
@@ -299,15 +335,15 @@ Before the first J4 provider call, all of the following must be true:
   hash-pinned;
 - focused tests, full `npm test`, `npm run bakeoff`, and
   `npm run quickstart` pass from a clean, pushed `main`;
-- one Gemini JSON-writer compatibility smoke request is charged inside the
-  $2.50 cap.
+- one Gemini writer and one Gemini answer compatibility smoke request are
+  charged inside the $2.50 cap.
 
 Raw answers, scores, reports, and transcripts remain gitignored. `STATUS.md`
 may record only that a run occurred and closed, never the numbers. Publishing
 or announcing any result remains a separate founder gate. No later tranche is
 authorized by a Tranche 1 GO.
 
-## Sources verified 2026-07-23
+## Sources verified 2026-07-24
 
 - LongMemEval source:
   <https://github.com/xiaowu0162/LongMemEval> at
@@ -318,7 +354,7 @@ authorized by a Tranche 1 GO.
 - Mem0 managed-vs-OSS caveat:
   <https://github.com/mem0ai/mem0>
 - Google model guidance:
-  <https://ai.google.dev/gemini-api/docs/latest-model>
+  <https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite>
 - Google pricing:
   <https://ai.google.dev/gemini-api/docs/pricing>
 - Google token accounting:

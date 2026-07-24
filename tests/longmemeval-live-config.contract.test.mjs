@@ -12,7 +12,9 @@ import {
   J4_LIVE_AUTHORITY_PATH,
   J4_LIVE_RUN_ID,
   J4_OFFICIAL_FACT_TEMPLATE,
+  J4_PREDECESSOR_CHAIN,
   J4_TRANCHE_1_LIMITS,
+  J4_V3_CUMULATIVE_COST_ESTIMATE,
   assertJ4LiveEnvironment,
   buildJ4AnswerBody,
   buildJ4AnswerPrompt,
@@ -41,6 +43,12 @@ const J4_V2_AUTHORITY_SHA256 =
   '51091b6d280c099c32f12e2a75a0e11c85e9690a2dd92cee3c24a5ffc7a4a253'
 const J4_V2_PREDICTIONS_SHA256 =
   'ccdf0b9bd8cc12256657c574d3189d6f4aebb9dd5e6e60ee0aaaaee63671714f'
+const J4_V3_CONFIG_SHA256 =
+  '91bc18330bb92b83b1a28d32d21d8dfbc4ea2b0cffa3044e31c0e5c3a12b6b88'
+const J4_V3_AUTHORITY_SHA256 =
+  '4b4dbc036a23737d6c729e5ee153d362caad0b60f0bae12a64a0bd2da8f71735'
+const J4_V3_PREDICTIONS_SHA256 =
+  '201a41bd326f19d350ab45719f95fcf73a1d5d0159cf60c4ccee9992281460bf'
 
 test('J4 provider bodies freeze the selected model protocol and official prompt', () => {
   assert.equal(J4_GEMINI_MODEL, 'gemini-3.5-flash-lite')
@@ -206,14 +214,14 @@ test('J4 execution order is complete, U8-free, and starts at the exact gate', ()
 test('J4 administrative authority exactly clamps runtime scope without reading keys', async () => {
   const loaded = await loadJ4LiveAuthority({ repoRoot: REPO_ROOT })
   assert.equal(loaded.authority.runId, J4_LIVE_RUN_ID)
-  assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v2')
+  assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v3')
   assert.equal(loaded.authority.cumulativeQuestions, 5)
   assert.equal(loaded.authority.cumulativeCapUsd, 2.5)
   assert.equal(loaded.authority.fromCumulativeQuestions, 0)
   assert.equal(loaded.authority.previousCheckpointSha256, null)
-  assert.equal(loaded.authoritySha256, J4_V2_AUTHORITY_SHA256)
-  assert.equal(J4_CARRIED_ACCOUNTED_USD, 0.0004494)
-  assert.equal(J4_FRESH_METER_CAP_USD, 2.4995506)
+  assert.equal(loaded.authoritySha256, J4_V3_AUTHORITY_SHA256)
+  assert.equal(J4_CARRIED_ACCOUNTED_USD, 0.0150692)
+  assert.equal(J4_FRESH_METER_CAP_USD, 2.4849308)
   assert.equal(
     Number((
       loaded.authority.cumulativeCapUsd - J4_CARRIED_ACCOUNTED_USD
@@ -313,11 +321,23 @@ test('J4 v2 frozen inputs remain byte-identical after offline correction', async
   assert.equal(j4Sha256(predictions), J4_V2_PREDICTIONS_SHA256)
 })
 
-test('terminal J4 v2 config cannot silently adopt corrected request bytes', async () => {
-  await assert.rejects(
-    loadJ4LiveConfig({ repoRoot: REPO_ROOT }),
-    (error) =>
-      error.code === 'CONFIG_MISMATCH' ||
-      error.code === 'ARTIFACT_HASH',
+test('J4 v3 config freezes corrected bytes, two predecessors, and cumulative cost', async () => {
+  const loaded = await loadJ4LiveConfig({ repoRoot: REPO_ROOT })
+  assert.equal(loaded.config.runId, J4_LIVE_RUN_ID)
+  assert.equal(loaded.configSha256, J4_V3_CONFIG_SHA256)
+  assert.equal(loaded.predictionsSha256, J4_V3_PREDICTIONS_SHA256)
+  assert.deepEqual(loaded.config.predecessorChain, J4_PREDECESSOR_CHAIN)
+  assert.deepEqual(
+    loaded.config.costEstimate,
+    J4_V3_CUMULATIVE_COST_ESTIMATE,
+  )
+  assert.equal(loaded.config.costEstimate.expected.cumulativeUsd, 0.9095387)
+  assert.equal(
+    loaded.config.costEstimate.conservative.cumulativeUsd,
+    2.1717304,
+  )
+  assert.ok(
+    loaded.config.costEstimate.conservative.cumulativeUsd <
+      loaded.config.costEstimate.capUsd,
   )
 })
