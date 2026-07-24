@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
 Loop state: J4 EXTERNAL VALIDATION — REPLACEMENT TRANCHE 1 TERMINAL
-DURING QUESTION 1; FOUNDER GATE (2026-07-23).
+DURING QUESTION 1; OFFLINE GEMINI CORRECTION DONE; FOUNDER GATE
+(2026-07-24).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -34,6 +35,12 @@ contract, but an extraction during the first benchmark question used a type
 outside the already enumerated frozen vocabulary. The runner stopped before
 completing a question or making any answer or judge call. No benchmark score
 exists; the ignored v2 bundle verifies and the run is closed.
+The founder then authorized an offline-only Gemini contract correction. The
+reusable request path now uses provider-enforced enums, current Gemini 3
+controls, explicit no-store requests, provider-specific retries, stricter
+response/accounting checks, and representative writer and answer smoke
+contracts. U8 and J4 v2 now refuse live execution before data or credential
+access. These corrected bytes have no new run identity or authority.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -181,6 +188,20 @@ session itself).
     vocabulary. No question completed, no answer or judge call occurred, and
     no benchmark score exists. The private bundle passes its forensic audits;
     v2 is closed and cannot be resumed or rerolled.
+  - [x] J4.2A — OFFLINE GEMINI CONTRACT CORRECTION DONE 2026-07-24
+    (`this commit`). A nine-feature audit against current official Gemini
+    documentation found that MIME-only JSON did not enforce Palari's enums.
+    The active product and future J4 builders now share one exact extraction
+    schema; use `thinkingLevel: MINIMAL` without deprecated sampling fields;
+    send top-level `store:false`; apply Gemini-specific retry, response, and
+    usage handling; and preflight both a health-like write and its answer.
+    U8 `--live` and current J4 v2 stop before dataset, config, credential, or
+    provider access. Frozen v1/v2 config, authority, and FINAL prediction
+    files remain byte-identical; neither private evidence bundle was read or
+    changed. The corrected request bytes are not covered by those historical
+    contracts and have no executable identity or authority. No provider call
+    occurred. Suite 170/170, dry bake-off, quickstart, package dry-run, and
+    independent reviews are green.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -193,12 +214,20 @@ session itself).
 
 ## Next
 
-FOUNDER GATE — J4 REPLACEMENT RUN TERMINAL. Preserve both immutable failed
-runs and their ignored evidence. Do not resume or reroll v1 or v2; do not
-continue question 1, execute question 6 or any later tranche, alter the
-evaluation contract for another attempt, run Mem0, start S-490, publish a
-score, or announce a result without a fresh explicit founder decision. U8 and
-J3 v1–v4 remain closed.
+FOUNDER GATE — J4 REPLACEMENT RUNS TERMINAL; OFFLINE CORRECTION COMPLETE.
+Preserve both immutable failed runs and their ignored evidence. The corrected
+Gemini bytes intentionally have no executable run identity, frozen config or
+artifact hashes, authority, or matching FINAL predictions. Any future provider
+call requires all of those under a new founder GO. Do not resume or reroll v1
+or v2; create another run, continue question 1, execute question 6 or any later
+tranche, run Mem0, start S-490, publish a score, or announce a result without
+a fresh explicit founder decision. A future identity must also refresh cost
+estimates from the schema-bearing request plus both smoke calls and restore
+main-level tests for limit wiring, credential scrubbing, predecessor order,
+stale directories, and terminal bundles before its guard opens. Its non-secret
+operator preflight must confirm the Gemini credential is a current
+authorization key rather than a retiring standard key. U8 and J3 v1–v4 remain
+closed.
 
 ## Log
 
@@ -317,6 +346,11 @@ runner once. The replacement smoke passed and confirmed the source-kind
 contract, then an out-of-vocabulary type stopped question 1 before completion,
 answering, or judging. The ignored forensic bundle verifies, no benchmark
 score exists or entered git, and both J4 runs are closed at a founder gate.
+2026-07-24 — J4.2A — this commit — Replaced prompt-only Gemini enums with one
+provider-enforced extraction schema, current request/privacy/retry/response
+contracts, two representative compatibility-smoke request contracts, and
+code-enforced U8/J4 terminal seals. No live identity or provider call; suite
+170/170, bakeoff, quickstart, package dry-run, and independent reviews green.
 
 ## Product stop-rule record
 
@@ -783,3 +817,26 @@ score exists or entered git, and both J4 runs are closed at a founder gate.
    source-kind mismatch; deleting the evidence would hide that the one allowed
    fix was insufficient for this workload. Further evaluation changes or
    spend require a fresh founder decision.
+
+### J4.2A offline Gemini contract correction
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? Not yet measured live.
+   Offline, the request now constrains invented enum values before local
+   validation; the known prompt/validator mismatch is removed from the
+   contract. Provider behavior is not claimed without a later gated live
+   smoke.
+3. Does an existing framework already provide what this unit added? Gemini
+   already provides JSON Schema, no-store requests, usage metadata, and retry
+   guidance. This unit removes Palari's incorrect prompt-only use of those
+   existing capabilities; it does not invent a new framework.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — after
+   two simple enum failures, the founder requested one official-documentation
+   review per Gemini feature and explicitly approved these offline fixes.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Gemini could again return valid JSON with invented `type` or
+   `sourceKind` values, causing a durable user fact to be rejected; project
+   logging defaults and transient retries would also be left implicit. The
+   code changes the real extraction request, while the live proof remains
+   correctly founder-gated.

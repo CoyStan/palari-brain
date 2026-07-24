@@ -5,7 +5,9 @@
 // founder confirmation.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 
 import { buildPromptConfigManifest, promptConfigHash } from '../src/eval-prompt-config.mjs'
 import { buildGeminiGenerateRequest } from '../src/gemini.mjs'
@@ -83,4 +85,24 @@ test('assertLiveRunAllowed: refuses without explicit founder confirmation and ke
   assert.equal(ok.provider, 'gemini')
   const anthropic = assertLiveRunAllowed({ ANTHROPIC_API_KEY: 'k', PALARI_CONFIRM_SPEND: '1' })
   assert.equal(anthropic.provider, 'anthropic')
+})
+
+test('sealed U8 CLI refuses --live before dataset or credential access', () => {
+  const result = spawnSync(
+    process.execPath,
+    [
+      fileURLToPath(new URL('../scripts/run-live-slice.mjs', import.meta.url)),
+      '--live',
+      '--data',
+      '/definitely/not/a/longmemeval/dataset.json',
+    ],
+    {
+      encoding: 'utf8',
+      env: { PATH: process.env.PATH },
+    },
+  )
+  assert.equal(result.status, 5)
+  assert.match(result.stderr, /U8 SEALED: --live is permanently disabled/i)
+  assert.doesNotMatch(result.stderr, /Dataset not found|FOUNDER GATE|API.?KEY/i)
+  assert.equal(result.stdout, '')
 })

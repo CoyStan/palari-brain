@@ -8,6 +8,7 @@
 
 import { performance } from 'node:perf_hooks'
 
+import { MEMORY_EXTRACTION_RESPONSE_SCHEMA } from './memory-extraction-schema.mjs'
 import {
   buildMemoryExtractionRequest as buildV05MemoryExtractionRequest,
   deterministicMockMemoryExtraction,
@@ -118,6 +119,19 @@ export function buildMemoryExtractionRequest(options = {}) {
   const request = buildV05MemoryExtractionRequest(options)
   return {
     ...request,
+    generationConfig: {
+      maxOutputTokens: request.generationConfig.maxOutputTokens,
+      responseFormat: {
+        text: {
+          mimeType: 'application/json',
+          schema: MEMORY_EXTRACTION_RESPONSE_SCHEMA,
+        },
+      },
+      thinkingConfig: {
+        thinkingLevel: 'MINIMAL',
+      },
+    },
+    store: false,
     systemInstruction: {
       parts: [{ text: KERNEL_EXTRACTION_SYSTEM }],
     },

@@ -9,6 +9,7 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 import { buildMemoryExtractionRequest } from '../src/memory-extraction.mjs'
+import { MEMORY_EXTRACTION_RESPONSE_SCHEMA } from '../src/memory-extraction-schema.mjs'
 import {
   LONGMEMEVAL_JUDGE_MODEL,
   LONGMEMEVAL_JUDGE_REQUEST,
@@ -69,6 +70,7 @@ export const J4_REQUIRED_ARTIFACT_PATHS = Object.freeze([
   'src/longmemeval.mjs',
   'src/memory-briefing.mjs',
   'src/memory-extraction.mjs',
+  'src/memory-extraction-schema.mjs',
   'src/memory-store.mjs',
   'src/recall.mjs',
   'src/routing-budgets.mjs',
@@ -115,64 +117,65 @@ function cumulativeLimits({
   })
 }
 
-// The one compatibility smoke is a Gemini writer request. These immutable
-// rows allow later founder-authorized tranches to reuse the exact evaluation
-// bytes while keeping every cumulative request/token ceiling finite.
+// The compatibility suite makes one Gemini writer request and one Gemini
+// answer request. These rows keep every future cumulative request/token
+// ceiling finite; the current v2 identity remains terminal and cannot use
+// them as new authority.
 export const J4_CUMULATIVE_LIMITS = Object.freeze([
   cumulativeLimits({
-    answer: 5,
+    answer: 6,
     cumulativeCapUsd: 2.5,
     cumulativeQuestions: 5,
     judge: 5,
-    maxAttempts: 4_808,
+    maxAttempts: 4_812,
     writer: 1_192,
   }),
   cumulativeLimits({
-    answer: 15,
+    answer: 16,
     cumulativeCapUsd: 7.5,
     cumulativeQuestions: 15,
     judge: 15,
-    maxAttempts: 14_472,
+    maxAttempts: 14_476,
     writer: 3_588,
   }),
   cumulativeLimits({
-    answer: 25,
+    answer: 26,
     cumulativeCapUsd: 12.5,
     cumulativeQuestions: 25,
     judge: 25,
-    maxAttempts: 24_628,
+    maxAttempts: 24_632,
     writer: 6_107,
   }),
   cumulativeLimits({
-    answer: 35,
+    answer: 36,
     cumulativeCapUsd: 17.5,
     cumulativeQuestions: 35,
     judge: 35,
-    maxAttempts: 34_516,
+    maxAttempts: 34_520,
     writer: 8_559,
   }),
   cumulativeLimits({
-    answer: 45,
+    answer: 46,
     cumulativeCapUsd: 22.5,
     cumulativeQuestions: 45,
     judge: 45,
-    maxAttempts: 44_416,
+    maxAttempts: 44_420,
     writer: 11_014,
   }),
   cumulativeLimits({
-    answer: 55,
+    answer: 56,
     cumulativeCapUsd: 27.5,
     cumulativeQuestions: 55,
     judge: 55,
-    maxAttempts: 54_136,
+    maxAttempts: 54_140,
     writer: 13_424,
   }),
   cumulativeLimits({
-    answer: 60,
+    answer: 61,
     cumulativeCapUsd: 30,
     cumulativeQuestions: 60,
     judge: 60,
-    maxAttempts: 59_088,
+    maxAttempts: 59_092,
     writer: 14_652,
   }),
 ])
@@ -194,7 +197,12 @@ export function j4LimitsForCumulativeQuestions(value) {
 
 export const J4_GEMINI_WRITER_GENERATION = Object.freeze({
   maxOutputTokens: J4_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
-  responseMimeType: 'application/json',
+  responseFormat: Object.freeze({
+    text: Object.freeze({
+      mimeType: 'application/json',
+      schema: MEMORY_EXTRACTION_RESPONSE_SCHEMA,
+    }),
+  }),
   thinkingConfig: Object.freeze({ thinkingLevel: 'MINIMAL' }),
 })
 
@@ -269,12 +277,20 @@ export function buildJ4WriterBody(turn = {}) {
     contents: request.contents,
     generationConfig: {
       maxOutputTokens: J4_GEMINI_WRITER_GENERATION.maxOutputTokens,
-      responseMimeType: J4_GEMINI_WRITER_GENERATION.responseMimeType,
+      responseFormat: {
+        text: {
+          mimeType:
+            J4_GEMINI_WRITER_GENERATION.responseFormat.text.mimeType,
+          schema:
+            J4_GEMINI_WRITER_GENERATION.responseFormat.text.schema,
+        },
+      },
       thinkingConfig: {
         thinkingLevel:
           J4_GEMINI_WRITER_GENERATION.thinkingConfig.thinkingLevel,
       },
     },
+    store: false,
     systemInstruction: request.systemInstruction,
   }
 }
@@ -293,6 +309,7 @@ export function buildJ4AnswerBody(prompt, {
         thinkingLevel: generation.thinkingConfig.thinkingLevel,
       },
     },
+    store: false,
   }
 }
 

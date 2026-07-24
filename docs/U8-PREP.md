@@ -1,10 +1,10 @@
-# U8 prep — first live slice (FOUNDER GATE)
+# U8 prep — sealed historical live slice
 
 Prepared 2026-07-18 by Fable 5. At preparation time everything below
 was built and tested spend-free; execution amendments are recorded
-before the original decision sheet. The gate is mechanical: the runner
-refuses without `PALARI_CONFIRM_SPEND=1`, a provider key, and a
-finalized predictions file.
+before the original decision sheet. U8 is now sealed: its historical
+`--live` path exits before reading a dataset or credential and cannot be
+resumed or rerolled. The plan and dry modes remain inspectable.
 
 ## What is prepared
 
@@ -14,14 +14,10 @@ finalized predictions file.
     prompt-config hash, per-question counts, cost table.
   - `--dry` (spend-free): full plumbing pass over the real slice with
     the deterministic mock extractor + stub provider.
-  - `--live`: the actual run. Hard-refuses unless the founder sets
-    `PALARI_CONFIRM_SPEND=1` + `GEMINI_API_KEY` (or Anthropic once a
-    translated runner exists) AND `evals/predictions.md` contains
-    "PREDICTIONS FINAL". Results land in `evals/results/`
-    (gitignored — they contain dataset-derived text) with provenance:
-    dataset sha256, model, prompt-config hash, date.
-- `src/slice.mjs` — selection/estimation/guard logic, contract-tested
-  (current suite 47/47).
+  - `--live`: permanently disabled with `U8 SEALED` before dataset,
+    prediction, credential, result-path, or provider access.
+- `src/slice.mjs` — selection/estimation/guard logic; its preparation-time
+  contract suite was 47/47.
 - `evals/predictions.md` — FINAL pre-registration, categories ordered
   failing-first, written before any scoring call.
 
@@ -60,9 +56,9 @@ finalized predictions file.
    These are from documented dataset statistics; `--plan` recomputes
    from the real slice before any spend. Prices entered 2026-07-18 —
    re-verify at spend time.
-4. **GO/NO-GO.** On GO: download the dataset (MIT — verdict in
-   DECISIONS.md) into `data/`, run `--plan`, pin slice ids into
-   predictions.md, mark it FINAL, then run `--live`.
+4. **GO/NO-GO.** Historical only. The original process downloaded the
+   MIT dataset, ran `--plan`, pinned predictions, and executed the live
+   slice. It must not be repeated.
 
 ## Execution transcript for the founder
 
@@ -73,9 +69,7 @@ finalized predictions file.
 
 node scripts/run-live-slice.mjs --plan     # spend-free, pins everything
 node scripts/run-live-slice.mjs --dry      # spend-free plumbing check
-# finalize evals/predictions.md (slice ids + "PREDICTIONS FINAL")
-PALARI_CONFIRM_SPEND=1 GEMINI_API_KEY=... \
-  node scripts/run-live-slice.mjs --live --model gemini-3.1-flash-lite
+# --live is intentionally unavailable: U8 SEALED
 ```
 
 ## Known limitations, stated up front

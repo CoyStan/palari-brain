@@ -903,3 +903,17 @@ dates. Agents record; the founder decides.
   result, or score entered git or was published. V2 is terminal and may not be
   resumed or rerolled. Question 6, later tranches, another evaluation change,
   Mem0, S-490, publication, and announcement remain founder-gated.
+- 2026-07-24 (FOUNDER GO — offline Gemini contract correction) After a
+  feature-by-feature audit against current official Gemini documentation, the
+  founder authorized the smallest offline-only repair of the reusable Gemini
+  integration. The approved scope is provider-enforced structured extraction,
+  current Gemini 3 generation controls, explicit `store:false`, provider-
+  specific retry and response hardening, a representative writer/answer
+  compatibility smoke contract, and code-enforced sealing of the historical
+  U8 live path. This GO authorizes code, tests, documentation, commit, and
+  push. It does not authorize a provider call, a new live-run authority,
+  reading or changing either terminal J4 evidence bundle, resuming v1 or v2,
+  executing any benchmark question, changing existing FINAL prediction rows,
+  or publishing a score. Existing v1/v2 config, authority, and prediction
+  files remain immutable historical inputs. A future executable J4 identity
+  requires a separate founder GO after this offline unit is reviewed.

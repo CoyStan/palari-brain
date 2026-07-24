@@ -17,6 +17,15 @@ import {
   normalizeMemoryExtractionPayload,
 } from '../src/memory-extraction.mjs'
 import {
+  MEMORY_EXTRACTION_RESPONSE_SCHEMA,
+  MEMORY_EXTRACTION_SOURCE_KINDS,
+  MEMORY_EXTRACTION_TYPES,
+} from '../src/memory-extraction-schema.mjs'
+import {
+  externalMemorySourceKinds,
+  memoryTypes,
+} from '../src/memory-store.mjs'
+import {
   answerQuestion,
   ingestChatTurn,
   ingestLongMemEvalInstance,
@@ -183,6 +192,20 @@ test('extraction contract uses realistic score anchors and preserves explicit ze
   const system = request.systemInstruction.parts
     .map((part) => part.text)
     .join('\n')
+  assert.equal(request.store, false)
+  assert.deepEqual(request.generationConfig, {
+    maxOutputTokens: 8000,
+    responseFormat: {
+      text: {
+        mimeType: 'application/json',
+        schema: MEMORY_EXTRACTION_RESPONSE_SCHEMA,
+      },
+    },
+    thinkingConfig: { thinkingLevel: 'MINIMAL' },
+  })
+  assert.equal('responseMimeType' in request.generationConfig, false)
+  assert.equal('temperature' in request.generationConfig, false)
+  assert.equal('thinkingBudget' in request.generationConfig.thinkingConfig, false)
   assert.doesNotMatch(system, /"importance":0\.0|"confidence":0\.0/)
   assert.doesNotMatch(system, /"type":"[^"]*\|/)
   assert.doesNotMatch(system, /\["durable","fact"\]/)
@@ -363,6 +386,64 @@ test('extraction contract uses realistic score anchors and preserves explicit ze
   } finally {
     recallGate.close()
   }
+})
+
+test('Gemini extraction schema freezes the exact locally validated envelope', () => {
+  assert.equal(Object.isFrozen(MEMORY_EXTRACTION_RESPONSE_SCHEMA), true)
+  assert.deepEqual(new Set(MEMORY_EXTRACTION_TYPES), memoryTypes)
+  assert.deepEqual(
+    new Set(MEMORY_EXTRACTION_SOURCE_KINDS),
+    new Set(['user_message', ...externalMemorySourceKinds]),
+  )
+  assert.deepEqual(
+    MEMORY_EXTRACTION_RESPONSE_SCHEMA.properties.memories.items.properties
+      .type.enum,
+    MEMORY_EXTRACTION_TYPES,
+  )
+  assert.deepEqual(
+    MEMORY_EXTRACTION_RESPONSE_SCHEMA.properties.memories.items.properties
+      .sourceKind.enum,
+    MEMORY_EXTRACTION_SOURCE_KINDS,
+  )
+  assert.deepEqual(
+    MEMORY_EXTRACTION_RESPONSE_SCHEMA.required,
+    ['memories'],
+  )
+  assert.equal(
+    MEMORY_EXTRACTION_RESPONSE_SCHEMA.additionalProperties,
+    false,
+  )
+  const memories = MEMORY_EXTRACTION_RESPONSE_SCHEMA.properties.memories
+  assert.equal(memories.maxItems, 6)
+  assert.equal(memories.items.additionalProperties, false)
+  assert.deepEqual(memories.items.required, [
+    'type',
+    'content',
+    'keywords',
+    'importance',
+    'confidence',
+    'shared',
+    'fictional',
+    'sourceKind',
+  ])
+  assert.equal(memories.items.properties.keywords.maxItems, 10)
+  for (const key of ['importance', 'confidence']) {
+    assert.deepEqual(memories.items.properties[key], {
+      maximum: 1,
+      minimum: 0,
+      type: 'number',
+    })
+  }
+  const system = buildMemoryExtractionRequest({ turn: {} })
+    .systemInstruction.parts.map((part) => part.text).join(' ')
+  assert.match(
+    system,
+    new RegExp(MEMORY_EXTRACTION_TYPES.join(', ')),
+  )
+  assert.match(
+    system,
+    new RegExp(MEMORY_EXTRACTION_SOURCE_KINDS.join(', ')),
+  )
 })
 
 test('injection boundary: source-document instructions cannot mint memories during ingest (C7)', async () => {

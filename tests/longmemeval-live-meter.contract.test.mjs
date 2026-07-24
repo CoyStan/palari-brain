@@ -64,16 +64,15 @@ function limits(overrides = {}) {
 function writerBody(
   maxOutputTokens = J4_GEMINI_WRITER_GENERATION.maxOutputTokens,
 ) {
+  const generationConfig = structuredClone(J4_GEMINI_WRITER_GENERATION)
+  generationConfig.maxOutputTokens = maxOutputTokens
   return {
     contents: [{
       parts: [{ text: 'Remember that the user likes tea.' }],
       role: 'user',
     }],
-    generationConfig: {
-      maxOutputTokens,
-      responseMimeType: 'application/json',
-      thinkingConfig: { thinkingLevel: 'MINIMAL' },
-    },
+    generationConfig,
+    store: false,
     systemInstruction: {
       parts: [{ text: 'Return one JSON object.' }],
     },
@@ -83,15 +82,15 @@ function writerBody(
 function answerBody(
   maxOutputTokens = J4_GEMINI_ANSWER_GENERATION.maxOutputTokens,
 ) {
+  const generationConfig = structuredClone(J4_GEMINI_ANSWER_GENERATION)
+  generationConfig.maxOutputTokens = maxOutputTokens
   return {
     contents: [{
       parts: [{ text: 'What does the user like?' }],
       role: 'user',
     }],
-    generationConfig: {
-      maxOutputTokens,
-      thinkingConfig: { thinkingLevel: 'MINIMAL' },
-    },
+    generationConfig,
+    store: false,
   }
 }
 
@@ -107,6 +106,8 @@ function judgeBody(maxTokens = 10) {
 
 function geminiJson({
   candidateTokens = 2,
+  finishReason = 'STOP',
+  parts,
   inputTokens = 10,
   modelVersion = `${J4_GEMINI_MODEL}-001`,
   text = '{"memories":[]}',
@@ -115,8 +116,8 @@ function geminiJson({
 } = {}) {
   return JSON.stringify({
     candidates: [{
-      content: { parts: [{ text }] },
-      finishReason: 'STOP',
+      content: { parts: parts ?? [{ text }] },
+      finishReason,
     }],
     modelVersion,
     usageMetadata: {
@@ -157,7 +158,9 @@ function jsonResponse(text, status = 200, headers = {}) {
 
 async function withMeter(fetchImpl, action, {
   capUsd = 2.5,
+  jitterImpl = () => 0,
   meterLimits = limits(),
+  waitImpl = async () => {},
 } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'palari-j4-meter-'))
   const journalPath = join(root, 'nested', 'meter.jsonl')
@@ -171,8 +174,9 @@ async function withMeter(fetchImpl, action, {
       journalPath,
       limits: meterLimits,
       openaiApiKey: OPENAI_KEY,
+      retryJitterImpl: jitterImpl,
       transcriptDirectory,
-      waitImpl: async () => {},
+      waitImpl,
     })
     await action({
       journalPath,
@@ -253,11 +257,26 @@ test('reservations and success parsers pin model, finish, and exact usage', () =
     }),
     (error) => error.code === 'GEMINI_MODEL_MISMATCH',
   )
+  assert.equal(
+    parseJ4GeminiSuccess({
+      body: geminiBody,
+      rawBody: geminiJson({ modelVersion: 'provider-snapshot-001' }),
+      reservation: geminiReservation,
+    }).modelVersion,
+    'provider-snapshot-001',
+  )
   assert.throws(
     () => parseJ4GeminiSuccess({
       body: geminiBody,
-      expectedModelVersion: 'unrelated-model-001',
-      rawBody: geminiJson({ modelVersion: 'unrelated-model-001' }),
+      rawBody: geminiJson({ modelVersion: '' }),
+      reservation: geminiReservation,
+    }),
+    (error) => error.code === 'GEMINI_MODEL_MISMATCH',
+  )
+  assert.throws(
+    () => parseJ4GeminiSuccess({
+      body: geminiBody,
+      rawBody: geminiJson({ modelVersion: 123 }),
       reservation: geminiReservation,
     }),
     (error) => error.code === 'GEMINI_MODEL_MISMATCH',
@@ -308,6 +327,85 @@ test('reservations and success parsers pin model, finish, and exact usage', () =
     }),
     (error) => error.code === 'JUDGE_USAGE_INVALID',
   )
+})
+
+test('Gemini parser accepts text metadata and rejects malformed or non-text parts', () => {
+  const body = writerBody()
+  const reservation = j4ReservationFor({
+    body,
+    maxOutputTokens: body.generationConfig.maxOutputTokens,
+    provider: 'gemini',
+  })
+  const parsed = parseJ4GeminiSuccess({
+    body,
+    rawBody: geminiJson({
+      parts: [
+        {
+          partMetadata: { citation: 'provider-metadata' },
+          text: 'internal',
+          thought: true,
+          thoughtSignature: 'opaque-signature',
+        },
+        {
+          partMetadata: {},
+          text: '{"memories":[]}',
+        },
+      ],
+    }),
+    reservation,
+  })
+  assert.equal(parsed.text, '{"memories":[]}')
+
+  for (const parts of [
+    [{ text: 'bad', thought: 'true' }],
+    [{ text: 'bad', thoughtSignature: 7 }],
+    [{ partMetadata: null, text: 'bad' }],
+    [{ inlineData: { data: 'AA==' }, text: 'bad' }],
+  ]) {
+    assert.throws(
+      () => parseJ4GeminiSuccess({
+        body,
+        rawBody: geminiJson({ parts }),
+        reservation,
+      }),
+      (error) => error.code === 'GEMINI_CONTENT_INVALID',
+    )
+  }
+})
+
+test('Gemini meter requires explicit no-store and the exact structured schema', async () => {
+  let calls = 0
+  await withMeter(async () => {
+    calls += 1
+    return jsonResponse(geminiJson())
+  }, async ({ meter }) => {
+    const missingNoStore = writerBody()
+    delete missingNoStore.store
+    await assert.rejects(
+      meter.callGemini({
+        body: missingNoStore,
+        cellId: 'missing-store',
+        operationId: 'missing-store',
+        purpose: 'writer',
+      }),
+      (error) => error.code === 'GEMINI_REQUEST_SCHEMA',
+    )
+
+    const changedSchema = writerBody()
+    changedSchema.generationConfig.responseFormat.text.schema = {
+      type: 'object',
+    }
+    await assert.rejects(
+      meter.callGemini({
+        body: changedSchema,
+        cellId: 'changed-schema',
+        operationId: 'changed-schema',
+        purpose: 'writer',
+      }),
+      (error) => error.code === 'GEMINI_REQUEST_SCHEMA',
+    )
+    assert.equal(calls, 0)
+  })
 })
 
 test('one aggregate transport uses fixed key-header URLs and releases successes to actual usage', async () => {
@@ -385,6 +483,7 @@ test('one aggregate transport uses fixed key-header URLs and releases successes 
 
 test('three retries retain failed reservations and reuse one exact body', async () => {
   const bodies = []
+  const waits = []
   await withMeter(async (_url, init) => {
     bodies.push(init.body)
     if (bodies.length < 4) {
@@ -419,7 +518,156 @@ test('three retries retain failed reservations and reuse one exact body', async 
     )
     const audit = await meter.verify()
     assert.equal(audit.transcripts.attempts, 4)
+  }, {
+    jitterImpl: () => 0,
+    waitImpl: async (milliseconds) => waits.push(milliseconds),
   })
+  assert.deepEqual(waits, [1_000, 2_000, 4_000])
+})
+
+test('Gemini retry classification ignores OpenAI headers and HTTP 409', async () => {
+  let calls = 0
+  const waits = []
+  await withMeter(async () => {
+    calls += 1
+    if (calls === 1) {
+      return jsonResponse(
+        JSON.stringify({ error: { message: 'temporary' } }),
+        500,
+        { 'x-should-retry': 'false' },
+      )
+    }
+    return jsonResponse(geminiJson())
+  }, async ({ meter }) => {
+    await meter.callGemini({
+      body: writerBody(),
+      cellId: 'gemini-header-cell',
+      operationId: 'gemini-header-operation',
+      purpose: 'writer',
+    })
+  }, {
+    jitterImpl: () => 0.5,
+    waitImpl: async (milliseconds) => waits.push(milliseconds),
+  })
+  assert.equal(calls, 2)
+  assert.deepEqual(waits, [1_125])
+
+  calls = 0
+  await withMeter(async () => {
+    calls += 1
+    return jsonResponse(
+      JSON.stringify({ error: { message: 'aborted' } }),
+      409,
+      { 'x-should-retry': 'true' },
+    )
+  }, async ({ meter }) => {
+    await assert.rejects(
+      meter.callGemini({
+        body: writerBody(),
+        cellId: 'gemini-409-cell',
+        operationId: 'gemini-409-operation',
+        purpose: 'writer',
+      }),
+      (error) => error.code === 'HTTP_NON_RETRYABLE',
+    )
+  })
+  assert.equal(calls, 1)
+})
+
+test('OpenAI judge retains its retry headers and 409 behavior', async () => {
+  let calls = 0
+  const waits = []
+  await withMeter(async () => {
+    calls += 1
+    if (calls === 1) {
+      return jsonResponse(
+        JSON.stringify({ error: { message: 'conflict' } }),
+        409,
+        { 'retry-after-ms': '1500' },
+      )
+    }
+    return jsonResponse(judgeJson())
+  }, async ({ meter }) => {
+    await meter.callJudge({
+      body: judgeBody(),
+      cellId: 'judge-retry-cell',
+      model: LONGMEMEVAL_JUDGE_MODEL,
+      operationId: 'judge-retry-operation',
+    })
+  }, {
+    waitImpl: async (milliseconds) => waits.push(milliseconds),
+  })
+  assert.equal(calls, 2)
+  assert.deepEqual(waits, [1_500])
+})
+
+test('Gemini honors Retry-After and google.rpc.RetryInfo without retrying early', async () => {
+  let calls = 0
+  const waits = []
+  await withMeter(async () => {
+    calls += 1
+    if (calls === 1) {
+      return jsonResponse(JSON.stringify({
+        error: {
+          code: 429,
+          details: [{
+            '@type': 'type.googleapis.com/google.rpc.RetryInfo',
+            retryDelay: '3.5s',
+          }],
+          status: 'RESOURCE_EXHAUSTED',
+        },
+      }), 429, { 'retry-after': '2' })
+    }
+    return jsonResponse(geminiJson())
+  }, async ({ meter }) => {
+    await meter.callGemini({
+      body: writerBody(),
+      cellId: 'gemini-retry-info-cell',
+      operationId: 'gemini-retry-info-operation',
+      purpose: 'writer',
+    })
+  }, {
+    waitImpl: async (milliseconds) => waits.push(milliseconds),
+  })
+  assert.equal(calls, 2)
+  assert.deepEqual(waits, [3_500])
+})
+
+test('provider retry delay beyond the wait ceiling checkpoints and stops', async () => {
+  let calls = 0
+  const waits = []
+  await withMeter(async () => {
+    calls += 1
+    return jsonResponse(
+      JSON.stringify({ error: { status: 'RESOURCE_EXHAUSTED' } }),
+      429,
+      { 'retry-after': '120' },
+    )
+  }, async ({ meter }) => {
+    await assert.rejects(
+      meter.callGemini({
+        body: writerBody(),
+        cellId: 'long-delay-cell',
+        operationId: 'long-delay-operation',
+        purpose: 'writer',
+      }),
+      (error) => error.code === 'RETRY_DELAY_EXCEEDS_LIMIT',
+    )
+    assert.equal((await meter.snapshot()).attempts, 1)
+    await assert.rejects(
+      meter.callGemini({
+        body: writerBody(),
+        cellId: 'after-long-delay-cell',
+        operationId: 'after-long-delay-operation',
+        purpose: 'writer',
+      }),
+      (error) => error.code === 'METER_FATAL',
+    )
+  }, {
+    waitImpl: async (milliseconds) => waits.push(milliseconds),
+  })
+  assert.equal(calls, 1)
+  assert.deepEqual(waits, [])
 })
 
 test('an oversized provider response is terminal and never retried', async () => {
@@ -653,6 +901,37 @@ test('malformed success is terminal, reserved, secret-safe, and not retried', as
     ].join('\n')
     assert.doesNotMatch(evidence, new RegExp(`${GEMINI_KEY}|${OPENAI_KEY}`))
   })
+})
+
+test('semantic 2xx failure still preserves provider-reported usage', async () => {
+  await withMeter(
+    async () => jsonResponse(geminiJson({ finishReason: 'MAX_TOKENS' })),
+    async ({ journalPath, meter }) => {
+      await assert.rejects(
+        meter.callGemini({
+          body: writerBody(),
+          cellId: 'semantic-invalid-cell',
+          operationId: 'semantic-invalid-operation',
+          purpose: 'writer',
+        }),
+        (error) => error.code === 'GEMINI_TRUNCATED',
+      )
+      const snapshot = await meter.snapshot()
+      assert.equal(snapshot.uncertain.usd, 0)
+      assert.equal(snapshot.accounted.usd, snapshot.measured.usd)
+      assert.ok(snapshot.measured.geminiInputTokens > 0)
+      assert.ok(snapshot.measured.geminiOutputTokens > 0)
+      const events = (await readFile(journalPath, 'utf8'))
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line))
+      assert.equal(events[1].outcome, 'invalid_response')
+      assert.equal(events[1].usage.geminiInputTokens, 10)
+      assert.equal(events[1].usage.geminiOutputTokens, 3)
+      const audit = await meter.verify()
+      assert.equal(audit.transcripts.attempts, 1)
+    },
+  )
 })
 
 test('verification binds ledger identity and usage to exact transcript bytes', async () => {

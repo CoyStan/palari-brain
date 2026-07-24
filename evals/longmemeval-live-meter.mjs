@@ -35,7 +35,11 @@ import {
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions'
 const GEMINI_GENERATE_URL =
   `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(J4_GEMINI_MODEL)}:generateContent`
-const RETRYABLE_STATUS = new Set([408, 409, 429])
+const GEMINI_RETRYABLE_STATUS = new Set([408, 429])
+const OPENAI_RETRYABLE_STATUS = new Set([408, 409, 429])
+const GEMINI_RETRY_BASE_MS = Object.freeze([1_000, 2_000, 4_000])
+const OPENAI_RETRY_BASE_MS = Object.freeze([250, 500, 1_000])
+const MAX_RETRY_WAIT_MS = J4_REQUEST_TIMEOUT_MS - 1_000
 const PURPOSES = new Set(['answer', 'judge', 'writer'])
 const GEMINI_PURPOSES = new Set(['answer', 'writer'])
 const PROVIDER_ENDPOINTS = Object.freeze({
@@ -534,13 +538,28 @@ export function reconcileJ4LedgerText(
         }
         state.geminiModelVersion = event.modelVersion
       }
-    } else if (event.usage !== null ||
-      typeof event.retryable !== 'boolean' ||
-      (event.outcome === 'invalid_response' && event.retryable !== false)) {
-      throw new J4LiveError(
-        'LEDGER_SCHEMA',
-        'A failed J4 attempt has invalid retry or usage metadata.',
-      )
+    } else {
+      if (typeof event.retryable !== 'boolean' ||
+        (event.outcome === 'invalid_response' &&
+          event.retryable !== false) ||
+        (event.outcome !== 'invalid_response' && event.usage !== null)) {
+        throw new J4LiveError(
+          'LEDGER_SCHEMA',
+          'A failed J4 attempt has invalid retry or usage metadata.',
+        )
+      }
+      if (event.outcome === 'invalid_response' && event.usage !== null) {
+        assertProviderUsage(
+          event.usage,
+          start.provider,
+          'J4 measured invalid-response usage',
+        )
+        assertUsageWithinReservation(event.usage, start.reservation)
+        subtractUsage(state.accounted, start.reservation)
+        subtractUsage(state.uncertain, start.reservation)
+        addUsage(state.measured, event.usage)
+        addUsage(state.accounted, event.usage)
+      }
     }
     terminals.set(event.attemptId, event)
     operations.set(start.operationId, { start, terminal: event })
@@ -627,38 +646,94 @@ async function appendEvent(path, state, event) {
   return next
 }
 
-function responseRetryAfterMs(headers) {
-  const rawMs = headers?.get?.('retry-after-ms')
-  if (rawMs !== null && rawMs !== undefined && String(rawMs).trim()) {
-    const milliseconds = Number(rawMs)
-    if (Number.isFinite(milliseconds) && milliseconds >= 0) {
-      return Math.min(Math.ceil(milliseconds), 59_000)
+function responseRetryAfterMs(headers, provider) {
+  if (provider === 'openai') {
+    const rawMs = headers?.get?.('retry-after-ms')
+    if (rawMs !== null && rawMs !== undefined && String(rawMs).trim()) {
+      const milliseconds = Number(rawMs)
+      if (Number.isFinite(milliseconds) && milliseconds >= 0) {
+        return Math.ceil(milliseconds)
+      }
     }
   }
   const raw = headers?.get?.('retry-after')
   if (!raw) return 0
   const seconds = Number(raw)
   if (Number.isFinite(seconds) && seconds >= 0) {
-    return Math.min(Math.ceil(seconds * 1000), 59_000)
+    return Math.ceil(seconds * 1000)
   }
   const date = Date.parse(raw)
   return Number.isFinite(date)
-    ? Math.min(Math.max(0, date - Date.now()), 59_000)
+    ? Math.max(0, date - Date.now())
     : 0
 }
 
-function retryableResponse(response) {
+function googleRetryInfoMs(rawBody) {
+  let parsed
+  try {
+    parsed = JSON.parse(rawBody)
+  } catch {
+    return 0
+  }
+  const detail = parsed?.error?.details?.find?.((value) =>
+    value?.['@type'] ===
+      'type.googleapis.com/google.rpc.RetryInfo')
+  const duration = detail?.retryDelay
+  if (typeof duration !== 'string' ||
+    !/^(?:0|[1-9]\d*)(?:\.\d{1,9})?s$/.test(duration)) {
+    return 0
+  }
+  const seconds = Number(duration.slice(0, -1))
+  return Number.isFinite(seconds) ? Math.ceil(seconds * 1000) : 0
+}
+
+function retryableResponse(provider, response) {
+  if (provider === 'gemini') {
+    return GEMINI_RETRYABLE_STATUS.has(response.status) ||
+      response.status >= 500
+  }
   const explicit = response?.headers?.get?.('x-should-retry')
   if (explicit === 'true') return true
   if (explicit === 'false') return false
-  return RETRYABLE_STATUS.has(response.status) || response.status >= 500
+  return OPENAI_RETRYABLE_STATUS.has(response.status) ||
+    response.status >= 500
 }
 
-function retryDelay(attempt, headers) {
-  return Math.max(
-    [250, 500, 1_000][attempt - 1] ?? 1_000,
-    responseRetryAfterMs(headers),
+function retryDelay({
+  attempt,
+  headers,
+  jitterImpl,
+  provider,
+  rawBody,
+}) {
+  const bases = provider === 'gemini'
+    ? GEMINI_RETRY_BASE_MS
+    : OPENAI_RETRY_BASE_MS
+  const base = bases[attempt - 1] ?? bases.at(-1)
+  let randomizedBackoff = base
+  if (provider === 'gemini') {
+    const random = Number(jitterImpl())
+    if (!Number.isFinite(random) || random < 0 || random >= 1) {
+      throw new J4LiveError(
+        'RETRY_JITTER_INVALID',
+        'J4 retry jitter must return a number in [0, 1).',
+      )
+    }
+    randomizedBackoff += Math.floor(base * 0.25 * random)
+  }
+  const providerDelay = Math.max(
+    responseRetryAfterMs(headers, provider),
+    provider === 'gemini' ? googleRetryInfoMs(rawBody) : 0,
   )
+  const delay = Math.max(randomizedBackoff, providerDelay)
+  if (delay > MAX_RETRY_WAIT_MS) {
+    throw new J4LiveError(
+      'RETRY_DELAY_EXCEEDS_LIMIT',
+      `Provider requested a ${delay}ms retry delay, beyond J4's ` +
+        `${MAX_RETRY_WAIT_MS}ms wait ceiling.`,
+    )
+  }
+  return delay
 }
 
 function wait(milliseconds) {
@@ -728,8 +803,21 @@ function visibleGeminiText(candidate) {
   for (const part of parts) {
     if (!part || typeof part !== 'object' ||
       typeof part.text !== 'string' ||
+      (Object.hasOwn(part, 'thought') &&
+        typeof part.thought !== 'boolean') ||
+      (Object.hasOwn(part, 'thoughtSignature') &&
+        typeof part.thoughtSignature !== 'string') ||
+      (Object.hasOwn(part, 'partMetadata') &&
+        (!part.partMetadata ||
+          typeof part.partMetadata !== 'object' ||
+          Array.isArray(part.partMetadata))) ||
       Object.keys(part).some((key) =>
-        !['text', 'thought', 'thoughtSignature'].includes(key))) {
+        ![
+          'partMetadata',
+          'text',
+          'thought',
+          'thoughtSignature',
+        ].includes(key))) {
       throw new J4LiveError(
         'GEMINI_CONTENT_INVALID',
         'Gemini returned a non-text or unsupported candidate part.',
@@ -750,6 +838,51 @@ function visibleGeminiText(candidate) {
   return text
 }
 
+function parseJ4GeminiUsage({ body, parsed, reservation }) {
+  const usage = parsed?.usageMetadata
+  const input = usage?.promptTokenCount
+  const candidateTokens = usage?.candidatesTokenCount
+  const thoughtTokens = usage?.thoughtsTokenCount ?? 0
+  const total = usage?.totalTokenCount
+  const cached = usage?.cachedContentTokenCount ?? 0
+  const tool = usage?.toolUsePromptTokenCount ?? 0
+  const output = Number(candidateTokens) + Number(thoughtTokens)
+  if (!positiveInteger(input) ||
+    !positiveInteger(candidateTokens) ||
+    !integer(thoughtTokens) ||
+    !positiveInteger(total) ||
+    !integer(cached) ||
+    !integer(tool) ||
+    cached > input ||
+    tool !== 0 ||
+    total !== input + candidateTokens + thoughtTokens ||
+    input > reservation.geminiInputTokens ||
+    output > body?.generationConfig?.maxOutputTokens ||
+    output > reservation.geminiOutputTokens) {
+    throw new J4LiveError(
+      'GEMINI_USAGE_INVALID',
+      'Gemini usage is missing, inconsistent, or outside frozen limits.',
+    )
+  }
+  return {
+    rawUsage: usage,
+    usage: {
+      geminiInputTokens: input,
+      geminiOutputTokens: output,
+      judgeInputTokens: 0,
+      judgeOutputTokens: 0,
+      usd:
+        input * J4_PRICES_USD_PER_TOKEN.geminiInput +
+        output * J4_PRICES_USD_PER_TOKEN.geminiOutputIncludingThinking,
+    },
+    usageDetails: {
+      cachedInputTokens: cached,
+      candidateTokens,
+      thoughtTokens,
+    },
+  }
+}
+
 export function parseJ4GeminiSuccess({
   body,
   expectedModelVersion = null,
@@ -757,9 +890,17 @@ export function parseJ4GeminiSuccess({
   reservation,
 } = {}) {
   const parsed = parseJson(rawBody, 'Gemini')
-  const modelVersion = String(parsed?.modelVersion ?? '')
-  if ((modelVersion !== J4_GEMINI_MODEL &&
-      !modelVersion.startsWith(`${J4_GEMINI_MODEL}-`)) ||
+  let accounting = null
+  try {
+    accounting = parseJ4GeminiUsage({ body, parsed, reservation })
+  } catch {
+    // Preserve the more specific response error below when both the response
+    // and its usage metadata are invalid. Successful content still requires
+    // exact usage before it can be accepted.
+  }
+  const modelVersion = parsed?.modelVersion
+  if (typeof modelVersion !== 'string' ||
+    !modelVersion.trim() ||
     (expectedModelVersion && modelVersion !== expectedModelVersion)) {
     throw new J4LiveError(
       'GEMINI_MODEL_MISMATCH',
@@ -790,50 +931,44 @@ export function parseJ4GeminiSuccess({
     )
   }
   const text = visibleGeminiText(candidate)
-  const usage = parsed?.usageMetadata
-  const input = usage?.promptTokenCount
-  const candidateTokens = usage?.candidatesTokenCount
-  const thoughtTokens = usage?.thoughtsTokenCount ?? 0
-  const total = usage?.totalTokenCount
-  const cached = usage?.cachedContentTokenCount ?? 0
-  const tool = usage?.toolUsePromptTokenCount ?? 0
-  const output = Number(candidateTokens) + Number(thoughtTokens)
-  if (!positiveInteger(input) ||
-    !positiveInteger(candidateTokens) ||
-    !integer(thoughtTokens) ||
-    !positiveInteger(total) ||
-    !integer(cached) ||
-    !integer(tool) ||
-    cached > input ||
-    tool !== 0 ||
-    total !== input + candidateTokens + thoughtTokens ||
-    input > reservation.geminiInputTokens ||
-    output > body?.generationConfig?.maxOutputTokens ||
-    output > reservation.geminiOutputTokens) {
-    throw new J4LiveError(
-      'GEMINI_USAGE_INVALID',
-      'Gemini usage is missing, inconsistent, or outside frozen limits.',
-    )
-  }
+  accounting ??= parseJ4GeminiUsage({ body, parsed, reservation })
   return {
     finishReason: candidate.finishReason,
     modelVersion,
-    rawUsage: usage,
+    rawUsage: accounting.rawUsage,
     text,
+    usage: accounting.usage,
+    usageDetails: accounting.usageDetails,
+  }
+}
+
+function parseJ4JudgeUsage({ body, parsed, reservation }) {
+  const input = parsed?.usage?.prompt_tokens
+  const output = parsed?.usage?.completion_tokens
+  const total = parsed?.usage?.total_tokens
+  if (!positiveInteger(input) ||
+    !positiveInteger(output) ||
+    !positiveInteger(total) ||
+    total !== input + output ||
+    input > reservation.judgeInputTokens ||
+    output > body.max_tokens) {
+    throw new J4LiveError(
+      'JUDGE_USAGE_INVALID',
+      'OpenAI judge usage is missing, inconsistent, or outside frozen limits.',
+    )
+  }
+  return {
+    rawUsage: parsed.usage,
     usage: {
-      geminiInputTokens: input,
-      geminiOutputTokens: output,
-      judgeInputTokens: 0,
-      judgeOutputTokens: 0,
+      geminiInputTokens: 0,
+      geminiOutputTokens: 0,
+      judgeInputTokens: input,
+      judgeOutputTokens: output,
       usd:
-        input * J4_PRICES_USD_PER_TOKEN.geminiInput +
-        output * J4_PRICES_USD_PER_TOKEN.geminiOutputIncludingThinking,
+        input * J4_PRICES_USD_PER_TOKEN.judgeInput +
+        output * J4_PRICES_USD_PER_TOKEN.judgeOutput,
     },
-    usageDetails: {
-      cachedInputTokens: cached,
-      candidateTokens,
-      thoughtTokens,
-    },
+    usageDetails: {},
   }
 }
 
@@ -844,6 +979,12 @@ export function parseJ4JudgeSuccess({
   reservation,
 } = {}) {
   const parsed = parseJson(rawBody, 'OpenAI')
+  let accounting = null
+  try {
+    accounting = parseJ4JudgeUsage({ body, parsed, reservation })
+  } catch {
+    // As above, the response-shape error is more useful until content passes.
+  }
   if (parsed?.model !== model) {
     throw new J4LiveError(
       'JUDGE_MODEL_MISMATCH',
@@ -874,35 +1015,30 @@ export function parseJ4JudgeSuccess({
       'OpenAI judge returned no visible text.',
     )
   }
-  const input = parsed?.usage?.prompt_tokens
-  const output = parsed?.usage?.completion_tokens
-  const total = parsed?.usage?.total_tokens
-  if (!positiveInteger(input) ||
-    !positiveInteger(output) ||
-    !positiveInteger(total) ||
-    total !== input + output ||
-    input > reservation.judgeInputTokens ||
-    output > body.max_tokens) {
-    throw new J4LiveError(
-      'JUDGE_USAGE_INVALID',
-      'OpenAI judge usage is missing, inconsistent, or outside frozen limits.',
-    )
-  }
+  accounting ??= parseJ4JudgeUsage({ body, parsed, reservation })
   return {
     finishReason: choice.finish_reason,
     modelVersion: parsed.model,
-    rawUsage: parsed.usage,
+    rawUsage: accounting.rawUsage,
     text: text.trim(),
-    usage: {
-      geminiInputTokens: 0,
-      geminiOutputTokens: 0,
-      judgeInputTokens: input,
-      judgeOutputTokens: output,
-      usd:
-        input * J4_PRICES_USD_PER_TOKEN.judgeInput +
-        output * J4_PRICES_USD_PER_TOKEN.judgeOutput,
-    },
-    usageDetails: {},
+    usage: accounting.usage,
+    usageDetails: accounting.usageDetails,
+  }
+}
+
+function parseJ4ProviderUsage({
+  body,
+  provider,
+  rawBody,
+  reservation,
+}) {
+  try {
+    const parsed = JSON.parse(rawBody)
+    return provider === 'gemini'
+      ? parseJ4GeminiUsage({ body, parsed, reservation })
+      : parseJ4JudgeUsage({ body, parsed, reservation })
+  } catch {
+    return null
   }
 }
 
@@ -959,36 +1095,22 @@ function assertGeminiRequest(body, purpose) {
   const allowedTop = new Set([
     'contents',
     'generationConfig',
+    'store',
     'systemInstruction',
   ])
   if (Object.keys(body).some((key) => !allowedTop.has(key)) ||
     !Array.isArray(body.contents) ||
     body.contents.length < 1 ||
-    !body.generationConfig ||
-    body.generationConfig.maxOutputTokens !==
-      expectedGeneration.maxOutputTokens ||
-    body.generationConfig.thinkingConfig?.thinkingLevel !== 'MINIMAL') {
+    body.store !== false ||
+    !sameJson(body.generationConfig, expectedGeneration)) {
     throw new J4LiveError(
       'GEMINI_REQUEST_SCHEMA',
       'Gemini request differs from the frozen J4 shape.',
     )
   }
-  const allowedGeneration = new Set([
-    'maxOutputTokens',
-    'responseMimeType',
-    'thinkingConfig',
-  ])
-  if (Object.keys(body.generationConfig)
-    .some((key) => !allowedGeneration.has(key)) ||
-    Object.keys(body.generationConfig.thinkingConfig)
-      .some((key) => key !== 'thinkingLevel') ||
-    (purpose === 'writer' && !body.systemInstruction) ||
+  if ((purpose === 'writer' && !body.systemInstruction) ||
     (purpose === 'answer' &&
-      Object.hasOwn(body, 'systemInstruction')) ||
-    (purpose === 'writer' &&
-      body.generationConfig.responseMimeType !== 'application/json') ||
-    (purpose === 'answer' &&
-      body.generationConfig.responseMimeType !== undefined)) {
+      Object.hasOwn(body, 'systemInstruction'))) {
     throw new J4LiveError(
       'GEMINI_REQUEST_SCHEMA',
       'Gemini generation settings differ from the frozen J4 purpose.',
@@ -1125,7 +1247,7 @@ async function verifyJ4TranscriptLedgerCoherence({
       if (terminal.outcome === 'transport_error') {
         expectedRetryable = true
       } else if (terminal.outcome === 'http_error') {
-        expectedRetryable = retryableResponse({
+        expectedRetryable = retryableResponse(start.provider, {
           headers: new Headers(transcriptResponse?.headers ?? {}),
           status: transcriptResponse?.status,
         })
@@ -1135,6 +1257,31 @@ async function verifyJ4TranscriptLedgerCoherence({
           'EVIDENCE_COHERENCE',
           'J4 retry metadata differs from the recorded provider outcome.',
         )
+      }
+      if (terminal.outcome === 'invalid_response' &&
+        terminal.usage !== null) {
+        if (transcriptResponse?.bodyAvailable !== true ||
+          typeof transcriptResponse.rawBody !== 'string') {
+          throw new J4LiveError(
+            'EVIDENCE_COHERENCE',
+            'Measured invalid-response usage lacks its provider body.',
+          )
+        }
+        const accounting = parseJ4ProviderUsage({
+          body,
+          provider: start.provider,
+          rawBody: transcriptResponse.rawBody,
+          reservation: start.reservation,
+        })
+        if (!accounting ||
+          !sameJson(accounting.usage, terminal.usage) ||
+          !sameJson(accounting.usageDetails, terminal.usageDetails) ||
+          !sameJson(accounting.rawUsage, transcriptResponse.usage)) {
+          throw new J4LiveError(
+            'EVIDENCE_COHERENCE',
+            'Invalid-response usage differs from its exact provider body.',
+          )
+        }
       }
       continue
     }
@@ -1179,6 +1326,7 @@ export async function createJ4MeteredTransport({
   journalPath,
   limits: rawLimits,
   openaiApiKey,
+  retryJitterImpl = Math.random,
   transcriptDirectory,
   waitImpl = wait,
 } = {}) {
@@ -1210,6 +1358,12 @@ export async function createJ4MeteredTransport({
     throw new J4LiveError(
       'WAIT_INVALID',
       'J4 retry wait implementation must be a function.',
+    )
+  }
+  if (typeof retryJitterImpl !== 'function') {
+    throw new J4LiveError(
+      'RETRY_JITTER_INVALID',
+      'J4 retry jitter implementation must be a function.',
     )
   }
   const limits = validateJ4MeterLimits(rawLimits)
@@ -1244,6 +1398,27 @@ export async function createJ4MeteredTransport({
     const next = queue.then(action, action)
     queue = next.catch(() => {})
     return next
+  }
+
+  async function waitBeforeRetry({
+    attempt,
+    headers,
+    provider,
+    rawBody,
+  }) {
+    try {
+      const milliseconds = retryDelay({
+        attempt,
+        headers,
+        jitterImpl: retryJitterImpl,
+        provider,
+        rawBody,
+      })
+      await waitImpl(milliseconds)
+    } catch (error) {
+      fatal = true
+      throw error
+    }
   }
 
   async function call({
@@ -1406,7 +1581,12 @@ export async function createJ4MeteredTransport({
           usage: null,
         })
         if (retryable && attempt <= limits.retryLimit) {
-          await waitImpl(retryDelay(attempt, response?.headers))
+          await waitBeforeRetry({
+            attempt,
+            headers: response?.headers,
+            provider,
+            rawBody: rawResponse,
+          })
           continue
         }
         fatal = true
@@ -1421,7 +1601,7 @@ export async function createJ4MeteredTransport({
       }
 
       if (!response.ok) {
-        const retryable = retryableResponse(response)
+        const retryable = retryableResponse(provider, response)
         const terminalTranscript = await transcript.finish({
           outcome: 'http_error',
           rawBody: rawResponse,
@@ -1447,7 +1627,12 @@ export async function createJ4MeteredTransport({
           usage: null,
         })
         if (retryable && attempt <= limits.retryLimit) {
-          await waitImpl(retryDelay(attempt, response.headers))
+          await waitBeforeRetry({
+            attempt,
+            headers: response.headers,
+            provider,
+            rawBody: rawResponse,
+          })
           continue
         }
         fatal = true
@@ -1475,11 +1660,18 @@ export async function createJ4MeteredTransport({
               reservation,
             })
       } catch (error) {
+        const accounting = parseJ4ProviderUsage({
+          body,
+          provider,
+          rawBody: rawResponse,
+          reservation,
+        })
         const terminalTranscript = await transcript.finish({
           outcome: 'invalid_response',
           rawBody: rawResponse,
           responseHeaders: response.headers,
           status: response.status,
+          usage: accounting?.rawUsage ?? null,
         })
         state = await reconcileJ4Ledger(journalPath, { capUsd, limits })
         await appendEvent(journalPath, state, {
@@ -1494,7 +1686,8 @@ export async function createJ4MeteredTransport({
           transcriptFile: terminalTranscript.transcriptFile,
           transcriptSha256: terminalTranscript.transcriptSha256,
           type: 'attempt_terminal',
-          usage: null,
+          usage: accounting?.usage ?? null,
+          usageDetails: accounting?.usageDetails ?? null,
         })
         fatal = true
         throw error

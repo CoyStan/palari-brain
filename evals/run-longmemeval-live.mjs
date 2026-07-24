@@ -120,6 +120,19 @@ export function parseJ4LiveArgs(args = []) {
   return args[1]
 }
 
+export function assertJ4LiveRunOpen(runId) {
+  if (runId === j4Config.J4_LIVE_RUN_ID) {
+    throw new J4LiveError(
+      'J4_RUN_TERMINAL',
+      `J4 run ${runId} is terminal and cannot be resumed or rerolled.`,
+    )
+  }
+  throw new J4LiveError(
+    'RUN_ID_REQUIRED',
+    'No unsealed J4 live-run identity is configured.',
+  )
+}
+
 export function assertJ4LivePopulation(prepared = {}) {
   const ordered = prepared.executionOrder
   if (!Array.isArray(ordered) || ordered.length !== 60) {
@@ -972,28 +985,68 @@ export async function runJ4SmokeSuite({
   if (typeof callGemini !== 'function') {
     throw new TypeError('J4 smoke suite requires the metered Gemini call.')
   }
+  const writerTurn = {
+    assistantMessage: 'Understood.',
+    palariId: 'palari-longmemeval-j4',
+    palariName: 'Palari',
+    sourceMessageId: 'j4-smoke:0',
+    sourceTexts: [],
+    userId: 'user-longmemeval-j4',
+    userMessage: 'I was diagnosed with asthma in 2014.',
+    userName: 'user',
+  }
   const writer = assertValidatedJ4GeminiResponse(
     await callGemini({
-      body: j4Config.buildJ4WriterBody({
-        assistantMessage: 'Understood.',
-        palariId: 'palari-longmemeval-j4',
-        palariName: 'Palari',
-        sourceMessageId: 'j4-smoke:0',
-        sourceTexts: [],
-        userId: 'user-longmemeval-j4',
-        userMessage: 'For this compatibility check, I prefer blue.',
-        userName: 'user',
-      }),
-      cellId: 'j4-compatibility-smoke',
+      body: j4Config.buildJ4WriterBody(writerTurn),
+      cellId: 'j4-compatibility-smoke-writer',
       operationId: 'smoke:gemini-writer',
       purpose: 'writer',
     }),
     'writer',
   )
-  assertExactExtractionEnvelope(writer.text)
+  const envelope = assertExactExtractionEnvelope(writer.text)
+  if (envelope.memories.length === 0 ||
+    !envelope.memories.some((candidate) =>
+      /\basthma\b/iu.test([
+        candidate.content,
+        ...candidate.keywords,
+      ].join(' '))) ||
+    envelope.memories.some((candidate) =>
+      candidate.sourceKind !== 'user_message')) {
+    throw new J4LiveError(
+      'SMOKE_WRITER_SEMANTICS',
+      'J4 writer smoke requires a relevant asthma memory sourced from the user message.',
+    )
+  }
+  const answerPrompt = j4Config.buildJ4AnswerPrompt({
+    facts: '[2014] The user was diagnosed with asthma.',
+    question: 'What condition was I diagnosed with in 2014?',
+    questionDate: '2026-07-24T00:00:00.000Z',
+  })
+  const answer = assertValidatedJ4GeminiResponse(
+    await callGemini({
+      body: j4Config.buildJ4AnswerBody(answerPrompt),
+      cellId: 'j4-compatibility-smoke-answer',
+      operationId: 'smoke:gemini-answer',
+      purpose: 'answer',
+    }),
+    'answer',
+  )
+  if (answer.modelVersion !== writer.modelVersion) {
+    throw new J4LiveError(
+      'SMOKE_MODEL_VERSION',
+      'J4 answer smoke modelVersion differs from the writer-smoke lock.',
+    )
+  }
+  if (!/\basthma\b/iu.test(answer.text)) {
+    throw new J4LiveError(
+      'SMOKE_ANSWER_SEMANTICS',
+      'J4 answer smoke must use the supplied asthma fact.',
+    )
+  }
   return {
     geminiModelVersion: writer.modelVersion,
-    logicalOperations: 1,
+    logicalOperations: 2,
   }
 }
 
@@ -1662,6 +1715,11 @@ export async function main({
   env = process.env,
   repoRoot = J4_REPO_ROOT,
 } = {}) {
+  const runId = parseJ4LiveArgs(args)
+  // The current v2 identity is terminal. Keep this before dependency,
+  // result-path, dataset/config, repository, or credential access.
+  assertJ4LiveRunOpen(runId)
+
   const read = dependencies.readFile ?? readFile
   const preparePopulation =
     dependencies.preparePopulation ?? prepareJ4PinnedS60
@@ -1683,7 +1741,6 @@ export async function main({
     dependencies.runQuestion ?? runKernelLongMemEvalQuestion
   const log = dependencies.log ?? console.log
 
-  parseJ4LiveArgs(args)
   const paths = resultPaths(repoRoot)
 
   // Non-secret preflight. Do not move credential reads above this block.

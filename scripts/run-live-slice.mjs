@@ -8,10 +8,8 @@
 //   --dry             spend-free: run the full path on the real slice
 //                     with the deterministic mock extractor and stub
 //                     provider (plumbing check, zero tokens).
-//   --live            requires PALARI_CONFIRM_SPEND=1 AND a provider
-//                     key in env AND evals/predictions.md containing
-//                     "PREDICTIONS FINAL" — pre-registration is
-//                     enforced in code, not by promise.
+//   --live            permanently refused: U8 is sealed. The refusal
+//                     happens before dataset or credential access.
 // Results land in evals/results/ with provenance: dataset sha256,
 // model, prompt-config hash, date. No key is ever logged or stored.
 //
@@ -43,6 +41,14 @@ import { buildMemoryExtractionRequest, deterministicMockMemoryExtraction } from 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
 const mode = args.includes('--live') ? 'live' : args.includes('--dry') ? 'dry' : 'plan'
+
+if (mode === 'live') {
+  console.error(
+    'U8 SEALED: --live is permanently disabled; refusing before dataset, credential, or provider access.',
+  )
+  process.exit(5)
+}
+
 const dataPath = args.includes('--data')
   ? args[args.indexOf('--data') + 1]
   : join(repoRoot, 'data', 'longmemeval_s_cleaned.json')
@@ -103,7 +109,7 @@ if (mode === 'plan') {
     const cost = estimateSliceCostUSD(tokens, model)
     console.log(`  ${model.model.padEnd(24)} ~$${cost.usd.toFixed(2)}  (${(cost.inputTokens / 1e6).toFixed(2)}M in / ${(cost.outputTokens / 1e6).toFixed(2)}M out)  ${model.notes}`)
   }
-  console.log('\nNext: founder reviews docs/U8-PREP.md, finalizes evals/predictions.md, sets the gate env vars, runs --live.')
+  console.log('\nU8 is sealed. This historical plan remains inspectable, but --live is permanently disabled.')
   process.exit(0)
 }
 

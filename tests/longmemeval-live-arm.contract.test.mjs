@@ -104,6 +104,13 @@ test('J4 extraction prevalidation rejects malformed or missing memories immediat
     ),
     /memories array/,
   )
+  assert.throws(
+    () => assertExactExtractionEnvelope(JSON.stringify({
+      memories: Array.from({ length: 7 }, () =>
+        JSON.parse(extraction('User prefers tea.', 'tea')).memories[0]),
+    })),
+    /memories array/,
+  )
   assert.deepEqual(
     assertExactExtractionEnvelope('{"memories":[]}'),
     { memories: [] },
@@ -159,9 +166,16 @@ test('J4 arm requires the meter validated model/finish/text/usage contract', () 
     assertValidatedJ4GeminiResponse(validatedGemini('okay'), 'writer').text,
     'okay',
   )
+  assert.equal(
+    assertValidatedJ4GeminiResponse(
+      validatedGemini('okay', { modelVersion: 'provider-snapshot-001' }),
+      'writer',
+    ).modelVersion,
+    'provider-snapshot-001',
+  )
   for (const response of [
     validatedGemini('okay', { validated: false }),
-    validatedGemini('okay', { modelVersion: 'different-model' }),
+    validatedGemini('okay', { modelVersion: '' }),
     validatedGemini('okay', { finishReason: 'MAX_TOKENS' }),
     validatedGemini(''),
     validatedGemini('okay', { usage: null }),

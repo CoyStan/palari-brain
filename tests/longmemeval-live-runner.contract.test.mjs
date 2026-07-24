@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto'
+import { spawnSync } from 'node:child_process'
 import { mkdtemp, mkdir, open, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 
 import {
@@ -11,16 +13,17 @@ import {
   SEALED_U8_QUESTION_IDS,
 } from '../evals/longmemeval-plan.mjs'
 import {
+  buildJ4AnswerBody,
+  buildJ4AnswerPrompt,
+  buildJ4WriterBody,
   J4_GEMINI_MODEL,
   J4_LIVE_RUN_ID,
+  J4_TRANCHE_1_LIMITS,
   j4ExecutionQuestionIds,
-  j4LimitsForCumulativeQuestions,
 } from '../evals/longmemeval-live-config.mjs'
 import {
-  J4_DENY_GEMINI_KEY,
-  J4_DENY_OPENAI_KEY,
-  J4_GOOGLE_CREDENTIAL_ALIASES,
   acquireJ4RunLock,
+  assertJ4LiveRunOpen,
   assertValidatedJ4JudgeResponse,
   assertJ4Checkpoint,
   assertJ4GitCutPoint,
@@ -50,16 +53,31 @@ const TYPES = [
   'temporal-reasoning',
 ]
 const OPENING_ACCOUNTED_USD = 0.0004494
+const SMOKE_WRITER_TURN = {
+  assistantMessage: 'Understood.',
+  palariId: 'palari-longmemeval-j4',
+  palariName: 'Palari',
+  sourceMessageId: 'j4-smoke:0',
+  sourceTexts: [],
+  userId: 'user-longmemeval-j4',
+  userMessage: 'I was diagnosed with asthma in 2014.',
+  userName: 'user',
+}
+const SMOKE_ANSWER_PROMPT = buildJ4AnswerPrompt({
+  facts: '[2014] The user was diagnosed with asthma.',
+  question: 'What condition was I diagnosed with in 2014?',
+  questionDate: '2026-07-24T00:00:00.000Z',
+})
 const VALID_MEMORY_JSON = JSON.stringify({
   memories: [{
     confidence: 0.9,
-    content: 'User prefers blue.',
+    content: 'The user was diagnosed with asthma in 2014.',
     fictional: false,
     importance: 0.8,
-    keywords: ['blue', 'prefer'],
+    keywords: ['asthma', 'diagnosis', '2014'],
     shared: false,
     sourceKind: 'user_message',
-    type: 'preference',
+    type: 'life_event',
   }],
 })
 
@@ -217,10 +235,13 @@ function meterSnapshot(state = {}) {
   }
 }
 
-function validGeminiResponse(text = '{"memories":[]}') {
+function validGeminiResponse(
+  text = '{"memories":[]}',
+  modelVersion = J4_GEMINI_MODEL,
+) {
   return {
     finishReason: 'STOP',
-    modelVersion: J4_GEMINI_MODEL,
+    modelVersion,
     text,
     usage: {
       geminiInputTokens: 10,
@@ -418,7 +439,9 @@ function fakeTransport({ judgeText = 'no' } = {}) {
       const response = validGeminiResponse(
         request.purpose === 'writer'
           ? VALID_MEMORY_JSON
-          : 'synthetic answer',
+          : request.operationId === 'smoke:gemini-answer'
+            ? 'You were diagnosed with asthma.'
+            : 'synthetic answer',
       )
       addUsage(response.usage)
       return response
@@ -472,80 +495,6 @@ async function runFakeQuestion({
   return fakeArmResult(instance, { memoryRows })
 }
 
-function fakeMainDependencies({
-  meterFactory,
-  population = syntheticPopulation(),
-  runQuestion = runFakeQuestion,
-  verifyPredecessor = async ({ predecessor }) => ({
-    accountedUsd: predecessor.accountedUsd,
-    artifactManifestSha256: predecessor.artifactManifestSha256,
-    checkpointSha256: predecessor.checkpointSha256,
-    completedQuestions: predecessor.completedQuestions,
-    measuredUsd: predecessor.accountedUsd,
-    meterSha256: predecessor.meterSha256,
-    runId: predecessor.runId,
-    status: predecessor.status,
-  }),
-} = {}) {
-  const active = config()
-  return {
-    async auditTrackedFiles() {
-      return {
-        files: 84,
-        trackedPathsSha256: '7'.repeat(64),
-      }
-    },
-    async createMeteredTransport(options) {
-      return meterFactory(options)
-    },
-    async inspectGitCutPoint() {
-      return { administrativeHead: 'admin-main-head' }
-    },
-    async loadAuthority() {
-      return {
-        authority: authority(),
-        authorityPath:
-          `evals/live-runs/${J4_LIVE_RUN_ID}.authority.json`,
-        authoritySha256: '8'.repeat(64),
-      }
-    },
-    async loadConfig() {
-      return {
-        config: active,
-        configPath: `evals/live-runs/${J4_LIVE_RUN_ID}.json`,
-        configSha256: 'd'.repeat(64),
-        predictions: predictions(population),
-        predictionsSha256: 'f'.repeat(64),
-      }
-    },
-    log() {},
-    preparePopulation() {
-      return {
-        ...population,
-        manifest: {
-          datasetSha256: 'e'.repeat(64),
-        },
-      }
-    },
-    async readFile() {
-      return Buffer.from('synthetic canonical dataset')
-    },
-    runQuestion,
-    verifyPredecessor,
-  }
-}
-
-function fakeMainEnvironment() {
-  return {
-    GEMINI_API_KEY: 'runner-test-gemini-key',
-    GOOGLE_API_KEY: 'runner-test-shadow-google-key',
-    OPENAI_API_KEY: 'runner-test-openai-key',
-    PALARI_J4_CONFIRM_SPEND: '1',
-    PALARI_J4_CUMULATIVE_QUESTIONS: '5',
-    PALARI_J4_SPEND_CAP_USD: '2.5',
-  }
-}
-
 function fakeArmResult(instance, { memoryRows = 1 } = {}) {
   return {
     answer: `wrong answer for ${instance.questionId}`,
@@ -580,10 +529,14 @@ function fakeArmResult(instance, { memoryRows = 1 } = {}) {
   }
 }
 
-test('runner import is inert and CLI run identity is exact', () => {
+test('runner import is inert, CLI identity is exact, and v2 is terminal', () => {
   assert.equal(
     parseJ4LiveArgs(['--run', J4_LIVE_RUN_ID]),
     J4_LIVE_RUN_ID,
+  )
+  assert.throws(
+    () => assertJ4LiveRunOpen(J4_LIVE_RUN_ID),
+    (error) => error.code === 'J4_RUN_TERMINAL',
   )
   assert.throws(
     () => parseJ4LiveArgs([]),
@@ -752,18 +705,124 @@ test('git cut-point helper requires clean synchronized main, ignored results, an
   )
 })
 
-test('compatibility smoke is exactly one metered Gemini JSON-writer request', async () => {
+test('compatibility smoke uses exact production writer and answer bodies', async () => {
   const calls = []
   const result = await runJ4SmokeSuite({
     async callGemini(request) {
       calls.push(request)
-      return validGeminiResponse(VALID_MEMORY_JSON)
+      return validGeminiResponse(
+        request.purpose === 'writer'
+          ? VALID_MEMORY_JSON
+          : 'You were diagnosed with asthma.',
+      )
     },
   })
-  assert.equal(calls.length, 1)
+  assert.equal(calls.length, 2)
   assert.equal(calls[0].operationId, 'smoke:gemini-writer')
   assert.equal(calls[0].purpose, 'writer')
-  assert.equal(result.logicalOperations, 1)
+  assert.equal(calls[0].cellId, 'j4-compatibility-smoke-writer')
+  assert.deepEqual(calls[0].body, buildJ4WriterBody(SMOKE_WRITER_TURN))
+  assert.equal(calls[1].operationId, 'smoke:gemini-answer')
+  assert.equal(calls[1].purpose, 'answer')
+  assert.equal(calls[1].cellId, 'j4-compatibility-smoke-answer')
+  assert.deepEqual(
+    calls[1].body,
+    buildJ4AnswerBody(SMOKE_ANSWER_PROMPT),
+  )
+  assert.equal(result.geminiModelVersion, J4_GEMINI_MODEL)
+  assert.equal(result.logicalOperations, 2)
+})
+
+test('compatibility smoke rejects empty, unrelated, health-typed, and bad-source memories', async () => {
+  const memory = JSON.parse(VALID_MEMORY_JSON).memories[0]
+  const cases = [
+    { memories: [] },
+    {
+      memories: [{
+        ...memory,
+        content: 'The user prefers coffee.',
+        keywords: ['coffee'],
+        type: 'preference',
+      }],
+    },
+    { memories: [{ ...memory, type: 'health' }] },
+    { memories: [{ ...memory, sourceKind: 'direct_user' }] },
+    { memories: [{ ...memory, sourceKind: 'source_document' }] },
+  ]
+  for (const payload of cases) {
+    let calls = 0
+    await assert.rejects(
+      runJ4SmokeSuite({
+        async callGemini() {
+          calls += 1
+          return validGeminiResponse(JSON.stringify(payload))
+        },
+      }),
+      (error) => [
+        'EXTRACTION_PAYLOAD_INVALID',
+        'SMOKE_WRITER_SEMANTICS',
+      ].includes(error.code),
+    )
+    assert.equal(calls, 1, 'bad writer output must stop before answer smoke')
+  }
+})
+
+test('compatibility smoke does not require one particular canonical memory type', async () => {
+  const memory = JSON.parse(VALID_MEMORY_JSON).memories[0]
+  for (const type of ['entity', 'life_event', 'recent_life']) {
+    const result = await runJ4SmokeSuite({
+      async callGemini({ purpose }) {
+        return validGeminiResponse(
+          purpose === 'writer'
+            ? JSON.stringify({ memories: [{ ...memory, type }] })
+            : 'You were diagnosed with asthma.',
+        )
+      },
+    })
+    assert.equal(result.logicalOperations, 2)
+  }
+})
+
+test('compatibility smoke rejects empty answers and model-version drift', async () => {
+  await assert.rejects(
+    runJ4SmokeSuite({
+      async callGemini({ purpose }) {
+        return validGeminiResponse(
+          purpose === 'writer' ? VALID_MEMORY_JSON : '   ',
+        )
+      },
+    }),
+    (error) => error.code === 'GEMINI_RESULT_UNVALIDATED',
+  )
+
+  await assert.rejects(
+    runJ4SmokeSuite({
+      async callGemini({ purpose }) {
+        return validGeminiResponse(
+          purpose === 'writer'
+            ? VALID_MEMORY_JSON
+            : 'You were diagnosed with asthma.',
+          purpose === 'writer'
+            ? `${J4_GEMINI_MODEL}-001`
+            : J4_GEMINI_MODEL,
+        )
+      },
+    }),
+    (error) => error.code === 'SMOKE_MODEL_VERSION',
+  )
+
+  await assert.rejects(
+    runJ4SmokeSuite({
+      async callGemini({ purpose }) {
+        return validGeminiResponse(
+          purpose === 'writer'
+            ? VALID_MEMORY_JSON
+            : 'I do not know.',
+        )
+      },
+    }),
+    (error) => error.code === 'SMOKE_ANSWER_SEMANTICS',
+  )
 })
 
 test('judge request remains official and wrong answers are findings, not runner errors', () => {
@@ -890,10 +949,12 @@ test('authorized first tranche executes five wrong answers, checkpoints each, an
       result.meter.logicalRequests.judge === 1 &&
       result.meter.attempts === 3 &&
       result.meter.sequence === 6))
-    assert.deepEqual(
-      transport.counts(),
-      { answerCalls: 5, judgeCalls: 5, writerCalls: 6 },
-    )
+    const counts = transport.counts()
+    assert.deepEqual(counts, {
+      answerCalls: J4_TRANCHE_1_LIMITS.maxLogicalRequests.answer,
+      judgeCalls: J4_TRANCHE_1_LIMITS.maxLogicalRequests.judge,
+      writerCalls: 6,
+    })
     await verifyJ4ArtifactManifest(paths.runDir)
   } finally {
     await rm(root, { force: true, recursive: true })
@@ -1080,184 +1141,60 @@ test('tracked-file audit rejects captured credentials and credential-shaped valu
   }
 })
 
-test('main passes frozen limits, scrubs provider aliases, and stops at five', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-five-'))
-  const env = fakeMainEnvironment()
-  const transport = fakeTransport()
-  let meterOptions
-  const dependencies = fakeMainDependencies({
-    meterFactory(options) {
-      meterOptions = options
-      return transport
+test('main and CLI refuse terminal J4 v2 before dataset, config, or credentials', async () => {
+  let dependencyReads = 0
+  let secretReads = 0
+  const dependencies = new Proxy({}, {
+    get() {
+      dependencyReads += 1
+      throw new Error('terminal guard read a dependency')
     },
   })
-  try {
-    const outcome = await main({
+  const env = {}
+  Object.defineProperties(env, {
+    GEMINI_API_KEY: {
+      enumerable: true,
+      get() {
+        secretReads += 1
+        throw new Error('terminal guard read GEMINI_API_KEY')
+      },
+    },
+    OPENAI_API_KEY: {
+      enumerable: true,
+      get() {
+        secretReads += 1
+        throw new Error('terminal guard read OPENAI_API_KEY')
+      },
+    },
+  })
+
+  await assert.rejects(
+    main({
       args: ['--run', J4_LIVE_RUN_ID],
       dependencies,
       env,
-      repoRoot: root,
-    })
-    assert.deepEqual(
-      meterOptions.limits,
-      j4LimitsForCumulativeQuestions(5),
-    )
-    assert.equal(
-      meterOptions.capUsd,
-      2.5 - OPENING_ACCOUNTED_USD,
-    )
-    assert.equal(outcome.report.completedQuestions, 5)
-    assert.equal(
-      outcome.report.spend.openingAccountedUsd,
-      OPENING_ACCOUNTED_USD,
-    )
-    assert.equal(
-      outcome.report.spend.combinedAccountedUsd,
-      Number((
-        OPENING_ACCOUNTED_USD +
-        outcome.report.spend.currentAccountedUsd
-      ).toFixed(12)),
-    )
-    assert.ok(outcome.report.spend.combinedAccountedUsd <= 2.5)
-    assert.equal(
-      outcome.checkpoint.invocations[0].availableCurrentRunCapUsd,
-      2.5 - OPENING_ACCOUNTED_USD,
-    )
-    assert.equal(outcome.checkpoint.questions[5].status, 'pending')
-    for (const name of J4_GOOGLE_CREDENTIAL_ALIASES) {
-      assert.equal(env[name], J4_DENY_GEMINI_KEY)
-    }
-    assert.equal(env.OPENAI_API_KEY, J4_DENY_OPENAI_KEY)
-    await verifyJ4ArtifactManifest(
-      join(root, 'evals', 'results', J4_LIVE_RUN_ID),
-    )
-  } finally {
-    await rm(root, { force: true, recursive: true })
-  }
-})
+      repoRoot: '/definitely/not/a/j4/repository',
+    }),
+    (error) => error.code === 'J4_RUN_TERMINAL',
+  )
+  assert.equal(dependencyReads, 0)
+  assert.equal(secretReads, 0)
 
-test('main rejects a checkpointless stale run directory before key capture', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-stale-'))
-  const runDir = join(root, 'evals', 'results', J4_LIVE_RUN_ID)
-  await mkdir(runDir, { recursive: true, mode: 0o700 })
-  let secretReads = 0
-  const env = {
-    PALARI_J4_CONFIRM_SPEND: '1',
-    PALARI_J4_CUMULATIVE_QUESTIONS: '5',
-    PALARI_J4_SPEND_CAP_USD: '2.5',
-  }
-  Object.defineProperties(env, {
-    GEMINI_API_KEY: {
-      enumerable: true,
-      get() {
-        secretReads += 1
-        return 'must-not-be-read'
-      },
+  const cli = spawnSync(
+    process.execPath,
+    [
+      fileURLToPath(
+        new URL('../evals/run-longmemeval-live.mjs', import.meta.url),
+      ),
+      '--run',
+      J4_LIVE_RUN_ID,
+    ],
+    {
+      encoding: 'utf8',
+      env: { PATH: process.env.PATH },
     },
-    OPENAI_API_KEY: {
-      enumerable: true,
-      get() {
-        secretReads += 1
-        return 'must-not-be-read'
-      },
-    },
-  })
-  try {
-    await assert.rejects(
-      main({
-        args: ['--run', J4_LIVE_RUN_ID],
-        dependencies: fakeMainDependencies(),
-        env,
-        repoRoot: root,
-      }),
-      (error) => error.code === 'STALE_RUN_DIRECTORY',
-    )
-    assert.equal(secretReads, 0)
-  } finally {
-    await rm(root, { force: true, recursive: true })
-  }
-})
-
-test('main verifies predecessor evidence before either provider key is captured', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-predecessor-'))
-  let secretReads = 0
-  const env = {
-    PALARI_J4_CONFIRM_SPEND: '1',
-    PALARI_J4_CUMULATIVE_QUESTIONS: '5',
-    PALARI_J4_SPEND_CAP_USD: '2.5',
-  }
-  Object.defineProperties(env, {
-    GEMINI_API_KEY: {
-      enumerable: true,
-      get() {
-        secretReads += 1
-        return 'must-not-be-read'
-      },
-    },
-    OPENAI_API_KEY: {
-      enumerable: true,
-      get() {
-        secretReads += 1
-        return 'must-not-be-read'
-      },
-    },
-  })
-  try {
-    await assert.rejects(
-      main({
-        args: ['--run', J4_LIVE_RUN_ID],
-        dependencies: fakeMainDependencies({
-          async verifyPredecessor() {
-            throw Object.assign(
-              new Error('pinned predecessor changed'),
-              { code: 'PREDECESSOR_HASH_MISMATCH' },
-            )
-          },
-        }),
-        env,
-        repoRoot: root,
-      }),
-      (error) => error.code === 'PREDECESSOR_HASH_MISMATCH',
-    )
-    assert.equal(secretReads, 0)
-  } finally {
-    await rm(root, { force: true, recursive: true })
-  }
-})
-
-test('operational failure preserves a terminal private report and manifest', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-failure-'))
-  const transport = fakeTransport()
-  transport.callJudge = async () => ({
-    modelVersion: 'gpt-4o-2024-08-06',
-    text: 'no',
-  })
-  try {
-    await assert.rejects(
-      main({
-        args: ['--run', J4_LIVE_RUN_ID],
-        dependencies: fakeMainDependencies({
-          meterFactory() {
-            return transport
-          },
-        }),
-        env: fakeMainEnvironment(),
-        repoRoot: root,
-      }),
-      (error) => error.code === 'JUDGE_RESULT_UNVALIDATED',
-    )
-    const runDir = join(root, 'evals', 'results', J4_LIVE_RUN_ID)
-    const checkpoint = JSON.parse(
-      await readFile(join(runDir, 'checkpoint.json'), 'utf8'),
-    )
-    assert.equal(checkpoint.status, 'failed')
-    assert.equal(checkpoint.questions[0].status, 'failed')
-    const report = JSON.parse(
-      await readFile(join(runDir, 'report.json'), 'utf8'),
-    )
-    assert.equal(report.status, 'failed')
-    await verifyJ4ArtifactManifest(runDir)
-  } finally {
-    await rm(root, { force: true, recursive: true })
-  }
+  )
+  assert.equal(cli.status, 1)
+  assert.match(cli.stderr, /J4_RUN_TERMINAL: .* terminal/i)
+  assert.doesNotMatch(cli.stderr, /dataset|credential|api.?key/i)
 })

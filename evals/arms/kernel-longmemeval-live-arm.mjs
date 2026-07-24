@@ -85,9 +85,8 @@ export function assertValidatedJ4GeminiResponse(response, purpose) {
   ]
   if (response?.validated !== true ||
     response.finishReason !== 'STOP' ||
-    (response.modelVersion !== J4_GEMINI_MODEL &&
-      !String(response.modelVersion ?? '')
-        .startsWith(`${J4_GEMINI_MODEL}-`)) ||
+    typeof response.modelVersion !== 'string' ||
+    !response.modelVersion.trim() ||
     typeof response.text !== 'string' ||
     !response.text.trim() ||
     !response.usage ||
@@ -129,7 +128,8 @@ export function assertExactExtractionEnvelope(value) {
     Array.isArray(parsed) ||
     Object.keys(parsed).length !== 1 ||
     !Object.hasOwn(parsed, 'memories') ||
-    !Array.isArray(parsed.memories)) {
+    !Array.isArray(parsed.memories) ||
+    parsed.memories.length > 6) {
     throw new J4LiveError(
       'EXTRACTION_PAYLOAD_INVALID',
       'J4 extraction JSON must be an object with a memories array.',
