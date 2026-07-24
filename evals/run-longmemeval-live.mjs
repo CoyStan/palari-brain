@@ -76,6 +76,7 @@ const credentialPatterns = Object.freeze([
 const J4_TERMINAL_RUN_IDS = new Set([
   'j4-longmemeval-s60-v1',
   'j4-longmemeval-s60-v2',
+  'j4-longmemeval-s60-v3',
 ])
 
 function sha256(value) {

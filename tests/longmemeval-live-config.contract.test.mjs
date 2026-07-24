@@ -321,23 +321,46 @@ test('J4 v2 frozen inputs remain byte-identical after offline correction', async
   assert.equal(j4Sha256(predictions), J4_V2_PREDICTIONS_SHA256)
 })
 
-test('J4 v3 config freezes corrected bytes, two predecessors, and cumulative cost', async () => {
-  const loaded = await loadJ4LiveConfig({ repoRoot: REPO_ROOT })
-  assert.equal(loaded.config.runId, J4_LIVE_RUN_ID)
-  assert.equal(loaded.configSha256, J4_V3_CONFIG_SHA256)
-  assert.equal(loaded.predictionsSha256, J4_V3_PREDICTIONS_SHA256)
-  assert.deepEqual(loaded.config.predecessorChain, J4_PREDECESSOR_CHAIN)
+test('J4 v3 frozen bytes survive terminal sealing and fail closed as runnable', async () => {
+  const [configText, authorityText, predictionsText] = await Promise.all([
+    readFile(new URL(
+      '../evals/live-runs/j4-longmemeval-s60-v3.json',
+      import.meta.url,
+    )),
+    readFile(new URL(
+      '../evals/live-runs/j4-longmemeval-s60-v3.authority.json',
+      import.meta.url,
+    )),
+    readFile(new URL(
+      '../evals/predictions/j4-longmemeval-s60-v3.json',
+      import.meta.url,
+    )),
+  ])
+  assert.equal(j4Sha256(configText), J4_V3_CONFIG_SHA256)
+  assert.equal(j4Sha256(authorityText), J4_V3_AUTHORITY_SHA256)
+  assert.equal(j4Sha256(predictionsText), J4_V3_PREDICTIONS_SHA256)
+
+  const config = JSON.parse(configText)
+  assert.equal(config.runId, J4_LIVE_RUN_ID)
+  assert.deepEqual(config.predecessorChain, J4_PREDECESSOR_CHAIN)
   assert.deepEqual(
-    loaded.config.costEstimate,
+    config.costEstimate,
     J4_V3_CUMULATIVE_COST_ESTIMATE,
   )
-  assert.equal(loaded.config.costEstimate.expected.cumulativeUsd, 0.9095387)
+  assert.equal(config.costEstimate.expected.cumulativeUsd, 0.9095387)
   assert.equal(
-    loaded.config.costEstimate.conservative.cumulativeUsd,
+    config.costEstimate.conservative.cumulativeUsd,
     2.1717304,
   )
   assert.ok(
-    loaded.config.costEstimate.conservative.cumulativeUsd <
-      loaded.config.costEstimate.capUsd,
+    config.costEstimate.conservative.cumulativeUsd <
+      config.costEstimate.capUsd,
+  )
+  await assert.rejects(
+    loadJ4LiveConfig({ repoRoot: REPO_ROOT }),
+    (error) =>
+      error.code === 'ARTIFACT_HASH' &&
+      /evals\/run-longmemeval-live\.mjs/.test(error.message),
+    'terminal runner bytes must no longer match the executable v3 identity',
   )
 })

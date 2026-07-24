@@ -930,3 +930,17 @@ dates. Agents record; the founder decides.
   and must then stop and report. This GO does not authorize question 6, Mem0,
   S-490, publication, rerolling either predecessor or any v3 failure, or any
   further behavioral fix.
+- 2026-07-24 (J4.2V3 TERMINAL — writer compatibility smoke) The pushed
+  `6ab6999` runner was invoked exactly once under the v3 authority. The first
+  and only provider operation was the Gemini writer compatibility smoke.
+  Gemini returned non-retryable HTTP 400 `INVALID_ARGUMENT` because
+  `generation_config.response_format.text.mime_type` rejected the frozen
+  `application/json` wire value. No retry, answer smoke, benchmark question,
+  answer, or judge call occurred, so no benchmark score exists. The ignored
+  private evidence reconciles both predecessors, the v3 reservation, and the
+  unchanged cumulative cap; its manifest, ledger, modes, hashes, and
+  credential audits pass. V3 is now terminal in the tracked runner and must
+  not be resumed or rerolled. Correcting MIME serialization, creating any
+  successor identity, or making another provider call requires a fresh
+  founder GO. Question 6, Mem0, S-490, publication, and announcement remain
+  closed.
