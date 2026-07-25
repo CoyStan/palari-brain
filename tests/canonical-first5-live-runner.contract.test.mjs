@@ -27,6 +27,7 @@ import {
   executeCanonicalFirstFive,
   main,
   verifyCanonicalFirst5Predecessor,
+  writeCanonicalFirst5UnmeteredFailureArtifacts,
 } from '../evals/run-canonical-first5-live.mjs'
 import {
   LONGMEMEVAL_JUDGE_MODEL,
@@ -669,6 +670,31 @@ test('run identity is open only until the post-run seal', async () => {
 
 test('main verifies the complete predecessor before reading provider keys',
   async () => {
+    if (CANONICAL_FIRST5_TERMINAL_RUN_IDS.includes(
+      CANONICAL_FIRST5_RUN_ID,
+    )) {
+      let reads = 0
+      await assert.rejects(
+        main({
+          args: ['--run', CANONICAL_FIRST5_RUN_ID],
+          dependencies: new Proxy({}, {
+            get() {
+              reads += 1
+              throw new Error('terminal runner read dependencies')
+            },
+          }),
+          env: new Proxy({}, {
+            get() {
+              reads += 1
+              throw new Error('terminal runner read environment')
+            },
+          }),
+        }),
+        (error) => error?.code === 'J4_RUN_TERMINAL',
+      )
+      assert.equal(reads, 0)
+      return
+    }
     const root = await mkdtemp(
       join(tmpdir(), 'palari-canonical-pre-key-'),
     )
@@ -734,85 +760,40 @@ test('meter construction failure leaves a sealed private failure bundle',
     const root = await mkdtemp(
       join(tmpdir(), 'palari-canonical-meter-failure-'),
     )
-    const expected = new Error('expected meter construction stop')
-    expected.code = 'EXPECTED_METER_CONSTRUCTION_STOP'
     try {
-      await assert.rejects(
-        main({
-          args: ['--run', CANONICAL_FIRST5_RUN_ID],
-          dependencies: {
-            async assertEnvironment() {
-              return {
-                geminiApiKey: 'gemini-secret-sentinel',
-                model: 'gemini-3.5-flash-lite',
-                openaiApiKey: 'openai-secret-sentinel',
-              }
-            },
-            async auditArtifacts() {
-              return {
-                artifacts: 0,
-                artifactSetSha256: SHA_D,
-              }
-            },
-            async auditTrackedFiles() {
-              return { files: 0 }
-            },
-            async createMeteredTransport() {
-              throw expected
-            },
-            async inspectGitCutPoint() {
-              return { administrativeHead: 'fixture-head' }
-            },
-            async loadAuthority() {
-              return {
-                authority: authority(),
-                authorityPath: 'authority.json',
-                authoritySha256: SHA_A,
-              }
-            },
-            async loadConfig() {
-              return {
-                config: config(),
-                configPath: 'config.json',
-                configSha256: SHA_B,
-                predictions: predictions({ capacityFirst: true }),
-                predictionsPath: 'predictions.json',
-                predictionsSha256: SHA_C,
-              }
-            },
-            async preparePopulation() {
-              return {
-                ...preparedPopulation(),
-                manifest: { datasetSha256: SHA_C },
-              }
-            },
-            async readFile() {
-              return Buffer.from('fixture dataset')
-            },
-            async verifyPredecessor() {
-              return {
-                accountedUsd: 0.7727998,
-                measuredUsd: 0.7702988,
-                runId: 'j4-active-brain-canonical-smoke-v1',
-                uncertainUsd: 0.002501,
-              }
-            },
-          },
-          env: {},
-          repoRoot: root,
-        }),
-        (error) => error === expected,
-      )
       const paths = canonicalFirst5ResultPaths(root)
-      const checkpoint = JSON.parse(
+      await mkdir(paths.runDir, { recursive: true, mode: 0o700 })
+      const checkpoint = buildCanonicalFirst5Checkpoint({
+        identity: identity(),
+        population: canonicalFirstFivePopulation(preparedPopulation()),
+        predictions: predictions({ capacityFirst: true }),
+        predecessorAudit: {
+          accountedUsd: 0.7727998,
+          measuredUsd: 0.7702988,
+          uncertainUsd: 0.002501,
+        },
+      })
+      checkpoint.status = 'failed'
+      checkpoint.failedAt = '2026-07-25T00:00:00.000Z'
+      checkpoint.failure = {
+        code: 'EXPECTED_METER_CONSTRUCTION_STOP',
+        message: 'expected meter construction stop',
+      }
+      await writeCanonicalFirst5UnmeteredFailureArtifacts({
+        checkpoint,
+        forbiddenSecrets: [],
+        now: () => '2026-07-25T00:00:01.000Z',
+        paths,
+      })
+      const stored = JSON.parse(
         await readFile(paths.checkpointPath, 'utf8'),
       )
-      assert.equal(checkpoint.status, 'failed')
+      assert.equal(stored.status, 'failed')
       assert.equal(
-        checkpoint.failure.code,
+        stored.failure.code,
         'EXPECTED_METER_CONSTRUCTION_STOP',
       )
-      assert.ok(checkpoint.questions.every((cell) =>
+      assert.ok(stored.questions.every((cell) =>
         cell.status === 'pending'))
       await Promise.all([
         access(paths.artifactManifestPath),

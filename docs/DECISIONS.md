@@ -1194,3 +1194,35 @@ dates. Agents record; the founder decides.
   hashes, exact cost arithmetic, and FINAL predictions must be pushed before
   the one invocation. The identity is terminal afterward regardless of the
   judge outcome.
+- 2026-07-25 (J4.2K-C1 TERMINAL — canonical capacity confirmed) The pushed
+  `1a5ad54` pre-run identity was invoked exactly once. Question `08e075c7`
+  replayed 243 exchanges into 484 complete canonical messages with exact
+  user/Palari roles and zero derived-index rows. The product measured 633,063
+  required characters against its unchanged 100,000-character limit, exposed
+  no partial context, made zero writer and zero Gemini answer calls, and
+  returned its explicit capacity answer. The unchanged official
+  `gpt-4o-2024-08-06` judge marked that answer incorrect, confirming the FINAL
+  capacity prediction. Its one request succeeded on the first attempt with
+  125 input and 2 output tokens; there were no retries or uncertain charges.
+  Fresh measured/accounted spend was `$0.0003325`. Cumulative J4 spend is now
+  `$0.7731323` accounted, `$0.7706313` measured, and `$0.0025010` uncertain
+  under the unchanged `$7.00` cumulative cap and `$1.00` fresh subcap.
+  Ordinals 2–5 remain pending and were never started; question 6 remained
+  unreachable.
+
+  The ignored private bundle passes manifest, transcript, ledger, mode,
+  predecessor, provenance, and exact-secret audits. Artifact-manifest SHA-256
+  is `5764d7e71f4d22060b29c54b67150f90b5ba86057d4130413af59633a905e235`;
+  checkpoint SHA-256 is
+  `2f195d952a29cc87455dd89cdfdc2be640581960bdd891a0ce9ce322716a24db`;
+  meter SHA-256 is
+  `0c1d2a74644869fb6bae6b25b64620086d51acbef9c10237f7bd4b1a6aa6d2ec`.
+  No private transcript, raw evidence, or live score entered git or was
+  published. The tracked runner is sealed at SHA-256
+  `21f7372e20caec896a3a1734d7db5ef5001220c74fca9ed2b5a0ac6b4cdf407b`,
+  intentionally different from its frozen pre-run SHA-256
+  `e61b75b81b74fb7cc09fac22b56275f340523f12c6bfd01f3f88bfc6369cac1f`,
+  and refuses before dependencies, files, results, or credentials. The
+  identity cannot be resumed or rerolled. Retrieval design, another provider
+  call, later questions, Mem0, S-490, publication, and announcement all
+  require a fresh founder GO.

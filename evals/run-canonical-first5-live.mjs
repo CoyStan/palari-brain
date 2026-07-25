@@ -61,7 +61,9 @@ export const CANONICAL_FIRST5_RUN_ID =
 
 // Populated only in the post-run seal commit. Keeping this separate from the
 // frozen run configuration makes the terminal runner hash the second seal.
-export const CANONICAL_FIRST5_TERMINAL_RUN_IDS = Object.freeze([])
+export const CANONICAL_FIRST5_TERMINAL_RUN_IDS = Object.freeze([
+  CANONICAL_FIRST5_RUN_ID,
+])
 const terminalRunIds = new Set(CANONICAL_FIRST5_TERMINAL_RUN_IDS)
 
 const EXPECTED_PREDECESSOR = Object.freeze({
@@ -875,7 +877,7 @@ export async function writeCanonicalFirst5TerminalArtifacts({
   return report
 }
 
-async function writeCanonicalFirst5UnmeteredFailureArtifacts({
+export async function writeCanonicalFirst5UnmeteredFailureArtifacts({
   checkpoint,
   forbiddenSecrets,
   now,

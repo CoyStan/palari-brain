@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-C1-P CANONICAL FIRST-FIVE CAPACITY RUN READY;
-FOUNDER GO ACTIVE; PREDECESSORS TERMINAL (2026-07-25).
+Loop state: J4.2K-C1-E CANONICAL CAPACITY CONFIRMED;
+FOUNDER GATE; ALL LIVE IDENTITIES TERMINAL (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -179,6 +179,19 @@ attempts. Authority, configuration, 34 runtime hashes, the exact capacity
 oracle, cost arithmetic, and five FINAL predictions are frozen and
 offline-verified. No provider call for this identity has occurred at this
 pre-run cut point.
+
+The pushed `1a5ad54` cut was invoked exactly once. Ordinal 1 replayed 243
+exchanges into 484 complete role-labelled canonical messages and created zero
+derived-index rows. The product measured 633,063 required characters, refused
+without partial context, and made zero writer and zero Gemini answer calls.
+The official OpenAI judge marked the capacity answer incorrect on its first
+attempt, confirming the FINAL prediction. Ordinals 2–5 remained pending and
+question 6 remained unreachable. The single judge request used 125 input and
+2 output tokens with no retry; fresh spend was `$0.0003325`, all measured.
+Cumulative spend is `$0.7731323` accounted, `$0.7706313` measured, and
+`$0.0025010` uncertain. The ignored private bundle passes manifest,
+transcript, ledger, mode, predecessor, provenance, and exact-secret audits.
+The identity is sealed in code and cannot be resumed or rerolled.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -594,6 +607,27 @@ session itself).
     All 34 runtime artifacts and the complete predecessor chain verify.
     Focused tests are 23/23 and the full suite is 255/255; quickstart, dry
     bake-off, and package dry-run are green. No provider call has occurred.
+  - [x] J4.2K-C1-E — CANONICAL CAPACITY CONFIRMED 2026-07-25
+    (`this commit`). Invoked the pushed `1a5ad54` identity once. Ordinal 1
+    stored all 484 role-labelled messages, then the complete-context preflight
+    measured 633,063 required characters and refused against the unchanged
+    100,000-character limit without partial recall. There were zero writer
+    calls, zero Gemini answer calls, one official judge call, one attempt, and
+    no retries. The judge rejected the capacity answer, confirming the FINAL
+    prediction; ordinals 2–5 remain pending and never started. Fresh spend was
+    `$0.0003325`, all measured; cumulative spend is `$0.7731323` accounted,
+    `$0.7706313` measured, and `$0.0025010` uncertain. Private manifest
+    SHA-256
+    `5764d7e71f4d22060b29c54b67150f90b5ba86057d4130413af59633a905e235`;
+    checkpoint SHA-256
+    `2f195d952a29cc87455dd89cdfdc2be640581960bdd891a0ce9ce322716a24db`;
+    meter SHA-256
+    `0c1d2a74644869fb6bae6b25b64620086d51acbef9c10237f7bd4b1a6aa6d2ec`.
+    The ignored eight-file bundle verifies. Terminal runner SHA-256
+    `21f7372e20caec896a3a1734d7db5ef5001220c74fca9ed2b5a0ac6b4cdf407b`
+    differs from the frozen pre-run hash and refuses before any dependency or
+    credential access. Post-seal focused tests are 23/23 and the full suite is
+    255/255; quickstart, dry bake-off, and package dry-run are green.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -606,17 +640,15 @@ session itself).
 
 ## Next
 
-FOUNDER GO ACTIVE. From the pushed clean pre-run cut, invoke exactly
-`node evals/run-canonical-first5-live.mjs --run
-j4-active-brain-canonical-first5-v1` with the frozen confirmations and keys.
-The run must attempt ordinal 1 once, preserve its complete canonical evidence,
-grade the honest local capacity answer with the official judge, checkpoint,
-and stop before ordinal 2. Do not make a writer call or Gemini answer call,
-continue after capacity, rerun any operation, execute question 6, alter the
-100,000-character product limit, change predecessor evidence, run Mem0 or
-S-490, publish or announce a score, or implement retrieval. After the
-invocation, seal this identity, verify the private bundle and full offline
-suite, commit, push, report the factual capacity result and spend, and stop.
+FOUNDER GATE. The external measurement has now demonstrated the previously
+hypothetical capacity problem: the current complete-context path cannot answer
+even ordinal 1 without exceeding its product limit. Do not resume or reroll
+the terminal identity, start ordinal 2, change the limit, add retrieval, make
+another provider call, run Mem0 or S-490, publish a score, or announce a
+result without a fresh founder GO. The next defensible product unit, if the
+founder chooses to continue, is the smallest bounded semantic/time-aware
+selection layer over canonical evidence, followed by offline regressions and
+a fresh evaluation identity. Do not build a new evaluation framework.
 
 ## Log
 
@@ -817,6 +849,11 @@ first-capacity oracle, official-judge cost, five FINAL predictions, 34 runtime
 hashes, and complete predecessor spend/evidence chain under a fresh `$1`
 subcap. Focused tests 23/23 and full suite 255/255; quickstart, dry bake-off,
 and package dry-run green; no provider call occurred.
+2026-07-25 — J4.2K-C1-E — this commit — Invoked the pushed canonical
+first-five identity once; ordinal 1 retained all 484 messages but exceeded the
+complete-context limit, made no writer/Gemini calls, was judged once, and
+stopped before ordinal 2. The prediction and private evidence verified, fresh
+spend was `$0.0003325`, and the identity was sealed.
 
 ## Product stop-rule record
 
@@ -1601,3 +1638,24 @@ and package dry-run green; no provider call occurred.
    the current limit, or accidentally spend on five known-overflow questions.
    Preparation and execution together are one founder-requested evaluation
    decision; no further infrastructure is authorized afterward.
+
+### J4.2K-C1-E canonical capacity execution
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No product byte changed.
+   It did make the decision materially better by proving, on the first
+   external question, that complete-context recall exceeds its bounded product
+   limit.
+3. Does an existing framework already provide what this unit added? The
+   benchmark and judge are external, and established memory systems already
+   use semantic or hybrid selection to fit long histories. Palari added no new
+   framework here; it measured its simpler current path honestly.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder authorized this exact first-five measurement and the stop at the
+   first capacity failure.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? Runtime behavior would not change, but the concrete reason
+   a long-lived chatbot cannot answer from Palari memory would be lost and the
+   same paid identity could be rerolled. The finding now supports a product
+   decision rather than another infrastructure unit.
