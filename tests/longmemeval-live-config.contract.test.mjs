@@ -55,6 +55,10 @@ const J4_V3_PREDICTIONS_SHA256 =
   '201a41bd326f19d350ab45719f95fcf73a1d5d0159cf60c4ccee9992281460bf'
 const J4_V4_AUTHORITY_SHA256 =
   'f8bd5cdaa886624da36edae655b716c7dd902006ccee04561a10f288f3528367'
+const J4_V4_CONFIG_SHA256 =
+  '2aa449d45306303b5a6d0cf6fcc9aa3ae058baadc7566d5a3bc8017e8031c531'
+const J4_V4_PREDICTIONS_SHA256 =
+  '1df076076c82e7c250e94c22e471b36cc9bf3cfa85ea90df9bd19c57a021f436'
 
 test('J4 provider bodies freeze the selected model protocol and official prompt', () => {
   assert.equal(J4_GEMINI_MODEL, 'gemini-3.5-flash-lite')
@@ -378,10 +382,26 @@ test('J4 v3 frozen inputs remain byte-identical after MIME correction', async ()
   )
 })
 
-test('J4 v4 config carries all three predecessors and the corrected wire contract', async () => {
-  const loaded = await loadJ4LiveConfig({ repoRoot: REPO_ROOT })
-  const { config } = loaded
+test('J4 v4 frozen bytes survive terminal sealing and fail closed as runnable', async () => {
+  const [configText, authorityText, predictionsText] = await Promise.all([
+    readFile(new URL(
+      '../evals/live-runs/j4-longmemeval-s60-v4.json',
+      import.meta.url,
+    )),
+    readFile(new URL(
+      '../evals/live-runs/j4-longmemeval-s60-v4.authority.json',
+      import.meta.url,
+    )),
+    readFile(new URL(
+      '../evals/predictions/j4-longmemeval-s60-v4.json',
+      import.meta.url,
+    )),
+  ])
+  assert.equal(j4Sha256(configText), J4_V4_CONFIG_SHA256)
+  assert.equal(j4Sha256(authorityText), J4_V4_AUTHORITY_SHA256)
+  assert.equal(j4Sha256(predictionsText), J4_V4_PREDICTIONS_SHA256)
 
+  const config = JSON.parse(configText)
   assert.equal(config.runId, J4_LIVE_RUN_ID)
   assert.deepEqual(config.predecessorChain, J4_PREDECESSOR_CHAIN)
   assert.equal(config.predecessorChain.runs.length, 3)
@@ -406,5 +426,12 @@ test('J4 v4 config carries all three predecessors and the corrected wire contrac
   assert.ok(
     config.costEstimate.conservative.cumulativeUsd <
       config.costEstimate.capUsd,
+  )
+  await assert.rejects(
+    loadJ4LiveConfig({ repoRoot: REPO_ROOT }),
+    (error) =>
+      error.code === 'ARTIFACT_HASH' &&
+      /evals\/run-longmemeval-live\.mjs/.test(error.message),
+    'terminal runner bytes must no longer match the executable v4 identity',
   )
 })

@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4 EXTERNAL VALIDATION — V4 MIME REPLACEMENT PRE-RUN
-FROZEN; ONE LIVE INVOCATION AUTHORIZED (2026-07-25).
+Loop state: J4 EXTERNAL VALIDATION — V4 TERMINAL AFTER ONE COMPLETED
+QUESTION; FOUNDER GATE (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -57,7 +57,15 @@ terminal predecessors, carries `$0.0175702` accounted
 (`$0.0150692` measured plus v3's `$0.0025010` uncertain reservation), and
 limits fresh spend to `$2.4824298` under the unchanged `$2.50` cumulative
 cap. Its authority, config, artifacts, and unchanged FINAL prediction rows
-are frozen and offline-green. No v4 provider call has occurred at this cut.
+were frozen and pushed at `eb14570`. The one authorized invocation passed
+both compatibility-smoke calls and completed and graded the first benchmark
+question. During question 2, one writer completion ended with
+`MAX_TOKENS`; the runner treated the HTTP-200 response as invalid and stopped
+without a retry. Questions 3–5 never started, question 6 remained unreachable,
+and the one completed-prefix result remains private and non-representative.
+The ignored v4 manifest, ledger, checkpoint, modes, predecessor accounting,
+and exact-secret audits verify. V4 is terminal in code and must not be resumed
+or rerolled.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -268,10 +276,26 @@ session itself).
     bake-off, quickstart, package dry-run, real three-predecessor forensics,
     and restored main-level live-path tests are green. No v4 provider call
     has occurred.
-  - [ ] J4.2V4-E — ONE LIVE INVOCATION AUTHORIZED 2026-07-25. Invoke only
-    the pushed v4 identity. It may execute the writer-and-answer compatibility
-    smoke and, only if both pass, exactly the same first five questions. Stop
-    afterward or on the first terminal condition; never rerun v4.
+  - [x] J4.2V4-E — TERMINAL / INCOMPLETE 2026-07-25 (`this commit`).
+    The pushed `eb14570` cut was invoked exactly once. Both compatibility
+    calls passed, question 1 completed and was graded against the unchanged
+    FINAL prediction, and question 2 stopped on one non-retryable
+    `GEMINI_TRUNCATED` completion with finish reason `MAX_TOKENS`. No reroll
+    occurred; questions 3–5 never started and question 6 remained unreachable.
+    V4 accounted `$0.1776419`, all measured, with zero retries; including
+    predecessors the cumulative ledger is `$0.1952121` accounted,
+    `$0.1927111` measured, and `$0.0025010` uncertain, below the `$2.50` cap.
+    Private manifest SHA-256
+    `bd3bccd789715df7c194f70a46cc91a5d481d21d87c1d3bd2f44e0163524ee57`;
+    checkpoint SHA-256
+    `776562439bbfef8d8a855c7a644242d52d24ab418556589d0bf666839fb4e247`;
+    meter SHA-256
+    `d91c82e1d454a680607d2edb81b57a9f768b2cb716ae8fe7b835985d4d9579c9`.
+    The ignored 370-artifact bundle passes manifest, mode, hash, predecessor,
+    and exact-secret audits. No score entered git or was published. V4 now
+    refuses execution before dependency, data, result-path, or credential
+    access. Suite 172/172, dry bake-off, quickstart, and package dry-run are
+    green.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -284,13 +308,13 @@ session itself).
 
 ## Next
 
-Execute the single founder-authorized pushed
-`j4-longmemeval-s60-v4` invocation. Run its exact two-call compatibility
-smoke and, only if it passes, exactly questions 1–5; preserve its ignored
-evidence and stop/report afterward or at the first terminal condition. Never
-rerun v4. Do not execute question 6, run a later tranche, run Mem0, start
-S-490, alter frozen v1-v4 inputs or v1-v3 evidence, publish a score, or
-announce a result. U8, J3 v1-v4, and J4 v1-v3 remain closed.
+FOUNDER GATE. V4 is terminal and cannot be resumed or rerolled. Its first
+completed prefix and question-2 `MAX_TOKENS` failure are findings. Changing
+the writer output allowance or extraction response contract, creating a
+successor identity, or making another provider call requires a fresh founder
+GO. Do not execute question 2 again or question 3–6, run a later tranche, run
+Mem0, start S-490, alter frozen v1-v4 inputs or private evidence, publish a
+score, or announce a result. U8, J3 v1-v4, and J4 v1-v4 remain closed.
 
 ## Log
 
@@ -431,6 +455,12 @@ three terminal predecessors including v3's uncertain reservation, restored
 the smoke/first-five live path, and pinned the exact `$2.4824298` fresh meter.
 Suite 176/176, bake-off, quickstart, package dry-run, serialized-wire tests,
 and predecessor forensics are green; no v4 provider call occurred.
+2026-07-25 — J4.2V4-E — this commit — Invoked the pushed v4 cut once; both
+smoke calls passed and one benchmark question completed before a question-2
+writer completion ended with `MAX_TOKENS`. The runner stopped without retry,
+the private evidence verifies, no score entered git, and v4 is sealed at a
+founder gate; suite 172/172, bake-off, quickstart, and package dry-run are
+green.
 
 ## Product stop-rule record
 
@@ -985,3 +1015,23 @@ and predecessor forensics are green; no v4 provider call occurred.
    so the assistant could not write durable memories through that provider.
    The evaluation could also understate cumulative spend or rerun a terminal
    identity. The live result is not claimed at this pre-call cut point.
+
+### J4.2V4 terminal live invocation
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? The MIME repair was
+   confirmed by both live smoke calls and real benchmark ingestion, but the
+   prefix is too small and incomplete to establish a product improvement.
+3. Does an existing framework already provide what this unit added? Gemini
+   provides structured generation and LongMemEval provides the external test.
+   The local contribution was the gate, bounded ledger, private diagnostic
+   evidence, and terminal seal.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder authorized one v4 invocation, the same first-five circuit breaker,
+   preservation of every predecessor, and no rerolls.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? The same terminal identity could run again, cumulative
+   spend and the confirmed MIME repair could be lost, and a truncated
+   extraction could silently contaminate later scoring. The evidence instead
+   stops honestly at a fresh founder decision.

@@ -962,3 +962,20 @@ dates. Agents record; the founder decides.
   rerolling any predecessor or v4 failure, or any behavioral change beyond the
   shared MIME wire correction and the mechanical evidence/accounting changes
   required for a truthful successor.
+- 2026-07-25 (J4.2V4 TERMINAL — question-2 writer truncation) The pushed
+  `eb14570` v4 identity was invoked exactly once. Both compatibility-smoke
+  calls passed, confirming the corrected `APPLICATION_JSON` raw wire value.
+  The first benchmark question completed and was graded against the unchanged
+  FINAL prediction. During question 2, a writer returned HTTP 200 with finish
+  reason `MAX_TOKENS`; the metered parser classified that completion as
+  non-retryable `GEMINI_TRUNCATED` and stopped immediately. There was no
+  retry or reroll, questions 3–5 never started, and question 6 remained
+  unreachable. V4 accounted `$0.1776419`, all measured; with v1-v3, the
+  cumulative ledger is `$0.1952121` accounted, `$0.1927111` measured, and
+  `$0.0025010` uncertain under the unchanged `$2.50` cap. The ignored
+  370-artifact bundle passes manifest, hash, mode, ledger, predecessor, and
+  exact-secret audits. No raw evidence or score entered git or was published.
+  V4 is terminal and must not be resumed or rerolled. Changing the output
+  allowance or extraction response contract, creating a successor, or making
+  another provider call requires a fresh founder GO; question 6, Mem0, S-490,
+  publication, and announcement remain closed.
