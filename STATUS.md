@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4 EXTERNAL VALIDATION — V5 FIRST-FIVE PREFIX COMPLETE;
+Loop state: J4.2K ACTIVE MEMORY PATH CORRECTED OFFLINE;
 V5 TERMINAL; FOUNDER GATE (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
@@ -82,6 +82,19 @@ compatibility calls and all five authorized questions completed with no retry,
 then the runner paused before question 6. V5 is now terminal and cannot be
 resumed or rerolled. The private prefix was graded, but no score entered git or
 was published.
+
+After reviewing the first-five failure mechanics, the founder directed a
+subtractive product correction: no natural-language regex admission, no
+lexical recall, and Palari's own durable statements must be remembered with
+their speaker identified. J4.2K implements that direction only on the active
+package surface. A structured writer selects exact quotes from the visible
+user/Palari exchange; the host verifies each quote and assigns
+`user_message` or `assistant_message`. Source/tool/web text is absent from the
+writer evidence. Answering receives the complete current scoped set, with an
+explicit `capacity_exceeded` refusal instead of partial recall. Forgetting is
+exact-ID only. The v0.5 lexical kernel and all J3/J4 v1-v5 bytes remain
+historical comparators; no provider call, result change, or new live identity
+occurred.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -357,6 +370,18 @@ session itself).
     entered git or was published. V5 now refuses execution before dependency,
     data, result-path, or credential access. Suite 174/174, dry bake-off,
     quickstart, and package dry-run are green.
+  - [x] J4.2K — ACTIVE ROLE-PROVENANCE / NON-LEXICAL PATH DONE 2026-07-25
+    (`this commit`). Replaced the package's language-policy and query-retrieval
+    surface with exact durable quotes from visible dialogue, host-assigned
+    user/Palari provenance, append-only chronology, complete scoped recall,
+    fail-closed capacity, and exact-ID forgetting. Model-authored content,
+    keywords, sharing, speaker, and source kind are schema-invalid. The active
+    path has no regex or lexical-recall call; identical words from user and
+    Palari remain separate rows. Focused regressions cover the three observed
+    admission shapes, the assistant recommendation, zero-overlap usefulness,
+    scope, source isolation, chronology, overflow, and deletion. The complete
+    offline suite is 187/187; quickstart and package dry-run are green. Frozen
+    comparators and private results were not changed; no provider was called.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -369,12 +394,14 @@ session itself).
 
 ## Next
 
-FOUNDER GATE. V5 completed its exact first-five boundary and is terminal. Do
+FOUNDER GATE. The active J4.2K correction is complete offline but has not been
+measured live. V5 completed its exact first-five boundary and is terminal. Do
 not resume or reroll it, dispatch question 6, create a successor identity,
 raise a later-tranche cap, alter frozen v1-v5 inputs or private evidence, run
 Mem0 or S-490, publish a score, or announce a result without a new founder GO.
-The v4 and v5 observations remain separate and may not be combined. U8, J3
-v1-v4, and J4 v1-v5 remain closed.
+Any live test of J4.2K needs a fresh identity and preregistration. The v4 and
+v5 observations remain separate and may not be combined. U8, J3 v1-v4, and
+J4 v1-v5 remain closed.
 
 ## Log
 
@@ -531,6 +558,12 @@ occurred; Next is the single pushed v5 invocation.
 once; both smokes and all five authorized questions completed with no retry,
 the runner paused before question 6, private evidence and cumulative spend
 verify, no score entered git, and v5 is sealed at a founder gate.
+2026-07-25 — J4.2K — this commit — Removed language regex admission and
+lexical recall from the active package, added mechanically attributed exact
+user/Palari quotes, complete scoped context with fail-closed overflow, and
+exact-ID forgetting. Suite 187/187, quickstart, package dry-run, and focused
+role/recall regressions are green; no provider was called and sealed evidence
+was untouched.
 
 ## Product stop-rule record
 
@@ -1151,3 +1184,29 @@ verify, no score entered git, and v5 is sealed at a founder gate.
    first-five evidence and cumulative accounting could be lost, and the same
    terminal identity could be rerun. The live prefix is evidence about the
    product, not a claim that the product is now better.
+
+### J4.2K active role-provenance / non-lexical path
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green and demonstrates remember, role-labelled
+   recall, correction chronology, exact forget, honest absence, and the source
+   boundary.
+2. Did this unit make that journey measurably better? Yes in deterministic
+   contract coverage: the exact contraction, past-tense, question-ending, and
+   Palari-recommendation cases now land; a semantically relevant memory with
+   no query-token overlap reaches the answer provider. Live quality remains
+   unclaimed until a separately authorized run.
+3. Does an existing framework already provide what this unit added? Chat
+   histories and memory frameworks already store role-labelled messages and
+   use model-semantic context. This unit deliberately adopts that simpler
+   pattern; its local guarantee is that provenance is host-assigned, source
+   text is excluded, the full scoped set is complete or refused, and deletion
+   is exact rather than similarity-driven.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly directed removal of regex and lexical search and said
+   Palari's statements should be saved with the fact that Palari said them.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? The package would again drop ordinary wording based on English
+   patterns, miss paraphrases through FTS, and be unable to remember what
+   Palari itself recommended. Topic deletion would again depend on a text
+   match instead of selected IDs.

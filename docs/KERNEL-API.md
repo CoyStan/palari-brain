@@ -1,5 +1,9 @@
 # Kernel API — governed memory, standalone
 
+> Historical comparator contract. The active package no longer exports this
+> lexical v0.5-derived surface. See `docs/BRAIN-API.md` for the current
+> exact-quote, role-provenance, complete-context product path.
+
 **Unit:** U2. **Author:** Fable 5. **Date:** 2026-07-18.
 **Derived from:** `docs/KERNEL-CONTRACT.md` (normative here; the
 Unified Specification Parts 4–5 win over both). **Implementation

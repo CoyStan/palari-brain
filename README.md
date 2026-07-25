@@ -1,129 +1,147 @@
 # Palari Brain
 
-A governed memory kernel for chat assistants, in one SQLite file per
-workspace: one admission gate for every durable write, provenance on
-every atom, supersession that keeps history, deletion that removes FTS
-and link residue, honest absence, and a write boundary that external
-documents cannot cross.
+Memory for a chat assistant, reduced to the part that matters:
 
-Extracted from the running palari-v05 assistant (baseline `190a4ad2`)
-and kept deliberately small: zero production dependencies, Node >= 22.5
-(node:sqlite), roughly three thousand lines of source, one test
-command.
+1. a writer selects an exact durable quote from the visible user/Palari
+   exchange;
+2. Palari Brain verifies the quote and records who actually said it;
+3. a later answer receives the complete current memory for that user and
+   Palari;
+4. corrections remain in chronological order, and forgetting deletes exact
+   selected IDs.
+
+The active package does not parse English with regular expressions and does
+not retrieve with keywords, FTS, BM25, or fuzzy text matching. It also does
+not add an embedding service or a second model call. The existing answer
+model decides which records are semantically relevant from the complete
+scoped set.
+
+If that complete set exceeds the configured memory context, Palari Brain
+returns `capacity_exceeded` and does not call the answer model with a partial
+set. That is an explicit limit, not a hidden retrieval failure.
 
 ## Quickstart
 
 ```bash
-npm test              # contract tests, offline
-npm run quickstart    # the whole product loop in one script, offline
+npm test
+npm run quickstart
 ```
 
-The quickstart demonstrates, deterministically and with no API key:
+Both commands are offline. The quickstart demonstrates:
 
-1. **remember** — a stated preference enters through the gate;
-2. **recall** — a later conversation gets a provenance-carrying
-   briefing;
-3. **correct** — supersession closes the old value and links it; the
-   history survives in the file;
-4. **forget** — topic deletion removes matching rows and their FTS and
-   link residue;
-5. **honest absence** — the same question now abstains instead of
-   guessing;
-6. **injection boundary** — a poisoned document cannot mint memory,
-   while the same fact asserted by the user can.
+- exact user and Palari quotes stored with `user_message` and
+  `assistant_message` provenance;
+- a paraphrased later question answered from the complete memory set;
+- a newer user correction presented after the old statement so the answer
+  model can apply it while history remains visible;
+- exact-ID deletion followed by honest absence;
+- source-document text excluded from writer evidence.
 
-## Comparing memory engines
-
-The journey bank runs 17 offline user-memory scenarios as 44 graded
-checks across every arm. Each arm receives the same scripted writes,
-questions, scopes, and expected outcomes so its failures stay directly
-comparable.
-
-```bash
-npm run bakeoff
-```
-
-The current governed kernel passes 41/44. Its findings are
-`correction-espresso-04:p2` (superseded history is unavailable to
-as-of recall) and `conflict-cities-05:p2` (uncued reassertions leave
-both conflicting facts current), plus `shared-standup-08`: background
-extraction cannot mark a fact shared because sharing requires a separate
-explicit user ratification. The preserved deployed v0.5 parity arm remains
-at 42/44 with the first two findings; its extra point comes from accepting
-the scripted shared flag without that authority boundary. The deliberately
-ungoverned baseline passes 33/44. The governed kernel's value is the typed
-admission gate, source-document boundary, private scope, evidence-time
-provenance, and briefing attribution—not a larger dry score. See [the
-J1.2 authoring guide](docs/JOURNEY-BANK.md) for the fixture and scoring
-rules, and [the J3 preparation
-runbook](docs/BAKEOFF-J3-PREP.md) for the founder-gated live comparison.
-
-## Using it in an assistant
+## Use it in a chatbot
 
 ```js
 import {
-  createKernelStore, createGatedStore,
-  ingestChatTurn, answerQuestion, stubProvider,
+  answerQuestion,
+  createPalariBrain,
+  ingestChatTurn,
 } from 'palari-brain'
 
-const store = await createKernelStore({
+const brain = await createPalariBrain({
   memoryEnabled: true,
   statePath: '/path/to/workspace-state.json',
   workspaceId: 'my-workspace',
 })
-const gated = createGatedStore(store)
 
-await ingestChatTurn(gated, {
-  userMessage, assistantMessage, eventAt,
-  palariId, userId, sourceMessageId,
-}, { extractor, extractorId })
+await ingestChatTurn(brain, {
+  userMessage,
+  assistantMessage,
+  eventAt,
+  palariId,
+  userId,
+  sourceMessageId,
+  sourceTexts,
+}, {
+  extractor: async ({ request }) => {
+    // Send request to a structured-output model and return its JSON text.
+    return callWriterModel(request)
+  },
+  extractorId: 'provider:model',
+})
 
-const { answer, abstained } = await answerQuestion(gated, {
-  provider, question, palariId, userId,
+const result = await answerQuestion(brain, {
+  provider: async ({ prompt }) => {
+    const response = await callAnswerModel(prompt)
+    return {
+      text: response.text,
+      // Optional but recommended. Without it, result.abstained is null.
+      abstained: response.abstained,
+    }
+  },
+  question,
+  questionDate,
+  palariId,
+  userId,
 })
 ```
 
-`extractor` and `provider` are injected async functions: plug a
-language model in production, or the deterministic stubs
-(`deterministicMockMemoryExtraction`, `stubProvider`) for offline use.
-The kernel itself never reads an API key.
+The writer schema contains only:
 
-## What "governed memory" means
+```json
+{
+  "memories": [{
+    "quote": "an exact substring of the visible dialogue",
+    "type": "preference",
+    "importance": 0.8,
+    "confidence": 0.9,
+    "fictional": false
+  }]
+}
+```
 
-Most agent-memory frameworks auto-retain what a model extracts and
-invisibly inject recall. This kernel deliberately does not:
+The model cannot provide `content`, `keywords`, `speaker`, `sourceKind`, or
+`shared`. The host checks whether each quote occurs in the user message, the
+Palari reply, or both, then assigns provenance mechanically. A Palari record
+means “Palari said this”; it is never rewritten as a user fact. Tool, web, and
+source-document text is not included in the writer request.
 
-- **One gate.** Every durable memory write is a typed proposal through
-  an admission gate with evidence thresholds. Producers propose;
-  nothing writes directly.
-- **Provenance.** Every memory records where it came from (writer,
-  source kind, extractor, evidence time, confidence-at-creation).
-  Source-derived text cannot silently become user memory — that
-  boundary is tested, not promised.
-- **Visibility and consent.** Memory is a per-workspace SQLite file
-  the user can inspect, correct, and delete. Deletion removes FTS and
-  link residue. The user owns the diary.
-- **Honest absence.** "I have no stored memory of that" is a
-  first-class, scored answer — never papered over.
+See [docs/BRAIN-API.md](docs/BRAIN-API.md) for the complete active contract.
 
-## Status and history
+## Correction and forgetting
 
-- Direction: product-led. The journey bank of concrete assistant-memory
-  scenarios and the measured dry comparison against local controls are
-  complete. The next decision is the
-  J3 founder gate for a bounded live comparison with an established
-  memory framework. See `STATUS.md`.
-- The 2026-07 v2 proof machinery (governed bundle substrate, atomic
-  decision journal, authority core) is preserved at the git tag
-  `v2-proof-archive` and is not part of the working tree. The candid
-  postmortem of that phase is `WE-MESSED-UP.md`.
-- The U8 live evaluation slice is SEALED (see `STATUS.md`); no scores
-  are published here.
-- Reference docs: `docs/KERNEL-API.md` (design + surface),
-  `docs/KERNEL-CONTRACT.md` (distilled contract),
-  `docs/JOURNEY-BANK.md` (fixtures + scoring),
-  `docs/BAKEOFF-J3-PREP.md` (founder-gated live runbook),
-  `docs/SOURCE-MAP.md` (provenance from palari-v05),
-  `docs/DECISIONS.md` (append-only decision log).
+Palari Brain no longer guesses contradictions with text rules. A newer
+statement from the same speaker follows the older one chronologically, and
+the answer prompt tells the model to treat it as a possible correction. This
+is model-mediated behavior, not deterministic storage supersession.
+User and Palari statements never collapse into one row, even if their words
+are identical.
+
+Deletion is intentionally exact:
+
+```js
+import { forgetMemories } from 'palari-brain'
+
+forgetMemories(brain, selectedMemoryIds, { palariId, userId })
+```
+
+There is no `topicForget("espresso")`. A chatbot can show or select the
+relevant IDs from `brain.listStatements(...)`, get user confirmation, and
+then delete those IDs. Similarity is not allowed to make a destructive
+decision.
+
+## Historical evaluator
+
+The repository still contains the extracted palari-v05 lexical kernel and
+its frozen J3/J4 evaluation machinery. They are retained as historical
+comparators and provenance for already completed runs; they are not exported
+from the package entry point and are not used by the active product API.
+
+`npm run bakeoff` continues to reproduce that historical offline comparison.
+It is not a score for the active exact-quote/complete-context path. No new
+live provider run was performed for this change, and no sealed J4 result was
+altered.
+
+The candid history is in [WE-MESSED-UP.md](WE-MESSED-UP.md), the current
+state and gates are in [STATUS.md](STATUS.md), and append-only decisions are
+in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 License: MIT.

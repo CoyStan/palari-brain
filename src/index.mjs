@@ -1,65 +1,35 @@
-// palari-brain — public entry point.
-// The governed memory kernel in one import: store, gate, recall,
-// briefing, adapter, and the LongMemEval loader. Everything durable
-// goes through gate.propose; recall comes back as a provenance-carrying
-// briefing; absence is reported honestly.
+// palari-brain — active public entry point.
 //
-// Quickstart: examples/quickstart.mjs (offline, no API key).
-
-export {
-  acquisitionModes,
-  createKernelStore,
-  createWorkspaceMemoryManager,
-  deleteKernelStoreFile,
-  externalMemorySourceKinds,
-  extractMemoryQueryKeywords,
-  memoryAddWriters,
-  memoryFtsTokenizer,
-  memoryMutationActors,
-  memoryStoreSchemaVersion,
-  memoryTypes,
-  permanentMemoryTypes,
-  probeMemorySqliteDriver,
-  transientMemoryTypes,
-  workspaceMemoryDbPath,
-} from './store.mjs'
-
-export {
-  admissionPolicyDefaults,
-  applyKernelMigrations,
-  createAdmissionPolicy,
-  createGatedStore,
-  createMemoryGate,
-} from './gate.mjs'
-
-export {
-  briefingDiagnostics,
-  buildBriefingV1,
-  confidenceBucket,
-  recallAndBrief,
-} from './recall.mjs'
+// The public product path stores exact durable quotes from visible user and
+// Palari messages, with speaker provenance assigned by the host. Recall sends
+// the complete current scoped set to the answer model. The lexical v0.5
+// implementation remains inside the repository only as a historical eval
+// comparator and is not exported by this package.
 
 export {
   answerQuestion,
   buildAnswerPrompt,
+  buildMemoryBriefing,
+  createPalariBrain,
+  dialogueSourceKinds,
+  forgetMemories,
   ingestChatTurn,
   ingestLongMemEvalInstance,
+  recallAllStatements,
   stubProvider,
-} from './adapter.mjs'
+} from './brain.mjs'
+
+export {
+  buildStatementExtractionRequest,
+  MEMORY_STATEMENT_RESPONSE_MIME_TYPE,
+  MEMORY_STATEMENT_RESPONSE_SCHEMA,
+  MEMORY_STATEMENT_TYPES,
+  normalizeStatementExtractionPayload,
+  statementQuoteOrigins,
+} from './statement-extraction.mjs'
 
 export {
   loadLongMemEvalInstances,
   longMemEvalQuestionTypes,
   parseLongMemEvalTimestamp,
 } from './longmemeval.mjs'
-
-export {
-  buildMemoryExtractionRequest,
-  createMemoryExtractionScheduler,
-  deterministicMockMemoryExtraction,
-  memorySourceBoundaryForCandidate,
-  memorySourceTextsFromAssistantResult,
-  normalizeMemoryExtractionPayload,
-  runMemoryExtractionPass,
-  writeSessionSummaryMemory,
-} from './memory-extraction.mjs'

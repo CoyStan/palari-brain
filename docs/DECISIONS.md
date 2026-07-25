@@ -1026,3 +1026,24 @@ dates. Agents record; the founder decides.
   or rerolled. Question 6, later tranches, Mem0, S-490, publication,
   announcement, any successor identity, and any further provider call require
   a new founder GO.
+- 2026-07-25 (FOUNDER DIRECTION — J4.2K active memory simplification) After
+  reviewing the first-five fault mechanics, the founder directed Palari to
+  remove natural-language regex admission and lexical search from the product
+  path, and to remember Palari's own durable statements while explicitly
+  marking that Palari said them. The active package therefore uses bounded
+  exact-quote selection over only the visible user and Palari messages. The
+  model cannot author content, keywords, sharing, speaker, or source kind;
+  the host checks exact quote membership and assigns `user_message` or
+  `assistant_message`. Exact membership is an evidence-reference check, not
+  relevance retrieval. Source/tool/web text is not writer evidence. Recall
+  supplies the complete current user/Palari-scoped set to the existing answer
+  model in one call; if all rows do not fit, it returns
+  `capacity_exceeded` without a partial prompt. Corrections are append-only
+  chronology until the user deletes exact selected IDs; fuzzy or topic-string
+  deletion is absent. No embedding service is added before a real capacity
+  failure demonstrates need. The frozen v0.5 lexical modules remain only for
+  historical evaluation reproducibility and are removed from the package
+  entry point. This direction authorizes offline implementation, tests,
+  documentation, commit, and push. It does not authorize any provider call,
+  J4 successor, question 6, reroll, score change, publication, or alteration
+  of private v1-v5 evidence.

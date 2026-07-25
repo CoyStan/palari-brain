@@ -1,5 +1,9 @@
 # Kernel Contract (distilled from the Unified Specification, Parts 4-5)
 
+> Historical comparator contract. Its FTS and language-policy requirements
+> are preserved for reproducible prior evaluations, not used by the active
+> package. See `docs/BRAIN-API.md`.
+
 This is the normative core the kernel must satisfy, compressed for an
 agent working in this repo. The full spec (with evidence tags and
 rationale) is linked in REFERENCES.md; where this file and the spec

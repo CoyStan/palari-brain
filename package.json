@@ -2,7 +2,7 @@
   "name": "palari-brain",
   "version": "0.1.0",
   "private": true,
-  "description": "Palari governed-memory kernel: one admission gate, provenance on every atom, supersession with history, honest absence, and a write boundary external content cannot cross. Extracted from palari-v05 @ 190a4ad2.",
+  "description": "Chat memory with exact-quote speaker provenance, complete scoped recall, exact-ID forgetting, and no lexical retrieval.",
   "type": "module",
   "license": "MIT",
   "main": "src/index.mjs",
@@ -12,6 +12,7 @@
   "files": [
     "src",
     "examples",
+    "docs/BRAIN-API.md",
     "docs/KERNEL-API.md",
     "docs/KERNEL-CONTRACT.md"
   ],
