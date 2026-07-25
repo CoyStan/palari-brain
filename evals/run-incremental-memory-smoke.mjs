@@ -39,7 +39,9 @@ export const INCREMENTAL_MEMORY_SMOKE_REPO_ROOT = dirname(here)
 // The post-run seal commit adds the run ID. Before execution this must remain
 // empty so the exact pushed preparation cut can run once.
 export const INCREMENTAL_MEMORY_SMOKE_TERMINAL_RUN_IDS =
-  Object.freeze([])
+  Object.freeze([
+    smokeConfig.INCREMENTAL_MEMORY_SMOKE_RUN_ID,
+  ])
 
 const terminalRunIds = new Set(
   INCREMENTAL_MEMORY_SMOKE_TERMINAL_RUN_IDS,

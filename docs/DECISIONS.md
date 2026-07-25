@@ -1295,3 +1295,53 @@ dates. Agents record; the founder decides.
   remains terminal. No call for this identity has occurred at the preparation
   cut point. Any failure is terminal evidence; no reroll, dataset question,
   later tranche, behavioral fix, publication, or announcement is authorized.
+- 2026-07-25 (J4.2K-R2-S1 TERMINAL — recurrent add/correct/answer behavior
+  passed; frozen wording oracle missed) The pushed `b647abf` preparation cut
+  for `j4-active-brain-incremental-smoke-v1` was invoked exactly once. Both
+  reducer requests and the one answer request completed on their first
+  physical attempt with no retry. The first reduction added one user memory
+  supported by the exact oat-preference evidence. The second replaced it with
+  one current almond-preference memory while retaining both evidence records
+  in chronological lineage. The product reported a ready revision-2 digest
+  with one active item and no pending work, and the answer correctly conveyed
+  almond as the current preference from that incremental digest.
+
+  The immutable mechanical grader formally records 7/8. Its sole miss,
+  `ANSWER_USES_INCREMENTAL_DIGEST`, is an evaluator false negative: the direct
+  result records `briefingMode=incremental_digest`, one included digest item,
+  and a semantically correct answer, but the frozen exact-sentence allowlist
+  did not accept the provider's prefatory and parenthetical wording. The miss
+  remains the official frozen grade. No oracle byte, prediction, result,
+  grading record, or provider output was changed; there was no post-hoc
+  regrade, repair, or rerun.
+
+  The run used 2,328 Gemini input tokens and 911 Gemini output tokens with
+  zero judge tokens. Fresh spend was `$0.0029759`, entirely measured, bringing
+  cumulative J4 spend to `$0.7761082` accounted, `$0.7736072` measured, and
+  `$0.0025010` uncertain under the unchanged `$7.00` cumulative cap. Exactly
+  three physical attempts occurred and no dataset, benchmark question, judge,
+  OpenAI, Mem0, comparison arm, publication, or announcement surface ran.
+
+  The ignored private evidence verifies. Artifact-manifest SHA-256 is
+  `2b31e82694032790bff2d2d94e0f82b9ce1f0c8b72dc0965086cabbf5f8f3c74`;
+  checkpoint SHA-256 is
+  `befe23fc79690c4eacdf29719b8c168be2caccb46116fb0daf955a1226d3096e`;
+  meter SHA-256 is
+  `4d74652698a947f75e1cb7dd2379e70f9f4d384721f08330efd0f05afb02032d`;
+  result SHA-256 is
+  `360e38428215ef607f4bded891aa38892eb575c3d85ba8ef243183cd66c15535`;
+  report JSON SHA-256 is
+  `f67e65bf082b7ef7ab90874821d78273a5cb90988b70cd2e5491f2d3ce54e8bc`;
+  and transcript-set SHA-256 is
+  `a78853b9b9cdc9977ba5152ba255513a8840ad400553794e391eff302036bfb7`.
+  The tracked runner is sealed at SHA-256
+  `e2141f68b78164a1c906c2918a0b12a3156acc1475e3e50bb45c073e2328d000`,
+  intentionally different from its frozen pre-run SHA-256
+  `c1871ba55a1b875d9b065d8a70dab692c61366c281dc289056f1b869147a99f4`,
+  and refuses before dependency, file, result-path, or credential access. The
+  identity cannot be resumed or rerolled. Post-seal focused tests are 17/17
+  and the full suite is 295/295; quickstart, dry bake-off, package dry-run,
+  direct terminal refusal, and private-manifest verification are green. Any
+  grading-oracle repair, successor identity, benchmark, provider call, cap
+  change, behavioral repair, publication, or announcement requires a fresh
+  founder GO.

@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-R2-S1-P INCREMENTAL REDUCER SMOKE PREPARED;
-ONE FOUNDER-AUTHORIZED LIVE IDENTITY OPEN (2026-07-25).
+Loop state: J4.2K-R2-S1-E INCREMENTAL REDUCER SMOKE COMPLETE;
+FOUNDER GATE — NO LIVE IDENTITY OPEN (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -221,20 +221,26 @@ called, no live identity was created, and sealed evaluation bytes/evidence
 remain historical and terminal.
 
 The founder then authorized the smallest live compatibility check for those
-new bytes. `j4-active-brain-incremental-smoke-v1` is limited to two Gemini
-reducer calls — oat preference, then almond correction — and one Gemini
-answer call asking the current preference. It loads no dataset and exposes no
-benchmark, judge, OpenAI, Mem0, or continuation path. The current official
-Gemini model, structured-output, MIME, generation-control, usage, and price
-contracts were rechecked. All earlier J4 spend is carried:
-`$0.7731323` accounted (`$0.7706313` measured plus `$0.0025010` uncertain)
-under the unchanged `$7.00` cumulative cap. A stricter fresh `$0.10` subcap
-covers the exact three-dispatch maximum reservation of `$0.0190025`; retry
-dispatch is disabled so the stated two-reducer/one-answer scope is literal.
-Authority, configuration, 53 runtime hashes, the predecessor bundle, eight
-FINAL predictions, and operation-by-operation private checkpointing are
-frozen and offline-verified. No call for this identity has occurred at this
-preparation cut point.
+new bytes. The pushed `b647abf` preparation cut for
+`j4-active-brain-incremental-smoke-v1` was invoked exactly once. Both reducer
+requests and the answer request completed on their first physical attempt,
+with no retry. The first reduction stored the user's oat preference; the
+second replaced it with the current almond preference while preserving the
+exact oat-to-almond evidence lineage. The digest was ready at revision 2 with
+one active item and no pending work, and the answer correctly identified
+almond as current from that one-item incremental digest.
+
+The frozen mechanical grader records seven hits and one miss because its exact
+sentence allowlist did not accept the provider's correct prefatory and
+parenthetical wording. That formal miss is preserved as an evaluator false
+negative: it was not regraded, repaired, or rerolled. The three calls used
+2,328 Gemini input tokens and 911 Gemini output tokens; fresh measured spend
+was `$0.0029759`, bringing cumulative J4 spend to `$0.7761082` accounted,
+`$0.7736072` measured, and `$0.0025010` uncertain under the unchanged `$7.00`
+cap. No dataset, benchmark question, judge, OpenAI, Mem0, comparison arm, or
+publication surface ran. The private manifest, checkpoints, ledger, result,
+report, transcripts, predecessor chain, and exact-secret audit verify. The
+identity is sealed in code and no live identity remains open.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -700,6 +706,21 @@ session itself).
     terminal evidence bundle, predecessor hashes, evidence-based miss grading,
     and eight FINAL predictions are contract-tested. Focused tests are 17/17
     and the full suite is 295/295. No provider call has occurred.
+  - [x] J4.2K-R2-S1-E — INCREMENTAL REDUCER SMOKE COMPLETE 2026-07-25
+    (`this commit`). Invoked pushed preparation cut `b647abf` exactly once.
+    Both reducer calls and the answer call succeeded on their first attempt:
+    oat was added, almond superseded it, the exact correction lineage
+    survived, and one ready incremental-digest item supported the correct
+    current-preference answer. The frozen grader formally records 7/8 because
+    its exact wording allowlist rejected the correct answer's preface and
+    parenthetical; the miss remains immutable as an evaluator false negative.
+    There was no rerun or post-hoc regrade. Fresh measured spend was
+    `$0.0029759` for 2,328 input and 911 output tokens, bringing cumulative J4
+    spend to `$0.7761082` accounted. No dataset, benchmark, judge, OpenAI,
+    Mem0, comparison, or publication surface ran. The private evidence
+    verifies and the identity is terminal. Post-seal focused tests are 17/17
+    and the full suite is 295/295; quickstart, dry bake-off, package dry-run,
+    diff checks, manifest verification, and direct terminal refusal are green.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -712,22 +733,18 @@ session itself).
 
 ## Next
 
-AUTHORIZED LIVE CUT. Commit and push this coherent preparation, then invoke
-`j4-active-brain-incremental-smoke-v1` exactly once from that clean pushed
-cut. It may make only two metered Gemini reducer requests followed by one
-metered Gemini answer request, with at most three physical dispatches and no
-retry dispatch. Preserve the private result,
-transcripts, ledger, workspace, checkpoints, report, and manifest; grade the
-eight FINAL predictions with misses first; seal the runner; update this file
-without publishing raw evidence; commit, push, report, and stop.
+FOUNDER GATE. Report the terminal incremental reducer smoke and stop. No live
+identity is open. The product path itself completed the intended add,
+correction, lineage, bounded-digest, and answer journey; the frozen mechanical
+wording oracle recorded one false-negative miss and remains unchanged.
 
-Do not load LongMemEval, start a benchmark question, call a judge or OpenAI,
-run Mem0 or S-490, reroll any outcome, make a behavioral repair, publish, or
-continue to a first-five run. Known honest limits remain: a fixed lossy digest
-cannot prove arbitrary exhaustive negative/count answers, and a single
-interaction larger than the reducer envelope remains an explicit pending
-queue blocker until the host deletes it or adopts a separately versioned
-chunking contract.
+Do not rerun or regrade this identity. A grading-oracle repair, successor
+identity, benchmark question, provider call, cap change, behavioral repair,
+Mem0 or S-490 run, publication, or announcement requires a fresh founder GO.
+Known honest limits remain: a fixed lossy digest cannot prove arbitrary
+exhaustive negative/count answers, and a single interaction larger than the
+reducer envelope remains an explicit pending queue blocker until the host
+deletes it or adopts a separately versioned chunking contract.
 
 ## Log
 
@@ -948,6 +965,15 @@ operation checkpoints, and a `$0.10` fresh subcap covering its `$0.0190025`
 three-dispatch reservation. The semantic oracle rejects negated substring
 false positives and the private grader can emit independent misses. Focused
 tests 17/17 and full suite 295/295; no provider call occurred.
+2026-07-25 — J4.2K-R2-S1-E — this commit — Invoked pushed `b647abf` once;
+two reducers and one answer completed first-attempt with no retry. Oat was
+added, almond superseded it with exact lineage, and the one-item ready digest
+supported the correct current-preference answer. The immutable wording oracle
+formally recorded 7/8, with its sole miss preserved as an evaluator false
+negative. Fresh measured spend `$0.0029759`; cumulative accounted spend
+`$0.7761082`. Private evidence verified, runner sealed, no external evaluation
+surface used, and no live identity remains open. Post-seal focused tests 17/17
+and full suite 295/295; quickstart, dry bake-off, and package dry-run green.
 
 ## Product stop-rule record
 
@@ -1806,3 +1832,27 @@ tests 17/17 and full suite 295/295; no provider call occurred.
    almond, or answer from the wrong path without being detected before a
    benchmark. Preparation and execution are one founder-requested measurement
    and must end at the stated stop.
+
+### J4.2K-R2-S1-E incremental reducer-smoke execution
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It changed no product
+   bytes, but it established that the real provider can execute the new
+   incremental product path: oat was stored, almond replaced it with lineage
+   intact, and the correct current preference was answered from one bounded
+   ready digest item. The frozen 7/8 score contains one evaluator false
+   negative rather than a product-behavior failure.
+3. Does an existing framework already provide what this unit added? Gemini
+   supplied structured generation. Recurrent summarization itself is
+   established; Palari's measured behavior here is its local bounded digest
+   combined with an exact journal, host-verified evidence, correction lineage,
+   and fail-closed scope.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   exact two-reducer/one-answer live scope was stated and the founder replied
+   “okay do it.”
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? Product behavior would not immediately change, but the
+   only live proof that the recurrent add/correct/answer path works would be
+   lost and the paid identity could be rerolled. This execution closes the
+   preceding infrastructure preparation and stops at a founder gate.
