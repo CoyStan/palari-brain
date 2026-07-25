@@ -1,0 +1,368 @@
+{
+  "artifacts": [
+    {
+      "path": "evals/active-brain-live-config.mjs",
+      "sha256": "1f09456f86493971836b44556154f256ed55f4eb5a23188c785dbb128de9326a"
+    },
+    {
+      "path": "evals/active-brain-live-meter.mjs",
+      "sha256": "18dc1f13cce113da51b9621bd153b8391d05e6ad5a9dcc6a7fe1142c898afabf"
+    },
+    {
+      "path": "evals/arms/active-brain-longmemeval-live-arm.mjs",
+      "sha256": "a17c54e3bf1c50811b5255417309bba772b5eb169f4a16a4d5b78f161e47e367"
+    },
+    {
+      "path": "evals/arms/canonical-evidence-live-smoke.mjs",
+      "sha256": "e67f8627f620da9db65f9e2979a620c8012f477ae07745848df9ac5cf7b6131b"
+    },
+    {
+      "path": "evals/arms/canonical-first5-live-arm.mjs",
+      "sha256": "4abcd77a129af3d63567e0d0267317bebba18618999e1f01020d075af70876df"
+    },
+    {
+      "path": "evals/arms/kernel-longmemeval-live-arm.mjs",
+      "sha256": "e3ada58bc192533cdee85a4d563e3d30e61453a57cf37085eb952999018babf3"
+    },
+    {
+      "path": "evals/canonical-evidence-smoke-config.mjs",
+      "sha256": "a5534e2a906dee7242fdbfe358e6b7d53f72a77de4a20a0cfb4a8f8e7977919c"
+    },
+    {
+      "path": "evals/canonical-first5-live-config.mjs",
+      "sha256": "d230640b577e0d69b56423a1c2c6e0465816ff9d8630c13936ab06042780a11b"
+    },
+    {
+      "path": "evals/live-transcript.mjs",
+      "sha256": "b42fb4809c992b09b6e22506cd61e5cbffa108f693ab6cd8790152620439100d"
+    },
+    {
+      "path": "evals/longmemeval-judge.mjs",
+      "sha256": "5f953cd6f56cfcbb5de8246a7b79a5c7f63199dcd07861c5d8d0fe0bb4cff3ee"
+    },
+    {
+      "path": "evals/longmemeval-live-config.mjs",
+      "sha256": "fe47505706cbcb495dd356c72af017dd5c100b006423f48eb4e76f2fffc2419c"
+    },
+    {
+      "path": "evals/longmemeval-live-meter.mjs",
+      "sha256": "67b7c928f6f14d64be318f233b42e10e1c7c527e743fc998e08a4be406b868ef"
+    },
+    {
+      "path": "evals/longmemeval-plan.mjs",
+      "sha256": "285c24d98998fbbbb9374cf662c3b02db86b77100dfa9f0639ce06a884db9d82"
+    },
+    {
+      "path": "evals/run-active-brain-live.mjs",
+      "sha256": "997afcfd2420769dbf98a6a191c0b4114b5f1b2decadfd280503953b5f30f378"
+    },
+    {
+      "path": "evals/run-canonical-evidence-smoke.mjs",
+      "sha256": "2814b772c33e52fd5347d2bc7d983c2977b4f3b478cd221b680495f2e10ba5dc"
+    },
+    {
+      "path": "evals/run-canonical-first5-live.mjs",
+      "sha256": "e61b75b81b74fb7cc09fac22b56275f340523f12c6bfd01f3f88bfc6369cac1f"
+    },
+    {
+      "path": "evals/run-longmemeval-live.mjs",
+      "sha256": "43b99f0ac870133bad7403557ad12b92bfa029f3e0d57e3e283a2fb14a668345"
+    },
+    {
+      "path": "src/adapter.mjs",
+      "sha256": "4e1cf61d69828e0b7fdf005dec8b6e0bb8e1298e2e12259464bcef86b9a33a91"
+    },
+    {
+      "path": "src/brain.mjs",
+      "sha256": "76bcc23f655c03737074fbb2138f700cc8ce882f818eedd5ea5011d9ce83fb2f"
+    },
+    {
+      "path": "src/dialogue-evidence.mjs",
+      "sha256": "6517207b1869bd1f11be0f5fc4a51327c9a9b68b55ce0134f4a88470643406d5"
+    },
+    {
+      "path": "src/gate.mjs",
+      "sha256": "afb9856791bdbcc25240db0ba0bbab316d8e61133ec5773f9ddcb97baab9ec8a"
+    },
+    {
+      "path": "src/gemini.mjs",
+      "sha256": "0084aa1e6e97c1cf40588a3f1b5125abe3c330bcc2edd5576f8d3f05fe8b96d1"
+    },
+    {
+      "path": "src/index.mjs",
+      "sha256": "6f73878e895f69d6af049cd8317bd4ab223f76d7a5aec6da6a9264a43776410c"
+    },
+    {
+      "path": "src/longmemeval.mjs",
+      "sha256": "2835bd11edcaf4d121ac4ad77410a9a361dd25d0cbbffab4aeac39c3de14d9d9"
+    },
+    {
+      "path": "src/memory-briefing.mjs",
+      "sha256": "604174dfd9e8ac71436bd89069247d719d80180602ff4bb3b47013cb895fdd4b"
+    },
+    {
+      "path": "src/memory-extraction-schema.mjs",
+      "sha256": "212cd926d84fea4b1485d43f08761d7b5291cacac2a366f71c32625766dcfd35"
+    },
+    {
+      "path": "src/memory-extraction.mjs",
+      "sha256": "0ab8e7cf90ed927dc31b537373279a89ee5fea6a766690ddb6d1bf2cce99dfdc"
+    },
+    {
+      "path": "src/memory-store.mjs",
+      "sha256": "9661594e1a747a9dd1dcfa06936e21ed3c1d942da43ddf12069510dba9c63414"
+    },
+    {
+      "path": "src/recall.mjs",
+      "sha256": "b4242dbb95a12c5e4cbc70c2bcff0d2e0ccdb4f09114a70b881fafc8ffee87ef"
+    },
+    {
+      "path": "src/routing-budgets.mjs",
+      "sha256": "821f8834a4b9a1bfc9109140c684968033e98ffcd9acd3c6ffed25571d80b966"
+    },
+    {
+      "path": "src/statement-extraction.mjs",
+      "sha256": "7238ccc6c690ebf1faec024291546100365be77a53acf7899941810db86de902"
+    },
+    {
+      "path": "src/store.mjs",
+      "sha256": "55c43e27925938c0ceb21bb74438fb203df0a19709213f78329408e686593b45"
+    },
+    {
+      "path": "src/util.mjs",
+      "sha256": "84473cf2b3b604279069336e49af55d277eb44b3b3bd1b87efa0201ae99d0140"
+    },
+    {
+      "path": "src/v05-memory-extraction.mjs",
+      "sha256": "770889c34c02a4c1f9162318c2b32786f6922ff288924627d681a10f92561a9f"
+    }
+  ],
+  "capacityOracle": {
+    "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+    "maxChars": 100000,
+    "method": "current product canonical replay plus complete-scoped briefing preflight; no provider or judge call",
+    "productCommit": "2aca0a7e1797bb293f535f9f85905334117fbd4b",
+    "rows": [
+      {
+        "canonicalRows": 484,
+        "expectedExecution": "execute",
+        "ordinal": 1,
+        "questionId": "08e075c7",
+        "requiredChars": 633063
+      },
+      {
+        "canonicalRows": 481,
+        "expectedExecution": "not_reached",
+        "ordinal": 2,
+        "questionId": "09d032c9",
+        "requiredChars": 615373
+      },
+      {
+        "canonicalRows": 509,
+        "expectedExecution": "not_reached",
+        "ordinal": 3,
+        "questionId": "16c90bf4",
+        "requiredChars": 634907
+      },
+      {
+        "canonicalRows": 445,
+        "expectedExecution": "not_reached",
+        "ordinal": 4,
+        "questionId": "5e1b23de",
+        "requiredChars": 608623
+      },
+      {
+        "canonicalRows": 479,
+        "expectedExecution": "not_reached",
+        "ordinal": 5,
+        "questionId": "80ec1f4f_abs",
+        "requiredChars": 622274
+      }
+    ],
+    "stopAtFirstCapacity": true
+  },
+  "dataset": {
+    "path": "data/longmemeval_s_cleaned.json",
+    "sha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+  },
+  "generation": {
+    "answerMaxOutputTokens": 256,
+    "judgeMaxTokens": 10,
+    "judgeN": 1,
+    "judgeTemperature": 0,
+    "thinkingLevel": "MINIMAL",
+    "writerDenied": true
+  },
+  "limits": {
+    "maxAttempts": 40,
+    "maxLogicalRequests": {
+      "answer": 5,
+      "judge": 5,
+      "writer": 1
+    },
+    "maxResponseBytes": 4194304,
+    "maxTokens": {
+      "geminiInput": 2100000,
+      "geminiOutputIncludingThinking": 5120,
+      "judgeInput": 100000,
+      "judgeOutput": 200
+    },
+    "requestTimeoutMs": 60000,
+    "retryLimit": 3
+  },
+  "meterCompatibility": {
+    "effectiveWriterLogicalRequests": 0,
+    "reason": "The shared sealed meter schema requires positive logical ceilings; the runner denies writer purpose before transport.",
+    "runnerMustDenyPurpose": "writer",
+    "technicalWriterLogicalRequests": 1
+  },
+  "models": {
+    "answer": "gemini-3.5-flash-lite",
+    "judge": "gpt-4o-2024-08-06",
+    "writer": null
+  },
+  "population": {
+    "questionIds": [
+      "08e075c7",
+      "09d032c9",
+      "16c90bf4",
+      "5e1b23de",
+      "80ec1f4f_abs"
+    ],
+    "questionIdsSha256": "15653437520a8373805ded273d28bab901d04d3711c1c9ab7968b11e44ff746f",
+    "questions": 5,
+    "sealedQuestionIds": [
+      "001be529",
+      "00ca467f",
+      "0100672e",
+      "01493427",
+      "031748ae",
+      "031748ae_abs",
+      "06878be2",
+      "08f4fc43",
+      "0e5e2d1a",
+      "1568498a"
+    ]
+  },
+  "predecessor": {
+    "administrativeHead": "5bd8a27350145480a5ee9656d240b5147fb652b1",
+    "attempts": 2,
+    "benchmarkQuestions": 0,
+    "cumulativeAccountedUsd": 0.7727998,
+    "cumulativeMeasuredUsd": 0.7702988,
+    "cumulativeUncertainUsd": 0.002501,
+    "currentRunAccountedUsd": 0.0003003,
+    "currentRunMeasuredUsd": 0.0003003,
+    "currentRunUncertainUsd": 0,
+    "logicalRequests": {
+      "answer": 1,
+      "writer": 1
+    },
+    "openingAccountedUsd": 0.7724995,
+    "private": {
+      "checkpoint": {
+        "path": "evals/results/j4-active-brain-canonical-smoke-v1/checkpoint.json",
+        "sha256": "093c6c3b8aa57c8465b62624593434a4bfc86d8143b15878dfe76cd479911046"
+      },
+      "manifest": {
+        "path": "evals/results/j4-active-brain-canonical-smoke-v1/artifact-manifest.json",
+        "sha256": "be1eac7ffa17653df5a720bfb4bf2eaef05ae477df7d2f9bcf2e4c77b9644b56"
+      },
+      "meter": {
+        "path": "evals/results/j4-active-brain-canonical-smoke-v1/meter.jsonl",
+        "sha256": "234073fef643402ba4ad7d7a999b96c2684f5ed9010baed0206d4f44d52f50f1"
+      }
+    },
+    "productCommit": "2aca0a7e1797bb293f535f9f85905334117fbd4b",
+    "retries": 0,
+    "runId": "j4-active-brain-canonical-smoke-v1",
+    "sealedRunner": {
+      "path": "evals/run-canonical-evidence-smoke.mjs",
+      "preRunSha256": "1a770ef53e4b4042db7fd52ae41fe379090b0175d9fcd91b69ebbc182a351f34",
+      "sha256": "2814b772c33e52fd5347d2bc7d983c2977b4f3b478cd221b680495f2e10ba5dc"
+    },
+    "sealCommit": "5f22a9689532948c0356f01b473043df64270ccc",
+    "status": "complete",
+    "tracked": {
+      "authority": {
+        "path": "evals/live-runs/j4-active-brain-canonical-smoke-v1.authority.json",
+        "sha256": "c70f45de2d3efdeceaab7008d1c6d6e5a34c8f8bebb77d7074d861aaa8d7357f"
+      },
+      "config": {
+        "path": "evals/live-runs/j4-active-brain-canonical-smoke-v1.json",
+        "sha256": "28419934b34635770474aa61e156c8d2038c4a89dd858554f5029d1ce22b502c"
+      },
+      "predictions": {
+        "path": "evals/predictions/j4-active-brain-canonical-smoke-v1.json",
+        "sha256": "1d840005849d3c58a6f523fa8cff66ba2a2fcefaf409ab1b24cb611c2a89ab2c"
+      }
+    }
+  },
+  "predictions": {
+    "path": "evals/predictions/j4-active-brain-canonical-first5-v1.json",
+    "sha256": "c2a8fcd19d92a1f54b54c99b8737ab11a8b3a327326130e2991622866120b1bd"
+  },
+  "pricesUsdPerToken": {
+    "geminiInput": 3e-7,
+    "geminiOutputIncludingThinking": 0.0000025,
+    "judgeInput": 0.0000025,
+    "judgeOutput": 0.00001
+  },
+  "productCommit": "2aca0a7e1797bb293f535f9f85905334117fbd4b",
+  "prompts": {
+    "answerContractSha256": "e3c4083a43473ddd96d765825f0d04bc31f800ef37cbe0b835c0e140526b9b38",
+    "judgeSourceSha256": "ecce9c4c79dc89d99534ac17b383a5cbb5b9f0c69ee98adaf0684742e3d95251",
+    "writer": null
+  },
+  "runDate": "2026-07-25",
+  "runId": "j4-active-brain-canonical-first5-v1",
+  "schemaVersion": 1,
+  "scope": {
+    "answerOperationsMax": 5,
+    "benchmarkQuestions": 5,
+    "datasetLoaded": true,
+    "judgeOperationsMax": 5,
+    "stopAtFirstCapacity": true,
+    "writerOperations": 0
+  },
+  "spend": {
+    "availableUnderCumulativeCapUsd": 6.2272002,
+    "cumulativeCapUsd": 7,
+    "freshSubcapUsd": 1,
+    "estimate": {
+      "capacityBoundary": {
+        "answerLogicalRequests": 0,
+        "judgeLogicalRequests": 1,
+        "judgeRequestBytes": 712,
+        "judgeRequestSha256": "d08e0f97aaa96f58f6e0a3e7067d7b18ec13c23b1123fc51a4326d59b0e300ce",
+        "maximumAttempts": 4,
+        "maximumRetryReservationUsd": 0.01264,
+        "oneAttemptReservation": {
+          "judgeInputTokens": 1224,
+          "judgeOutputTokens": 10,
+          "usd": 0.00316
+        },
+        "ordinal": 1,
+        "questionId": "08e075c7",
+        "writerLogicalRequests": 0
+      },
+      "maximumTokenEnvelope": {
+        "geminiInputTokens": 2100000,
+        "geminiOutputIncludingThinkingTokens": 5120,
+        "judgeInputTokens": 100000,
+        "judgeOutputTokens": 200,
+        "usd": 0.8948
+      }
+    },
+    "maximumPostRunAccountedUsd": 1.7727998,
+    "openingAccountedUsd": 0.7727998,
+    "openingMeasuredUsd": 0.7702988,
+    "openingUncertainUsd": 0.002501,
+    "pricesUsdPerToken": {
+      "geminiInput": 3e-7,
+      "geminiOutputIncludingThinking": 0.0000025,
+      "judgeInput": 0.0000025,
+      "judgeOutput": 0.00001
+    }
+  }
+}

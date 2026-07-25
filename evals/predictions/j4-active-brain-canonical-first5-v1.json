@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "runId": "j4-active-brain-canonical-first5-v1",
+  "status": "FINAL",
+  "frozenAt": "2026-07-25",
+  "decisionReference": {
+    "date": "2026-07-25",
+    "document": "docs/DECISIONS.md",
+    "entry": "FOUNDER GO — J4.2K-C1 canonical first-five benchmark",
+    "questions": 5,
+    "cumulativeHardCapUsd": 7,
+    "freshSubcapUsd": 1
+  },
+  "models": {
+    "answer": "gemini-3.5-flash-lite",
+    "judge": "gpt-4o-2024-08-06",
+    "writer": null
+  },
+  "population": {
+    "questions": 5,
+    "questionIds": [
+      "08e075c7",
+      "09d032c9",
+      "16c90bf4",
+      "5e1b23de",
+      "80ec1f4f_abs"
+    ],
+    "questionIdsSha256": "15653437520a8373805ded273d28bab901d04d3711c1c9ab7968b11e44ff746f"
+  },
+  "promptConfig": {
+    "writer": {
+      "enabled": false,
+      "logicalRequests": 0,
+      "note": "Canonical user and Palari messages are committed by the host; the optional derived-index writer is disabled."
+    },
+    "answer": {
+      "maxChars": 100000,
+      "maxOutputTokens": 256,
+      "memorySet": "complete-canonical-scoped-or-refuse",
+      "store": false,
+      "thinkingLevel": "MINIMAL"
+    },
+    "judge": {
+      "model": "gpt-4o-2024-08-06",
+      "parser": "official-response-contains-yes",
+      "sourceCommit": "9e0b455f4ef0e2ab8f2e582289761153549043fc"
+    }
+  },
+  "method": {
+    "finalizedBeforeProviderCalls": true,
+    "capacityOracleIsOfflineNotScoring": true,
+    "capacityOracleMethod": "Replay the frozen first-five data through current canonical durable ingest without an extractor, then run the product complete-scoped 100,000-character briefing preflight without a provider.",
+    "stopAtFirstCapacity": true,
+    "note": "These are new predictions for the canonical full-message product bytes. They do not alter, regrade, replace, import, or combine any active-v1 or canonical-smoke prediction or result."
+  },
+  "priorPredictionsRemainImmutable": {
+    "activeFirst5Sha256": "b40c573ac81054976ce39f314783f2abd2b31fe9098918b0942de4b99bb60bdb",
+    "canonicalSmokeSha256": "1d840005849d3c58a6f523fa8cff66ba2a2fcefaf409ab1b24cb611c2a89ab2c"
+  },
+  "predictions": [
+    {
+      "capacityOracle": {
+        "canonicalRows": 484,
+        "maxChars": 100000,
+        "requiredChars": 633063
+      },
+      "expectedExecution": "execute",
+      "isAbstention": false,
+      "ordinal": 1,
+      "predictedFailureStage": "capacity",
+      "predictedOfficialCorrect": false,
+      "questionId": "08e075c7",
+      "questionType": "knowledge-update"
+    },
+    {
+      "capacityOracle": {
+        "canonicalRows": 481,
+        "maxChars": 100000,
+        "requiredChars": 615373
+      },
+      "expectedExecution": "not_reached",
+      "isAbstention": false,
+      "ordinal": 2,
+      "predictedFailureStage": "not_reached",
+      "predictedOfficialCorrect": null,
+      "questionId": "09d032c9",
+      "questionType": "single-session-preference"
+    },
+    {
+      "capacityOracle": {
+        "canonicalRows": 509,
+        "maxChars": 100000,
+        "requiredChars": 634907
+      },
+      "expectedExecution": "not_reached",
+      "isAbstention": false,
+      "ordinal": 3,
+      "predictedFailureStage": "not_reached",
+      "predictedOfficialCorrect": null,
+      "questionId": "16c90bf4",
+      "questionType": "single-session-assistant"
+    },
+    {
+      "capacityOracle": {
+        "canonicalRows": 445,
+        "maxChars": 100000,
+        "requiredChars": 608623
+      },
+      "expectedExecution": "not_reached",
+      "isAbstention": false,
+      "ordinal": 4,
+      "predictedFailureStage": "not_reached",
+      "predictedOfficialCorrect": null,
+      "questionId": "5e1b23de",
+      "questionType": "temporal-reasoning"
+    },
+    {
+      "capacityOracle": {
+        "canonicalRows": 479,
+        "maxChars": 100000,
+        "requiredChars": 622274
+      },
+      "expectedExecution": "not_reached",
+      "isAbstention": true,
+      "ordinal": 5,
+      "predictedFailureStage": "not_reached",
+      "predictedOfficialCorrect": null,
+      "questionId": "80ec1f4f_abs",
+      "questionType": "multi-session"
+    }
+  ],
+  "rowArraySha256": "9af514d63b74d46644d88b78ddb31112f2ea073030e7129c1ce78f26f1c6577a",
+  "expectedBoundary": {
+    "completedQuestions": 1,
+    "pendingQuestions": 4,
+    "stopAfterOrdinal": 1,
+    "stopReason": "MEMORY_CAPACITY_EXCEEDED",
+    "writerLogicalRequests": 0,
+    "answerLogicalRequests": 0,
+    "judgeLogicalRequests": 1
+  }
+}

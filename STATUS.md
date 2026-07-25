@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-S1-E CANONICAL ROLE SMOKE COMPLETE;
-FOUNDER GATE; ACTIVE V1 AND V5 TERMINAL (2026-07-25).
+Loop state: J4.2K-C1-P CANONICAL FIRST-FIVE CAPACITY RUN READY;
+FOUNDER GO ACTIVE; PREDECESSORS TERMINAL (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -161,6 +161,24 @@ was `$0.0003003`, all measured; cumulative spend is `$0.7727998` accounted,
 cap. The ignored private bundle, modes, hashes, predecessor chain, transcripts,
 meter, and exact-secret audit verify. The identity is sealed in code and
 cannot be resumed or rerolled.
+
+The founder has now authorized one fresh first-five measurement of the same
+canonical product bytes. `j4-active-brain-canonical-first5-v1` uses the same
+five frozen LongMemEval questions, but the optional derived-index writer is
+disabled because recall does not consume it. Every visible user/Palari message
+still enters canonical storage. The offline product oracle proves that all
+five complete briefings exceed the unchanged 100,000-character limit; ordinal
+1 alone has 484 canonical rows and requires 633,063 characters. The contracted
+first-capacity stop therefore expects exactly one locally refused question,
+zero writer calls, zero Gemini answer calls, one official OpenAI judge logical
+request, and no start of ordinal 2. All predecessor evidence and `$0.7727998`
+accounted spend are carried under the unchanged `$7.00` cumulative cap. A
+stricter fresh `$1.00` subcap applies; the exact first-judge reservation is
+`$0.0031600` for one attempt and `$0.0126400` across all four permitted
+attempts. Authority, configuration, 34 runtime hashes, the exact capacity
+oracle, cost arithmetic, and five FINAL predictions are frozen and
+offline-verified. No provider call for this identity has occurred at this
+pre-run cut point.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -556,6 +574,26 @@ session itself).
     dependency, file, result-path, or credential access.
     Post-seal focused tests are 12/12 and the full suite is 232/232;
     quickstart, dry bake-off, and package dry-run are green.
+  - [x] J4.2K-C1-P — CANONICAL FIRST-FIVE CAPACITY RUN READY 2026-07-25
+    (`this commit`). Froze fresh identity
+    `j4-active-brain-canonical-first5-v1` over the same first five questions
+    and current canonical product commit `2aca0a7`. The host replays complete
+    role-labelled dialogue with zero optional writer operations. The exact
+    offline oracle pins 484/481/509/445/479 canonical rows and required
+    briefings of 633,063/615,373/634,907/608,623/622,274 characters, all above
+    the unchanged 100,000-character complete-context limit. FINAL predictions
+    require ordinal 1 to become one judged capacity observation and ordinals
+    2–5 to remain pending. The expected live boundary is zero writer calls,
+    zero Gemini answer calls, and one OpenAI judge logical request, followed
+    by a stop. Config SHA-256
+    `10233b2b92dc9d339a0e70bdd5c231af8b9be948f1d798439b735ee68f498efa`;
+    authority SHA-256
+    `9174c598821ae7987a7add3265d66576dd2acf067b05774d43f86dc89d6a3ebd`;
+    FINAL prediction SHA-256
+    `c2a8fcd19d92a1f54b54c99b8737ab11a8b3a327326130e2991622866120b1bd`.
+    All 34 runtime artifacts and the complete predecessor chain verify.
+    Focused tests are 23/23 and the full suite is 255/255; quickstart, dry
+    bake-off, and package dry-run are green. No provider call has occurred.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -568,20 +606,17 @@ session itself).
 
 ## Next
 
-FOUNDER GATE. The smoke-only successor succeeded and is terminal. It confirms
-that the J4.2K-R1 canonical path preserves both visible speakers and excludes
-source-only text even when the optional writer index selects nothing; it does
-not supply a benchmark-quality result. Do not resume or reroll this identity,
-dispatch a benchmark question or judge, raise a cap, alter predecessor inputs
-or private evidence, run Mem0 or S-490, publish a score, announce a result, or
-make another provider call without a fresh founder GO and fresh identity.
-J4.2K-S1-P and J4.2K-S1-E together are one measurement's preparation and
-execution, but both are infrastructure cut points; do not add a third
-infrastructure unit before a product/evaluation decision. The separate future
-capacity question—semantic/time-aware retrieval above the bounded complete
-context—remains unimplemented until measurement demonstrates need. V4, V5,
-active v1, and canonical-smoke v1 remain separate; U8, J3 v1-v4, and J4 v1-v5
-remain closed.
+FOUNDER GO ACTIVE. From the pushed clean pre-run cut, invoke exactly
+`node evals/run-canonical-first5-live.mjs --run
+j4-active-brain-canonical-first5-v1` with the frozen confirmations and keys.
+The run must attempt ordinal 1 once, preserve its complete canonical evidence,
+grade the honest local capacity answer with the official judge, checkpoint,
+and stop before ordinal 2. Do not make a writer call or Gemini answer call,
+continue after capacity, rerun any operation, execute question 6, alter the
+100,000-character product limit, change predecessor evidence, run Mem0 or
+S-490, publish or announce a score, or implement retrieval. After the
+invocation, seal this identity, verify the private bundle and full offline
+suite, commit, push, report the factual capacity result and spend, and stop.
 
 ## Log
 
@@ -776,6 +811,12 @@ all six FINAL predictions were confirmed, and the identity was sealed. Exactly
 two calls, zero retries/questions/judges, and `$0.0003003` fresh measured spend;
 no benchmark score exists or entered git. Post-seal focused tests 12/12 and
 full suite 232/232; quickstart, dry bake-off, and package dry-run green.
+2026-07-25 — J4.2K-C1-P — this commit — Recorded the founder's canonical
+first-five GO, disabled the unused optional writer, froze the exact
+first-capacity oracle, official-judge cost, five FINAL predictions, 34 runtime
+hashes, and complete predecessor spend/evidence chain under a fresh `$1`
+subcap. Focused tests 23/23 and full suite 255/255; quickstart, dry bake-off,
+and package dry-run green; no provider call occurred.
 
 ## Product stop-rule record
 
@@ -1536,3 +1577,27 @@ full suite 232/232; quickstart, dry bake-off, and package dry-run green.
    the spent identity could be rerolled. This is the execution half of the
    preceding infrastructure measurement, not authority for another layer;
    STATUS therefore stops at a founder gate.
+
+### J4.2K-C1-P canonical first-five capacity pre-run
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It changes no product
+   behavior before execution. It turns the previously hypothetical
+   complete-context limit into an exact external-benchmark measurement with a
+   preregistered stop.
+3. Does an existing framework already provide what this unit added? LongMemEval
+   supplies the questions, Gemini would supply an answer if context fit, and
+   the official OpenAI judge supplies grading. This unit adds no memory
+   framework; it reuses Palari's mature private meter around the active
+   product path and disables the unused writer.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder accepted this exact fresh first-five, no-writer, `$1`-subcap
+   measurement and the first-capacity stop interpretation was stated before
+   any provider call.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Runtime behavior would not change immediately, but we could keep
+   debating retrieval without measuring whether real conversations exceed
+   the current limit, or accidentally spend on five known-overflow questions.
+   Preparation and execution together are one founder-requested evaluation
+   decision; no further infrastructure is authorized afterward.

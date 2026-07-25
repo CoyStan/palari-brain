@@ -1165,3 +1165,32 @@ dates. Agents record; the founder decides.
   successor identity, provider call, cap change, Mem0 or S-490 run,
   publication, announcement, or behavioral repair requires a fresh founder
   GO.
+- 2026-07-25 (FOUNDER GO — J4.2K-C1 canonical first-five benchmark) After
+  the canonical role smoke passed, the founder accepted the proposed next
+  measurement with “i agree, go.” The exact scope stated before execution is
+  one fresh `j4-active-brain-canonical-first5-v1` identity over the same first
+  five LongMemEval questions, current canonical host storage, no optional
+  writer calls, at most five Gemini answer calls and five official OpenAI
+  judge calls, a fresh `$1.00` subcap inside the unchanged `$7.00` cumulative
+  cap, and a mandatory stop after question 5 or the first capacity failure.
+  All predecessor runs and private evidence remain immutable and separately
+  attributable. This GO does not authorize question 6, Mem0, S-490, a reroll,
+  publication, announcement, changing the 100,000-character product limit,
+  or implementing retrieval after seeing the result.
+
+  The required pre-call oracle then established that every one of the five
+  frozen questions exceeds the complete-context limit. Question `08e075c7`
+  alone retains 484 exact role-labelled messages and requires 633,063
+  characters. The already-agreed first-capacity circuit breaker therefore
+  narrows the expected execution boundary mechanically: attempt question 1
+  once, make no writer or Gemini answer call, send its honest capacity answer
+  to the unchanged official judge once, checkpoint it, and stop before
+  question 2. The exact judge body is 712 bytes with SHA-256
+  `d08e0f97aaa96f58f6e0a3e7067d7b18ec13c23b1123fc51a4326d59b0e300ce`;
+  its one-attempt reservation is `$0.0031600`, and its four-attempt retry
+  maximum is `$0.0126400`. The complete configured token envelope is
+  `$0.8948000`, below the fresh subcap. The founder did not redirect the
+  stated capacity-stop interpretation. Authority, configuration, runtime
+  hashes, exact cost arithmetic, and FINAL predictions must be pushed before
+  the one invocation. The identity is terminal afterward regardless of the
+  judge outcome.

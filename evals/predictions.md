@@ -74,3 +74,19 @@ The observed v4 question-1 result did not revise any outcome. V5 changes only
 the Gemini writer allowance from 512 to exactly 2,000 tokens,
 four-predecessor accounting, and immutable-run metadata. It is FINAL before
 any v5 provider call.
+
+## J4 canonical first-five v1 — FINAL before capacity execution
+
+Author: repository execution lane, 2026-07-25. The complete machine-readable
+prediction document is
+`evals/predictions/j4-active-brain-canonical-first5-v1.json`, SHA-256
+`c2a8fcd19d92a1f54b54c99b8737ab11a8b3a327326130e2991622866120b1bd`.
+It predicts that current complete-or-refuse recall will locally reject
+question `08e075c7` because its 484 canonical messages require 633,063
+characters against the frozen 100,000-character product limit. The official
+judge is predicted to mark the capacity answer incorrect. The run must then
+stop, leaving ordinals 2–5 not reached. The expected boundary is zero writer
+calls, zero Gemini answer calls, one OpenAI judge logical request, one
+completed capacity observation, and four pending questions. These predictions
+are FINAL before any call for this identity and do not alter or combine any
+predecessor prediction or result.
