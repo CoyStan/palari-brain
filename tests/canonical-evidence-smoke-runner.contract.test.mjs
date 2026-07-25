@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
   access,
   readFile,
@@ -28,6 +29,7 @@ import {
   assertCanonicalEvidenceSmokeOpen,
   auditCanonicalEvidenceTrackedArtifacts,
   canonicalEvidenceSmokeResultPaths,
+  main,
   verifyCanonicalEvidenceSmokePredecessor,
 } from '../evals/run-canonical-evidence-smoke.mjs'
 
@@ -104,16 +106,32 @@ test('result paths contain no question or dataset surface', () => {
   assert.equal(Object.hasOwn(paths, 'questionPath'), false)
 })
 
-test('every behavior artifact matches the frozen config hash',
+test('terminal seal changes only the frozen runner artifact',
   async () => {
     const { config } = await loadCanonicalEvidenceSmokeConfig({
       repoRoot,
     })
+    const runnerPath = 'evals/run-canonical-evidence-smoke.mjs'
+    const frozenRunner = config.artifacts.find(
+      (entry) => entry.path === runnerPath,
+    )
+    assert.ok(frozenRunner)
+    const currentRunner = await readFile(resolve(repoRoot, runnerPath))
+    assert.notEqual(
+      frozenRunner.sha256,
+      createHash('sha256').update(currentRunner).digest('hex'),
+    )
+    const unchangedConfig = {
+      ...config,
+      artifacts: config.artifacts.filter(
+        (entry) => entry.path !== runnerPath,
+      ),
+    }
     const audit = await auditCanonicalEvidenceTrackedArtifacts({
-      config,
+      config: unchangedConfig,
       repoRoot,
     })
-    assert.equal(audit.artifacts, config.artifacts.length)
+    assert.equal(audit.artifacts, config.artifacts.length - 1)
   })
 
 test('frozen artifacts cover the complete local runtime import graph',
@@ -238,3 +256,35 @@ test('run identity is open only until its post-run seal', () => {
     )
   }
 })
+
+test('terminal identity refuses before dependencies or environment are read',
+  async () => {
+    let dependencyRead = false
+    let environmentRead = false
+    const dependencies = new Proxy({}, {
+      get() {
+        dependencyRead = true
+        throw new Error('dependency read after terminal seal')
+      },
+    })
+    const env = new Proxy({}, {
+      get() {
+        environmentRead = true
+        throw new Error('environment read after terminal seal')
+      },
+    })
+
+    await assert.rejects(
+      main({
+        args: [
+          '--run',
+          CANONICAL_EVIDENCE_SMOKE_RUN_ID,
+        ],
+        dependencies,
+        env,
+      }),
+      (error) => error?.code === 'J4_RUN_TERMINAL',
+    )
+    assert.equal(dependencyRead, false)
+    assert.equal(environmentRead, false)
+  })

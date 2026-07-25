@@ -1129,3 +1129,39 @@ dates. Agents record; the founder decides.
   regardless of pass or failure. This GO does not authorize a benchmark
   question, OpenAI judge call, cap increase, reroll, Mem0, S-490, publication,
   announcement, or a behavioral repair after observing the smoke.
+- 2026-07-25 (J4.2K-S1 TERMINAL — canonical evidence role smoke passed) The
+  pushed `5bd8a27` cut was invoked exactly once as
+  `j4-active-brain-canonical-smoke-v1`. Its one Gemini writer request and one
+  Gemini answer request both completed on their first attempt with
+  `gemini-3.5-flash-lite`. The host retained the complete platform-seven user
+  message as `user_message` and the complete twenty-minutes-early Palari
+  recommendation as `assistant_message`; the optional writer selected and
+  wrote zero derived index rows. The one source-only poison text did not enter
+  canonical evidence or the complete two-message briefing, and the answer
+  used both speakers correctly. All six FINAL smoke predictions were
+  confirmed. There were zero retries, dataset reads, benchmark questions,
+  judge calls, and benchmark scores.
+
+  The two calls used 726 Gemini input tokens and 33 Gemini output tokens.
+  Fresh spend was `$0.0003003`, all measured. Including every J4 predecessor,
+  cumulative spend is `$0.7727998` accounted, `$0.7702988` measured, and
+  `$0.0025010` uncertain under the unchanged `$7.00` hard cap and `$0.03`
+  fresh subcap. Private artifact-manifest SHA-256 is
+  `be1eac7ffa17653df5a720bfb4bf2eaef05ae477df7d2f9bcf2e4c77b9644b56`;
+  checkpoint SHA-256 is
+  `093c6c3b8aa57c8465b62624593434a4bfc86d8143b15878dfe76cd479911046`;
+  meter SHA-256 is
+  `234073fef643402ba4ad7d7a999b96c2684f5ed9010baed0206d4f44d52f50f1`.
+  The ignored private bundle passes manifest, mode, hash, predecessor,
+  transcript, ledger, scope, and exact-secret audits. No private transcript,
+  raw evidence, or benchmark score entered git or was published.
+
+  The tracked runner now lists the identity as terminal. Its post-run SHA-256
+  `2814b772c33e52fd5347d2bc7d983c2977b4f3b478cd221b680495f2e10ba5dc`
+  intentionally differs from the frozen pre-run runner SHA-256
+  `1a770ef53e4b4042db7fd52ae41fe379090b0175d9fcd91b69ebbc182a351f34`,
+  and execution refuses before dependency, file, result-path, or credential
+  access. This identity cannot be resumed or rerolled. Any benchmark question,
+  successor identity, provider call, cap change, Mem0 or S-490 run,
+  publication, announcement, or behavioral repair requires a fresh founder
+  GO.

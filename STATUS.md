@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-S1-P CANONICAL ROLE SMOKE READY;
-FOUNDER GO ACTIVE; ACTIVE V1 AND V5 TERMINAL (2026-07-25).
+Loop state: J4.2K-S1-E CANONICAL ROLE SMOKE COMPLETE;
+FOUNDER GATE; ACTIVE V1 AND V5 TERMINAL (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -147,7 +147,20 @@ uncertain) under the unchanged `$7.00` cumulative cap. A stricter fresh
 `$0.0282588`. Authority, configuration, product/prompt hashes, and six FINAL
 smoke predictions are frozen; focused tests are 11/11 and the full suite is
 231/231. Quickstart, dry bake-off, and package dry-run are green. No call for
-this identity has occurred at this preparation cut point.
+this identity had occurred at the pushed `5bd8a27` preparation cut point.
+
+That pushed identity was invoked exactly once. Its one writer and one answer
+request both completed on their first attempt. The host retained the complete
+user and Palari messages with exact roles even though the optional writer
+selected and wrote zero index rows; the source-only poison was excluded, the
+briefing was complete, and the answer used both speakers correctly. All six
+FINAL smoke predictions were confirmed. No dataset was loaded, no benchmark
+question or judge call occurred, and no benchmark score exists. Fresh spend
+was `$0.0003003`, all measured; cumulative spend is `$0.7727998` accounted,
+`$0.7702988` measured, and `$0.0025010` uncertain under the unchanged `$7.00`
+cap. The ignored private bundle, modes, hashes, predecessor chain, transcripts,
+meter, and exact-secret audit verify. The identity is sealed in code and
+cannot be resumed or rerolled.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -520,6 +533,29 @@ session itself).
     Focused tests are 11/11 and the full suite is 231/231; quickstart, dry
     bake-off, package dry-run, and independent reviews are green. No provider
     call has occurred.
+  - [x] J4.2K-S1-E — CANONICAL ROLE SMOKE COMPLETE 2026-07-25
+    (`this commit`). The pushed `5bd8a27` identity was invoked exactly once.
+    One Gemini writer and one Gemini answer request completed on their first
+    attempts. Both exact canonical messages survived with `user_message` and
+    `assistant_message` provenance even though the optional writer index
+    selected and wrote zero rows. One source-only poison text was excluded,
+    the complete two-message briefing reached the answer, and the answer used
+    both speakers correctly. All six FINAL smoke predictions were confirmed.
+    There were zero retries, benchmark questions, judge calls, and benchmark
+    scores. Fresh spend was `$0.0003003`, all measured; cumulative spend is
+    `$0.7727998` accounted, `$0.7702988` measured, and `$0.0025010` uncertain
+    under the unchanged `$7.00` cap. Private manifest SHA-256
+    `be1eac7ffa17653df5a720bfb4bf2eaef05ae477df7d2f9bcf2e4c77b9644b56`;
+    checkpoint SHA-256
+    `093c6c3b8aa57c8465b62624593434a4bfc86d8143b15878dfe76cd479911046`;
+    meter SHA-256
+    `234073fef643402ba4ad7d7a999b96c2684f5ed9010baed0206d4f44d52f50f1`.
+    The ignored nine-file bundle passes manifest, mode, hash, predecessor,
+    transcript, ledger, scope, and exact-secret audits. The terminal runner
+    hash differs from its frozen pre-run hash and refuses the run ID before
+    dependency, file, result-path, or credential access.
+    Post-seal focused tests are 12/12 and the full suite is 232/232;
+    quickstart, dry bake-off, and package dry-run are green.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -532,17 +568,20 @@ session itself).
 
 ## Next
 
-Execute the pushed `j4-active-brain-canonical-smoke-v1` identity exactly once
-under the recorded founder GO, with the exact Gemini model, unchanged `$7.00`
-cumulative cap, and stricter `$0.03` fresh subcap. Run only the one writer and
-one answer role smoke, then stop and seal the identity regardless of outcome.
-Do not dispatch a benchmark question or judge, raise a cap, alter predecessor
-inputs or private evidence, run Mem0 or S-490, publish a score, announce a
-result, or make a behavioral repair after seeing the smoke. The separate
-future capacity question—semantic/time-aware retrieval above the bounded
-complete context—remains unimplemented until measurement demonstrates need.
-V4, V5, and active v1 remain separate; U8, J3 v1-v4, and J4 v1-v5 remain
-closed.
+FOUNDER GATE. The smoke-only successor succeeded and is terminal. It confirms
+that the J4.2K-R1 canonical path preserves both visible speakers and excludes
+source-only text even when the optional writer index selects nothing; it does
+not supply a benchmark-quality result. Do not resume or reroll this identity,
+dispatch a benchmark question or judge, raise a cap, alter predecessor inputs
+or private evidence, run Mem0 or S-490, publish a score, announce a result, or
+make another provider call without a fresh founder GO and fresh identity.
+J4.2K-S1-P and J4.2K-S1-E together are one measurement's preparation and
+execution, but both are infrastructure cut points; do not add a third
+infrastructure unit before a product/evaluation decision. The separate future
+capacity question—semantic/time-aware retrieval above the bounded complete
+context—remains unimplemented until measurement demonstrates need. V4, V5,
+active v1, and canonical-smoke v1 remain separate; U8, J3 v1-v4, and J4 v1-v5
+remain closed.
 
 ## Log
 
@@ -730,6 +769,13 @@ verified and carried the terminal active-v1 evidence and exact `$0.7724995`
 opening spend, and imposed a `$0.03` fresh subcap inside the unchanged `$7.00`
 cap. Focused tests 11/11 and full suite 231/231; quickstart, dry bake-off, and
 package dry-run green; no provider call occurred.
+2026-07-25 — J4.2K-S1-E — this commit — Invoked the pushed smoke identity
+once; both role-labelled canonical messages survived despite an empty optional
+writer index, the answer used both speakers, source-only text stayed excluded,
+all six FINAL predictions were confirmed, and the identity was sealed. Exactly
+two calls, zero retries/questions/judges, and `$0.0003003` fresh measured spend;
+no benchmark score exists or entered git. Post-seal focused tests 12/12 and
+full suite 232/232; quickstart, dry bake-off, and package dry-run green.
 
 ## Product stop-rule record
 
@@ -1467,3 +1513,26 @@ package dry-run green; no provider call occurred.
    remain only an offline assertion. A live writer omission, source-boundary
    regression, or both-speaker answer failure could reach a later benchmark
    run without the required early stop.
+
+### J4.2K-S1-E canonical role-smoke execution
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It changed no product
+   bytes and produced no benchmark-quality measurement. It did confirm all six
+   preregistered role/source smoke claims live, including the exact prior
+   failure: complete Palari evidence survived even when the optional writer
+   selected nothing.
+3. Does an existing framework already provide what this unit added? Gemini
+   provided both model calls and the reused Palari meter preserved the private
+   evidence. The execution added no framework; it closed the already prepared
+   empirical check.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder expressly authorized a new test run after approving the canonical
+   repair, and the smoke-only interpretation was stated before execution.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? Runtime behavior would not change immediately, but the
+   live evidence that both speakers survive writer omission would be lost and
+   the spent identity could be rerolled. This is the execution half of the
+   preceding infrastructure measurement, not authority for another layer;
+   STATUS therefore stops at a founder gate.

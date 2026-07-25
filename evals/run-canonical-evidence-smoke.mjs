@@ -46,7 +46,9 @@ export const CANONICAL_EVIDENCE_SMOKE_REPO_ROOT = dirname(here)
 // This array is populated in the post-run seal commit. The terminal check is
 // intentionally the first operation after parsing the exact run ID.
 export const CANONICAL_EVIDENCE_SMOKE_TERMINAL_RUN_IDS =
-  Object.freeze([])
+  Object.freeze([
+    'j4-active-brain-canonical-smoke-v1',
+  ])
 
 const terminalRunIds = new Set(
   CANONICAL_EVIDENCE_SMOKE_TERMINAL_RUN_IDS,
