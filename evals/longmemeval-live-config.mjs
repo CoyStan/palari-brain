@@ -10,6 +10,7 @@ import { resolve } from 'node:path'
 
 import { buildMemoryExtractionRequest } from '../src/memory-extraction.mjs'
 import {
+  MEMORY_EXTRACTION_RESPONSE_MIME_TYPE,
   MEMORY_EXTRACTION_RESPONSE_SCHEMA,
   MEMORY_EXTRACTION_SOURCE_KINDS,
   MEMORY_EXTRACTION_TYPES,
@@ -34,7 +35,7 @@ import {
   SEALED_U8_QUESTION_IDS,
 } from './longmemeval-plan.mjs'
 
-export const J4_LIVE_RUN_ID = 'j4-longmemeval-s60-v3'
+export const J4_LIVE_RUN_ID = 'j4-longmemeval-s60-v4'
 export const J4_LIVE_CONFIG_PATH =
   `evals/live-runs/${J4_LIVE_RUN_ID}.json`
 export const J4_LIVE_AUTHORITY_PATH =
@@ -43,8 +44,8 @@ export const J4_LIVE_PREDICTIONS_PATH =
   `evals/predictions/${J4_LIVE_RUN_ID}.json`
 export const J4_GEMINI_MODEL = 'gemini-3.5-flash-lite'
 export const J4_LIVE_RESULTS_ROOT = 'evals/results'
-export const J4_CARRIED_ACCOUNTED_USD = 0.0150692
-export const J4_FRESH_METER_CAP_USD = 2.4849308
+export const J4_CARRIED_ACCOUNTED_USD = 0.0175702
+export const J4_FRESH_METER_CAP_USD = 2.4824298
 export const J4_PREDECESSOR_CHAIN = deepFreeze({
   openingAccountedUsd: J4_CARRIED_ACCOUNTED_USD,
   runs: [
@@ -122,6 +123,44 @@ export const J4_PREDECESSOR_CHAIN = deepFreeze({
           'ccdf0b9bd8cc12256657c574d3189d6f4aebb9dd5e6e60ee0aaaaee63671714f',
       },
     },
+    {
+      attempts: 1,
+      completedQuestions: 0,
+      currentRunAccountedUsd: 0.002501,
+      currentRunUncertainUsd: 0.002501,
+      failedQuestionOrdinal: null,
+      logicalRequests: { writer: 1 },
+      openingAccountedUsd: 0.0150692,
+      private: {
+        artifactManifestPath:
+          'evals/results/j4-longmemeval-s60-v3/artifact-manifest.json',
+        artifactManifestSha256:
+          'e6ccbe31d795ddb37b869291a5d1722af04c0f923afa486f2be168b8c35aaaa6',
+        checkpointPath:
+          'evals/results/j4-longmemeval-s60-v3/checkpoint.json',
+        checkpointSha256:
+          '68cbbb061c8237ca872ae412211368f4c919200627352e8fea9a9f6fff3adbd3',
+        meterPath: 'evals/results/j4-longmemeval-s60-v3/meter.jsonl',
+        meterSha256:
+          'abc8ceb3797f5b061b16a3ad0397d229c7acbf005668be565a81e0fbde484277',
+      },
+      runId: 'j4-longmemeval-s60-v3',
+      smokeLogicalOperations: 0,
+      smokeStatus: 'failed',
+      status: 'failed',
+      tracked: {
+        authorityPath:
+          'evals/live-runs/j4-longmemeval-s60-v3.authority.json',
+        authoritySha256:
+          '4b4dbc036a23737d6c729e5ee153d362caad0b60f0bae12a64a0bd2da8f71735',
+        configPath: 'evals/live-runs/j4-longmemeval-s60-v3.json',
+        configSha256:
+          '91bc18330bb92b83b1a28d32d21d8dfbc4ea2b0cffa3044e31c0e5c3a12b6b88',
+        predictionsPath: 'evals/predictions/j4-longmemeval-s60-v3.json',
+        predictionsSha256:
+          '201a41bd326f19d350ab45719f95fcf73a1d5d0159cf60c4ccee9992281460bf',
+      },
+    },
   ],
 })
 export const J4_PREDICTION_ROWS_SHA256 =
@@ -162,7 +201,7 @@ function roundedUsd(value) {
   return Number(Number(value).toFixed(7))
 }
 
-export const J4_V3_CUMULATIVE_COST_ESTIMATE = deepFreeze({
+export const J4_V4_CUMULATIVE_COST_ESTIMATE = deepFreeze({
   capUsd: 2.5,
   carriedAccountedUsd: J4_CARRIED_ACCOUNTED_USD,
   compatibilitySmoke: J4_V3_COMPATIBILITY_SMOKE_STATS,
@@ -187,7 +226,7 @@ export const J4_V3_CUMULATIVE_COST_ESTIMATE = deepFreeze({
     tokens: J4_V3_FIRST_TRANCHE_COST_ESTIMATE.expected.tokens,
   },
   freshMeterCapUsd: J4_FRESH_METER_CAP_USD,
-  methodVersion: J4_V3_FIRST_TRANCHE_COST_ESTIMATE.methodVersion,
+  methodVersion: 'j4-v4-mime-enum-three-predecessors-v1',
   requestStats: J4_V3_FIRST_TRANCHE_REQUEST_STATS,
   schema: J4_V3_EXTRACTION_SCHEMA_CONTRACT,
 })
@@ -223,7 +262,7 @@ function cumulativeLimits({
 
 // The compatibility suite makes one Gemini writer request and one Gemini
 // answer request. These rows keep every future cumulative request/token
-// ceiling finite; v3 may use only the separately authorized first row.
+// ceiling finite; v4 may use only the separately authorized first row.
 export const J4_CUMULATIVE_LIMITS = Object.freeze([
   cumulativeLimits({
     answer: 6,
@@ -302,7 +341,7 @@ export const J4_GEMINI_WRITER_GENERATION = Object.freeze({
   maxOutputTokens: J4_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
   responseFormat: Object.freeze({
     text: Object.freeze({
-      mimeType: 'application/json',
+      mimeType: MEMORY_EXTRACTION_RESPONSE_MIME_TYPE,
       schema: MEMORY_EXTRACTION_RESPONSE_SCHEMA,
     }),
   }),
@@ -534,7 +573,7 @@ function validatePredictions(value) {
     },
     writer: {
       maxOutputTokens: J4_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
-      responseFormat: 'application/json+json-schema',
+      responseFormat: 'APPLICATION_JSON+json-schema',
       schemaSha256: J4_V3_EXTRACTION_SCHEMA_CONTRACT.sha256,
       sourceKindVocabulary: MEMORY_EXTRACTION_SOURCE_KINDS,
       store: false,
@@ -544,9 +583,9 @@ function validatePredictions(value) {
   }, 'prediction prompt config')
   assertEqual(value.decisionReference, {
     cumulativeHardCapUsd: 2.5,
-    date: '2026-07-24',
+    date: '2026-07-25',
     document: 'docs/DECISIONS.md',
-    entry: 'FOUNDER GO — J4 v3 replacement run',
+    entry: 'FOUNDER GO — J4 v4 MIME replacement run',
     questions: 5,
   }, 'prediction founder decision reference')
   if (value.method?.finalizedBeforeProviderCalls !== true) {
@@ -658,7 +697,7 @@ function validatePredictions(value) {
       'lexical FTS recall with a five-term query limit and no stemming',
     ],
     note:
-      'All 60 outcome rows are byte-identical to v2. No partial v2 provider evidence was used to revise them; v3 changes only the structured-output, privacy, retry, response, accounting, smoke, and immutable-run contracts.',
+      'All 60 outcome rows are byte-identical to v3. No v1-v3 provider evidence was used to revise them; v4 changes only the raw Gemini MIME enum, three-predecessor accounting, and immutable-run metadata.',
   }, 'prediction method')
   return value
 }
@@ -683,7 +722,7 @@ function validateConfig(config) {
   ], 'J4 live config')
   assertEqual(config.schemaVersion, 1, 'config schema version')
   assertEqual(config.runId, J4_LIVE_RUN_ID, 'config run ID')
-  assertEqual(config.runDate, '2026-07-24', 'config run date')
+  assertEqual(config.runDate, '2026-07-25', 'config run date')
   assertEqual(config.dataset, {
     path: 'data/longmemeval_s_cleaned.json',
     sha256: J4_S_DATASET_CONTRACT.sha256,
@@ -715,7 +754,7 @@ function validateConfig(config) {
     sealedQuestionIds: SEALED_U8_QUESTION_IDS,
     trancheManifestSha256: J4_STAGED_TRANCHE_MANIFEST_SHA256,
   }, 'population contract')
-  assertEqual(config.costEstimate, J4_V3_CUMULATIVE_COST_ESTIMATE, 'cost estimate')
+  assertEqual(config.costEstimate, J4_V4_CUMULATIVE_COST_ESTIMATE, 'cost estimate')
   assertEqual(
     config.predecessorChain,
     J4_PREDECESSOR_CHAIN,

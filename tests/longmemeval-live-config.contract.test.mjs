@@ -14,7 +14,7 @@ import {
   J4_OFFICIAL_FACT_TEMPLATE,
   J4_PREDECESSOR_CHAIN,
   J4_TRANCHE_1_LIMITS,
-  J4_V3_CUMULATIVE_COST_ESTIMATE,
+  J4_V4_CUMULATIVE_COST_ESTIMATE,
   assertJ4LiveEnvironment,
   buildJ4AnswerBody,
   buildJ4AnswerPrompt,
@@ -28,7 +28,11 @@ import {
   J4_FIRST_TRANCHE_QUESTION_IDS,
   SEALED_U8_QUESTION_IDS,
 } from '../evals/longmemeval-plan.mjs'
-import { MEMORY_EXTRACTION_RESPONSE_SCHEMA } from '../src/memory-extraction-schema.mjs'
+import { buildGeminiGenerateRequest } from '../src/gemini.mjs'
+import {
+  MEMORY_EXTRACTION_RESPONSE_MIME_TYPE,
+  MEMORY_EXTRACTION_RESPONSE_SCHEMA,
+} from '../src/memory-extraction-schema.mjs'
 
 const REPO_ROOT = new URL('..', import.meta.url).pathname
 const J4_V1_CONFIG_SHA256 =
@@ -49,6 +53,8 @@ const J4_V3_AUTHORITY_SHA256 =
   '4b4dbc036a23737d6c729e5ee153d362caad0b60f0bae12a64a0bd2da8f71735'
 const J4_V3_PREDICTIONS_SHA256 =
   '201a41bd326f19d350ab45719f95fcf73a1d5d0159cf60c4ccee9992281460bf'
+const J4_V4_AUTHORITY_SHA256 =
+  'f8bd5cdaa886624da36edae655b716c7dd902006ccee04561a10f288f3528367'
 
 test('J4 provider bodies freeze the selected model protocol and official prompt', () => {
   assert.equal(J4_GEMINI_MODEL, 'gemini-3.5-flash-lite')
@@ -56,7 +62,7 @@ test('J4 provider bodies freeze the selected model protocol and official prompt'
     maxOutputTokens: 512,
     responseFormat: {
       text: {
-        mimeType: 'application/json',
+        mimeType: MEMORY_EXTRACTION_RESPONSE_MIME_TYPE,
         schema: MEMORY_EXTRACTION_RESPONSE_SCHEMA,
       },
     },
@@ -80,7 +86,7 @@ test('J4 provider bodies freeze the selected model protocol and official prompt'
     maxOutputTokens: 512,
     responseFormat: {
       text: {
-        mimeType: 'application/json',
+        mimeType: MEMORY_EXTRACTION_RESPONSE_MIME_TYPE,
         schema: MEMORY_EXTRACTION_RESPONSE_SCHEMA,
       },
     },
@@ -96,6 +102,25 @@ test('J4 provider bodies freeze the selected model protocol and official prompt'
   assert.equal('topP' in writer.generationConfig, false)
   assert.equal('topK' in writer.generationConfig, false)
   assert.equal('candidateCount' in writer.generationConfig, false)
+  const wire = JSON.parse(buildGeminiGenerateRequest({
+    apiKey: 'offline-sentinel',
+    body: writer,
+    model: J4_GEMINI_MODEL,
+  }).init.body)
+  assert.equal(
+    wire.generationConfig.responseFormat.text.mimeType,
+    'APPLICATION_JSON',
+  )
+  assert.deepEqual(
+    wire.generationConfig.responseFormat.text.schema,
+    MEMORY_EXTRACTION_RESPONSE_SCHEMA,
+  )
+  assert.equal('responseMimeType' in wire.generationConfig, false)
+  assert.equal('responseSchema' in wire.generationConfig, false)
+  assert.doesNotMatch(
+    JSON.stringify(wire),
+    /"mimeType":"application\/json"/,
+  )
 
   const prompt = buildJ4AnswerPrompt({
     facts: 'User prefers tea.',
@@ -214,14 +239,14 @@ test('J4 execution order is complete, U8-free, and starts at the exact gate', ()
 test('J4 administrative authority exactly clamps runtime scope without reading keys', async () => {
   const loaded = await loadJ4LiveAuthority({ repoRoot: REPO_ROOT })
   assert.equal(loaded.authority.runId, J4_LIVE_RUN_ID)
-  assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v3')
+  assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v4')
   assert.equal(loaded.authority.cumulativeQuestions, 5)
   assert.equal(loaded.authority.cumulativeCapUsd, 2.5)
   assert.equal(loaded.authority.fromCumulativeQuestions, 0)
   assert.equal(loaded.authority.previousCheckpointSha256, null)
-  assert.equal(loaded.authoritySha256, J4_V3_AUTHORITY_SHA256)
-  assert.equal(J4_CARRIED_ACCOUNTED_USD, 0.0150692)
-  assert.equal(J4_FRESH_METER_CAP_USD, 2.4849308)
+  assert.equal(loaded.authoritySha256, J4_V4_AUTHORITY_SHA256)
+  assert.equal(J4_CARRIED_ACCOUNTED_USD, 0.0175702)
+  assert.equal(J4_FRESH_METER_CAP_USD, 2.4824298)
   assert.equal(
     Number((
       loaded.authority.cumulativeCapUsd - J4_CARRIED_ACCOUNTED_USD
@@ -321,7 +346,7 @@ test('J4 v2 frozen inputs remain byte-identical after offline correction', async
   assert.equal(j4Sha256(predictions), J4_V2_PREDICTIONS_SHA256)
 })
 
-test('J4 v3 frozen bytes survive terminal sealing and fail closed as runnable', async () => {
+test('J4 v3 frozen inputs remain byte-identical after MIME correction', async () => {
   const [configText, authorityText, predictionsText] = await Promise.all([
     readFile(new URL(
       '../evals/live-runs/j4-longmemeval-s60-v3.json',
@@ -341,12 +366,7 @@ test('J4 v3 frozen bytes survive terminal sealing and fail closed as runnable', 
   assert.equal(j4Sha256(predictionsText), J4_V3_PREDICTIONS_SHA256)
 
   const config = JSON.parse(configText)
-  assert.equal(config.runId, J4_LIVE_RUN_ID)
-  assert.deepEqual(config.predecessorChain, J4_PREDECESSOR_CHAIN)
-  assert.deepEqual(
-    config.costEstimate,
-    J4_V3_CUMULATIVE_COST_ESTIMATE,
-  )
+  assert.equal(config.runId, 'j4-longmemeval-s60-v3')
   assert.equal(config.costEstimate.expected.cumulativeUsd, 0.9095387)
   assert.equal(
     config.costEstimate.conservative.cumulativeUsd,
@@ -356,11 +376,35 @@ test('J4 v3 frozen bytes survive terminal sealing and fail closed as runnable', 
     config.costEstimate.conservative.cumulativeUsd <
       config.costEstimate.capUsd,
   )
-  await assert.rejects(
-    loadJ4LiveConfig({ repoRoot: REPO_ROOT }),
-    (error) =>
-      error.code === 'ARTIFACT_HASH' &&
-      /evals\/run-longmemeval-live\.mjs/.test(error.message),
-    'terminal runner bytes must no longer match the executable v3 identity',
+})
+
+test('J4 v4 config carries all three predecessors and the corrected wire contract', async () => {
+  const loaded = await loadJ4LiveConfig({ repoRoot: REPO_ROOT })
+  const { config } = loaded
+
+  assert.equal(config.runId, J4_LIVE_RUN_ID)
+  assert.deepEqual(config.predecessorChain, J4_PREDECESSOR_CHAIN)
+  assert.equal(config.predecessorChain.runs.length, 3)
+  assert.deepEqual(
+    config.predecessorChain.runs.map((run) => run.runId),
+    [
+      'j4-longmemeval-s60-v1',
+      'j4-longmemeval-s60-v2',
+      'j4-longmemeval-s60-v3',
+    ],
+  )
+  assert.deepEqual(config.costEstimate, J4_V4_CUMULATIVE_COST_ESTIMATE)
+  assert.equal(config.costEstimate.carriedAccountedUsd, 0.0175702)
+  assert.equal(config.costEstimate.freshMeterCapUsd, 2.4824298)
+  assert.equal(config.costEstimate.expected.freshUsd, 0.8944695)
+  assert.equal(config.costEstimate.expected.cumulativeUsd, 0.9120397)
+  assert.equal(config.costEstimate.conservative.freshUsd, 2.1566612)
+  assert.equal(
+    config.costEstimate.conservative.cumulativeUsd,
+    2.1742314,
+  )
+  assert.ok(
+    config.costEstimate.conservative.cumulativeUsd <
+      config.costEstimate.capUsd,
   )
 })

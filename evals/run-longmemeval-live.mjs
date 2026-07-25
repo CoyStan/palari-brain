@@ -824,6 +824,8 @@ function sameUsd(left, right) {
 }
 
 function assertPredecessorRunDescriptor(run, index) {
+  const currentRunUncertainUsd =
+    Number(run?.currentRunUncertainUsd ?? 0)
   if (!run ||
     typeof run !== 'object' ||
     Array.isArray(run) ||
@@ -842,6 +844,9 @@ function assertPredecessorRunDescriptor(run, index) {
     run.openingAccountedUsd < 0 ||
     !Number.isFinite(run.currentRunAccountedUsd) ||
     run.currentRunAccountedUsd < 0 ||
+    !Number.isFinite(currentRunUncertainUsd) ||
+    currentRunUncertainUsd < 0 ||
+    currentRunUncertainUsd > run.currentRunAccountedUsd ||
     !run.private ||
     !run.tracked) {
     throw new J4LiveError(
@@ -896,13 +901,70 @@ function assertCanonicalPredecessorPaths(run) {
   }
 }
 
-function assertPriorRunLink(checkpoint, priorAudit, run) {
-  if (!priorAudit) {
+function legacyPredecessorAuditRun(audit) {
+  return {
+    artifactManifestSha256: audit.artifactManifestSha256,
+    checkpointSha256: audit.checkpointSha256,
+    completedQuestions: audit.completedQuestions,
+    cumulativeAccountedUsd: audit.cumulativeAccountedUsd,
+    currentRunAccountedUsd: audit.currentRunAccountedUsd,
+    measuredUsd: audit.measuredUsd,
+    meterSha256: audit.meterSha256,
+    runId: audit.runId,
+    status: audit.status,
+  }
+}
+
+function assertPriorRunLink({
+  checkpoint,
+  priorAudits,
+  priorRuns,
+  run,
+}) {
+  if (!priorAudits.length) {
     if (run.openingAccountedUsd !== 0 ||
       Object.hasOwn(checkpoint.identity ?? {}, 'openingAccountedUsd')) {
       throw new J4LiveError(
         'PREDECESSOR_CHAIN_MISMATCH',
         'The first J4 predecessor unexpectedly carries earlier spend.',
+      )
+    }
+    return
+  }
+  const priorAudit = priorAudits.at(-1)
+  if (run.runId === 'j4-longmemeval-s60-v3') {
+    const expectedChain = {
+      openingAccountedUsd: priorAudit.cumulativeAccountedUsd,
+      runs: priorRuns,
+    }
+    const audited = checkpoint.predecessorAudit
+    const expectedAuditRuns = priorAudits.map(legacyPredecessorAuditRun)
+    const priorMeasuredUsd = Number(priorAudits.reduce(
+      (total, audit) => total + audit.measuredUsd,
+      0,
+    ).toFixed(12))
+    if (!sameUsd(run.openingAccountedUsd, priorAudit.cumulativeAccountedUsd) ||
+      !sameUsd(
+        checkpoint.identity?.openingAccountedUsd,
+        priorAudit.cumulativeAccountedUsd,
+      ) ||
+      Object.hasOwn(checkpoint.identity ?? {}, 'predecessor') ||
+      JSON.stringify(checkpoint.identity?.predecessorChain) !==
+        JSON.stringify(expectedChain) ||
+      !audited ||
+      JSON.stringify(Object.keys(audited).sort()) !== JSON.stringify([
+        'accountedUsd',
+        'completedAt',
+        'measuredUsd',
+        'runs',
+      ]) ||
+      !sameUsd(audited.accountedUsd, priorAudit.cumulativeAccountedUsd) ||
+      !sameUsd(audited.measuredUsd, priorMeasuredUsd) ||
+      Number.isNaN(Date.parse(String(audited.completedAt ?? ''))) ||
+      JSON.stringify(audited.runs) !== JSON.stringify(expectedAuditRuns)) {
+      throw new J4LiveError(
+        'PREDECESSOR_CHAIN_MISMATCH',
+        'J4 v3 aggregate predecessor evidence does not match the exact v1-v2 chain.',
       )
     }
     return
@@ -934,7 +996,8 @@ function assertPriorRunLink(checkpoint, priorAudit, run) {
 }
 
 async function verifyJ4PredecessorRun({
-  priorAudit,
+  priorAudits,
+  priorRuns,
   repoRoot,
   run,
   runIndex,
@@ -1019,6 +1082,10 @@ async function verifyJ4PredecessorRun({
   const expectedFailedOrdinals = run.failedQuestionOrdinal === null
     ? []
     : [run.failedQuestionOrdinal]
+  const expectedUncertainUsd = Number(run.currentRunUncertainUsd ?? 0)
+  const expectedMeasuredUsd = Number((
+    run.currentRunAccountedUsd - expectedUncertainUsd
+  ).toFixed(12))
   if (checkpoint.identity?.runId !== run.runId ||
     checkpoint.identity?.configSha256 !== run.tracked.configSha256 ||
     checkpoint.identity?.predictionsSha256 !==
@@ -1042,15 +1109,23 @@ async function verifyJ4PredecessorRun({
     ) ||
     !sameUsd(
       checkpoint.meter?.measured?.usd,
-      run.currentRunAccountedUsd,
+      expectedMeasuredUsd,
     ) ||
-    Number(checkpoint.meter?.uncertain?.usd) !== 0) {
+    !sameUsd(
+      checkpoint.meter?.uncertain?.usd,
+      expectedUncertainUsd,
+    ) ||
+    !sameUsd(
+      Number(checkpoint.meter?.measured?.usd) +
+        Number(checkpoint.meter?.uncertain?.usd),
+      run.currentRunAccountedUsd,
+    )) {
     throw new J4LiveError(
       'PREDECESSOR_CHECKPOINT_MISMATCH',
       'J4 predecessor differs from its exact terminal zero-score profile.',
     )
   }
-  assertPriorRunLink(checkpoint, priorAudit, run)
+  assertPriorRunLink({ checkpoint, priorAudits, priorRuns, run })
 
   const runDir = dirname(privatePaths.artifactManifestPath)
   const [manifest, ledger] = await Promise.all([
@@ -1071,8 +1146,12 @@ async function verifyJ4PredecessorRun({
       JSON.stringify(run.logicalRequests) ||
     ledger.retries.length !== 0 ||
     !sameUsd(ledger.accounted.usd, run.currentRunAccountedUsd) ||
-    !sameUsd(ledger.measured.usd, run.currentRunAccountedUsd) ||
-    ledger.uncertain.usd !== 0) {
+    !sameUsd(ledger.measured.usd, expectedMeasuredUsd) ||
+    !sameUsd(ledger.uncertain.usd, expectedUncertainUsd) ||
+    !sameUsd(
+      ledger.measured.usd + ledger.uncertain.usd,
+      ledger.accounted.usd,
+    )) {
     throw new J4LiveError(
       'PREDECESSOR_METER_MISMATCH',
       'J4 predecessor manifest or meter differs from its terminal evidence.',
@@ -1081,16 +1160,27 @@ async function verifyJ4PredecessorRun({
   const cumulativeAccountedUsd = Number((
     run.openingAccountedUsd + run.currentRunAccountedUsd
   ).toFixed(12))
+  const cumulativeMeasuredUsd = Number((
+    (priorAudits.at(-1)?.cumulativeMeasuredUsd ?? 0) +
+      expectedMeasuredUsd
+  ).toFixed(12))
+  const cumulativeUncertainUsd = Number((
+    (priorAudits.at(-1)?.cumulativeUncertainUsd ?? 0) +
+      expectedUncertainUsd
+  ).toFixed(12))
   return {
     artifactManifestSha256: run.private.artifactManifestSha256,
     checkpointSha256: run.private.checkpointSha256,
     completedQuestions,
     cumulativeAccountedUsd,
+    cumulativeMeasuredUsd,
+    cumulativeUncertainUsd,
     currentRunAccountedUsd: run.currentRunAccountedUsd,
-    measuredUsd: run.currentRunAccountedUsd,
+    measuredUsd: expectedMeasuredUsd,
     meterSha256: run.private.meterSha256,
     runId: run.runId,
     status: run.status,
+    uncertainUsd: expectedUncertainUsd,
   }
 }
 
@@ -1102,34 +1192,44 @@ export async function verifyJ4PredecessorBundle({
     typeof predecessorChain !== 'object' ||
     Array.isArray(predecessorChain) ||
     !Array.isArray(predecessorChain.runs) ||
-    predecessorChain.runs.length !== 2 ||
+    predecessorChain.runs.length !== 3 ||
     !Number.isFinite(predecessorChain.openingAccountedUsd) ||
     predecessorChain.openingAccountedUsd < 0) {
     throw new J4LiveError(
       'PREDECESSOR_SCHEMA',
-      'J4 v3 requires the exact two-run predecessor chain.',
+      'J4 v4 requires the exact three-run predecessor chain.',
     )
   }
   const audits = []
   for (let index = 0; index < predecessorChain.runs.length; index += 1) {
     audits.push(await verifyJ4PredecessorRun({
-      priorAudit: audits.at(-1) ?? null,
+      priorAudits: audits,
+      priorRuns: predecessorChain.runs.slice(0, index),
       repoRoot,
       run: predecessorChain.runs[index],
       runIndex: index,
     }))
   }
   const accountedUsd = audits.at(-1)?.cumulativeAccountedUsd
+  const measuredUsd = audits.at(-1)?.cumulativeMeasuredUsd
+  const uncertainUsd = audits.at(-1)?.cumulativeUncertainUsd
   if (!sameUsd(accountedUsd, predecessorChain.openingAccountedUsd)) {
     throw new J4LiveError(
       'PREDECESSOR_OPENING_SPEND_MISMATCH',
       'J4 predecessor-chain sum differs from immutable opening spend.',
     )
   }
+  if (!sameUsd(measuredUsd + uncertainUsd, accountedUsd)) {
+    throw new J4LiveError(
+      'PREDECESSOR_SPEND_RECONCILIATION',
+      'J4 predecessor measured and uncertain spend do not reconcile to accounted spend.',
+    )
+  }
   return {
     accountedUsd,
-    measuredUsd: accountedUsd,
+    measuredUsd,
     runs: audits,
+    uncertainUsd,
   }
 }
 
@@ -1461,11 +1561,19 @@ export function buildJ4PrivateReport({
 } = {}) {
   const openingAccountedUsd =
     Number(checkpoint?.identity?.openingAccountedUsd)
+  const openingMeasuredUsd = checkpoint?.predecessorAudit
+    ? Number(checkpoint.predecessorAudit.measuredUsd)
+    : openingAccountedUsd
   const currentAccountedUsd = Number(meter?.accounted?.usd)
   const currentMeasuredUsd = Number(meter?.measured?.usd)
   const cumulativeCapUsd =
     Number(checkpoint?.invocations?.at(-1)?.capUsd)
-  if (![openingAccountedUsd, currentAccountedUsd, currentMeasuredUsd]
+  if (![
+    openingAccountedUsd,
+    openingMeasuredUsd,
+    currentAccountedUsd,
+    currentMeasuredUsd,
+  ]
     .every((value) => Number.isFinite(value) && value >= 0)) {
     throw new J4LiveError(
       'REPORT_SPEND_INVALID',
@@ -1475,7 +1583,7 @@ export function buildJ4PrivateReport({
   const combinedAccountedUsd =
     Number((openingAccountedUsd + currentAccountedUsd).toFixed(12))
   const combinedMeasuredUsd =
-    Number((openingAccountedUsd + currentMeasuredUsd).toFixed(12))
+    Number((openingMeasuredUsd + currentMeasuredUsd).toFixed(12))
   if (Number.isFinite(cumulativeCapUsd) &&
     combinedAccountedUsd > cumulativeCapUsd + 1e-12) {
     throw new J4LiveError(
@@ -1518,6 +1626,7 @@ export function buildJ4PrivateReport({
       currentAccountedUsd,
       currentMeasuredUsd,
       openingAccountedUsd,
+      openingMeasuredUsd,
     },
     status: checkpoint.status,
   }
@@ -1533,6 +1642,7 @@ function renderJ4PrivateReport(report) {
     `- Completed questions: ${report.completedQuestions}`,
     `- Preliminary official accuracy: ${report.officialAccuracy.correct}/${report.officialAccuracy.total}`,
     `- Opening accounted spend: $${report.spend.openingAccountedUsd.toFixed(7)}`,
+    `- Opening measured spend: $${report.spend.openingMeasuredUsd.toFixed(7)}`,
     `- Current-run accounted spend: $${report.spend.currentAccountedUsd.toFixed(7)}`,
     `- Combined accounted spend: $${report.spend.combinedAccountedUsd.toFixed(7)}`,
     `- Combined measured spend: $${report.spend.combinedMeasuredUsd.toFixed(7)}`,

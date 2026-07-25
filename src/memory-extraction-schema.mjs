@@ -30,6 +30,10 @@ export const MEMORY_EXTRACTION_SOURCE_KINDS = Object.freeze([
   'web_result',
 ])
 
+// The Gemini v1beta raw REST schema declares this field as an enum, so its
+// ProtoJSON wire value is the enum name rather than an HTTP MIME literal.
+export const MEMORY_EXTRACTION_RESPONSE_MIME_TYPE = 'APPLICATION_JSON'
+
 export const MEMORY_EXTRACTION_RESPONSE_SCHEMA = deepFreeze({
   additionalProperties: false,
   properties: {

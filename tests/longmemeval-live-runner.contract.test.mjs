@@ -23,8 +23,12 @@ import {
   J4_PREDECESSOR_CHAIN,
   J4_TRANCHE_1_LIMITS,
   j4ExecutionQuestionIds,
+  j4LimitsForCumulativeQuestions,
 } from '../evals/longmemeval-live-config.mjs'
 import {
+  J4_DENY_GEMINI_KEY,
+  J4_DENY_OPENAI_KEY,
+  J4_GOOGLE_CREDENTIAL_ALIASES,
   acquireJ4RunLock,
   assertJ4LiveRunOpen,
   assertValidatedJ4JudgeResponse,
@@ -309,6 +313,16 @@ async function makePredecessorChainBundle(root) {
       smokeLogicalOperations: 1,
       smokeStatus: 'completed',
     },
+    {
+      currentRunAccountedUsd: 0.002501,
+      currentRunUncertainUsd: 0.002501,
+      failedQuestionOrdinal: null,
+      geminiInputTokens: 4_070,
+      geminiOutputTokens: 512,
+      runId: 'j4-longmemeval-s60-v3',
+      smokeLogicalOperations: 0,
+      smokeStatus: 'failed',
+    },
   ]
   const zero = {
     geminiInputTokens: 0,
@@ -318,6 +332,7 @@ async function makePredecessorChainBundle(root) {
     usd: 0,
   }
   const runs = []
+  const audits = []
   const paths = []
   let openingAccountedUsd = 0
 
@@ -366,6 +381,44 @@ async function makePredecessorChainBundle(root) {
     const transcriptStartedSha256 = sha256(`${spec.runId}:started`)
     const transcriptSha256 = sha256(`${spec.runId}:terminal`)
     const transcriptFile = `${spec.runId}-attempt-1.json`
+    const terminalEvent = spec.currentRunUncertainUsd
+      ? {
+          attemptId: `${operationId}:attempt:1`,
+          error: {
+            code: 'HTTP_400',
+            message: 'Provider returned HTTP 400.',
+          },
+          operationId,
+          outcome: 'http_error',
+          requestSha256,
+          retryable: false,
+          schemaVersion: 1,
+          sequence: 2,
+          status: 400,
+          transcriptFile,
+          transcriptSha256,
+          type: 'attempt_terminal',
+          usage: null,
+        }
+      : {
+          attemptId: `${operationId}:attempt:1`,
+          modelVersion: J4_GEMINI_MODEL,
+          operationId,
+          outcome: 'success',
+          requestSha256,
+          retryable: false,
+          schemaVersion: 1,
+          sequence: 2,
+          transcriptFile,
+          transcriptSha256,
+          type: 'attempt_terminal',
+          usage,
+          usageDetails: {
+            cachedInputTokens: 0,
+            candidateTokens: spec.geminiOutputTokens,
+            thoughtTokens: 0,
+          },
+        }
     const meterText = [
       {
         attempt: 1,
@@ -384,25 +437,7 @@ async function makePredecessorChainBundle(root) {
         transcriptStartedSha256,
         type: 'attempt_started',
       },
-      {
-        attemptId: `${operationId}:attempt:1`,
-        modelVersion: J4_GEMINI_MODEL,
-        operationId,
-        outcome: 'success',
-        requestSha256,
-        retryable: false,
-        schemaVersion: 1,
-        sequence: 2,
-        transcriptFile,
-        transcriptSha256,
-        type: 'attempt_terminal',
-        usage,
-        usageDetails: {
-          cachedInputTokens: 0,
-          candidateTokens: spec.geminiOutputTokens,
-          thoughtTokens: 0,
-        },
-      },
+      terminalEvent,
     ].map((event) => JSON.stringify(event)).join('\n') + '\n'
     const meterPath = join(runDir, 'meter.jsonl')
     await atomicWriteJ4(meterPath, meterText)
@@ -413,7 +448,7 @@ async function makePredecessorChainBundle(root) {
       runId: spec.runId,
     }
     let predecessorAudit
-    if (index > 0) {
+    if (index === 1) {
       const prior = runs[index - 1]
       identity.openingAccountedUsd = openingAccountedUsd
       identity.predecessor = {
@@ -425,7 +460,34 @@ async function makePredecessorChainBundle(root) {
         runId: prior.runId,
       }
       predecessorAudit = { ...identity.predecessor }
+    } else if (index === 2) {
+      identity.openingAccountedUsd = openingAccountedUsd
+      identity.predecessorChain = {
+        openingAccountedUsd,
+        runs: structuredClone(runs),
+      }
+      predecessorAudit = {
+        accountedUsd: openingAccountedUsd,
+        measuredUsd: Number(audits.reduce(
+          (total, audit) => total + audit.measuredUsd,
+          0,
+        ).toFixed(12)),
+        runs: audits.map((audit) => ({
+          artifactManifestSha256: audit.artifactManifestSha256,
+          checkpointSha256: audit.checkpointSha256,
+          completedQuestions: audit.completedQuestions,
+          cumulativeAccountedUsd: audit.cumulativeAccountedUsd,
+          currentRunAccountedUsd: audit.currentRunAccountedUsd,
+          measuredUsd: audit.measuredUsd,
+          meterSha256: audit.meterSha256,
+          runId: audit.runId,
+          status: audit.status,
+        })),
+        completedAt: '2026-07-24T00:00:00.000Z',
+      }
     }
+    const measured = spec.currentRunUncertainUsd ? zero : usage
+    const uncertain = spec.currentRunUncertainUsd ? usage : zero
     const checkpoint = {
       identity,
       invocations: [{ authoritySha256: tracked.authoritySha256 }],
@@ -433,10 +495,10 @@ async function makePredecessorChainBundle(root) {
         accounted: usage,
         attempts: 1,
         logicalRequests: { writer: 1 },
-        measured: usage,
+        measured,
         retries: [],
         sequence: 2,
-        uncertain: zero,
+        uncertain,
       },
       questions: Array.from({ length: 60 }, (_, questionIndex) => ({
         ordinal: questionIndex + 1,
@@ -499,7 +561,25 @@ async function makePredecessorChainBundle(root) {
       status: 'failed',
       tracked,
     }
+    if (spec.currentRunUncertainUsd) {
+      descriptor.currentRunUncertainUsd = spec.currentRunUncertainUsd
+    }
     runs.push(descriptor)
+    audits.push({
+      artifactManifestSha256: descriptor.private.artifactManifestSha256,
+      checkpointSha256: descriptor.private.checkpointSha256,
+      completedQuestions: 0,
+      cumulativeAccountedUsd: Number((
+        openingAccountedUsd + spec.currentRunAccountedUsd
+      ).toFixed(12)),
+      currentRunAccountedUsd: spec.currentRunAccountedUsd,
+      measuredUsd: spec.currentRunUncertainUsd
+        ? 0
+        : spec.currentRunAccountedUsd,
+      meterSha256: descriptor.private.meterSha256,
+      runId: spec.runId,
+      status: 'failed',
+    })
     paths.push({ checkpointPath, manifestPath, meterPath, runDir })
     openingAccountedUsd = Number((
       openingAccountedUsd + spec.currentRunAccountedUsd
@@ -593,6 +673,79 @@ async function runFakeQuestion({
   return fakeArmResult(instance, { memoryRows })
 }
 
+function fakeMainDependencies({
+  meterFactory,
+  population = syntheticPopulation(),
+  runQuestion = runFakeQuestion,
+  verifyPredecessor = async ({ predecessorChain }) => ({
+    accountedUsd: predecessorChain.openingAccountedUsd,
+    measuredUsd: 0.0150692,
+    runs: predecessorChain.runs.map((run) => ({
+      checkpointSha256: run.private.checkpointSha256,
+      runId: run.runId,
+    })),
+    uncertainUsd: 0.002501,
+  }),
+} = {}) {
+  const active = config()
+  return {
+    async auditTrackedFiles() {
+      return {
+        files: 84,
+        trackedPathsSha256: '7'.repeat(64),
+      }
+    },
+    async createMeteredTransport(options) {
+      return meterFactory(options)
+    },
+    async inspectGitCutPoint() {
+      return { administrativeHead: 'admin-main-head' }
+    },
+    async loadAuthority() {
+      return {
+        authority: authority(),
+        authorityPath:
+          `evals/live-runs/${J4_LIVE_RUN_ID}.authority.json`,
+        authoritySha256: '8'.repeat(64),
+      }
+    },
+    async loadConfig() {
+      return {
+        config: active,
+        configPath: `evals/live-runs/${J4_LIVE_RUN_ID}.json`,
+        configSha256: 'd'.repeat(64),
+        predictions: predictions(population),
+        predictionsSha256: 'f'.repeat(64),
+      }
+    },
+    log() {},
+    preparePopulation() {
+      return {
+        ...population,
+        manifest: {
+          datasetSha256: 'e'.repeat(64),
+        },
+      }
+    },
+    async readFile() {
+      return Buffer.from('synthetic canonical dataset')
+    },
+    runQuestion,
+    verifyPredecessor,
+  }
+}
+
+function fakeMainEnvironment() {
+  return {
+    GEMINI_API_KEY: 'runner-test-gemini-key',
+    GOOGLE_API_KEY: 'runner-test-shadow-google-key',
+    OPENAI_API_KEY: 'runner-test-openai-key',
+    PALARI_J4_CONFIRM_SPEND: '1',
+    PALARI_J4_CUMULATIVE_QUESTIONS: '5',
+    PALARI_J4_SPEND_CAP_USD: '2.5',
+  }
+}
+
 function fakeArmResult(instance, { memoryRows = 1 } = {}) {
   return {
     answer: `wrong answer for ${instance.questionId}`,
@@ -627,11 +780,17 @@ function fakeArmResult(instance, { memoryRows = 1 } = {}) {
   }
 }
 
-test('runner import is inert and all v1-v3 identities are terminal', () => {
+test('runner import is inert, v4 is open, and v1-v3 are terminal', () => {
+  assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v4')
+  assert.equal(
+    parseJ4LiveArgs(['--run', J4_LIVE_RUN_ID]),
+    J4_LIVE_RUN_ID,
+  )
+  assert.equal(assertJ4LiveRunOpen(J4_LIVE_RUN_ID), J4_LIVE_RUN_ID)
   for (const runId of [
     'j4-longmemeval-s60-v1',
     'j4-longmemeval-s60-v2',
-    J4_LIVE_RUN_ID,
+    'j4-longmemeval-s60-v3',
   ]) {
     assert.equal(parseJ4LiveArgs(['--run', runId]), runId)
     assert.throws(
@@ -1145,7 +1304,7 @@ test('exclusive lock and private artifact audit enforce modes and reject secrets
   }
 })
 
-test('replacement preflight verifies both terminal predecessors and their exact spend sum', async () => {
+test('replacement preflight verifies all three terminal predecessors and exact spend classes', async () => {
   const root = await mkdtemp(join(tmpdir(), 'palari-j4-predecessor-'))
   try {
     const fixture = await makePredecessorChainBundle(root)
@@ -1154,7 +1313,8 @@ test('replacement preflight verifies both terminal predecessors and their exact 
       repoRoot: root,
     })
     assert.equal(evidence.accountedUsd, OPENING_ACCOUNTED_USD)
-    assert.equal(evidence.measuredUsd, OPENING_ACCOUNTED_USD)
+    assert.equal(evidence.measuredUsd, 0.0150692)
+    assert.equal(evidence.uncertainUsd, 0.002501)
     assert.deepEqual(
       evidence.runs.map((run) => ({
         completedQuestions: run.completedQuestions,
@@ -1175,12 +1335,20 @@ test('replacement preflight verifies both terminal predecessors and their exact 
           runId: 'j4-longmemeval-s60-v2',
           status: 'failed',
         },
+        {
+          completedQuestions: 0,
+          currentRunAccountedUsd: 0.002501,
+          runId: 'j4-longmemeval-s60-v3',
+          status: 'failed',
+        },
       ],
     )
+    assert.equal(evidence.runs[2].measuredUsd, 0)
+    assert.equal(evidence.runs[2].uncertainUsd, 0.002501)
 
     await atomicWriteJ4(
-      fixture.paths[1].checkpointPath,
-      `${await readFile(fixture.paths[1].checkpointPath, 'utf8')} `,
+      fixture.paths[2].checkpointPath,
+      `${await readFile(fixture.paths[2].checkpointPath, 'utf8')} `,
     )
     await assert.rejects(
       verifyJ4PredecessorBundle({
@@ -1194,7 +1362,7 @@ test('replacement preflight verifies both terminal predecessors and their exact 
   }
 })
 
-test('replacement preflight rejects nonterminal metadata and unsafe predecessor paths', async () => {
+test('replacement preflight rejects nonterminal metadata, wrong spend classes, and unsafe paths', async () => {
   const root = await mkdtemp(join(tmpdir(), 'palari-j4-predecessor-bad-'))
   try {
     const fixture = await makePredecessorChainBundle(root)
@@ -1206,6 +1374,15 @@ test('replacement preflight rejects nonterminal metadata and unsafe predecessor 
         repoRoot: root,
       }),
       (error) => error.code === 'PREDECESSOR_SCHEMA',
+    )
+    const wrongSpendClass = structuredClone(fixture.chain)
+    delete wrongSpendClass.runs[2].currentRunUncertainUsd
+    await assert.rejects(
+      verifyJ4PredecessorBundle({
+        predecessorChain: wrongSpendClass,
+        repoRoot: root,
+      }),
+      (error) => error.code === 'PREDECESSOR_CHECKPOINT_MISMATCH',
     )
     const unsafe = structuredClone(fixture.chain)
     unsafe.runs[0].private.checkpointPath = '../checkpoint.json'
@@ -1261,7 +1438,7 @@ test('tracked-file audit rejects captured credentials and credential-shaped valu
   }
 })
 
-test('main and CLI refuse all v1-v3 identities before dependencies or credentials', async () => {
+test('main and CLI refuse literal v1-v3 identities before dependencies or credentials', async () => {
   let dependencyReads = 0
   let secretReads = 0
   const dependencies = new Proxy({}, {
@@ -1291,7 +1468,7 @@ test('main and CLI refuse all v1-v3 identities before dependencies or credential
   for (const runId of [
     'j4-longmemeval-s60-v1',
     'j4-longmemeval-s60-v2',
-    J4_LIVE_RUN_ID,
+    'j4-longmemeval-s60-v3',
   ]) {
     await assert.rejects(
       main({
@@ -1313,7 +1490,7 @@ test('main and CLI refuse all v1-v3 identities before dependencies or credential
         new URL('../evals/run-longmemeval-live.mjs', import.meta.url),
       ),
       '--run',
-      J4_LIVE_RUN_ID,
+      'j4-longmemeval-s60-v3',
     ],
     {
       encoding: 'utf8',
@@ -1323,4 +1500,209 @@ test('main and CLI refuse all v1-v3 identities before dependencies or credential
   assert.equal(cli.status, 1)
   assert.match(cli.stderr, /J4_RUN_TERMINAL: .* terminal/i)
   assert.doesNotMatch(cli.stderr, /dataset|credential|api.?key/i)
+})
+
+test('main passes exact v4 limits, scrubs aliases, runs two-call smoke, and stops at five', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-five-'))
+  const env = fakeMainEnvironment()
+  const transport = fakeTransport()
+  let meterOptions
+  const dependencies = fakeMainDependencies({
+    meterFactory(options) {
+      meterOptions = options
+      return transport
+    },
+  })
+  try {
+    const outcome = await main({
+      args: ['--run', J4_LIVE_RUN_ID],
+      dependencies,
+      env,
+      repoRoot: root,
+    })
+    assert.deepEqual(
+      meterOptions.limits,
+      j4LimitsForCumulativeQuestions(5),
+    )
+    assert.equal(
+      meterOptions.capUsd,
+      2.5 - OPENING_ACCOUNTED_USD,
+    )
+    assert.equal(outcome.report.completedQuestions, 5)
+    assert.equal(
+      outcome.report.spend.openingAccountedUsd,
+      OPENING_ACCOUNTED_USD,
+    )
+    assert.equal(outcome.report.spend.openingMeasuredUsd, 0.0150692)
+    assert.equal(
+      outcome.report.spend.combinedAccountedUsd,
+      Number((
+        OPENING_ACCOUNTED_USD +
+        outcome.report.spend.currentAccountedUsd
+      ).toFixed(12)),
+    )
+    assert.equal(
+      outcome.report.spend.combinedMeasuredUsd,
+      Number((
+        0.0150692 +
+        outcome.report.spend.currentMeasuredUsd
+      ).toFixed(12)),
+    )
+    assert.ok(outcome.report.spend.combinedAccountedUsd <= 2.5)
+    assert.equal(
+      outcome.checkpoint.invocations[0].availableCurrentRunCapUsd,
+      2.5 - OPENING_ACCOUNTED_USD,
+    )
+    assert.equal(outcome.checkpoint.smoke.logicalOperations, 2)
+    assert.equal(outcome.checkpoint.questions[5].status, 'pending')
+    assert.deepEqual(transport.counts(), {
+      answerCalls: J4_TRANCHE_1_LIMITS.maxLogicalRequests.answer,
+      judgeCalls: J4_TRANCHE_1_LIMITS.maxLogicalRequests.judge,
+      writerCalls: 6,
+    })
+    for (const name of J4_GOOGLE_CREDENTIAL_ALIASES) {
+      assert.equal(env[name], J4_DENY_GEMINI_KEY)
+    }
+    assert.equal(env.OPENAI_API_KEY, J4_DENY_OPENAI_KEY)
+    await verifyJ4ArtifactManifest(
+      join(root, 'evals', 'results', J4_LIVE_RUN_ID),
+    )
+  } finally {
+    await rm(root, { force: true, recursive: true })
+  }
+})
+
+test('main rejects a checkpointless stale v4 directory before key capture', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-stale-'))
+  const runDir = join(root, 'evals', 'results', J4_LIVE_RUN_ID)
+  await mkdir(runDir, { recursive: true, mode: 0o700 })
+  let secretReads = 0
+  const env = {
+    PALARI_J4_CONFIRM_SPEND: '1',
+    PALARI_J4_CUMULATIVE_QUESTIONS: '5',
+    PALARI_J4_SPEND_CAP_USD: '2.5',
+  }
+  Object.defineProperties(env, {
+    GEMINI_API_KEY: {
+      enumerable: true,
+      get() {
+        secretReads += 1
+        return 'must-not-be-read'
+      },
+    },
+    OPENAI_API_KEY: {
+      enumerable: true,
+      get() {
+        secretReads += 1
+        return 'must-not-be-read'
+      },
+    },
+  })
+  try {
+    await assert.rejects(
+      main({
+        args: ['--run', J4_LIVE_RUN_ID],
+        dependencies: fakeMainDependencies(),
+        env,
+        repoRoot: root,
+      }),
+      (error) => error.code === 'STALE_RUN_DIRECTORY',
+    )
+    assert.equal(secretReads, 0)
+  } finally {
+    await rm(root, { force: true, recursive: true })
+  }
+})
+
+test('main verifies all three predecessors before either key is captured', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-predecessor-'))
+  let secretReads = 0
+  const env = {
+    PALARI_J4_CONFIRM_SPEND: '1',
+    PALARI_J4_CUMULATIVE_QUESTIONS: '5',
+    PALARI_J4_SPEND_CAP_USD: '2.5',
+  }
+  Object.defineProperties(env, {
+    GEMINI_API_KEY: {
+      enumerable: true,
+      get() {
+        secretReads += 1
+        return 'must-not-be-read'
+      },
+    },
+    OPENAI_API_KEY: {
+      enumerable: true,
+      get() {
+        secretReads += 1
+        return 'must-not-be-read'
+      },
+    },
+  })
+  try {
+    await assert.rejects(
+      main({
+        args: ['--run', J4_LIVE_RUN_ID],
+        dependencies: fakeMainDependencies({
+          async verifyPredecessor({ predecessorChain }) {
+            assert.deepEqual(
+              predecessorChain.runs.map((run) => run.runId),
+              [
+                'j4-longmemeval-s60-v1',
+                'j4-longmemeval-s60-v2',
+                'j4-longmemeval-s60-v3',
+              ],
+            )
+            throw Object.assign(
+              new Error('pinned predecessor changed'),
+              { code: 'PREDECESSOR_HASH_MISMATCH' },
+            )
+          },
+        }),
+        env,
+        repoRoot: root,
+      }),
+      (error) => error.code === 'PREDECESSOR_HASH_MISMATCH',
+    )
+    assert.equal(secretReads, 0)
+  } finally {
+    await rm(root, { force: true, recursive: true })
+  }
+})
+
+test('operational failure preserves a terminal private report and manifest', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-failure-'))
+  const transport = fakeTransport()
+  transport.callJudge = async () => ({
+    modelVersion: 'gpt-4o-2024-08-06',
+    text: 'no',
+  })
+  try {
+    await assert.rejects(
+      main({
+        args: ['--run', J4_LIVE_RUN_ID],
+        dependencies: fakeMainDependencies({
+          meterFactory() {
+            return transport
+          },
+        }),
+        env: fakeMainEnvironment(),
+        repoRoot: root,
+      }),
+      (error) => error.code === 'JUDGE_RESULT_UNVALIDATED',
+    )
+    const runDir = join(root, 'evals', 'results', J4_LIVE_RUN_ID)
+    const checkpoint = JSON.parse(
+      await readFile(join(runDir, 'checkpoint.json'), 'utf8'),
+    )
+    assert.equal(checkpoint.status, 'failed')
+    assert.equal(checkpoint.questions[0].status, 'failed')
+    const report = JSON.parse(
+      await readFile(join(runDir, 'report.json'), 'utf8'),
+    )
+    assert.equal(report.status, 'failed')
+    assert.equal(report.spend.openingMeasuredUsd, 0.0150692)
+    await verifyJ4ArtifactManifest(runDir)
+  } finally {
+    await rm(root, { force: true, recursive: true })
+  }
 })

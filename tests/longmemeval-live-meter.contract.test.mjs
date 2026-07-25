@@ -404,6 +404,18 @@ test('Gemini meter requires explicit no-store and the exact structured schema', 
       }),
       (error) => error.code === 'GEMINI_REQUEST_SCHEMA',
     )
+    const legacyMimeLiteral = writerBody()
+    legacyMimeLiteral.generationConfig.responseFormat.text.mimeType =
+      'application/json'
+    await assert.rejects(
+      meter.callGemini({
+        body: legacyMimeLiteral,
+        cellId: 'legacy-mime-literal',
+        operationId: 'legacy-mime-literal',
+        purpose: 'writer',
+      }),
+      (error) => error.code === 'GEMINI_REQUEST_SCHEMA',
+    )
     assert.equal(calls, 0)
   })
 })
@@ -446,6 +458,17 @@ test('one aggregate transport uses fixed key-header URLs and releases successes 
     assert.equal(new URL(requests[0].url).search, '')
     assert.equal(requests[0].init.headers['x-goog-api-key'], GEMINI_KEY)
     assert.equal(requests[0].init.headers.authorization, undefined)
+    const geminiWireBody = JSON.parse(requests[0].init.body)
+    assert.equal(
+      geminiWireBody.generationConfig.responseFormat.text.mimeType,
+      'APPLICATION_JSON',
+    )
+    assert.equal(
+      JSON.stringify(geminiWireBody).includes(
+        '"mimeType":"application/json"',
+      ),
+      false,
+    )
     assert.equal(requests[1].url, 'https://api.openai.com/v1/chat/completions')
     assert.equal(requests[1].init.headers.authorization, `Bearer ${OPENAI_KEY}`)
     assert.ok(requests.every(({ init }) =>

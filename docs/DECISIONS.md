@@ -944,3 +944,21 @@ dates. Agents record; the founder decides.
   successor identity, or making another provider call requires a fresh
   founder GO. Question 6, Mem0, S-490, publication, and announcement remain
   closed.
+- 2026-07-25 (FOUNDER GO — J4 v4 MIME replacement run) The founder
+  explicitly authorized the smallest raw-wire repair identified after the
+  v3 writer smoke: serialize Gemini
+  `generationConfig.responseFormat.text.mimeType` as the declared enum
+  `APPLICATION_JSON`, then execute one fresh
+  `j4-longmemeval-s60-v4` replacement identity. V1, v2, and v3 remain
+  immutable and terminal. V4 must preserve and verify their tracked and
+  ignored evidence, carry the full `$0.0175702` accounted total (including
+  v3's `$0.0025010` uncertain reservation) against the unchanged `$2.50`
+  cumulative hard cap, freeze all identity/configuration/hashes/costs and
+  unchanged FINAL prediction rows, pass offline verification, and be committed
+  and pushed before any provider call. The single authorized invocation may
+  run the same writer-and-answer compatibility smoke and, only if it passes,
+  exactly the same first five benchmark questions. It must then stop and
+  report. This GO does not authorize question 6, Mem0, S-490, publication,
+  rerolling any predecessor or v4 failure, or any behavioral change beyond the
+  shared MIME wire correction and the mechanical evidence/accounting changes
+  required for a truthful successor.

@@ -197,7 +197,7 @@ test('extraction contract uses realistic score anchors and preserves explicit ze
     maxOutputTokens: 8000,
     responseFormat: {
       text: {
-        mimeType: 'application/json',
+        mimeType: 'APPLICATION_JSON',
         schema: MEMORY_EXTRACTION_RESPONSE_SCHEMA,
       },
     },

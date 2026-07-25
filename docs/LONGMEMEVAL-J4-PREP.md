@@ -343,6 +343,40 @@ may record only that a run occurred and closed, never the numbers. Publishing
 or announcing any result remains a separate founder gate. No later tranche is
 authorized by a Tranche 1 GO.
 
+## V4 MIME-wire amendment — 2026-07-25
+
+The v3 writer smoke proved that the raw v1beta REST surface does not accept
+the HTTP-style literal `application/json` in
+`generationConfig.responseFormat.text.mimeType`. Google's live v1beta
+Discovery schema declares that field as an enum with
+`APPLICATION_JSON`, `TEXT_PLAIN`, and `MIME_TYPE_UNSPECIFIED`; ProtoJSON
+serializes enum names on the wire. The legacy structured-output guide still
+shows the lower-case literal in one raw REST example, which conflicts with
+the live schema and the observed HTTP 400. V4 therefore changes only the
+shared product/J4 wire value to `APPLICATION_JSON` and tests the exact
+serialized transport body. The endpoint, `responseFormat.text` path, JSON
+Schema, prompts, models, generation limits, question order, and all 60
+prediction rows are unchanged.
+
+V4 preserves all three terminal predecessors. Their cumulative accounted
+spend is `$0.0175702`: v1 measured `$0.0004494`, v2 measured `$0.0146198`,
+and v3 measured `$0` with a conservative uncertain reservation of
+`$0.0025010`. The fresh v4 meter is therefore capped at `$2.4824298`.
+Because the replacement enum has the same 16-character wire length as the
+rejected literal, the frozen request statistics and fresh estimate do not
+change: `$0.8944695` expected and `$2.1566612` conservative. Including
+predecessors, the cumulative estimates are `$0.9120397` and `$2.1742314`,
+both below the unchanged `$2.50` hard cap.
+
+Official contract references:
+
+- live Gemini v1beta Discovery schema:
+  <https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta>
+- Gemini GenerateContent API reference:
+  <https://ai.google.dev/api/generate-content>
+- ProtoJSON enum mapping:
+  <https://protobuf.dev/programming-guides/json/>
+
 ## Sources verified 2026-07-24
 
 - LongMemEval source:

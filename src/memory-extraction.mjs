@@ -8,7 +8,10 @@
 
 import { performance } from 'node:perf_hooks'
 
-import { MEMORY_EXTRACTION_RESPONSE_SCHEMA } from './memory-extraction-schema.mjs'
+import {
+  MEMORY_EXTRACTION_RESPONSE_MIME_TYPE,
+  MEMORY_EXTRACTION_RESPONSE_SCHEMA,
+} from './memory-extraction-schema.mjs'
 import {
   buildMemoryExtractionRequest as buildV05MemoryExtractionRequest,
   deterministicMockMemoryExtraction,
@@ -123,7 +126,7 @@ export function buildMemoryExtractionRequest(options = {}) {
       maxOutputTokens: request.generationConfig.maxOutputTokens,
       responseFormat: {
         text: {
-          mimeType: 'application/json',
+          mimeType: MEMORY_EXTRACTION_RESPONSE_MIME_TYPE,
           schema: MEMORY_EXTRACTION_RESPONSE_SCHEMA,
         },
       },

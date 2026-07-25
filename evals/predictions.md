@@ -49,3 +49,15 @@ Its 60 outcome rows are byte-identical to v2 and retain row-array SHA-256
 No partial v2 provider evidence changed an outcome. The v3 metadata freezes
 the corrected structured-output, no-store, retry, response, two-call smoke,
 and predecessor-accounting contracts before any v3 provider call.
+
+## J4 v4 — FINAL before MIME replacement execution
+
+Author: repository execution lane, 2026-07-25. The complete machine-readable
+prediction document is
+`evals/predictions/j4-longmemeval-s60-v4.json`, SHA-256
+`1df076076c82e7c250e94c22e471b36cc9bf3cfa85ea90df9bd19c57a021f436`.
+Its 60 outcome rows are byte-identical to v3 and retain row-array SHA-256
+`12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351`.
+No v1-v3 provider evidence changed an outcome. V4 changes only the raw Gemini
+MIME enum, three-predecessor accounting, and immutable-run metadata. It is
+FINAL before any v4 provider call.
