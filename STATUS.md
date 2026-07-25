@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4 EXTERNAL VALIDATION — V5 FIXED-2,000 PRE-RUN FROZEN;
-ONE AUTHORIZED INVOCATION PENDING (2026-07-25).
+Loop state: J4 EXTERNAL VALIDATION — V5 FIRST-FIVE PREFIX COMPLETE;
+V5 TERMINAL; FOUNDER GATE (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -66,7 +66,7 @@ and the one completed-prefix result remains private and non-representative.
 The ignored v4 manifest, ledger, checkpoint, modes, predecessor accounting,
 and exact-secret audits verify. V4 is terminal in code and must not be resumed
 or rerolled.
-The founder has now authorized one fresh, homogeneous
+The founder authorized one fresh, homogeneous
 `j4-longmemeval-s60-v5` successor. Its only provider-behavior change raises
 the Gemini writer allowance from 512 to exactly 2,000 tokens. V5 starts from
 zero completed questions and runs the same first five once each. The founder
@@ -77,7 +77,11 @@ not imported, replaced, regraded, discarded, or combined with v5. V1-v4 carry
 `$0.1952121` accounted (`$0.1927111` measured plus `$0.0025010` uncertain),
 leaving the v5 meter exactly `$6.8047879` under the adopted `$7.00` cumulative
 cap. The v5 authority and FINAL predictions are frozen with all 60 outcome
-rows byte-identical to v4. No v5 provider call has occurred.
+rows byte-identical to v4. The pushed pre-run cut executed exactly once: both
+compatibility calls and all five authorized questions completed with no retry,
+then the runner paused before question 6. V5 is now terminal and cannot be
+resumed or rerolled. The private prefix was graded, but no score entered git or
+was published.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -333,6 +337,26 @@ session itself).
     same pre-call cut. Focused live-path tests are 47/47; the full suite is
     178/178; dry bake-off, quickstart, package dry-run, and real four-run
     predecessor verification are green. No v5 provider call has occurred.
+  - [x] J4.2V5-E — TERMINAL FIRST-FIVE PREFIX COMPLETE 2026-07-25
+    (`this commit`). The pushed `09a256a` cut was invoked exactly once. Both
+    compatibility calls passed and ordinals 1-5 each completed and were graded
+    against the unchanged FINAL predictions. The runner paused at the exact
+    founder boundary; question 6 and all later questions remained pending.
+    There were 1,203 attempts and no retries: 1,192 writer, 6 answer, and
+    5 judge logical requests. V5 accounted `$0.5769756`, all measured and with
+    zero uncertainty. Including v1-v4, cumulative spend is `$0.7721877`
+    accounted, `$0.7696867` measured, and `$0.0025010` uncertain, below the
+    `$7.00` cap. Private manifest SHA-256
+    `22250ab01b8202319dd54d739561ef54d1b3685efb8e5fae8aed92d3d9dba1d6`;
+    checkpoint SHA-256
+    `bc46d9272f1d788fb06b826a6219c8448b19b0f361aaa0c9d9b68bd53fca8805`;
+    meter SHA-256
+    `22d8d51dd9844409ed6f4640c81903f6916b5cff325ee4561b4e4d94cdb0abe8`.
+    The ignored 1,217-artifact bundle passes manifest, mode, hash, exact-secret,
+    predecessor, and ledger audits. The private prefix was graded; no score
+    entered git or was published. V5 now refuses execution before dependency,
+    data, result-path, or credential access. Suite 174/174, dry bake-off,
+    quickstart, and package dry-run are green.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -345,16 +369,12 @@ session itself).
 
 ## Next
 
-FOUNDER GO RECORDED. From the clean, pushed v5 pre-run cut, invoke exactly one
-`j4-longmemeval-s60-v5` run: first the writer-and-answer compatibility smoke,
-then ordinals 1-5 once each only if both smokes pass, subject to the fail-closed
-evidence checks and `$7.00` cumulative meter. Stop and report after question 5
-or the first terminal failure. The founder's narrow override authorizes one
-new v5 execution of question `08e075c7`; it does not reopen v4 or permit
-importing, replacing, regrading, discarding, or combining v4's result. Do not
-dispatch question 6, reroll any v5 result or failure, alter frozen v1-v5
-evidence, run Mem0 or S-490, publish a score, or announce a result. U8, J3
-v1-v4, and J4 v1-v4 remain closed.
+FOUNDER GATE. V5 completed its exact first-five boundary and is terminal. Do
+not resume or reroll it, dispatch question 6, create a successor identity,
+raise a later-tranche cap, alter frozen v1-v5 inputs or private evidence, run
+Mem0 or S-490, publish a score, or announce a result without a new founder GO.
+The v4 and v5 observations remain separate and may not be combined. U8, J3
+v1-v4, and J4 v1-v5 remain closed.
 
 ## Log
 
@@ -507,6 +527,10 @@ exact 2,000-token writer maximum and unchanged prediction rows, preserved the
 four terminal predecessors as separate evidence, and carried their
 `$0.1952121` against the new `$7.00` cumulative cap. No v5 provider call
 occurred; Next is the single pushed v5 invocation.
+2026-07-25 — J4.2V5-E — this commit — Invoked the pushed v5 cut exactly
+once; both smokes and all five authorized questions completed with no retry,
+the runner paused before question 6, private evidence and cumulative spend
+verify, no score entered git, and v5 is sealed at a founder gate.
 
 ## Product stop-rule record
 
@@ -1105,3 +1129,25 @@ occurred; Next is the single pushed v5 invocation.
    v4 and v5 observations from different configurations. This is the pre-call
    half of the founder-authorized live evidence unit, not a product-result
    claim.
+
+### J4.2V5 terminal live invocation
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? It proved the 2,000-token
+   writer allowance removes the truncation that stopped v4 and permits the
+   complete five-question measurement. It did not establish a product-quality
+   improvement; the private prefix instead exposed retrieval failures that
+   remain founder decision inputs.
+3. Does an existing framework already provide what this unit added? Gemini
+   provides the output control and LongMemEval provides the independent
+   benchmark. Palari's contribution here is the gated adapter, bounded ledger,
+   immutable evidence, and terminal execution boundary.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly chose 2,000 tokens, authorized the same five questions
+   once, adopted the `$7.00` cap, and required a stop afterward.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? The known 512-token truncation could return, the paid
+   first-five evidence and cumulative accounting could be lost, and the same
+   terminal identity could be rerun. The live prefix is evidence about the
+   product, not a claim that the product is now better.

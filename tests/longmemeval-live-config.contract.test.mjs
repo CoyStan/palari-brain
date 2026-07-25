@@ -440,12 +440,26 @@ test('J4 v4 frozen bytes survive the v5 replacement setup', async () => {
   )
 })
 
-test('J4 v5 config loads all artifacts and freezes the replacement run', async () => {
-  const loaded = await loadJ4LiveConfig({ repoRoot: REPO_ROOT })
-  const { config } = loaded
+test('J4 v5 frozen bytes survive terminal sealing and fail closed as runnable', async () => {
+  const [configText, authorityText, predictionsText] = await Promise.all([
+    readFile(new URL(
+      '../evals/live-runs/j4-longmemeval-s60-v5.json',
+      import.meta.url,
+    )),
+    readFile(new URL(
+      '../evals/live-runs/j4-longmemeval-s60-v5.authority.json',
+      import.meta.url,
+    )),
+    readFile(new URL(
+      '../evals/predictions/j4-longmemeval-s60-v5.json',
+      import.meta.url,
+    )),
+  ])
+  assert.equal(j4Sha256(configText), J4_V5_CONFIG_SHA256)
+  assert.equal(j4Sha256(authorityText), J4_V5_AUTHORITY_SHA256)
+  assert.equal(j4Sha256(predictionsText), J4_V5_PREDICTIONS_SHA256)
 
-  assert.equal(loaded.configSha256, J4_V5_CONFIG_SHA256)
-  assert.equal(loaded.predictionsSha256, J4_V5_PREDICTIONS_SHA256)
+  const config = JSON.parse(configText)
   assert.equal(config.runId, J4_LIVE_RUN_ID)
   assert.equal(config.generation.writerMaxOutputTokens, 2_000)
   assert.deepEqual(config.tranches[0], {
@@ -554,5 +568,12 @@ test('J4 v5 config loads all artifacts and freezes the replacement run', async (
   assert.ok(
     config.costEstimate.conservative.cumulativeUsd <
       config.costEstimate.capUsd,
+  )
+  await assert.rejects(
+    loadJ4LiveConfig({ repoRoot: REPO_ROOT }),
+    (error) =>
+      error.code === 'ARTIFACT_HASH' &&
+      /evals\/run-longmemeval-live\.mjs/.test(error.message),
+    'terminal runner bytes must no longer match the executable v5 identity',
   )
 })

@@ -1011,3 +1011,18 @@ dates. Agents record; the founder decides.
   S-490, publication, announcement, importing any predecessor result, any
   change beyond the output allowance and mechanical successor
   evidence/accounting, or any further live call after v5 closes.
+- 2026-07-25 (J4.2V5 TERMINAL — first-five boundary complete) The pushed
+  `09a256a` v5 identity was invoked exactly once. Both compatibility calls and
+  all five authorized questions completed and were graded against the frozen
+  FINAL predictions; the runner then paused before question 6. There were
+  1,203 attempts and no retries: 1,192 writer, 6 answer, and 5 judge logical
+  requests. V5 accounted `$0.5769756`, all measured. Including v1-v4, the
+  cumulative ledger is `$0.7721877` accounted, `$0.7696867` measured, and
+  `$0.0025010` uncertain under the `$7.00` hard cap. The ignored 1,217-artifact
+  bundle passes manifest, mode, hash, exact-secret, predecessor, and ledger
+  audits. V4 and v5 remain separate; neither result was imported, replaced,
+  regraded, discarded, or combined. The private prefix was graded, but no
+  score entered git or was published. V5 is terminal and must not be resumed
+  or rerolled. Question 6, later tranches, Mem0, S-490, publication,
+  announcement, any successor identity, and any further provider call require
+  a new founder GO.

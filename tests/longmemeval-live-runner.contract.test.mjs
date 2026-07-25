@@ -23,12 +23,8 @@ import {
   J4_PREDECESSOR_CHAIN,
   J4_TRANCHE_1_LIMITS,
   j4ExecutionQuestionIds,
-  j4LimitsForCumulativeQuestions,
 } from '../evals/longmemeval-live-config.mjs'
 import {
-  J4_DENY_GEMINI_KEY,
-  J4_DENY_OPENAI_KEY,
-  J4_GOOGLE_CREDENTIAL_ALIASES,
   acquireJ4RunLock,
   assertJ4LiveRunOpen,
   assertValidatedJ4JudgeResponse,
@@ -747,80 +743,6 @@ async function runFakeQuestion({
   return fakeArmResult(instance, { memoryRows })
 }
 
-function fakeMainDependencies({
-  meterFactory,
-  population = syntheticPopulation(),
-  runQuestion = runFakeQuestion,
-  verifyPredecessor = async ({ predecessorChain }) => ({
-    accountedUsd: predecessorChain.openingAccountedUsd,
-    measuredUsd: OPENING_MEASURED_USD,
-    runs: predecessorChain.runs.map((run) => ({
-      checkpointSha256: run.private.checkpointSha256,
-      runId: run.runId,
-    })),
-    uncertainUsd: OPENING_UNCERTAIN_USD,
-  }),
-} = {}) {
-  const active = config()
-  return {
-    async auditTrackedFiles() {
-      return {
-        files: 84,
-        trackedPathsSha256: '7'.repeat(64),
-      }
-    },
-    async createMeteredTransport(options) {
-      return meterFactory(options)
-    },
-    async inspectGitCutPoint() {
-      return { administrativeHead: 'admin-main-head' }
-    },
-    async loadAuthority() {
-      return {
-        authority: authority(),
-        authorityPath:
-          `evals/live-runs/${J4_LIVE_RUN_ID}.authority.json`,
-        authoritySha256: '8'.repeat(64),
-      }
-    },
-    async loadConfig() {
-      return {
-        config: active,
-        configPath: `evals/live-runs/${J4_LIVE_RUN_ID}.json`,
-        configSha256: 'd'.repeat(64),
-        predictions: predictions(population),
-        predictionsSha256: 'f'.repeat(64),
-      }
-    },
-    log() {},
-    preparePopulation() {
-      return {
-        ...population,
-        manifest: {
-          datasetSha256: 'e'.repeat(64),
-        },
-      }
-    },
-    async readFile() {
-      return Buffer.from('synthetic canonical dataset')
-    },
-    runQuestion,
-    verifyPredecessor,
-  }
-}
-
-function fakeMainEnvironment() {
-  return {
-    GEMINI_API_KEY: 'runner-test-gemini-key',
-    GOOGLE_API_KEY: 'runner-test-shadow-google-key',
-    OPENAI_API_KEY: 'runner-test-openai-key',
-    PALARI_J4_CONFIRM_SPEND: '1',
-    PALARI_J4_CUMULATIVE_QUESTIONS:
-      String(FIRST_GATE.cumulativeQuestions),
-    PALARI_J4_SPEND_CAP_USD: String(FIRST_GATE.cumulativeCapUsd),
-  }
-}
-
 function fakeArmResult(instance, { memoryRows = 1 } = {}) {
   return {
     answer: `wrong answer for ${instance.questionId}`,
@@ -855,18 +777,14 @@ function fakeArmResult(instance, { memoryRows = 1 } = {}) {
   }
 }
 
-test('runner import is inert, v5 is open, and v1-v4 are terminal', () => {
+test('runner import is inert and all v1-v5 identities are terminal', () => {
   assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v5')
-  assert.equal(
-    parseJ4LiveArgs(['--run', J4_LIVE_RUN_ID]),
-    J4_LIVE_RUN_ID,
-  )
-  assert.equal(assertJ4LiveRunOpen(J4_LIVE_RUN_ID), J4_LIVE_RUN_ID)
   for (const runId of [
     'j4-longmemeval-s60-v1',
     'j4-longmemeval-s60-v2',
     'j4-longmemeval-s60-v3',
     'j4-longmemeval-s60-v4',
+    J4_LIVE_RUN_ID,
   ]) {
     assert.equal(parseJ4LiveArgs(['--run', runId]), runId)
     assert.throws(
@@ -1536,7 +1454,7 @@ test('tracked-file audit rejects captured credentials and credential-shaped valu
   }
 })
 
-test('main and CLI refuse all v1-v4 identities before dependencies or credentials', async () => {
+test('main and CLI refuse all v1-v5 identities before dependencies or credentials', async () => {
   let dependencyReads = 0
   let secretReads = 0
   const dependencies = new Proxy({}, {
@@ -1568,6 +1486,7 @@ test('main and CLI refuse all v1-v4 identities before dependencies or credential
     'j4-longmemeval-s60-v2',
     'j4-longmemeval-s60-v3',
     'j4-longmemeval-s60-v4',
+    J4_LIVE_RUN_ID,
   ]) {
     await assert.rejects(
       main({
@@ -1589,7 +1508,7 @@ test('main and CLI refuse all v1-v4 identities before dependencies or credential
         new URL('../evals/run-longmemeval-live.mjs', import.meta.url),
       ),
       '--run',
-      'j4-longmemeval-s60-v4',
+      J4_LIVE_RUN_ID,
     ],
     {
       encoding: 'utf8',
@@ -1599,218 +1518,4 @@ test('main and CLI refuse all v1-v4 identities before dependencies or credential
   assert.equal(cli.status, 1)
   assert.match(cli.stderr, /J4_RUN_TERMINAL: .* terminal/i)
   assert.doesNotMatch(cli.stderr, /dataset|credential|api.?key/i)
-})
-
-test('main passes exact v5 limits, scrubs aliases, runs two-call smoke, and stops at five', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-five-'))
-  const env = fakeMainEnvironment()
-  const transport = fakeTransport()
-  let meterOptions
-  const dependencies = fakeMainDependencies({
-    meterFactory(options) {
-      meterOptions = options
-      return transport
-    },
-  })
-  try {
-    const outcome = await main({
-      args: ['--run', J4_LIVE_RUN_ID],
-      dependencies,
-      env,
-      repoRoot: root,
-    })
-    assert.deepEqual(
-      meterOptions.limits,
-      j4LimitsForCumulativeQuestions(FIRST_GATE.cumulativeQuestions),
-    )
-    assert.equal(
-      meterOptions.capUsd,
-      FIRST_GATE.cumulativeCapUsd - OPENING_ACCOUNTED_USD,
-    )
-    assert.equal(outcome.report.completedQuestions, 5)
-    assert.equal(
-      outcome.report.spend.openingAccountedUsd,
-      OPENING_ACCOUNTED_USD,
-    )
-    assert.equal(
-      outcome.report.spend.openingMeasuredUsd,
-      OPENING_MEASURED_USD,
-    )
-    assert.equal(
-      outcome.report.spend.combinedAccountedUsd,
-      Number((
-        OPENING_ACCOUNTED_USD +
-        outcome.report.spend.currentAccountedUsd
-      ).toFixed(12)),
-    )
-    assert.equal(
-      outcome.report.spend.combinedMeasuredUsd,
-      Number((
-        OPENING_MEASURED_USD +
-        outcome.report.spend.currentMeasuredUsd
-      ).toFixed(12)),
-    )
-    assert.ok(
-      outcome.report.spend.combinedAccountedUsd <=
-        FIRST_GATE.cumulativeCapUsd,
-    )
-    assert.equal(
-      outcome.checkpoint.invocations[0].availableCurrentRunCapUsd,
-      FIRST_GATE.cumulativeCapUsd - OPENING_ACCOUNTED_USD,
-    )
-    assert.equal(outcome.checkpoint.smoke.logicalOperations, 2)
-    assert.equal(outcome.checkpoint.questions[5].status, 'pending')
-    assert.deepEqual(transport.counts(), {
-      answerCalls: J4_TRANCHE_1_LIMITS.maxLogicalRequests.answer,
-      judgeCalls: J4_TRANCHE_1_LIMITS.maxLogicalRequests.judge,
-      writerCalls: 6,
-    })
-    for (const name of J4_GOOGLE_CREDENTIAL_ALIASES) {
-      assert.equal(env[name], J4_DENY_GEMINI_KEY)
-    }
-    assert.equal(env.OPENAI_API_KEY, J4_DENY_OPENAI_KEY)
-    await verifyJ4ArtifactManifest(
-      join(root, 'evals', 'results', J4_LIVE_RUN_ID),
-    )
-  } finally {
-    await rm(root, { force: true, recursive: true })
-  }
-})
-
-test('main rejects a checkpointless stale v5 directory before key capture', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-stale-'))
-  const runDir = join(root, 'evals', 'results', J4_LIVE_RUN_ID)
-  await mkdir(runDir, { recursive: true, mode: 0o700 })
-  let secretReads = 0
-  const env = {
-    PALARI_J4_CONFIRM_SPEND: '1',
-    PALARI_J4_CUMULATIVE_QUESTIONS:
-      String(FIRST_GATE.cumulativeQuestions),
-    PALARI_J4_SPEND_CAP_USD: String(FIRST_GATE.cumulativeCapUsd),
-  }
-  Object.defineProperties(env, {
-    GEMINI_API_KEY: {
-      enumerable: true,
-      get() {
-        secretReads += 1
-        return 'must-not-be-read'
-      },
-    },
-    OPENAI_API_KEY: {
-      enumerable: true,
-      get() {
-        secretReads += 1
-        return 'must-not-be-read'
-      },
-    },
-  })
-  try {
-    await assert.rejects(
-      main({
-        args: ['--run', J4_LIVE_RUN_ID],
-        dependencies: fakeMainDependencies(),
-        env,
-        repoRoot: root,
-      }),
-      (error) => error.code === 'STALE_RUN_DIRECTORY',
-    )
-    assert.equal(secretReads, 0)
-  } finally {
-    await rm(root, { force: true, recursive: true })
-  }
-})
-
-test('main verifies all four predecessors before either key is captured', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-predecessor-'))
-  let secretReads = 0
-  const env = {
-    PALARI_J4_CONFIRM_SPEND: '1',
-    PALARI_J4_CUMULATIVE_QUESTIONS:
-      String(FIRST_GATE.cumulativeQuestions),
-    PALARI_J4_SPEND_CAP_USD: String(FIRST_GATE.cumulativeCapUsd),
-  }
-  Object.defineProperties(env, {
-    GEMINI_API_KEY: {
-      enumerable: true,
-      get() {
-        secretReads += 1
-        return 'must-not-be-read'
-      },
-    },
-    OPENAI_API_KEY: {
-      enumerable: true,
-      get() {
-        secretReads += 1
-        return 'must-not-be-read'
-      },
-    },
-  })
-  try {
-    await assert.rejects(
-      main({
-        args: ['--run', J4_LIVE_RUN_ID],
-        dependencies: fakeMainDependencies({
-          async verifyPredecessor({ predecessorChain }) {
-            assert.deepEqual(
-              predecessorChain.runs.map((run) => run.runId),
-              [
-                'j4-longmemeval-s60-v1',
-                'j4-longmemeval-s60-v2',
-                'j4-longmemeval-s60-v3',
-                'j4-longmemeval-s60-v4',
-              ],
-            )
-            throw Object.assign(
-              new Error('pinned predecessor changed'),
-              { code: 'PREDECESSOR_HASH_MISMATCH' },
-            )
-          },
-        }),
-        env,
-        repoRoot: root,
-      }),
-      (error) => error.code === 'PREDECESSOR_HASH_MISMATCH',
-    )
-    assert.equal(secretReads, 0)
-  } finally {
-    await rm(root, { force: true, recursive: true })
-  }
-})
-
-test('operational failure preserves a terminal private report and manifest', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'palari-j4-main-failure-'))
-  const transport = fakeTransport()
-  transport.callJudge = async () => ({
-    modelVersion: 'gpt-4o-2024-08-06',
-    text: 'no',
-  })
-  try {
-    await assert.rejects(
-      main({
-        args: ['--run', J4_LIVE_RUN_ID],
-        dependencies: fakeMainDependencies({
-          meterFactory() {
-            return transport
-          },
-        }),
-        env: fakeMainEnvironment(),
-        repoRoot: root,
-      }),
-      (error) => error.code === 'JUDGE_RESULT_UNVALIDATED',
-    )
-    const runDir = join(root, 'evals', 'results', J4_LIVE_RUN_ID)
-    const checkpoint = JSON.parse(
-      await readFile(join(runDir, 'checkpoint.json'), 'utf8'),
-    )
-    assert.equal(checkpoint.status, 'failed')
-    assert.equal(checkpoint.questions[0].status, 'failed')
-    const report = JSON.parse(
-      await readFile(join(runDir, 'report.json'), 'utf8'),
-    )
-    assert.equal(report.status, 'failed')
-    assert.equal(report.spend.openingMeasuredUsd, OPENING_MEASURED_USD)
-    await verifyJ4ArtifactManifest(runDir)
-  } finally {
-    await rm(root, { force: true, recursive: true })
-  }
 })
