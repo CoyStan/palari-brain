@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-L1 ACTIVE FIRST-FIVE PRE-RUN FROZEN;
-LIVE GO OPEN; V5 TERMINAL (2026-07-25).
+Loop state: J4.2K-L1 TERMINAL BEFORE QUESTION 1;
+FOUNDER GATE; V5 TERMINAL (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -108,6 +108,15 @@ adapter, meter, runner, authority, config, and five FINAL predictions are
 frozen and offline-verified; the terminal v1-v5 implementation and ignored
 evidence remain unchanged. No call for this identity has occurred at this
 pre-run cut point.
+
+That pushed cut was invoked exactly once. The active role smoke made one
+writer and one answer call with no retry. The writer selected the durable user
+statement but omitted the equally visible durable Palari recommendation; the
+gate consequently stored one user row and no Palari row. The answer accurately
+reported that no Palari recommendation was stored, and the mandatory smoke
+stopped the run before question 1. No judge call or benchmark score exists.
+The private evidence verifies, active v1 is sealed, and any writer-contract
+change, successor identity, or provider call requires a fresh founder GO.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -415,6 +424,25 @@ session itself).
     All 27 execution artifacts are hash-pinned. The active-only tests are
     27/27 and the full suite is 214/214; quickstart is green. No provider call
     has occurred.
+  - [x] J4.2K-L1-E — TERMINAL BEFORE QUESTION 1 2026-07-25
+    (`this commit`). The pushed `451ee46` identity ran exactly once. Its
+    writer and answer smoke calls completed with no retry, but the writer
+    selected only the user statement and omitted the Palari recommendation.
+    The gate stored one user row and no Palari row; the answer honestly
+    exposed that absence, and the role smoke stopped before question 1. No
+    judge call or benchmark score exists. Current-run spend is `$0.0003118`,
+    all measured; cumulative spend is `$0.7724995` accounted,
+    `$0.7699985` measured, and `$0.0025010` uncertain. Private manifest
+    SHA-256
+    `e4970d5f25014a1ce28b0cb8f7ae1efa6c451f65a5e70d5209979833b469afe9`;
+    checkpoint SHA-256
+    `a21ddac740b14db02825c52fcb033ca1be3c74edf7ffff9f9689b0df486c48d5`;
+    meter SHA-256
+    `d9249cd4f7c7e0f08947413cf599187505880b3080886b8277ad40f5e777ce82`.
+    The private bundle and exact-secret audit verify. Active v1 is sealed
+    before file, dataset, result-path, or credential access. Post-seal
+    active-only tests are 28/28 and the full suite is 215/215; quickstart,
+    dry bake-off, and package dry-run are green.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -427,16 +455,15 @@ session itself).
 
 ## Next
 
-J4.2K-L1-E — execute the single pushed
-`j4-active-brain-first5-v1` invocation under its existing founder GO and
-unchanged `$7.00` cumulative cap. It may run only the compatibility smoke and
-ordinals 1-5, stopping after question 5 or the first terminal/capacity
-failure. Then verify and preserve the private bundle, seal the identity,
-record a number-free close-out, push, report privately to the founder, and
-stop. Do not resume or reroll V5, dispatch question 6, repair behavior after
-seeing results, raise the cap, alter predecessor inputs or evidence, run Mem0
-or S-490, publish a score, or announce a result. The v4, v5, and active
-observations remain separate. U8, J3 v1-v4, and J4 v1-v5 remain closed.
+FOUNDER GATE. Active v1 stopped before question 1 and is terminal. Do not
+resume or reroll it, change its writer contract, create or execute a
+successor, dispatch any benchmark question, repair behavior after seeing the
+smoke, raise the cap, alter predecessor inputs or private evidence, run Mem0
+or S-490, publish a score, or announce a result without a fresh founder GO.
+The next decision is whether the product contract should require the writer
+to select every durable visible statement from both speakers before preparing
+a new smoke-only successor. V4, V5, and active v1 remain separate. U8, J3
+v1-v4, and J4 v1-v5 remain closed.
 
 ## Log
 
@@ -604,6 +631,11 @@ identity, exact role/source smoke, five FINAL predictions, 1,207-operation
 replay, complete-context capacity circuit breaker, V1-V5 spend chain, active
 meter, and exact no-question-6 boundary. Suite 214/214 and quickstart are
 green; no provider was called.
+2026-07-25 — J4.2K-L1-E — this commit — Invoked the pushed active identity
+once; its writer omitted the Palari half of the two-speaker smoke, the honest
+answer exposed that absence, and the runner stopped before question 1. The
+private bundle verifies, no score exists, active-only tests are 28/28, the
+full suite is 215/215, and active v1 is sealed at a founder gate.
 
 ## Product stop-rule record
 
@@ -1272,3 +1304,23 @@ green; no provider was called.
    consume the tranche, and a partial-context answer could be mistaken for a
    valid complete-memory result. This is one founder-requested measurement
    unit and stops at its exact live cut point.
+
+### J4.2K-L1-E terminal role smoke
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? No. It produced no
+   benchmark score; it found that the live writer can omit a durable Palari
+   statement even though the offline contract permits storing it.
+3. Does an existing framework already provide what this unit added? Gemini
+   supplied generation and the mature meter supplied provider safety. The
+   local smoke only exposed the gap between “may select” and the founder's
+   required both-speaker behavior.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly said Palari's own statements should be saved with their
+   speaker recorded and authorized this fresh live check.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? The same incomplete two-speaker writer behavior could pass
+   unnoticed into the five-question run, and this terminal identity could be
+   rerolled. The smoke preserved the finding and stopped before benchmark
+   spend; any correction is a new founder-gated product unit.

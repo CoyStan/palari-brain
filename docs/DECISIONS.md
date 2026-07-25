@@ -1068,3 +1068,21 @@ dates. Agents record; the founder decides.
   first terminal/capacity failure. It does not authorize resuming or
   regrading V5, question 6, a reroll, Mem0, S-490, publication,
   announcement, a cap increase, or a behavioral repair after seeing results.
+- 2026-07-25 (J4.2K-L1 TERMINAL — active role smoke omission) The pushed
+  `451ee46` cut was invoked exactly once as
+  `j4-active-brain-first5-v1`. Its Gemini writer call completed normally but
+  selected only the durable user statement from the two-speaker smoke; the
+  active gate therefore wrote one `user_message` row and no
+  `assistant_message` row. The subsequent answer call correctly reported
+  that it had no stored Palari recommendation, so the mandatory role smoke
+  rejected the run before question 1. No judge call or benchmark score
+  exists. The two calls had no retry and accounted `$0.0003118`, all
+  measured. Combined with v1-v5, cumulative spend is `$0.7724995`
+  accounted, `$0.7699985` measured, and `$0.0025010` uncertain under the
+  unchanged `$7.00` cap. The ignored private manifest, checkpoint, ledger,
+  transcripts, modes, hashes, provenance, and exact-secret audit verify.
+  No raw evidence or score entered git or was published. Active v1 is sealed
+  in the tracked runner and must not be resumed or rerolled. Changing the
+  writer contract, creating a successor, making another provider call, or
+  starting any benchmark question requires a fresh founder GO; question 6,
+  Mem0, S-490, publication, and announcement remain closed.

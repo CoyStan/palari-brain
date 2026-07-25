@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
   access,
   mkdir,
@@ -198,6 +199,49 @@ test('terminal identities fail before dependencies and first-five excludes six',
     assert.equal(selected.executionOrder[5], undefined)
   })
 
+test('active v1 seal invalidates its pre-run artifact hash and blocks before keys',
+  async () => {
+    const configDocument = JSON.parse(await readFile(
+      join(
+        resolve(new URL('..', import.meta.url).pathname),
+        'evals/live-runs/j4-active-brain-first5-v1.json',
+      ),
+      'utf8',
+    ))
+    const frozenRunner = configDocument.artifacts.find((entry) =>
+      entry.path === 'evals/run-active-brain-live.mjs')
+    const currentRunner = await readFile(
+      new URL('../evals/run-active-brain-live.mjs', import.meta.url),
+    )
+    assert.notEqual(
+      frozenRunner.sha256,
+      createHash('sha256').update(currentRunner).digest('hex'),
+    )
+    assert.ok(ACTIVE_BRAIN_TERMINAL_RUN_IDS.includes(
+      ACTIVE_BRAIN_LIVE_RUN_ID,
+    ))
+
+    let dependencyReads = 0
+    await assert.rejects(
+      main({
+        args: ['--run', ACTIVE_BRAIN_LIVE_RUN_ID],
+        dependencies: {
+          readFile: async () => {
+            dependencyReads += 1
+            throw new Error('must not read')
+          },
+        },
+        env: new Proxy({}, {
+          get() {
+            throw new Error('must not read credentials')
+          },
+        }),
+      }),
+      (error) => error.code === 'J4_RUN_TERMINAL',
+    )
+    assert.equal(dependencyReads, 0)
+  })
+
 test('real V1-V5 predecessor verification accepts key-order differences',
   async (context) => {
     const repoRoot = resolve(new URL('..', import.meta.url).pathname)
@@ -221,83 +265,31 @@ test('real V1-V5 predecessor verification accepts key-order differences',
     assert.equal(audit.runs.length, 5)
   })
 
-test('main passes only active model and generation contracts to the meter',
+test('frozen active config retains model and generation contracts after seal',
   async () => {
-    const repoRoot = await mkdtemp(join(tmpdir(), 'palari-active-main-'))
-    const activeConfig = config()
-    const population = preparedPopulation()
-    const predictionBank = predictions()
-    let meterOptions
-    const transport = {
-      closeNetworkGuard() {},
-      installNetworkGuard() {},
-    }
-    try {
-      const result = await main({
-        args: ['--run', ACTIVE_BRAIN_LIVE_RUN_ID],
-        dependencies: {
-          assertEnvironment: () => ({
-            capUsd: 7,
-            geminiApiKey: 'fake-gemini-key',
-            openaiApiKey: 'fake-openai-key',
-          }),
-          auditTrackedFiles: async () => ({ files: 0 }),
-          createMeteredTransport: async (options) => {
-            meterOptions = options
-            return transport
-          },
-          executeTranche: async () => ({
-            checkpoint: {},
-            report: { completedQuestions: 5 },
-          }),
-          exists: async () => false,
-          inspectGitCutPoint: async () => ({
-            administrativeHead: 'fixture-head',
-          }),
-          loadAuthority: async () => ({
-            authority: {
-              cumulativeCapUsd: 7,
-              cumulativeQuestions: 5,
-              fromCumulativeQuestions: 0,
-              previousCheckpointSha256: null,
-              runId: ACTIVE_BRAIN_LIVE_RUN_ID,
-            },
-            authorityPath: 'authority.json',
-            authoritySha256: SHA_D,
-          }),
-          loadConfig: async () => ({
-            config: activeConfig,
-            configPath: 'config.json',
-            configSha256: SHA_A,
-            predictions: predictionBank,
-            predictionsSha256: SHA_C,
-          }),
-          log() {},
-          preparePopulation: () => population,
-          readFile: async () => Buffer.from('fixture'),
-          verifyPredecessor: async () => ({
-            accountedUsd: 0.7721877,
-            measuredUsd: 0.7696867,
-            runs: [],
-            uncertainUsd: 0.002501,
-          }),
-        },
-        env: {},
-        repoRoot,
-      })
-      assert.equal(result.report.completedQuestions, 5)
-      assert.equal(meterOptions.geminiModel, ACTIVE_BRAIN_GEMINI_MODEL)
-      assert.deepEqual(
-        meterOptions.writerGeneration,
-        ACTIVE_BRAIN_WRITER_GENERATION,
-      )
-      assert.deepEqual(
-        meterOptions.answerGeneration,
-        ACTIVE_BRAIN_ANSWER_GENERATION,
-      )
-    } finally {
-      await rm(repoRoot, { force: true, recursive: true })
-    }
+    const configDocument = JSON.parse(await readFile(
+      new URL(
+        '../evals/live-runs/j4-active-brain-first5-v1.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ))
+    assert.deepEqual(configDocument.models, {
+      answer: ACTIVE_BRAIN_GEMINI_MODEL,
+      judge: LONGMEMEVAL_JUDGE_MODEL,
+      writer: ACTIVE_BRAIN_GEMINI_MODEL,
+    })
+    assert.deepEqual(configDocument.generation, {
+      answerMaxOutputTokens:
+        ACTIVE_BRAIN_ANSWER_GENERATION.maxOutputTokens,
+      judgeMaxTokens: 10,
+      judgeN: 1,
+      judgeTemperature: 0,
+      thinkingLevel:
+        ACTIVE_BRAIN_ANSWER_GENERATION.thinkingConfig.thinkingLevel,
+      writerMaxOutputTokens:
+        ACTIVE_BRAIN_WRITER_GENERATION.maxOutputTokens,
+    })
   })
 
 test('capacity is graded once, checkpointed, and pauses before question two',

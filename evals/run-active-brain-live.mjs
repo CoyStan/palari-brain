@@ -58,6 +58,7 @@ export const ACTIVE_BRAIN_TERMINAL_RUN_IDS = Object.freeze([
   'j4-longmemeval-s60-v3',
   'j4-longmemeval-s60-v4',
   'j4-longmemeval-s60-v5',
+  'j4-active-brain-first5-v1',
 ])
 
 const terminalRunIds = new Set(ACTIVE_BRAIN_TERMINAL_RUN_IDS)
