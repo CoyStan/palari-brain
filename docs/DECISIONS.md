@@ -1086,3 +1086,23 @@ dates. Agents record; the founder decides.
   writer contract, creating a successor, making another provider call, or
   starting any benchmark question requires a fresh founder GO; question 6,
   Mem0, S-490, publication, and announcement remain closed.
+- 2026-07-25 (FOUNDER GO — J4.2K-R1 canonical dialogue evidence) After the
+  active role smoke proved that an optional model writer can omit visible
+  Palari speech, and after a literature/architecture review of the proposed
+  repair, the founder said “yes i agree implement.” This authorizes the
+  smallest offline product correction: persist every eligible visible user
+  and Palari message as exact host-role-stamped canonical evidence before any
+  writer; demote selected exact quotes to an optional derived index; retain
+  strict private scope, source isolation, chronology, exact message deletion,
+  and complete-or-refuse bounded recall; and preserve old selected quotes
+  honestly as incomplete legacy evidence. `ingestChatTurn` is the trusted
+  host's storage boundary and requires an explicit `durable` or `ephemeral`
+  decision, failing closed when absent. Because complete durable dialogue may
+  contain secrets, documentation must state that writer filtering no longer
+  protects the canonical copy, the local SQLite store is plaintext, and the
+  host owns retention consent. This GO covers code, migration, offline tests,
+  documentation, commit, and push. It does not authorize a provider call, a
+  successor live identity, a reroll, any benchmark question, a cap change,
+  publication, or changes to sealed authority/config/prediction/runner files
+  or private evidence. The active product bytes necessarily diverge from the
+  old identity's pinned hash, so that terminal identity remains unexecutable.

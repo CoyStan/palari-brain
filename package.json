@@ -2,7 +2,7 @@
   "name": "palari-brain",
   "version": "0.1.0",
   "private": true,
-  "description": "Chat memory with exact-quote speaker provenance, complete scoped recall, exact-ID forgetting, and no lexical retrieval.",
+  "description": "Chat memory with complete role-labelled dialogue evidence, optional derived indexing, bounded scoped recall, and exact-ID forgetting.",
   "type": "module",
   "license": "MIT",
   "main": "src/index.mjs",

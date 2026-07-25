@@ -1,14 +1,6 @@
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import test from 'node:test'
 
@@ -41,40 +33,8 @@ const authorityPath =
   'evals/live-runs/j4-active-brain-first5-v1.authority.json'
 const placeholder = 'TO_BE_FROZEN_SHA256'
 
-function sha256(value) {
-  return createHash('sha256').update(value).digest('hex')
-}
-
 async function readJson(path) {
   return JSON.parse(await readFile(join(repoRoot, path), 'utf8'))
-}
-
-async function materializeLoadableFixture() {
-  const root = await mkdtemp(join(tmpdir(), 'palari-active-config-'))
-  const config = await readJson(ACTIVE_BRAIN_LIVE_CONFIG_PATH)
-  const predictionText = await readFile(
-    join(repoRoot, predictionPath),
-    'utf8',
-  )
-  for (const artifact of config.artifacts) {
-    const path = join(root, artifact.path)
-    const bytes = `fixture artifact: ${artifact.path}\n`
-    await mkdir(dirname(path), { recursive: true })
-    await writeFile(path, bytes)
-    artifact.sha256 = sha256(bytes)
-  }
-  config.predictions.sha256 = sha256(predictionText)
-  await mkdir(
-    dirname(join(root, ACTIVE_BRAIN_LIVE_CONFIG_PATH)),
-    { recursive: true },
-  )
-  await mkdir(dirname(join(root, predictionPath)), { recursive: true })
-  await writeFile(
-    join(root, ACTIVE_BRAIN_LIVE_CONFIG_PATH),
-    `${JSON.stringify(config, null, 2)}\n`,
-  )
-  await writeFile(join(root, predictionPath), predictionText)
-  return { config, predictionText, root }
 }
 
 test('active config import is inert and needs no credential environment', () => {
@@ -274,40 +234,15 @@ test('active-only environment gates reject historical names and never format key
   )
 })
 
-test('loader accepts a fully pinned fixture and rejects prediction/artifact tampering', async () => {
-  const fixture = await materializeLoadableFixture()
-  try {
-    const loaded = await loadActiveBrainLiveConfig({
-      repoRoot: fixture.root,
-    })
-    assert.equal(loaded.config.runId, ACTIVE_BRAIN_LIVE_RUN_ID)
-    assert.equal(loaded.predictions.status, 'FINAL')
-
-    await writeFile(
-      join(fixture.root, predictionPath),
-      `${fixture.predictionText} `,
-    )
-    await assert.rejects(
-      loadActiveBrainLiveConfig({ repoRoot: fixture.root }),
-      (error) => error.code === 'PREDICTIONS_HASH',
-    )
-    await writeFile(
-      join(fixture.root, predictionPath),
-      fixture.predictionText,
-    )
-
-    const firstArtifact = fixture.config.artifacts[0]
-    await writeFile(
-      join(fixture.root, firstArtifact.path),
-      'tampered artifact\n',
-    )
-    await assert.rejects(
-      loadActiveBrainLiveConfig({ repoRoot: fixture.root }),
-      (error) => error.code === 'ARTIFACT_HASH',
-    )
-  } finally {
-    await rm(fixture.root, { force: true, recursive: true })
-  }
+test('sealed loader rejects the post-run product prompt drift', async () => {
+  await assert.rejects(
+    loadActiveBrainLiveConfig({ repoRoot }),
+    (error) =>
+      error.code === 'CONFIG_MISMATCH' &&
+      /prompt contracts differs from the frozen active-brain contract/.test(
+        error.message,
+      ),
+  )
 })
 
 test('authority is exact and does not reuse a predecessor checkpoint', async () => {

@@ -20,8 +20,10 @@ const EXPECTED_FUNCTIONS = [
 ]
 
 const EXPECTED_VALUES = [
+  'dialogueRetentions',
   'dialogueSourceKinds',
   'longMemEvalQuestionTypes',
+  'memoryAnswerSystemInstruction',
   'MEMORY_STATEMENT_RESPONSE_MIME_TYPE',
   'MEMORY_STATEMENT_RESPONSE_SCHEMA',
   'MEMORY_STATEMENT_TYPES',

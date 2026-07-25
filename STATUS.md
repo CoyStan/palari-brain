@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-L1 TERMINAL BEFORE QUESTION 1;
-FOUNDER GATE; V5 TERMINAL (2026-07-25).
+Loop state: J4.2K-R1 CANONICAL EVIDENCE DONE;
+FOUNDER GATE; ACTIVE V1 AND V5 TERMINAL (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -117,6 +117,22 @@ reported that no Palari recommendation was stored, and the mandatory smoke
 stopped the run before question 1. No judge call or benchmark score exists.
 The private evidence verifies, active v1 is sealed, and any writer-contract
 change, successor identity, or provider call requires a fresh founder GO.
+
+The founder subsequently authorized the offline product repair exposed by
+that smoke. J4.2K-R1 now commits every eligible complete visible user and
+Palari message to a separate private canonical-evidence table before the
+optional writer runs. The writer's maximum-eight exact quotes are a derived
+index only: omission, absence, transport error, or invalid output cannot erase
+the dialogue. Exact host roles, strict user/Palari scope, source isolation,
+chronology, message-level deletion with index cascade and replay tombstone,
+complete-or-refuse bounded recall, and historical quote migration are
+contract-tested. The host must explicitly mark every turn `durable` or
+`ephemeral`; durable dialogue is honestly documented as plaintext local
+storage that may contain secrets. The configured database is hardened to
+`0600` on upgrade, and an indexed transactional size preflight refuses an
+oversized briefing before materializing its messages. No provider was called,
+no live identity was created, and every sealed config, prediction, runner,
+and private result remains unchanged.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -443,6 +459,31 @@ session itself).
     before file, dataset, result-path, or credential access. Post-seal
     active-only tests are 28/28 and the full suite is 215/215; quickstart,
     dry bake-off, and package dry-run are green.
+  - [x] J4.2K-R1 — CANONICAL DIALOGUE EVIDENCE DONE 2026-07-25
+    (`this commit`). Added a separate non-FTS canonical table for exact,
+    untrimmed visible user and Palari messages and commits it before the
+    optional quote writer. Writer omission/error/invalid output, including
+    more than eight selected facts, cannot lose raw evidence. Stable
+    role-specific identities are replay-idempotent and reject changed bytes;
+    source/tool/web text has no write field; reads and deletes require exact
+    `palari_id AND user_id`; exact message deletion cascades derived quotes
+    and leaves a content-free tombstone so canonical or migrated evidence
+    cannot be replayed; and leading Palari turns survive LongMemEval replay.
+    Existing active quote rows migrate as explicitly incomplete legacy
+    evidence and are promoted only when every quote occurs in the replayed
+    full source message. Explicit `durable`/`ephemeral` retention fails closed
+    when omitted; non-round-trippable SQLite TEXT is rejected rather than
+    truncated; and the durable plaintext/consent boundary and complete-context
+    limit are documented. Existing databases are hardened to `0600`; indexed
+    identity/order paths avoid scope-wide per-turn scans; and bounded reads
+    preflight capacity before materializing message bodies. The quickstart
+    reproduces the former role-smoke omission offline and proves canonical
+    Palari evidence still survives.
+    Focused tests are 33/33 and the full suite is 220/220; quickstart, dry
+    bake-off, package dry-run, and independent reviews are green. No provider
+    was called and no sealed authority, config, prediction, runner, or private
+    result changed. The old identity's product prompt/hash checks reject these
+    new bytes as required.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -455,15 +496,17 @@ session itself).
 
 ## Next
 
-FOUNDER GATE. Active v1 stopped before question 1 and is terminal. Do not
-resume or reroll it, change its writer contract, create or execute a
-successor, dispatch any benchmark question, repair behavior after seeing the
-smoke, raise the cap, alter predecessor inputs or private evidence, run Mem0
-or S-490, publish a score, or announce a result without a fresh founder GO.
-The next decision is whether the product contract should require the writer
-to select every durable visible statement from both speakers before preparing
-a new smoke-only successor. V4, V5, and active v1 remain separate. U8, J3
-v1-v4, and J4 v1-v5 remain closed.
+FOUNDER GATE. The offline write-side repair is complete. Active v1 remains
+terminal before question 1 and cannot be resumed or rerolled; its failed
+evidence remains the truthful result for those frozen bytes. A fresh identity
+and fresh founder GO are required to run even a smoke against J4.2K-R1. Do not
+dispatch a provider call or benchmark question, raise a cap, alter predecessor
+inputs or private evidence, run Mem0 or S-490, publish a score, or announce a
+result. The next product question is empirical: whether to authorize a new
+smoke-only successor for the canonical-evidence bytes. The separate future
+capacity question—semantic/time-aware retrieval above the bounded complete
+context—remains unimplemented until measurement demonstrates need. V4, V5,
+and active v1 remain separate; U8, J3 v1-v4, and J4 v1-v5 remain closed.
 
 ## Log
 
@@ -636,6 +679,15 @@ once; its writer omitted the Palari half of the two-speaker smoke, the honest
 answer exposed that absence, and the runner stopped before question 1. The
 private bundle verifies, no score exists, active-only tests are 28/28, the
 full suite is 215/215, and active v1 is sealed at a founder gate.
+2026-07-25 — J4.2K-R1 — this commit — Moved complete visible user/Palari
+messages ahead of the optional writer into private canonical evidence,
+retained exact role/scope/source provenance and complete-or-refuse recall,
+added exact cascade deletion with replay tombstones, explicit retention, and
+honest legacy migration, hardened upgrade storage and bounded read/index
+paths, and reproduced the former Palari-omission failure as an offline passing
+regression. Focused tests 33/33 and full suite 220/220; quickstart, dry
+bake-off, package dry-run, and independent reviews green; no provider call or
+sealed-identity/evidence change.
 
 ## Product stop-rule record
 
@@ -1324,3 +1376,28 @@ full suite is 215/215, and active v1 is sealed at a founder gate.
    unnoticed into the five-question run, and this terminal identity could be
    rerolled. The smoke preserved the finding and stopped before benchmark
    spend; any correction is a new founder-gated product unit.
+
+### J4.2K-R1 canonical dialogue evidence
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green and deliberately has its optional writer omit
+   a Palari statement while canonical recall still contains both speakers.
+2. Did this unit make that journey measurably better? Yes at the deterministic
+   product-contract level: the exact failure from the live role smoke is now a
+   passing regression, and missing, throwing, invalid, empty, or over-eight
+   writer output cannot reduce retained dialogue. No new live-quality claim is
+   made.
+3. Does an existing framework already provide what this unit added? Ordinary
+   role-labelled chat history already preserves complete messages. This unit
+   adopts that simpler established pattern inside Palari's strict private
+   scope, source boundary, bounded recall, and exact deletion contract rather
+   than inventing another retrieval framework.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly said Palari must save its own statement with its speaker
+   marked, rejected lossy regex/lexical behavior, approved the canonical
+   evidence design after review, and directed implementation.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? One writer omission or failure could again permanently erase the
+   user's or Palari's visible message, including the recommendation already
+   lost in the live smoke. Recall, correction, and forgetting would operate on
+   a model-selected fragment instead of the actual retained exchange.

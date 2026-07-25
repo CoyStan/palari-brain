@@ -1,20 +1,22 @@
 // palari-brain — active public entry point.
 //
-// The public product path stores exact durable quotes from visible user and
-// Palari messages, with speaker provenance assigned by the host. Recall sends
-// the complete current scoped set to the answer model. The lexical v0.5
-// implementation remains inside the repository only as a historical eval
-// comparator and is not exported by this package.
+// The public product path stores complete visible user and Palari messages as
+// canonical evidence, with speaker provenance assigned by the host. Optional
+// exact quotes are a derived index only. Recall sends the complete current
+// scoped evidence set to the answer model. The lexical v0.5 implementation
+// remains inside the repository only as a historical eval comparator.
 
 export {
   answerQuestion,
   buildAnswerPrompt,
   buildMemoryBriefing,
   createPalariBrain,
+  dialogueRetentions,
   dialogueSourceKinds,
   forgetMemories,
   ingestChatTurn,
   ingestLongMemEvalInstance,
+  memoryAnswerSystemInstruction,
   recallAllStatements,
   stubProvider,
 } from './brain.mjs'
