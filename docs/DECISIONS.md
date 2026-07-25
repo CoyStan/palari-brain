@@ -1106,3 +1106,26 @@ dates. Agents record; the founder decides.
   publication, or changes to sealed authority/config/prediction/runner files
   or private evidence. The active product bytes necessarily diverge from the
   old identity's pinned hash, so that terminal identity remains unexecutable.
+- 2026-07-25 (FOUNDER GO — J4.2K-S1 canonical evidence live smoke) After
+  J4.2K-R1 completed and STATUS identified a fresh smoke-only successor as the
+  next empirical question, the founder said “go new test run.” Before taking
+  action, the executor stated that this would authorize one fresh live
+  smoke-only successor under the existing cumulative cap, preserving
+  active-v1, freezing a new identity, running only the writer-and-answer role
+  smoke, and stopping without a benchmark question. The founder did not
+  redirect that interpretation. The authorized identity is
+  `j4-active-brain-canonical-smoke-v1`: exactly one metered Gemini writer
+  logical request and one metered Gemini answer logical request, zero dataset
+  reads, zero benchmark questions, and zero judge calls. It carries all prior
+  J4 spend, `$0.7724995` accounted (`$0.7699985` measured plus `$0.0025010`
+  uncertain), under the unchanged `$7.00` cumulative hard cap. A stricter
+  `$0.03` fresh subcap is adopted for this smoke; its exact worst reservation
+  is `$0.0282588` across the maximum eight attempts. Before either call, the
+  runner must freeze and push FINAL smoke predictions, authority,
+  configuration, prompt/product/artifact hashes, cost arithmetic, and the
+  active-v1 predecessor hashes; pass offline tests; and verify a clean
+  synchronized main. The run must preserve full private transcripts, meter,
+  checkpoint, workspace, result, report, and manifest; then seal and stop
+  regardless of pass or failure. This GO does not authorize a benchmark
+  question, OpenAI judge call, cap increase, reroll, Mem0, S-490, publication,
+  announcement, or a behavioral repair after observing the smoke.

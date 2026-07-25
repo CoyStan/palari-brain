@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-R1 CANONICAL EVIDENCE DONE;
-FOUNDER GATE; ACTIVE V1 AND V5 TERMINAL (2026-07-25).
+Loop state: J4.2K-S1-P CANONICAL ROLE SMOKE READY;
+FOUNDER GO ACTIVE; ACTIVE V1 AND V5 TERMINAL (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -133,6 +133,21 @@ storage that may contain secrets. The configured database is hardened to
 oversized briefing before materializing its messages. No provider was called,
 no live identity was created, and every sealed config, prediction, runner,
 and private result remains unchanged.
+
+The founder has now authorized the next contracted empirical step with “go
+new test run.” As stated back before implementation, this GO is scoped to one
+fresh smoke-only successor for the J4.2K-R1 canonical-evidence bytes. The new
+identity is `j4-active-brain-canonical-smoke-v1`: it can make exactly one
+Gemini writer request and one Gemini answer request, loads no dataset, exposes
+no benchmark-question or judge path, and stops after the role/source smoke
+regardless of outcome. It preserves and verifies all active-v1 evidence and
+carries `$0.7724995` accounted (`$0.7699985` measured plus `$0.0025010`
+uncertain) under the unchanged `$7.00` cumulative cap. A stricter fresh
+`$0.03` subcap covers the exact eight-attempt worst reservation of
+`$0.0282588`. Authority, configuration, product/prompt hashes, and six FINAL
+smoke predictions are frozen; focused tests are 11/11 and the full suite is
+231/231. Quickstart, dry bake-off, and package dry-run are green. No call for
+this identity has occurred at this preparation cut point.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -484,6 +499,27 @@ session itself).
     was called and no sealed authority, config, prediction, runner, or private
     result changed. The old identity's product prompt/hash checks reject these
     new bytes as required.
+  - [x] J4.2K-S1-P — CANONICAL ROLE SMOKE READY 2026-07-25
+    (`this commit`). Created the fresh smoke-only identity
+    `j4-active-brain-canonical-smoke-v1` for the exact J4.2K-R1 product
+    bytes. It has one writer plus one answer operation, zero benchmark
+    questions, no dataset or judge dispatch, and no OpenAI credential read.
+    The exact active-v1 private/tracked hashes and all J4 predecessor spend
+    verify before the Gemini key can be read. The cumulative `$7.00` cap is
+    unchanged: `$0.7724995` is carried and a nested `$0.03` fresh subcap
+    covers all eight permitted attempts (`$0.0282588` worst reservation).
+    FINAL predictions require both exact role-labelled canonical messages,
+    source-only poison exclusion, a complete briefing, and an answer using
+    both speakers; optional writer-index selection remains an observation.
+    Config SHA-256
+    `28419934b34635770474aa61e156c8d2038c4a89dd858554f5029d1ce22b502c`;
+    authority SHA-256
+    `c70f45de2d3efdeceaab7008d1c6d6e5a34c8f8bebb77d7074d861aaa8d7357f`;
+    FINAL prediction SHA-256
+    `1d840005849d3c58a6f523fa8cff66ba2a2fcefaf409ab1b24cb611c2a89ab2c`.
+    Focused tests are 11/11 and the full suite is 231/231; quickstart, dry
+    bake-off, package dry-run, and independent reviews are green. No provider
+    call has occurred.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -496,17 +532,17 @@ session itself).
 
 ## Next
 
-FOUNDER GATE. The offline write-side repair is complete. Active v1 remains
-terminal before question 1 and cannot be resumed or rerolled; its failed
-evidence remains the truthful result for those frozen bytes. A fresh identity
-and fresh founder GO are required to run even a smoke against J4.2K-R1. Do not
-dispatch a provider call or benchmark question, raise a cap, alter predecessor
-inputs or private evidence, run Mem0 or S-490, publish a score, or announce a
-result. The next product question is empirical: whether to authorize a new
-smoke-only successor for the canonical-evidence bytes. The separate future
-capacity question—semantic/time-aware retrieval above the bounded complete
-context—remains unimplemented until measurement demonstrates need. V4, V5,
-and active v1 remain separate; U8, J3 v1-v4, and J4 v1-v5 remain closed.
+Execute the pushed `j4-active-brain-canonical-smoke-v1` identity exactly once
+under the recorded founder GO, with the exact Gemini model, unchanged `$7.00`
+cumulative cap, and stricter `$0.03` fresh subcap. Run only the one writer and
+one answer role smoke, then stop and seal the identity regardless of outcome.
+Do not dispatch a benchmark question or judge, raise a cap, alter predecessor
+inputs or private evidence, run Mem0 or S-490, publish a score, announce a
+result, or make a behavioral repair after seeing the smoke. The separate
+future capacity question—semantic/time-aware retrieval above the bounded
+complete context—remains unimplemented until measurement demonstrates need.
+V4, V5, and active v1 remain separate; U8, J3 v1-v4, and J4 v1-v5 remain
+closed.
 
 ## Log
 
@@ -688,6 +724,12 @@ paths, and reproduced the former Palari-omission failure as an offline passing
 regression. Focused tests 33/33 and full suite 220/220; quickstart, dry
 bake-off, package dry-run, and independent reviews green; no provider call or
 sealed-identity/evidence change.
+2026-07-25 — J4.2K-S1-P — this commit — Recorded the founder's smoke-only
+GO, froze a fresh two-operation/zero-question canonical-evidence identity,
+verified and carried the terminal active-v1 evidence and exact `$0.7724995`
+opening spend, and imposed a `$0.03` fresh subcap inside the unchanged `$7.00`
+cap. Focused tests 11/11 and full suite 231/231; quickstart, dry bake-off, and
+package dry-run green; no provider call occurred.
 
 ## Product stop-rule record
 
@@ -1401,3 +1443,27 @@ sealed-identity/evidence change.
    user's or Palari's visible message, including the recommendation already
    lost in the live smoke. Recall, correction, and forgetting would operate on
    a model-selected fragment instead of the actual retained exchange.
+
+### J4.2K-S1-P canonical role-smoke pre-run cut point
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It changes no product
+   behavior and makes no live claim before execution. It makes the exact
+   canonical-evidence repair measurable with the smallest possible two-call
+   check, so this is one allowed infrastructure unit rather than another
+   product layer.
+3. Does an existing framework already provide what this unit added? Gemini and
+   the mature Palari transcript/reservation meter provide the provider path
+   and safety controls. This unit adds only a thin fresh identity and adapter
+   for the changed product bytes; it reuses the established meter instead of
+   building another evaluation framework.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder said “go new test run” after STATUS named the smoke-only successor
+   as the next empirical question, and the exact interpretation was stated
+   before work began.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Runtime behavior would not change, but the canonical fix would
+   remain only an offline assertion. A live writer omission, source-boundary
+   regression, or both-speaker answer failure could reach a later benchmark
+   run without the required early stop.

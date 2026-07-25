@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "runId": "j4-active-brain-canonical-smoke-v1",
+  "status": "FINAL",
+  "frozenAt": "2026-07-25",
+  "decisionReference": {
+    "date": "2026-07-25",
+    "document": "docs/DECISIONS.md",
+    "entry": "FOUNDER GO — J4.2K-S1 canonical evidence live smoke",
+    "benchmarkQuestions": 0,
+    "cumulativeHardCapUsd": 7,
+    "freshSmokeSubcapUsd": 0.03
+  },
+  "models": {
+    "writer": "gemini-3.5-flash-lite",
+    "answer": "gemini-3.5-flash-lite"
+  },
+  "promptConfig": {
+    "writer": {
+      "maxOutputTokens": 2000,
+      "thinkingLevel": "MINIMAL",
+      "responseFormat": "APPLICATION_JSON+json-schema",
+      "visibleFields": [
+        "userMessage",
+        "palariMessage"
+      ],
+      "sourceTextExcluded": true,
+      "store": false
+    },
+    "answer": {
+      "maxOutputTokens": 256,
+      "maxChars": 100000,
+      "memorySet": "complete-canonical-scoped-or-refuse",
+      "thinkingLevel": "MINIMAL",
+      "store": false
+    }
+  },
+  "method": {
+    "finalizedBeforeProviderCalls": true,
+    "scope": "one writer-and-answer role smoke only",
+    "benchmarkQuestions": 0,
+    "expectedLogicalOperations": 2,
+    "fixture": {
+      "userMessage": "My train leaves from platform seven.",
+      "palariMessage": "I recommend arriving twenty minutes early.",
+      "excludedSourceContains": "4815"
+    }
+  },
+  "predictions": [
+    {
+      "code": "CANONICAL_USER_SURVIVES",
+      "expected": true,
+      "basis": "The host writes the complete durable user message before optional indexing."
+    },
+    {
+      "code": "CANONICAL_PALARI_SURVIVES_WRITER_OMISSION",
+      "expected": true,
+      "basis": "The host writes the complete durable Palari message independently of writer selection."
+    },
+    {
+      "code": "SOURCE_TEXT_EXCLUDED",
+      "expected": true,
+      "basis": "External source text is counted and discarded before either active memory boundary."
+    },
+    {
+      "code": "COMPLETE_ROLE_BRIEFING",
+      "expected": true,
+      "basis": "Both canonical messages fit inside the bounded complete scoped briefing."
+    },
+    {
+      "code": "ANSWER_USES_BOTH_SPEAKERS",
+      "expected": true,
+      "basis": "The answer receives both role-labelled messages and should state platform seven and twenty minutes."
+    },
+    {
+      "code": "NO_BENCHMARK_OR_JUDGE",
+      "expected": true,
+      "basis": "This fresh authority contains zero benchmark questions and no judge operation."
+    }
+  ],
+  "expectedOutcome": "PASS"
+}
