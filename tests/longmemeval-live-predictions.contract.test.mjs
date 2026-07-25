@@ -26,12 +26,20 @@ const V4_PREDICTIONS_URL = new URL(
   '../evals/predictions/j4-longmemeval-s60-v4.json',
   import.meta.url,
 )
+const V5_PREDICTIONS_URL = new URL(
+  '../evals/predictions/j4-longmemeval-s60-v5.json',
+  import.meta.url,
+)
 const V1_PREDICTIONS_SHA256 =
   '07a262c01efa13697266c4e5d52829b518e9e16076e7b6046c78122ae0011028'
 const V2_PREDICTIONS_SHA256 =
   'ccdf0b9bd8cc12256657c574d3189d6f4aebb9dd5e6e60ee0aaaaee63671714f'
 const V3_PREDICTIONS_SHA256 =
   '201a41bd326f19d350ab45719f95fcf73a1d5d0159cf60c4ccee9992281460bf'
+const V4_PREDICTIONS_SHA256 =
+  '1df076076c82e7c250e94c22e471b36cc9bf3cfa85ea90df9bd19c57a021f436'
+const V5_PREDICTIONS_SHA256 =
+  '9adbc808c93fda63397ac7b304af7347443ca2940adf722d231c60165f08e7d6'
 const ROW_ARRAY_SHA256 =
   '12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351'
 
@@ -39,34 +47,40 @@ function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
 }
 
-async function loadPredictions(url = V4_PREDICTIONS_URL) {
+async function loadPredictions(url = V5_PREDICTIONS_URL) {
   return JSON.parse(await readFile(url, 'utf8'))
 }
 
-test('J4 v1-v3 predictions remain sealed and v4 carries every row unchanged', async () => {
-  const [v1Text, v2Text, v3Text] = await Promise.all([
+test('J4 v1-v4 predictions remain sealed and v5 carries every row unchanged', async () => {
+  const [v1Text, v2Text, v3Text, v4Text, v5Text] = await Promise.all([
     readFile(V1_PREDICTIONS_URL, 'utf8'),
     readFile(V2_PREDICTIONS_URL, 'utf8'),
     readFile(V3_PREDICTIONS_URL, 'utf8'),
+    readFile(V4_PREDICTIONS_URL, 'utf8'),
+    readFile(V5_PREDICTIONS_URL, 'utf8'),
   ])
   const v1 = JSON.parse(v1Text)
   const v2 = JSON.parse(v2Text)
   const v3 = JSON.parse(v3Text)
-  const v4 = await loadPredictions()
+  const v4 = JSON.parse(v4Text)
+  const v5 = JSON.parse(v5Text)
 
   assert.equal(sha256(v1Text), V1_PREDICTIONS_SHA256)
   assert.equal(sha256(v2Text), V2_PREDICTIONS_SHA256)
   assert.equal(sha256(v3Text), V3_PREDICTIONS_SHA256)
+  assert.equal(sha256(v4Text), V4_PREDICTIONS_SHA256)
+  assert.equal(sha256(v5Text), V5_PREDICTIONS_SHA256)
   assert.deepEqual(v2.predictions, v1.predictions)
   assert.deepEqual(v3.predictions, v2.predictions)
   assert.deepEqual(v4.predictions, v3.predictions)
+  assert.deepEqual(v5.predictions, v4.predictions)
   assert.equal(
     sha256(JSON.stringify(v1.predictions)),
     ROW_ARRAY_SHA256,
   )
 })
 
-test('J4 S-60 v4 predictions are FINAL, complete, ordered, and U8-free', async () => {
+test('J4 S-60 v5 predictions are FINAL, complete, ordered, and U8-free', async () => {
   const document = await loadPredictions()
   const rows = document.predictions
   const firstIds = new Set(J4_FIRST_TRANCHE_QUESTION_IDS)
@@ -79,7 +93,7 @@ test('J4 S-60 v4 predictions are FINAL, complete, ordered, and U8-free', async (
 
   assert.equal(document.schemaVersion, 1)
   assert.equal(document.status, 'FINAL')
-  assert.equal(document.runId, 'j4-longmemeval-s60-v4')
+  assert.equal(document.runId, 'j4-longmemeval-s60-v5')
   assert.deepEqual(document.models, {
     writer: 'gemini-3.5-flash-lite',
     answer: 'gemini-3.5-flash-lite',
@@ -87,7 +101,7 @@ test('J4 S-60 v4 predictions are FINAL, complete, ordered, and U8-free', async (
   })
   assert.deepEqual(document.promptConfig, {
     writer: {
-      maxOutputTokens: 512,
+      maxOutputTokens: 2_000,
       thinkingLevel: 'MINIMAL',
       responseFormat: 'APPLICATION_JSON+json-schema',
       schemaSha256:
@@ -126,13 +140,13 @@ test('J4 S-60 v4 predictions are FINAL, complete, ordered, and U8-free', async (
   assert.deepEqual(document.decisionReference, {
     date: '2026-07-25',
     document: 'docs/DECISIONS.md',
-    entry: 'FOUNDER GO — J4 v4 MIME replacement run',
+    entry: 'FOUNDER GO — J4 v5 fixed-2000 replacement run',
     questions: 5,
-    cumulativeHardCapUsd: 2.5,
+    cumulativeHardCapUsd: 7,
   })
   assert.deepEqual(document.method, {
     finalizedBeforeProviderCalls: true,
-    note: 'All 60 outcome rows are byte-identical to v3. No v1-v3 provider evidence was used to revise them; v4 changes only the raw Gemini MIME enum, three-predecessor accounting, and immutable-run metadata.',
+    note: 'All 60 outcome rows are byte-identical to v4 and retain their pre-v4 predictions. The observed v4 question-1 result was not used to revise them; v5 changes only the writer output allowance, four-predecessor accounting, and immutable-run metadata.',
     hypotheses: [
       'direct-user write boundary',
       'lexical FTS recall with a five-term query limit and no stemming',
@@ -167,7 +181,7 @@ test('J4 S-60 v4 predictions are FINAL, complete, ordered, and U8-free', async (
   }
 })
 
-test('J4 S-60 v4 predictions pin totals, failure stages, and the first tranche', async () => {
+test('J4 S-60 v5 predictions pin totals, failure stages, and the first tranche', async () => {
   const document = await loadPredictions()
   const rows = document.predictions
   const correct = rows.filter((row) => row.predictedOfficialCorrect)
@@ -234,7 +248,7 @@ test('J4 S-60 v4 predictions pin totals, failure stages, and the first tranche',
   )
 })
 
-test('J4 S-60 v4 prediction row serialization is hash-pinned', async () => {
+test('J4 S-60 v5 prediction row serialization is hash-pinned', async () => {
   const document = await loadPredictions()
   const observed = sha256(JSON.stringify(document.predictions))
 

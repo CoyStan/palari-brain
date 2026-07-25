@@ -979,3 +979,35 @@ dates. Agents record; the founder decides.
   allowance or extraction response contract, creating a successor, or making
   another provider call requires a fresh founder GO; question 6, Mem0, S-490,
   publication, and announcement remain closed.
+- 2026-07-25 (FOUNDER GO — J4 v5 fixed-2000 replacement run) The founder
+  explicitly authorized one fresh, homogeneous
+  `j4-longmemeval-s60-v5` identity under a `$7.00` cumulative hard cap. The
+  sole provider-behavior change from terminal v4 is an exact Gemini writer
+  `maxOutputTokens` increase from `512` to `2000`, applied to the writer
+  compatibility smoke and every benchmark writer request. The dataset,
+  execution order, models, thinking level, schema, prompts, answer and judge
+  settings, retrieval and admission behavior, scorer, two-call compatibility
+  smoke, and same first-five boundary remain unchanged.
+  This GO expressly and narrowly overrides the no-completed-question-repeat
+  rule for question `08e075c7` only: v5 must execute it once as a new,
+  independent observation so all five v5 questions use the same 2,000-token
+  writer configuration. V4 and its completed question-1 result remain
+  immutable and separately reported; they must not be imported into v5,
+  replaced, regraded, discarded, or combined with v5 as one score. V5 starts
+  with zero completed questions, may execute the same first five questions
+  once each, and must stop and report after question 5 or the first terminal
+  failure. Any v5 operational failure closes v5 and is not rerolled.
+  V1-v4 remain terminal. Their full `$0.1952121` accounted spend
+  (`$0.1927111` measured plus `$0.0025010` uncertain) remains charged, leaving
+  exactly `$6.8047879` for the v5 meter. With 1,192 possible writer calls at
+  the new maximum and the unchanged answer and judge calls, the expected
+  fresh/cumulative estimates are `$0.8944695`/`$1.0896816`; the conservative
+  fresh/cumulative estimates are `$6.5909012`/`$6.7861133`, below the adopted
+  cap. Before any provider call, v5 must freeze and push its new identity,
+  authority, configuration, artifact hashes, cost estimate, and FINAL
+  predictions and pass offline verification. The single authorized invocation
+  first runs the writer-and-answer compatibility smoke; only if both pass may
+  it execute ordinals 1-5. This GO does not authorize question 6, Mem0,
+  S-490, publication, announcement, importing any predecessor result, any
+  change beyond the output allowance and mechanical successor
+  evidence/accounting, or any further live call after v5 closes.

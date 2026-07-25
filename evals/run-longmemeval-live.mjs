@@ -824,23 +824,51 @@ function sameUsd(left, right) {
     Math.abs(Number(left) - Number(right)) <= 1e-12
 }
 
+function sameLogicalRequests(left, right) {
+  if (!left ||
+    typeof left !== 'object' ||
+    Array.isArray(left) ||
+    !right ||
+    typeof right !== 'object' ||
+    Array.isArray(right)) {
+    return false
+  }
+  const sortedEntries = (value) =>
+    Object.entries(value).sort(([leftKey], [rightKey]) =>
+      leftKey.localeCompare(rightKey))
+  return JSON.stringify(sortedEntries(left)) ===
+    JSON.stringify(sortedEntries(right))
+}
+
 function assertPredecessorRunDescriptor(run, index) {
   const currentRunUncertainUsd =
     Number(run?.currentRunUncertainUsd ?? 0)
+  const failedQuestionOrdinal = run?.failedQuestionOrdinal
   if (!run ||
     typeof run !== 'object' ||
     Array.isArray(run) ||
     run.runId !== `j4-longmemeval-s60-v${index + 1}` ||
     run.status !== 'failed' ||
     !['completed', 'failed'].includes(run.smokeStatus) ||
-    run.completedQuestions !== 0 ||
-    (!Number.isInteger(run.failedQuestionOrdinal) &&
-      run.failedQuestionOrdinal !== null) ||
+    !Number.isInteger(run.completedQuestions) ||
+    run.completedQuestions < 0 ||
+    run.completedQuestions > 60 ||
+    (!Number.isInteger(failedQuestionOrdinal) &&
+      failedQuestionOrdinal !== null) ||
+    (Number.isInteger(failedQuestionOrdinal) &&
+      (failedQuestionOrdinal < 1 ||
+        failedQuestionOrdinal > 60 ||
+        failedQuestionOrdinal !== run.completedQuestions + 1)) ||
     !Number.isInteger(run.attempts) ||
     run.attempts < 1 ||
     !run.logicalRequests ||
     typeof run.logicalRequests !== 'object' ||
     Array.isArray(run.logicalRequests) ||
+    !Object.keys(run.logicalRequests).length ||
+    Object.entries(run.logicalRequests).some(([purpose, count]) =>
+      !['answer', 'judge', 'writer'].includes(purpose) ||
+      !Number.isInteger(count) ||
+      count < 1) ||
     !Number.isFinite(run.openingAccountedUsd) ||
     run.openingAccountedUsd < 0 ||
     !Number.isFinite(run.currentRunAccountedUsd) ||
@@ -966,6 +994,44 @@ function assertPriorRunLink({
       throw new J4LiveError(
         'PREDECESSOR_CHAIN_MISMATCH',
         'J4 v3 aggregate predecessor evidence does not match the exact v1-v2 chain.',
+      )
+    }
+    return
+  }
+  if (run.runId === 'j4-longmemeval-s60-v4') {
+    const expectedChain = {
+      openingAccountedUsd: priorAudit.cumulativeAccountedUsd,
+      runs: priorRuns,
+    }
+    const audited = checkpoint.predecessorAudit
+    if (!sameUsd(run.openingAccountedUsd, priorAudit.cumulativeAccountedUsd) ||
+      !sameUsd(
+        checkpoint.identity?.openingAccountedUsd,
+        priorAudit.cumulativeAccountedUsd,
+      ) ||
+      Object.hasOwn(checkpoint.identity ?? {}, 'predecessor') ||
+      JSON.stringify(checkpoint.identity?.predecessorChain) !==
+        JSON.stringify(expectedChain) ||
+      !audited ||
+      JSON.stringify(Object.keys(audited).sort()) !== JSON.stringify([
+        'accountedUsd',
+        'completedAt',
+        'measuredUsd',
+        'runs',
+        'uncertainUsd',
+      ]) ||
+      !sameUsd(audited.accountedUsd, priorAudit.cumulativeAccountedUsd) ||
+      !sameUsd(audited.measuredUsd, priorAudit.cumulativeMeasuredUsd) ||
+      !sameUsd(audited.uncertainUsd, priorAudit.cumulativeUncertainUsd) ||
+      !sameUsd(
+        Number(audited.measuredUsd) + Number(audited.uncertainUsd),
+        audited.accountedUsd,
+      ) ||
+      Number.isNaN(Date.parse(String(audited.completedAt ?? ''))) ||
+      JSON.stringify(audited.runs) !== JSON.stringify(priorAudits)) {
+      throw new J4LiveError(
+        'PREDECESSOR_CHAIN_MISMATCH',
+        'J4 v4 aggregate predecessor evidence does not match the exact v1-v3 chain.',
       )
     }
     return
@@ -1101,9 +1167,15 @@ async function verifyJ4PredecessorRun({
     completedQuestions !== run.completedQuestions ||
     JSON.stringify(failedOrdinals) !==
       JSON.stringify(expectedFailedOrdinals) ||
-    questions.some((cell, index) =>
-      cell?.status !==
-        (index + 1 === run.failedQuestionOrdinal ? 'failed' : 'pending')) ||
+    questions.some((cell, index) => {
+      const ordinal = index + 1
+      const expectedStatus = ordinal <= run.completedQuestions
+        ? 'completed'
+        : ordinal === run.failedQuestionOrdinal
+          ? 'failed'
+          : 'pending'
+      return cell?.status !== expectedStatus
+    }) ||
     !sameUsd(
       checkpoint.meter?.accounted?.usd,
       run.currentRunAccountedUsd,
@@ -1123,7 +1195,7 @@ async function verifyJ4PredecessorRun({
     )) {
     throw new J4LiveError(
       'PREDECESSOR_CHECKPOINT_MISMATCH',
-      'J4 predecessor differs from its exact terminal zero-score profile.',
+      'J4 predecessor differs from its exact terminal question profile.',
     )
   }
   assertPriorRunLink({ checkpoint, priorAudits, priorRuns, run })
@@ -1143,8 +1215,7 @@ async function verifyJ4PredecessorRun({
       entry.path === 'meter.jsonl' &&
       entry.sha256 === run.private.meterSha256) ||
     ledger.attempts !== run.attempts ||
-    JSON.stringify(ledger.logicalRequests) !==
-      JSON.stringify(run.logicalRequests) ||
+    !sameLogicalRequests(ledger.logicalRequests, run.logicalRequests) ||
     ledger.retries.length !== 0 ||
     !sameUsd(ledger.accounted.usd, run.currentRunAccountedUsd) ||
     !sameUsd(ledger.measured.usd, expectedMeasuredUsd) ||
@@ -1193,12 +1264,12 @@ export async function verifyJ4PredecessorBundle({
     typeof predecessorChain !== 'object' ||
     Array.isArray(predecessorChain) ||
     !Array.isArray(predecessorChain.runs) ||
-    predecessorChain.runs.length !== 3 ||
+    predecessorChain.runs.length !== 4 ||
     !Number.isFinite(predecessorChain.openingAccountedUsd) ||
     predecessorChain.openingAccountedUsd < 0) {
     throw new J4LiveError(
       'PREDECESSOR_SCHEMA',
-      'J4 v4 requires the exact three-run predecessor chain.',
+      'J4 v5 requires the exact four-run predecessor chain.',
     )
   }
   const audits = []

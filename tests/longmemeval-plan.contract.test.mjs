@@ -21,6 +21,10 @@ import {
   J4_V3_EXTRACTION_SCHEMA_CONTRACT,
   J4_V3_FIRST_TRANCHE_COST_ESTIMATE,
   J4_V3_FIRST_TRANCHE_REQUEST_STATS,
+  J4_V5_CONSERVATIVE_COST_ASSUMPTIONS,
+  J4_V5_FIRST_TRANCHE_COST_ESTIMATE,
+  J4_V5_GEMINI_GENERATION_LIMITS,
+  J4_V5_TRANCHE_GATES,
   SEALED_U8_QUESTION_IDS,
   assertJ4CanonicalS,
   assertJ4PinnedS60,
@@ -411,6 +415,50 @@ test('J4 v3 first-five estimate includes the schema and both smoke calls', () =>
       J4_V3_FIRST_TRANCHE_COST_ESTIMATE.conservative.freshUsd.toFixed(7),
     ),
     2.1566612,
+  )
+})
+
+test('J4 v5 raises only the replacement writer ceiling and remains under $7', () => {
+  assert.equal(J4_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens, 512)
+  assert.equal(
+    J4_CONSERVATIVE_COST_ASSUMPTIONS.writerOutputTokensPerCall,
+    512,
+  )
+  assert.deepEqual(J4_V5_GEMINI_GENERATION_LIMITS, {
+    answerMaxOutputTokens: 256,
+    thinkingLevel: 'MINIMAL',
+    writerMaxOutputTokens: 2_000,
+  })
+  assert.equal(
+    J4_V5_CONSERVATIVE_COST_ASSUMPTIONS.writerOutputTokensPerCall,
+    2_000,
+  )
+  assert.deepEqual(
+    J4_V5_TRANCHE_GATES.map((gate) => gate.cumulativeCapUsd),
+    [7, 7.5, 12.5, 17.5, 22.5, 27.5, 30],
+  )
+  assert.deepEqual(
+    J4_V5_FIRST_TRANCHE_COST_ESTIMATE.expected,
+    J4_V3_FIRST_TRANCHE_COST_ESTIMATE.expected,
+  )
+  assert.deepEqual(
+    J4_V5_FIRST_TRANCHE_COST_ESTIMATE.conservative.calls,
+    { gemini: 1_198, judge: 5, total: 1_203 },
+  )
+  assert.deepEqual(
+    J4_V5_FIRST_TRANCHE_COST_ESTIMATE.conservative.tokens,
+    {
+      geminiInput: 2_055_204,
+      geminiOutputIncludingThinking: 2_385_536,
+      judgeInput: 4_000,
+      judgeOutput: 50,
+    },
+  )
+  assert.equal(
+    Number(
+      J4_V5_FIRST_TRANCHE_COST_ESTIMATE.conservative.freshUsd.toFixed(7),
+    ),
+    6.5909012,
   )
 })
 

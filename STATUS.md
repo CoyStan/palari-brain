@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4 EXTERNAL VALIDATION — V4 TERMINAL AFTER ONE COMPLETED
-QUESTION; FOUNDER GATE (2026-07-25).
+Loop state: J4 EXTERNAL VALIDATION — V5 FIXED-2,000 PRE-RUN FROZEN;
+ONE AUTHORIZED INVOCATION PENDING (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -66,6 +66,18 @@ and the one completed-prefix result remains private and non-representative.
 The ignored v4 manifest, ledger, checkpoint, modes, predecessor accounting,
 and exact-secret audits verify. V4 is terminal in code and must not be resumed
 or rerolled.
+The founder has now authorized one fresh, homogeneous
+`j4-longmemeval-s60-v5` successor. Its only provider-behavior change raises
+the Gemini writer allowance from 512 to exactly 2,000 tokens. V5 starts from
+zero completed questions and runs the same first five once each. The founder
+made one narrow exception to the no-completed-question-repeat rule for
+`08e075c7`: it executes once as an independent v5 observation so the v5 prefix
+is homogeneous. The v4 question-1 result remains immutable and separate; it is
+not imported, replaced, regraded, discarded, or combined with v5. V1-v4 carry
+`$0.1952121` accounted (`$0.1927111` measured plus `$0.0025010` uncertain),
+leaving the v5 meter exactly `$6.8047879` under the adopted `$7.00` cumulative
+cap. The v5 authority and FINAL predictions are frozen with all 60 outcome
+rows byte-identical to v4. No v5 provider call has occurred.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -296,6 +308,31 @@ session itself).
     refuses execution before dependency, data, result-path, or credential
     access. Suite 172/172, dry bake-off, quickstart, and package dry-run are
     green.
+  - [x] J4.2V5-P — V5 FIXED-2,000 REPLACEMENT PRE-RUN FROZEN 2026-07-25
+    (`this commit`). The fresh `j4-longmemeval-s60-v5` identity changes only
+    the Gemini writer maximum from 512 to exactly 2,000 tokens. V1-v4 tracked
+    and ignored evidence remains immutable and is verified as the complete
+    predecessor chain. Its `$0.1952121` accounted total includes
+    `$0.1927111` measured and `$0.0025010` uncertain; the v5 fresh meter is
+    exactly `$6.8047879` under the founder-adopted `$7.00` cumulative cap.
+    Expected fresh/cumulative costs are
+    `$0.8944695`/`$1.0896816`; conservative values are
+    `$6.5909012`/`$6.7861133`. V5 starts at zero completed questions. Under
+    the founder's narrow homogeneous-run override it executes `08e075c7` once
+    anew rather than importing v4's completed result; both observations remain
+    immutable and separate. All 60 FINAL outcome rows are byte-identical to
+    v4 and retain row-array SHA-256
+    `12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351`.
+    Config SHA-256
+    `7319f3ae754eaca9935f70c8a2e8a66ccfde949a02729e7662d1d71f89bc4f3f`;
+    Authority SHA-256
+    `0f0ce76625a2e9e16bd3fbd171bb08568e88111811ad4d2fadd5f5889e1f45ba`;
+    FINAL prediction SHA-256
+    `9adbc808c93fda63397ac7b304af7347443ca2940adf722d231c60165f08e7d6`.
+    The configuration pins all 20 required implementation artifacts at this
+    same pre-call cut. Focused live-path tests are 47/47; the full suite is
+    178/178; dry bake-off, quickstart, package dry-run, and real four-run
+    predecessor verification are green. No v5 provider call has occurred.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -308,13 +345,16 @@ session itself).
 
 ## Next
 
-FOUNDER GATE. V4 is terminal and cannot be resumed or rerolled. Its first
-completed prefix and question-2 `MAX_TOKENS` failure are findings. Changing
-the writer output allowance or extraction response contract, creating a
-successor identity, or making another provider call requires a fresh founder
-GO. Do not execute question 2 again or question 3–6, run a later tranche, run
-Mem0, start S-490, alter frozen v1-v4 inputs or private evidence, publish a
-score, or announce a result. U8, J3 v1-v4, and J4 v1-v4 remain closed.
+FOUNDER GO RECORDED. From the clean, pushed v5 pre-run cut, invoke exactly one
+`j4-longmemeval-s60-v5` run: first the writer-and-answer compatibility smoke,
+then ordinals 1-5 once each only if both smokes pass, subject to the fail-closed
+evidence checks and `$7.00` cumulative meter. Stop and report after question 5
+or the first terminal failure. The founder's narrow override authorizes one
+new v5 execution of question `08e075c7`; it does not reopen v4 or permit
+importing, replacing, regrading, discarding, or combining v4's result. Do not
+dispatch question 6, reroll any v5 result or failure, alter frozen v1-v5
+evidence, run Mem0 or S-490, publish a score, or announce a result. U8, J3
+v1-v4, and J4 v1-v4 remain closed.
 
 ## Log
 
@@ -461,6 +501,12 @@ writer completion ended with `MAX_TOKENS`. The runner stopped without retry,
 the private evidence verifies, no score entered git, and v4 is sealed at a
 founder gate; suite 172/172, bake-off, quickstart, and package dry-run are
 green.
+2026-07-25 — J4.2V5-P — this commit — Recorded the founder's narrow
+homogeneous-run override, froze a fresh zero-completion v5 identity with an
+exact 2,000-token writer maximum and unchanged prediction rows, preserved the
+four terminal predecessors as separate evidence, and carried their
+`$0.1952121` against the new `$7.00` cumulative cap. No v5 provider call
+occurred; Next is the single pushed v5 invocation.
 
 ## Product stop-rule record
 
@@ -1035,3 +1081,27 @@ green.
    spend and the confirmed MIME repair could be lost, and a truncated
    extraction could silently contaminate later scoring. The evidence instead
    stops honestly at a fresh founder decision.
+
+### J4.2V5 fixed-2,000 replacement pre-run cut point
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green at the pre-call cut point.
+2. Did this unit make that journey measurably better? Not yet. It raises the
+   writer allowance that terminally truncated a real benchmark ingestion, but
+   the user-visible effect remains preregistered until the one authorized
+   invocation.
+3. Does an existing framework already provide what this unit added? Gemini
+   already supplies the output-limit control, and current Mem0 Python uses a
+   2,000-token default. This unit adds only the minimum Palari successor
+   identity, homogeneous first-five execution, immutable predecessor chain,
+   and cumulative meter needed to test that existing control honestly.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly authorized a fresh homogeneous v5, an exact 2,000-token
+   writer allowance, the same first five questions, and a `$7.00` cumulative
+   cap.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? Long writer outputs could again terminate ingestion at
+   512 tokens, and the paid evidence could hide predecessor spend or combine
+   v4 and v5 observations from different configurations. This is the pre-call
+   half of the founder-authorized live evidence unit, not a product-result
+   claim.

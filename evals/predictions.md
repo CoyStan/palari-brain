@@ -61,3 +61,16 @@ Its 60 outcome rows are byte-identical to v3 and retain row-array SHA-256
 No v1-v3 provider evidence changed an outcome. V4 changes only the raw Gemini
 MIME enum, three-predecessor accounting, and immutable-run metadata. It is
 FINAL before any v4 provider call.
+
+## J4 v5 — FINAL before fixed-2,000 replacement execution
+
+Author: repository execution lane, 2026-07-25. The complete machine-readable
+prediction document is
+`evals/predictions/j4-longmemeval-s60-v5.json`, SHA-256
+`9adbc808c93fda63397ac7b304af7347443ca2940adf722d231c60165f08e7d6`.
+Its 60 outcome rows are byte-identical to v4 and retain row-array SHA-256
+`12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351`.
+The observed v4 question-1 result did not revise any outcome. V5 changes only
+the Gemini writer allowance from 512 to exactly 2,000 tokens,
+four-predecessor accounting, and immutable-run metadata. It is FINAL before
+any v5 provider call.

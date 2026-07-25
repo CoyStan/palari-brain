@@ -22,8 +22,6 @@ import {
 } from './longmemeval-judge.mjs'
 import {
   J4_FIRST_TRANCHE_QUESTION_IDS,
-  J4_GEMINI_GENERATION_LIMITS,
-  J4_PROPOSED_TRANCHE_GATES,
   J4_PUBLIC_SAMPLE_QUESTION_IDS,
   J4_S_DATASET_CONTRACT,
   J4_STAGED_EXECUTION_ORDER_SHA256,
@@ -32,10 +30,13 @@ import {
   J4_V3_EXTRACTION_SCHEMA_CONTRACT,
   J4_V3_FIRST_TRANCHE_COST_ESTIMATE,
   J4_V3_FIRST_TRANCHE_REQUEST_STATS,
+  J4_V5_FIRST_TRANCHE_COST_ESTIMATE,
+  J4_V5_GEMINI_GENERATION_LIMITS,
+  J4_V5_TRANCHE_GATES,
   SEALED_U8_QUESTION_IDS,
 } from './longmemeval-plan.mjs'
 
-export const J4_LIVE_RUN_ID = 'j4-longmemeval-s60-v4'
+export const J4_LIVE_RUN_ID = 'j4-longmemeval-s60-v5'
 export const J4_LIVE_CONFIG_PATH =
   `evals/live-runs/${J4_LIVE_RUN_ID}.json`
 export const J4_LIVE_AUTHORITY_PATH =
@@ -44,8 +45,10 @@ export const J4_LIVE_PREDICTIONS_PATH =
   `evals/predictions/${J4_LIVE_RUN_ID}.json`
 export const J4_GEMINI_MODEL = 'gemini-3.5-flash-lite'
 export const J4_LIVE_RESULTS_ROOT = 'evals/results'
-export const J4_CARRIED_ACCOUNTED_USD = 0.0175702
-export const J4_FRESH_METER_CAP_USD = 2.4824298
+export const J4_CARRIED_ACCOUNTED_USD = 0.1952121
+export const J4_CARRIED_MEASURED_USD = 0.1927111
+export const J4_CARRIED_UNCERTAIN_USD = 0.002501
+export const J4_FRESH_METER_CAP_USD = 6.8047879
 export const J4_PREDECESSOR_CHAIN = deepFreeze({
   openingAccountedUsd: J4_CARRIED_ACCOUNTED_USD,
   runs: [
@@ -161,6 +164,43 @@ export const J4_PREDECESSOR_CHAIN = deepFreeze({
           '201a41bd326f19d350ab45719f95fcf73a1d5d0159cf60c4ccee9992281460bf',
       },
     },
+    {
+      attempts: 363,
+      completedQuestions: 1,
+      currentRunAccountedUsd: 0.1776419,
+      failedQuestionOrdinal: 2,
+      logicalRequests: { answer: 2, judge: 1, writer: 360 },
+      openingAccountedUsd: 0.0175702,
+      private: {
+        artifactManifestPath:
+          'evals/results/j4-longmemeval-s60-v4/artifact-manifest.json',
+        artifactManifestSha256:
+          'bd3bccd789715df7c194f70a46cc91a5d481d21d87c1d3bd2f44e0163524ee57',
+        checkpointPath:
+          'evals/results/j4-longmemeval-s60-v4/checkpoint.json',
+        checkpointSha256:
+          '776562439bbfef8d8a855c7a644242d52d24ab418556589d0bf666839fb4e247',
+        meterPath: 'evals/results/j4-longmemeval-s60-v4/meter.jsonl',
+        meterSha256:
+          'd91c82e1d454a680607d2edb81b57a9f768b2cb716ae8fe7b835985d4d9579c9',
+      },
+      runId: 'j4-longmemeval-s60-v4',
+      smokeLogicalOperations: 2,
+      smokeStatus: 'completed',
+      status: 'failed',
+      tracked: {
+        authorityPath:
+          'evals/live-runs/j4-longmemeval-s60-v4.authority.json',
+        authoritySha256:
+          'f8bd5cdaa886624da36edae655b716c7dd902006ccee04561a10f288f3528367',
+        configPath: 'evals/live-runs/j4-longmemeval-s60-v4.json',
+        configSha256:
+          '2aa449d45306303b5a6d0cf6fcc9aa3ae058baadc7566d5a3bc8017e8031c531',
+        predictionsPath: 'evals/predictions/j4-longmemeval-s60-v4.json',
+        predictionsSha256:
+          '1df076076c82e7c250e94c22e471b36cc9bf3cfa85ea90df9bd19c57a021f436',
+      },
+    },
   ],
 })
 export const J4_PREDICTION_ROWS_SHA256 =
@@ -203,11 +243,11 @@ function roundedUsd(value) {
 
 export const J4_V4_CUMULATIVE_COST_ESTIMATE = deepFreeze({
   capUsd: 2.5,
-  carriedAccountedUsd: J4_CARRIED_ACCOUNTED_USD,
+  carriedAccountedUsd: 0.0175702,
   compatibilitySmoke: J4_V3_COMPATIBILITY_SMOKE_STATS,
   conservative: {
     cumulativeUsd: roundedUsd(
-      J4_CARRIED_ACCOUNTED_USD +
+      0.0175702 +
       J4_V3_FIRST_TRANCHE_COST_ESTIMATE.conservative.freshUsd,
     ),
     freshUsd: roundedUsd(
@@ -217,7 +257,7 @@ export const J4_V4_CUMULATIVE_COST_ESTIMATE = deepFreeze({
   },
   expected: {
     cumulativeUsd: roundedUsd(
-      J4_CARRIED_ACCOUNTED_USD +
+      0.0175702 +
       J4_V3_FIRST_TRANCHE_COST_ESTIMATE.expected.freshUsd,
     ),
     freshUsd: roundedUsd(
@@ -225,8 +265,40 @@ export const J4_V4_CUMULATIVE_COST_ESTIMATE = deepFreeze({
     ),
     tokens: J4_V3_FIRST_TRANCHE_COST_ESTIMATE.expected.tokens,
   },
-  freshMeterCapUsd: J4_FRESH_METER_CAP_USD,
+  freshMeterCapUsd: 2.4824298,
   methodVersion: 'j4-v4-mime-enum-three-predecessors-v1',
+  requestStats: J4_V3_FIRST_TRANCHE_REQUEST_STATS,
+  schema: J4_V3_EXTRACTION_SCHEMA_CONTRACT,
+})
+
+export const J4_V5_CUMULATIVE_COST_ESTIMATE = deepFreeze({
+  capUsd: 7,
+  carriedAccountedUsd: J4_CARRIED_ACCOUNTED_USD,
+  carriedMeasuredUsd: J4_CARRIED_MEASURED_USD,
+  carriedUncertainUsd: J4_CARRIED_UNCERTAIN_USD,
+  compatibilitySmoke: J4_V3_COMPATIBILITY_SMOKE_STATS,
+  conservative: {
+    cumulativeUsd: roundedUsd(
+      J4_CARRIED_ACCOUNTED_USD +
+      J4_V5_FIRST_TRANCHE_COST_ESTIMATE.conservative.freshUsd,
+    ),
+    freshUsd: roundedUsd(
+      J4_V5_FIRST_TRANCHE_COST_ESTIMATE.conservative.freshUsd,
+    ),
+    tokens: J4_V5_FIRST_TRANCHE_COST_ESTIMATE.conservative.tokens,
+  },
+  expected: {
+    cumulativeUsd: roundedUsd(
+      J4_CARRIED_ACCOUNTED_USD +
+      J4_V5_FIRST_TRANCHE_COST_ESTIMATE.expected.freshUsd,
+    ),
+    freshUsd: roundedUsd(
+      J4_V5_FIRST_TRANCHE_COST_ESTIMATE.expected.freshUsd,
+    ),
+    tokens: J4_V5_FIRST_TRANCHE_COST_ESTIMATE.expected.tokens,
+  },
+  freshMeterCapUsd: J4_FRESH_METER_CAP_USD,
+  methodVersion: 'j4-v5-fixed-2000-four-predecessors-v1',
   requestStats: J4_V3_FIRST_TRANCHE_REQUEST_STATS,
   schema: J4_V3_EXTRACTION_SCHEMA_CONTRACT,
 })
@@ -262,11 +334,11 @@ function cumulativeLimits({
 
 // The compatibility suite makes one Gemini writer request and one Gemini
 // answer request. These rows keep every future cumulative request/token
-// ceiling finite; v4 may use only the separately authorized first row.
+// ceiling finite; v5 may use only the separately authorized first row.
 export const J4_CUMULATIVE_LIMITS = Object.freeze([
   cumulativeLimits({
     answer: 6,
-    cumulativeCapUsd: 2.5,
+    cumulativeCapUsd: 7,
     cumulativeQuestions: 5,
     judge: 5,
     maxAttempts: 4_812,
@@ -338,7 +410,7 @@ export function j4LimitsForCumulativeQuestions(value) {
 }
 
 export const J4_GEMINI_WRITER_GENERATION = Object.freeze({
-  maxOutputTokens: J4_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
+  maxOutputTokens: J4_V5_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
   responseFormat: Object.freeze({
     text: Object.freeze({
       mimeType: MEMORY_EXTRACTION_RESPONSE_MIME_TYPE,
@@ -349,7 +421,7 @@ export const J4_GEMINI_WRITER_GENERATION = Object.freeze({
 })
 
 export const J4_GEMINI_ANSWER_GENERATION = Object.freeze({
-  maxOutputTokens: J4_GEMINI_GENERATION_LIMITS.answerMaxOutputTokens,
+  maxOutputTokens: J4_V5_GEMINI_GENERATION_LIMITS.answerMaxOutputTokens,
   thinkingConfig: Object.freeze({ thinkingLevel: 'MINIMAL' }),
 })
 
@@ -562,30 +634,30 @@ function validatePredictions(value) {
   assertEqual(value.promptConfig, {
     answer: {
       chainOfThought: false,
-      maxOutputTokens: J4_GEMINI_GENERATION_LIMITS.answerMaxOutputTokens,
+      maxOutputTokens: J4_V5_GEMINI_GENERATION_LIMITS.answerMaxOutputTokens,
       store: false,
       template: 'official-longmemeval-fact-memory',
-      thinkingLevel: J4_GEMINI_GENERATION_LIMITS.thinkingLevel,
+      thinkingLevel: J4_V5_GEMINI_GENERATION_LIMITS.thinkingLevel,
     },
     judge: {
       parser: 'official-response-contains-yes',
       unchanged: true,
     },
     writer: {
-      maxOutputTokens: J4_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
+      maxOutputTokens: J4_V5_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
       responseFormat: 'APPLICATION_JSON+json-schema',
       schemaSha256: J4_V3_EXTRACTION_SCHEMA_CONTRACT.sha256,
       sourceKindVocabulary: MEMORY_EXTRACTION_SOURCE_KINDS,
       store: false,
-      thinkingLevel: J4_GEMINI_GENERATION_LIMITS.thinkingLevel,
+      thinkingLevel: J4_V5_GEMINI_GENERATION_LIMITS.thinkingLevel,
       typeVocabulary: MEMORY_EXTRACTION_TYPES,
     },
   }, 'prediction prompt config')
   assertEqual(value.decisionReference, {
-    cumulativeHardCapUsd: 2.5,
+    cumulativeHardCapUsd: 7,
     date: '2026-07-25',
     document: 'docs/DECISIONS.md',
-    entry: 'FOUNDER GO — J4 v4 MIME replacement run',
+    entry: 'FOUNDER GO — J4 v5 fixed-2000 replacement run',
     questions: 5,
   }, 'prediction founder decision reference')
   if (value.method?.finalizedBeforeProviderCalls !== true) {
@@ -697,7 +769,7 @@ function validatePredictions(value) {
       'lexical FTS recall with a five-term query limit and no stemming',
     ],
     note:
-      'All 60 outcome rows are byte-identical to v3. No v1-v3 provider evidence was used to revise them; v4 changes only the raw Gemini MIME enum, three-predecessor accounting, and immutable-run metadata.',
+      'All 60 outcome rows are byte-identical to v4 and retain their pre-v4 predictions. The observed v4 question-1 result was not used to revise them; v5 changes only the writer output allowance, four-predecessor accounting, and immutable-run metadata.',
   }, 'prediction method')
   return value
 }
@@ -734,13 +806,13 @@ function validateConfig(config) {
   }, 'provider models')
   assertEqual(config.generation, {
     answerMaxOutputTokens:
-      J4_GEMINI_GENERATION_LIMITS.answerMaxOutputTokens,
+      J4_V5_GEMINI_GENERATION_LIMITS.answerMaxOutputTokens,
     judgeMaxTokens: LONGMEMEVAL_JUDGE_REQUEST.maxTokens,
     judgeN: LONGMEMEVAL_JUDGE_REQUEST.n,
     judgeTemperature: LONGMEMEVAL_JUDGE_REQUEST.temperature,
-    thinkingLevel: J4_GEMINI_GENERATION_LIMITS.thinkingLevel,
+    thinkingLevel: J4_V5_GEMINI_GENERATION_LIMITS.thinkingLevel,
     writerMaxOutputTokens:
-      J4_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
+      J4_V5_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
   }, 'generation settings')
   assertEqual(config.limits, J4_CUMULATIVE_LIMITS, 'cumulative hard limits')
   assertEqual(
@@ -754,13 +826,13 @@ function validateConfig(config) {
     sealedQuestionIds: SEALED_U8_QUESTION_IDS,
     trancheManifestSha256: J4_STAGED_TRANCHE_MANIFEST_SHA256,
   }, 'population contract')
-  assertEqual(config.costEstimate, J4_V4_CUMULATIVE_COST_ESTIMATE, 'cost estimate')
+  assertEqual(config.costEstimate, J4_V5_CUMULATIVE_COST_ESTIMATE, 'cost estimate')
   assertEqual(
     config.predecessorChain,
     J4_PREDECESSOR_CHAIN,
     'replacement predecessor chain and carried spend',
   )
-  assertEqual(config.tranches, J4_PROPOSED_TRANCHE_GATES, 'tranche gates')
+  assertEqual(config.tranches, J4_V5_TRANCHE_GATES, 'tranche gates')
   assertEqual(config.prompts, {
     answerTemplateSha256: j4Sha256(J4_OFFICIAL_FACT_TEMPLATE),
     extractionPromptSha256: j4ExtractionPromptSha256(),
@@ -903,7 +975,7 @@ export async function loadJ4LiveAuthority({
   ], 'J4 live authority')
   assertEqual(authority.schemaVersion, 1, 'authority schema version')
   assertEqual(authority.runId, J4_LIVE_RUN_ID, 'authority run ID')
-  const gateIndex = J4_PROPOSED_TRANCHE_GATES.findIndex((entry) =>
+  const gateIndex = J4_V5_TRANCHE_GATES.findIndex((entry) =>
     entry.cumulativeQuestions === authority.cumulativeQuestions &&
     entry.cumulativeCapUsd === authority.cumulativeCapUsd)
   if (gateIndex < 0) {
@@ -914,7 +986,7 @@ export async function loadJ4LiveAuthority({
   }
   const expectedFrom = gateIndex === 0
     ? 0
-    : J4_PROPOSED_TRANCHE_GATES[gateIndex - 1].cumulativeQuestions
+    : J4_V5_TRANCHE_GATES[gateIndex - 1].cumulativeQuestions
   if (authority.fromCumulativeQuestions !== expectedFrom ||
     (expectedFrom === 0 && authority.previousCheckpointSha256 !== null) ||
     (expectedFrom > 0 &&

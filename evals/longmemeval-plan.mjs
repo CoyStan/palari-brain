@@ -175,6 +175,26 @@ export const J4_GEMINI_GENERATION_LIMITS = Object.freeze({
   writerMaxOutputTokens: 512,
 })
 
+// V3 and V4 remain frozen at the historical 512-token writer ceiling above.
+// V5 changes only that one live-generation bound; keeping separate constants
+// prevents the replacement run from rewriting its predecessors' estimates.
+export const J4_V5_GEMINI_GENERATION_LIMITS = Object.freeze({
+  answerMaxOutputTokens: 256,
+  thinkingLevel: 'MINIMAL',
+  writerMaxOutputTokens: 2_000,
+})
+
+export const J4_V5_CONSERVATIVE_COST_ASSUMPTIONS = Object.freeze({
+  ...J4_CONSERVATIVE_COST_ASSUMPTIONS,
+  writerOutputTokensPerCall:
+    J4_V5_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
+})
+
+export const J4_V5_TRANCHE_GATES = Object.freeze([
+  Object.freeze({ cumulativeCapUsd: 7, cumulativeQuestions: 5, questions: 5 }),
+  ...J4_PROPOSED_TRANCHE_GATES.slice(1),
+])
+
 const J4_EXTRACTION_SCHEMA_JSON =
   JSON.stringify(MEMORY_EXTRACTION_RESPONSE_SCHEMA)
 
@@ -721,4 +741,24 @@ export const J4_V3_FIRST_TRANCHE_COST_ESTIMATE = Object.freeze({
     tokens: Object.freeze({ ...j4V3ExpectedFirstTranche.tokens }),
   }),
   methodVersion: 'j4-v3-schema-and-two-smokes-v1',
+})
+
+const j4V5ConservativeFirstTranche = estimatePalariLongMemEvalCost(
+  J4_V3_FIRST_TRANCHE_REQUEST_STATS,
+  {
+    assumptions: J4_V5_CONSERVATIVE_COST_ASSUMPTIONS,
+    compatibilitySmoke: J4_V3_COMPATIBILITY_SMOKE_STATS,
+    writerSchemaCharsPerCall:
+      J4_V3_EXTRACTION_SCHEMA_CONTRACT.canonicalJsonChars,
+  },
+)
+
+export const J4_V5_FIRST_TRANCHE_COST_ESTIMATE = Object.freeze({
+  conservative: Object.freeze({
+    calls: Object.freeze({ ...j4V5ConservativeFirstTranche.calls }),
+    freshUsd: j4V5ConservativeFirstTranche.totalUsd,
+    tokens: Object.freeze({ ...j4V5ConservativeFirstTranche.tokens }),
+  }),
+  expected: J4_V3_FIRST_TRANCHE_COST_ESTIMATE.expected,
+  methodVersion: 'j4-v5-fixed-2000-schema-and-two-smokes-v1',
 })

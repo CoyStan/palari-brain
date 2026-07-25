@@ -4,6 +4,8 @@ import test from 'node:test'
 
 import {
   J4_CARRIED_ACCOUNTED_USD,
+  J4_CARRIED_MEASURED_USD,
+  J4_CARRIED_UNCERTAIN_USD,
   J4_GEMINI_ANSWER_GENERATION,
   J4_CUMULATIVE_LIMITS,
   J4_FRESH_METER_CAP_USD,
@@ -15,6 +17,7 @@ import {
   J4_PREDECESSOR_CHAIN,
   J4_TRANCHE_1_LIMITS,
   J4_V4_CUMULATIVE_COST_ESTIMATE,
+  J4_V5_CUMULATIVE_COST_ESTIMATE,
   assertJ4LiveEnvironment,
   buildJ4AnswerBody,
   buildJ4AnswerPrompt,
@@ -59,11 +62,17 @@ const J4_V4_CONFIG_SHA256 =
   '2aa449d45306303b5a6d0cf6fcc9aa3ae058baadc7566d5a3bc8017e8031c531'
 const J4_V4_PREDICTIONS_SHA256 =
   '1df076076c82e7c250e94c22e471b36cc9bf3cfa85ea90df9bd19c57a021f436'
+const J4_V5_AUTHORITY_SHA256 =
+  '0f0ce76625a2e9e16bd3fbd171bb08568e88111811ad4d2fadd5f5889e1f45ba'
+const J4_V5_CONFIG_SHA256 =
+  '7319f3ae754eaca9935f70c8a2e8a66ccfde949a02729e7662d1d71f89bc4f3f'
+const J4_V5_PREDICTIONS_SHA256 =
+  '9adbc808c93fda63397ac7b304af7347443ca2940adf722d231c60165f08e7d6'
 
 test('J4 provider bodies freeze the selected model protocol and official prompt', () => {
   assert.equal(J4_GEMINI_MODEL, 'gemini-3.5-flash-lite')
   assert.deepEqual(J4_GEMINI_WRITER_GENERATION, {
-    maxOutputTokens: 512,
+    maxOutputTokens: 2_000,
     responseFormat: {
       text: {
         mimeType: MEMORY_EXTRACTION_RESPONSE_MIME_TYPE,
@@ -87,7 +96,7 @@ test('J4 provider bodies freeze the selected model protocol and official prompt'
     userName: 'user',
   })
   assert.deepEqual(writer.generationConfig, {
-    maxOutputTokens: 512,
+    maxOutputTokens: 2_000,
     responseFormat: {
       text: {
         mimeType: MEMORY_EXTRACTION_RESPONSE_MIME_TYPE,
@@ -111,6 +120,7 @@ test('J4 provider bodies freeze the selected model protocol and official prompt'
     body: writer,
     model: J4_GEMINI_MODEL,
   }).init.body)
+  assert.equal(wire.generationConfig.maxOutputTokens, 2_000)
   assert.equal(
     wire.generationConfig.responseFormat.text.mimeType,
     'APPLICATION_JSON',
@@ -163,10 +173,10 @@ test('J4 execution order is complete, U8-free, and starts at the exact gate', ()
       writer: 1_192,
     },
     maxTokens: {
-      geminiInput: 8_333_333,
-      geminiOutputIncludingThinking: 1_000_000,
-      judgeInput: 1_000_000,
-      judgeOutput: 250_000,
+      geminiInput: 23_333_333,
+      geminiOutputIncludingThinking: 2_800_000,
+      judgeInput: 2_800_000,
+      judgeOutput: 700_000,
     },
     maxResponseBytes: 4 * 1024 * 1024,
     requestTimeoutMs: 60_000,
@@ -181,7 +191,7 @@ test('J4 execution order is complete, U8-free, and starts at the exact gate', ()
     })),
     [
       {
-        cumulativeCapUsd: 2.5,
+        cumulativeCapUsd: 7,
         cumulativeQuestions: 5,
         maxAttempts: 4_812,
         maxLogicalRequests: { answer: 6, judge: 5, writer: 1_192 },
@@ -243,14 +253,16 @@ test('J4 execution order is complete, U8-free, and starts at the exact gate', ()
 test('J4 administrative authority exactly clamps runtime scope without reading keys', async () => {
   const loaded = await loadJ4LiveAuthority({ repoRoot: REPO_ROOT })
   assert.equal(loaded.authority.runId, J4_LIVE_RUN_ID)
-  assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v4')
+  assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v5')
   assert.equal(loaded.authority.cumulativeQuestions, 5)
-  assert.equal(loaded.authority.cumulativeCapUsd, 2.5)
+  assert.equal(loaded.authority.cumulativeCapUsd, 7)
   assert.equal(loaded.authority.fromCumulativeQuestions, 0)
   assert.equal(loaded.authority.previousCheckpointSha256, null)
-  assert.equal(loaded.authoritySha256, J4_V4_AUTHORITY_SHA256)
-  assert.equal(J4_CARRIED_ACCOUNTED_USD, 0.0175702)
-  assert.equal(J4_FRESH_METER_CAP_USD, 2.4824298)
+  assert.equal(loaded.authoritySha256, J4_V5_AUTHORITY_SHA256)
+  assert.equal(J4_CARRIED_ACCOUNTED_USD, 0.1952121)
+  assert.equal(J4_CARRIED_MEASURED_USD, 0.1927111)
+  assert.equal(J4_CARRIED_UNCERTAIN_USD, 0.002501)
+  assert.equal(J4_FRESH_METER_CAP_USD, 6.8047879)
   assert.equal(
     Number((
       loaded.authority.cumulativeCapUsd - J4_CARRIED_ACCOUNTED_USD
@@ -260,7 +272,7 @@ test('J4 administrative authority exactly clamps runtime scope without reading k
 
   const config = {
     tranches: [{
-      cumulativeCapUsd: 2.5,
+      cumulativeCapUsd: 7,
       cumulativeQuestions: 5,
       questions: 5,
     }],
@@ -270,12 +282,12 @@ test('J4 administrative authority exactly clamps runtime scope without reading k
     OPENAI_API_KEY: 'test-openai-not-a-real-key',
     PALARI_J4_CONFIRM_SPEND: '1',
     PALARI_J4_CUMULATIVE_QUESTIONS: '5',
-    PALARI_J4_SPEND_CAP_USD: '2.5',
+    PALARI_J4_SPEND_CAP_USD: '7',
   }
   assert.deepEqual(
     assertJ4LiveEnvironment(safeFakeEnv, config, loaded.authority),
     {
-      capUsd: 2.5,
+      capUsd: 7,
       cumulativeQuestions: 5,
       geminiApiKey: safeFakeEnv.GEMINI_API_KEY,
       openaiApiKey: safeFakeEnv.OPENAI_API_KEY,
@@ -382,7 +394,7 @@ test('J4 v3 frozen inputs remain byte-identical after MIME correction', async ()
   )
 })
 
-test('J4 v4 frozen bytes survive terminal sealing and fail closed as runnable', async () => {
+test('J4 v4 frozen bytes survive the v5 replacement setup', async () => {
   const [configText, authorityText, predictionsText] = await Promise.all([
     readFile(new URL(
       '../evals/live-runs/j4-longmemeval-s60-v4.json',
@@ -402,8 +414,7 @@ test('J4 v4 frozen bytes survive terminal sealing and fail closed as runnable', 
   assert.equal(j4Sha256(predictionsText), J4_V4_PREDICTIONS_SHA256)
 
   const config = JSON.parse(configText)
-  assert.equal(config.runId, J4_LIVE_RUN_ID)
-  assert.deepEqual(config.predecessorChain, J4_PREDECESSOR_CHAIN)
+  assert.equal(config.runId, 'j4-longmemeval-s60-v4')
   assert.equal(config.predecessorChain.runs.length, 3)
   assert.deepEqual(
     config.predecessorChain.runs.map((run) => run.runId),
@@ -427,11 +438,121 @@ test('J4 v4 frozen bytes survive terminal sealing and fail closed as runnable', 
     config.costEstimate.conservative.cumulativeUsd <
       config.costEstimate.capUsd,
   )
-  await assert.rejects(
-    loadJ4LiveConfig({ repoRoot: REPO_ROOT }),
-    (error) =>
-      error.code === 'ARTIFACT_HASH' &&
-      /evals\/run-longmemeval-live\.mjs/.test(error.message),
-    'terminal runner bytes must no longer match the executable v4 identity',
+})
+
+test('J4 v5 config loads all artifacts and freezes the replacement run', async () => {
+  const loaded = await loadJ4LiveConfig({ repoRoot: REPO_ROOT })
+  const { config } = loaded
+
+  assert.equal(loaded.configSha256, J4_V5_CONFIG_SHA256)
+  assert.equal(loaded.predictionsSha256, J4_V5_PREDICTIONS_SHA256)
+  assert.equal(config.runId, J4_LIVE_RUN_ID)
+  assert.equal(config.generation.writerMaxOutputTokens, 2_000)
+  assert.deepEqual(config.tranches[0], {
+    cumulativeCapUsd: 7,
+    cumulativeQuestions: 5,
+    questions: 5,
+  })
+  assert.equal(config.artifacts.length, 20)
+  assert.deepEqual(config.predecessorChain, J4_PREDECESSOR_CHAIN)
+  assert.equal(config.predecessorChain.openingAccountedUsd, 0.1952121)
+  assert.equal(config.predecessorChain.runs.length, 4)
+  assert.deepEqual(
+    config.predecessorChain.runs.map((run) => run.runId),
+    [
+      'j4-longmemeval-s60-v1',
+      'j4-longmemeval-s60-v2',
+      'j4-longmemeval-s60-v3',
+      'j4-longmemeval-s60-v4',
+    ],
+  )
+  assert.deepEqual(
+    config.predecessorChain.runs[3],
+    {
+      attempts: 363,
+      completedQuestions: 1,
+      currentRunAccountedUsd: 0.1776419,
+      failedQuestionOrdinal: 2,
+      logicalRequests: { answer: 2, judge: 1, writer: 360 },
+      openingAccountedUsd: 0.0175702,
+      private: {
+        artifactManifestPath:
+          'evals/results/j4-longmemeval-s60-v4/artifact-manifest.json',
+        artifactManifestSha256:
+          'bd3bccd789715df7c194f70a46cc91a5d481d21d87c1d3bd2f44e0163524ee57',
+        checkpointPath:
+          'evals/results/j4-longmemeval-s60-v4/checkpoint.json',
+        checkpointSha256:
+          '776562439bbfef8d8a855c7a644242d52d24ab418556589d0bf666839fb4e247',
+        meterPath: 'evals/results/j4-longmemeval-s60-v4/meter.jsonl',
+        meterSha256:
+          'd91c82e1d454a680607d2edb81b57a9f768b2cb716ae8fe7b835985d4d9579c9',
+      },
+      runId: 'j4-longmemeval-s60-v4',
+      smokeLogicalOperations: 2,
+      smokeStatus: 'completed',
+      status: 'failed',
+      tracked: {
+        authorityPath:
+          'evals/live-runs/j4-longmemeval-s60-v4.authority.json',
+        authoritySha256:
+          'f8bd5cdaa886624da36edae655b716c7dd902006ccee04561a10f288f3528367',
+        configPath: 'evals/live-runs/j4-longmemeval-s60-v4.json',
+        configSha256:
+          '2aa449d45306303b5a6d0cf6fcc9aa3ae058baadc7566d5a3bc8017e8031c531',
+        predictionsPath: 'evals/predictions/j4-longmemeval-s60-v4.json',
+        predictionsSha256:
+          '1df076076c82e7c250e94c22e471b36cc9bf3cfa85ea90df9bd19c57a021f436',
+      },
+    },
+  )
+  assert.deepEqual(config.costEstimate, J4_V5_CUMULATIVE_COST_ESTIMATE)
+  assert.deepEqual(config.costEstimate, {
+    capUsd: 7,
+    carriedAccountedUsd: 0.1952121,
+    carriedMeasuredUsd: 0.1927111,
+    carriedUncertainUsd: 0.002501,
+    compatibilitySmoke: {
+      answerCalls: 1,
+      answerRequestBodyChars: 451,
+      writerCalls: 1,
+      writerRequestContentChars: 2_467,
+    },
+    conservative: {
+      cumulativeUsd: 6.7861133,
+      freshUsd: 6.5909012,
+      tokens: {
+        geminiInput: 2_055_204,
+        geminiOutputIncludingThinking: 2_385_536,
+        judgeInput: 4_000,
+        judgeOutput: 50,
+      },
+    },
+    expected: {
+      cumulativeUsd: 1.0896816,
+      freshUsd: 0.8944695,
+      tokens: {
+        geminiInput: 1_464_065,
+        geminiOutputIncludingThinking: 179_400,
+        judgeInput: 2_500,
+        judgeOutput: 50,
+      },
+    },
+    freshMeterCapUsd: 6.8047879,
+    methodVersion: 'j4-v5-fixed-2000-four-predecessors-v1',
+    requestStats: {
+      questions: 5,
+      userTurns: 1_191,
+      writerRequestContentChars: 4_726_081,
+    },
+    schema: {
+      canonicalJsonChars: 808,
+      sha256:
+        '7040c879709509de9022135588403f9d9563e53f63f8560fe2445188a7b20173',
+    },
+  })
+  assert.ok(
+    config.costEstimate.conservative.cumulativeUsd <
+      config.costEstimate.capUsd,
   )
 })

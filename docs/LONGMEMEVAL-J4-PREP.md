@@ -368,6 +368,61 @@ change: `$0.8944695` expected and `$2.1566612` conservative. Including
 predecessors, the cumulative estimates are `$0.9120397` and `$2.1742314`,
 both below the unchanged `$2.50` hard cap.
 
+## V5 fixed-2,000 amendment — 2026-07-25
+
+V4 completed and graded question 1, then stopped terminally during question 2
+when one otherwise successful Gemini writer completion ended at the frozen
+512-token ceiling. The founder authorized a fresh, homogeneous
+`j4-longmemeval-s60-v5` successor with one provider-behavior change: every
+Gemini writer request, including the writer compatibility smoke, uses exactly
+`maxOutputTokens: 2000`. This supersedes the historical 512-writer limit in
+the required-live-implementation section for v5 only. The answer and judge
+limits, models, explicit minimal thinking, schema, prompts, retrieval,
+admission, scoring, dataset, execution order, smoke suite, and first-five
+boundary remain unchanged.
+
+A changed writer limit is a changed evaluation configuration, so importing
+v4's completed question 1 would create a mixed-treatment prefix and violate
+the runbook's no-combined-configurations law. The founder therefore made one
+explicit, narrow exception to the completed-question rule: v5 executes
+question `08e075c7` once as an independent v5 observation. This does not
+reopen or reroll v4. V4 and its question-1 result stay immutable and
+separately reported; neither its checkpoint nor its result is imported,
+replaced, regraded, discarded, or combined with v5 as one score. V5 begins
+with zero completed questions and the same five pending IDs. No completed or
+failed v5 question may be rerolled.
+
+All 60 v5 outcome rows remain byte-identical to v4 and retain row-array
+SHA-256
+`12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351`.
+The observed v4 question-1 result did not revise them. The FINAL v5 prediction
+document SHA-256 is
+`9adbc808c93fda63397ac7b304af7347443ca2940adf722d231c60165f08e7d6`;
+the v5 authority SHA-256 is
+`0f0ce76625a2e9e16bd3fbd171bb08568e88111811ad4d2fadd5f5889e1f45ba`;
+and the v5 config SHA-256 is
+`7319f3ae754eaca9935f70c8a2e8a66ccfde949a02729e7662d1d71f89bc4f3f`.
+That config pins all 20 required implementation artifacts at the pushed
+pre-call cut point.
+
+V1-v4 carry `$0.1952121` accounted spend: `$0.1927111` measured and
+`$0.0025010` uncertain. The founder-adopted `$7.00` cumulative cap therefore
+leaves exactly `$6.8047879` for v5. The expected output assumption remains 150
+writer tokens per call, so the fresh/cumulative expected estimates are
+`$0.8944695`/`$1.0896816`. The conservative envelope now includes 1,192
+writer calls at 2,000 output tokens plus six unchanged 256-token answer calls:
+2,385,536 Gemini output-including-thinking tokens total. With unchanged
+conservative inputs and judge usage, the fresh/cumulative estimates are
+`$6.5909012`/`$6.7861133`, leaving `$0.2138867` below the hard cap. The meter
+still reserves before dispatch and stops rather than projecting cumulative
+spend beyond `$7.00`; the cap does not promise all five questions will finish.
+
+The one authorized invocation runs the writer-and-answer compatibility smoke,
+then ordinals 1-5 once each only if both smokes pass. It stops and reports
+after question 5 or the first terminal failure. Question 6, Mem0, S-490,
+publication, announcement, another behavioral change, and any further live
+call after v5 closes remain unauthorized.
+
 Official contract references:
 
 - live Gemini v1beta Discovery schema:
