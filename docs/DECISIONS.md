@@ -1226,3 +1226,26 @@ dates. Agents record; the founder decides.
   identity cannot be resumed or rerolled. Retrieval design, another provider
   call, later questions, Mem0, S-490, publication, and announcement all
   require a fresh founder GO.
+- 2026-07-25 (FOUNDER GO — J4.2K-R2 incremental active memory) After the
+  canonical capacity run showed 484 messages requiring 633,063 answer-context
+  characters, the founder identified that Palari was ingesting interactions
+  sequentially but still relying on answer-time assembly of the whole
+  history. The founder asked whether Palari should instead process each
+  interaction progressively and save relevant information as it goes, then
+  said “yes do it” to the stated implementation: keep the exact canonical
+  journal as truth, add one ordered bounded reduction after each durable
+  interaction, use bounded prior active memory plus only the current
+  interaction, and normally answer from the resulting complete digest.
+
+  This GO covers the smallest offline product unit, migration, deterministic
+  reducer contract, host-side provenance/revision/capacity checks,
+  correction, failure recovery, deletion/rebuild, documentation, tests,
+  review, commit, and push. It does not authorize a live provider call,
+  evaluation identity, benchmark question, reroll, Mem0, S-490, publication,
+  announcement, or any change to terminal configs, predictions, runners, or
+  private evidence. Canonical dialogue remains exact local plaintext and
+  exact-ID deletable. The digest is explicitly lossy: omission cannot delete
+  prior active items, but it cannot prove arbitrary exhaustive negative or
+  count answers. A single interaction beyond the reducer request envelope
+  remains canonical and pending; silent trimming, splitting, or skipping is
+  not authorized.

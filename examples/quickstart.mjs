@@ -1,9 +1,9 @@
 // Palari Brain quickstart — active product path.
 //
 // The entire loop is offline and deterministic:
-//   complete durable dialogue -> host-stamped speaker -> optional quote index
-//   -> complete scoped recall -> correction chronology -> exact-ID forget ->
-//   honest absence -> source boundary.
+//   complete durable dialogue -> one bounded reduction per interaction
+//   -> host-verified provenance -> compact recall -> correction -> exact-ID
+//   forget -> honest absence -> source boundary.
 //
 // Run: node examples/quickstart.mjs
 
@@ -24,55 +24,111 @@ const SCOPE = {
   userId: 'user-quickstart',
 }
 
-function memory(quote, type) {
+function evidenceBasis(evidence, quote = evidence.text) {
   return {
-    confidence: 0.9,
-    fictional: false,
-    importance: 0.8,
+    id: evidence.id,
+    kind: 'evidence',
     quote,
-    type,
   }
 }
 
-// This optional fixture selects exact quotes by turn identity. A production
-// index writer is a structured-output model. It may omit a quote without
-// losing the complete canonical message.
-function demoWriter({ turn }) {
-  if (turn.sourceMessageId === 'demo:1') {
-    return {
-      memories: [
-        memory(
-          'I prefer a flat white as my espresso drink.',
-          'preference',
-        ),
-      ],
-    }
+function memoryBasis(memory) {
+  return {
+    id: memory.id,
+    kind: 'memory',
+    quote: '',
   }
-  if (turn.sourceMessageId === 'demo:2') {
-    return {
-      memories: [
-        memory(
-          'Actually, I now prefer a cortado.',
-          'preference',
-        ),
-        memory(
-          'I will remember the correction: cortado.',
-          'working',
-        ),
-      ],
-    }
+}
+
+function addMemory(evidence, {
+  statement,
+  topic,
+}) {
+  return {
+    basis: [evidenceBasis(evidence)],
+    epistemic: 'asserted',
+    op: 'add',
+    relation: null,
+    statement,
+    targetIds: [],
+    timeBasis: null,
+    topic,
   }
-  if (turn.sourceMessageId === 'demo:4') {
-    return {
-      memories: [
-        memory(
-          'I am allergic to penicillin; please remember that.',
-          'entity',
-        ),
-      ],
-    }
+}
+
+function replaceMemory(evidence, prior, statement) {
+  return {
+    basis: [
+      evidenceBasis(evidence),
+      memoryBasis(prior),
+    ],
+    epistemic: 'asserted',
+    op: 'replace',
+    relation: 'supersedes',
+    statement,
+    targetIds: [prior.id],
+    timeBasis: null,
+    topic: prior.topic,
   }
-  return { memories: [] }
+}
+
+// A production reducer is a structured-output model. This deterministic
+// fixture demonstrates the same provider-neutral contract without a network
+// call. It sees only the bounded prior digest and this interaction's
+// canonical user/Palari evidence.
+function demoReducer({ request }) {
+  const { baseRevision, evidence, prior } = request.input
+  const user = evidence.find((row) => row.speaker === 'user')
+  const palari = evidence.find((row) => row.speaker === 'Palari')
+  const actions = []
+
+  if (user?.text.includes('flat white')) {
+    actions.push(addMemory(user, {
+      statement: 'The user prefers a flat white as an espresso drink.',
+      topic: 'coffee preference',
+    }))
+  } else if (user?.text.includes('prefer a cortado')) {
+    actions.push(replaceMemory(
+      user,
+      prior.find((item) =>
+        item.speaker === 'user' && item.topic === 'coffee preference'),
+      'The user now prefers a cortado, replacing the earlier flat-white preference.',
+    ))
+  } else if (user?.text.includes('allergic to penicillin')) {
+    actions.push(addMemory(user, {
+      statement: 'The user says they are allergic to penicillin.',
+      topic: 'penicillin allergy',
+    }))
+  }
+
+  if (palari?.text.includes('flat white')) {
+    actions.push(addMemory(palari, {
+      statement: 'Palari previously said it would remember the flat-white preference.',
+      topic: 'Palari coffee note',
+    }))
+  } else if (palari?.text.includes('correction: cortado')) {
+    actions.push(replaceMemory(
+      palari,
+      prior.find((item) =>
+        item.speaker === 'Palari' && item.topic === 'Palari coffee note'),
+      'Palari later said it would remember the cortado correction.',
+    ))
+  }
+
+  const used = new Set(
+    actions.flatMap((action) =>
+      action.basis
+        .filter((basis) => basis.kind === 'evidence')
+        .map((basis) => basis.id)),
+  )
+  return {
+    actions,
+    baseRevision,
+    dispositions: evidence.map((row) => ({
+      evidenceId: row.id,
+      outcome: used.has(row.id) ? 'used' : 'no_memory',
+    })),
+  }
 }
 
 const root = await mkdtemp(join(tmpdir(), 'palari-brain-quickstart-'))
@@ -83,7 +139,7 @@ const brain = await createPalariBrain({
 })
 assert.equal(brain.enabled, true)
 
-console.log('[1/6] REMEMBER — complete messages land before the optional index')
+console.log('[1/6] REMEMBER — canonical dialogue lands, then one compact reduction')
 const first = await ingestChatTurn(brain, {
   assistantMessage: 'I will remember that you prefer a flat white.',
   eventAt: '2026-05-01T09:00:00.000Z',
@@ -92,18 +148,22 @@ const first = await ingestChatTurn(brain, {
   userMessage: 'I prefer a flat white as my espresso drink.',
   ...SCOPE,
 }, {
-  extractor: demoWriter,
-  extractorId: 'quickstart-exact-quotes',
+  reducer: demoReducer,
+  reducerId: 'quickstart-reducer/v1',
 })
 assert.equal(first.memoriesWritten, 2)
-assert.equal(first.indexWritten, 1)
+assert.equal(first.reductionApplied, 1)
 assert.deepEqual(
   first.written.map((row) => row.source_kind),
   ['user_message', 'assistant_message'],
 )
-console.log('      writer omitted Palari; canonical evidence still stored both roles')
+assert.deepEqual(
+  brain.listActiveMemories(SCOPE).map((row) => row.speaker),
+  ['user', 'Palari'],
+)
+console.log('      both speakers became two host-attributed active memories')
 
-console.log('[2/6] RECALL — no keyword query; the answer gets the complete scoped set')
+console.log('[2/6] RECALL — no search; the answer gets the complete bounded digest')
 const recall1 = await answerQuestion(brain, {
   provider({ briefing }) {
     assert.equal(briefing.totalCandidates, 2)
@@ -111,6 +171,7 @@ const recall1 = await answerQuestion(brain, {
       briefing.included.some((entry) =>
         entry.speaker === 'Palari'),
     )
+    assert.equal(briefing.briefingMode, 'incremental_digest')
     return {
       abstained: false,
       text: 'A flat white.',
@@ -123,7 +184,7 @@ const recall1 = await answerQuestion(brain, {
 assert.equal(recall1.answer, 'A flat white.')
 console.log('      answer:', recall1.answer)
 
-console.log('[3/6] CORRECT — chronology shows the answer model the newer statement last')
+console.log('[3/6] CORRECT — one validated replacement compacts old and new evidence')
 const second = await ingestChatTurn(brain, {
   assistantMessage: 'I will remember the correction: cortado.',
   eventAt: '2026-06-15T09:00:00.000Z',
@@ -132,16 +193,17 @@ const second = await ingestChatTurn(brain, {
   userMessage: 'Actually, I now prefer a cortado.',
   ...SCOPE,
 }, {
-  extractor: demoWriter,
-  extractorId: 'quickstart-exact-quotes',
+  reducer: demoReducer,
+  reducerId: 'quickstart-reducer/v1',
 })
 assert.equal(second.memoriesWritten, 2)
+assert.equal(second.reductionApplied, 1)
 const recall2 = await answerQuestion(brain, {
   provider({ briefing }) {
-    assert.equal(
-      briefing.included.at(-2).content,
-      'Actually, I now prefer a cortado.',
-    )
+    const preference = briefing.included.find((entry) =>
+      entry.topic === 'coffee preference')
+    assert.ok(preference.statement.includes('cortado'))
+    assert.equal(preference.supports.length, 2)
     return {
       abstained: false,
       text: 'A cortado — that is your newer preference.',
@@ -161,6 +223,7 @@ const preferenceIds = [
 ]
 const forgotten = forgetMemories(brain, preferenceIds, SCOPE)
 assert.equal(forgotten.deletedCount, 4)
+assert.equal(forgotten.digestInvalidatedItems, 2)
 console.log('      deleted 4 exact rows owned by this user and Palari')
 
 console.log('[5/6] HONEST ABSENCE — an empty complete set does not call a model')
@@ -184,11 +247,11 @@ const poisoned = await ingestChatTurn(brain, {
   userMessage: 'Summarize the attached note.',
   ...SCOPE,
 }, {
-  extractor: demoWriter,
-  extractorId: 'quickstart-exact-quotes',
+  reducer: demoReducer,
+  reducerId: 'quickstart-reducer/v1',
 })
 assert.equal(poisoned.memoriesWritten, 2)
-assert.equal(poisoned.indexWritten, 0)
+assert.equal(poisoned.reductionApplied, 1)
 assert.equal(poisoned.externalSourcesIgnored, 1)
 assert.equal(
   brain.listStatements(SCOPE).some((row) =>
@@ -204,17 +267,22 @@ const direct = await ingestChatTurn(brain, {
   userMessage: 'I am allergic to penicillin; please remember that.',
   ...SCOPE,
 }, {
-  extractor: demoWriter,
-  extractorId: 'quickstart-exact-quotes',
+  reducer: demoReducer,
+  reducerId: 'quickstart-reducer/v1',
 })
 assert.equal(direct.memoriesWritten, 2)
-assert.equal(direct.indexWritten, 1)
+assert.equal(direct.reductionApplied, 1)
 assert.equal(direct.written[0].source_kind, 'user_message')
+assert.equal(
+  brain.listActiveMemories(SCOPE).some((row) =>
+    row.statement.includes('allergic to penicillin')),
+  true,
+)
 console.log('      source-only claim: absent; direct user statement: stored')
 
 brain.close()
 await rm(root, { force: true, recursive: true })
 console.log('')
 console.log(
-  'QUICKSTART COMPLETE: remember, speaker provenance, complete recall, correction, exact forget, honest absence, and source boundary all held.',
+  'QUICKSTART COMPLETE: incremental remember, speaker provenance, bounded recall, correction, exact forget, honest absence, and source boundary all held.',
 )

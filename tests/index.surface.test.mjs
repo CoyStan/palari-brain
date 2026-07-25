@@ -4,8 +4,10 @@ import assert from 'node:assert/strict'
 
 const EXPECTED_FUNCTIONS = [
   'answerQuestion',
+  'buildActiveMemoryBriefing',
   'buildAnswerPrompt',
   'buildMemoryBriefing',
+  'buildMemoryReductionRequest',
   'buildStatementExtractionRequest',
   'createPalariBrain',
   'forgetMemories',
@@ -14,12 +16,23 @@ const EXPECTED_FUNCTIONS = [
   'loadLongMemEvalInstances',
   'normalizeStatementExtractionPayload',
   'parseLongMemEvalTimestamp',
+  'recallMemory',
   'recallAllStatements',
+  'reducePendingTurns',
+  'normalizeMemoryReductionPayload',
   'statementQuoteOrigins',
   'stubProvider',
 ]
 
 const EXPECTED_VALUES = [
+  'ACTIVE_MEMORY_ACTION_OPS',
+  'ACTIVE_MEMORY_BASIS_KINDS',
+  'ACTIVE_MEMORY_DISPOSITION_OUTCOMES',
+  'ACTIVE_MEMORY_EPISTEMICS',
+  'ACTIVE_MEMORY_LIMITS',
+  'ACTIVE_MEMORY_REDUCER_VERSION',
+  'ACTIVE_MEMORY_RELATIONS',
+  'ACTIVE_MEMORY_SYSTEM_INSTRUCTIONS',
   'dialogueRetentions',
   'dialogueSourceKinds',
   'longMemEvalQuestionTypes',

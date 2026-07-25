@@ -331,11 +331,12 @@ test('explicit pre-run artifact audit rejects changed bytes', async () => {
   }
 })
 
-test('frozen artifacts equal the complete local runtime import graph',
+test('frozen first-five identity rejects the successor digest graph',
   async () => {
-    const loaded = await first5Config.loadCanonicalFirst5LiveConfig({
+    const config = JSON.parse(await readFile(resolve(
       repoRoot,
-    })
+      first5Config.CANONICAL_FIRST5_CONFIG_PATH,
+    )))
     const pending = ['evals/run-canonical-first5-live.mjs']
     const reachable = new Set()
     while (pending.length) {
@@ -366,9 +367,19 @@ test('frozen artifacts equal the complete local runtime import graph',
         if (!reachable.has(child)) pending.push(child)
       }
     }
+    const pinned = new Set(
+      config.artifacts.map((entry) => entry.path),
+    )
     assert.deepEqual(
-      [...reachable].sort(),
-      loaded.config.artifacts.map((entry) => entry.path).sort(),
+      [...reachable].filter((path) => !pinned.has(path)).sort(),
+      [
+        'src/memory-digest-store.mjs',
+        'src/memory-reducer.mjs',
+      ],
+    )
+    await assert.rejects(
+      first5Config.loadCanonicalFirst5LiveConfig({ repoRoot }),
+      (error) => error?.code === 'CONFIG_SCHEMA_INVALID',
     )
   })
 
@@ -609,12 +620,12 @@ test('canonical smoke predecessor verifies tracked, private, spend, and depth',
       }
       throw error
     }
-    const loaded = await (
-      first5Config.loadCanonicalFirst5LiveConfig ??
-      first5Config.loadCanonicalFirst5Config
-    )({ repoRoot })
+    const config = JSON.parse(await readFile(resolve(
+      repoRoot,
+      first5Config.CANONICAL_FIRST5_CONFIG_PATH,
+    )))
     const audit = await verifyCanonicalFirst5Predecessor({
-      config: loaded.config,
+      config,
       repoRoot,
     })
     assert.deepEqual(

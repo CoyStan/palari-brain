@@ -2,186 +2,331 @@
 
 This document describes the package root exported by `src/index.mjs`.
 `docs/KERNEL-API.md` and `docs/KERNEL-CONTRACT.md` describe the preserved
-v0.5-derived comparator, not the active chatbot path.
+v0.5 comparator, not the active chatbot path.
 
-## Write path
+## The two memory layers
 
-`ingestChatTurn(brain, turn, { extractor, extractorId })`
+Palari Brain deliberately keeps two different representations:
+
+1. **Canonical dialogue journal.** Exact, role-labelled visible user and
+   Palari messages. This is the lossless, private, deletable source of truth.
+2. **Active memory digest.** A bounded set of model-derived items updated
+   after each durable interaction. This is what a later answer normally sees.
+
+The digest does not replace the journal. It makes a long-lived assistant
+usable without sending hundreds of old messages to the answer model.
+
+There is no natural-language regex admission, keyword retrieval, FTS/BM25
+recall, fuzzy matching, vector search, or query-time scan in the active path.
+The current question is never used to decide what memory is stored.
+
+## Canonical write path
+
+`ingestChatTurn(brain, turn, { reducer, reducerId })`
 
 The trusted host supplies:
 
 - `userMessage` and `assistantMessage`: the only eligible evidence fields;
 - `eventAt`: evidence time;
-- `sourceMessageId`: stable turn identity;
+- `sourceMessageId`: stable interaction identity;
 - `palariId` and `userId`: required private scope;
 - `retention`: `durable` or `ephemeral`.
 
 Calling this method is the host's explicit storage decision. Omitted or
-unknown retention fails before storage or writer use. `ephemeral` skips
-canonical storage and the optional writer.
+unknown retention fails before storage or model use. `ephemeral` skips both
+canonical storage and reduction.
 
 The two messages and all identity fields must be well-formed Unicode without
 U+0000. Those values do not round-trip through the pinned SQLite TEXT driver,
-so Palari Brain rejects them before storage instead of silently truncating or
-rewriting canonical evidence.
+so Palari Brain rejects them instead of silently truncating or rewriting
+evidence.
 
 `sourceTexts` may be supplied for accounting, but its content is never placed
-in canonical storage or the writer request. Tool, web, source, system, and
-developer messages have no field in this API and cannot enter through this
-gate.
+in canonical storage or a reducer request. Tool, web, source, system, and
+developer messages have no write field in this API.
 
-Scope, evidence time, source identity, retention, and the complete message
-snapshot are validated before any writer call. For every nonempty durable
-message, the host first commits one exact, untrimmed canonical row:
+For every nonempty durable message, the host first commits one exact,
+untrimmed canonical row:
 
 - `userMessage` → `user_message`;
 - `assistantMessage` → `assistant_message`.
 
-The row also carries private scope, role-specific source-message ID,
-chronology, observation time, and a content hash. A turn manifest fixes the
-presence, absence, bytes, and event time of both visible roles. Replaying that
-exact snapshot is idempotent. Adding, removing, changing, or retiming either
-role under the same source identity throws `SOURCE_MESSAGE_CONFLICT` before
-the writer runs. After exact deletion, transport replay does not resurrect the
-deleted message.
+Each row carries private scope, a role-specific source-message ID, chronology,
+observation time, and a content hash. A turn manifest fixes the presence,
+absence, bytes, and event time of both visible roles. Replaying the exact
+snapshot is idempotent. Adding, removing, changing, or retiming either role
+under the same source identity throws `SOURCE_MESSAGE_CONFLICT` before model
+use. After exact deletion, replay cannot resurrect the deleted message.
 
-Canonical evidence lives in the active-only `dialogue_evidence` table. It is
-not copied into the legacy FTS table.
+The same SQLite transaction that adds canonical evidence also appends one
+monotonic reduction unit. A crash cannot leave accepted dialogue without
+visible reduction work.
 
-### Optional derived index
+## Incremental reducer
 
-If supplied, the extractor runs only after canonical evidence commits. It
-receives `{ request, turn }`. Its structured result may select at most eight
-exact quotes, each containing `quote`, `type`, `importance`, `confidence`, and
-`fictional`.
+Reduction happens after the canonical transaction commits. No network call is
+made while SQLite is locked.
 
-The host verifies and links each selected quote:
+The callback receives:
 
-- quote occurs only in `userMessage` → link to the user evidence;
-- quote occurs only in `assistantMessage` → link to the Palari evidence;
-- quote occurs in both → create two role-distinct index rows;
-- quote occurs in neither → `dropped_quote_not_in_dialogue`.
+```js
+async function reducer({ request, unit }) {
+  // request.input.prior: complete bounded active state
+  // request.input.evidence: exactly one new canonical interaction
+  // unit: local sequence metadata, not writable provenance
+  return structuredReducerResponse
+}
+```
 
-The model cannot author canonical content, provenance, keywords, sharing,
-speaker, or source kind. The index is a hint for possible future retrieval,
-not memory authority. A missing writer, thrown error, malformed response,
-empty response, omission, or response exceeding eight items never removes
-canonical evidence. These outcomes appear in `indexStatus` and `indexReason`
-while the durable ingest remains `completed`.
+The provider-neutral request is capped at 40,000 rendered characters. It
+contains at most 64 prior items plus the current canonical user/Palari
+evidence. It contains no question, scope IDs, source text, tools, web results,
+or credentials. `reducerId` must be an explicit versioned identifier whenever
+pending work is reduced; the scope persistently pins both it and
+`active-memory-reducer/v1`.
 
-Result compatibility fields now refer to canonical evidence:
+The response contains exact keys:
 
-- `written`, `alreadyPresent`, `evidenceWritten`, and `memoriesWritten`;
-- `memoriesSelected`, `indexSelected`, `indexWritten`, `indexStatus`, and
-  `indexReason` describe the derived index.
+```json
+{
+  "baseRevision": 4,
+  "dispositions": [
+    {
+      "evidenceId": "dialogue_...",
+      "outcome": "used"
+    }
+  ],
+  "actions": [
+    {
+      "op": "replace",
+      "relation": "supersedes",
+      "targetIds": ["digest_..."],
+      "topic": "coffee preference",
+      "statement": "The user now prefers a cortado.",
+      "epistemic": "asserted",
+      "basis": [
+        {
+          "kind": "evidence",
+          "id": "dialogue_...",
+          "quote": "I now prefer a cortado."
+        },
+        {
+          "kind": "memory",
+          "id": "digest_...",
+          "quote": ""
+        }
+      ],
+      "timeBasis": null
+    }
+  ]
+}
+```
 
-New annotations live in a separate non-FTS table; they do not inherit legacy
-lifecycle or lexical-search behavior.
+Mechanical limits:
 
-`brain.listStatements(scope)` and `brain.listEvidence(scope)` both return
-canonical evidence. `brain.listIndexEntries(scope)` exposes derived quotes for
-diagnostics; recall does not depend on them.
+- at most 8 actions per interaction;
+- at most 16 basis entries per action;
+- topic at most 120 characters;
+- statement and exact support quote at most 500 characters;
+- active result at most 64 items and 24,000 rendered characters.
 
-## Sensitive content and local security
+Every current evidence row receives exactly one `used` or `no_memory`
+disposition. `used` is valid only when an action actually cites that evidence.
+A valid all-`no_memory` response advances coverage without storing filler.
 
-Canonical durable dialogue is stored byte-for-byte in plaintext SQLite. The
-writer prompt's instruction to avoid passwords cannot protect that canonical
-copy. A chatbot must mark password entry, private forms, or any other
-non-retained surface `ephemeral`, and must obtain any consent required before
-persisting or later sending the dialogue to an answer provider.
+### What the model cannot author
 
-When the active path creates a new memory directory, it uses mode `0700`. It
-enforces mode `0600` on its exact configured database path on every open,
-including upgrades from the older store. It never chmods a pre-existing or
-caller-supplied directory. The caller must make a custom existing
-`memoryRootDir` private. Filesystem modes are not encryption at rest.
-Deployments needing protection from a machine administrator or disk theft
-need encrypted storage outside this package.
+The reducer cannot provide a durable ID, scope, speaker, source kind,
+timestamp, sharing policy, confidence score, or deletion operation. The host:
+
+- accepts evidence references only from the current reduction unit;
+- accepts memory references only from the current active state;
+- checks every evidence quote as an exact contiguous substring;
+- derives speaker and time from canonical rows;
+- rejects an item that mixes user and Palari authority;
+- carries exact transitive quote lineage when replacing an item;
+- applies the whole action set atomically or not at all.
+
+Unmentioned prior items remain active. Model omission cannot erase them.
+`add` must use current evidence. `replace` must name every replaced prior item
+and include those IDs as memory basis.
+
+`supersedes` is narrower than arbitrary replacement: it requires exactly one
+same-topic, same-speaker target and later current evidence. An older
+out-of-order interaction cannot supersede newer memory. `summarizes` can
+compact one or more same-speaker items while carrying their exact evidence
+lineage.
+
+The model-written `statement` is labelled `model_digest`; it is never
+presented as a verbatim user statement. Exact support quotes remain available
+beside it.
+
+### Ordering, failure, and recovery
+
+Reduction units are processed in durable insertion order, never by
+`MAX(dialogue_order)`. Deleting the newest message cannot cause a later
+interaction to reuse a reducer checkpoint.
+
+The active state uses compare-and-swap revision checks. A late concurrent
+result, or a result created before deletion, cannot overwrite a newer state
+or restore forgotten text.
+
+A missing, throwing, malformed, oversized, stale, or invalid reducer:
+
+- does not roll back canonical dialogue;
+- leaves the earlier digest unchanged;
+- leaves the oldest unit pending;
+- returns structured `reductionStatus`, `reductionReason`, and
+  `reductionPending` fields from ingestion.
+
+Later units do not skip the failed unit. Recovery is explicit:
+
+```js
+import { reducePendingTurns } from 'palari-brain'
+
+await reducePendingTurns(brain, {
+  maxTurns: 10,
+  palariId,
+  reducer,
+  reducerId: 'my-memory-reducer/v1',
+  userId,
+})
+```
+
+An exact replay of an already reduced turn does not call the reducer or
+advance revisions. A failed turn may be replayed to retry its still-pending
+unit.
+
+One scope keeps one reducer identity. Changing `reducerId` without an
+explicit rebuild fails `REDUCER_ID_CONFLICT`; silent mixed-model state is not
+accepted. A reducer-contract version mismatch similarly fails
+`REDUCER_CONTRACT_CONFLICT`. Calling the drain function on an empty queue does
+not claim either identity.
+
+If one complete interaction makes the rendered request exceed 40,000
+characters, the failure category is `REDUCER_INPUT_CAPACITY`. The interaction
+remains canonical and remains the queue head; later interactions are not
+reduced around it. This is deliberately not automatic segmentation:
+splitting after admission would create a second provenance and chronology
+contract. A host should bound a durable interaction before ingest. Once
+stored, the safe choices are to keep it pending, delete its exact evidence if
+the user intends to forget it, or introduce a separately versioned,
+explicitly migrated chunking contract.
 
 ## Read path
 
-`recallAllStatements(brain, { palariId, userId }, { maxChars })`
+`recallMemory(brain, { palariId, userId }, { maxChars })` is the product read
+used by `answerQuestion`.
 
-This reads every current canonical row in the exact private scope, orders it
-by evidence chronology, and renders each complete message with evidence ID,
-evidence kind, time, source-message ID, source kind, and speaker. A migrated
-pre-upgrade quote is labelled `legacy_selected_quote`; it is never presented
-as a reconstructed full message.
+When every canonical revision has been reduced, it returns the complete
+bounded active digest with:
 
-It performs no query matching. The question is not passed to storage.
+- `briefingMode: "incremental_digest"`;
+- every model-derived statement;
+- host-derived speaker and observation time;
+- exact canonical support quotes and source-message IDs;
+- explicit epistemic state and optional trusted time anchor.
 
-The result status is:
+Digest readiness and all returned active rows are read from one SQLite
+snapshot. `digestRevision` and `contractVersion` identify that snapshot.
 
-- `empty`: the complete scoped set has no rows;
-- `included`: every current scoped row is in the briefing;
-- `capacity_exceeded`: the complete set would exceed `maxChars`; no partial
-  briefing is returned.
+`complete: true` means the active digest was included in full. It does **not**
+claim that the lossy digest contains every fact in canonical history.
 
-The default is 100,000 characters. This is a product limit, not a provider
-token estimate. It guarantees complete context only below that bound. A
-semantic or time-aware retrieval layer above the bound requires separate
-measurement; this implementation does not pretend that problem is solved.
-Before loading message bodies, the active store measures the exact scoped
-population and a conservative lower bound for its rendered size in one SQLite
-read transaction. A population already over the bound returns
-`capacity_exceeded` without materializing every row. In that early-refusal
-case `requiredChars` is a proven lower bound; otherwise it is the exact
-rendered character count.
+When reduction is pending, Palari Brain may use the existing complete
+canonical briefing if it fits:
 
-`answerQuestion` calls the answer provider once only for `included`. It
-returns an honest local absence for `empty` and never calls the provider for
-`capacity_exceeded`. Its provider callback separates `systemInstruction`,
-`memoryText`, and `questionText`; `prompt` remains a combined compatibility
-rendering. Stored messages are untrusted data. Integrations should put
-`systemInstruction` in a real system/developer role, place `memoryText` in an
-untrusted data/user role, give the answer provider no tools or memory-write
-access, and send `questionText` last.
+- `briefingMode: "canonical_fallback"`;
+- `lossless: true`.
 
-When memory is nonempty, only the answer provider can determine semantic
-absence. Providers should return an explicit boolean `abstained`; otherwise
-the API reports `null`, not a guessed value.
+If that journal does not fit, the result is `digest_incomplete`; the answer
+provider is not called. A ready digest that itself cannot fit the caller's
+smaller `maxChars` returns `capacity_exceeded`.
 
-## Speaker meaning and chronology
+`recallAllStatements(...)` remains the canonical diagnostic/archive read. It
+orders every current canonical row by evidence chronology and preserves the
+old complete-or-refuse behavior. It is not the normal long-lived answer path.
 
-- A `user_message` row proves only that the user said the complete message.
-- An `assistant_message` row proves only that Palari said it.
+`answerQuestion` returns an honest local absence without a provider call when
+the ready digest is empty. Absence means “no relevant durable memory was
+retained,” not proof that an event never happened or that a count is zero.
+When memory is nonempty, semantic relevance remains one answer-model call.
 
-An assistant row is not evidence that the user believes, prefers, owns, or
-did the thing stated. A later row from the same speaker may correct an earlier
-one; both remain visible until explicitly deleted. Applying chronology is
-answer-model behavior, not deterministic storage supersession.
+Stored messages and digest summaries are untrusted data. Integrations should
+put `systemInstruction` in a real system/developer role, place `memoryText`
+in an untrusted data/user role, give the answer provider no tools or
+memory-write access, and send `questionText` last.
+
+## Speaker and time meaning
+
+- A user-backed item proves only what the user said.
+- A Palari-backed item proves only what Palari previously said.
+- Palari speech never ratifies or supersedes a user claim.
+- `observedAt` and `timeBasis.anchorAt` come from canonical evidence, never
+  reducer wall-clock time.
+- A time phrase such as `today` stays paired with its exact quote and trusted
+  evidence timestamp.
+- `unknown` is an explicit epistemic item. Missing memory remains unknown.
 
 ## Forget path
 
 `forgetMemories(brain, ids, { palariId, userId })`
 
-Deletion accepts exact evidence IDs or exact derived-index IDs. The gate
-resolves them only inside the specified `palariId AND userId` scope, deletes
-the whole source-message evidence, and deletes every linked derived quote in
-the same transaction. Missing, foreign, and already deleted IDs are skipped
-without revealing their contents.
+Deletion accepts exact canonical evidence IDs or legacy exact-index IDs. A
+digest ID is not a destructive selector. The gate resolves IDs only inside
+the specified `palariId AND userId` scope.
 
-To prevent transport replay from restoring deleted evidence, the database
-retains a content-free, role-scoped source-identity tombstone. Canonical turns
-also retain their existing manifest, including content hashes. Deletion
-removes the message body and derived quotes; it is not cryptographic erasure
-of every item of metadata.
+When canonical evidence is deleted, the same transaction:
 
-This minimal contract deletes a complete retained message. It does not yet
-redact one fact from a multi-fact message. There is no string-topic deletion
-or similarity-based destructive action.
+1. deletes the selected message and linked legacy index rows;
+2. clears all generated digest prose for that scope;
+3. increments the canonical scope and digest revisions;
+4. removes empty reduction units;
+5. queues every surviving canonical interaction for ordered rebuild.
+
+Clearing the whole digest is deliberate. Removing only an item that cites a
+deleted correction could leave an older item in the wrong semantic state.
+Until rebuild finishes, `answerQuestion` uses complete canonical fallback or
+refuses.
+
+The database retains a content-free, role-scoped source-identity tombstone.
+Canonical turns also retain their manifest and content hashes. Deletion
+removes message bodies and generated digest content; it is not cryptographic
+erasure of every metadata item.
+
+This contract deletes a complete retained message. It does not redact one
+fact from a multi-fact message. There is no topic-string or similarity-based
+destructive operation.
+
+## Sensitive content and local security
+
+Canonical durable dialogue is stored byte-for-byte in plaintext SQLite. A
+reducer instruction cannot protect that canonical copy. A chatbot must mark
+password entry, private forms, or any other non-retained surface `ephemeral`,
+and must obtain any consent required before persisting or sending memory to a
+provider.
+
+When the active path creates a memory directory, it uses mode `0700`. It
+enforces mode `0600` on the exact configured database path on every open,
+including upgrades. Filesystem modes are not encryption at rest.
 
 ## Upgrade and historical boundary
 
-On first open, active exact-quote rows from the previous implementation are
-carried into the evidence table as `legacy_selected_quote`. Text the old
-writer omitted cannot be recovered retroactively. When the original source
-message is replayed, every legacy quote must occur verbatim in the complete
-message or the replay fails closed. A valid replay replaces the legacy
-representation and carries its quote into the separate derived index.
+Opening an existing database creates the incremental tables and queues
+existing canonical turns in chronological order. Migration performs no model
+call and does not pretend old dialogue was already reduced. Until a host
+processes that queue, complete canonical fallback remains available.
 
-The legacy SQLite store and FTS table remain for frozen comparator
-reproducibility. Expired legacy rows are not migrated. New canonical and
-derived rows never enter FTS, and the active read/delete path never queries
-lexical retrieval. Frozen historical eval identities remain sealed; changing
-active product bytes does not authorize running them or any successor.
+Pre-upgrade exact-quote evidence stays explicitly labelled
+`legacy_selected_quote`. On exact source replay it is promoted only when the
+quote occurs in the full canonical message.
+
+The older optional `{ extractor, extractorId }` exact-quote hook and its
+non-FTS annotation table remain for backward-compatible diagnostics and
+sealed evaluator code. New product integrations should use the reducer and
+should not run both provider hooks. Active answer recall never queries the
+old index.
+
+The legacy SQLite memories/FTS store remains for frozen comparator
+reproducibility. Frozen live identities remain terminal: product changes do
+not authorize running, rerolling, or modifying them.

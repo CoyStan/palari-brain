@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-C1-E CANONICAL CAPACITY CONFIRMED;
+Loop state: J4.2K-R2 INCREMENTAL ACTIVE MEMORY DONE;
 FOUNDER GATE; ALL LIVE IDENTITIES TERMINAL (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
@@ -192,6 +192,33 @@ Cumulative spend is `$0.7731323` accounted, `$0.7706313` measured, and
 `$0.0025010` uncertain. The ignored private bundle passes manifest,
 transcript, ledger, mode, predecessor, provenance, and exact-secret audits.
 The identity is sealed in code and cannot be resumed or rerolled.
+
+The founder then identified the architectural mistake directly: canonical
+turns were entering storage one interaction at a time, but answer-time recall
+still tried to assemble all 484 messages in one shot. J4.2K-R2 corrects that
+offline. The canonical role-labelled journal remains the private, lossless,
+deletable source of truth. In the same transaction as each durable
+interaction, Palari now appends one monotonic reduction unit. After commit, a
+provider-neutral recurrent reducer receives only the bounded prior digest and
+that one interaction. The host validates exact current-evidence quotes,
+speaker, chronology, scope, time basis, lineage, reducer identity, contract
+version, revision, and final size before atomically accepting `add` or
+`replace` actions. Omission never deletes prior active memory.
+
+Ready answers now read one coherent SQLite snapshot and receive the complete
+active digest, capped at 64 items and exactly 24,000 answer-serialization
+characters. A pending digest may fall back to the complete canonical journal
+while it fits; otherwise Palari returns `digest_incomplete` without an answer
+call. Exact deletion clears generated prose and queues surviving interactions
+for ordered rebuild. One interaction larger than the 40,000-character reducer
+request remains canonical and blocks its queue explicitly as
+`REDUCER_INPUT_CAPACITY`; Palari does not silently split, trim, or skip it.
+The offline suite proves more than 100,000 characters of canonical history can
+answer from a sub-24,000-character digest, plus correction lineage, both
+speakers, scope/source isolation, deletion races, recovery, migration,
+contract drift, atomic reads, and exact capacity boundaries. No provider was
+called, no live identity was created, and sealed evaluation bytes/evidence
+remain historical and terminal.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -628,6 +655,24 @@ session itself).
     differs from the frozen pre-run hash and refuses before any dependency or
     credential access. Post-seal focused tests are 23/23 and the full suite is
     255/255; quickstart, dry bake-off, and package dry-run are green.
+  - [x] J4.2K-R2 — INCREMENTAL ACTIVE MEMORY DONE 2026-07-25
+    (`this commit`). Preserved the exact role-labelled canonical journal and
+    added one monotonic reduction unit in the same transaction as each durable
+    interaction. A recurrent provider-neutral reducer sees only the bounded
+    prior digest plus the current interaction; the host owns and validates
+    exact quote provenance, speaker, time, scope, chronology, lineage,
+    reducer/contract identity, revisions, and final capacity. Active state is
+    capped at 64 items and the exact 24,000-character answer serialization.
+    Ready recall uses one SQLite snapshot; failure remains ordered and
+    recoverable, deletion clears generated prose and queues a clean rebuild,
+    and an oversized single interaction remains canonical while failing
+    explicitly as `REDUCER_INPUT_CAPACITY` rather than being truncated or
+    skipped. An offline 221-turn regression exceeds 100,000 canonical
+    characters while answering from one bounded item. Focused active/reducer
+    tests are 46/46 and the full suite is 278/278; quickstart, dry bake-off,
+    package dry-run, diff checks, and independent architecture review are
+    green. No provider was called, no evaluation identity was created, and no
+    sealed input or private result changed.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -640,15 +685,23 @@ session itself).
 
 ## Next
 
-FOUNDER GATE. The external measurement has now demonstrated the previously
-hypothetical capacity problem: the current complete-context path cannot answer
-even ordinal 1 without exceeding its product limit. Do not resume or reroll
-the terminal identity, start ordinal 2, change the limit, add retrieval, make
-another provider call, run Mem0 or S-490, publish a score, or announce a
-result without a fresh founder GO. The next defensible product unit, if the
-founder chooses to continue, is the smallest bounded semantic/time-aware
-selection layer over canonical evidence, followed by offline regressions and
-a fresh evaluation identity. Do not build a new evaluation framework.
+FOUNDER GATE. J4.2K-R2 fixes the demonstrated answer-time capacity architecture
+offline by digesting each interaction progressively; it does not claim live
+quality. Do not resume or reroll any terminal identity, start ordinal 2, make
+a provider call, run Mem0 or S-490, publish a score, or announce a result
+without a fresh founder GO.
+
+The next defensible empirical unit, if the founder chooses to continue, is a
+fresh incremental-reducer compatibility smoke followed by the same first-five
+boundary under a new identity, cost estimate, and FINAL predictions. It must
+exercise the recurrent reducer once per interaction rather than replaying all
+messages into one answer prompt, and must stop at the founder's staged
+boundary. Do not build another evaluation framework or make another
+behavioral change first. Known honest limits remain: a fixed lossy digest
+cannot prove arbitrary exhaustive negative/count answers, and a single
+interaction larger than the reducer envelope remains an explicit pending
+queue blocker until the host deletes it or adopts a separately versioned
+chunking contract.
 
 ## Log
 
@@ -854,6 +907,14 @@ first-five identity once; ordinal 1 retained all 484 messages but exceeded the
 complete-context limit, made no writer/Gemini calls, was judged once, and
 stopped before ordinal 2. The prediction and private evidence verified, fresh
 spend was `$0.0003325`, and the identity was sealed.
+2026-07-25 — J4.2K-R2 — this commit — Replaced answer-time assembly of the
+entire canonical journal with one bounded, host-verified recurrent reduction
+per durable interaction while preserving the exact journal for provenance
+and deletion. Ready recall is an atomic bounded snapshot; failure, correction,
+contract drift, oversized input, and deletion/rebuild are fail-closed and
+regressed. Focused tests 46/46 and full suite 278/278; quickstart, dry
+bake-off, package dry-run, and independent reviews green; no provider call,
+new live identity, score, or sealed-evidence change.
 
 ## Product stop-rule record
 
@@ -1659,3 +1720,33 @@ spend was `$0.0003325`, and the identity was sealed.
    a long-lived chatbot cannot answer from Palari memory would be lost and the
    same paid identity could be rerolled. The finding now supports a product
    decision rather than another infrastructure unit.
+
+### J4.2K-R2 incremental active memory
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green and demonstrates progressive remember,
+   bounded recall, same-speaker correction with surviving lineage, exact
+   forget, honest absence, both-speaker provenance, and the source boundary.
+2. Did this unit make that journey measurably better? Yes. The offline
+   regression retains 221 durable turns and more than 100,000 canonical
+   characters while answering from one complete active item under 24,000
+   characters. The prior active path refused that shape before an answer
+   call. Boundary tests also prove the stored capacity and exact answer
+   serialization are identical.
+3. Does an existing framework already provide what this unit added? Recurrent
+   summarization and bounded working memory are established patterns in chat
+   and memory frameworks. Palari deliberately adopts that pattern rather than
+   inventing query retrieval. Its local contribution is the combination of a
+   lossless exact journal with host-verified quote lineage, speaker/scope/time
+   authority, ordered revisions, exact deletion, and fail-closed rebuild.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — after
+   the 484-message capacity result, the founder explicitly asked whether
+   Palari should process and save relevant memory per interaction instead of
+   fitting all messages into one shot, then said “yes do it” to that exact
+   implementation.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? A long-lived chatbot would again assemble every retained message at
+   answer time and refuse once the journal exceeded its context limit.
+   Corrections and deletion would lose the bounded derived state that now
+   keeps ordinary later answers usable while the canonical evidence remains
+   auditable.

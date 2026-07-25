@@ -144,9 +144,10 @@ test('canonical role smoke survives a writer selecting only the user quote',
         bodyHashes.writer,
         config.prompts.fixtureWriterBodySha256,
       )
-      assert.equal(
+      assert.notEqual(
         bodyHashes.answer,
         config.prompts.fixtureAnswerBodySha256,
+        'the sealed identity must not silently adopt the new digest prompt',
       )
       const reservations = calls.map((entry) =>
         j4ReservationFor({
@@ -159,13 +160,14 @@ test('canonical role smoke survives a writer selecting only the user quote',
         (total, entry) => total + entry.usd,
         0,
       )
-      assert.equal(
-        oneAttemptReservationUsd,
-        config.spend.oneAttemptReservationUsd,
+      assert.ok(
+        oneAttemptReservationUsd * 4 <
+          config.spend.freshSubcapUsd,
       )
       assert.equal(
-        oneAttemptReservationUsd * 4,
+        config.spend.oneAttemptReservationUsd * 4,
         config.spend.allEightAttemptsReservationUsd,
+        'the terminal run keeps its original frozen accounting',
       )
       assert.ok(
         config.spend.allEightAttemptsReservationUsd <

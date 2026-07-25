@@ -2,12 +2,14 @@
 //
 // The public product path stores complete visible user and Palari messages as
 // canonical evidence, with speaker provenance assigned by the host. Optional
-// exact quotes are a derived index only. Recall sends the complete current
-// scoped evidence set to the answer model. The lexical v0.5 implementation
-// remains inside the repository only as a historical eval comparator.
+// exact quotes are a derived index only. A bounded reducer updates active
+// memory after each interaction; recall sends that complete digest to the
+// answer model, with canonical fallback only while it fits. The lexical v0.5
+// implementation remains only as a historical eval comparator.
 
 export {
   answerQuestion,
+  buildActiveMemoryBriefing,
   buildAnswerPrompt,
   buildMemoryBriefing,
   createPalariBrain,
@@ -17,9 +19,32 @@ export {
   ingestChatTurn,
   ingestLongMemEvalInstance,
   memoryAnswerSystemInstruction,
+  recallMemory,
   recallAllStatements,
+  reducePendingTurns,
   stubProvider,
 } from './brain.mjs'
+
+export {
+  ACTIVE_MEMORY_ACTION_OPS,
+  ACTIVE_MEMORY_BASIS_KINDS,
+  ACTIVE_MEMORY_DISPOSITION_OUTCOMES,
+  ACTIVE_MEMORY_EPISTEMICS,
+  ACTIVE_MEMORY_LIMITS,
+  ACTIVE_MEMORY_MAX_ACTIONS,
+  ACTIVE_MEMORY_MAX_BASIS,
+  ACTIVE_MEMORY_MAX_DIGEST_CHARS,
+  ACTIVE_MEMORY_MAX_ITEMS,
+  ACTIVE_MEMORY_MAX_QUOTE_CHARS,
+  ACTIVE_MEMORY_MAX_REQUEST_CHARS,
+  ACTIVE_MEMORY_MAX_STATEMENT_CHARS,
+  ACTIVE_MEMORY_MAX_TOPIC_CHARS,
+  ACTIVE_MEMORY_REDUCER_VERSION,
+  ACTIVE_MEMORY_RELATIONS,
+  ACTIVE_MEMORY_SYSTEM_INSTRUCTIONS,
+  buildMemoryReductionRequest,
+  normalizeMemoryReductionPayload,
+} from './memory-reducer.mjs'
 
 export {
   buildStatementExtractionRequest,

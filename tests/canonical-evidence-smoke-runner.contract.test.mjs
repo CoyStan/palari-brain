@@ -106,35 +106,35 @@ test('result paths contain no question or dataset surface', () => {
   assert.equal(Object.hasOwn(paths, 'questionPath'), false)
 })
 
-test('terminal seal changes only the frozen runner artifact',
+test('terminal seal rejects both runner and successor-product drift',
   async () => {
     const { config } = await loadCanonicalEvidenceSmokeConfig({
       repoRoot,
     })
-    const runnerPath = 'evals/run-canonical-evidence-smoke.mjs'
-    const frozenRunner = config.artifacts.find(
-      (entry) => entry.path === runnerPath,
-    )
-    assert.ok(frozenRunner)
-    const currentRunner = await readFile(resolve(repoRoot, runnerPath))
-    assert.notEqual(
-      frozenRunner.sha256,
-      createHash('sha256').update(currentRunner).digest('hex'),
-    )
-    const unchangedConfig = {
-      ...config,
-      artifacts: config.artifacts.filter(
-        (entry) => entry.path !== runnerPath,
-      ),
+    for (const path of [
+      'evals/run-canonical-evidence-smoke.mjs',
+      'src/brain.mjs',
+    ]) {
+      const frozen = config.artifacts.find(
+        (entry) => entry.path === path,
+      )
+      assert.ok(frozen)
+      const current = await readFile(resolve(repoRoot, path))
+      assert.notEqual(
+        frozen.sha256,
+        createHash('sha256').update(current).digest('hex'),
+      )
+      await assert.rejects(
+        auditCanonicalEvidenceTrackedArtifacts({
+          config: { artifacts: [frozen] },
+          repoRoot,
+        }),
+        (error) => error?.code === 'SMOKE_ARTIFACT_CHANGED',
+      )
     }
-    const audit = await auditCanonicalEvidenceTrackedArtifacts({
-      config: unchangedConfig,
-      repoRoot,
-    })
-    assert.equal(audit.artifacts, config.artifacts.length - 1)
   })
 
-test('frozen artifacts cover the complete local runtime import graph',
+test('frozen artifacts exclude the successor digest import graph',
   async () => {
     const { config } = await loadCanonicalEvidenceSmokeConfig({
       repoRoot,
@@ -173,8 +173,11 @@ test('frozen artifacts cover the complete local runtime import graph',
       config.artifacts.map((entry) => entry.path),
     )
     assert.deepEqual(
-      [...reachable].filter((path) => !pinned.has(path)),
-      [],
+      [...reachable].filter((path) => !pinned.has(path)).sort(),
+      [
+        'src/memory-digest-store.mjs',
+        'src/memory-reducer.mjs',
+      ],
     )
   })
 

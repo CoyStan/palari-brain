@@ -6,6 +6,7 @@
 
 import { createHash } from 'node:crypto'
 
+import { createMemoryDigestStore } from './memory-digest-store.mjs'
 import { statementQuoteOrigins } from './statement-extraction.mjs'
 
 export const dialogueSourceKinds = Object.freeze([
@@ -437,6 +438,7 @@ export function createDialogueGate(store, {
   clock = () => new Date(),
 } = {}) {
   ensureActiveSchema(store, clock)
+  const digest = createMemoryDigestStore(store, { clock })
 
   const visibleStatementsSql = `
     SELECT
@@ -854,6 +856,7 @@ export function createDialogueGate(store, {
         outcomes.push(`inserted_${role.sourceKind}`)
         nextOrder += 1
       }
+      digest.queueTurn(scope, identity)
       store.db.exec('COMMIT')
     } catch (error) {
       store.db.exec('ROLLBACK')
@@ -1110,10 +1113,19 @@ export function createDialogueGate(store, {
           if (result.changes > 0) deleted.push(sibling.id)
         }
       }
+      const digestInvalidation = deleted.length
+        ? digest.invalidateAfterDeletion(scope)
+        : {
+            invalidatedItems: 0,
+            pending: digest.status(scope).pending,
+            sourceRevision: digest.status(scope).sourceRevision,
+          }
       store.db.exec('COMMIT')
       return {
         deleted,
         deletedCount: deleted.length,
+        digestInvalidatedItems: digestInvalidation.invalidatedItems,
+        reductionPending: digestInvalidation.pending,
         deletedIndexIds,
         skippedCount: requested.length - acceptedSelectors.size,
       }
@@ -1126,9 +1138,16 @@ export function createDialogueGate(store, {
   return Object.freeze({
     appendCandidates,
     appendEvidence,
+    applyReduction: digest.applyReduction,
+    digestStatus: digest.status,
     forgetById,
+    listActiveMemories: digest.listMemories,
     listIndexEntries,
+    listPendingReductions: digest.listPending,
+    readReadyDigest: digest.readReadyDigest,
     listStatements,
     listStatementsForBriefing,
+    markReductionFailure: digest.markFailure,
+    prepareOldestReduction: digest.prepareOldest,
   })
 }
