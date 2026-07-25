@@ -1249,3 +1249,49 @@ dates. Agents record; the founder decides.
   count answers. A single interaction beyond the reducer request envelope
   remains canonical and pending; silent trimming, splitting, or skipping is
   not authorized.
+- 2026-07-25 (FOUNDER GO — J4.2K-R2-S1 incremental reducer smoke) After the
+  offline recurrent reducer landed, the exact proposed next step was stated:
+  use the real Gemini API for two reducer calls — first “I prefer oat milk.”,
+  then “Actually, I prefer almond milk.” — followed by one answer call asking
+  the current preference; load no LongMemEval dataset, use no judge or Mem0,
+  run no benchmark, create a fresh identity, then stop and report. The founder
+  replied “okay do it,” opening exactly that scope and no continuation.
+
+  The fresh identity is `j4-active-brain-incremental-smoke-v1`, pinned to
+  product commit `9b9ac02f9f6b89ee4457e837161c8eed30701eb9` and
+  `gemini-3.5-flash-lite`. Current official Google documentation was
+  rechecked before implementation: the model is GA with structured output
+  and thinking support; paid pricing remains `$0.30/M` input and `$2.50/M`
+  output including thought tokens; current Gemini 3 guidance removes sampling
+  parameters; and the raw v1beta discovery enum uses `APPLICATION_JSON`.
+  The already proven raw transport, usage accounting, transcript recorder,
+  and reservation meter are reused without modifying their sealed bytes. The
+  shared meter requires its historical retry-limit field, but this identity
+  permits no retry dispatch: `maxAttempts` is three and a runner-owned retry
+  wait throws after a first failed attempt, before a second HTTP request can
+  be sent. The meter’s technical `writer` purpose maps to the two reducer
+  calls, while an unreachable denial sentinel satisfies its historical
+  OpenAI parameter; the runner exposes no judge operation and must verify
+  zero judge tokens and calls.
+
+  All prior J4 spend is carried: `$0.7731323` accounted,
+  `$0.7706313` measured, and `$0.0025010` uncertain under the unchanged
+  `$7.00` cumulative cap. A stricter fresh `$0.10` subcap applies. The exact
+  fixture, one-action smoke schema, worst JSON escaping of every host-sized
+  generated field, and the possible two-item answer reserve at most
+  `$0.0190025` across exactly three physical dispatches (one per logical
+  request, with no retry dispatch), so valid-but-wrong output is still covered
+  without approaching either cap. Config SHA-256 is
+  `503d45de64f66c2fe2acd5023c52d34cb9ca340dd73449401c2334a6f6d4ee58`;
+  authority SHA-256 is
+  `ae3cd7e30a40a377cda3c8f7a3833f6744d7a025bfecb92226d9dcf9baf3b5a5`;
+  FINAL predictions SHA-256 is
+  `bf1162053712cbba4df7936aaa146045eacdc6c205895952c832e049dfdd73bf`.
+  The predecessor’s tracked and private evidence, all 53 pinned runtime
+  artifacts, and exact spend reconcile before any credential is read.
+  Evidence-based grading records each semantic hit or miss independently;
+  valid-but-wrong reducer output still reaches the one answer operation when
+  the product can supply a briefing, while transport or host-contract failure
+  remains terminal. No call for this identity has occurred at the preparation
+  cut point. Any failure is terminal evidence; no reroll, dataset question,
+  later tranche, behavioral fix, publication, or announcement is authorized.

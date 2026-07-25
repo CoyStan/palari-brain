@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "runId": "j4-active-brain-incremental-smoke-v1",
+  "founderAuthorization": "2026-07-25: founder replied “okay do it” to the stated exact scope of two live Gemini reducer calls and one live Gemini answer call, with no benchmark dataset, judge, comparison arm, or continuation.",
+  "scope": "two-reducer-one-answer-smoke-only",
+  "provider": "gemini",
+  "model": "gemini-3.5-flash-lite",
+  "reducerOperations": 2,
+  "answerOperations": 1,
+  "logicalOperations": 3,
+  "maximumPhysicalDispatches": 3,
+  "retryDispatches": 0,
+  "datasetLoaded": false,
+  "benchmarkQuestions": 0,
+  "judgeOperations": 0,
+  "comparisonOperations": 0,
+  "cumulativeCapUsd": 7,
+  "freshSubcapUsd": 0.1,
+  "publish": false
+}

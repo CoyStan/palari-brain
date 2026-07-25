@@ -90,3 +90,18 @@ calls, zero Gemini answer calls, one OpenAI judge logical request, one
 completed capacity observation, and four pending questions. These predictions
 are FINAL before any call for this identity and do not alter or combine any
 predecessor prediction or result.
+
+## J4 incremental-memory smoke v1 — FINAL before execution
+
+Author: repository execution lane, 2026-07-25. The complete machine-readable
+prediction document is
+`evals/predictions/j4-active-brain-incremental-smoke-v1.json`, SHA-256
+`bf1162053712cbba4df7936aaa146045eacdc6c205895952c832e049dfdd73bf`.
+It predicts a valid oat-memory add, a bounded second request, one valid
+almond-for-oat supersession with both exact support quotes, and one answer
+from the ready incremental digest that identifies almond as current. Healthy
+execution is exactly two reducer requests plus one answer request, three
+physical dispatches, and zero retry dispatches. The identity contains no dataset,
+benchmark, judge, OpenAI, comparison-arm, or publication path. All eight
+predictions are FINAL before any provider call and a bad result is a finding,
+not authority to reroll.

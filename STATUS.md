@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-R2 INCREMENTAL ACTIVE MEMORY DONE;
-FOUNDER GATE; ALL LIVE IDENTITIES TERMINAL (2026-07-25).
+Loop state: J4.2K-R2-S1-P INCREMENTAL REDUCER SMOKE PREPARED;
+ONE FOUNDER-AUTHORIZED LIVE IDENTITY OPEN (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -219,6 +219,22 @@ speakers, scope/source isolation, deletion races, recovery, migration,
 contract drift, atomic reads, and exact capacity boundaries. No provider was
 called, no live identity was created, and sealed evaluation bytes/evidence
 remain historical and terminal.
+
+The founder then authorized the smallest live compatibility check for those
+new bytes. `j4-active-brain-incremental-smoke-v1` is limited to two Gemini
+reducer calls — oat preference, then almond correction — and one Gemini
+answer call asking the current preference. It loads no dataset and exposes no
+benchmark, judge, OpenAI, Mem0, or continuation path. The current official
+Gemini model, structured-output, MIME, generation-control, usage, and price
+contracts were rechecked. All earlier J4 spend is carried:
+`$0.7731323` accounted (`$0.7706313` measured plus `$0.0025010` uncertain)
+under the unchanged `$7.00` cumulative cap. A stricter fresh `$0.10` subcap
+covers the exact three-dispatch maximum reservation of `$0.0190025`; retry
+dispatch is disabled so the stated two-reducer/one-answer scope is literal.
+Authority, configuration, 53 runtime hashes, the predecessor bundle, eight
+FINAL predictions, and operation-by-operation private checkpointing are
+frozen and offline-verified. No call for this identity has occurred at this
+preparation cut point.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -673,6 +689,17 @@ session itself).
     package dry-run, diff checks, and independent architecture review are
     green. No provider was called, no evaluation identity was created, and no
     sealed input or private result changed.
+  - [x] J4.2K-R2-S1-P — INCREMENTAL REDUCER SMOKE PREPARED 2026-07-25
+    (`this commit`). Recorded the founder’s exact two-reducer/one-answer GO,
+    froze `j4-active-brain-incremental-smoke-v1` against product commit
+    `9b9ac02`, carried `$0.7731323` accounted spend, and imposed a fresh
+    `$0.10` subcap whose exact three-dispatch reservation is `$0.0190025`.
+    The trusted reducer rules, provider-enforced JSON schema, host semantic
+    validation, same-model answer mapping, denial-only OpenAI compatibility,
+    no-retry dispatch guard, operation checkpoints, private transcripts,
+    terminal evidence bundle, predecessor hashes, evidence-based miss grading,
+    and eight FINAL predictions are contract-tested. Focused tests are 17/17
+    and the full suite is 295/295. No provider call has occurred.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -685,19 +712,18 @@ session itself).
 
 ## Next
 
-FOUNDER GATE. J4.2K-R2 fixes the demonstrated answer-time capacity architecture
-offline by digesting each interaction progressively; it does not claim live
-quality. Do not resume or reroll any terminal identity, start ordinal 2, make
-a provider call, run Mem0 or S-490, publish a score, or announce a result
-without a fresh founder GO.
+AUTHORIZED LIVE CUT. Commit and push this coherent preparation, then invoke
+`j4-active-brain-incremental-smoke-v1` exactly once from that clean pushed
+cut. It may make only two metered Gemini reducer requests followed by one
+metered Gemini answer request, with at most three physical dispatches and no
+retry dispatch. Preserve the private result,
+transcripts, ledger, workspace, checkpoints, report, and manifest; grade the
+eight FINAL predictions with misses first; seal the runner; update this file
+without publishing raw evidence; commit, push, report, and stop.
 
-The next defensible empirical unit, if the founder chooses to continue, is a
-fresh incremental-reducer compatibility smoke followed by the same first-five
-boundary under a new identity, cost estimate, and FINAL predictions. It must
-exercise the recurrent reducer once per interaction rather than replaying all
-messages into one answer prompt, and must stop at the founder's staged
-boundary. Do not build another evaluation framework or make another
-behavioral change first. Known honest limits remain: a fixed lossy digest
+Do not load LongMemEval, start a benchmark question, call a judge or OpenAI,
+run Mem0 or S-490, reroll any outcome, make a behavioral repair, publish, or
+continue to a first-five run. Known honest limits remain: a fixed lossy digest
 cannot prove arbitrary exhaustive negative/count answers, and a single
 interaction larger than the reducer envelope remains an explicit pending
 queue blocker until the host deletes it or adopts a separately versioned
@@ -915,6 +941,13 @@ contract drift, oversized input, and deletion/rebuild are fail-closed and
 regressed. Focused tests 46/46 and full suite 278/278; quickstart, dry
 bake-off, package dry-run, and independent reviews green; no provider call,
 new live identity, score, or sealed-evidence change.
+2026-07-25 — J4.2K-R2-S1-P — this commit — Froze the founder-authorized
+two-reducer/one-answer Gemini smoke with eight FINAL predictions, current
+official provider contracts, 53 runtime hashes, exact predecessor evidence,
+operation checkpoints, and a `$0.10` fresh subcap covering its `$0.0190025`
+three-dispatch reservation. The semantic oracle rejects negated substring
+false positives and the private grader can emit independent misses. Focused
+tests 17/17 and full suite 295/295; no provider call occurred.
 
 ## Product stop-rule record
 
@@ -1750,3 +1783,26 @@ new live identity, score, or sealed-evidence change.
    Corrections and deletion would lose the bounded derived state that now
    keeps ordinary later answers usable while the canonical evidence remains
    auditable.
+
+### J4.2K-R2-S1-P incremental reducer-smoke preparation
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? It changes no product
+   behavior and makes no live claim before execution. It makes the exact
+   recurrent add/correct/answer path measurable with the smallest three-call
+   compatibility check, so it is one allowed infrastructure unit.
+3. Does an existing framework already provide what this unit added? Gemini
+   provides structured generation and the existing Palari meter provides
+   reservation, transcript, and usage safety. This unit adds only the thin
+   adapter, one-dispatch guard, and immutable identity needed to exercise
+   Palari’s changed product contract; it does not add a memory framework.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   exact two-reducer/one-answer scope was stated, and the founder replied
+   “okay do it.”
+5. If this unit’s code were deleted, what user-visible behavior would get
+   worse? Runtime behavior would not change immediately, but the new reducer
+   could fail on its first real provider request, fail to supersede oat with
+   almond, or answer from the wrong path without being detected before a
+   benchmark. Preparation and execution are one founder-requested measurement
+   and must end at the stated stop.
