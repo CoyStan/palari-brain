@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "runId": "j4-active-brain-first5-v1",
+  "status": "FINAL",
+  "frozenAt": "2026-07-25",
+  "decisionReference": {
+    "date": "2026-07-25",
+    "document": "docs/DECISIONS.md",
+    "entry": "FOUNDER GO — J4.2K active first-five live measurement",
+    "questions": 5,
+    "cumulativeHardCapUsd": 7
+  },
+  "models": {
+    "writer": "gemini-3.5-flash-lite",
+    "answer": "gemini-3.5-flash-lite",
+    "judge": "gpt-4o-2024-08-06"
+  },
+  "promptConfig": {
+    "writer": {
+      "maxOutputTokens": 2000,
+      "thinkingLevel": "MINIMAL",
+      "responseFormat": "APPLICATION_JSON+json-schema",
+      "schemaSha256": "70f10c289c58a406140020d36aaa231f882ab92e2db91b711c670a445f54b64c",
+      "evidenceFields": [
+        "userMessage",
+        "palariMessage"
+      ],
+      "hostAssignedSourceKinds": [
+        "user_message",
+        "assistant_message"
+      ],
+      "store": false
+    },
+    "answer": {
+      "maxOutputTokens": 256,
+      "maxChars": 100000,
+      "memorySet": "complete-scoped-or-refuse",
+      "thinkingLevel": "MINIMAL",
+      "store": false
+    },
+    "judge": {
+      "parser": "official-response-contains-yes",
+      "unchanged": true
+    }
+  },
+  "population": {
+    "questions": 5,
+    "questionIdsSha256": "15653437520a8373805ded273d28bab901d04d3711c1c9ab7968b11e44ff746f"
+  },
+  "method": {
+    "finalizedBeforeProviderCalls": true,
+    "hypotheses": [
+      "exact durable quotes admit ordinary user statements without English regex policy",
+      "Palari statements remain available with assistant provenance",
+      "complete scoped recall removes lexical relevance misses",
+      "speaker chronology gives the answer model all correction and temporal evidence",
+      "complete context permits an evidence-bounded abstention"
+    ],
+    "note": "These five outcomes are newly preregistered for the changed active J4.2K path after reviewing predecessor failure categories. They do not alter, regrade, import, replace, or combine any V5 result."
+  },
+  "basisDefinitions": {
+    "CHRONOLOGY_COMPLETE": "Exact quotes preserve the successive user statements and complete recall presents them in evidence chronology.",
+    "USER_PREFERENCE_EXACT_QUOTE": "The durable user preference can be selected as an exact user quote and cannot be lost through lexical query mismatch.",
+    "ASSISTANT_PROVENANCE_EXACT_QUOTE": "The required Palari statement can be selected verbatim, stored as assistant_message, and recalled without being recast as a user fact.",
+    "TEMPORAL_COMPLETE_CONTEXT": "Every admitted event remains in the complete chronological briefing so the answer model receives the full temporal evidence.",
+    "ABSTENTION_COMPLETE_CONTEXT": "The complete scoped set contains nearby evidence but not the asked target, allowing the answer model to state insufficiency."
+  },
+  "summary": {
+    "predictedCorrect": 5,
+    "predictedIncorrect": 0,
+    "failureStages": {
+      "write": 0,
+      "capacity": 0,
+      "answer": 0
+    },
+    "byType": {
+      "knowledge-update": "1/1",
+      "single-session-preference": "1/1",
+      "single-session-assistant": "1/1",
+      "temporal-reasoning": "1/1",
+      "multi-session": "1/1"
+    }
+  },
+  "predictions": [
+    {
+      "ordinal": 1,
+      "questionId": "08e075c7",
+      "questionType": "knowledge-update",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "CHRONOLOGY_COMPLETE"
+    },
+    {
+      "ordinal": 2,
+      "questionId": "09d032c9",
+      "questionType": "single-session-preference",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "USER_PREFERENCE_EXACT_QUOTE"
+    },
+    {
+      "ordinal": 3,
+      "questionId": "16c90bf4",
+      "questionType": "single-session-assistant",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "ASSISTANT_PROVENANCE_EXACT_QUOTE"
+    },
+    {
+      "ordinal": 4,
+      "questionId": "5e1b23de",
+      "questionType": "temporal-reasoning",
+      "isAbstention": false,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "TEMPORAL_COMPLETE_CONTEXT"
+    },
+    {
+      "ordinal": 5,
+      "questionId": "80ec1f4f_abs",
+      "questionType": "multi-session",
+      "isAbstention": true,
+      "predictedOfficialCorrect": true,
+      "predictedFailureStage": "none",
+      "basisCode": "ABSTENTION_COMPLETE_CONTEXT"
+    }
+  ],
+  "rowArraySha256": "6e2d9c0427a80de4b23cac76df008fd5857c704b0a8ba1f5523b91ff44f51265"
+}

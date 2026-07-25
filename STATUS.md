@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K ACTIVE MEMORY PATH CORRECTED OFFLINE;
-V5 TERMINAL; FOUNDER GATE (2026-07-25).
+Loop state: J4.2K-L1 ACTIVE FIRST-FIVE PRE-RUN FROZEN;
+LIVE GO OPEN; V5 TERMINAL (2026-07-25).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -95,6 +95,19 @@ explicit `capacity_exceeded` refusal instead of partial recall. Forgetting is
 exact-ID only. The v0.5 lexical kernel and all J3/J4 v1-v5 bytes remain
 historical comparators; no provider call, result change, or new live identity
 occurred.
+
+The founder has now authorized one fresh live measurement of that active path.
+`j4-active-brain-first5-v1` starts at zero and is limited to one active
+writer-and-answer role smoke plus the same first five LongMemEval questions.
+All J4 v1-v5 spend is carried forward: `$0.7721877` accounted
+(`$0.7696867` measured plus `$0.0025010` uncertain), leaving exactly
+`$6.2278123` under the unchanged `$7.00` cumulative cap. The conservative
+maximum-output envelope exceeds that remainder, so the mature reservation
+meter must stop before any call that would cross it. New active-specific
+adapter, meter, runner, authority, config, and five FINAL predictions are
+frozen and offline-verified; the terminal v1-v5 implementation and ignored
+evidence remain unchanged. No call for this identity has occurred at this
+pre-run cut point.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -382,6 +395,26 @@ session itself).
     scope, source isolation, chronology, overflow, and deletion. The complete
     offline suite is 187/187; quickstart and package dry-run are green. Frozen
     comparators and private results were not changed; no provider was called.
+  - [x] J4.2K-L1-P — ACTIVE FIRST-FIVE PRE-RUN FROZEN 2026-07-25
+    (`this commit`). Created fresh identity
+    `j4-active-brain-first5-v1` for the package-root exact-quote,
+    host-attributed, complete-context path. The new adapter replays all 2,398
+    raw user/Palari turns as 1,207 chronological writer operations, including
+    leading Palari turns, then uses the unchanged 100,000-character product
+    limit and grades the honest local capacity refusal if a complete briefing
+    cannot fit. One active role/source-boundary smoke raises the writer limit
+    to 1,208; question 6 is absent from the executable population. The fresh
+    config carries the exact v1-v5 predecessor total, uses active-only spend
+    gates, and may stop early under the unchanged cumulative cap. Config
+    SHA-256
+    `f263a636c2ebc5ffdd60329fcdd0901ef741e7991c14df9ed863db64292c3175`;
+    authority SHA-256
+    `a8804384d36efd06729236f31ab884101e35e7867b5d7a2e03edf8dbda3c6bdd`;
+    FINAL prediction SHA-256
+    `b40c573ac81054976ce39f314783f2abd2b31fe9098918b0942de4b99bb60bdb`.
+    All 27 execution artifacts are hash-pinned. The active-only tests are
+    27/27 and the full suite is 214/214; quickstart is green. No provider call
+    has occurred.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -394,14 +427,16 @@ session itself).
 
 ## Next
 
-FOUNDER GATE. The active J4.2K correction is complete offline but has not been
-measured live. V5 completed its exact first-five boundary and is terminal. Do
-not resume or reroll it, dispatch question 6, create a successor identity,
-raise a later-tranche cap, alter frozen v1-v5 inputs or private evidence, run
-Mem0 or S-490, publish a score, or announce a result without a new founder GO.
-Any live test of J4.2K needs a fresh identity and preregistration. The v4 and
-v5 observations remain separate and may not be combined. U8, J3 v1-v4, and
-J4 v1-v5 remain closed.
+J4.2K-L1-E — execute the single pushed
+`j4-active-brain-first5-v1` invocation under its existing founder GO and
+unchanged `$7.00` cumulative cap. It may run only the compatibility smoke and
+ordinals 1-5, stopping after question 5 or the first terminal/capacity
+failure. Then verify and preserve the private bundle, seal the identity,
+record a number-free close-out, push, report privately to the founder, and
+stop. Do not resume or reroll V5, dispatch question 6, repair behavior after
+seeing results, raise the cap, alter predecessor inputs or evidence, run Mem0
+or S-490, publish a score, or announce a result. The v4, v5, and active
+observations remain separate. U8, J3 v1-v4, and J4 v1-v5 remain closed.
 
 ## Log
 
@@ -564,6 +599,11 @@ user/Palari quotes, complete scoped context with fail-closed overflow, and
 exact-ID forgetting. Suite 187/187, quickstart, package dry-run, and focused
 role/recall regressions are green; no provider was called and sealed evidence
 was untouched.
+2026-07-25 — J4.2K-L1-P — this commit — Froze the fresh active first-five
+identity, exact role/source smoke, five FINAL predictions, 1,207-operation
+replay, complete-context capacity circuit breaker, V1-V5 spend chain, active
+meter, and exact no-question-6 boundary. Suite 214/214 and quickstart are
+green; no provider was called.
 
 ## Product stop-rule record
 
@@ -1210,3 +1250,25 @@ was untouched.
    patterns, miss paraphrases through FTS, and be unable to remember what
    Palari itself recommended. Topic deletion would again depend on a text
    match instead of selected IDs.
+
+### J4.2K-L1-P active first-five pre-run cut point
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It makes no live-quality
+   claim before execution. It makes the changed product path measurable as
+   shipped, including its honest complete-context capacity refusal.
+3. Does an existing framework already provide what this unit added? Gemini,
+   LongMemEval, and the existing mature Palari meter provide the generation,
+   benchmark, and provider safety. This unit adds only the thin active-product
+   adapter and immutable evidence boundary needed to test the founder's
+   subtractive change; the historical meter was copied rather than reinvented.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly said “Go” to the proposed fresh active-path first-five
+   measurement while preserving V5 and the unchanged cumulative cap.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Runtime memory behavior would not change, but Palari's replacement
+   for the failed lexical path would remain unmeasured, provider bugs could
+   consume the tranche, and a partial-context answer could be mistaken for a
+   valid complete-memory result. This is one founder-requested measurement
+   unit and stops at its exact live cut point.

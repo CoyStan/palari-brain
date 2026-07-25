@@ -1047,3 +1047,24 @@ dates. Agents record; the founder decides.
   documentation, commit, and push. It does not authorize any provider call,
   J4 successor, question 6, reroll, score change, publication, or alteration
   of private v1-v5 evidence.
+- 2026-07-25 (FOUNDER GO — J4.2K active first-five live measurement) The
+  founder said “Go” to the proposed fresh live measurement of the active
+  role-provenance/non-lexical package path at commit `65e347b`. The successor
+  identity is `j4-active-brain-first5-v1`; it starts with zero completed
+  questions and may run one writer-and-answer compatibility smoke followed
+  by exactly the same first five LongMemEval questions once each. It carries
+  all terminal J4 v1-v5 spend: `$0.7721877` accounted
+  (`$0.7696867` measured plus `$0.0025010` uncertain) against the unchanged
+  `$7.00` cumulative hard cap, leaving exactly `$6.2278123` for this fresh
+  meter. Its conservative maximum-output envelope exceeds the remaining
+  budget, so the meter must stop before a call whose reservation would cross
+  the cap; this GO does not silently raise it. Before any provider call the
+  runner must freeze and push a new authority, five FINAL predictions,
+  product/prompt/configuration hashes, exact first-five population, cost
+  estimate, and active-specific execution bytes; verify the complete
+  terminal predecessor chain; and pass offline tests. V1-v5 and every ignored
+  result bundle remain immutable and separately attributable. The invocation
+  must checkpoint every completed question and stop after question 5 or the
+  first terminal/capacity failure. It does not authorize resuming or
+  regrading V5, question 6, a reroll, Mem0, S-490, publication,
+  announcement, a cap increase, or a behavioral repair after seeing results.
