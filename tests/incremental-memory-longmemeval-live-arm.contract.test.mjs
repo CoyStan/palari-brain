@@ -17,7 +17,11 @@ import {
   incrementalLongMemEvalExchangePlan,
   incrementalLongMemEvalExchangeStats,
   runIncrementalLongMemEvalQuestion,
+  runIncrementalLongMemEvalQuestionForScoring,
 } from '../evals/arms/incremental-memory-longmemeval-live-arm.mjs'
+import {
+  buildIncrementalLongMemEvalJudgeBody,
+} from '../evals/incremental-longmemeval-judge.mjs'
 
 const MODEL_VERSION = 'gemini-3.5-flash-lite'
 
@@ -129,6 +133,18 @@ function reducerPayload(body) {
         outcome: 'no_memory',
       },
     ],
+  }
+}
+
+function noMemoryPayload(body) {
+  const providerInput = JSON.parse(body.contents[0].parts[0].text)
+  return {
+    actions: [],
+    baseRevision: providerInput.input.baseRevision,
+    dispositions: providerInput.input.evidence.map((entry) => ({
+      evidenceId: entry.id,
+      outcome: 'no_memory',
+    })),
   }
 }
 
@@ -407,6 +423,94 @@ test('first reducer failure stops before checkpoints, later turns, or answer',
       )
       assert.equal(calls, 1)
       assert.equal(checkpoints, 0)
+    } finally {
+      await rm(root, { force: true, recursive: true })
+    }
+  })
+
+test('historical arm keeps treating honest local absence as invalid',
+  async () => {
+    const root = await mkdtemp(
+      join(tmpdir(), 'palari-incremental-empty-legacy-'),
+    )
+    let calls = 0
+    let checkpoints = 0
+    try {
+      await assert.rejects(
+        runIncrementalLongMemEvalQuestion({
+          async callGemini(request) {
+            calls += 1
+            assert.equal(request.purpose, 'writer')
+            return validated(JSON.stringify(noMemoryPayload(request.body)))
+          },
+          instance: fixture(),
+          async onCheckpoint() {
+            checkpoints += 1
+          },
+          workspaceDir: join(root, 'workspace'),
+        }),
+        (error) => error?.code === 'INCREMENTAL_ANSWER_INVALID',
+      )
+      assert.equal(calls, 2)
+      assert.equal(checkpoints, 2)
+    } finally {
+      await rm(root, { force: true, recursive: true })
+    }
+  })
+
+test('scoring arm sends complete honest local absence to the judge path',
+  async () => {
+    const root = await mkdtemp(
+      join(tmpdir(), 'palari-incremental-empty-score-'),
+    )
+    let calls = 0
+    const checkpoints = []
+    try {
+      const instance = fixture()
+      const result = await runIncrementalLongMemEvalQuestionForScoring({
+        async callGemini(request) {
+          calls += 1
+          assert.equal(request.purpose, 'writer')
+          return validated(JSON.stringify(noMemoryPayload(request.body)))
+        },
+        instance,
+        async onCheckpoint(checkpoint) {
+          checkpoints.push(checkpoint)
+        },
+        workspaceDir: join(root, 'workspace'),
+      })
+      assert.equal(calls, 2)
+      assert.equal(checkpoints.length, 2)
+      assert.equal(result.answerProviderCalled, false)
+      assert.equal(result.answerModelVersion, null)
+      assert.equal(result.answerRequestSha256, null)
+      assert.equal(result.promptSha256, null)
+      assert.match(result.answer, /no stored memories/i)
+      assert.deepEqual(result.activeMemories, [])
+      assert.deepEqual(result.logicalOperations, {
+        answer: 0,
+        reducer: 2,
+        total: 2,
+      })
+      assert.deepEqual(result.briefing, {
+        complete: true,
+        includedMemoryIds: [],
+        mode: 'incremental_digest',
+        requiredChars: 0,
+        status: 'empty',
+        totalCandidates: 0,
+      })
+      assert.equal(result.digestStatus.ready, true)
+      assert.equal(result.digestStatus.pending, 0)
+      const judgeBody = buildIncrementalLongMemEvalJudgeBody(
+        instance,
+        result.answer,
+      )
+      assert.equal(judgeBody.store, false)
+      assert.match(
+        judgeBody.messages[0].content,
+        /I have no stored memories relevant to this question/,
+      )
     } finally {
       await rm(root, { force: true, recursive: true })
     }

@@ -272,6 +272,36 @@ test('fresh cap refusal happens before transcript, meter, or fetch', async () =>
   })
 })
 
+test('cumulative cap refusal happens before transcript, meter, or fetch',
+  async () => {
+    let calls = 0
+    const judgeBody = body()
+    const reservation = reserveIncrementalLongMemEvalJudge(judgeBody)
+    await fixture(async () => {
+      calls += 1
+      return response()
+    }, async ({
+      inputs,
+      meterPath,
+      transcriptDirectory,
+    }) => {
+      await assert.rejects(
+        callIncrementalLongMemEvalJudge(inputs),
+        (error) => error.code === 'JUDGE_CUMULATIVE_SPEND_CAP',
+      )
+      assert.equal(calls, 0)
+      await assert.rejects(stat(meterPath), { code: 'ENOENT' })
+      assert.deepEqual(await readdir(transcriptDirectory), [])
+    }, {
+      capContext: {
+        cumulativeAccountedUsd: 2,
+        cumulativeCapUsd: 2 + reservation.usd / 2,
+        freshAccountedUsd: 1,
+        freshCapUsd: 2,
+      },
+    })
+  })
+
 test('transport failure dispatches once and terminals priority uncertainty',
   async () => {
     let calls = 0

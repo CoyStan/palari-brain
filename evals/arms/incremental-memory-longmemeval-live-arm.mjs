@@ -458,11 +458,13 @@ function assertCompletedInteraction({
   return { digest, reductionResult }
 }
 
-export async function runIncrementalLongMemEvalQuestion({
+async function runIncrementalLongMemEvalQuestionCore({
   callGemini,
   instance,
   onCheckpoint = async () => {},
   workspaceDir,
+} = {}, {
+  gradeHonestAbsence = false,
 } = {}) {
   if (typeof callGemini !== 'function') {
     throw new TypeError(
@@ -692,11 +694,23 @@ export async function runIncrementalLongMemEvalQuestion({
 
     const includedIds = answer.included.map((entry) => entry.id)
     const activeIds = finalMemories.map((entry) => entry.id)
-    if (answerCalls !== 1 ||
-      answer.providerCalled !== true ||
-      answer.complete !== true ||
-      answer.briefingMode !== 'incremental_digest' ||
-      answer.briefingStatus !== 'included' ||
+    const includedAnswerValid =
+      answerCalls === 1 &&
+      answer.providerCalled === true &&
+      answer.complete === true &&
+      answer.briefingMode === 'incremental_digest' &&
+      answer.briefingStatus === 'included'
+    const honestAbsenceValid =
+      gradeHonestAbsence &&
+      answerCalls === 0 &&
+      answer.providerCalled === false &&
+      answer.complete === true &&
+      answer.abstained === true &&
+      answer.briefingMode === 'incremental_digest' &&
+      answer.briefingStatus === 'empty' &&
+      includedIds.length === 0 &&
+      activeIds.length === 0
+    if ((!includedAnswerValid && !honestAbsenceValid) ||
       answer.reductionPending !== 0 ||
       !sameJson(includedIds, activeIds) ||
       finalDigest.ready !== true ||
@@ -713,8 +727,9 @@ export async function runIncrementalLongMemEvalQuestion({
       activeMemoriesSha256:
         sha256(JSON.stringify(finalMemories)),
       answer: answer.answer,
-      answerModelVersion: lockedModelVersion,
-      answerProviderCalled: true,
+      answerModelVersion:
+        answer.providerCalled ? lockedModelVersion : null,
+      answerProviderCalled: answer.providerCalled,
       answerRequestSha256,
       briefing: {
         complete: answer.complete,
@@ -730,9 +745,9 @@ export async function runIncrementalLongMemEvalQuestion({
       interactions: exchanges.length,
       interactionCheckpoints,
       logicalOperations: {
-        answer: 1,
+        answer: answerCalls,
         reducer: reducerCalls,
-        total: reducerCalls + 1,
+        total: reducerCalls + answerCalls,
       },
       modelVersion: lockedModelVersion,
       promptSha256,
@@ -745,4 +760,19 @@ export async function runIncrementalLongMemEvalQuestion({
   } finally {
     brain.close()
   }
+}
+
+// Historical v1 behavior remains strict: a benchmark arm that does not reach
+// its answer provider is an infrastructure failure.
+export async function runIncrementalLongMemEvalQuestion(options) {
+  return runIncrementalLongMemEvalQuestionCore(options)
+}
+
+// A successor scorer must grade a complete, honest local absence as a memory
+// miss. It is not a transport failure and therefore still belongs in the
+// official judge path.
+export async function runIncrementalLongMemEvalQuestionForScoring(options) {
+  return runIncrementalLongMemEvalQuestionCore(options, {
+    gradeHonestAbsence: true,
+  })
 }

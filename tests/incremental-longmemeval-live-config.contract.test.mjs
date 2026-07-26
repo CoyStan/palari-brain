@@ -75,7 +75,7 @@ test('scope pins the exact 484-message question and 245-dispatch ceiling',
     assert.equal(INCREMENTAL_LONGMEMEVAL_GEMINI_LIMITS.maxAttempts, 244)
   })
 
-test('conservative arithmetic fits the raised caps without weakening limits',
+test('frozen reservation arithmetic fits the raised application limits',
   () => {
     const reducerInput =
       1_718_371 + 72_000 * 242 + 512 * 243
@@ -148,7 +148,7 @@ test('FINAL predictions are byte-external and match the frozen rows',
     )
   })
 
-test('tracked identity remains frozen and only the seal changes runtime closure',
+test('sealed identity rejects current successor-only runtime drift',
   async () => {
     const repoRoot = new URL('..', import.meta.url).pathname
     const loaded = await loadIncrementalLongMemEvalConfig({ repoRoot })

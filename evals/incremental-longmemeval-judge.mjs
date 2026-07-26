@@ -26,10 +26,11 @@ export const INCREMENTAL_LONGMEMEVAL_JUDGE_REQUEST = Object.freeze({
 // https://developers.openai.com/api/docs/pricing
 //
 // Reserve at the highest documented synchronous tier even though the request
-// pins standard service. This keeps a hard spend cap conservative if provider
-// accounting ever reports a different serving tier.
+// pins standard service. This is conservative with respect to tier pricing;
+// the byte-based input-token estimate is not a provider-guaranteed ceiling.
 export const INCREMENTAL_LONGMEMEVAL_JUDGE_PRICING = Object.freeze({
   measuredStandard: Object.freeze({
+    cachedInput: 1.25 / 1_000_000,
     input: 2.50 / 1_000_000,
     output: 10.00 / 1_000_000,
     tier: 'default',
@@ -178,15 +179,20 @@ function measureUsage({ body, parsed, reservation }) {
   if (!sameReservation(reservation, expectedReservation)) {
     throw new IncrementalLongMemEvalJudgeError(
       'JUDGE_RESERVATION_INVALID',
-      'OpenAI judge reservation is absent or not conservatively priced.',
+      'OpenAI judge reservation is absent or not priced at the frozen tier.',
     )
   }
   const judgeInputTokens = parsed?.usage?.prompt_tokens
   const judgeOutputTokens = parsed?.usage?.completion_tokens
   const totalTokens = parsed?.usage?.total_tokens
+  const cachedInputTokens =
+    parsed?.usage?.prompt_tokens_details?.cached_tokens ?? 0
   if (!positiveSafeInteger(judgeInputTokens) ||
     !positiveSafeInteger(judgeOutputTokens) ||
     !positiveSafeInteger(totalTokens) ||
+    !Number.isSafeInteger(cachedInputTokens) ||
+    cachedInputTokens < 0 ||
+    cachedInputTokens > judgeInputTokens ||
     totalTokens !== judgeInputTokens + judgeOutputTokens ||
     judgeInputTokens > reservation.judgeInputTokens ||
     judgeOutputTokens > reservation.judgeOutputTokens ||
@@ -203,7 +209,8 @@ function measureUsage({ body, parsed, reservation }) {
     pricingTier: prices.tier,
     totalTokens,
     usd:
-      judgeInputTokens * prices.input +
+      (judgeInputTokens - cachedInputTokens) * prices.input +
+      cachedInputTokens * prices.cachedInput +
       judgeOutputTokens * prices.output,
   }
 }

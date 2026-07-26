@@ -1421,3 +1421,65 @@ dates. Agents record; the founder decides.
   an integration test that constructs the real meter, a successor identity,
   any provider call, question 2, Mem0, S-490, publication, and announcement
   all require a fresh founder GO.
+- 2026-07-26 (FOUNDER GO — offline incremental-harness repair and rigorous
+  component audit) After the terminal setup failure, the founder approved a
+  rigorous evaluation that checks every part individually. This GO permits
+  the known wiring repair, offline fake-HTTP integration, and minimal
+  evaluator/accounting corrections. It does not create a successor identity
+  or authorize a provider call, reroll, question 2, Mem0, S-490, publication,
+  or announcement.
+
+  The audit corrects one statement in the preceding terminal record. Exactly
+  two meter arguments were undefined:
+  `INCREMENTAL_LONGMEMEVAL_ANSWER_GENERATION` and
+  `INCREMENTAL_LONGMEMEVAL_REDUCER_GENERATION`. The config namespace also
+  omitted the model export, but the failed runner passed the valid
+  `runtime.model` value instead of reading that namespace property. The
+  `ACTIVE_CONFIGURATION_MISSING` result, zero-dispatch evidence, hashes, spend,
+  and terminal conclusion are unchanged.
+
+  The sealed v1 runner, config JSON, authority, FINAL predictions, and private
+  bundle remain untouched. A new shared composition seam imports the model and
+  both generation contracts directly, constructs the production Gemini meter,
+  and owns the one-dispatch retry denial. Missing-binding mutation checks,
+  writer/answer fake HTTP, a fake 429, the real incremental arm, the real
+  ledger/transcript path, and the real one-shot judge transport now exercise
+  the composition that the mocked v1 runner test missed.
+
+  The reusable arm and judge intentionally evolve for successor-only scoring
+  and accounting. Their exact frozen v1 bytes remain in commit `09dedad`, and
+  the v1 artifact audit correctly rejects the changed working-tree bytes.
+
+  A second offline defect was found: a schema-valid reducer can retain no
+  active memory, causing the product to return complete honest local absence
+  without an answer-model call. V1 treated that as infrastructure failure.
+  Its historical export retains that behavior, while a new opt-in scoring
+  export lets the official judge grade only the complete, ready, empty-digest
+  case as a memory miss. Provider failure, capacity refusal, and incomplete
+  digest remain terminal.
+
+  Current official provider documentation reconfirms the Gemini and OpenAI
+  wire shapes, but does not prove the adopted Gemini spend envelope is an
+  absolute hard cap. Gemini bills thinking tokens separately,
+  `maxOutputTokens` is documented as a candidate limit, and `MINIMAL` does not
+  guarantee zero thinking. The input `request bytes + 512` reservation is
+  likewise an engineering estimate rather than the documented `countTokens`
+  result. The OpenAI judge uses the same byte-plus-512 input estimate, so its
+  pre-dispatch refusal is tested but its absolute input-cost ceiling is also
+  unproved. OpenAI cached-input pricing and cumulative judge-cap refusal were
+  tightened offline. The hash-pinned historical Gemini meter was deliberately
+  left unchanged: its transcript retains the raw response, but it does not
+  enforce or normalize the returned service tier and it over-accounts cached
+  input at the uncached rate. Those are successor requirements, and its
+  aggregate USD must be described as conservative cap accounting rather than
+  exact billing.
+
+  Therefore another live successor is blocked pending a specific founder
+  choice: use a model with documented thinking-off support plus exact input
+  accounting, accept an engineering safeguard with acknowledged overrun risk
+  instead of an absolute billing cap, or adopt a much larger provider-maximum
+  reservation. `docs/J4-INCREMENTAL-HARNESS-AUDIT.md`
+  is the component-by-component record. No key value was printed or committed,
+  no provider was called, and cumulative J4 spend remains `$0.7761082`
+  accounted. Focused contracts pass 50/50 and the full suite passes 333/333;
+  quickstart, dry bake-off, and package dry-run are green.

@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-R2-L1-E ONE-QUESTION HARNESS SETUP FAILURE SEALED;
-FOUNDER GATE — NO LIVE IDENTITY OPEN (2026-07-26).
+Loop state: J4.2K-R2-L1-A OFFLINE HARNESS AUDIT COMPLETE;
+FOUNDER GATE — PROVIDER HARD-CAP CONTRACT UNRESOLVED, NO LIVE IDENTITY OPEN
+(2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -265,9 +266,10 @@ No call for this identity had occurred at the preparation cut point.
 The pushed `09dedad` cut was invoked exactly once. After all tracked,
 predecessor, dataset, spend, and credential checks passed, the reused Gemini
 meter rejected construction with `ACTIVE_CONFIGURATION_MISSING`. The runner
-read the model and generation contracts from the configuration module
-namespace, but that module imported without re-exporting those values, so the
-meter received `undefined`. This is a live-harness wiring failure, not a
+read the answer and reducer generation contracts from the configuration
+module namespace, but that module imported without re-exporting them, so those
+two meter arguments were `undefined`. The model argument came from the valid
+runtime environment. This is a live-harness wiring failure, not a
 memory-quality observation. It occurred before transport creation: zero
 reducer, answer, judge, or other provider calls; zero interactions completed;
 zero fresh measured, uncertain, or accounted spend; and no benchmark score.
@@ -276,10 +278,36 @@ Question 2 never started.
 The ignored private three-artifact evidence bundle verifies and records the
 terminal failure. The identity is sealed in code and cannot be resumed or
 rerolled. The accumulated J4 totals remain `$0.7761082` accounted,
-`$0.7736072` measured, and `$0.0025010` uncertain. Exporting or directly
-importing the three missing meter arguments, adding an integration test that
-constructs the real meter, and creating any successor identity require a new
-founder GO.
+`$0.7736072` measured, and `$0.0025010` uncertain.
+
+The founder then authorized an offline repair and rigorous component audit.
+The sealed v1 runner, config JSON, authority, FINAL predictions, and private
+bundle remain unchanged. A new successor composition seam directly imports
+the model and both generation contracts, constructs the real Gemini meter,
+and hardwires the one-dispatch retry denial. Real meter construction,
+writer/answer wire bodies, fake 429 behavior, ledgers, transcripts, the real
+incremental arm, and the one-shot judge now compose through fake HTTP. A
+second evaluator defect is fixed through an opt-in scoring export: a complete,
+ready, empty digest reaches the official judge as honest local absence instead
+of being mislabeled infrastructure failure; historical v1 behavior is
+preserved on its original export. The reusable arm and judge therefore differ
+from v1; their exact frozen bytes remain at commit `09dedad`, and the v1
+artifact audit rejects the current successor-only drift.
+
+The provider audit confirms that the request wires are valid but finds the
+adopted `$7.10` fresh ceiling is not proved as an absolute billing cap.
+Gemini documents `maxOutputTokens` as a response-candidate limit, bills
+thinking tokens separately, and says `MINIMAL` does not guarantee thinking is
+off. The input `request bytes + 512` reservation is also an engineering
+estimate rather than the documented `countTokens` result. The historical
+Gemini meter remains byte-preserved and conservatively over-accounts cached
+input; successor tier enforcement is still required. The OpenAI judge also
+uses a `request bytes + 512` input estimate, so its refusal plumbing is proved
+but its absolute input-cost ceiling is not. OpenAI cached-input pricing and
+cumulative judge-cap refusal were corrected offline. No key was printed, no
+provider was called, and spend remains unchanged. Focused tests are 50/50 and
+the full suite is 333/333; quickstart, dry bake-off, and package dry-run are
+green. The complete matrix is `docs/J4-INCREMENTAL-HARNESS-AUDIT.md`.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -780,9 +808,10 @@ session itself).
     that preparation cut.
   - [x] J4.2K-R2-L1-E — HARNESS SETUP FAILURE SEALED 2026-07-26
     (`this commit`). Invoked pushed `09dedad` exactly once. The real Gemini
-    meter rejected missing generation/model arguments before it created a
+    meter rejected two missing generation arguments before it created a
     transport or dispatched a request. The configuration module had imported
-    but not re-exported the constants that the runner read from its namespace.
+    but not re-exported those constants; the model came from valid
+    `runtime.model`.
     Zero interactions and zero provider calls completed; fresh spend was
     exactly `$0`, cumulative spend remains `$0.7761082`, no score exists, and
     question 2 never started. Private manifest SHA-256
@@ -794,6 +823,19 @@ session itself).
     The ignored bundle verifies and terminal refusal occurs before dependency,
     file, or credential access. Post-seal focused tests are 27/27 and the full
     suite is 322/322; quickstart, dry bake-off, and package dry-run are green.
+  - [x] J4.2K-R2-L1-A — OFFLINE HARNESS REPAIR AND COMPONENT AUDIT
+    2026-07-26 (`this commit`). Corrected the diagnosis to two missing
+    generation arguments, preserved the sealed identity and private evidence,
+    added the direct-import real-meter composition seam and one-dispatch
+    guard, and exercised the real arm/Gemini meter/judge meter through fake
+    HTTP. Added opt-in grading of complete honest empty-digest answers, exact
+    cached GPT-4o input accounting, and pre-dispatch cumulative judge-cap
+    refusal.
+    The request wire contracts are valid, but Gemini 3.5 Flash-Lite thinking
+    and both providers' heuristic input reservations leave the absolute
+    hard-cap claim unproved. Focused tests are 50/50 and the full suite is
+    333/333; quickstart, dry bake-off, and package dry-run are green. No
+    provider call, identity, result, reroll, score, or spend occurred.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -806,17 +848,22 @@ session itself).
 
 ## Next
 
-FOUNDER GATE. Report the terminal harness setup failure and stop. No live
-identity is open, no provider was called, no benchmark score exists, and the
-approved cap increase was not spent.
+FOUNDER GATE. Do not prepare or execute another live identity until the
+provider hard-cap contract is chosen explicitly. The options are: switch to a
+model with documented thinking-off support and add exact input-token
+accounting; retain Gemini 3.5 Flash-Lite and accept an engineering safeguard
+with acknowledged overrun risk rather than an absolute billing cap; or
+reserve a much larger documented provider maximum and add exact input-token
+preflights for both providers.
 
 Do not resume or rerun
-`j4-active-brain-incremental-longmemeval-q1-v1`. The minimal harness repair is
-known: pass the actual model, answer-generation, and reducer-generation
-exports into the reused meter and test real meter construction instead of
-mocking it. Implementing that repair, freezing a successor identity, making
-any provider call, starting question 2, changing product behavior, executing
-Mem0 or S-490, publishing, or announcing requires a fresh founder GO.
+`j4-active-brain-incremental-longmemeval-q1-v1`. Any successor must use
+`createIncrementalLongMemEvalGeminiTransport` and
+`runIncrementalLongMemEvalQuestionForScoring`, strengthen the prediction
+oracle, enforce the returned Gemini service tier, test checkpoint-write
+failure after interaction N, and freeze a new identity. Any provider call,
+question 2, Mem0, S-490, publication, or announcement requires a fresh
+founder GO.
 
 ## Log
 
@@ -1056,13 +1103,22 @@ provider contracts, and independent audits are green; no provider call
 occurred. Focused tests 27/27 and full suite 322/322; quickstart, dry
 bake-off, and package dry-run green.
 2026-07-26 — J4.2K-R2-L1-E — this commit — Invoked pushed `09dedad` once;
-the reused Gemini meter rejected three undefined namespace exports before
+the reused Gemini meter rejected two undefined generation arguments before
 transport creation, so zero interactions, provider calls, retries, or fresh
 spend occurred and no score exists. The private failure bundle verifies,
 question 2 never started, and the identity is sealed. The exact harness fix
 and any successor run require a fresh founder GO. Post-seal focused tests
 27/27 and full suite 322/322; quickstart, dry bake-off, and package dry-run
 green.
+2026-07-26 — J4.2K-R2-L1-A — this commit — Completed the founder-authorized
+offline component audit and repair: the successor seam now exercises the real
+Gemini constructor and no-retry path, honest empty memory reaches scoring,
+the real arm/meter/judge chain passes fake HTTP, and judge cap/accounting gaps
+were tightened. The request wire contracts are valid, but Gemini thinking and
+both providers' heuristic input reservations leave the absolute billing cap
+unresolved. Focused tests 50/50 and full suite 333/333; quickstart, dry
+bake-off, and package dry-run green. No live identity, provider call, score,
+or spend.
 
 ## Product stop-rule record
 
@@ -1987,3 +2043,27 @@ green.
    identity could be accidentally rerun and the exact reason the measurement
    failed could be lost. The evidence distinguishes a harness wiring error
    from a false claim about Palari's memory quality.
+
+### J4.2K-R2-L1-A offline harness repair and audit
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It changes no runtime
+   product behavior. It makes the next measurement materially more truthful:
+   the real constructor path is exercised, an empty memory becomes a scored
+   miss instead of infrastructure failure, and retry/cap boundaries are tested
+   at their actual composition seams.
+3. Does an existing framework already provide what this unit added? Provider
+   SDKs and evaluation frameworks already provide transport and token
+   accounting primitives. This unit adds no memory framework; it corrects the
+   repository-specific assembly and honestly records where the provider docs
+   cannot prove Palari's claimed billing cap.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — after
+   repeated simple live failures, the founder explicitly requested a rigorous
+   evaluation of every part individually.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? The chatbot journey would not immediately change, but the next paid
+   result could again fail before measuring memory, silently omit an empty
+   result from scoring, retry without authority, or be described with a
+   stronger spend guarantee than the provider contract supports. This is one
+   infrastructure unit and it stops at the unresolved founder gate.

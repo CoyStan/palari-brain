@@ -149,8 +149,32 @@ test('reservation uses highest-tier prices and measurement uses standard',
         125 *
           INCREMENTAL_LONGMEMEVAL_JUDGE_PRICING.measuredStandard.input +
         INCREMENTAL_LONGMEMEVAL_JUDGE_PRICING.measuredStandard.output,
-    })
   })
+})
+
+test('measurement applies the published cached GPT-4o input price', () => {
+  const parsed = parse({
+    rawBody: response({
+      usage: {
+        completion_tokens: 1,
+        prompt_tokens: 125,
+        prompt_tokens_details: {
+          cached_tokens: 25,
+        },
+        total_tokens: 126,
+      },
+    }),
+  })
+  assert.equal(
+    parsed.measured.usd,
+    100 *
+      INCREMENTAL_LONGMEMEVAL_JUDGE_PRICING.measuredStandard.input +
+      25 *
+        INCREMENTAL_LONGMEMEVAL_JUDGE_PRICING
+          .measuredStandard.cachedInput +
+      INCREMENTAL_LONGMEMEVAL_JUDGE_PRICING.measuredStandard.output,
+  )
+})
 
 test('body rejects any drift from the isolated provider contract', () => {
   for (const [field, value] of [
