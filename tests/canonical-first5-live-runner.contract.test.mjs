@@ -374,6 +374,7 @@ test('frozen first-five identity rejects the successor digest graph',
       [...reachable].filter((path) => !pinned.has(path)).sort(),
       [
         'src/memory-digest-store.mjs',
+        'src/memory-exploration.mjs',
         'src/memory-reducer.mjs',
       ],
     )

@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.3K-R3 DIGEST DENSITY REPAIR COMPLETE; FOUNDER GATE — NO LIVE
-IDENTITY OPEN; BENCH NOW COMPLETES 240/240 INTERACTIONS (2026-07-26).
+Loop state: J4.4K BATCHING + MEMORY EXPLORATION + DIGEST-AS-INDEX COMPLETE;
+FOUNDER GATE — NO LIVE IDENTITY OPEN (2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -929,6 +929,31 @@ session itself).
     sheds; compression is 1.4x; the queue stalled after 33 of 240
     interactions and the answer-bearing fact never entered memory. Caps were
     not changed — that is a founder thesis decision. Suite 402/402.
+  - [x] J4.4K-B1 — BATCHED REDUCTION 2026-07-26 (`1e6bdbb`). `reduceEvery`
+    and `maxInteractionsPerCall` let interactions accumulate and reduce
+    together, so per-message cost stops scaling with how much is remembered.
+    Both default to today's behaviour, so sealed comparator arms are
+    unchanged. Batch members are contiguous from the queue head and added
+    only while the rendered request fits. A batch failure blames no single
+    interaction: the head is retried one at a time to isolate the offender.
+    A drain now continues past a quarantined unit and reports
+    `completed_with_gaps`. Measured: 240 -> 12 reducer requests at cadence 20
+    (20x), with the bench showing the cost — a wide consolidation span makes
+    a rare one-off fact more likely to be summarised away.
+  - [x] J4.4K-B2 — MEMORY EXPLORATION 2026-07-26 (`this commit`).
+    `memory_timeline` / `memory_read` / `memory_find` over the canonical
+    journal, behind the existing gate, plus `answerWithExploration` with a
+    bounded call budget that fails closed. Exact substring matching and exact
+    reads only: no BM25, no vector search, no fuzzy matching, no relevance
+    score. Scope isolation, deletion, and the source-text boundary all hold
+    on the read side; `consultedEvidenceIds` and the `memoryAuditLog` hook
+    give a replayable record of which stored messages informed an answer.
+    Proven end to end in the bench: at cadence 20 the digest loses the
+    answer-bearing fact (0/1) and exploration recovers it in one tool call.
+  - [x] J4.4K-B3 — DIGEST AS INDEX 2026-07-26 (`this commit`). Rendered
+    digest records now name the sessions their evidence came from, so the
+    answer model knows where to read when a summary is not enough. Session
+    IDs are short, so pointing costs far less than carrying more quotes.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -983,6 +1008,20 @@ question is the product thesis itself, unchanged by this work: the active
 path has no query-conditioned retrieval by explicit founder direction, so a
 blind digest must hold the right facts by construction. The bench can now
 answer that offline for any population, for free, before any paid run.
+
+The founder then agreed the three-step plan and it is implemented: batching,
+exploration, and digest-as-index. The architecture question that remained
+open after the density repair — whether a blind, query-independent digest can
+hold the right facts — is now answered differently, because the digest no
+longer has to. It holds what is usually needed; the journal answers the rest
+on demand, exactly, deterministically, and auditably.
+
+What has NOT been done, and is the next honest step: none of this has run
+against a real model on real data. The bench uses a deterministic stand-in
+reducer and a scripted explorer. A real model must choose its own search
+phrases, and exact matching misses synonyms — that is the one failure mode
+the bench cannot simulate. Run `npm run memory-bench -- --dataset` first,
+then consider the smallest live check of the exploration path.
 
 A live successor still requires a fresh founder GO under the terms below.
 

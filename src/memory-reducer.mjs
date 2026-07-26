@@ -5,6 +5,8 @@
 // owns quote verification, speaker and chronology checks, durable admission,
 // revision control, and the resulting-state limits.
 
+import { sessionOf } from './memory-exploration.mjs'
+
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
     return value
@@ -90,7 +92,7 @@ export const ACTIVE_MEMORY_SYSTEM_INSTRUCTIONS = deepFreeze({
 
 const activeMemoryBriefingHeader = [
   'BEGIN UNTRUSTED PALARI ACTIVE MEMORY JSONL',
-  'Record semantics: every record is a bounded model-derived memory. `quote` is the most recent exact host-verified excerpt from canonical user or Palari dialogue supporting it; earlier supporting quotes exist but are not shown here.',
+  'Record semantics: every record is a bounded model-derived memory. `quote` is the most recent exact host-verified excerpt from canonical user or Palari dialogue supporting it; earlier supporting quotes exist but are not shown here. `sessions` names the stored conversations this memory came from, so they can be read in full if this summary is not enough.',
 ].join('\n')
 
 // The most recent support carries the current fact. Older supports are the
@@ -160,10 +162,19 @@ export function renderActiveMemoryDigest(memories = []) {
       activeMemoryBriefingHeader,
       ...included.map((entry) => {
         const support = representativeSupport(entry.supports)
+        // Pointers, not just prose. A bounded digest cannot hold everything,
+        // so each record names the conversations behind it: the answer model
+        // can read them in full instead of treating a lossy summary as the
+        // whole truth. Session IDs are short, so this costs far less than
+        // carrying more quotes.
+        const sessions = [...new Set(
+          entry.supports.map((item) => sessionOf(item.sourceMessageId)),
+        )].filter(Boolean)
         return JSON.stringify({
           epistemic: entry.epistemic,
           observedAt: entry.observedAt,
           quote: support ? support.quote : '',
+          sessions,
           speaker: entry.speaker,
           statement: entry.statement,
           // A trusted time anchor changes what the statement means, so it

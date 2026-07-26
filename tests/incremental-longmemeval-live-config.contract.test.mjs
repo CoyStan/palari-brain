@@ -210,6 +210,7 @@ test('sealed identity rejects current successor-only runtime drift',
         'evals/run-incremental-longmemeval-live.mjs',
         'src/brain.mjs',
         'src/dialogue-evidence.mjs',
+        'src/index.mjs',
         'src/memory-digest-store.mjs',
         'src/memory-reducer.mjs',
       ])

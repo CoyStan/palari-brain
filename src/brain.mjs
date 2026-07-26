@@ -30,6 +30,10 @@ import {
   normalizeMemoryReductionPayload,
   renderActiveMemoryDigest,
 } from './memory-reducer.mjs'
+import {
+  MEMORY_EXPLORATION_INSTRUCTIONS,
+  MEMORY_EXPLORATION_TOOLS,
+} from './memory-exploration.mjs'
 import { createKernelStore } from './store.mjs'
 import {
   buildStatementExtractionRequest,
@@ -159,12 +163,18 @@ export async function createPalariBrain(options = {}) {
   try {
     store = options.store ?? await createKernelStore(options)
     await hardenStoreFiles(prepared)
-    const gate = createDialogueGate(store, { clock: options.clock })
+    const gate = createDialogueGate(store, {
+      auditLog: options.memoryAuditLog,
+      clock: options.clock,
+    })
     return Object.freeze({
       close: () => store.close(),
       enabled: Boolean(store.enabled),
       forgetById: gate.forgetById,
       digestStatus: gate.digestStatus,
+      exploreFind: gate.exploreFind,
+      exploreRead: gate.exploreRead,
+      exploreTimeline: gate.exploreTimeline,
       listActiveMemories: gate.listActiveMemories,
       listEvidence: gate.listStatements,
       listBlockedReductions: gate.listBlockedReductions,
@@ -999,6 +1009,105 @@ export async function answerQuestion(brain, {
     reductionPending: briefing.reductionPending,
     requiredChars: briefing.requiredChars,
     totalCandidates: briefing.totalCandidates,
+  }
+}
+
+export const DEFAULT_EXPLORATION_CALLS = 6
+
+// Bounded look-then-answer. The digest is always supplied first; exploration
+// only happens if the provider asks for it. Every consultation is recorded,
+// so an explored answer carries a replayable list of exactly which stored
+// messages informed it — something a nearest-neighbour retriever cannot
+// produce.
+export async function answerWithExploration(brain, {
+  maxChars = defaultMemoryContextChars,
+  maxExplorationCalls = DEFAULT_EXPLORATION_CALLS,
+  palariId,
+  provider,
+  question,
+  questionDate,
+  userId,
+} = {}) {
+  if (typeof provider !== 'function') {
+    throw new TypeError('answerWithExploration requires a provider function.')
+  }
+  const budget = Number(maxExplorationCalls)
+  if (!Number.isSafeInteger(budget) || budget < 0) {
+    throw new TypeError('maxExplorationCalls must be a non-negative integer.')
+  }
+  const scope = { palariId, userId }
+  const consulted = []
+  const transcript = []
+
+  const tools = {
+    memory_find(input) {
+      const found = brain.exploreFind(scope, input)
+      consulted.push(...found.matches.map((match) => match.evidenceId))
+      return found
+    },
+    memory_read(input) {
+      const readResult = brain.exploreRead(scope, input)
+      consulted.push(...readResult.messages.map((row) => row.evidenceId))
+      return readResult
+    },
+    memory_timeline(input) {
+      return brain.exploreTimeline(scope, input)
+    },
+  }
+
+  const briefing = recallMemory(brain, scope, { maxChars })
+  let calls = 0
+  let exhausted = false
+
+  const explore = async (request) => {
+    const name = String(request?.tool ?? '')
+    if (!Object.hasOwn(tools, name)) {
+      throw new TypeError(`Unknown memory tool: ${name}`)
+    }
+    if (calls >= budget) {
+      exhausted = true
+      // Fail closed and say so, rather than looping or inventing an answer.
+      return {
+        exhausted: true,
+        reason: 'exploration_budget_exhausted',
+      }
+    }
+    calls += 1
+    const result = tools[name](request.input ?? {})
+    transcript.push({ input: request.input ?? {}, result, tool: name })
+    return result
+  }
+
+  const response = await provider({
+    briefing,
+    explore,
+    explorationInstructions: MEMORY_EXPLORATION_INSTRUCTIONS,
+    explorationTools: MEMORY_EXPLORATION_TOOLS,
+    memoryText: briefing.text,
+    question,
+    questionDate,
+    questionText: [
+      questionDate ? `Question date: ${questionDate}` : '',
+      `Question: ${String(question)}`,
+    ].filter(Boolean).join('\n'),
+    systemInstruction: memoryAnswerSystemInstruction,
+  })
+
+  return {
+    abstained: typeof response?.abstained === 'boolean'
+      ? response.abstained
+      : null,
+    answer: String(response?.text ?? response ?? ''),
+    briefingMode: briefing.briefingMode,
+    briefingStatus: briefing.status,
+    // The audit trail: exactly which stored messages informed this answer.
+    consultedEvidenceIds: [...new Set(consulted)],
+    digestRevision: briefing.digestRevision,
+    explorationCalls: calls,
+    explorationExhausted: exhausted,
+    explorationTranscript: transcript,
+    providerCalled: true,
+    reductionBlocked: briefing.reductionBlocked,
   }
 }
 

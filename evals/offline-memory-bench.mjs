@@ -30,6 +30,7 @@ import {
   ACTIVE_MEMORY_MAX_QUOTE_CHARS,
   ACTIVE_MEMORY_MAX_STATEMENT_CHARS,
   ACTIVE_MEMORY_MAX_TOPIC_CHARS,
+  answerWithExploration,
   createPalariBrain,
   ingestChatTurn,
   recallMemory,
@@ -293,6 +294,38 @@ export function syntheticPopulation({ interactions = 240 } = {}) {
   }
 }
 
+// Ask the journal directly for the answer-bearing messages, the way an
+// answer model would when the digest comes up short.
+async function exploreForMissing(brain, scope, population) {
+  const answerBearing = population.exchanges.filter(
+    (exchange) => exchange.hasAnswer,
+  )
+  if (!answerBearing.length) return { attempted: 0, calls: 0, found: 0 }
+  let calls = 0
+  let found = 0
+  for (const exchange of answerBearing) {
+    const phrase = String(exchange.userMessage ?? '')
+      .split(/\s+/u)
+      .slice(2, 6)
+      .join(' ')
+    if (!phrase) continue
+    const result = await answerWithExploration(brain, {
+      ...scope,
+      async provider({ explore }) {
+        const hit = await explore({
+          input: { phrase },
+          tool: 'memory_find',
+        })
+        return { abstained: hit.matches.length === 0, text: '' }
+      },
+      question: 'recovery probe',
+    })
+    calls += result.explorationCalls
+    if (result.consultedEvidenceIds.length > 0) found += 1
+  }
+  return { attempted: answerBearing.length, calls, found }
+}
+
 function retentionReport(population, memories) {
   const answerBearing = population.exchanges.filter(
     (exchange) => exchange.hasAnswer,
@@ -393,6 +426,12 @@ export async function runOfflineMemoryBench({
       })
     }
 
+    // Can exploration recover what consolidation dropped? This is the whole
+    // argument for memory tools, so the bench measures it rather than
+    // asserting it. A phrase the speaker would plausibly have used verbatim
+    // stands in for what an answer model would try.
+    const recovered = await exploreForMissing(brain, scope, population)
+
     const status = brain.digestStatus(scope)
     const memories = brain.listActiveMemories(scope)
     const briefing = recallMemory(brain, scope, { maxChars: 100_000 })
@@ -427,6 +466,7 @@ export async function runOfflineMemoryBench({
       )),
       processed,
       questionId: population.questionId,
+      recovered,
       reduceEvery,
       reducerCalls,
       reductionsApplied: applied,
@@ -466,6 +506,13 @@ export function formatOfflineBenchReport(result) {
       `answer evidence   ${result.retention.retained}/` +
       `${result.retention.checked} answer-bearing interactions still ` +
       'supported in the digest',
+    )
+  }
+  if (result.recovered?.attempted > 0) {
+    lines.push(
+      `exploration       ${result.recovered.found}/` +
+      `${result.recovered.attempted} recovered from the journal in ` +
+      `${result.recovered.calls} tool call(s)`,
     )
   }
   if (Object.keys(result.failures).length) {

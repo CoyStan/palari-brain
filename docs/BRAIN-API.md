@@ -383,6 +383,74 @@ memory-write access, and send `questionText` last.
   evidence timestamp.
 - `unknown` is an explicit epistemic item. Missing memory remains unknown.
 
+## Memory exploration
+
+A bounded digest cannot hold everything, and the reducer has to choose what
+to keep with no knowledge of future questions. Exploration removes that
+impossible requirement: when the digest is not enough, the answer model looks
+in the journal itself.
+
+```js
+import { answerWithExploration } from 'palari-brain'
+
+const result = await answerWithExploration(brain, {
+  palariId,
+  userId,
+  question,
+  maxExplorationCalls: 6,
+  async provider({ briefing, explore, explorationTools }) {
+    // Map explorationTools onto your model's tool-calling shape and route
+    // each requested call through `explore`.
+    return { abstained: false, text: '...' }
+  },
+})
+```
+
+Three primitives, all behind the existing gate:
+
+| Tool | Shell analogue | What it does |
+| --- | --- | --- |
+| `memory_timeline` | `ls` | Lists sessions with dates and message counts |
+| `memory_read` | `cat` | Returns complete messages by evidence ID or session |
+| `memory_find` | `grep` | Exact, case-insensitive substring match |
+
+This is deliberately **not** retrieval by ranking. There is no BM25, no
+vector search, no fuzzy matching, and no relevance score. A `memory_find` hit
+is provably present in the stored message, and the same query always returns
+the same rows.
+
+That determinism is the point. `result.consultedEvidenceIds` and the optional
+`memoryAuditLog` hook give a replayable record of exactly which stored
+messages informed an answer — something a nearest-neighbour retriever cannot
+produce.
+
+Exploration inherits every gate guarantee. Results are canonical rows scoped
+to `palariId AND userId`, with host-derived speaker and time. Deleted
+messages are gone. Source, tool, and web text never entered canonical storage,
+so it has no read path either. A message body is never truncated: a partial
+quote is not evidence.
+
+Exploration is bounded by `maxExplorationCalls` and fails closed — once the
+budget is spent, `explore` returns `{ exhausted: true }` rather than looping.
+
+The honest limitation: exact matching misses synonyms and typos. The tool
+description tells the model so, and instructs it to try other wordings or
+navigate by session instead of giving up after one miss.
+
+### The digest is an index
+
+Each rendered digest record names the sessions its supporting evidence came
+from:
+
+```json
+{"epistemic":"asserted","observedAt":"...","quote":"I commute by bicycle now.",
+ "sessions":["sess-b"],"speaker":"user","statement":"The user commutes by bicycle.",
+ "timeAnchor":null,"topic":"commute route"}
+```
+
+Session identifiers are short, so pointing costs far less than carrying more
+quotes, and it tells the model where to look when a summary is not enough.
+
 ## Forget path
 
 `forgetMemories(brain, ids, { palariId, userId })`

@@ -176,6 +176,7 @@ test('frozen artifacts exclude the successor digest import graph',
       [...reachable].filter((path) => !pinned.has(path)).sort(),
       [
         'src/memory-digest-store.mjs',
+        'src/memory-exploration.mjs',
         'src/memory-reducer.mjs',
       ],
     )

@@ -7,6 +7,7 @@
 import { createHash } from 'node:crypto'
 
 import { createMemoryDigestStore } from './memory-digest-store.mjs'
+import { createMemoryExplorer } from './memory-exploration.mjs'
 import { statementQuoteOrigins } from './statement-extraction.mjs'
 
 export const dialogueSourceKinds = Object.freeze([
@@ -466,6 +467,7 @@ function ensureActiveSchema(store, clock) {
 }
 
 export function createDialogueGate(store, {
+  auditLog,
   clock = () => new Date(),
 } = {}) {
   ensureActiveSchema(store, clock)
@@ -542,6 +544,11 @@ export function createDialogueGate(store, {
         )
       )
   `
+  const explorer = createMemoryExplorer(store, {
+    auditLog,
+    visibleStatementsSql,
+  })
+
   const visibleStatementsOrderSql = `
     ORDER BY event_at ASC, dialogue_order ASC, created_at ASC, id ASC
   `
@@ -1198,6 +1205,12 @@ export function createDialogueGate(store, {
     forgetById,
     listActiveMemories: digest.listMemories,
     listIndexEntries,
+    exploreFind: (scope, options) =>
+      explorer.find(normalizedScope(scope), options),
+    exploreRead: (scope, options) =>
+      explorer.read(normalizedScope(scope), options),
+    exploreTimeline: (scope, options) =>
+      explorer.timeline(normalizedScope(scope), options),
     listBlockedReductions: digest.listBlocked,
     listPendingReductions: digest.listPending,
     readReadyDigest: digest.readReadyDigest,

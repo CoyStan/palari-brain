@@ -9,10 +9,13 @@
 
 export {
   answerQuestion,
+  answerWithExploration,
   buildActiveMemoryBriefing,
   buildAnswerPrompt,
   buildMemoryBriefing,
   createPalariBrain,
+  DEFAULT_EXPLORATION_CALLS,
+  DEFAULT_REDUCTION_BATCH_INTERACTIONS,
   dialogueRetentions,
   dialogueSourceKinds,
   forgetMemories,
@@ -54,6 +57,12 @@ export {
   normalizeStatementExtractionPayload,
   statementQuoteOrigins,
 } from './statement-extraction.mjs'
+
+export {
+  MEMORY_EXPLORATION_INSTRUCTIONS,
+  MEMORY_EXPLORATION_LIMITS,
+  MEMORY_EXPLORATION_TOOLS,
+} from './memory-exploration.mjs'
 
 export {
   loadLongMemEvalInstances,

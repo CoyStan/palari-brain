@@ -4,16 +4,19 @@ Memory for a chat assistant, reduced to the part that matters:
 
 1. the trusted host stores each complete visible user/Palari message and
    records who actually said it;
-2. after each durable interaction, one bounded reducer updates a compact
-   active memory using only the previous digest and that interaction;
+2. one bounded reducer updates a compact active memory from the previous
+   digest plus new interactions, on a cadence you choose;
 3. the host verifies every reducer claim against exact canonical quotes and
    derives speaker, time, scope, and identity itself;
-4. a later answer receives the complete bounded digest, while forgetting
-   still deletes exact canonical evidence IDs.
+4. a later answer receives the complete bounded digest and can search and
+   read the journal itself when that is not enough, while forgetting still
+   deletes exact canonical evidence IDs.
 
-The active package does not parse English with regular expressions and does
-not retrieve with keywords, FTS, BM25, or fuzzy text matching. It also does
-not require an embedding service. Canonical dialogue is the lossless,
+The active package does not parse English with regular expressions, does not
+rank memories by relevance, and does not use FTS, BM25, vector search, or
+fuzzy text matching. It does not require an embedding service. Exploration is
+exact substring matching and exact reads, so every consultation is
+deterministic, reproducible, and auditable. Canonical dialogue is the lossless,
 deletable journal; the recurrent digest is the small working memory. The
 reducer cannot erase prior items by omission: it must explicitly add or
 replace memory, and a replacement is accepted only when its provenance,
@@ -48,6 +51,17 @@ The quickstart demonstrates:
 - exact-ID deletion followed by honest absence;
 - source-document text excluded from canonical and reducer evidence.
 
+## When memory is not enough, look
+
+The digest is bounded working memory. The canonical journal holds everything
+that was actually said. `answerWithExploration` lets the answer model search
+and read that journal when the digest comes up short, using three primitives
+behind the same gate: `memory_timeline` (`ls`), `memory_read` (`cat`), and
+`memory_find` (`grep`, exact substring, never fuzzy).
+
+Every consultation is deterministic and recorded, so an explored answer
+carries a replayable list of exactly which stored messages informed it.
+
 ## Running the memory bench
 
 ```bash
@@ -55,6 +69,7 @@ npm run memory-bench                       # synthetic population, always runs
 npm run memory-bench -- --limit 50         # shorter run
 npm run memory-bench -- --dataset          # real LongMemEval-S ordinal 1
 npm run memory-bench -- --question 08e075c7
+npm run memory-bench -- --reduce-every 20   # batch reduction
 ```
 
 This replays a long conversation through the real write path with a
@@ -163,10 +178,11 @@ and the reducer-contract version are pinned to the scope so incompatible
 digest generations cannot be mixed silently.
 
 A single interaction can itself exceed the 40,000-character reducer
-envelope. In that case Palari records `REDUCER_INPUT_CAPACITY`, keeps that
-interaction at the queue head, and does not skip forward. The exact dialogue
-still exists in the canonical journal, so answer recall may use the complete
-journal while it fits and otherwise refuses with `digest_incomplete`.
+envelope. Retrying cannot change that, so Palari records
+`REDUCER_INPUT_CAPACITY` and quarantines that interaction: it stays canonical
+and unreduced, later interactions are not stuck behind it, and the gap is
+reported as `blocked` rather than hidden. The exact dialogue still exists in
+the canonical journal and remains searchable through exploration.
 Integrations should bound durable interaction size before ingest. Palari does
 not silently truncate or summarize an oversized message outside the reducer
 contract.

@@ -479,6 +479,7 @@ test('frozen config, FINAL predictions, authority, and tracked artifacts reconci
       'evals/run-incremental-memory-smoke.mjs',
       'src/brain.mjs',
       'src/dialogue-evidence.mjs',
+      'src/index.mjs',
       'src/memory-digest-store.mjs',
       'src/memory-reducer.mjs',
     ])
@@ -605,7 +606,7 @@ test('reservation envelope is derived from host-valid maximum fixture bodies', a
       Buffer.byteLength(JSON.stringify(body)))
     const operations =
       INCREMENTAL_MEMORY_SMOKE_RESERVATION_ENVELOPE.operations
-    assert.deepEqual(bodyBytes, [4_988, 9_697, 10_628])
+    assert.deepEqual(bodyBytes, [4_988, 9_697, 10_840])
     assert.equal(result.activeMemories.length, 2)
     assert.deepEqual(
       result.activeMemories.map((memory) => memory.supports.length),
