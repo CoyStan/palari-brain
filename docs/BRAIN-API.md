@@ -222,7 +222,8 @@ The active state uses compare-and-swap revision checks. A late concurrent
 result, or a result created before deletion, cannot overwrite a newer state
 or restore forgotten text.
 
-A missing, throwing, malformed, oversized, stale, or invalid reducer:
+A missing, malformed, oversized, stale, or semantically invalid reducer
+proposal:
 
 - does not roll back canonical dialogue;
 - leaves the earlier digest unchanged;
@@ -233,6 +234,29 @@ A missing, throwing, malformed, oversized, stale, or invalid reducer:
 Later units do not skip the failed unit while it is still actionable. Once a
 unit is quarantined the queue head has moved, so a drain keeps going rather
 than leaving healthy interactions stuck behind one standing defect.
+
+A provider-wide failure is different. After its own bounded retry policy is
+finished, an adapter must mark authentication, request configuration/schema,
+transport, or terminal provider-response failures:
+
+```js
+import { markReducerFailureTerminal } from 'palari-brain'
+
+try {
+  return await callReducerProvider(request)
+} catch (error) {
+  throw markReducerFailureTerminal(error)
+}
+```
+
+Marked errors are rethrown immediately. The host does not split a batch,
+increment interaction attempts, or quarantine canonical evidence for a
+failure that every interaction would reproduce. The marker is process-local,
+so model-authored JSON cannot forge it. Do not mark a returned semantic
+proposal that merely fails quote, reference, speaker, chronology, or capacity
+validation; those failures can belong to one interaction and retain the
+normal isolation behavior.
+
 Recovery is explicit:
 
 ```js
@@ -276,9 +300,10 @@ emit one memory per message. That consolidation is the point of batching.
 
 Batch size is bounded by the 40,000-character request cap; interactions are
 added from the queue head while the rendered request still fits, and the head
-is never skipped. If a batch fails, no single interaction has earned an
-attempt against it, so the same head is retried one interaction at a time.
-That isolates the offender and lets the rest through.
+is never skipped. If an unmarked proposal fails, no single interaction has
+earned an attempt against it, so the same head is retried one interaction at
+a time. That isolates the offender and lets the rest through. A marked
+terminal provider failure is never isolated this way.
 
 Batching trades recall of rare one-off facts for cost: a wide consolidation
 span makes an unusual fact more likely to be summarised away.

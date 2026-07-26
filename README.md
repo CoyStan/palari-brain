@@ -26,7 +26,11 @@ If a reducer call fails, canonical dialogue still survives and the ordered
 reduction remains pending. Answering may temporarily use the complete
 canonical journal while it fits. If that journal is too large, Palari Brain
 returns `digest_incomplete` and does not call the answer model with stale or
-partial memory.
+partial memory. Provider adapters mark terminal auth, schema, configuration,
+and transport failures with `markReducerFailureTerminal`; that stops a batch
+immediately instead of mislabelling every queued interaction as bad memory.
+Semantically invalid model proposals still use interaction-level isolation
+and quarantine.
 
 ## Quickstart
 
@@ -100,6 +104,7 @@ import {
   answerQuestion,
   createPalariBrain,
   ingestChatTurn,
+  markReducerFailureTerminal,
 } from 'palari-brain'
 
 const brain = await createPalariBrain({
@@ -120,7 +125,14 @@ await ingestChatTurn(brain, {
 }, {
   // Map this provider-neutral structured request to your model provider.
   // The response must follow ACTIVE_MEMORY_SYSTEM_INSTRUCTIONS.
-  reducer: async ({ request }) => callMemoryReducerModel(request),
+  reducer: async ({ request }) => {
+    try {
+      return await callMemoryReducerModel(request)
+    } catch (error) {
+      // Provider-wide failures are not evidence-specific.
+      throw markReducerFailureTerminal(error)
+    }
+  },
   // Change this only through an explicit rebuild/migration.
   reducerId: 'my-memory-reducer/v1',
 })

@@ -1644,3 +1644,49 @@ dates. Agents record; the founder decides.
   the provider-side reducer schema, adding terminal-meter fail-fast behavior,
   or creating a successor identity requires a fresh founder GO. Search
   prompting and semantic fallback remain unchanged.
+- 2026-07-26 (FOUNDER GO — offline J4 harness simplification) After three
+  independent design reviews debated how to separate the failed experiment,
+  the founder approved implementation. The approved scope is offline only:
+  a lean reducer proposal contract with strict host expansion/validation, a
+  reducer-free canonical-journal navigation arm, and immediate fail-fast for
+  provider-wide reducer failures. It does not authorize a credential read,
+  provider call, new live identity, score, reroll, publication, semantic
+  fallback, or question 2.
+
+  The provider-facing reducer now proposes only
+  `add|supersede`, fact wording, epistemic state, short local
+  evidence/prior aliases, and exact quotes. Revision, dispositions, durable
+  IDs, scope, role/source provenance, chronology, deletion, atomicity, and
+  capacity remain host-owned. Destructive summarization is intentionally
+  absent because the host cannot mechanically prove model-claimed
+  relatedness across several prior facts. The first intended generation binding is
+  `gemini-2.5-flash-lite`; a different model requires a fresh frozen
+  configuration. Google documents that structured output supports only a
+  JSON Schema subset, may reject large or deeply nested schemas, and still
+  requires application-side semantic validation:
+  <https://ai.google.dev/gemini-api/docs/generate-content/structured-output>.
+  The same documentation family specifies `thinkingBudget` for Gemini 2.5
+  and `thinkingLevel` for Gemini 3:
+  <https://ai.google.dev/gemini-api/docs/generate-content/thinking>.
+  Google likewise recommends reducing nesting and declaration size when tool
+  schemas are rejected:
+  <https://ai.google.dev/gemini-api/docs/generate-content/function-calling>.
+  These references justify making the provider grammar smaller; they do not
+  establish compatibility. Only a separately founder-gated live smoke can do
+  that.
+
+  The navigation arm deliberately runs with a ready, empty digest created by
+  a deterministic local discard reducer. Its only provider-capable surface is
+  one answer session over shallow `timeline`, exact `find`, and exact `read`
+  tools. Raw dataset session labels are replaced with neutral chronological
+  aliases before canonical admission; fixed host read limits cover the
+  observed 24-message session; the low-level fixture path rejects raw session
+  labels; invalid tool attempts remain audited and consume the six-attempt
+  ceiling even when an adapter catches their errors. The seam counts one
+  logical answer session and makes no claim about its future HTTP dispatch
+  count, which remains the live meter's responsibility. It imports no
+  historical live arm, meter,
+  checkpoint, oracle, authority, or identity. Therefore reducer compatibility
+  and autonomous journal navigation can be measured independently before any
+  integrated run is considered. Historical live bytes and private evidence
+  remain sealed and unchanged.

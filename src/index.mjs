@@ -21,6 +21,7 @@ export {
   forgetMemories,
   ingestChatTurn,
   ingestLongMemEvalInstance,
+  markReducerFailureTerminal,
   memoryAnswerSystemInstruction,
   recallMemory,
   recallAllStatements,

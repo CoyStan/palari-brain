@@ -15,6 +15,7 @@ const EXPECTED_FUNCTIONS = [
   'ingestChatTurn',
   'ingestLongMemEvalInstance',
   'loadLongMemEvalInstances',
+  'markReducerFailureTerminal',
   'normalizeStatementExtractionPayload',
   'parseLongMemEvalTimestamp',
   'recallMemory',

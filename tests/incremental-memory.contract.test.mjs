@@ -15,6 +15,7 @@ import {
   createPalariBrain,
   forgetMemories,
   ingestChatTurn,
+  markReducerFailureTerminal,
   recallMemory,
   reducePendingTurns,
 } from '../src/index.mjs'
@@ -1071,6 +1072,139 @@ test('a lower maxAttempts quarantines sooner', async (t) => {
   assert.equal(result.reductionStatus, 'completed_with_gaps')
   assert.equal(result.reduction.quarantined, true)
   assert.equal(result.reductionBlocked, 1)
+})
+
+test('a terminal reducer failure aborts one batch without blaming its interactions', async (t) => {
+  const { brain } = await openBrain(t, 'terminal-reducer-failure')
+  for (let index = 0; index < 3; index += 1) {
+    const result = await ingestChatTurn(
+      brain,
+      durableTurn({
+        eventAt: new Date(
+          Date.parse('2026-07-25T14:00:00.000Z') + index * 1_000,
+        ).toISOString(),
+        sourceMessageId: `terminal:${index + 1}`,
+        userMessage: `Durable statement ${index + 1}.`,
+      }),
+      {
+        reduceEvery: 10,
+        reducer() {
+          throw new Error('reduction must still be deferred')
+        },
+        reducerId: REDUCER_ID,
+      },
+    )
+    assert.equal(result.reductionStatus, 'skipped')
+    assert.equal(result.reductionReason, 'reduction_deferred')
+  }
+
+  const providerError = Object.assign(
+    new Error('Provider rejected the response schema.'),
+    { code: 'HTTP_NON_RETRYABLE' },
+  )
+  let reducerCalls = 0
+  await assert.rejects(
+    reducePendingTurns(brain, {
+      ...SCOPE,
+      maxAttempts: 1,
+      maxInteractionsPerCall: 20,
+      maxTurns: 10,
+      reducer() {
+        reducerCalls += 1
+        throw markReducerFailureTerminal(providerError)
+      },
+      reducerId: REDUCER_ID,
+    }),
+    (error) => error === providerError,
+  )
+
+  assert.equal(reducerCalls, 1)
+  assert.deepEqual(
+    brain.listPendingReductions(SCOPE).map((unit) => ({
+      attempts: unit.attempts,
+      lastErrorCategory: unit.lastErrorCategory,
+      unitOrder: unit.unitOrder,
+    })),
+    [
+      { attempts: 0, lastErrorCategory: null, unitOrder: 1 },
+      { attempts: 0, lastErrorCategory: null, unitOrder: 2 },
+      { attempts: 0, lastErrorCategory: null, unitOrder: 3 },
+    ],
+  )
+  assert.deepEqual(brain.listBlockedReductions(SCOPE), [])
+  assert.equal(brain.digestStatus(SCOPE).pending, 3)
+  assert.equal(brain.digestStatus(SCOPE).blocked, 0)
+
+  let recoveryCalls = 0
+  const recovered = await reducePendingTurns(brain, {
+    ...SCOPE,
+    maxAttempts: 1,
+    maxInteractionsPerCall: 20,
+    maxTurns: 10,
+    reducer({ request }) {
+      recoveryCalls += 1
+      assert.equal(request.input.evidence.length, 3)
+      return noMemoryPayload(request)
+    },
+    reducerId: REDUCER_ID,
+  })
+  assert.equal(recoveryCalls, 1)
+  assert.equal(recovered.status, 'completed')
+  assert.equal(recovered.pending, 0)
+  assert.equal(recovered.blocked, 0)
+})
+
+test('malformed reducer content still isolates and quarantines only its interaction', async (t) => {
+  const { brain } = await openBrain(t, 'content-reducer-failure')
+  for (let index = 0; index < 2; index += 1) {
+    await ingestChatTurn(
+      brain,
+      durableTurn({
+        eventAt: new Date(
+          Date.parse('2026-07-25T15:00:00.000Z') + index * 1_000,
+        ).toISOString(),
+        sourceMessageId: `content:${index + 1}`,
+        userMessage: `Content statement ${index + 1}.`,
+      }),
+      {
+        reduceEvery: 10,
+        reducer() {
+          throw new Error('reduction must still be deferred')
+        },
+        reducerId: REDUCER_ID,
+      },
+    )
+  }
+
+  const evidenceCounts = []
+  let reducerCalls = 0
+  const result = await reducePendingTurns(brain, {
+    ...SCOPE,
+    maxAttempts: 1,
+    maxInteractionsPerCall: 20,
+    maxTurns: 10,
+    reducer({ request }) {
+      reducerCalls += 1
+      evidenceCounts.push(request.input.evidence.length)
+      if (reducerCalls <= 2) return {}
+      return noMemoryPayload(request)
+    },
+    reducerId: REDUCER_ID,
+  })
+
+  assert.equal(reducerCalls, 3)
+  assert.deepEqual(evidenceCounts, [2, 1, 1])
+  assert.equal(result.status, 'completed_with_gaps')
+  assert.equal(result.pending, 0)
+  assert.equal(result.blocked, 1)
+  assert.equal(result.quarantined, true)
+  assert.deepEqual(
+    brain.listBlockedReductions(SCOPE).map((unit) => ({
+      attempts: unit.attempts,
+      unitOrder: unit.unitOrder,
+    })),
+    [{ attempts: 1, unitOrder: 1 }],
+  )
 })
 
 test('every committed near-limit digest fits the exact advertised answer envelope', async (t) => {

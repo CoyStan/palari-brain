@@ -49,6 +49,24 @@ export const dialogueRetentions = Object.freeze([
 
 const dialogueRetentionSet = new Set(dialogueRetentions)
 const defaultMemoryContextChars = 100_000
+const terminalReducerFailures = new WeakSet()
+
+// Reducer callbacks have two fundamentally different failure domains:
+//
+// - proposal/content failures can belong to one interaction, so the host may
+//   isolate and eventually quarantine that interaction;
+// - provider/configuration failures make the reducer itself unavailable, so
+//   blaming each queued interaction would only manufacture false gaps.
+//
+// Provider adapters mark the second kind explicitly. The marker stays
+// process-local and cannot be forged by model-authored JSON.
+export function markReducerFailureTerminal(error) {
+  const failure = error instanceof Error
+    ? error
+    : new Error('Reducer infrastructure failed.', { cause: error })
+  terminalReducerFailures.add(failure)
+  return failure
+}
 
 function normalizedMaxChars(value = defaultMemoryContextChars) {
   const limit = Number(value)
@@ -326,6 +344,12 @@ export async function reducePendingTurns(brain, {
         internal.gate.applyReduction(prepared, normalized),
       )
     } catch (error) {
+      // The reducer adapter has identified an infrastructure-wide failure
+      // (for example auth, request schema/configuration, or a terminal
+      // provider response). Preserve the exact error and queue state. Batch
+      // isolation is only meaningful for content-specific proposal failures.
+      if (terminalReducerFailures.has(error)) throw error
+
       const errorCategory = String(
         error?.code ?? error?.category ?? 'reducer_error',
       )

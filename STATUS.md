@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-L1-E TERMINAL LIVE SETUP FAILURE SEALED;
-FOUNDER GATE — AUTONOMOUS SEARCH REMAINS UNMEASURED (2026-07-26).
+Loop state: J4.4K-H1 OFFLINE SIMPLE HARNESS COMPLETE;
+FOUNDER GATE — LIVE COMPONENT CHECKS NOT AUTHORIZED (2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -1104,6 +1104,27 @@ session itself).
     historical open-run cases explicitly skipped; the full suite reports 467
     pass, 0 fail, and the same three skips. Quickstart, dry bake-off, and
     package dry-run are green.
+  - [x] J4.4K-H1 — OFFLINE SIMPLE HARNESS COMPLETE 2026-07-26
+    (`this commit`). Replaced the next experiment's integrated failure surface
+    with two independent seams while leaving every sealed runner and private
+    result untouched. The lean reducer wire exposes only short local aliases
+    and semantic add/same-topic-supersede proposals; the host still derives
+    revisions, dispositions, durable provenance, and enforces quote,
+    authority, chronology, atomicity, deletion, and capacity rules. Marked
+    provider-wide reducer failures now stop one batch after one dispatch
+    without incrementing attempts or quarantining canonical interactions;
+    malformed semantic proposals still isolate normally. The separate
+    journal-navigation arm neutralizes raw dataset session labels, replays
+    exact canonical dialogue, locally drains to a ready empty digest, and
+    exposes only shallow timeline/find/read tools with fixed host limits and
+    an audited six-attempt ceiling. An offline real-data seam over LongMemEval
+    ordinal 1 replayed 243
+    interactions into 484 exact canonical rows, reached a ready empty digest
+    in 16 local reducer calls, and made zero external reducer calls. The full
+    suite reports 489 pass, 0 fail, and three historical skips; quickstart,
+    dry bake-off, package dry-run, and the synthetic memory bench are green.
+    No credential, provider call, identity, score, reroll, publication, or
+    spend occurred.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1143,20 +1164,27 @@ session itself).
 ## Next
 
 **FOUNDER GATE.** Do not resume or alter
-`j4-active-brain-exploration-longmemeval-q1-v1`. The live experiment failed
-before autonomous navigation, so exact substring exploration is neither
-validated nor disproved.
+`j4-active-brain-exploration-longmemeval-q1-v1`. Its failure remains sealed,
+and autonomous exact-only search remains unmeasured.
 
-The smallest possible successor would use a fresh identity and simplify only
-the provider-enforced reducer response schema while retaining strict
-host-side validation. A separate fail-fast correction could stop ingestion
-immediately when the meter becomes terminal instead of consuming local
-isolation dispatches. Neither correction, nor another provider call, is
-authorized.
+The offline repair is complete. The smallest empirical sequence is now
+deliberately separated:
 
-A fresh founder GO is required before either behavioral repair or any
-successor run. Question 2, prompt/tool-description tuning, semantic fallback,
-Mem0, S-490, reroll, publication, and announcement remain closed.
+1. A fresh, tiny reducer-compatibility smoke may test one new fact, one valid
+   `no_memory`, and one correction using the lean proposal contract. It
+   requires a new identity, frozen configuration/hashes/costs, FINAL
+   predictions, and an exact founder-approved subcap.
+2. Only after that result is reported and separately authorized, one
+   navigation-only LongMemEval ordinal-1 run may use the local discard
+   reducer, one answer session, at most six model-chosen tool calls, and one
+   official judge. It must make zero provider reducer calls and receive no
+   answer phrase, answer-bearing session ID, or reference answer.
+3. An integrated reducer-plus-navigation run is a later founder decision, not
+   an automatic continuation.
+
+No live authority exists for any of those steps. Question 2,
+prompt/tool-description tuning, semantic fallback, Mem0, S-490, reroll,
+publication, and announcement remain closed.
 
 ## Log
 
@@ -1449,6 +1477,15 @@ fresh accounted spend is `$0.2359296`, cumulative accounted spend is
 `$1.0120378`. Focused contracts report 20 pass, 0 fail, and three historical
 skips; the full suite reports 467 pass, 0 fail, and the same three skips.
 Quickstart, dry bake-off, and package dry-run are green.
+2026-07-26 — J4.4K-H1 — this commit — Split future reducer compatibility
+from journal navigation, moved reducer bookkeeping and enforcement behind a
+lean provider proposal, and made provider-wide reducer failures stop without
+false interaction quarantine. Real ordinal-1 dialogue replayed offline as
+243 interactions and 484 exact canonical rows with a ready empty digest and
+zero external reducer calls. Full suite 489 pass, 0 fail, three historical
+skips; quickstart, dry bake-off, package dry-run, and synthetic memory bench
+green. No credential, provider call, identity, score, reroll, publication, or
+spend.
 
 ## Product stop-rule record
 
@@ -2514,3 +2551,34 @@ Quickstart, dry bake-off, and package dry-run are green.
    failed identity could be rerun and the schema failure could be mistaken
    for evidence about exact search. This is an experiment closeout/governance
    unit, so work stops at the founder gate.
+
+### J4.4K-H1 offline simple harness
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? Yes, for failure
+   handling: one marked provider-wide error now causes one dispatch, leaves
+   all interaction attempt/error fields unchanged, creates zero false
+   quarantines, and permits a later clean recovery. It also makes the next
+   product measurement narrower: the real ordinal-1 journal reached a ready
+   empty digest with zero external reducer calls, so navigation can no longer
+   be hidden behind reducer setup.
+3. Does an existing framework already provide what this unit added? Gemini
+   already provides structured output and function calling. This unit does
+   not invent another retrieval method; it applies Google's documented
+   smaller-schema guidance and keeps Palari's existing scope, provenance,
+   chronology, deletion, and atomicity checks on the host.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder asked three independent reviewers to simplify the harness without
+   sacrificing trust, then explicitly approved implementation.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? A global reducer outage could again be misreported as many bad
+   conversations and create false memory gaps. The next paid navigation test
+   could again fail inside an unrelated reducer and tell us nothing about
+   recall. Removing the host expansion would also return revision,
+   provenance, and disposition authority to model-authored JSON.
+
+This unit contains one product correction (truthful reducer failure handling)
+and one reduction in evaluation coupling. It removes infrastructure from the
+next experiment rather than adding another integrated layer, and stops before
+the live founder gate.
