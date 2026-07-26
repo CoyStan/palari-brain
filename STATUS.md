@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-R2-S1-E INCREMENTAL REDUCER SMOKE COMPLETE;
-FOUNDER GATE — NO LIVE IDENTITY OPEN (2026-07-25).
+Loop state: J4.2K-R2-L1-P ONE-QUESTION INCREMENTAL LONGMEMEVAL PREPARED;
+FOUNDER GO OPEN — EXACTLY ONE LIVE INVOCATION (2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -241,6 +241,26 @@ cap. No dataset, benchmark question, judge, OpenAI, Mem0, comparison arm, or
 publication surface ran. The private manifest, checkpoints, ledger, result,
 report, transcripts, predecessor chain, and exact-secret audit verify. The
 identity is sealed in code and no live identity remains open.
+
+The founder then authorized the smallest external-benchmark measurement of
+the same incremental product bytes: exactly S-60 ordinal 1, question
+`08e075c7`, processed as 243 chronological interactions with a private
+checkpoint after every reduction, followed by one Gemini digest-backed answer
+and one official OpenAI judge, then a mandatory stop before question 2. The
+fresh identity is
+`j4-active-brain-incremental-longmemeval-q1-v1`, pinned to product commit
+`9b9ac02f9f6b89ee4457e837161c8eed30701eb9`. No retry dispatch is permitted,
+so the successful maximum is exactly 245 physical provider calls.
+
+The founder approved increasing the limits to a `$7.10` fresh subcap and
+`$8.00` cumulative J4 cap. All earlier J4 evidence and `$0.7761082` accounted
+spend are carried forward. Replaying the exact final request shape established
+a conservative fresh maximum of `$7.0754981` and cumulative maximum of
+`$7.8516063`, including 243 maximum-output reducer reservations, one Gemini
+answer reservation, and one highest-synchronous-tier judge reservation.
+Authority, configuration, 38 runtime hashes, the exact question population,
+cost arithmetic, and nine FINAL predictions are frozen and offline-verified.
+No call for this identity has occurred at this preparation cut point.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -721,6 +741,27 @@ session itself).
     verifies and the identity is terminal. Post-seal focused tests are 17/17
     and the full suite is 295/295; quickstart, dry bake-off, package dry-run,
     diff checks, manifest verification, and direct terminal refusal are green.
+  - [x] J4.2K-R2-L1-P — ONE-QUESTION INCREMENTAL LONGMEMEVAL PREPARED
+    2026-07-26 (`this commit`). Froze exactly S-60 ordinal 1,
+    `08e075c7`, as 243 sequential reducer operations, one Gemini answer,
+    one official OpenAI judge, 243 interaction checkpoints, no retry, and a
+    mandatory stop before question 2. The exact 484-message population,
+    predecessor evidence, `$0.7761082` opening spend, current provider
+    contracts, one-shot judge transport, 38 runtime hashes, and nine FINAL
+    predictions verify. The founder-raised `$7.10` fresh and `$8.00`
+    cumulative caps cover the corrected `$7.0754981` fresh conservative
+    envelope. Config SHA-256
+    `16fab020b245e96a34a472606faa1b7414006ee41cf7bf2d3f5ed24db81aac5e`;
+    authority SHA-256
+    `fd1ea14932633b3716668a6f16e400b2ed412277bd6f2acc58a1d05fe4467967`;
+    FINAL predictions SHA-256
+    `6bf388c9898cd1198af75252f7b46f9c7554c19532d92f15bb093cd1361a72b0`.
+    Focused tests are 27/27 and the full suite is 322/322; quickstart, dry
+    bake-off, and package dry-run are green. No provider call has occurred.
+  - [ ] J4.2K-R2-L1-E — ONE-QUESTION INCREMENTAL LONGMEMEVAL EXECUTION.
+    Invoke the pushed preparation exactly once, grade the immutable
+    predictions failing categories first, seal the identity, and stop before
+    question 2 regardless of outcome.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -733,18 +774,19 @@ session itself).
 
 ## Next
 
-FOUNDER GATE. Report the terminal incremental reducer smoke and stop. No live
-identity is open. The product path itself completed the intended add,
-correction, lineage, bounded-digest, and answer journey; the frozen mechanical
-wording oracle recorded one false-negative miss and remains unchanged.
+FOUNDER GO OPEN. After this coherent preparation is committed and pushed to a
+clean synchronized `main`, invoke
+`j4-active-brain-incremental-longmemeval-q1-v1` exactly once with the exact
+`$7.10` fresh and `$8.00` cumulative confirmations. Process only question
+`08e075c7`, checkpoint all 243 chronological interactions, make at most one
+Gemini answer and one official OpenAI judge call, then stop regardless of
+outcome. Retry dispatches are forbidden.
 
-Do not rerun or regrade this identity. A grading-oracle repair, successor
-identity, benchmark question, provider call, cap change, behavioral repair,
-Mem0 or S-490 run, publication, or announcement requires a fresh founder GO.
-Known honest limits remain: a fixed lossy digest cannot prove arbitrary
-exhaustive negative/count answers, and a single interaction larger than the
-reducer envelope remains an explicit pending queue blocker until the host
-deletes it or adopts a separately versioned chunking contract.
+After the invocation, preserve and verify the private evidence, grade the nine
+FINAL predictions with misses first, seal this identity in code, record no
+live score in git, commit and push the terminal cut point, and report. Do not
+start question 2, rerun or regrade the identity, change product behavior,
+execute Mem0 or S-490, publish, or announce.
 
 ## Log
 
@@ -974,6 +1016,15 @@ negative. Fresh measured spend `$0.0029759`; cumulative accounted spend
 `$0.7761082`. Private evidence verified, runner sealed, no external evaluation
 surface used, and no live identity remains open. Post-seal focused tests 17/17
 and full suite 295/295; quickstart, dry bake-off, and package dry-run green.
+2026-07-26 — J4.2K-R2-L1-P — this commit — Recorded the founder's exact
+one-question GO and cap increase, froze S-60 question `08e075c7` as 243
+sequential reducer checkpoints plus one answer and one official judge, carried
+`$0.7761082` opening spend, and pinned the corrected `$7.0754981` conservative
+fresh envelope under `$7.10` fresh and `$8.00` cumulative caps. The one-shot
+no-retry runner, 38 runtime hashes, exact population, FINAL predictions,
+provider contracts, and independent audits are green; no provider call
+occurred. Focused tests 27/27 and full suite 322/322; quickstart, dry
+bake-off, and package dry-run green.
 
 ## Product stop-rule record
 
@@ -1856,3 +1907,26 @@ and full suite 295/295; quickstart, dry bake-off, and package dry-run green.
    only live proof that the recurrent add/correct/answer path works would be
    lost and the paid identity could be rerolled. This execution closes the
    preceding infrastructure preparation and stops at a founder gate.
+
+### J4.2K-R2-L1-P one-question incremental LongMemEval preparation
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It changes no product
+   behavior and makes no live-quality claim before execution. It makes the
+   already-live-compatible recurrent path measurable on one external
+   484-message benchmark question, so this is one founder-requested
+   infrastructure unit paired with its execution.
+3. Does an existing framework already provide what this unit added?
+   LongMemEval supplies the question and official judge, Gemini supplies
+   generation, and the existing Palari meter supplies private accounting.
+   This unit adds only the bounded adapter, immutable identity, and per-turn
+   checkpoints needed to measure Palari's product path.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly approved the proposed one-question run and then approved
+   the stated `$7.10` fresh and `$8.00` cumulative cap increase.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Runtime behavior would not change immediately, but the 243-step path
+   could not be measured safely or attributed reproducibly; a failed middle
+   interaction could consume spend without a durable exact checkpoint, or
+   execution could drift into question 2.

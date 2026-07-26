@@ -1345,3 +1345,44 @@ dates. Agents record; the founder decides.
   grading-oracle repair, successor identity, benchmark, provider call, cap
   change, behavioral repair, publication, or announcement requires a fresh
   founder GO.
+- 2026-07-26 (FOUNDER GO — J4.2K-R2-L1 one-question incremental
+  LongMemEval) On 2026-07-25, after the recurrent add/correct/answer smoke, the
+  founder said “GO” to the stated next step: process exactly one LongMemEval
+  question through the incremental reducer, sequentially checkpoint every
+  interaction, make one Gemini answer call and one official OpenAI judge call,
+  then stop before question 2. On 2026-07-26 the founder explicitly approved
+  increasing the cap after the conservative estimate exceeded `$1`. The
+  adopted limits are `$7.10` fresh and `$8.00` cumulative. This authority does
+  not permit a retry dispatch, question 2, Mem0, S-490, a reroll, behavioral
+  repair, publication, or announcement.
+
+  The fresh identity is
+  `j4-active-brain-incremental-longmemeval-q1-v1`, pinned to product commit
+  `9b9ac02f9f6b89ee4457e837161c8eed30701eb9`,
+  `gemini-3.5-flash-lite` for reduction and answer, and
+  `gpt-4o-2024-08-06` for the stateless official-compatible judge. It selects
+  only S-60 ordinal 1, `08e075c7`: 45 sessions, 243 chronological
+  interactions, 484 visible messages, 497,983 visible characters, and no
+  sealed U8 question. Successful execution has exactly 243 reducer
+  dispatches, one answer dispatch, one judge dispatch, 243 private interaction
+  checkpoints, and no retry. A failed operation is terminal evidence rather
+  than authority to resume.
+
+  The predecessor chain carries `$0.7761082` accounted
+  (`$0.7736072` measured plus `$0.0025010` uncertain). Exact empty-prior wire
+  replay plus the bounded maximum prior yields 19,342,276 reserved Gemini
+  input tokens and 486,256 output tokens. With the highest documented
+  synchronous OpenAI judge reservation, the conservative maximum is
+  `$7.0754981` fresh and `$7.8516063` cumulative. Config SHA-256 is
+  `16fab020b245e96a34a472606faa1b7414006ee41cf7bf2d3f5ed24db81aac5e`;
+  authority SHA-256 is
+  `fd1ea14932633b3716668a6f16e400b2ed412277bd6f2acc58a1d05fe4467967`;
+  FINAL prediction SHA-256 is
+  `6bf388c9898cd1198af75252f7b46f9c7554c19532d92f15bb093cd1361a72b0`;
+  the 38-file artifact-set SHA-256 is
+  `b8b6ebbb5a800df46f4085e249f3d48cc1d409dd81ff9ec22016f3d11ce22cdf`.
+  Current official model, pricing, structured-output, no-store, and service
+  tier documentation was checked and pinned in the config. Nine predictions
+  are FINAL before execution. No provider call for this identity occurred at
+  the preparation cut point; raw benchmark content, transcripts, answers,
+  checkpoints, and live scores remain private and gitignored.

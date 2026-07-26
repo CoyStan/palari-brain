@@ -105,3 +105,20 @@ physical dispatches, and zero retry dispatches. The identity contains no dataset
 benchmark, judge, OpenAI, comparison-arm, or publication path. All eight
 predictions are FINAL before any provider call and a bad result is a finding,
 not authority to reroll.
+
+## J4 incremental LongMemEval question 1 v1 — FINAL before execution
+
+Author: repository execution lane, 2026-07-26. The complete machine-readable
+prediction document is
+`evals/predictions/j4-active-brain-incremental-longmemeval-q1-v1.json`,
+SHA-256
+`6bf388c9898cd1198af75252f7b46f9c7554c19532d92f15bb093cd1361a72b0`.
+It predicts a correct answer with moderate confidence after all 243
+chronological interactions have each completed one recurrent reducer
+operation and durable checkpoint. Healthy execution then makes exactly one
+Gemini answer operation and one official OpenAI judge operation: 245 physical
+dispatches total, with no retry. Every reducer receives only its bounded prior
+digest and current interaction. The identity must stop before question 2.
+All nine predictions are FINAL before any provider call; compounded
+provider/contract failure and bounded-digest information loss remain genuine
+failure modes, and a bad result is a finding rather than authority to reroll.
