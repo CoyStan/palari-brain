@@ -226,11 +226,12 @@ function geminiEvidence(snapshot, {
   const writers = Number(snapshot?.logicalRequests?.writer ?? 0)
   const explores = Number(snapshot?.logicalRequests?.explore ?? 0)
   const expectedAttempts = writers + explores
-  const completedPrefix = snapshot?.terminal === null
+  const completedPrefix = snapshot?.terminal === false
     ? snapshot.attempts === expectedAttempts &&
       snapshot.sequence === expectedAttempts * 2
-    : snapshot?.attempts >= expectedAttempts &&
-      snapshot?.sequence >= expectedAttempts * 2
+    : snapshot?.terminal === true &&
+        snapshot?.attempts >= expectedAttempts &&
+        snapshot?.sequence >= expectedAttempts * 2
   return {
     coherent:
       isObject(snapshot) &&

@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-M1 REAL-DATA OFFLINE EXPLORATION PREFLIGHT COMPLETE;
-FOUNDER GATE — STEP 2 LIVE DESIGN/CAP CONFIRMATION REQUIRED (2026-07-26).
+Loop state: J4.4K-L1-P AUTONOMOUS EXPLORATION ONE-QUESTION PRE-RUN COMPLETE;
+FOUNDER GATE — EXACT `$4.1316452` FRESH CAP CONFIRMATION REQUIRED
+(2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -409,6 +410,44 @@ dispatch composition was 26 successes plus one failed batch attempt that was
 isolated and retried. Every run completed with zero quarantines and a ready
 digest. No credential was read, no provider was called, no live identity or
 score was created, and J4 spend remains `$0.7761082` accounted.
+
+The founder subsequently approved the Step 2 scope: one live autonomous
+exploration measurement on S-60 ordinal 1, `08e075c7`, followed by a stop.
+Fresh identity `j4-active-brain-exploration-longmemeval-q1-v1` freezes the
+raw and neutralized execution instances, 243 interactions, cadence-20
+batching, at most 27 reducer dispatches, six model-chosen tool calls across
+at most seven exploration-model dispatches, one official judge, zero
+transport retries, batch isolation within the reducer ceiling, and no path to
+question 2. The real model receives only the three product memory tools and
+must choose its own phrases; no answer phrase or answer-session hint is
+pre-seeded.
+
+Pre-run review found that the dataset's raw session labels disclose which
+sessions contain answer evidence. All 45 IDs are now deterministically
+replaced with neutral chronological `session-NNN` aliases before replay; no
+raw ID or answer label remains in the provider-visible instance or exchange
+plan. The private oracle retains the transformed answer-session mapping only
+for grading. Its grounded result means consultation of a returned row from
+an answer-bearing session; it does not prove causal use of that row or
+distinguish newer evidence from older history.
+
+Preparation also made the shipped exploration surface internally coherent:
+the package now contains the module imported by its public entry point,
+`memory_find` returns genuinely bounded excerpts, `memory_read` has a
+provider-valid non-empty schema, literal session reads do not interpret SQL
+wildcards, legal parallel Gemini function calls retain their complete
+ordered protocol evidence, clean meter state matches the real transport, and
+the oracle rejects irrelevant or same-turn pseudo-recovery. Exact search
+remains unchanged; no semantic fallback was added.
+
+Expected fresh cost is `$0.0660333`. Full-window reservations produce the
+conservative fresh hard cap `$4.1316452` and projected cumulative maximum
+`$4.9077534` from the existing `$0.7761082` opening spend, below the existing
+`$8.00` cumulative cap. Because the founder's scope approval preceded that
+exact number, tracked authority remains preparation-only:
+`dispatchAuthorized: false`. The 38-file runtime closure and six FINAL
+predictions are frozen. No credential was accessed, no provider was called,
+no private result or score was created, and spend is unchanged.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -986,6 +1025,24 @@ session itself).
     reducer requests rather than the assumed approximately 12. Its displayed
     24-applied count omits two successful final-drain reductions. Full suite
     422/422 and quickstart green.
+  - [x] J4.4K-L1-P — AUTONOMOUS EXPLORATION ONE-QUESTION PRE-RUN FROZEN
+    2026-07-26 (`3c88663`, `e46a65c`, and this commit). Froze fresh identity
+    `j4-active-brain-exploration-longmemeval-q1-v1` over exact S-60 ordinal 1:
+    243 interactions at cadence 20, at most 27 reducer dispatches, six
+    model-chosen tool calls across at most seven exploration-model dispatches,
+    one official judge, zero transport retries, batch isolation within the
+    reducer ceiling, and a mandatory stop before question 2. Neutral
+    chronological session aliases remove dataset answer-label leakage before
+    replay. FINAL predictions SHA-256 is
+    `c25d043f93c0b23b7036737bac3324ce4b85f188587b3765da265d1a53cf0c2c`;
+    the 38-file runtime closure is hash-pinned. Expected fresh cost is
+    `$0.0660333`; the conservative fresh hard cap is `$4.1316452`, producing
+    a `$4.9077534` cumulative maximum from the unchanged `$0.7761082`
+    opening spend. Focused contracts, the full suite, quickstart, dry
+    bake-off, package dry-run/install-import, and the real cadence-20 bench
+    are green. Authority remains preparation-only pending exact founder
+    confirmation; no credential, provider call, result, score, or spend
+    occurred.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1024,46 +1081,27 @@ session itself).
 
 ## Next
 
-STOP after reporting J4.4K-M1. The real dataset does not behave like the
-synthetic population: its digest retains 6/12 answer-bearing interactions
-rather than 1/1, and cadence 20 takes 27 reducer requests rather than the
-approximately 12 assumed for the live design. The deterministic scripted
-explorer still finds 12/12 because it derives exact phrases from each
-dataset-labelled answer-session exchange and probes all 12 separately,
-including the six already represented in the digest. That is exact journal
-reachability, not evidence that a real model can choose useful phrases or
-recover after a miss.
+STOP. Preparation for
+`j4-active-brain-exploration-longmemeval-q1-v1` is complete, but paid
+dispatch is not yet authorized under its exact cap. Expected fresh cost is
+`$0.0660333`; the conservative fresh hard cap is `$4.1316452`. With
+`$0.7761082` opening spend, the projected cumulative maximum is
+`$4.9077534`, below the existing `$8.00` cumulative cap.
 
-The next honest step remains one live exploration question, but no executable
-identity exists and no spend is authorized yet. Before dispatch, a new
-pre-run unit must freeze the fresh run ID, exact ordinal-1 instance hash,
-`reduceEvery: 20`, an empirically honest reducer-call ceiling based on this
-27-call result, one answer with at most six self-chosen exploration calls,
-one judge, exact artifact hashes, FINAL predictions, and a conservative fresh
-spend envelope. Report that envelope and obtain explicit founder confirmation
-before any credential or network access.
+The only founder decision required is explicit confirmation of
+`freshSubcapUsd: 4.1316452` for this identity. Before that confirmation, do
+not access credentials or make a provider request. If confirmed, record the
+confirmation in the authority file in one coherent committed and pushed cut,
+then invoke the identity exactly once.
 
-PRIOR FOUNDER GATE AND PRODUCT-DRIFT STOP. The offline provider hard-cap contract is
-resolved, but it creates no run authority. J4.2K-R2-L1-A and
-J4.2K-R2-L1-B are two consecutive infrastructure units; do not start a third
-infrastructure unit autonomously. The founder must decide whether the next
-work is the measured product experiment or a return to user-visible memory
-behavior.
-
-Do not resume or rerun
-`j4-active-brain-incremental-longmemeval-q1-v1`. A live successor requires a
-new explicit GO that freezes a new run ID, exactly one stated benchmark
-question and instance hash, fresh and cumulative caps, configuration hashes,
-and FINAL predictions before credential or network access. It must use
-`createIncrementalLongMemEvalGeminiTransport`,
-`runIncrementalLongMemEvalQuestionForScoring`, the immutable checkpoint
-journal, and the evidence oracle; install the accidental-network guard after
-capturing both metered transports; run only its contracted compatibility
-smoke and question; then stop. Cumulative J4 spend still starts at
-`$0.7761082` accounted.
-
-Any provider call, question 2, Mem0, S-490, publication, announcement, reroll,
-or relaxation of the successor safety contract requires a fresh founder GO.
+After invocation, grade all six FINAL predictions with misses first; report
+the exact ordered tool calls and model-chosen phrases, each tool result,
+`consultedEvidenceIds`, measured fresh and cumulative spend, and whether
+exact-only exploration is sufficient. Then stop. Question 2, Mem0, S-490,
+prompt tuning, semantic fallback, reroll, publication, and announcement all
+remain separately founder-gated. Never resume or alter the sealed
+`j4-active-brain-incremental-longmemeval-q1-v1` identity or any prior private
+bundle.
 
 ## Log
 
@@ -1334,6 +1372,13 @@ interactions; scripted exact lookup found 12/12, and cadence 20 used 27
 reducer calls rather than the assumed approximately 12. Its 24-applied CLI
 counter omits two successful final-drain reductions. Suite 422/422 and
 quickstart green; no credential, provider call, identity, score, or spend.
+2026-07-26 — J4.4K-L1-P — this commit — Froze the fresh one-question
+autonomous-exploration identity, neutralized ordinal-1 population,
+cadence-20 reducer ceiling, bounded native Gemini tool loop, official judge,
+immutable evidence oracle, six FINAL predictions, 38 runtime hashes, and
+`$4.1316452` conservative fresh envelope. Full offline verification is
+green; no credential, provider call, result, score, or spend occurred. Exact
+founder cap confirmation remains required.
 
 ## Product stop-rule record
 
@@ -2330,3 +2375,35 @@ quickstart green; no credential, provider call, identity, score, or spend.
    retention, underestimating both workload and the need for exploration.
    This is one founder-requested measurement unit and stops before its live
    counterpart.
+
+### J4.4K-L1-P autonomous exploration pre-run
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green, and the installed-package check imports the
+   exploration module through the public entry point.
+2. Did this unit make that journey measurably better? Deterministically, it
+   made the shipped exploration path usable and bounded: installed imports
+   work, `memory_find` no longer duplicates complete messages outside its
+   stated budget, literal session IDs stay literal, and legal parallel tool
+   calls no longer fail locally. It makes no live recall-quality claim before
+   execution.
+3. Does an existing framework already provide what this unit added? Gemini
+   already provides native function calling, parallel calls, schemas, and
+   thought-signature protocol. This unit uses those existing facilities
+   around Palari's exact scoped journal, source boundary, evidence IDs,
+   deletion semantics, and immutable private run accounting; it adds no new
+   retrieval algorithm.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly requested one real-model test of whether the model can
+   choose its own phrases, recover after an exact-search miss, ground its
+   answer, and stop after one question.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? The published package could again fail when its public entry point
+   imports an omitted file; exact-find output could exceed its promised
+   bound; literal session IDs containing wildcard characters could read the
+   wrong history; and a provider's legal parallel memory calls could
+   terminate exploration before answering. Deleting only the run surface
+   would leave those product fixes but remove the safe, falsifiable
+   measurement the founder requested. This is the pre-call half of one
+   founder-requested product experiment, not authority for another
+   infrastructure layer.

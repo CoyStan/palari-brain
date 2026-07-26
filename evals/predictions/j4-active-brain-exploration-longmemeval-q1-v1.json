@@ -3,7 +3,7 @@
   "status": "FINAL",
   "runId": "j4-active-brain-exploration-longmemeval-q1-v1",
   "recordedAt": "2026-07-26",
-  "productCommit": "068d7a2d4ec1e62d8689b889b9527ae4ad455748",
+  "productCommit": "e46a65c13bb48c04a005490f200a071ad8d79dee",
   "questionId": "08e075c7",
   "models": {
     "exploration": "gemini-2.5-flash-lite",

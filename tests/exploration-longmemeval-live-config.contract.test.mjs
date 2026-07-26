@@ -8,7 +8,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import {
   assertExplorationLongMemEvalEnvironment,
-  EXPLORATION_LONGMEMEVAL_ARTIFACTS_PENDING,
   EXPLORATION_LONGMEMEVAL_AUTHORITY_PATH,
   EXPLORATION_LONGMEMEVAL_CONFIG_PATH,
   EXPLORATION_LONGMEMEVAL_DATASET,
@@ -77,7 +76,7 @@ test('identity, dataset, instance, and exact one-question population are pinned'
     assert.equal(EXPLORATION_LONGMEMEVAL_RUN_DATE, '2026-07-26')
     assert.equal(
       EXPLORATION_LONGMEMEVAL_PRODUCT_COMMIT,
-      '068d7a2d4ec1e62d8689b889b9527ae4ad455748',
+      'e46a65c13bb48c04a005490f200a071ad8d79dee',
     )
     assert.equal(EXPLORATION_LONGMEMEVAL_QUESTION_ID, '08e075c7')
     assert.deepEqual(EXPLORATION_LONGMEMEVAL_DATASET, {
@@ -86,16 +85,23 @@ test('identity, dataset, instance, and exact one-question population are pinned'
         'd6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442',
     })
     assert.deepEqual(EXPLORATION_LONGMEMEVAL_INSTANCE, {
-      normalizedBytes: 558_824,
+      executionNormalizedBytes: 558_706,
+      executionNormalizedSha256:
+        'd44a4d388a0398f89c4d8af1452fe6b53ce16066a77d4430ad8136f916a0716e',
       normalizedFormat: 'JSON.stringify(instance, null, 2) + newline',
-      normalizedSha256:
-        '7caf1c76b67ece61d747e829eb3b13bb3046d1101ae4320460cd7fdd2e817fb2',
+      pseudonymization:
+        'All session IDs replaced by chronological session-NNN aliases before replay.',
       questionId: '08e075c7',
+      rawNormalizedBytes: 558_824,
+      rawNormalizedSha256:
+        '7caf1c76b67ece61d747e829eb3b13bb3046d1101ae4320460cd7fdd2e817fb2',
     })
     assert.deepEqual(EXPLORATION_LONGMEMEVAL_POPULATION, {
       exchangePlanSha256:
-        '8441628945e6f6b0685f3b67ef6413a4a249ece8bbc9509af75e6849531c8be3',
+        'ea5f7094851ed15d8a958f448b6787bb93366caa73206935cac57a8d833eb9be',
       interactions: 243,
+      rawExchangePlanSha256:
+        '8441628945e6f6b0685f3b67ef6413a4a249ece8bbc9509af75e6849531c8be3',
       sessions: 45,
       visibleCharacters: 497_983,
       visibleMessages: 484,
@@ -109,6 +115,7 @@ test('identity, dataset, instance, and exact one-question population are pinned'
 
 test('dispatch ceilings match cadence 20, six tools, and one judge', () => {
   assert.deepEqual(EXPLORATION_LONGMEMEVAL_SCOPE, {
+    batchIsolationAllowed: true,
     benchmarkQuestions: 1,
     comparisonOperations: 0,
     judgeOperations: 1,
@@ -120,7 +127,7 @@ test('dispatch ceilings match cadence 20, six tools, and one judge', () => {
     question2Allowed: false,
     questionIds: ['08e075c7'],
     reduceEvery: 20,
-    retryDispatches: 0,
+    transportRetryDispatches: 0,
   })
   assert.equal(
     EXPLORATION_LONGMEMEVAL_SCOPE.maximumPhysicalDispatches,
@@ -246,16 +253,9 @@ test('full-window hard cap is exact and distinct from expected spend', () => {
   )
 })
 
-test('loader validates FINAL predictions and preserves the artifact stop',
+test('loader validates FINAL predictions and the frozen artifact closure',
   async () => {
-    await assert.rejects(
-      loadExplorationLongMemEvalContract({ repoRoot }),
-      (error) => error?.code === 'ARTIFACT_HASHES_PENDING',
-    )
-    const loaded = await loadExplorationLongMemEvalContract({
-      allowPendingArtifacts: true,
-      repoRoot,
-    })
+    const loaded = await loadExplorationLongMemEvalContract({ repoRoot })
     assert.equal(loaded.predictions.status, 'FINAL')
     assert.equal(loaded.predictions.noReroll, true)
     assert.deepEqual(loaded.config.executionLaw, {
@@ -270,9 +270,18 @@ test('loader validates FINAL predictions and preserves the artifact stop',
       loaded.predictions.predictions,
       EXPLORATION_LONGMEMEVAL_EXPECTED_PREDICTIONS,
     )
-    assert.deepEqual(
-      loaded.config.artifacts,
-      EXPLORATION_LONGMEMEVAL_ARTIFACTS_PENDING,
+    assert.equal(Array.isArray(loaded.config.artifacts), true)
+    assert.equal(loaded.config.artifacts.length, 38)
+    assert.equal(
+      loaded.config.artifacts.some((entry) =>
+        entry.path ===
+          'evals/run-exploration-longmemeval-live.mjs'),
+      true,
+    )
+    assert.equal(
+      loaded.config.artifacts.some((entry) =>
+        entry.path === 'src/memory-exploration.mjs'),
+      true,
     )
     assert.equal(loaded.configPath, join(repoRoot,
       EXPLORATION_LONGMEMEVAL_CONFIG_PATH))
@@ -284,10 +293,7 @@ test('loader validates FINAL predictions and preserves the artifact stop',
 
 test('pending authority refuses before credential fields are read',
   async () => {
-    const loaded = await loadExplorationLongMemEvalContract({
-      allowPendingArtifacts: true,
-      repoRoot,
-    })
+    const loaded = await loadExplorationLongMemEvalContract({ repoRoot })
     let keyReads = 0
     const env = {}
     for (const key of ['GEMINI_API_KEY', 'OPENAI_API_KEY']) {
@@ -313,10 +319,7 @@ test('pending authority refuses before credential fields are read',
 
 test('activated gate still requires exact environment confirmations',
   async () => {
-    const loaded = await loadExplorationLongMemEvalContract({
-      allowPendingArtifacts: true,
-      repoRoot,
-    })
+    const loaded = await loadExplorationLongMemEvalContract({ repoRoot })
     const config = structuredClone(loaded.config)
     config.artifacts = [{
       path: 'evals/final-runtime-artifact.mjs',

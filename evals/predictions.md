@@ -122,3 +122,30 @@ digest and current interaction. The identity must stop before question 2.
 All nine predictions are FINAL before any provider call; compounded
 provider/contract failure and bounded-digest information loss remain genuine
 failure modes, and a bad result is a finding rather than authority to reroll.
+
+## J4 autonomous-exploration LongMemEval question 1 v1 — FINAL before execution
+
+Author: repository execution lane, 2026-07-26. The complete
+machine-readable prediction document is
+`evals/predictions/j4-active-brain-exploration-longmemeval-q1-v1.json`,
+SHA-256
+`c25d043f93c0b23b7036737bac3324ce4b85f188587b3765da265d1a53cf0c2c`.
+It predicts: ingestion completes with 243 interactions, zero quarantines, and
+a ready digest; the model uses `memory_find`; its first chosen phrase misses
+at least once; it subsequently recovers by rewording or by
+`memory_timeline` plus `memory_read`; the final answer is grounded in at
+least one `consultedEvidenceIds` message; and no more than six exploration
+tool calls are used without exhausting the budget. The model must choose its
+own phrases: no gold answer text or answer-session hint is pre-seeded.
+
+All raw dataset session IDs are replaced with neutral chronological aliases
+before replay so the session names cannot reveal the gold evidence. The
+private oracle retains only the transformed answer-session mapping for
+grading. Its grounded result means that at least one consulted returned row
+came from a dataset-labelled answer-bearing session; it does not prove causal
+use of that row or distinguish newer evidence from older history.
+
+These six predictions are FINAL before credential or provider access. A miss
+is a finding, not authority to alter the prompt or reroll. Paid dispatch
+remains blocked until the founder confirms the exact `$4.1316452` fresh
+subcap.

@@ -98,7 +98,7 @@ function evidence() {
       },
       measured: { usd: 0.01 },
       sequence: 60,
-      terminal: null,
+      terminal: false,
       uncertain: { usd: 0 },
     },
     result: {

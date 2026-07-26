@@ -1530,3 +1530,73 @@ dates. Agents record; the founder decides.
   terminal. Cumulative J4 spend remains `$0.7761082` accounted. This is the
   second consecutive infrastructure unit, so the charter requires a product
   drift stop after its offline verification and commit.
+- 2026-07-26 (FOUNDER SCOPE GO — J4.4K-L1 one-question autonomous
+  exploration; exact paid cap still gated) The founder approved Step 2:
+  measure exactly LongMemEval-S ordinal 1, question `08e075c7`, through
+  batched reduction, one bounded answer in which the real model chooses its
+  own memory-tool calls and search phrases, and one official judge, then
+  stop. The founder-authored run discipline separately requires confirmation
+  of the exact conservative envelope before paid dispatch. Preparation is
+  therefore authorized, while the tracked authority remains
+  `dispatchAuthorized: false` and
+  `exactCapConfirmationRequired: true`.
+
+  The fresh identity is
+  `j4-active-brain-exploration-longmemeval-q1-v1`. It pins the raw normalized
+  instance SHA-256
+  `7caf1c76b67ece61d747e829eb3b13bb3046d1101ae4320460cd7fdd2e817fb2`,
+  243 interactions, 484 visible messages, 45 sessions,
+  `reduceEvery: 20`, at most 27 reducer dispatches, at most six
+  model-chosen exploration tool calls across at most seven
+  exploration-model dispatches, one judge dispatch, zero transport retries,
+  batch isolation within the 27-dispatch ceiling, and a mandatory stop
+  before question 2. Reduction and exploration use
+  `gemini-2.5-flash-lite`; judging uses `gpt-4o-2024-08-06`. Search remains
+  exact substring matching: no answer phrase is pre-seeded and no semantic
+  fallback is added.
+
+  Pre-run review found that LongMemEval's raw session names disclose which
+  sessions carry answer evidence. Before replay, all session IDs are
+  therefore deterministically replaced with neutral chronological
+  `session-NNN` aliases. The transformed execution instance is 558,706 bytes
+  at SHA-256
+  `d44a4d388a0398f89c4d8af1452fe6b53ce16066a77d4430ad8136f916a0716e`;
+  its exchange-plan SHA-256 is
+  `ea5f7094851ed15d8a958f448b6787bb93366caa73206935cac57a8d833eb9be`.
+  No raw session ID or answer label survives in the execution instance or
+  provider-visible exchange plan. The answer-session mapping remains private
+  grading metadata and is never sent to a model.
+
+  Review also closed the concrete runtime gaps before spending: native Gemini
+  parallel function calls now preserve ordered calls, IDs, thought
+  signatures, and matching responses; the provider schema no longer permits
+  an empty `memory_read`; serialized `memory_find` results are genuinely
+  bounded instead of carrying each complete message beside its excerpt;
+  literal session reads no longer interpret SQL wildcard characters; the
+  installed package contains `src/memory-exploration.mjs`; real clean meter
+  state is handled as `terminal: false`; and the oracle rejects same-turn
+  parallel pseudo-recovery or consultation of irrelevant sessions.
+
+  The grounding prediction is deliberately narrow: a hit means the model
+  consulted at least one returned message from a dataset-labelled
+  answer-bearing session. It does not prove that the final wording was
+  causally derived from that row or that it preferred the newer fact over
+  older history. The exact tool trace and official judge remain separate
+  observations.
+
+  Expected fresh cost is `$0.0660333`, an estimate only. The conservative
+  next-dispatch proof is
+  `27 × $0.1056576 + 7 × $0.1049600 + $0.5441700 =
+  $4.1316452` fresh. With `$0.7761082` opening J4 spend, the projected
+  cumulative maximum is `$4.9077534`, below the existing `$8.00` cumulative
+  cap. The six predictions are FINAL at SHA-256
+  `c25d043f93c0b23b7036737bac3324ce4b85f188587b3765da265d1a53cf0c2c`.
+  The 38-file runtime closure is frozen at artifact-set SHA-256
+  `0f7a32c726701ed61a2ac4f4e357862836852e09195a5ac5424f7c9b8c0d1f6c`;
+  config and authority SHA-256 values are respectively
+  `0e7501310ea490315e929ca0940bbc520cdc904cfb574ded0cb59b48112bf83c`
+  and
+  `838e3a612af21b0f932ecebf6c71efb3e1791130091bb17a7bd54f51c0accc60`.
+  No credential was accessed, no provider request was made, no result or
+  score was created, and cumulative spend remains `$0.7761082`. Paid
+  dispatch requires the founder to confirm exactly `$4.1316452`.

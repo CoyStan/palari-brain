@@ -26,6 +26,7 @@ import {
   INCREMENTAL_LONGMEMEVAL_EXPLORATION_TOOLS,
 } from './arms/incremental-memory-exploration-longmemeval-live-arm.mjs'
 import {
+  incrementalLongMemEvalExchangePlan,
   incrementalLongMemEvalExchangeStats,
   runIncrementalLongMemEvalQuestionForScoring,
 } from './arms/incremental-memory-longmemeval-live-arm.mjs'
@@ -365,22 +366,99 @@ export async function verifyExplorationLongMemEvalPredecessor({
   }
 }
 
+export function pseudonymizeExplorationLongMemEvalInstance(
+  rawInstance = {},
+) {
+  const sessions = rawInstance.sessions
+  if (!Array.isArray(sessions) || sessions.length < 1) {
+    throw new ExplorationLongMemEvalLiveError(
+      'SESSION_PSEUDONYMIZATION_INVALID',
+      'Exploration pseudonymization requires a non-empty session list.',
+    )
+  }
+  const seen = new Set()
+  const chronological = sessions
+    .map((session, originalIndex) => {
+      const sessionId = String(session?.sessionId ?? '')
+      const timestamp = Date.parse(session?.eventAt)
+      if (!sessionId ||
+        seen.has(sessionId) ||
+        Number.isNaN(timestamp)) {
+        throw new ExplorationLongMemEvalLiveError(
+          'SESSION_PSEUDONYMIZATION_INVALID',
+          'Exploration sessions require unique IDs and valid dates.',
+        )
+      }
+      seen.add(sessionId)
+      return { originalIndex, sessionId, timestamp }
+    })
+    .sort((left, right) =>
+      left.timestamp - right.timestamp ||
+      left.originalIndex - right.originalIndex)
+  const width = Math.max(3, String(chronological.length).length)
+  const aliases = new Map(
+    chronological.map(({ sessionId }, index) => [
+      sessionId,
+      `session-${String(index + 1).padStart(width, '0')}`,
+    ]),
+  )
+  const answerSessionIds = rawInstance.answerSessionIds
+  if (!Array.isArray(answerSessionIds) ||
+    answerSessionIds.length < 1 ||
+    answerSessionIds.some((sessionId) =>
+      !aliases.has(sessionId))) {
+    throw new ExplorationLongMemEvalLiveError(
+      'SESSION_PSEUDONYMIZATION_INVALID',
+      'Every answer-bearing session must map to one replay session.',
+    )
+  }
+  const instance = structuredClone(rawInstance)
+  instance.sessions = instance.sessions.map((session) => ({
+    ...session,
+    sessionId: aliases.get(session.sessionId),
+  }))
+  instance.answerSessionIds = instance.answerSessionIds.map(
+    (sessionId) => aliases.get(sessionId),
+  )
+  return {
+    instance,
+    rawSessionIds: [...aliases.keys()],
+  }
+}
+
 export function explorationLongMemEvalPopulation(prepared = {}) {
-  const instance = prepared?.executionOrder?.[0]
+  const rawInstance = prepared?.executionOrder?.[0]
+  const rawNormalized =
+    `${JSON.stringify(rawInstance, null, 2)}\n`
+  const rawStats =
+    incrementalLongMemEvalExchangeStats(rawInstance)
+  const pseudonymized =
+    pseudonymizeExplorationLongMemEvalInstance(rawInstance)
+  const instance = pseudonymized.instance
   const normalized = `${JSON.stringify(instance, null, 2)}\n`
   const stats = incrementalLongMemEvalExchangeStats(instance)
   if (prepared?.manifest?.datasetSha256 !==
       liveConfig.EXPLORATION_LONGMEMEVAL_DATASET.sha256 ||
-    instance?.questionId !==
+    rawInstance?.questionId !==
       liveConfig.EXPLORATION_LONGMEMEVAL_QUESTION_ID ||
-    SEALED_U8_QUESTION_IDS.includes(instance?.questionId) ||
-    instance?.sessions?.length !==
+    SEALED_U8_QUESTION_IDS.includes(rawInstance?.questionId) ||
+    rawInstance?.sessions?.length !==
       liveConfig.EXPLORATION_LONGMEMEVAL_POPULATION.sessions ||
+    Buffer.byteLength(rawNormalized) !==
+      liveConfig.EXPLORATION_LONGMEMEVAL_INSTANCE
+        .rawNormalizedBytes ||
+    liveConfig.explorationLongMemEvalSha256(rawNormalized) !==
+      liveConfig.EXPLORATION_LONGMEMEVAL_INSTANCE
+        .rawNormalizedSha256 ||
+    rawStats.exchangePlanSha256 !==
+      liveConfig.EXPLORATION_LONGMEMEVAL_POPULATION
+        .rawExchangePlanSha256 ||
     Buffer.byteLength(normalized) !==
-      liveConfig.EXPLORATION_LONGMEMEVAL_INSTANCE.normalizedBytes ||
+      liveConfig.EXPLORATION_LONGMEMEVAL_INSTANCE
+        .executionNormalizedBytes ||
     liveConfig.explorationLongMemEvalSha256(normalized) !==
       liveConfig.EXPLORATION_LONGMEMEVAL_INSTANCE
-        .normalizedSha256 ||
+        .executionNormalizedSha256 ||
     stats.exchangePlanSha256 !==
       liveConfig.EXPLORATION_LONGMEMEVAL_POPULATION
         .exchangePlanSha256 ||
@@ -398,7 +476,13 @@ export function explorationLongMemEvalPopulation(prepared = {}) {
     new Set(instance.answerSessionIds).size !==
       instance.answerSessionIds.length ||
     instance.answerSessionIds.some((sessionId) =>
-      typeof sessionId !== 'string' || !sessionId)) {
+      typeof sessionId !== 'string' || !sessionId) ||
+    pseudonymized.rawSessionIds.some((sessionId) =>
+      normalized.includes(sessionId)) ||
+    normalized.includes('answer_') ||
+    JSON.stringify(
+      incrementalLongMemEvalExchangePlan(instance),
+    ).includes('answer_')) {
     throw new ExplorationLongMemEvalLiveError(
       'POPULATION_CHANGED',
       'The exact one-question exploration population changed.',
@@ -491,9 +575,12 @@ function initialRunState({
     },
     population: {
       ...liveConfig.EXPLORATION_LONGMEMEVAL_POPULATION,
-      normalizedInstanceSha256:
+      executionInstanceSha256:
         liveConfig.EXPLORATION_LONGMEMEVAL_INSTANCE
-          .normalizedSha256,
+          .executionNormalizedSha256,
+      rawInstanceSha256:
+        liveConfig.EXPLORATION_LONGMEMEVAL_INSTANCE
+          .rawNormalizedSha256,
     },
     predecessor,
     predictions:
@@ -553,13 +640,13 @@ function assertSuccessfulGeminiPrefix(snapshot, armResult) {
     snapshot?.logicalRequests?.explore !== explores ||
     snapshot?.attempts !== attempts ||
     snapshot?.sequence !== attempts * 2 ||
-    snapshot?.terminal !== null ||
+    snapshot?.terminal !== false ||
     freshGeminiAccounted(snapshot) >
       liveConfig.EXPLORATION_LONGMEMEVAL_HARD_CAP
         .freshSubcapUsd + 1e-12) {
     throw new ExplorationLongMemEvalLiveError(
       'GEMINI_PREFIX_INVALID',
-      'Gemini meter differs from the exact no-retry reducer/exploration prefix.',
+      'Gemini meter differs from the exact zero-transport-retry reducer/exploration prefix.',
     )
   }
   return snapshot

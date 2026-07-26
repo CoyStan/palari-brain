@@ -26,6 +26,7 @@ import {
   explorationLongMemEvalResultPaths,
   main,
   parseExplorationLongMemEvalArgs,
+  pseudonymizeExplorationLongMemEvalInstance,
 } from '../evals/run-exploration-longmemeval-live.mjs'
 
 const HASH = 'a'.repeat(64)
@@ -50,7 +51,7 @@ function fakeGeminiSnapshot() {
     logicalRequests: { explore: 3, writer: 27 },
     measured: usage(0.01),
     sequence: 60,
-    terminal: null,
+    terminal: false,
     uncertain: usage(0),
   }
 }
@@ -332,6 +333,46 @@ test('preparation identity is open exactly once and argument-pinned',
     )
   })
 
+test('session pseudonyms remove answer labels before provider replay',
+  () => {
+    const raw = {
+      answerSessionIds: ['answer_gold_1'],
+      sessions: [
+        {
+          eventAt: '2026-01-02T00:00:00.000Z',
+          sessionId: 'sharegpt_distractor',
+          turns: [],
+        },
+        {
+          eventAt: '2026-01-01T00:00:00.000Z',
+          sessionId: 'answer_gold_1',
+          turns: [],
+        },
+      ],
+    }
+    const transformed =
+      pseudonymizeExplorationLongMemEvalInstance(raw)
+    assert.deepEqual(
+      transformed.instance.sessions.map(({ sessionId }) => sessionId),
+      ['session-002', 'session-001'],
+    )
+    assert.deepEqual(
+      transformed.instance.answerSessionIds,
+      ['session-001'],
+    )
+    assert.equal(
+      JSON.stringify(transformed.instance).includes('answer_'),
+      false,
+    )
+    assert.equal(
+      JSON.stringify(transformed.instance).includes(
+        'sharegpt_distractor',
+      ),
+      false,
+    )
+    assert.equal(raw.sessions[1].sessionId, 'answer_gold_1')
+  })
+
 test('successful answer evidence survives a terminal judge failure',
   async () => {
     const root = await mkdtemp(
@@ -607,15 +648,14 @@ test('actual constructor accepts batch writer and all native tool bindings',
       })
       assert.equal(response.validated, true)
       assert.equal(fetchCalls, 1)
-      assert.equal(
-        (await transport.snapshot()).logicalRequests.writer,
-        1,
-      )
+      const snapshot = await transport.snapshot()
+      assert.equal(snapshot.logicalRequests.writer, 1)
+      assert.equal(snapshot.terminal, false)
       const verified = await transport.verify()
       assert.equal(Object.hasOwn(verified, 'ledger'), false)
       assert.deepEqual(
         verified.meter,
-        await transport.snapshot(),
+        snapshot,
       )
       assert.equal(verified.transcripts.attempts, 1)
     } finally {

@@ -64,7 +64,7 @@ export const EXPLORATION_LONGMEMEVAL_RUN_ID =
   'j4-active-brain-exploration-longmemeval-q1-v1'
 export const EXPLORATION_LONGMEMEVAL_RUN_DATE = '2026-07-26'
 export const EXPLORATION_LONGMEMEVAL_PRODUCT_COMMIT =
-  '068d7a2d4ec1e62d8689b889b9527ae4ad455748'
+  'e46a65c13bb48c04a005490f200a071ad8d79dee'
 export const EXPLORATION_LONGMEMEVAL_QUESTION_ID = '08e075c7'
 
 export const EXPLORATION_LONGMEMEVAL_CONFIG_PATH =
@@ -81,17 +81,24 @@ export const EXPLORATION_LONGMEMEVAL_DATASET = deepFreeze({
 })
 
 export const EXPLORATION_LONGMEMEVAL_INSTANCE = deepFreeze({
-  normalizedBytes: 558_824,
+  executionNormalizedBytes: 558_706,
+  executionNormalizedSha256:
+    'd44a4d388a0398f89c4d8af1452fe6b53ce16066a77d4430ad8136f916a0716e',
   normalizedFormat: 'JSON.stringify(instance, null, 2) + newline',
-  normalizedSha256:
-    '7caf1c76b67ece61d747e829eb3b13bb3046d1101ae4320460cd7fdd2e817fb2',
+  pseudonymization:
+    'All session IDs replaced by chronological session-NNN aliases before replay.',
   questionId: EXPLORATION_LONGMEMEVAL_QUESTION_ID,
+  rawNormalizedBytes: 558_824,
+  rawNormalizedSha256:
+    '7caf1c76b67ece61d747e829eb3b13bb3046d1101ae4320460cd7fdd2e817fb2',
 })
 
 export const EXPLORATION_LONGMEMEVAL_POPULATION = deepFreeze({
   exchangePlanSha256:
-    '8441628945e6f6b0685f3b67ef6413a4a249ece8bbc9509af75e6849531c8be3',
+    'ea5f7094851ed15d8a958f448b6787bb93366caa73206935cac57a8d833eb9be',
   interactions: 243,
+  rawExchangePlanSha256:
+    '8441628945e6f6b0685f3b67ef6413a4a249ece8bbc9509af75e6849531c8be3',
   sessions: 45,
   visibleCharacters: 497_983,
   visibleMessages: 484,
@@ -104,6 +111,7 @@ export const EXPLORATION_LONGMEMEVAL_MODELS = deepFreeze({
 })
 
 export const EXPLORATION_LONGMEMEVAL_SCOPE = deepFreeze({
+  batchIsolationAllowed: true,
   benchmarkQuestions: 1,
   comparisonOperations: 0,
   judgeOperations: 1,
@@ -115,7 +123,7 @@ export const EXPLORATION_LONGMEMEVAL_SCOPE = deepFreeze({
   question2Allowed: false,
   questionIds: [EXPLORATION_LONGMEMEVAL_QUESTION_ID],
   reduceEvery: 20,
-  retryDispatches: 0,
+  transportRetryDispatches: 0,
 })
 
 export const EXPLORATION_LONGMEMEVAL_POLICY = deepFreeze({
@@ -132,49 +140,47 @@ export const EXPLORATION_LONGMEMEVAL_OPENING_SPEND = deepFreeze({
 })
 
 export const EXPLORATION_LONGMEMEVAL_EXPECTED_COST = deepFreeze({
-  freshUsd: 0.0692315,
+  freshUsd: 0.0660333,
   guarantee: false,
   ingestion: {
     inputPriceUsdPerMillion: 0.10,
-    inputTokenHeuristic: 292_538,
-    inputUsd: 0.0292538,
+    inputTokenHeuristic: 276_556,
+    inputUsd: 0.0276556,
     outputPriceUsdPerMillion: 0.40,
-    outputTokens: 54_000,
-    outputUsd: 0.0216,
+    outputTokens: 50_000,
+    outputUsd: 0.02,
     protocolTokensPerDispatch: 512,
-    reducerDispatches: 27,
-    serializedRequestBytes: 1_114_813,
+    reducerDispatches: 25,
+    serializedRequestBytes: 1_054_988,
     serializedRequestBytesByDispatch: [
-      40_868,
-      41_953,
-      41_517,
-      43_087,
-      43_330,
-      42_425,
-      41_081,
-      43_471,
-      43_893,
-      43_358,
-      43_802,
-      42_098,
-      40_776,
-      41_831,
-      41_868,
-      25_618,
-      41_401,
-      42_402,
-      42_691,
-      42_502,
-      43_840,
-      41_084,
-      41_015,
-      41_896,
-      42_502,
-      40_141,
-      34_363,
+      40_869,
+      41_954,
+      41_518,
+      43_088,
+      43_331,
+      42_426,
+      41_082,
+      43_472,
+      43_894,
+      43_359,
+      43_803,
+      42_099,
+      40_777,
+      41_832,
+      41_869,
+      43_371,
+      40_744,
+      40_153,
+      42_503,
+      43_188,
+      43_191,
+      41_772,
+      41_874,
+      42_926,
+      39_893,
     ],
-    sumPerDispatchCeilBytesDivFour: 278_714,
-    usd: 0.0508538,
+    sumPerDispatchCeilBytesDivFour: 263_756,
+    usd: 0.0476556,
   },
   judge: {
     hypothesisCharacters: 1_024,
@@ -187,7 +193,7 @@ export const EXPLORATION_LONGMEMEVAL_EXPECTED_COST = deepFreeze({
     usd: 0.0024275,
   },
   method:
-    'Expected USD uses measured serialized ordinal-1 cadence-20 request shapes, bytes/4 plus 512-token heuristics, full configured output allowances, bounded exploration-result assumptions, and Standard prices. It is an estimate, not the provider-window hard-cap proof.',
+    'Expected USD uses the deterministic stand-in reducer over the pseudonymized ordinal-1 cadence-20 execution, measured serialized request shapes, bytes/4 plus 512-token heuristics, full configured output allowances, bounded exploration-result assumptions, and Standard prices. It is an estimate, not the provider-window hard-cap proof.',
   exploration: {
     baseSerializedBytesPerTurn: 22_000,
     inputPriceUsdPerMillion: 0.10,
@@ -437,7 +443,8 @@ function assertAuthority(authority) {
     authority.judgeOperations !== 1 ||
     authority.maximumPhysicalDispatches !==
       EXPLORATION_LONGMEMEVAL_SCOPE.maximumPhysicalDispatches ||
-    authority.retryDispatches !== 0 ||
+    authority.batchIsolationAllowed !== true ||
+    authority.transportRetryDispatches !== 0 ||
     authority.comparisonOperations !== 0 ||
     authority.question2Allowed !== false ||
     !sameUsd(
