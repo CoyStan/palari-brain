@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K BATCHING + MEMORY EXPLORATION + DIGEST-AS-INDEX COMPLETE;
-FOUNDER GATE — NO LIVE IDENTITY OPEN (2026-07-26).
+Loop state: J4.4K-M1 REAL-DATA OFFLINE EXPLORATION PREFLIGHT COMPLETE;
+FOUNDER GATE — STEP 2 LIVE DESIGN/CAP CONFIRMATION REQUIRED (2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -387,6 +387,28 @@ v0.5 comparator. No provider was called, no live identity was created, no
 score exists, and cumulative J4 spend remains `$0.7761082` accounted.
 Suite 402/402 with 7 skipped; quickstart, dry bake-off, package dry-run, and
 the memory bench are green.
+
+The founder then required a free real-data preflight before any live
+exploration work. The installed gitignored LongMemEval-S file matches the
+pinned SHA-256
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+Current `main` installs cleanly and passes 422/422 tests rather than 415
+because the installed dataset activates seven otherwise skipped checks. On
+the synthetic 240-interaction
+population, cadence 1 made 240 reducer requests, retained 1/1 answer-bearing
+interaction in a 17-item, 6,067-character digest, compressed 5.4x, and the
+scripted exact explorer recovered 1/1 in one call. On real S-60 ordinal 1,
+cadence 1 made 243 requests, retained only 6/12 answer-bearing interactions
+in a 46-item, 23,406-character digest, compressed 21.3x, and scripted exact
+exploration found 12/12 in 12 calls. Cadence 20 made 27 requests, not the
+assumed approximately 12, while retaining the same 6/12 in a 35-item,
+18,404-character digest, compressing 27.1x, and finding 12/12 through the
+same scripted 12 calls. Its CLI reports 24 applied reductions because it
+omits two successful final-drain reductions from that counter; the actual
+dispatch composition was 26 successes plus one failed batch attempt that was
+isolated and retried. Every run completed with zero quarantines and a ready
+digest. No credential was read, no provider was called, no live identity or
+score was created, and J4 spend remains `$0.7761082` accounted.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -954,6 +976,16 @@ session itself).
     digest records now name the sessions their evidence came from, so the
     answer model knows where to read when a summary is not enough. Session
     IDs are short, so pointing costs far less than carrying more quotes.
+  - [x] J4.4K-M1 — REAL-DATA OFFLINE EXPLORATION PREFLIGHT 2026-07-26
+    (`this commit`). Verified the pinned gitignored LongMemEval-S dataset and
+    ran the synthetic, real cadence-1, and real cadence-20 benches without
+    credentials or spend. All 243 real interactions reached terminal
+    reduction with zero quarantines. The real digest retained 6/12
+    answer-bearing interactions at both cadences; scripted exact exploration
+    found 12/12 through exact scripted lookups, but cadence 20 required 27
+    reducer requests rather than the assumed approximately 12. Its displayed
+    24-applied count omits two successful final-drain reductions. Full suite
+    422/422 and quickstart green.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -992,38 +1024,24 @@ session itself).
 
 ## Next
 
-The digest capacity question is RESOLVED, and it was not a budget problem.
-The founder noted the cost envelopes were agent-authored conservatism, not a
-founder constraint, and asked what working-memory size is realistic against
-competing frameworks. External anchor: Mem0 reports under 7,000 tokens per
-retrieval at a 200-memory budget, and full-context LongMemEval-S baselines
-run 25,000-115,000 tokens per query. Palari's 24,000-character cap is ~6,000
-tokens, so the budget was already competitive. The defect was density: at
-~1,400 characters per rendered item Palari fit 16 facts where Mem0 fits ~200,
-about 10x more expensive per remembered fact. No cap was raised.
+STOP after reporting J4.4K-M1. The real dataset does not behave like the
+synthetic population: its digest retains 6/12 answer-bearing interactions
+rather than 1/1, and cadence 20 takes 27 reducer requests rather than the
+approximately 12 assumed for the live design. The deterministic scripted
+explorer still finds 12/12 because it derives exact phrases from each
+dataset-labelled answer-session exchange and probes all 12 separately,
+including the six already represented in the digest. That is exact journal
+reachability, not evidence that a real model can choose useful phrases or
+recover after a miss.
 
-The bench now completes 240/240 interactions with zero quarantines and 6.0x
-compression, and the answer-bearing fact survives. The remaining open
-question is the product thesis itself, unchanged by this work: the active
-path has no query-conditioned retrieval by explicit founder direction, so a
-blind digest must hold the right facts by construction. The bench can now
-answer that offline for any population, for free, before any paid run.
-
-The founder then agreed the three-step plan and it is implemented: batching,
-exploration, and digest-as-index. The architecture question that remained
-open after the density repair — whether a blind, query-independent digest can
-hold the right facts — is now answered differently, because the digest no
-longer has to. It holds what is usually needed; the journal answers the rest
-on demand, exactly, deterministically, and auditably.
-
-What has NOT been done, and is the next honest step: none of this has run
-against a real model on real data. The bench uses a deterministic stand-in
-reducer and a scripted explorer. A real model must choose its own search
-phrases, and exact matching misses synonyms — that is the one failure mode
-the bench cannot simulate. Run `npm run memory-bench -- --dataset` first,
-then consider the smallest live check of the exploration path.
-
-A live successor still requires a fresh founder GO under the terms below.
+The next honest step remains one live exploration question, but no executable
+identity exists and no spend is authorized yet. Before dispatch, a new
+pre-run unit must freeze the fresh run ID, exact ordinal-1 instance hash,
+`reduceEvery: 20`, an empirically honest reducer-call ceiling based on this
+27-call result, one answer with at most six self-chosen exploration calls,
+one judge, exact artifact hashes, FINAL predictions, and a conservative fresh
+spend envelope. Report that envelope and obtain explicit founder confirmation
+before any credential or network access.
 
 PRIOR FOUNDER GATE AND PRODUCT-DRIFT STOP. The offline provider hard-cap contract is
 resolved, but it creates no run authority. J4.2K-R2-L1-A and
@@ -1309,6 +1327,13 @@ checkpoint evidence crash/tamper-safe, and replaced caller claims with an
 adversarial evidence oracle. Focused contracts 131/131 and full suite
 399/399; quickstart, dry bake-off, and package dry-run green. No live
 identity, credential access, provider call, score, result, reroll, or spend.
+2026-07-26 — J4.4K-M1 — this commit — Verified the pinned LongMemEval-S
+dataset and ran all three founder-requested free benches. Real ordinal 1
+completed with zero quarantines but retained only 6/12 answer-bearing
+interactions; scripted exact lookup found 12/12, and cadence 20 used 27
+reducer calls rather than the assumed approximately 12. Its 24-applied CLI
+counter omits two successful final-drain reductions. Suite 422/422 and
+quickstart green; no credential, provider call, identity, score, or spend.
 
 ## Product stop-rule record
 
@@ -2282,3 +2307,26 @@ identity, credential access, provider call, score, result, reroll, or spend.
    or report a prediction hit from a coherently forged bundle. That makes this
    the second consecutive infrastructure unit. The charter's drift rule now
    requires a stop before any third one.
+
+### J4.4K-M1 real-data offline exploration preflight
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It changed no runtime
+   behavior. It replaced synthetic assumptions with free measurements on the
+   exact real question before live spend: 6/12 digest retention and 27
+   cadence-20 reducer calls.
+3. Does an existing framework already provide what this unit added?
+   LongMemEval supplies the dataset, while the repository's existing bench
+   supplies the deterministic reducer and scripted explorer. This unit added
+   no framework or product layer; it used those surfaces to check the live
+   design assumptions.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly required these three offline runs and a report before
+   any live identity or spend.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? Runtime behavior would not change, but the live design
+   could again assume approximately 12 reducer calls and synthetic 1/1
+   retention, underestimating both workload and the need for exploration.
+   This is one founder-requested measurement unit and stops before its live
+   counterpart.
