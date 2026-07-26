@@ -54,7 +54,13 @@ export const INCREMENTAL_HARD_CAP_GEMINI_PENDING_RESERVATION_USD =
   ) / 1_000_000
 
 const ENDPOINT = 'gemini-generate-content'
-const PURPOSES = new Set(['answer', 'writer'])
+const BASE_PURPOSES = new Set(['answer', 'writer'])
+const EXPLORATION_PURPOSE = 'explore'
+const EXPLORATION_TOOL_NAMES = new Set([
+  'memory_find',
+  'memory_read',
+  'memory_timeline',
+])
 const DEFAULT_REQUEST_TIMEOUT_MS = 60_000
 const DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 const JOURNAL_SCHEMA_VERSION = 1
@@ -177,11 +183,327 @@ function assertGenerationContract(value, label) {
   }
 }
 
+function assertExplorationContract({
+  explorationGeneration,
+  explorationSystemInstruction,
+  explorationToolConfig,
+  explorationTools,
+}) {
+  const values = [
+    explorationGeneration,
+    explorationSystemInstruction,
+    explorationToolConfig,
+    explorationTools,
+  ]
+  const supplied = values.filter((value) => value !== undefined).length
+  if (supplied === 0) return null
+  if (supplied !== values.length) {
+    throw new IncrementalGeminiHardCapError(
+      'EXPLORATION_CONTRACT_INVALID',
+      'Exploration requires generation, system instruction, tools, and toolConfig together.',
+    )
+  }
+  try {
+    assertGenerationContract(
+      explorationGeneration,
+      'explorationGeneration',
+    )
+  } catch (error) {
+    throw new IncrementalGeminiHardCapError(
+      'EXPLORATION_CONTRACT_INVALID',
+      'Exploration generation is outside the frozen native tool contract.',
+      { cause: error },
+    )
+  }
+  const functionDeclarations = explorationTools?.[0]?.functionDeclarations
+  const declarationNames = Array.isArray(functionDeclarations)
+    ? functionDeclarations.map((declaration) => declaration?.name)
+    : []
+  const declarationsAreExact = declarationNames.length === 3 &&
+    new Set(declarationNames).size === 3 &&
+    declarationNames.every((name) => EXPLORATION_TOOL_NAMES.has(name)) &&
+    functionDeclarations.every((declaration) =>
+      declaration &&
+      typeof declaration === 'object' &&
+      !Array.isArray(declaration) &&
+      sameJson(
+        Object.keys(declaration).sort(),
+        ['description', 'name', 'parameters'],
+      ) &&
+      nonEmptyString(declaration.description) &&
+      nonEmptyString(declaration.name) &&
+      declaration.parameters &&
+      typeof declaration.parameters === 'object' &&
+      !Array.isArray(declaration.parameters))
+  if (!nonEmptyString(explorationSystemInstruction) ||
+    !Array.isArray(explorationTools) ||
+    explorationTools.length !== 1 ||
+    !sameJson(
+      Object.keys(explorationTools[0] ?? {}),
+      ['functionDeclarations'],
+    ) ||
+    !declarationsAreExact ||
+    !explorationToolConfig ||
+    typeof explorationToolConfig !== 'object' ||
+    Array.isArray(explorationToolConfig) ||
+    !sameJson(
+      Object.keys(explorationToolConfig),
+      ['functionCallingConfig'],
+    ) ||
+    !explorationToolConfig.functionCallingConfig ||
+    typeof explorationToolConfig.functionCallingConfig !== 'object' ||
+    Array.isArray(explorationToolConfig.functionCallingConfig) ||
+    !sameJson(
+      Object.keys(explorationToolConfig.functionCallingConfig),
+      ['mode'],
+    ) ||
+    explorationToolConfig.functionCallingConfig.mode !== 'AUTO') {
+    throw new IncrementalGeminiHardCapError(
+      'EXPLORATION_CONTRACT_INVALID',
+      'Exploration must freeze the native AUTO contract and exactly three memory declarations.',
+    )
+  }
+  return clone({
+    generation: explorationGeneration,
+    systemInstruction: explorationSystemInstruction,
+    toolConfig: explorationToolConfig,
+    tools: explorationTools,
+  })
+}
+
+function assertFunctionCall(
+  value,
+  explorationContract,
+  code = 'GEMINI_CONTENT_INVALID',
+) {
+  const expectedKeys = Object.hasOwn(value ?? {}, 'id')
+    ? ['args', 'id', 'name']
+    : ['args', 'name']
+  if (!value ||
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    !sameJson(Object.keys(value).sort(), expectedKeys) ||
+    (Object.hasOwn(value, 'id') && !nonEmptyString(value.id)) ||
+    !EXPLORATION_TOOL_NAMES.has(value.name) ||
+    !value.args ||
+    typeof value.args !== 'object' ||
+    Array.isArray(value.args) ||
+    !explorationContract.tools[0].functionDeclarations.some(
+      ({ name }) => name === value.name,
+    )) {
+    throw new IncrementalGeminiHardCapError(
+      code,
+      'Function-call content is malformed or outside the frozen memory tools.',
+    )
+  }
+}
+
+function assertExplorationTextPart(
+  part,
+  code = 'GEMINI_CONTENT_INVALID',
+) {
+  if (!part ||
+    typeof part !== 'object' ||
+    Array.isArray(part) ||
+    typeof part.text !== 'string' ||
+    (Object.hasOwn(part, 'thought') &&
+      (typeof part.thought !== 'boolean' || part.thought)) ||
+    (Object.hasOwn(part, 'thoughtSignature') &&
+      !nonEmptyString(part.thoughtSignature)) ||
+    (Object.hasOwn(part, 'partMetadata') &&
+      (!part.partMetadata ||
+        typeof part.partMetadata !== 'object' ||
+        Array.isArray(part.partMetadata))) ||
+    Object.keys(part).some((key) =>
+      ![
+        'partMetadata',
+        'text',
+        'thought',
+        'thoughtSignature',
+      ].includes(key))) {
+    throw new IncrementalGeminiHardCapError(
+      code,
+      'Exploration content contains an unsupported model part.',
+    )
+  }
+}
+
+function explorationCallsFromModelContent(
+  content,
+  explorationContract,
+  code = 'GEMINI_CONTENT_INVALID',
+) {
+  if (!content ||
+    typeof content !== 'object' ||
+    Array.isArray(content) ||
+    !sameJson(Object.keys(content).sort(), ['parts', 'role']) ||
+    content.role !== 'model' ||
+    !Array.isArray(content.parts) ||
+    content.parts.length < 1) {
+    throw new IncrementalGeminiHardCapError(
+      code,
+      'Exploration model content is malformed or empty.',
+    )
+  }
+  const calls = []
+  for (const part of content.parts) {
+    if (part &&
+      typeof part === 'object' &&
+      !Array.isArray(part) &&
+      Object.hasOwn(part, 'functionCall')) {
+      if (!sameJson(
+        Object.keys(part).sort(),
+        Object.hasOwn(part, 'thoughtSignature')
+          ? ['functionCall', 'thoughtSignature']
+          : ['functionCall'],
+      ) ||
+        (Object.hasOwn(part, 'thoughtSignature') &&
+          !nonEmptyString(part.thoughtSignature))) {
+        throw new IncrementalGeminiHardCapError(
+          code,
+          'Exploration contains a malformed function-call part.',
+        )
+      }
+      assertFunctionCall(part.functionCall, explorationContract, code)
+      calls.push(part.functionCall)
+      continue
+    }
+    assertExplorationTextPart(part, code)
+  }
+  return calls
+}
+
+function assertFunctionResponses(userContent, functionCalls) {
+  if (!sameJson(
+    Object.keys(userContent ?? {}).sort(),
+    ['parts', 'role'],
+  ) ||
+    userContent.role !== 'user' ||
+    !Array.isArray(userContent.parts) ||
+    userContent.parts.length !== functionCalls.length) {
+    throw new IncrementalGeminiHardCapError(
+      'REQUEST_SCHEMA_INVALID',
+      'Each model function call requires one matching user function response.',
+    )
+  }
+  for (let index = 0; index < functionCalls.length; index += 1) {
+    const functionCall = functionCalls[index]
+    const part = userContent.parts[index]
+    const functionResponse = part?.functionResponse
+    const expectedResponseKeys = Object.hasOwn(functionCall, 'id')
+      ? ['id', 'name', 'response']
+      : ['name', 'response']
+    if (!part ||
+      typeof part !== 'object' ||
+      Array.isArray(part) ||
+      !sameJson(Object.keys(part), ['functionResponse']) ||
+      !functionResponse ||
+      typeof functionResponse !== 'object' ||
+      Array.isArray(functionResponse) ||
+      !sameJson(
+        Object.keys(functionResponse).sort(),
+        expectedResponseKeys,
+      ) ||
+      functionResponse.name !== functionCall.name ||
+      (Object.hasOwn(functionCall, 'id') &&
+        functionResponse.id !== functionCall.id) ||
+      !functionResponse.response ||
+      typeof functionResponse.response !== 'object' ||
+      Array.isArray(functionResponse.response)) {
+      throw new IncrementalGeminiHardCapError(
+        'REQUEST_SCHEMA_INVALID',
+        'Function responses must match call names and optional IDs in order.',
+      )
+    }
+  }
+}
+
+function assertExplorationRequestContents(
+  contents,
+  explorationContract,
+) {
+  if (!Array.isArray(contents) ||
+    contents.length < 1 ||
+    contents.length % 2 !== 1) {
+    throw new IncrementalGeminiHardCapError(
+      'REQUEST_SCHEMA_INVALID',
+      'Exploration contents must be one initial prompt followed by complete tool pairs.',
+    )
+  }
+  const initial = contents[0]
+  const initialPart = initial?.parts?.[0]
+  if (!sameJson(Object.keys(initial ?? {}).sort(), ['parts', 'role']) ||
+    initial.role !== 'user' ||
+    !Array.isArray(initial.parts) ||
+    initial.parts.length !== 1 ||
+    !sameJson(Object.keys(initialPart ?? {}), ['text']) ||
+    !nonEmptyString(initialPart.text)) {
+    throw new IncrementalGeminiHardCapError(
+      'REQUEST_SCHEMA_INVALID',
+      'Exploration must begin with exactly one user text prompt.',
+    )
+  }
+  for (let index = 1; index < contents.length; index += 2) {
+    const modelContent = contents[index]
+    const userContent = contents[index + 1]
+    const functionCalls = explorationCallsFromModelContent(
+      modelContent,
+      explorationContract,
+      'REQUEST_SCHEMA_INVALID',
+    )
+    if (functionCalls.length === 0) {
+      throw new IncrementalGeminiHardCapError(
+        'REQUEST_SCHEMA_INVALID',
+        'Exploration history cannot continue after final model text.',
+      )
+    }
+    assertFunctionResponses(userContent, functionCalls)
+  }
+}
+
 function assertRequestBody(
   body,
   purpose,
-  { answerGeneration, writerGeneration },
+  {
+    answerGeneration,
+    explorationContract,
+    writerGeneration,
+  },
 ) {
+  if (purpose === EXPLORATION_PURPOSE) {
+    if (!explorationContract ||
+      !body ||
+      typeof body !== 'object' ||
+      Array.isArray(body) ||
+      !sameJson(
+        Object.keys(body).sort(),
+        [
+          'contents',
+          'generationConfig',
+          'store',
+          'systemInstruction',
+          'toolConfig',
+          'tools',
+        ],
+      ) ||
+      body.store !== false ||
+      !sameJson(body.generationConfig, explorationContract.generation) ||
+      !sameJson(body.systemInstruction, {
+        parts: [{ text: explorationContract.systemInstruction }],
+      }) ||
+      !sameJson(body.tools, explorationContract.tools) ||
+      !sameJson(body.toolConfig, explorationContract.toolConfig)) {
+      throw new IncrementalGeminiHardCapError(
+        'REQUEST_BINDING_INVALID',
+        'Exploration request does not match its frozen native tool contract.',
+      )
+    }
+    assertExplorationRequestContents(
+      body.contents,
+      explorationContract,
+    )
+    return
+  }
   const content = body?.contents?.[0]
   const contentPart = content?.parts?.[0]
   const systemInstruction = body?.systemInstruction
@@ -236,13 +558,17 @@ function assertRequestBody(
   }
 }
 
-function assertIdentity({ cellId, operationId, purpose }) {
+function assertIdentity(
+  { cellId, operationId, purpose },
+  explorationEnabled,
+) {
   if (!nonEmptyString(cellId) ||
     !nonEmptyString(operationId) ||
-    !PURPOSES.has(purpose)) {
+    (!BASE_PURPOSES.has(purpose) &&
+      !(explorationEnabled && purpose === EXPLORATION_PURPOSE))) {
     throw new IncrementalGeminiHardCapError(
       'REQUEST_IDENTITY_INVALID',
-      'Gemini request requires a cellId, operationId, and writer/answer purpose.',
+      'Gemini request requires a cellId, operationId, and configured purpose.',
     )
   }
 }
@@ -378,11 +704,14 @@ function assertReservation(value) {
 
 function assertMeasuredUsage(value, usageDetails) {
   const cachedInputTokens = usageDetails?.cachedInputTokens
+  const toolInputTokens = usageDetails?.toolInputTokens
   if (!value ||
     !positiveInteger(value.inputTokens) ||
     !positiveInteger(value.outputTokens) ||
     !nonNegativeInteger(cachedInputTokens) ||
+    !nonNegativeInteger(toolInputTokens) ||
     cachedInputTokens > value.inputTokens ||
+    toolInputTokens > value.inputTokens ||
     value.inputTokens > INCREMENTAL_HARD_CAP_GEMINI_LIMITS.inputTokens ||
     value.outputTokens > INCREMENTAL_HARD_CAP_GEMINI_LIMITS.outputTokens ||
     value.usd !== measuredUsd(
@@ -400,6 +729,7 @@ function assertMeasuredUsage(value, usageDetails) {
 async function reconcileJournal(path, {
   capUsd,
   contractSha256,
+  explorationEnabled,
   openingAccountedUsd,
 }) {
   const text = await readFile(path, 'utf8')
@@ -439,7 +769,9 @@ async function reconcileJournal(path, {
       if (attempts.has(event.attemptId) ||
         state.operations.has(event.operationId) ||
         event.attempt !== 1 ||
-        !PURPOSES.has(event.purpose)) {
+        (!BASE_PURPOSES.has(event.purpose) &&
+          !(explorationEnabled &&
+            event.purpose === EXPLORATION_PURPOSE))) {
         throw new IncrementalGeminiHardCapError(
           'JOURNAL_START_INVALID',
           'Hard-cap journal contains a duplicate or invalid start.',
@@ -474,13 +806,17 @@ async function reconcileJournal(path, {
     }
     attempt.terminal = event
     if (event.outcome === 'success') {
+      const toolInputTokens =
+        event.usageDetails?.toolInputTokens
       if (event.usageDetails?.serviceTier !== 'standard' ||
         event.usageDetails?.serviceTierHeader !== 'standard' ||
         event.usageDetails?.thoughtTokens !== 0 ||
-        event.usageDetails?.toolInputTokens !== 0) {
+        !nonNegativeInteger(toolInputTokens) ||
+        (attempt.event.purpose !== EXPLORATION_PURPOSE &&
+          toolInputTokens !== 0)) {
         throw new IncrementalGeminiHardCapError(
           'JOURNAL_USAGE_DETAILS_INVALID',
-          'Journal success lacks the frozen Standard/no-thinking evidence.',
+          'Journal success lacks the frozen Standard/no-thinking/tool evidence.',
         )
       }
       assertMeasuredUsage(event.usage, event.usageDetails)
@@ -550,7 +886,34 @@ function visibleText(candidate) {
   return text
 }
 
-function parseSuccess(rawBody, configuredOutputTokens, responseHeaders) {
+function explorationCompletion(candidate, explorationContract) {
+  const content = candidate?.content
+  const functionCalls = explorationCallsFromModelContent(
+    content,
+    explorationContract,
+  )
+  if (functionCalls.length > 0) {
+    return {
+      candidateContent: clone(content),
+      functionCalls: clone(functionCalls),
+      responseType: 'function_calls',
+      text: null,
+    }
+  }
+  return {
+    candidateContent: clone(content),
+    functionCalls: [],
+    responseType: 'final_text',
+    text: visibleText(candidate),
+  }
+}
+
+function parseSuccess(
+  rawBody,
+  configuredOutputTokens,
+  responseHeaders,
+  { explorationContract, purpose } = {},
+) {
   let parsed
   try {
     parsed = JSON.parse(rawBody)
@@ -603,24 +966,29 @@ function parseSuccess(rawBody, configuredOutputTokens, responseHeaders) {
       'Gemini completion did not end with STOP.',
     )
   }
-  const text = visibleText(candidate)
+  const completion = purpose === EXPLORATION_PURPOSE
+    ? explorationCompletion(candidate, explorationContract)
+    : { text: visibleText(candidate) }
   const rawUsage = parsed.usageMetadata
-  const inputTokens = rawUsage?.promptTokenCount
+  const promptInputTokens = rawUsage?.promptTokenCount
   const candidateTokens = rawUsage?.candidatesTokenCount
   const thoughtTokens = rawUsage?.thoughtsTokenCount ?? 0
   const cachedTokens = rawUsage?.cachedContentTokenCount ?? 0
   const toolTokens = rawUsage?.toolUsePromptTokenCount ?? 0
+  const inputTokens = promptInputTokens
   const totalTokens = rawUsage?.totalTokenCount
-  if (!positiveInteger(inputTokens) ||
+  if (!positiveInteger(promptInputTokens) ||
     !positiveInteger(candidateTokens) ||
     !nonNegativeInteger(thoughtTokens) ||
     thoughtTokens !== 0 ||
     !nonNegativeInteger(cachedTokens) ||
-    cachedTokens > inputTokens ||
+    cachedTokens > promptInputTokens ||
     !nonNegativeInteger(toolTokens) ||
-    toolTokens !== 0 ||
+    toolTokens > promptInputTokens ||
+    (purpose !== EXPLORATION_PURPOSE && toolTokens !== 0) ||
     !positiveInteger(totalTokens) ||
-    totalTokens !== inputTokens + candidateTokens ||
+    totalTokens !==
+      promptInputTokens + candidateTokens ||
     inputTokens > INCREMENTAL_HARD_CAP_GEMINI_LIMITS.inputTokens ||
     candidateTokens > configuredOutputTokens ||
     candidateTokens > INCREMENTAL_HARD_CAP_GEMINI_LIMITS.outputTokens) {
@@ -638,7 +1006,7 @@ function parseSuccess(rawBody, configuredOutputTokens, responseHeaders) {
     finishReason: candidate.finishReason,
     modelVersion: parsed.modelVersion,
     rawUsage,
-    text,
+    ...completion,
     usage,
     usageDetails: {
       cachedInputTokens: cachedTokens,
@@ -653,6 +1021,7 @@ function parseSuccess(rawBody, configuredOutputTokens, responseHeaders) {
 
 async function verifySuccessAccountingAgainstTranscripts({
   answerGeneration,
+  explorationContract,
   journalPath,
   transcriptDirectory,
   writerGeneration,
@@ -682,6 +1051,7 @@ async function verifySuccessAccountingAgainstTranscripts({
       const body = JSON.parse(normalizedBody)
       assertRequestBody(body, start.purpose, {
         answerGeneration,
+        explorationContract,
         writerGeneration,
       })
       if (start.maxConfiguredOutputTokens !==
@@ -729,6 +1099,10 @@ async function verifySuccessAccountingAgainstTranscripts({
           rawBody,
           body.generationConfig.maxOutputTokens,
           responseHeaders,
+          {
+            explorationContract,
+            purpose: start.purpose,
+          },
         )
         if (status !== 200 ||
           transcript.terminal.transportError !== null ||
@@ -790,6 +1164,10 @@ async function verifySuccessAccountingAgainstTranscripts({
             rawBody,
             body.generationConfig.maxOutputTokens,
             responseHeaders,
+            {
+              explorationContract,
+              purpose: start.purpose,
+            },
           )
         } catch (error) {
           expectedError = safeError(
@@ -921,6 +1299,10 @@ function publicSnapshot(state) {
 export async function createIncrementalLongMemEvalHardCapGeminiTransport({
   answerGeneration,
   capUsd,
+  explorationGeneration,
+  explorationSystemInstruction,
+  explorationToolConfig,
+  explorationTools,
   fetchImpl = globalThis.fetch,
   geminiApiKey,
   journalPath,
@@ -974,9 +1356,15 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
   }
   assertGenerationContract(answerGeneration, 'answerGeneration')
   assertGenerationContract(writerGeneration, 'writerGeneration')
+  const frozenExplorationContract = assertExplorationContract({
+    explorationGeneration,
+    explorationSystemInstruction,
+    explorationToolConfig,
+    explorationTools,
+  })
   const frozenAnswerGeneration = clone(answerGeneration)
   const frozenWriterGeneration = clone(writerGeneration)
-  const contractSha256 = sha256(JSON.stringify({
+  const contractShape = {
     answerGeneration: frozenAnswerGeneration,
     limits: INCREMENTAL_HARD_CAP_GEMINI_LIMITS,
     model,
@@ -986,7 +1374,11 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
       INCREMENTAL_HARD_CAP_GEMINI_PRICES_USD_PER_MILLION,
     requireNetworkGuard,
     writerGeneration: frozenWriterGeneration,
-  }))
+  }
+  if (frozenExplorationContract) {
+    contractShape.exploration = frozenExplorationContract
+  }
+  const contractSha256 = sha256(JSON.stringify(contractShape))
 
   await ensurePrivateJournal(journalPath)
   await mkdir(transcriptDirectory, { recursive: true, mode: 0o700 })
@@ -1007,6 +1399,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
   let state = await reconcileJournal(journalPath, {
     capUsd,
     contractSha256,
+    explorationEnabled: frozenExplorationContract !== null,
     openingAccountedUsd,
   })
   if (state.attempts > 0 && !state.terminal) {
@@ -1016,6 +1409,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
     })
     await verifySuccessAccountingAgainstTranscripts({
       answerGeneration: frozenAnswerGeneration,
+      explorationContract: frozenExplorationContract,
       journalPath,
       transcriptDirectory,
       writerGeneration: frozenWriterGeneration,
@@ -1067,6 +1461,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
       state = await reconcileJournal(journalPath, {
         capUsd,
         contractSha256,
+        explorationEnabled: frozenExplorationContract !== null,
         openingAccountedUsd,
       })
       await appendEvent(journalPath, state, {
@@ -1101,6 +1496,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
       state = await reconcileJournal(journalPath, {
         capUsd,
         contractSha256,
+        explorationEnabled: frozenExplorationContract !== null,
         openingAccountedUsd,
       })
     } catch (evidenceError) {
@@ -1125,14 +1521,19 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
         'The designated successor runtime requires its network guard before dispatch.',
       )
     }
-    assertIdentity({ cellId, operationId, purpose })
+    assertIdentity(
+      { cellId, operationId, purpose },
+      frozenExplorationContract !== null,
+    )
     assertRequestBody(body, purpose, {
       answerGeneration: frozenAnswerGeneration,
+      explorationContract: frozenExplorationContract,
       writerGeneration: frozenWriterGeneration,
     })
     state = await reconcileJournal(journalPath, {
       capUsd,
       contractSha256,
+      explorationEnabled: frozenExplorationContract !== null,
       openingAccountedUsd,
     })
     if (state.terminal) {
@@ -1163,6 +1564,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
     })
     await verifySuccessAccountingAgainstTranscripts({
       answerGeneration: frozenAnswerGeneration,
+      explorationContract: frozenExplorationContract,
       journalPath,
       transcriptDirectory,
       writerGeneration: frozenWriterGeneration,
@@ -1231,6 +1633,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
     state = await reconcileJournal(journalPath, {
       capUsd,
       contractSha256,
+      explorationEnabled: frozenExplorationContract !== null,
       openingAccountedUsd,
     })
 
@@ -1284,6 +1687,10 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
         rawBody,
         body.generationConfig.maxOutputTokens,
         response.headers,
+        {
+          explorationContract: frozenExplorationContract,
+          purpose,
+        },
       )
     } catch (error) {
       clearTimeout(timeout)
@@ -1314,6 +1721,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
       state = await reconcileJournal(journalPath, {
         capUsd,
         contractSha256,
+        explorationEnabled: frozenExplorationContract !== null,
         openingAccountedUsd,
       })
       await appendEvent(journalPath, state, {
@@ -1337,6 +1745,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
       state = await reconcileJournal(journalPath, {
         capUsd,
         contractSha256,
+        explorationEnabled: frozenExplorationContract !== null,
         openingAccountedUsd,
       })
     } catch (error) {
@@ -1347,7 +1756,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
         { cause: error },
       )
     }
-    return {
+    const result = {
       finishReason: parsed.finishReason,
       modelVersion: parsed.modelVersion,
       text: parsed.text,
@@ -1361,6 +1770,12 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
       usageDetails: clone(parsed.usageDetails),
       validated: true,
     }
+    if (purpose === EXPLORATION_PURPOSE) {
+      result.candidateContent = clone(parsed.candidateContent)
+      result.functionCalls = clone(parsed.functionCalls)
+      result.responseType = parsed.responseType
+    }
+    return result
   }
 
   return Object.freeze({
@@ -1419,6 +1834,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
       state = await reconcileJournal(journalPath, {
         capUsd,
         contractSha256,
+        explorationEnabled: frozenExplorationContract !== null,
         openingAccountedUsd,
       })
       return publicSnapshot(state)
@@ -1446,6 +1862,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
       state = await reconcileJournal(journalPath, {
         capUsd,
         contractSha256,
+        explorationEnabled: frozenExplorationContract !== null,
         openingAccountedUsd,
       })
       const transcripts = await verifyLiveTranscriptArtifacts({
@@ -1460,6 +1877,7 @@ export async function createIncrementalLongMemEvalHardCapGeminiTransport({
       }
       await verifySuccessAccountingAgainstTranscripts({
         answerGeneration: frozenAnswerGeneration,
+        explorationContract: frozenExplorationContract,
         journalPath,
         transcriptDirectory,
         writerGeneration: frozenWriterGeneration,

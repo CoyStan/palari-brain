@@ -1,6 +1,7 @@
 // Public-surface contract for the active, non-lexical product path.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 
 const EXPECTED_FUNCTIONS = [
   'answerQuestion',
@@ -77,3 +78,15 @@ test('index.mjs exports only the active role-provenance surface', async () => {
     )
   }
 })
+
+test('the package includes every module loaded by its public entry point',
+  async () => {
+    const packageJson = JSON.parse(await readFile(
+      new URL('../package.json', import.meta.url),
+      'utf8',
+    ))
+    assert.ok(
+      packageJson.files.includes('src/memory-exploration.mjs'),
+      'installed tarballs must include the exploration module exported by index.mjs',
+    )
+  })

@@ -856,6 +856,14 @@ export async function runIncrementalLongMemEvalQuestion(options) {
 // miss. It is not a transport failure and therefore still belongs in the
 // official judge path.
 export async function runIncrementalLongMemEvalQuestionForScoring(options) {
+  if (options?.mode === 'exploration') {
+    const {
+      runIncrementalLongMemEvalQuestionWithExploration,
+    } = await import(
+      './incremental-memory-exploration-longmemeval-live-arm.mjs'
+    )
+    return runIncrementalLongMemEvalQuestionWithExploration(options)
+  }
   return runIncrementalLongMemEvalQuestionCore(options, {
     answerBodyBuilder: buildIncrementalLongMemEvalHardCapAnswerBody,
     expectedModel: INCREMENTAL_LONGMEMEVAL_HARD_CAP_MODEL,

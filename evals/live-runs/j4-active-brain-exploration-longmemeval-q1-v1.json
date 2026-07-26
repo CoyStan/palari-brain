@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "runId": "j4-active-brain-exploration-longmemeval-q1-v1",
+  "runDate": "2026-07-26",
+  "productCommit": "068d7a2d4ec1e62d8689b889b9527ae4ad455748",
+  "dataset": {
+    "path": "data/longmemeval_s_cleaned.json",
+    "sha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+  },
+  "instance": {
+    "normalizedBytes": 558824,
+    "normalizedFormat": "JSON.stringify(instance, null, 2) + newline",
+    "normalizedSha256": "7caf1c76b67ece61d747e829eb3b13bb3046d1101ae4320460cd7fdd2e817fb2",
+    "questionId": "08e075c7"
+  },
+  "population": {
+    "exchangePlanSha256": "8441628945e6f6b0685f3b67ef6413a4a249ece8bbc9509af75e6849531c8be3",
+    "interactions": 243,
+    "sessions": 45,
+    "visibleCharacters": 497983,
+    "visibleMessages": 484
+  },
+  "models": {
+    "exploration": "gemini-2.5-flash-lite",
+    "judge": "gpt-4o-2024-08-06",
+    "reducer": "gemini-2.5-flash-lite"
+  },
+  "scope": {
+    "benchmarkQuestions": 1,
+    "comparisonOperations": 0,
+    "judgeOperations": 1,
+    "maxInteractionsPerReducerCall": 20,
+    "maximumExplorationModelDispatches": 7,
+    "maximumExplorationToolCalls": 6,
+    "maximumPhysicalDispatches": 35,
+    "maximumReducerDispatches": 27,
+    "question2Allowed": false,
+    "questionIds": [
+      "08e075c7"
+    ],
+    "reduceEvery": 20,
+    "retryDispatches": 0
+  },
+  "explorationPolicy": {
+    "exactFindOnly": true,
+    "modelChoosesSearchPhrases": true,
+    "preseededSearchPhrase": false,
+    "tools": [
+      "memory_timeline",
+      "memory_read",
+      "memory_find"
+    ]
+  },
+  "generation": {
+    "explorationMaxOutputTokens": 256,
+    "judge": {
+      "maxTokens": 10,
+      "n": 1,
+      "serviceTier": "default",
+      "store": false,
+      "temperature": 0
+    },
+    "reducerMaxOutputTokens": 2000,
+    "thinkingBudget": 0
+  },
+  "spend": {
+    "opening": {
+      "accountedUsd": 0.7761082,
+      "measuredUsd": 0.7736072,
+      "uncertainUsd": 0.002501
+    },
+    "expected": {
+      "freshUsd": 0.0692315,
+      "guarantee": false,
+      "ingestion": {
+        "inputPriceUsdPerMillion": 0.1,
+        "inputTokenHeuristic": 292538,
+        "inputUsd": 0.0292538,
+        "outputPriceUsdPerMillion": 0.4,
+        "outputTokens": 54000,
+        "outputUsd": 0.0216,
+        "protocolTokensPerDispatch": 512,
+        "reducerDispatches": 27,
+        "serializedRequestBytes": 1114813,
+        "serializedRequestBytesByDispatch": [
+          40868,
+          41953,
+          41517,
+          43087,
+          43330,
+          42425,
+          41081,
+          43471,
+          43893,
+          43358,
+          43802,
+          42098,
+          40776,
+          41831,
+          41868,
+          25618,
+          41401,
+          42402,
+          42691,
+          42502,
+          43840,
+          41084,
+          41015,
+          41896,
+          42502,
+          40141,
+          34363
+        ],
+        "sumPerDispatchCeilBytesDivFour": 278714,
+        "usd": 0.0508538
+      },
+      "judge": {
+        "hypothesisCharacters": 1024,
+        "inputPriceUsdPerMillion": 2.5,
+        "inputTokenHeuristic": 931,
+        "outputPriceUsdPerMillion": 10,
+        "outputTokens": 10,
+        "protocolTokens": 512,
+        "serializedBodyBytes": 1676,
+        "usd": 0.0024275
+      },
+      "method": "Expected USD uses measured serialized ordinal-1 cadence-20 request shapes, bytes/4 plus 512-token heuristics, full configured output allowances, bounded exploration-result assumptions, and Standard prices. It is an estimate, not the provider-window hard-cap proof.",
+      "exploration": {
+        "baseSerializedBytesPerTurn": 22000,
+        "inputPriceUsdPerMillion": 0.1,
+        "inputTokenHeuristic": 152334,
+        "modelDispatches": 7,
+        "outputPriceUsdPerMillion": 0.4,
+        "outputTokens": 1792,
+        "protocolTokensPerDispatch": 512,
+        "serializedBytesAcrossTurns": 595000,
+        "toolExchangeSerializedBytes": 21000,
+        "toolHistoryTriangularSum": 21,
+        "usd": 0.0159502
+      }
+    },
+    "hardCap": {
+      "cumulativeCapUsd": 8,
+      "explorationSuccessMaximumUsd": 0.10496,
+      "freshSubcapUsd": 4.1316452,
+      "geminiPendingReservationUsd": 0.2359296,
+      "judgePendingReservationUsd": 0.54417,
+      "projectedCumulativeMaximumUsd": 4.9077534,
+      "reducerSuccessMaximumUsd": 0.1056576
+    }
+  },
+  "predictions": {
+    "path": "evals/predictions/j4-active-brain-exploration-longmemeval-q1-v1.json",
+    "sha256": "8b95b1d1b1fae79890d77f1f986ef1cc2905e6e90380de4b6135e65197f2a57a"
+  },
+  "authority": {
+    "path": "evals/live-runs/j4-active-brain-exploration-longmemeval-q1-v1.authority.json"
+  },
+  "executionLaw": {
+    "checkpointEveryCanonicalInteraction": true,
+    "noReroll": true,
+    "providerJournalEveryDispatch": true,
+    "publish": false,
+    "resultsGitignored": true,
+    "stopBeforeQuestion2": true
+  },
+  "artifacts": {
+    "entries": [],
+    "reason": "Root must replace this placeholder with exact runtime artifact paths and SHA-256 values after every implementation byte settles.",
+    "status": "PENDING_RUNTIME_ARTIFACT_HASHES"
+  }
+}

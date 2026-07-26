@@ -48,6 +48,10 @@ export function incrementalLongMemEvalGeminiEffectiveCap({
 
 export async function createIncrementalLongMemEvalGeminiTransport({
   cumulativeCapUsd,
+  explorationGeneration,
+  explorationSystemInstruction,
+  explorationToolConfig,
+  explorationTools,
   fetchImpl,
   freshSubcapUsd,
   geminiApiKey,
@@ -57,6 +61,8 @@ export async function createIncrementalLongMemEvalGeminiTransport({
   openingAccountedUsd = 0,
   requestTimeoutMs,
   transcriptDirectory,
+  writerGeneration =
+    INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT.writerGeneration,
 } = {}) {
   const capUsd = incrementalLongMemEvalGeminiEffectiveCap({
     cumulativeCapUsd,
@@ -67,8 +73,11 @@ export async function createIncrementalLongMemEvalGeminiTransport({
     await createIncrementalLongMemEvalHardCapGeminiTransport({
       answerGeneration:
         INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT.answerGeneration,
-      writerGeneration:
-        INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT.writerGeneration,
+      explorationGeneration,
+      explorationSystemInstruction,
+      explorationToolConfig,
+      explorationTools,
+      writerGeneration,
       model: INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT.geminiModel,
       capUsd,
       fetchImpl,

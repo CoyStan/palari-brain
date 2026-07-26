@@ -90,6 +90,7 @@ test('find locates an exact phrase and read returns the whole message',
     assert.equal(match.session, 'sess-b')
     // A hit is provably present in the stored message.
     assert.ok(match.snippet.includes('7731'))
+    assert.equal(Object.hasOwn(match, 'text'), false)
 
     const readBack = brain.exploreRead(SCOPE, {
       evidenceIds: [match.evidenceId],
@@ -101,6 +102,28 @@ test('find locates an exact phrase and read returns the whole message',
     )
     // Never a partial body: a truncated quote is not evidence.
     assert.equal(readBack.truncated, false)
+  })
+
+test('find returns bounded excerpts rather than duplicating full messages',
+  async (t) => {
+    const brain = await openBrain(t)
+    const longMessage = `needle ${'x'.repeat(5_000)}`
+    await seed(brain, [{
+      id: 'sess-long:0',
+      user: longMessage,
+    }])
+
+    const found = brain.exploreFind(SCOPE, {
+      maxChars: 1_000,
+      phrase: 'needle',
+    })
+    assert.equal(found.matches.length, 1)
+    assert.equal(found.matches[0].snippet.length, 400)
+    assert.equal(found.matches[0].snippetIsPartial, true)
+    assert.equal(Object.hasOwn(found.matches[0], 'text'), false)
+    assert.ok(JSON.stringify(found.matches).length <= 1_000)
+    assert.equal(found.chars, JSON.stringify(found.matches).length)
+    assert.equal(JSON.stringify(found).includes(longMessage), false)
   })
 
 test('find is exact substring matching, not fuzzy or semantic', async (t) => {
@@ -300,6 +323,18 @@ test('the published tool definitions are provider-neutral and complete', () => {
   const find = MEMORY_EXPLORATION_TOOLS
     .find((tool) => tool.name === 'memory_find')
   assert.match(find.description, /exact substring matching, not semantic/)
+  assert.deepEqual(find.parameters.required, ['phrase'])
+  assert.equal(find.parameters.properties.phrase.minLength, 1)
+  assert.equal(find.parameters.properties.phrase.maxLength, 200)
+
+  const read = MEMORY_EXPLORATION_TOOLS
+    .find((tool) => tool.name === 'memory_read')
+  assert.deepEqual(
+    read.parameters.anyOf.map(({ required }) => required),
+    [['evidenceIds'], ['session']],
+  )
+  assert.equal(read.parameters.properties.evidenceIds.minItems, 1)
+  assert.equal(read.parameters.properties.session.minLength, 1)
 })
 
 test('digest records point at the sessions behind them', async (t) => {

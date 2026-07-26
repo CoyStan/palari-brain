@@ -15,6 +15,7 @@
     "src/index.mjs",
     "src/longmemeval.mjs",
     "src/memory-digest-store.mjs",
+    "src/memory-exploration.mjs",
     "src/memory-reducer.mjs",
     "src/memory-store.mjs",
     "src/statement-extraction.mjs",

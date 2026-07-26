@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "runId": "j4-active-brain-exploration-longmemeval-q1-v1",
+  "founderAuthorization": "2026-07-26: founder approved Step 2 execution for exactly LongMemEval-S ordinal 1 with batched reduction, one bounded model-chosen memory exploration answer, one official judge, and a mandatory stop. The founder's run discipline separately requires confirmation of the exact conservative fresh cap before dispatch.",
+  "scope": "one-exploration-longmemeval-question-only",
+  "preRunPreparationAuthorized": true,
+  "dispatchAuthorized": false,
+  "exactCapConfirmationRequired": true,
+  "providers": [
+    "gemini",
+    "openai"
+  ],
+  "models": {
+    "exploration": "gemini-2.5-flash-lite",
+    "judge": "gpt-4o-2024-08-06",
+    "reducer": "gemini-2.5-flash-lite"
+  },
+  "questionIds": [
+    "08e075c7"
+  ],
+  "reduceEvery": 20,
+  "maxInteractionsPerReducerCall": 20,
+  "maximumReducerDispatches": 27,
+  "maximumExplorationToolCalls": 6,
+  "maximumExplorationModelDispatches": 7,
+  "judgeOperations": 1,
+  "maximumPhysicalDispatches": 35,
+  "retryDispatches": 0,
+  "comparisonOperations": 0,
+  "question2Allowed": false,
+  "cumulativeCapUsd": 8,
+  "freshSubcapUsd": 4.1316452,
+  "publish": false
+}

@@ -412,7 +412,7 @@ Three primitives, all behind the existing gate:
 | --- | --- | --- |
 | `memory_timeline` | `ls` | Lists sessions with dates and message counts |
 | `memory_read` | `cat` | Returns complete messages by evidence ID or session |
-| `memory_find` | `grep` | Exact, case-insensitive substring match |
+| `memory_find` | `grep` | Exact, case-insensitive substring match with bounded excerpts |
 
 This is deliberately **not** retrieval by ranking. There is no BM25, no
 vector search, no fuzzy matching, and no relevance score. A `memory_find` hit
@@ -424,11 +424,12 @@ That determinism is the point. `result.consultedEvidenceIds` and the optional
 messages informed an answer — something a nearest-neighbour retriever cannot
 produce.
 
-Exploration inherits every gate guarantee. Results are canonical rows scoped
+Exploration inherits every gate guarantee. Results are canonical records scoped
 to `palariId AND userId`, with host-derived speaker and time. Deleted
 messages are gone. Source, tool, and web text never entered canonical storage,
-so it has no read path either. A message body is never truncated: a partial
-quote is not evidence.
+so it has no read path either. `memory_find` returns a bounded excerpt for
+orientation; `memory_read` returns the complete message and never truncates
+its body, because a partial quote is not complete evidence.
 
 Exploration is bounded by `maxExplorationCalls` and fails closed — once the
 budget is spent, `explore` returns `{ exhausted: true }` rather than looping.

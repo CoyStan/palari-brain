@@ -220,24 +220,27 @@ export function createMemoryExplorer(store, {
     const matches = rows.map((row) => {
       const at = row.text.toLowerCase().indexOf(needle.toLowerCase())
       const start = Math.max(0, at - Math.floor(snippet / 2))
-      const text = row.text.slice(start, start + snippet)
+      const excerpt = row.text.slice(start, start + snippet)
+      const { text: _fullMessage, ...identity } = row
       return {
-        ...row,
+        ...identity,
         matchOffset: at,
         // An excerpt for orientation. `memory_read` returns the whole
         // message when the model wants the complete evidence.
-        snippet: text,
-        snippetIsPartial: text.length < row.text.length,
+        snippet: excerpt,
+        snippetIsPartial: excerpt.length < row.text.length,
       }
     })
-    const { chars, included, truncated } = withinBudget(
-      matches.map((match) => ({ ...match, text: match.snippet })),
-      budget,
-    )
-    const result = included.map((entry, index) => ({
-      ...matches[index],
-      snippet: entry.text,
-    }))
+    const result = []
+    let chars = 0
+    for (const match of matches) {
+      const next = [...result, match]
+      const nextChars = JSON.stringify(next).length
+      if (nextChars > budget) break
+      result.push(match)
+      chars = nextChars
+    }
+    const truncated = result.length < matches.length
     record(scope, 'memory_find', { phrase: needle }, result)
     return {
       chars,
@@ -264,6 +267,8 @@ export const MEMORY_EXPLORATION_TOOLS = Object.freeze([
       properties: Object.freeze({
         limit: Object.freeze({
           description: 'Maximum sessions to list.',
+          maximum: MAX_LIMIT * 5,
+          minimum: 1,
           type: 'integer',
         }),
       }),
@@ -278,18 +283,33 @@ export const MEMORY_EXPLORATION_TOOLS = Object.freeze([
       properties: Object.freeze({
         evidenceIds: Object.freeze({
           description: 'Exact evidence IDs to read.',
-          items: Object.freeze({ type: 'string' }),
+          items: Object.freeze({ minLength: 1, type: 'string' }),
+          maxItems: MAX_LIMIT,
+          minItems: 1,
           type: 'array',
         }),
         limit: Object.freeze({
           description: 'Maximum messages to return.',
+          maximum: MAX_LIMIT,
+          minimum: 1,
           type: 'integer',
         }),
         session: Object.freeze({
           description: 'Session identifier to read in full.',
+          minLength: 1,
           type: 'string',
         }),
       }),
+      anyOf: Object.freeze([
+        Object.freeze({
+          required: Object.freeze(['evidenceIds']),
+          type: 'object',
+        }),
+        Object.freeze({
+          required: Object.freeze(['session']),
+          type: 'object',
+        }),
+      ]),
       type: 'object',
     }),
   }),
@@ -301,10 +321,14 @@ export const MEMORY_EXPLORATION_TOOLS = Object.freeze([
       properties: Object.freeze({
         limit: Object.freeze({
           description: 'Maximum matches to return.',
+          maximum: MAX_LIMIT,
+          minimum: 1,
           type: 'integer',
         }),
         phrase: Object.freeze({
           description: 'Exact phrase to look for.',
+          maxLength: MAX_PHRASE_CHARS,
+          minLength: 1,
           type: 'string',
         }),
       }),
