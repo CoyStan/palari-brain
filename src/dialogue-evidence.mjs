@@ -341,6 +341,37 @@ function ensureActiveSchema(store, clock) {
 
       CREATE INDEX IF NOT EXISTS memories_evidence_id_idx
         ON memories (evidence_id);
+
+      -- Chronology ordinals are allocated from a per-scope high-water mark,
+      -- never from MAX(dialogue_order). Deleting the newest message must not
+      -- free its ordinal for reuse: a reused ordinal would let a later
+      -- message tie an earlier one under the (event_at, dialogue_order)
+      -- comparator that supersession and digest lineage depend on.
+      CREATE TABLE IF NOT EXISTS dialogue_scope_counters (
+        palari_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        next_dialogue_order INTEGER NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (palari_id, user_id)
+      );
+    `)
+
+    // Existing databases seed their watermark once, from the highest ordinal
+    // ever observed in live evidence.
+    store.db.exec(`
+      INSERT OR IGNORE INTO dialogue_scope_counters (
+        palari_id,
+        user_id,
+        next_dialogue_order,
+        updated_at
+      )
+      SELECT
+        palari_id,
+        user_id,
+        MAX(dialogue_order) + 1,
+        MIN(created_at)
+      FROM dialogue_evidence
+      GROUP BY palari_id, user_id
     `)
 
     const migration = store.db.prepare(
@@ -439,6 +470,37 @@ export function createDialogueGate(store, {
 } = {}) {
   ensureActiveSchema(store, clock)
   const digest = createMemoryDigestStore(store, { clock })
+
+  // Monotonic per-scope chronology ordinal. The watermark only ever moves
+  // forward, so an ordinal freed by deletion is never handed out again and
+  // two live rows can never tie on (event_at, dialogue_order).
+  function allocateDialogueOrder(scope) {
+    const now = isoNow(clock)
+    store.db.prepare(`
+      INSERT INTO dialogue_scope_counters (
+        palari_id,
+        user_id,
+        next_dialogue_order,
+        updated_at
+      ) VALUES (?, ?, 0, ?)
+      ON CONFLICT (palari_id, user_id) DO NOTHING
+    `).run(scope.palariId, scope.userId, now)
+    const allocated = store.db.prepare(`
+      UPDATE dialogue_scope_counters
+      SET
+        next_dialogue_order = next_dialogue_order + 1,
+        updated_at = ?
+      WHERE palari_id = ? AND user_id = ?
+      RETURNING next_dialogue_order - 1 AS value
+    `).get(now, scope.palariId, scope.userId)
+    const value = Number(allocated?.value)
+    if (!Number.isSafeInteger(value) || value < 0) {
+      const error = new Error('Dialogue chronology counter is unusable.')
+      error.code = 'DIALOGUE_ORDER_UNAVAILABLE'
+      throw error
+    }
+    return value
+  }
 
   const visibleStatementsSql = `
     SELECT
@@ -749,12 +811,6 @@ export function createDialogueGate(store, {
         )
       }
 
-      const currentOrder = store.db.prepare(`
-        SELECT COALESCE(MAX(dialogue_order), -1) AS value
-        FROM dialogue_evidence
-        WHERE palari_id = ? AND user_id = ?
-      `).get(scope.palariId, scope.userId)
-      let nextOrder = Number(currentOrder?.value) + 1
       for (const role of roles.filter((entry) => entry.present)) {
         const roleMessageId = roleSourceMessageId(
           sourceMessageId,
@@ -846,7 +902,7 @@ export function createDialogueGate(store, {
           role.content,
           role.sha256,
           eventAt,
-          nextOrder,
+          allocateDialogueOrder(scope),
           isoNow(clock),
           canonicalEvidenceKind,
         )
@@ -854,7 +910,6 @@ export function createDialogueGate(store, {
         promoteLegacyEvidence(inserted, role.content)
         written.push(evidenceRow(inserted))
         outcomes.push(`inserted_${role.sourceKind}`)
-        nextOrder += 1
       }
       digest.queueTurn(scope, identity)
       store.db.exec('COMMIT')
@@ -1143,11 +1198,13 @@ export function createDialogueGate(store, {
     forgetById,
     listActiveMemories: digest.listMemories,
     listIndexEntries,
+    listBlockedReductions: digest.listBlocked,
     listPendingReductions: digest.listPending,
     readReadyDigest: digest.readReadyDigest,
     listStatements,
     listStatementsForBriefing,
     markReductionFailure: digest.markFailure,
     prepareOldestReduction: digest.prepareOldest,
+    requeueBlockedReductions: digest.requeueBlocked,
   })
 }

@@ -198,12 +198,20 @@ test('sealed identity rejects current successor-only runtime drift',
           changedArtifacts.push(artifact.path)
         }
       }
+      // Product-path entries drifted when the reducer gained capacity
+      // utilization, quarantine, and normalized supersession. The sealed
+      // identity must refuse these bytes; that refusal is the guarantee.
       assert.deepEqual(changedArtifacts.sort(), [
+        'evals/arms/incremental-memory-live-smoke.mjs',
         'evals/arms/incremental-memory-longmemeval-live-arm.mjs',
         'evals/incremental-longmemeval-judge-transport.mjs',
         'evals/incremental-longmemeval-judge.mjs',
         'evals/live-transcript.mjs',
         'evals/run-incremental-longmemeval-live.mjs',
+        'src/brain.mjs',
+        'src/dialogue-evidence.mjs',
+        'src/memory-digest-store.mjs',
+        'src/memory-reducer.mjs',
       ])
     }
   })

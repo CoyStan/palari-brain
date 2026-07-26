@@ -72,6 +72,7 @@ export const ACTIVE_MEMORY_SYSTEM_INSTRUCTIONS = deepFreeze({
     'Memory basis items provide identifiers only and their quote must be the empty string.',
     'Use timeBasis only when current evidence states the relevant time. Its quote must be an exact, nonempty, contiguous quote from that evidence.',
     'Do not add a memory when the current evidence contains no durable information. Do not restate unchanged prior memory merely to keep it.',
+    'input.utilization reports how full the active digest already is. When itemsRemaining or digestCharsRemaining is low, first use replace with summarizes to compact related same-speaker prior items, then add. A response whose resulting state exceeds a limit is rejected in full and stores nothing.',
   ],
   responseRules: [
     'Return one JSON object with exactly baseRevision, dispositions, and actions.',
@@ -288,10 +289,32 @@ function assertUniqueInputIds(items, label) {
   }
 }
 
+function normalizeUtilization(value, priorCount) {
+  const items = Number.isSafeInteger(value?.items)
+    ? value.items
+    : priorCount
+  const digestChars = Number.isSafeInteger(value?.digestChars)
+    ? value.digestChars
+    : 0
+  if (items < 0 || digestChars < 0) {
+    throw new TypeError('utilization counters must be non-negative.')
+  }
+  return {
+    digestChars,
+    digestCharsRemaining: Math.max(
+      0,
+      ACTIVE_MEMORY_MAX_DIGEST_CHARS - digestChars,
+    ),
+    items,
+    itemsRemaining: Math.max(0, ACTIVE_MEMORY_MAX_ITEMS - items),
+  }
+}
+
 export function buildMemoryReductionRequest({
   baseRevision: rawBaseRevision,
   evidence = [],
   prior = [],
+  utilization,
 } = {}) {
   if (!Array.isArray(prior)) {
     throw new TypeError('prior must be an array.')
@@ -317,6 +340,10 @@ export function buildMemoryReductionRequest({
       evidence: normalizedEvidence,
       limits: ACTIVE_MEMORY_LIMITS,
       prior: normalizedPrior,
+      // Capacity pressure has to be visible to the reducer. Without it the
+      // model cannot know to compact before the digest fills, and the first
+      // action past the cap fails the whole reduction.
+      utilization: normalizeUtilization(utilization, normalizedPrior.length),
     },
     systemInstructions: ACTIVE_MEMORY_SYSTEM_INSTRUCTIONS,
   }

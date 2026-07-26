@@ -504,7 +504,19 @@ test('Mem0 SDK clients are pinned to one exact loopback meter endpoint', async (
   assert.equal(forwarded.length, 1)
 })
 
-test('real Mem0 OSS arm stays local, disables SDK retries, scopes, and serializes sources exactly', async () => {
+test('real Mem0 OSS arm stays local, disables SDK retries, scopes, and serializes sources exactly', async (context) => {
+  // `mem0ai` is a devDependency of the comparison arm only. Without it this
+  // is an uninstalled-dependency error, not a memory finding; skip so the
+  // suite reports honestly before `npm install`.
+  try {
+    await import('mem0ai')
+  } catch (error) {
+    if (error?.code === 'ERR_MODULE_NOT_FOUND') {
+      context.skip('mem0ai devDependency is not installed')
+      return
+    }
+    throw error
+  }
   const root = await mkdtemp(join(tmpdir(), 'palari-live-mem0-'))
   const liveConfig = JSON.parse(await readFile(
     new URL('../evals/live-runs/j3-live-v3.json', import.meta.url),

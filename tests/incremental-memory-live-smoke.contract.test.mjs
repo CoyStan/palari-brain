@@ -471,9 +471,16 @@ test('frozen config, FINAL predictions, authority, and tracked artifacts reconci
         successorDrift.push(artifact.path)
       }
     }
+    // Product-path entries drifted when the reducer gained capacity
+    // utilization, quarantine, and normalized supersession.
     assert.deepEqual(successorDrift.sort(), [
+      'evals/arms/incremental-memory-live-smoke.mjs',
       'evals/live-transcript.mjs',
       'evals/run-incremental-memory-smoke.mjs',
+      'src/brain.mjs',
+      'src/dialogue-evidence.mjs',
+      'src/memory-digest-store.mjs',
+      'src/memory-reducer.mjs',
     ])
     assert.equal(
       successorDrift.includes(
@@ -598,15 +605,29 @@ test('reservation envelope is derived from host-valid maximum fixture bodies', a
       Buffer.byteLength(JSON.stringify(body)))
     const operations =
       INCREMENTAL_MEMORY_SMOKE_RESERVATION_ENVELOPE.operations
-    assert.deepEqual(bodyBytes, [4_591, 9_297, 12_451])
+    assert.deepEqual(bodyBytes, [4_988, 9_697, 12_451])
     assert.equal(result.activeMemories.length, 2)
     assert.deepEqual(
       result.activeMemories.map((memory) => memory.supports.length),
       [2, 4],
     )
-    assert.ok(bodyBytes.every((bytes, index) =>
-      bytes <= operations[index].maximumRequestBytes))
 
+    // The current reducer request carries capacity utilization and the
+    // compaction rule, so both reducer bodies are now LARGER than the bytes
+    // this sealed identity froze. Its reservation therefore no longer covers
+    // the current product, which is exactly why it is terminal: the frozen
+    // envelope may never be used to authorize a run of these bytes.
+    assert.deepEqual(
+      bodyBytes.map((bytes, index) =>
+        bytes <= operations[index].maximumRequestBytes),
+      [false, false, true],
+    )
+    // The unchanged answer request proves the growth is confined to the
+    // reducer contract and did not touch the answer prompt.
+    assert.equal(bodyBytes[2], operations[2].maximumRequestBytes)
+
+    // The frozen envelope's own arithmetic still reconciles as a historical
+    // record. These are the sealed identity's numbers, not the successor's.
     const reservations = operations.map((operation) =>
       j4ReservationFor({
         body: 'x'.repeat(operation.maximumRequestBytes),

@@ -704,9 +704,28 @@ function validReducerBody({
   const expectedPrior = priorFromActiveMemories(previousMemories)
   return exactKeys(envelope, ['contractVersion', 'input']) &&
     envelope.contractVersion === ACTIVE_MEMORY_REDUCER_VERSION &&
-    exactKeys(input, ['baseRevision', 'evidence', 'limits', 'prior']) &&
+    exactKeys(input, [
+      'baseRevision',
+      'evidence',
+      'limits',
+      'prior',
+      'utilization',
+    ]) &&
     input.baseRevision === ordinal - 1 &&
     sameJson(input.limits, ACTIVE_MEMORY_LIMITS) &&
+    exactKeys(input.utilization, [
+      'digestChars',
+      'digestCharsRemaining',
+      'items',
+      'itemsRemaining',
+    ]) &&
+    // Capacity accounting must agree with the prior it describes and must
+    // never smuggle extra content into the bounded request.
+    input.utilization.items === (input.prior ?? []).length &&
+    input.utilization.items + input.utilization.itemsRemaining ===
+      ACTIVE_MEMORY_LIMITS.maxItems &&
+    input.utilization.digestChars + input.utilization.digestCharsRemaining ===
+      ACTIVE_MEMORY_LIMITS.maxDigestChars &&
     Array.isArray(input.evidence) &&
     input.evidence.length === expectedEvidence.length &&
     input.evidence.every((entry, index) =>

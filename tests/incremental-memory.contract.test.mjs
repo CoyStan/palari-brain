@@ -6,6 +6,7 @@ import test from 'node:test'
 
 import {
   ACTIVE_MEMORY_MAX_DIGEST_CHARS,
+  ACTIVE_MEMORY_MAX_ITEMS,
   ACTIVE_MEMORY_MAX_REQUEST_CHARS,
   ACTIVE_MEMORY_MAX_STATEMENT_CHARS,
   ACTIVE_MEMORY_MAX_TOPIC_CHARS,
@@ -160,11 +161,18 @@ test('each turn makes one bounded reduction and active memory answers without le
         reducerCalls += 1
         assert.deepEqual(
           Object.keys(request.input).sort(),
-          ['baseRevision', 'evidence', 'limits', 'prior'],
+          ['baseRevision', 'evidence', 'limits', 'prior', 'utilization'],
         )
         assert.equal(JSON.stringify(request).length <=
           ACTIVE_MEMORY_MAX_REQUEST_CHARS, true)
         assert.deepEqual(request.input.prior, [])
+        // An empty digest reports the full budget as remaining.
+        assert.deepEqual(request.input.utilization, {
+          digestChars: 0,
+          digestCharsRemaining: ACTIVE_MEMORY_MAX_DIGEST_CHARS,
+          items: 0,
+          itemsRemaining: ACTIVE_MEMORY_MAX_ITEMS,
+        })
         assert.deepEqual(
           request.input.evidence.map((entry) => [
             entry.speaker,
@@ -868,7 +876,7 @@ test('hundreds of canonical turns over 100k still answer from a digest under 24k
   assert.equal(brain.publicStatus().lexicalRecall, false)
 })
 
-test('one oversized interaction stays canonical and blocks later reduction without being skipped', async (t) => {
+test('one oversized interaction is quarantined, stays canonical, and does not block later reduction', async (t) => {
   const { brain } = await openBrain(t, 'oversized-interaction')
   const oversized = `oversized: ${'x'.repeat(
     ACTIVE_MEMORY_MAX_REQUEST_CHARS,
@@ -888,56 +896,172 @@ test('one oversized interaction stays canonical and blocks later reduction witho
       reducerId: REDUCER_ID,
     },
   )
+  // The request never renders, so no provider call is ever made for it.
   assert.equal(reducerCalls, 0)
   assert.equal(first.reductionStatus, 'failed')
   assert.equal(first.reduction.errorCategory, 'REDUCER_INPUT_CAPACITY')
+  // Deterministic failure: retrying cannot change the outcome, so the unit
+  // quarantines on the first attempt rather than after maxAttempts.
+  assert.equal(first.reduction.quarantined, true)
+  assert.equal(first.reductionBlocked, 1)
+  // Canonical evidence is untouched by the quarantine.
   assert.equal(brain.listStatements(SCOPE)[0].content, oversized)
-  assert.equal(brain.listPendingReductions(SCOPE).length, 1)
+  // It leaves the actionable queue but stays visible and unreduced.
+  assert.equal(brain.listPendingReductions(SCOPE).length, 0)
+  assert.deepEqual(
+    brain.listBlockedReductions(SCOPE).map((unit) => ({
+      attempts: unit.attempts,
+      blockedCategory: unit.blockedCategory,
+    })),
+    [{ attempts: 1, blockedCategory: 'REDUCER_INPUT_CAPACITY' }],
+  )
 
+  // The whole point of the quarantine: the next interaction still reduces.
   const second = await ingestChatTurn(
     brain,
     durableTurn({
       eventAt: '2026-07-25T11:00:00.000Z',
       sourceMessageId: 'oversized-interaction:2',
-      userMessage: 'My smaller statement remains behind the queue head.',
+      userMessage: 'My smaller statement is not stuck behind the queue head.',
     }),
     {
       reducer({ request }) {
         reducerCalls += 1
-        return noMemoryPayload(request)
+        const [evidence] = request.input.evidence
+        return reductionPayload(request, [
+          addAction(evidence, {
+            statement: 'The user made a smaller statement.',
+            topic: 'smaller statement',
+          }),
+        ])
       },
       reducerId: REDUCER_ID,
     },
   )
-  assert.equal(reducerCalls, 0)
-  assert.equal(second.reduction.errorCategory, 'REDUCER_INPUT_CAPACITY')
-  assert.deepEqual(
-    brain.listPendingReductions(SCOPE).map((unit) => unit.attempts),
-    [2, 0],
-  )
+  assert.equal(reducerCalls, 1)
+  assert.equal(second.reductionStatus, 'completed')
+  assert.equal(second.reductionApplied, 1)
+  assert.equal(second.reductionPending, 0)
+  assert.equal(second.reductionBlocked, 1)
 
-  const completeFallback = recallMemory(brain, SCOPE, {
-    maxChars: 100_000,
-  })
-  assert.equal(completeFallback.status, 'included')
-  assert.equal(completeFallback.briefingMode, 'canonical_fallback')
-  assert.equal(completeFallback.included.length, 2)
+  // The digest is usable, and its known hole is reported rather than hidden.
+  const digest = brain.digestStatus(SCOPE)
+  assert.equal(digest.ready, true)
+  assert.equal(digest.blocked, 1)
+  assert.equal(digest.status, 'ready_with_gaps')
 
-  const refused = recallMemory(brain, SCOPE, { maxChars: 10_000 })
-  assert.equal(refused.status, 'digest_incomplete')
+  const recalled = recallMemory(brain, SCOPE, { maxChars: 100_000 })
+  assert.equal(recalled.status, 'included')
+  assert.equal(recalled.briefingMode, 'incremental_digest')
+  assert.equal(recalled.reductionBlocked, 1)
+  assert.equal(recalled.included.length, 1)
+
   let providerCalls = 0
   const answer = await answerQuestion(brain, {
     ...SCOPE,
-    maxChars: 10_000,
+    maxChars: 100_000,
     provider() {
       providerCalls += 1
-      return { text: 'must not run' }
+      return { text: 'answered from the digest' }
     },
     question: 'What did I say?',
   })
-  assert.equal(providerCalls, 0)
-  assert.equal(answer.providerCalled, false)
-  assert.equal(answer.briefingStatus, 'digest_incomplete')
+  assert.equal(providerCalls, 1)
+  assert.equal(answer.reductionBlocked, 1)
+
+  // Recovery is explicit, never automatic: an automatic requeue would
+  // rebuild the same deadlock the quarantine exists to prevent.
+  assert.deepEqual(brain.requeueBlockedReductions(SCOPE), { requeued: 1 })
+  assert.equal(brain.listPendingReductions(SCOPE).length, 1)
+  assert.equal(brain.digestStatus(SCOPE).ready, false)
+})
+
+test('a repeatedly failing reducer quarantines after maxAttempts instead of blocking forever', async (t) => {
+  const { brain } = await openBrain(t, 'transient-reducer-failure')
+  let reducerCalls = 0
+  const failing = {
+    reducer() {
+      reducerCalls += 1
+      throw new Error('provider is unwell')
+    },
+    reducerId: REDUCER_ID,
+  }
+  const first = await ingestChatTurn(
+    brain,
+    durableTurn({
+      sourceMessageId: 'transient:1',
+      userMessage: 'I keep a spare key under the third flowerpot.',
+    }),
+    failing,
+  )
+  assert.equal(first.reductionStatus, 'failed')
+  assert.equal(first.reduction.quarantined, false)
+  assert.equal(first.reductionPending, 1)
+  assert.equal(first.reductionBlocked, 0)
+
+  // Two further attempts on the same still-actionable queue head.
+  for (let attempt = 2; attempt <= 3; attempt += 1) {
+    const retry = await reducePendingTurns(brain, {
+      ...SCOPE,
+      ...failing,
+    })
+    assert.equal(retry.status, 'failed')
+    assert.equal(retry.quarantined, attempt === 3)
+  }
+  assert.equal(reducerCalls, 3)
+  assert.equal(brain.listPendingReductions(SCOPE).length, 0)
+  assert.equal(brain.digestStatus(SCOPE).blocked, 1)
+
+  // Canonical dialogue survived every failure.
+  assert.equal(
+    brain.listStatements(SCOPE)[0].content,
+    'I keep a spare key under the third flowerpot.',
+  )
+
+  // A later interaction is no longer stuck behind the standing defect.
+  const later = await ingestChatTurn(
+    brain,
+    durableTurn({
+      eventAt: '2026-07-25T12:00:00.000Z',
+      sourceMessageId: 'transient:2',
+      userMessage: 'I moved the spare key indoors.',
+    }),
+    {
+      reducer({ request }) {
+        const [evidence] = request.input.evidence
+        return reductionPayload(request, [
+          addAction(evidence, {
+            statement: 'The user moved the spare key indoors.',
+            topic: 'spare key location',
+          }),
+        ])
+      },
+      reducerId: REDUCER_ID,
+    },
+  )
+  assert.equal(later.reductionStatus, 'completed')
+  assert.equal(later.reductionApplied, 1)
+  assert.equal(later.reductionBlocked, 1)
+})
+
+test('a lower maxAttempts quarantines sooner', async (t) => {
+  const { brain } = await openBrain(t, 'custom-max-attempts')
+  const result = await ingestChatTurn(
+    brain,
+    durableTurn({
+      sourceMessageId: 'custom-attempts:1',
+      userMessage: 'One statement.',
+    }),
+    {
+      maxAttempts: 1,
+      reducer() {
+        throw new Error('provider is unwell')
+      },
+      reducerId: REDUCER_ID,
+    },
+  )
+  assert.equal(result.reduction.quarantined, true)
+  assert.equal(result.reductionBlocked, 1)
 })
 
 test('every committed near-limit digest fits the exact advertised answer envelope', async (t) => {
@@ -1215,3 +1339,159 @@ test('upgrade and reopen seed pending legacy evidence without invoking a reducer
   assert.equal(reopened.listStatements(SCOPE).length, 1)
   reopened.close()
 })
+
+test('utilization reports real digest pressure so the reducer can compact in time',
+  async (t) => {
+    const { brain } = await openBrain(t, 'utilization-pressure')
+    await ingestChatTurn(
+      brain,
+      durableTurn({
+        sourceMessageId: 'utilization:1',
+        userMessage: 'I ride a blue bicycle to work.',
+      }),
+      {
+        reducer({ request }) {
+          return reductionPayload(request, [
+            addAction(request.input.evidence[0], {
+              statement: 'The user rides a blue bicycle to work.',
+              topic: 'commute',
+            }),
+          ])
+        },
+        reducerId: REDUCER_ID,
+      },
+    )
+
+    let observed = null
+    await ingestChatTurn(
+      brain,
+      durableTurn({
+        eventAt: '2026-07-25T11:00:00.000Z',
+        sourceMessageId: 'utilization:2',
+        userMessage: 'I also keep a spare helmet.',
+      }),
+      {
+        reducer({ request }) {
+          observed = request.input.utilization
+          return noMemoryPayload(request)
+        },
+        reducerId: REDUCER_ID,
+      },
+    )
+
+    assert.equal(observed.items, 1)
+    assert.equal(observed.itemsRemaining, ACTIVE_MEMORY_MAX_ITEMS - 1)
+    // Measured with the serializer that enforces the cap, not estimated.
+    assert.ok(observed.digestChars > 0)
+    assert.equal(
+      observed.digestChars + observed.digestCharsRemaining,
+      ACTIVE_MEMORY_MAX_DIGEST_CHARS,
+    )
+  })
+
+test('supersession tolerates topic wording drift but still requires one same-speaker target',
+  async (t) => {
+    const { brain } = await openBrain(t, 'topic-drift')
+    await ingestChatTurn(
+      brain,
+      durableTurn({
+        eventAt: '2026-07-25T06:00:00.000Z',
+        sourceMessageId: 'drift:1',
+        userMessage: 'I take my coffee black.',
+      }),
+      {
+        reducer({ request }) {
+          return reductionPayload(request, [
+            addAction(request.input.evidence[0], {
+              statement: 'The user takes their coffee black.',
+              topic: 'coffee preference',
+            }),
+          ])
+        },
+        reducerId: REDUCER_ID,
+      },
+    )
+
+    const corrected = await ingestChatTurn(
+      brain,
+      durableTurn({
+        eventAt: '2026-07-25T09:00:00.000Z',
+        sourceMessageId: 'drift:2',
+        userMessage: 'Actually I take my coffee with oat milk now.',
+      }),
+      {
+        reducer({ request }) {
+          const [prior] = request.input.prior
+          return reductionPayload(request, [
+            replaceAction(request.input.evidence[0], prior, {
+              statement: 'The user now takes their coffee with oat milk.',
+              // Same topic, different formatting: capitalisation, leading and
+              // trailing space, collapsed inner whitespace. A byte-exact
+              // match would reject this and block the queue on formatting.
+              // Morphology is deliberately NOT normalized — stemming a free
+              // text field could collide genuinely distinct topics.
+              topic: '  Coffee   Preference  ',
+            }),
+          ])
+        },
+        reducerId: REDUCER_ID,
+      },
+    )
+
+    assert.equal(corrected.reductionStatus, 'completed')
+    const memories = brain.listActiveMemories(SCOPE)
+    assert.equal(memories.length, 1)
+    assert.equal(
+      memories[0].statement,
+      'The user now takes their coffee with oat milk.',
+    )
+    // Lineage still carries both exact quotes.
+    assert.deepEqual(
+      memories[0].supports.map((support) => support.quote).sort(),
+      [
+        'Actually I take my coffee with oat milk now.',
+        'I take my coffee black.',
+      ],
+    )
+  })
+
+test('a deleted newest message never frees its chronology ordinal for reuse',
+  async (t) => {
+    const { brain } = await openBrain(t, 'ordinal-monotonicity')
+    await ingestChatTurn(
+      brain,
+      durableTurn({
+        eventAt: '2026-07-25T06:00:00.000Z',
+        sourceMessageId: 'ordinal:1',
+        userMessage: 'First statement.',
+      }),
+      { reducerId: REDUCER_ID },
+    )
+    await ingestChatTurn(
+      brain,
+      durableTurn({
+        eventAt: '2026-07-25T07:00:00.000Z',
+        sourceMessageId: 'ordinal:2',
+        userMessage: 'Second statement.',
+      }),
+      { reducerId: REDUCER_ID },
+    )
+    const before = brain.listStatements(SCOPE)
+    assert.deepEqual(before.map((row) => row.dialogue_order), [0, 1])
+
+    forgetMemories(brain, [before[1].id], SCOPE)
+
+    await ingestChatTurn(
+      brain,
+      durableTurn({
+        eventAt: '2026-07-25T08:00:00.000Z',
+        sourceMessageId: 'ordinal:3',
+        userMessage: 'Third statement.',
+      }),
+      { reducerId: REDUCER_ID },
+    )
+    const after = brain.listStatements(SCOPE)
+    // The freed ordinal 1 is not handed out again; the new row takes 2, so
+    // no two live rows can ever tie on (event_at, dialogue_order).
+    assert.deepEqual(after.map((row) => row.dialogue_order), [0, 2])
+  })

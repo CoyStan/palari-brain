@@ -425,9 +425,23 @@ function assertReducerRequest(request, exchange, ordinal) {
       'evidence',
       'limits',
       'prior',
+      'utilization',
     ]) ||
     input.baseRevision !== ordinal - 1 ||
     !sameJson(input.limits, ACTIVE_MEMORY_LIMITS) ||
+    !sameJson(Object.keys(input.utilization ?? {}).sort(), [
+      'digestChars',
+      'digestCharsRemaining',
+      'items',
+      'itemsRemaining',
+    ]) ||
+    // Utilization is capacity accounting only. It must agree with the prior
+    // it describes and must never become a side channel for extra content.
+    input.utilization.items !== (input.prior ?? []).length ||
+    input.utilization.items + input.utilization.itemsRemaining !==
+      ACTIVE_MEMORY_LIMITS.maxItems ||
+    input.utilization.digestChars + input.utilization.digestCharsRemaining !==
+      ACTIVE_MEMORY_LIMITS.maxDigestChars ||
     !exactEvidence ||
     !boundedPrior) {
     throw new IncrementalLongMemEvalError(

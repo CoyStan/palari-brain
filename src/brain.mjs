@@ -167,6 +167,7 @@ export async function createPalariBrain(options = {}) {
       digestStatus: gate.digestStatus,
       listActiveMemories: gate.listActiveMemories,
       listEvidence: gate.listStatements,
+      listBlockedReductions: gate.listBlockedReductions,
       listIndexEntries: gate.listIndexEntries,
       listPendingReductions: gate.listPendingReductions,
       readReadyDigest: gate.readReadyDigest,
@@ -187,6 +188,7 @@ export async function createPalariBrain(options = {}) {
       },
       reducePendingTurns: (reducerOptions) =>
         reducePendingTurns({ gate, store }, reducerOptions),
+      requeueBlockedReductions: gate.requeueBlockedReductions,
       rememberTurn: async (turn, writerOptions) =>
         ingestChatTurn({ gate, store }, turn, writerOptions),
     })
@@ -210,9 +212,10 @@ function brainGate(brain) {
   return null
 }
 
-function skippedReduction(reason, pending = 0) {
+function skippedReduction(reason, pending = 0, blocked = 0) {
   return {
     applied: 0,
+    blocked,
     pending,
     reason,
     results: [],
@@ -221,6 +224,7 @@ function skippedReduction(reason, pending = 0) {
 }
 
 export async function reducePendingTurns(brain, {
+  maxAttempts,
   maxTurns = 1,
   palariId,
   reducer,
@@ -231,6 +235,7 @@ export async function reducePendingTurns(brain, {
   if (!internal) {
     if (typeof brain?.reducePendingTurns === 'function') {
       return brain.reducePendingTurns({
+        maxAttempts,
         maxTurns,
         palariId,
         reducer,
@@ -247,10 +252,8 @@ export async function reducePendingTurns(brain, {
     throw new TypeError('maxTurns must be an integer from 1 through 10000.')
   }
   if (typeof reducer !== 'function') {
-    return skippedReduction(
-      'reducer_missing',
-      internal.gate.digestStatus(scope).pending,
-    )
+    const status = internal.gate.digestStatus(scope)
+    return skippedReduction('reducer_missing', status.pending, status.blocked)
   }
 
   const results = []
@@ -259,10 +262,12 @@ export async function reducePendingTurns(brain, {
     try {
       prepared = internal.gate.prepareOldestReduction(scope, reducerId)
     } catch (error) {
+      const status = internal.gate.digestStatus(scope)
       return {
         applied: results.length,
+        blocked: status.blocked,
         errorCategory: String(error?.code ?? 'reducer_prepare_error'),
-        pending: internal.gate.digestStatus(scope).pending,
+        pending: status.pending,
         reason: 'reducer_prepare_error',
         results,
         status: 'failed',
@@ -276,6 +281,7 @@ export async function reducePendingTurns(brain, {
         baseRevision: prepared.baseRevision,
         evidence: prepared.evidence,
         prior: prepared.prior,
+        utilization: prepared.utilization,
       })
       const payload = await reducer({
         request,
@@ -296,11 +302,18 @@ export async function reducePendingTurns(brain, {
       const errorCategory = String(
         error?.code ?? error?.category ?? 'reducer_error',
       )
-      internal.gate.markReductionFailure(prepared, errorCategory)
+      const failure = internal.gate.markReductionFailure(
+        prepared,
+        errorCategory,
+        { maxAttempts },
+      )
+      const status = internal.gate.digestStatus(scope)
       return {
         applied: results.length,
+        blocked: status.blocked,
         errorCategory,
-        pending: internal.gate.digestStatus(scope).pending,
+        pending: status.pending,
+        quarantined: Boolean(failure?.blocked),
         reason: 'reducer_error',
         results,
         status: 'failed',
@@ -311,6 +324,7 @@ export async function reducePendingTurns(brain, {
   if (finalStatus.status === 'contract_mismatch') {
     return {
       applied: results.length,
+      blocked: finalStatus.blocked,
       errorCategory: 'REDUCER_CONTRACT_CONFLICT',
       pending: finalStatus.pending,
       reason: 'reducer_prepare_error',
@@ -320,6 +334,7 @@ export async function reducePendingTurns(brain, {
   }
   return {
     applied: results.length,
+    blocked: finalStatus.blocked,
     pending: finalStatus.pending,
     reason: results.length ? '' : 'no_pending_reductions',
     results,
@@ -330,6 +345,7 @@ export async function reducePendingTurns(brain, {
 export async function ingestChatTurn(brain, turn = {}, {
   extractor,
   extractorId = 'unidentified-extractor',
+  maxAttempts,
   reducer,
   reducerId,
 } = {}) {
@@ -339,6 +355,7 @@ export async function ingestChatTurn(brain, turn = {}, {
       return brain.rememberTurn(turn, {
         extractor,
         extractorId,
+        maxAttempts,
         reducer,
         reducerId,
       })
@@ -371,6 +388,7 @@ export async function ingestChatTurn(brain, turn = {}, {
       reason: 'memory_disabled',
       reduction,
       reductionApplied: 0,
+      reductionBlocked: 0,
       reductionPending: 0,
       reductionReason: reduction.reason,
       reductionStatus: reduction.status,
@@ -403,6 +421,7 @@ export async function ingestChatTurn(brain, turn = {}, {
       reason: 'retention_ephemeral',
       reduction,
       reductionApplied: 0,
+      reductionBlocked: 0,
       reductionPending: 0,
       reductionReason: reduction.reason,
       reductionStatus: reduction.status,
@@ -414,16 +433,21 @@ export async function ingestChatTurn(brain, turn = {}, {
   const evidence = internal.gate.appendEvidence(normalizedTurn)
   const reduction = typeof reducer === 'function'
     ? await reducePendingTurns(internal, {
+        maxAttempts,
         maxTurns: 1,
         palariId: normalizedTurn.palariId,
         reducer,
         reducerId,
         userId: normalizedTurn.userId,
       })
-    : skippedReduction(
-        'reducer_missing',
-        internal.gate.digestStatus(normalizedTurn).pending,
-      )
+    : (() => {
+        const status = internal.gate.digestStatus(normalizedTurn)
+        return skippedReduction(
+          'reducer_missing',
+          status.pending,
+          status.blocked,
+        )
+      })()
   const base = {
     alreadyPresent: evidence.existing,
     evidenceOutcomes: evidence.outcomes,
@@ -432,6 +456,7 @@ export async function ingestChatTurn(brain, turn = {}, {
     memoriesWritten: evidence.written.length,
     reduction,
     reductionApplied: reduction.applied,
+    reductionBlocked: Number(reduction.blocked ?? 0),
     reductionPending: reduction.pending,
     reductionReason: reduction.reason,
     reductionStatus: reduction.status,
@@ -738,6 +763,10 @@ export function recallMemory(brain, scope, options = {}) {
       digestRevision: digest.digestRevision,
       digestStatus: digest.status,
       latencyMs: Math.max(0, performance.now() - started),
+      // Quarantined interactions are still canonical but never reached the
+      // digest. `complete` describes the digest transfer; this describes
+      // known holes in the digest itself.
+      reductionBlocked: Number(digest.blocked ?? 0),
       reductionPending: 0,
     }
   }
@@ -753,6 +782,7 @@ export function recallMemory(brain, scope, options = {}) {
       digestRevision: digest.digestRevision,
       digestStatus: digest.status,
       lossless: true,
+      reductionBlocked: Number(digest.blocked ?? 0),
       reductionPending: Number(digest.pending ?? 0),
       status: 'digest_incomplete',
     }
@@ -767,6 +797,7 @@ export function recallMemory(brain, scope, options = {}) {
     digestRevision: Number(digest?.digestRevision ?? 0),
     digestStatus: digest?.status ?? 'unavailable',
     lossless: true,
+    reductionBlocked: Number(digest?.blocked ?? 0),
     reductionPending: Number(digest?.pending ?? 0),
   }
 }
@@ -832,6 +863,7 @@ export async function answerQuestion(brain, {
       included: [],
       latencyMs: briefing.latencyMs,
       providerCalled: false,
+      reductionBlocked: briefing.reductionBlocked,
       reductionPending: briefing.reductionPending,
       requiredChars: briefing.requiredChars,
       totalCandidates: briefing.totalCandidates,
@@ -850,6 +882,7 @@ export async function answerQuestion(brain, {
       included: [],
       latencyMs: briefing.latencyMs,
       providerCalled: false,
+      reductionBlocked: briefing.reductionBlocked,
       reductionPending: briefing.reductionPending,
       requiredChars: 0,
       totalCandidates: 0,
@@ -891,6 +924,7 @@ export async function answerQuestion(brain, {
     latencyMs: briefing.latencyMs,
     prompt,
     providerCalled: true,
+    reductionBlocked: briefing.reductionBlocked,
     reductionPending: briefing.reductionPending,
     requiredChars: briefing.requiredChars,
     totalCandidates: briefing.totalCandidates,

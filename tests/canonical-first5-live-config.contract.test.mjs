@@ -176,13 +176,23 @@ test('spend and request ceilings distinguish denied writer from meter sentinel',
   })
 
 test('capacity cost estimate matches the exact first judge request',
-  async () => {
-    const prepared = await prepareJ4PinnedS60({
-      raw: await readFile(resolve(
+  async (context) => {
+    // `data/` is gitignored, so this is absent in every fresh clone. Skip
+    // like every other dataset-dependent test rather than failing the suite.
+    let raw
+    try {
+      raw = await readFile(resolve(
         repoRoot,
         'data/longmemeval_s_cleaned.json',
-      )),
-    })
+      ))
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        context.skip('gitignored canonical dataset is not installed')
+        return
+      }
+      throw error
+    }
+    const prepared = await prepareJ4PinnedS60({ raw })
     const body = buildJ4JudgeBody(
       prepared.executionOrder[0],
       'I could not safely check every stored statement because the configured memory context is too small.',

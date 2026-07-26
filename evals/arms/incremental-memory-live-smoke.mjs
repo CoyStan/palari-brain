@@ -334,8 +334,14 @@ function assertReducerRequestBoundary(request, ordinal, fixture) {
   )
   const exactInputKeys = sameJson(
     Object.keys(input ?? {}).sort(),
-    ['baseRevision', 'evidence', 'limits', 'prior'],
-  )
+    ['baseRevision', 'evidence', 'limits', 'prior', 'utilization'],
+  ) &&
+    sameJson(
+      Object.keys(input.utilization ?? {}).sort(),
+      ['digestChars', 'digestCharsRemaining', 'items', 'itemsRemaining'],
+    ) &&
+    // Capacity accounting only — never a channel for additional content.
+    input.utilization.items === (input.prior ?? []).length
   const currentOnly = Array.isArray(evidence) &&
     evidence.length === 1 &&
     sameJson(

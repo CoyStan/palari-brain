@@ -17,6 +17,19 @@ import {
 
 const migrationId = 'CDX-M4-INCREMENTAL-DIGEST'
 
+// How many times one reduction unit may fail before it is quarantined out of
+// the actionable queue. Retrying helps only for transient faults (transport
+// blips, one malformed completion); past this the unit is a standing defect
+// and blocking every later interaction behind it costs more than the gap.
+export const DEFAULT_REDUCTION_MAX_ATTEMPTS = 3
+
+// Failures that are a deterministic property of the unit itself. Retrying
+// cannot change the outcome, so these quarantine on the first failure.
+export const DETERMINISTIC_REDUCTION_FAILURES = Object.freeze([
+  'REDUCER_INPUT_CAPACITY',
+])
+const deterministicFailures = new Set(DETERMINISTIC_REDUCTION_FAILURES)
+
 function sha256Fields(values) {
   return createHash('sha256')
     .update(JSON.stringify(values.map((value) => String(value))))
@@ -305,6 +318,35 @@ export function ensureMemoryDigestSchema(store, {
         ON dialogue_digest_basis (evidence_id, item_id);
 
     `)
+    // A quarantined unit stays 'pending' so its canonical evidence is never
+    // treated as reduced; `blocked_at` takes it out of the actionable queue
+    // so one poison interaction cannot stop every later one. Added as
+    // nullable columns rather than a new status value, because SQLite cannot
+    // alter the existing status CHECK constraint in place.
+    const unitColumns = new Set(
+      store.db.prepare('PRAGMA table_info(dialogue_reduction_units)').all()
+        .map((column) => String(column.name)),
+    )
+    if (!unitColumns.has('blocked_at')) {
+      store.db.exec(
+        'ALTER TABLE dialogue_reduction_units ADD COLUMN blocked_at TEXT',
+      )
+    }
+    if (!unitColumns.has('blocked_category')) {
+      store.db.exec(
+        'ALTER TABLE dialogue_reduction_units ADD COLUMN blocked_category TEXT',
+      )
+    }
+    store.db.exec(`
+      CREATE INDEX IF NOT EXISTS dialogue_reduction_actionable_queue
+        ON dialogue_reduction_units (
+          palari_id,
+          user_id,
+          status,
+          blocked_at,
+          unit_order
+        );
+    `)
     const stateColumns = new Set(
       store.db.prepare('PRAGMA table_info(dialogue_digest_state)').all()
         .map((column) => String(column.name)),
@@ -408,6 +450,7 @@ function stateStatus(db, scope) {
   `).get(scope.palariId, scope.userId)?.count ?? 0)
   if (!state) {
     return {
+      blocked: 0,
       builtFromRevision: 0,
       canonicalRows,
       contractVersion: null,
@@ -419,11 +462,19 @@ function stateStatus(db, scope) {
       status: canonicalRows ? 'pending' : 'empty',
     }
   }
-  const pending = Number(db.prepare(`
-    SELECT COUNT(*) AS count
+  const queue = db.prepare(`
+    SELECT
+      COUNT(*) FILTER (
+        WHERE status = 'pending' AND blocked_at IS NULL
+      ) AS actionable,
+      COUNT(*) FILTER (
+        WHERE status = 'pending' AND blocked_at IS NOT NULL
+      ) AS blocked
     FROM dialogue_reduction_units
-    WHERE palari_id = ? AND user_id = ? AND status = 'pending'
-  `).get(scope.palariId, scope.userId)?.count ?? 0)
+    WHERE palari_id = ? AND user_id = ?
+  `).get(scope.palariId, scope.userId)
+  const pending = Number(queue?.actionable ?? 0)
+  const blocked = Number(queue?.blocked ?? 0)
   const sourceRevision = Number(state.source_revision)
   const builtFromRevision = Number(state.built_from_revision)
   const contractVersion = state.contract_version ?? null
@@ -435,6 +486,7 @@ function stateStatus(db, scope) {
     sourceRevision === builtFromRevision &&
     contractMatches
   return {
+    blocked,
     builtFromRevision,
     canonicalRows,
     contractVersion,
@@ -445,7 +497,7 @@ function stateStatus(db, scope) {
     sourceRevision,
     status: !contractMatches
       ? 'contract_mismatch'
-      : ready ? 'ready' : 'pending',
+      : ready ? (blocked ? 'ready_with_gaps' : 'ready') : 'pending',
   }
 }
 
@@ -639,6 +691,29 @@ function renderedDigestChars(items) {
   return renderActiveMemoryDigest(items).text.length
 }
 
+// `topic` is free text the reducer authors itself. Requiring a byte-exact
+// match to supersede meant a model had to reproduce its own earlier wording
+// character for character; "coffee preference" vs "Coffee  Preference"
+// failed the whole reduction and blocked the queue. Compare on a normalized
+// form instead: NFC, case-folded, whitespace-collapsed, trimmed.
+//
+// Deliberately no stemming or fuzzy matching. Morphological normalization
+// could let one topic silently overwrite a genuinely different one, and this
+// comparison decides what may destroy existing memory. This loosens only the
+// same-topic test — speaker, chronology, provenance, and the single-target
+// rule are unchanged.
+export function normalizedDigestTopic(value) {
+  return String(value ?? '')
+    .normalize('NFC')
+    .replace(/\s+/gu, ' ')
+    .trim()
+    .toLowerCase()
+}
+
+function sameDigestTopic(left, right) {
+  return normalizedDigestTopic(left) === normalizedDigestTopic(right)
+}
+
 export function createMemoryDigestStore(store, {
   clock = () => new Date(),
 } = {}) {
@@ -722,11 +797,16 @@ export function createMemoryDigestStore(store, {
         status,
         attempts,
         last_error_category,
+        blocked_at,
+        blocked_category,
         turn_id,
         legacy_evidence_id,
         created_at
       FROM dialogue_reduction_units
-      WHERE palari_id = ? AND user_id = ? AND status = 'pending'
+      WHERE palari_id = ?
+        AND user_id = ?
+        AND status = 'pending'
+        AND blocked_at IS NULL
       ORDER BY unit_order ASC
     `).all(scope.palariId, scope.userId).map((row) => ({
       attempts: Number(row.attempts),
@@ -748,7 +828,10 @@ export function createMemoryDigestStore(store, {
       const unit = store.db.prepare(`
         SELECT *
         FROM dialogue_reduction_units
-        WHERE palari_id = ? AND user_id = ? AND status = 'pending'
+        WHERE palari_id = ?
+          AND user_id = ?
+          AND status = 'pending'
+          AND blocked_at IS NULL
         ORDER BY unit_order ASC
         LIMIT 1
       `).get(scope.palariId, scope.userId)
@@ -848,6 +931,12 @@ export function createMemoryDigestStore(store, {
         ),
         prior: priorForRequest(prior),
         priorIds: Object.freeze(prior.map((item) => item.id)),
+        // Measured with the same serializer that enforces the cap, so the
+        // reducer sees the number it will actually be judged against.
+        utilization: Object.freeze({
+          digestChars: renderedDigestChars(prior),
+          items: prior.length,
+        }),
         reducerId: normalizedReducerId,
         scope: Object.freeze(scope),
         sourceRevision: Number(state.source_revision),
@@ -861,8 +950,43 @@ export function createMemoryDigestStore(store, {
     }
   }
 
-  function markFailure(prepared, category) {
-    if (!store?.enabled || !prepared) return
+  // Recompute readiness bookkeeping after the actionable queue shrinks for a
+  // reason other than a successful apply. Quarantined units keep their
+  // canonical evidence unreduced, so `built_from_revision` may only advance
+  // once nothing actionable is left. `digest_revision` must NOT move: the
+  // digest content did not change and callers hold it as a CAS token.
+  function settleBuiltFromRevision(scope, now) {
+    const state = store.db.prepare(`
+      SELECT *
+      FROM dialogue_digest_state
+      WHERE palari_id = ? AND user_id = ?
+    `).get(scope.palariId, scope.userId)
+    if (!state) return
+    const actionable = Number(store.db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM dialogue_reduction_units
+      WHERE palari_id = ?
+        AND user_id = ?
+        AND status = 'pending'
+        AND blocked_at IS NULL
+    `).get(scope.palariId, scope.userId)?.count ?? 0)
+    if (actionable !== 0) return
+    store.db.prepare(`
+      UPDATE dialogue_digest_state
+      SET built_from_revision = ?, updated_at = ?
+      WHERE palari_id = ? AND user_id = ?
+    `).run(
+      Number(state.source_revision),
+      now,
+      scope.palariId,
+      scope.userId,
+    )
+  }
+
+  function markFailure(prepared, category, {
+    maxAttempts = DEFAULT_REDUCTION_MAX_ATTEMPTS,
+  } = {}) {
+    if (!store?.enabled || !prepared) return null
     let safeCategory = 'reducer_error'
     try {
       safeCategory = roundTrippableText(
@@ -872,21 +996,129 @@ export function createMemoryDigestStore(store, {
     } catch {
       // The diagnostic must not become a second storage failure.
     }
-    store.db.prepare(`
-      UPDATE dialogue_reduction_units
-      SET
-        attempts = attempts + 1,
-        last_error_category = ?
-      WHERE unit_order = ?
-        AND palari_id = ?
+    const limit = Number(maxAttempts)
+    const attemptCeiling = Number.isSafeInteger(limit) && limit >= 1
+      ? limit
+      : DEFAULT_REDUCTION_MAX_ATTEMPTS
+    const now = isoNow(clock)
+    store.db.exec('BEGIN IMMEDIATE')
+    try {
+      const updated = store.db.prepare(`
+        UPDATE dialogue_reduction_units
+        SET
+          attempts = attempts + 1,
+          last_error_category = ?
+        WHERE unit_order = ?
+          AND palari_id = ?
+          AND user_id = ?
+          AND status = 'pending'
+          AND blocked_at IS NULL
+        RETURNING attempts
+      `).get(
+        safeCategory,
+        prepared.unitOrder,
+        prepared.scope.palariId,
+        prepared.scope.userId,
+      )
+      if (!updated) {
+        store.db.exec('COMMIT')
+        return null
+      }
+      const attempts = Number(updated.attempts)
+      const exhausted =
+        deterministicFailures.has(safeCategory) ||
+        attempts >= attemptCeiling
+      if (!exhausted) {
+        store.db.exec('COMMIT')
+        return { attempts, blocked: false, category: safeCategory }
+      }
+      // Quarantine: the unit stays 'pending' so its evidence is never
+      // recorded as reduced, but it leaves the actionable queue so every
+      // later interaction can still be reduced. The gap stays visible as
+      // `blocked` in digest status and in the recall result.
+      store.db.prepare(`
+        UPDATE dialogue_reduction_units
+        SET blocked_at = ?, blocked_category = ?
+        WHERE unit_order = ?
+          AND palari_id = ?
+          AND user_id = ?
+      `).run(
+        now,
+        safeCategory,
+        prepared.unitOrder,
+        prepared.scope.palariId,
+        prepared.scope.userId,
+      )
+      settleBuiltFromRevision(prepared.scope, now)
+      store.db.exec('COMMIT')
+      return { attempts, blocked: true, category: safeCategory }
+    } catch (error) {
+      store.db.exec('ROLLBACK')
+      throw error
+    }
+  }
+
+  function listBlocked(scopeInput) {
+    if (!store?.enabled) return []
+    const scope = normalizedScope(scopeInput)
+    return store.db.prepare(`
+      SELECT
+        unit_order,
+        source_revision,
+        attempts,
+        last_error_category,
+        blocked_at,
+        blocked_category,
+        turn_id,
+        legacy_evidence_id,
+        created_at
+      FROM dialogue_reduction_units
+      WHERE palari_id = ?
         AND user_id = ?
         AND status = 'pending'
-    `).run(
-      safeCategory,
-      prepared.unitOrder,
-      prepared.scope.palariId,
-      prepared.scope.userId,
-    )
+        AND blocked_at IS NOT NULL
+      ORDER BY unit_order ASC
+    `).all(scope.palariId, scope.userId).map((row) => ({
+      attempts: Number(row.attempts),
+      blockedAt: row.blocked_at,
+      blockedCategory: row.blocked_category ?? null,
+      createdAt: row.created_at,
+      lastErrorCategory: row.last_error_category ?? null,
+      legacyEvidenceId: row.legacy_evidence_id ?? null,
+      sourceRevision: Number(row.source_revision),
+      turnId: row.turn_id ?? null,
+      unitOrder: Number(row.unit_order),
+    }))
+  }
+
+  // Explicit host recovery: after fixing a reducer, put quarantined units
+  // back in the actionable queue. Never automatic — an automatic requeue
+  // would rebuild the same deadlock this quarantine exists to prevent.
+  function requeueBlocked(scopeInput) {
+    if (!store?.enabled) return { requeued: 0 }
+    const scope = normalizedScope(scopeInput)
+    store.db.exec('BEGIN IMMEDIATE')
+    try {
+      const requeued = store.db.prepare(`
+        UPDATE dialogue_reduction_units
+        SET
+          blocked_at = NULL,
+          blocked_category = NULL,
+          attempts = 0,
+          last_error_category = NULL
+        WHERE palari_id = ?
+          AND user_id = ?
+          AND status = 'pending'
+          AND blocked_at IS NOT NULL
+      `).run(scope.palariId, scope.userId)
+      // Readiness reverts on its own: `ready` requires zero actionable
+      // pending units, and these units are actionable again.
+      store.db.exec('COMMIT')
+      return { requeued: Number(requeued.changes) }
+    } catch (error) {
+      store.db.exec('ROLLBACK')
+      throw error
+    }
   }
 
   function applyReduction(prepared, normalized) {
@@ -929,6 +1161,7 @@ export function createMemoryDigestStore(store, {
           AND palari_id = ?
           AND user_id = ?
           AND status = 'pending'
+          AND blocked_at IS NULL
       `).get(
         prepared.unitOrder,
         scope.palariId,
@@ -937,7 +1170,10 @@ export function createMemoryDigestStore(store, {
       const oldest = store.db.prepare(`
         SELECT unit_order
         FROM dialogue_reduction_units
-        WHERE palari_id = ? AND user_id = ? AND status = 'pending'
+        WHERE palari_id = ?
+          AND user_id = ?
+          AND status = 'pending'
+          AND blocked_at IS NULL
         ORDER BY unit_order ASC
         LIMIT 1
       `).get(scope.palariId, scope.userId)
@@ -1000,7 +1236,10 @@ export function createMemoryDigestStore(store, {
         }
         if (action.op === 'replace' && action.relation === 'supersedes') {
           const target = targets[0]
-          if (targets.length !== 1 || target.topic !== action.topic) {
+          if (
+            targets.length !== 1 ||
+            !sameDigestTopic(target.topic, action.topic)
+          ) {
             const error = new Error(
               'Supersession requires one same-topic target.',
             )
@@ -1125,7 +1364,10 @@ export function createMemoryDigestStore(store, {
       const pending = Number(store.db.prepare(`
         SELECT COUNT(*) AS count
         FROM dialogue_reduction_units
-        WHERE palari_id = ? AND user_id = ? AND status = 'pending'
+        WHERE palari_id = ?
+          AND user_id = ?
+          AND status = 'pending'
+          AND blocked_at IS NULL
       `).get(scope.palariId, scope.userId)?.count ?? 0)
       store.db.prepare(`
         UPDATE dialogue_digest_state
@@ -1195,13 +1437,18 @@ export function createMemoryDigestStore(store, {
         status = 'pending',
         attempts = 0,
         last_error_category = NULL,
+        blocked_at = NULL,
+        blocked_category = NULL,
         applied_at = NULL
       WHERE palari_id = ? AND user_id = ?
     `).run(scope.palariId, scope.userId)
     const pending = Number(store.db.prepare(`
       SELECT COUNT(*) AS count
       FROM dialogue_reduction_units
-      WHERE palari_id = ? AND user_id = ? AND status = 'pending'
+      WHERE palari_id = ?
+        AND user_id = ?
+        AND status = 'pending'
+        AND blocked_at IS NULL
     `).get(scope.palariId, scope.userId)?.count ?? 0)
     const sourceRevision = Number(state.source_revision) + 1
     store.db.prepare(`
@@ -1231,12 +1478,14 @@ export function createMemoryDigestStore(store, {
   return Object.freeze({
     applyReduction,
     invalidateAfterDeletion,
+    listBlocked,
     listMemories,
     listPending,
     markFailure,
     prepareOldest,
     queueTurn,
     readReadyDigest,
+    requeueBlocked,
     status,
   })
 }
