@@ -5,6 +5,7 @@ import { test } from 'node:test'
 import {
   assertIncrementalLongMemEvalJudgeBody,
   buildIncrementalLongMemEvalJudgeBody,
+  INCREMENTAL_LONGMEMEVAL_JUDGE_CONTEXT_TOKENS,
   INCREMENTAL_LONGMEMEVAL_JUDGE_MODEL,
   INCREMENTAL_LONGMEMEVAL_JUDGE_PRICING,
   INCREMENTAL_LONGMEMEVAL_JUDGE_REQUEST,
@@ -44,6 +45,7 @@ function response(overrides = {}) {
       },
     }],
     model: LONGMEMEVAL_JUDGE_MODEL,
+    object: 'chat.completion',
     service_tier: 'default',
     usage: {
       completion_tokens: 1,
@@ -122,7 +124,7 @@ test('reservation uses highest-tier prices and measurement uses standard',
     const judgeBody = body()
     const reservation = reserveIncrementalLongMemEvalJudge(judgeBody)
     const reservedInput =
-      Buffer.byteLength(JSON.stringify(judgeBody), 'utf8') + 512
+      INCREMENTAL_LONGMEMEVAL_JUDGE_CONTEXT_TOKENS
     assert.deepEqual(reservation, {
       judgeInputTokens: reservedInput,
       judgeOutputTokens: LONGMEMEVAL_JUDGE_REQUEST.maxTokens,
@@ -204,6 +206,10 @@ test('body rejects any drift from the isolated provider contract', () => {
 test('response rejects model, tier, choice, finish, and content drift', () => {
   const cases = [
     [
+      response({ object: 'chat.completion.chunk' }),
+      'JUDGE_OBJECT_MISMATCH',
+    ],
+    [
       response({ model: 'gpt-4o' }),
       'JUDGE_MODEL_MISMATCH',
     ],
@@ -214,6 +220,26 @@ test('response rejects model, tier, choice, finish, and content drift', () => {
     [
       response({ choices: [] }),
       'JUDGE_CHOICE_COUNT',
+    ],
+    [
+      response({
+        choices: [{
+          finish_reason: 'stop',
+          index: 1,
+          message: { content: 'yes', role: 'assistant' },
+        }],
+      }),
+      'JUDGE_CHOICE_INVALID',
+    ],
+    [
+      response({
+        choices: [{
+          finish_reason: 'stop',
+          index: 0,
+          message: { content: 'yes', role: 'user' },
+        }],
+      }),
+      'JUDGE_CHOICE_INVALID',
     ],
     [
       response({
@@ -260,6 +286,13 @@ test('response rejects malformed, inconsistent, and unreserved usage', () => {
       completion_tokens: 11,
       prompt_tokens: 125,
       total_tokens: 136,
+    },
+    {
+      completion_tokens: 10,
+      prompt_tokens:
+        INCREMENTAL_LONGMEMEVAL_JUDGE_CONTEXT_TOKENS - 9,
+      total_tokens:
+        INCREMENTAL_LONGMEMEVAL_JUDGE_CONTEXT_TOKENS + 1,
     },
     {
       completion_tokens: 0,

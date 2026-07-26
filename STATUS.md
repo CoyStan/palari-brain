@@ -1,8 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-R2-L1-A OFFLINE HARNESS AUDIT COMPLETE;
-FOUNDER GATE — PROVIDER HARD-CAP CONTRACT UNRESOLVED, NO LIVE IDENTITY OPEN
-(2026-07-26).
+Loop state: J4.2K-R2-L1-B OFFLINE SUCCESSOR SAFETY CONTRACT COMPLETE;
+FOUNDER GATE — NO LIVE IDENTITY OPEN; SECOND CONSECUTIVE INFRASTRUCTURE
+UNIT, STOP (2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -308,6 +308,34 @@ cumulative judge-cap refusal were corrected offline. No key was printed, no
 provider was called, and spend remains unchanged. Focused tests are 50/50 and
 the full suite is 333/333; quickstart, dry bake-off, and package dry-run are
 green. The complete matrix is `docs/J4-INCREMENTAL-HARNESS-AUDIT.md`.
+
+The founder then selected the audit's first option and said “do it”: repair
+the hard-cap proof offline without creating another live identity. The
+successor-only path now uses stable `gemini-2.5-flash-lite` with
+`thinkingBudget: 0`, reserves the full documented model windows at Priority
+prices, reconciles only exact Standard responses, derives Gemini's effective
+meter cap from both fresh and cumulative limits, and reserves the GPT-4o
+judge's full context plus ten-token output. A smaller cap therefore prevents
+the next unsafe dispatch; it does not promise the whole 245-call run will
+finish.
+
+The final adversarial pass repaired the evidence boundaries that happy-path
+tests had missed. Exact HTTP 200, one streamed response-body deadline, the
+runtime network guard, prior transcript/accounting replay, and semantic replay
+of both success and failure are required before spend can advance. Immutable
+checkpoint receipts survive the exact publication crash window and reject
+unowned links. Private files reject symlinks, extra hard links, unsafe modes,
+orphan attempts, forged judge metadata, changed instances, substituted
+answers, and self-consistent but unrelated prompts. Historical generic
+exports remain Gemini 3.5; only explicit successor bindings use Gemini 2.5,
+so the sealed v1 config and artifact hashes keep their original meaning.
+
+Focused successor contracts pass 131/131 and the full suite passes 399/399.
+Quickstart, dry bake-off, and the 28-file package dry-run are green. No
+credential was read, no provider was called, no live identity or score was
+created, and cumulative J4 spend remains `$0.7761082` accounted. This is the
+second consecutive infrastructure unit after J4.2K-R2-L1-A, so the product
+stop rule requires a drift stop before any third infrastructure unit.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -836,6 +864,19 @@ session itself).
     hard-cap claim unproved. Focused tests are 50/50 and the full suite is
     333/333; quickstart, dry bake-off, and package dry-run are green. No
     provider call, identity, result, reroll, score, or spend occurred.
+  - [x] J4.2K-R2-L1-B — OFFLINE SUCCESSOR SAFETY CONTRACT COMPLETE
+    2026-07-26 (`this commit`). Preserved the sealed Gemini 3.5 identity while
+    adding explicit Gemini 2.5 successor bindings, full-window Priority
+    reservations, exact Standard reconciliation, fresh-plus-cumulative cap
+    derivation, strict streamed response limits, one-attempt execution, and
+    full-context judge reservation. Added crash-recoverable immutable
+    checkpoints and an adversarial evidence oracle that binds the exact
+    instance, prompts, provider outcomes, accounting, result, judge, and
+    private artifact set. Symlink, hardlink, orphan, status, metadata,
+    timeout, cap, and coherent-forgery mutations fail closed. Focused tests
+    are 131/131 and the full suite is 399/399; quickstart, dry bake-off, and
+    package dry-run are green. No credential, provider call, identity, score,
+    result, reroll, or spend occurred.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -848,22 +889,27 @@ session itself).
 
 ## Next
 
-FOUNDER GATE. Do not prepare or execute another live identity until the
-provider hard-cap contract is chosen explicitly. The options are: switch to a
-model with documented thinking-off support and add exact input-token
-accounting; retain Gemini 3.5 Flash-Lite and accept an engineering safeguard
-with acknowledged overrun risk rather than an absolute billing cap; or
-reserve a much larger documented provider maximum and add exact input-token
-preflights for both providers.
+FOUNDER GATE AND PRODUCT-DRIFT STOP. The offline provider hard-cap contract is
+resolved, but it creates no run authority. J4.2K-R2-L1-A and
+J4.2K-R2-L1-B are two consecutive infrastructure units; do not start a third
+infrastructure unit autonomously. The founder must decide whether the next
+work is the measured product experiment or a return to user-visible memory
+behavior.
 
 Do not resume or rerun
-`j4-active-brain-incremental-longmemeval-q1-v1`. Any successor must use
-`createIncrementalLongMemEvalGeminiTransport` and
-`runIncrementalLongMemEvalQuestionForScoring`, strengthen the prediction
-oracle, enforce the returned Gemini service tier, test checkpoint-write
-failure after interaction N, and freeze a new identity. Any provider call,
-question 2, Mem0, S-490, publication, or announcement requires a fresh
-founder GO.
+`j4-active-brain-incremental-longmemeval-q1-v1`. A live successor requires a
+new explicit GO that freezes a new run ID, exactly one stated benchmark
+question and instance hash, fresh and cumulative caps, configuration hashes,
+and FINAL predictions before credential or network access. It must use
+`createIncrementalLongMemEvalGeminiTransport`,
+`runIncrementalLongMemEvalQuestionForScoring`, the immutable checkpoint
+journal, and the evidence oracle; install the accidental-network guard after
+capturing both metered transports; run only its contracted compatibility
+smoke and question; then stop. Cumulative J4 spend still starts at
+`$0.7761082` accounted.
+
+Any provider call, question 2, Mem0, S-490, publication, announcement, reroll,
+or relaxation of the successor safety contract requires a fresh founder GO.
 
 ## Log
 
@@ -1119,6 +1165,14 @@ both providers' heuristic input reservations leave the absolute billing cap
 unresolved. Focused tests 50/50 and full suite 333/333; quickstart, dry
 bake-off, and package dry-run green. No live identity, provider call, score,
 or spend.
+2026-07-26 — J4.2K-R2-L1-B — this commit — Completed the founder-selected
+offline successor safety contract: isolated Gemini 2.5 from sealed Gemini
+3.5 semantics, proved next-dispatch billing boundaries from full model
+windows and both run caps, made streamed provider outcomes and private
+checkpoint evidence crash/tamper-safe, and replaced caller claims with an
+adversarial evidence oracle. Focused contracts 131/131 and full suite
+399/399; quickstart, dry bake-off, and package dry-run green. No live
+identity, credential access, provider call, score, result, reroll, or spend.
 
 ## Product stop-rule record
 
@@ -2067,3 +2121,28 @@ or spend.
    result from scoring, retry without authority, or be described with a
    stronger spend guarantee than the provider contract supports. This is one
    infrastructure unit and it stops at the unresolved founder gate.
+
+### J4.2K-R2-L1-B offline successor safety contract
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No. It changes no
+   chatbot memory behavior and makes no live-quality claim. It makes a future
+   paid measurement much harder to overrun, reroll, misattribute, or grade
+   from forged evidence.
+3. Does an existing framework already provide what this unit added? Provider
+   SDKs, durable journals, streaming limits, and evaluation frameworks provide
+   most individual primitives. This unit is repository-specific proof and
+   recovery glue around Palari's one-question experiment; it is not a new
+   memory architecture.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — after
+   the component audit identified the unproved cap, the founder selected the
+   documented-thinking-off option and said “do it,” following the earlier
+   request to evaluate every component rigorously.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Nothing in the chatbot would immediately get worse. A future paid
+   result could exceed its fresh cap before detection, accept the wrong HTTP
+   outcome, lose or misread crash evidence, start after transcript tampering,
+   or report a prediction hit from a coherently forged bundle. That makes this
+   the second consecutive infrastructure unit. The charter's drift rule now
+   requires a stop before any third one.

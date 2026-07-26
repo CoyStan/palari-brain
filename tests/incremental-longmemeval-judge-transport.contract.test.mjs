@@ -7,6 +7,7 @@ import {
   readdir,
   rm,
   stat,
+  writeFile,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -52,6 +53,7 @@ function goodResponseBody() {
       },
     }],
     model: INCREMENTAL_LONGMEMEVAL_JUDGE_MODEL,
+    object: 'chat.completion',
     service_tier: 'default',
     usage: {
       completion_tokens: 1,
@@ -544,6 +546,317 @@ test('factory combines current Gemini spend and verifies terminal evidence',
       )
       assert.equal(verified.transcript.file,
         verified.meter.terminal.transcript.file)
+    } finally {
+      await rm(root, { force: true, recursive: true })
+    }
+  })
+
+test('verification recomputes request bytes, hashes, and start links',
+  async () => {
+    const root = await mkdtemp(join(
+      tmpdir(),
+      'palari-incremental-judge-request-mutation-',
+    ))
+    const meterPath = join(root, 'private', 'judge-meter.json')
+    const transcriptDirectory = join(root, 'private', 'transcripts')
+    try {
+      const transport =
+        await createIncrementalLongMemEvalJudgeTransport({
+          cumulativeCapUsd: 2,
+          fetchImpl: async () => response(),
+          freshSubcapUsd: 1,
+          getFreshAccountedUsd: async () => 0,
+          meterPath,
+          openaiApiKey: OPENAI_KEY,
+          openingAccountedUsd: 0,
+          transcriptDirectory,
+        })
+      await transport.callJudge({
+        body: body(),
+        cellId: 'question-request-mutation',
+        operationId: OPERATION_ID,
+      })
+      const [transcriptFile] = await readdir(transcriptDirectory)
+      const transcriptPath = join(
+        transcriptDirectory,
+        transcriptFile,
+      )
+      const originalTranscriptText =
+        await readFile(transcriptPath, 'utf8')
+      const originalMeterText = await readFile(meterPath, 'utf8')
+      const transcript = JSON.parse(originalTranscriptText)
+      const changedBody = JSON.parse(
+        transcript.request.normalizedBody,
+      )
+      changedBody.messages[0].content =
+        'Different but still contract-valid judge prompt.'
+      transcript.request.normalizedBody =
+        JSON.stringify(changedBody)
+      const changedTranscriptText =
+        `${JSON.stringify(transcript, null, 2)}\n`
+      await writeFile(transcriptPath, changedTranscriptText)
+      const meter = JSON.parse(originalMeterText)
+      meter.terminal.transcript.sha256 =
+        createHash('sha256')
+          .update(changedTranscriptText)
+          .digest('hex')
+      await writeFile(
+        meterPath,
+        `${JSON.stringify(meter, null, 2)}\n`,
+      )
+      await assert.rejects(
+        transport.verify(),
+        (error) => error.code === 'JUDGE_EVIDENCE_INCOHERENT',
+      )
+
+      await writeFile(transcriptPath, originalTranscriptText)
+      const changedStartMeter = JSON.parse(originalMeterText)
+      changedStartMeter.transcript.startedSha256 = '0'.repeat(64)
+      await writeFile(
+        meterPath,
+        `${JSON.stringify(changedStartMeter, null, 2)}\n`,
+      )
+      await assert.rejects(
+        transport.verify(),
+        (error) => error.code === 'JUDGE_EVIDENCE_INCOHERENT',
+      )
+    } finally {
+      await rm(root, { force: true, recursive: true })
+    }
+  })
+
+test('success verification binds HTTP status, finish reason, and raw usage',
+  async () => {
+    const root = await mkdtemp(join(
+      tmpdir(),
+      'palari-incremental-judge-response-mutation-',
+    ))
+    const meterPath = join(root, 'private', 'judge-meter.json')
+    const transcriptDirectory = join(root, 'private', 'transcripts')
+    try {
+      const transport =
+        await createIncrementalLongMemEvalJudgeTransport({
+          cumulativeCapUsd: 2,
+          fetchImpl: async () => response(),
+          freshSubcapUsd: 1,
+          getFreshAccountedUsd: async () => 0,
+          meterPath,
+          openaiApiKey: OPENAI_KEY,
+          openingAccountedUsd: 0,
+          transcriptDirectory,
+        })
+      await transport.callJudge({
+        body: body(),
+        cellId: 'question-response-mutation',
+        operationId: OPERATION_ID,
+      })
+      const [transcriptFile] = await readdir(transcriptDirectory)
+      const transcriptPath = join(
+        transcriptDirectory,
+        transcriptFile,
+      )
+      const originalTranscriptText =
+        await readFile(transcriptPath, 'utf8')
+      const originalMeterText = await readFile(meterPath, 'utf8')
+
+      async function expectMutationRejected(mutateTranscript, mutateMeter) {
+        const transcript = JSON.parse(originalTranscriptText)
+        const meter = JSON.parse(originalMeterText)
+        mutateTranscript(transcript)
+        mutateMeter?.(meter)
+        const transcriptText =
+          `${JSON.stringify(transcript, null, 2)}\n`
+        meter.terminal.transcript.sha256 =
+          createHash('sha256').update(transcriptText).digest('hex')
+        await writeFile(transcriptPath, transcriptText)
+        await writeFile(
+          meterPath,
+          `${JSON.stringify(meter, null, 2)}\n`,
+        )
+        await assert.rejects(
+          transport.verify(),
+          (error) => error.code === 'JUDGE_EVIDENCE_INCOHERENT',
+        )
+      }
+
+      await expectMutationRejected(
+        (transcript) => {
+          transcript.terminal.response.status = 500
+        },
+        (meter) => {
+          meter.terminal.status = 500
+        },
+      )
+      await expectMutationRejected((transcript) => {
+        transcript.terminal.response.finishReason = 'length'
+      })
+      await expectMutationRejected((transcript) => {
+        transcript.terminal.response.usage.total_tokens += 1
+      })
+    } finally {
+      await rm(root, { force: true, recursive: true })
+    }
+  })
+
+test('verification requires exactly one transcript artifact',
+  async () => {
+    const root = await mkdtemp(join(
+      tmpdir(),
+      'palari-incremental-judge-transcript-set-',
+    ))
+    const meterPath = join(root, 'private', 'judge-meter.json')
+    const transcriptDirectory = join(root, 'private', 'transcripts')
+    try {
+      const transport =
+        await createIncrementalLongMemEvalJudgeTransport({
+          cumulativeCapUsd: 2,
+          fetchImpl: async () => response(),
+          freshSubcapUsd: 1,
+          getFreshAccountedUsd: async () => 0,
+          meterPath,
+          openaiApiKey: OPENAI_KEY,
+          openingAccountedUsd: 0,
+          transcriptDirectory,
+        })
+      await transport.callJudge({
+        body: body(),
+        cellId: 'question-transcript-set',
+        operationId: OPERATION_ID,
+      })
+      await writeFile(
+        join(transcriptDirectory, 'orphan-attempt.json'),
+        '{}\n',
+        { mode: 0o600 },
+      )
+      await assert.rejects(
+        transport.verify(),
+        (error) => error.code === 'JUDGE_EVIDENCE_INCOHERENT',
+      )
+    } finally {
+      await rm(root, { force: true, recursive: true })
+    }
+  })
+
+test('failure verification recomputes reservation, cap, and transcript-error accounting',
+  async () => {
+    const root = await mkdtemp(join(
+      tmpdir(),
+      'palari-incremental-judge-failure-mutation-',
+    ))
+    const meterPath = join(root, 'private', 'judge-meter.json')
+    const transcriptDirectory = join(root, 'private', 'transcripts')
+    try {
+      const transport =
+        await createIncrementalLongMemEvalJudgeTransport({
+          cumulativeCapUsd: 2,
+          fetchImpl: async () => {
+            throw new Error('synthetic transport failure')
+          },
+          freshSubcapUsd: 1,
+          getFreshAccountedUsd: async () => 0,
+          meterPath,
+          openaiApiKey: OPENAI_KEY,
+          openingAccountedUsd: 0,
+          transcriptDirectory,
+        })
+      await assert.rejects(
+        transport.callJudge({
+          body: body(),
+          cellId: 'question-failure-mutation',
+          operationId: OPERATION_ID,
+        }),
+        (error) => error.code === 'JUDGE_TRANSPORT_ERROR',
+      )
+      const originalMeter = JSON.parse(
+        await readFile(meterPath, 'utf8'),
+      )
+
+      const fakeReservation = structuredClone(originalMeter)
+      fakeReservation.reservation = {
+        judgeInputTokens: 0,
+        judgeOutputTokens: 0,
+        pricingTier: 'fake',
+        usd: 0,
+      }
+      fakeReservation.terminal.uncertain =
+        structuredClone(fakeReservation.reservation)
+      fakeReservation.terminal.accountedUsd = 0
+      await writeFile(
+        meterPath,
+        `${JSON.stringify(fakeReservation, null, 2)}\n`,
+      )
+      await assert.rejects(
+        transport.verify(),
+        (error) => error.code === 'JUDGE_EVIDENCE_INCOHERENT',
+      )
+
+      const badCap = structuredClone(originalMeter)
+      badCap.capContext.projectedFreshUsd = 0
+      await writeFile(
+        meterPath,
+        `${JSON.stringify(badCap, null, 2)}\n`,
+      )
+      await assert.rejects(
+        transport.verify(),
+        (error) => error.code === 'JUDGE_EVIDENCE_INCOHERENT',
+      )
+
+      const fabricatedTranscriptError = structuredClone(originalMeter)
+      fabricatedTranscriptError.terminal.error = {
+        code: 'JUDGE_TRANSCRIPT_TERMINAL_FAILED',
+        message: 'synthetic transcript terminal failure',
+      }
+      fabricatedTranscriptError.terminal.outcome = 'transcript_error'
+      fabricatedTranscriptError.terminal.transcript = null
+      await writeFile(
+        meterPath,
+        `${JSON.stringify(fabricatedTranscriptError, null, 2)}\n`,
+      )
+      await assert.rejects(
+        transport.verify(),
+        (error) => error.code === 'JUDGE_EVIDENCE_INCOHERENT',
+      )
+
+      const [transcriptFile] = await readdir(transcriptDirectory)
+      const transcriptPath = join(
+        transcriptDirectory,
+        transcriptFile,
+      )
+      const terminalTranscript = JSON.parse(
+        await readFile(transcriptPath, 'utf8'),
+      )
+      const startedTranscript = {
+        attempt: terminalTranscript.attempt,
+        request: terminalTranscript.request,
+        schemaVersion: terminalTranscript.schemaVersion,
+        startedAt: terminalTranscript.startedAt,
+        state: 'started',
+      }
+      const startedTranscriptText =
+        `${JSON.stringify(startedTranscript, null, 2)}\n`
+      assert.equal(
+        createHash('sha256')
+          .update(startedTranscriptText)
+          .digest('hex'),
+        fabricatedTranscriptError.transcript.startedSha256,
+      )
+      await writeFile(transcriptPath, startedTranscriptText)
+      const verifiedTranscriptError = await transport.verify()
+      assert.equal(
+        verifiedTranscriptError.snapshot.accountedUsd,
+        originalMeter.reservation.usd,
+      )
+      assert.equal(verifiedTranscriptError.transcript, null)
+
+      fabricatedTranscriptError.terminal.accountedUsd = 0
+      await writeFile(
+        meterPath,
+        `${JSON.stringify(fabricatedTranscriptError, null, 2)}\n`,
+      )
+      await assert.rejects(
+        transport.verify(),
+        (error) => error.code === 'JUDGE_EVIDENCE_INCOHERENT',
+      )
     } finally {
       await rm(root, { force: true, recursive: true })
     }

@@ -10,6 +10,7 @@ import {
   mkdir,
   open,
   readFile,
+  readdir,
   rename,
   unlink,
 } from 'node:fs/promises'
@@ -37,6 +38,11 @@ const CAP_CONTEXT_KEYS = Object.freeze([
   'cumulativeCapUsd',
   'freshAccountedUsd',
   'freshCapUsd',
+])
+const STORED_CAP_CONTEXT_KEYS = Object.freeze([
+  ...CAP_CONTEXT_KEYS,
+  'projectedCumulativeUsd',
+  'projectedFreshUsd',
 ])
 const RESERVATION_KEYS = Object.freeze([
   'judgeInputTokens',
@@ -178,6 +184,54 @@ function validateReservation(body, reservation) {
     )
   }
   return cloneJson(expected)
+}
+
+function validateStoredCapContext(value, reservation) {
+  if (!sameKeys(value, STORED_CAP_CONTEXT_KEYS)) {
+    throw new IncrementalLongMemEvalJudgeTransportError(
+      'JUDGE_EVIDENCE_INCOHERENT',
+      'Judge meter has an invalid stored cap context.',
+    )
+  }
+  let expected
+  try {
+    expected = validateCapContext({
+      cumulativeAccountedUsd: value.cumulativeAccountedUsd,
+      cumulativeCapUsd: value.cumulativeCapUsd,
+      freshAccountedUsd: value.freshAccountedUsd,
+      freshCapUsd: value.freshCapUsd,
+    }, reservation)
+  } catch {
+    throw new IncrementalLongMemEvalJudgeTransportError(
+      'JUDGE_EVIDENCE_INCOHERENT',
+      'Judge meter cap context does not permit its reservation.',
+    )
+  }
+  if (!sameJson(value, expected)) {
+    throw new IncrementalLongMemEvalJudgeTransportError(
+      'JUDGE_EVIDENCE_INCOHERENT',
+      'Judge meter cap projections differ from their canonical values.',
+    )
+  }
+  return cloneJson(expected)
+}
+
+function startedStateFromTerminalMeter(meter) {
+  return {
+    attempt: meter.attempt,
+    attemptId: meter.attemptId,
+    capContext: meter.capContext,
+    endpoint: meter.endpoint,
+    model: meter.model,
+    operationId: meter.operationId,
+    purpose: meter.purpose,
+    request: meter.request,
+    reservation: meter.reservation,
+    schemaVersion: meter.schemaVersion,
+    startedAt: meter.startedAt,
+    state: 'attempt_started',
+    transcript: meter.transcript,
+  }
 }
 
 async function syncDirectory(path) {
@@ -759,35 +813,66 @@ async function verifyFactoryEvidence({
       'Judge meter and transcript evidence are not private files.',
     )
   }
-  if (!meter.terminal.transcript) {
-    if (meter.terminal.outcome === 'transcript_error' &&
-      meter.terminal.measured === null &&
-      sameJson(meter.terminal.uncertain, meter.reservation)) {
-      return {
-        meter: cloneJson(meter),
-        snapshot: snapshotFromMeter(meter),
-        transcript: null,
-      }
-    }
+  const startedTranscriptFile = meter.transcript?.file
+  if (meter.attempt !== 1 ||
+    meter.attemptId !== `${meter.operationId}:attempt:1` ||
+    meter.endpoint !== INCREMENTAL_LONGMEMEVAL_JUDGE_URL ||
+    meter.model !== INCREMENTAL_LONGMEMEVAL_JUDGE_MODEL ||
+    meter.purpose !== 'judge' ||
+    !nonEmptyString(startedTranscriptFile) ||
+    startedTranscriptFile.includes('/') ||
+    startedTranscriptFile.includes('\\') ||
+    !/^[a-f0-9]{64}$/.test(
+      meter.transcript?.startedSha256 ?? '',
+    ) ||
+    !/^[a-f0-9]{64}$/.test(
+      meter.startedStateSha256 ?? '',
+    ) ||
+    sha256(serializeState(
+      startedStateFromTerminalMeter(meter),
+    )) !== meter.startedStateSha256) {
+    throw new IncrementalLongMemEvalJudgeTransportError(
+      'JUDGE_EVIDENCE_INCOHERENT',
+      'Judge terminal meter differs from its durable start record.',
+    )
+  }
+  const transcriptFiles = (await readdir(transcriptDirectory)).sort()
+  if (!sameJson(transcriptFiles, [startedTranscriptFile])) {
+    throw new IncrementalLongMemEvalJudgeTransportError(
+      'JUDGE_EVIDENCE_INCOHERENT',
+      'Judge evidence must contain exactly one attempt transcript.',
+    )
+  }
+  const terminalTranscriptLink = meter.terminal.transcript
+  if (!terminalTranscriptLink &&
+    meter.terminal.outcome !== 'transcript_error') {
     throw new IncrementalLongMemEvalJudgeTransportError(
       'JUDGE_EVIDENCE_INCOHERENT',
       'Judge terminal meter lacks its transcript link.',
     )
   }
-  const file = meter.terminal.transcript.file
-  if (!nonEmptyString(file) || file.includes('/') || file.includes('\\')) {
+  if (terminalTranscriptLink &&
+    (terminalTranscriptLink.file !== startedTranscriptFile ||
+      !/^[a-f0-9]{64}$/.test(
+        terminalTranscriptLink.sha256 ?? '',
+      ))) {
     throw new IncrementalLongMemEvalJudgeTransportError(
       'JUDGE_EVIDENCE_INCOHERENT',
-      'Judge transcript link is not one local filename.',
+      'Judge terminal transcript link differs from its start.',
     )
   }
-  const transcriptPath = join(transcriptDirectory, file)
+  const transcriptPath = join(
+    transcriptDirectory,
+    startedTranscriptFile,
+  )
   const transcriptMetadata = await lstat(transcriptPath)
   const transcriptText = await readFile(transcriptPath, 'utf8')
   if (!transcriptMetadata.isFile() ||
     transcriptMetadata.isSymbolicLink() ||
     (transcriptMetadata.mode & 0o777) !== 0o600 ||
-    sha256(transcriptText) !== meter.terminal.transcript.sha256) {
+    (terminalTranscriptLink &&
+      sha256(transcriptText) !==
+        terminalTranscriptLink.sha256)) {
     throw new IncrementalLongMemEvalJudgeTransportError(
       'JUDGE_EVIDENCE_INCOHERENT',
       'Judge transcript mode or hash differs from its meter.',
@@ -802,28 +887,106 @@ async function verifyFactoryEvidence({
       'Judge transcript is not valid JSON.',
     )
   }
-  if (transcript.state !== 'terminal' ||
+  const transcriptIsTerminal = transcript.state === 'terminal'
+  const transcriptIsStarted = transcript.state === 'started'
+  if ((!transcriptIsTerminal && !transcriptIsStarted) ||
+    (terminalTranscriptLink && !transcriptIsTerminal) ||
+    (!terminalTranscriptLink &&
+      meter.terminal.outcome === 'transcript_error' &&
+      (!transcriptIsStarted ||
+        sha256(transcriptText) !==
+          meter.transcript.startedSha256)) ||
+    (transcriptIsTerminal &&
+      transcript.startedRecordSha256 !==
+        meter.transcript.startedSha256) ||
     transcript.attempt?.attempt !== 1 ||
     transcript.attempt?.attemptId !== meter.attemptId ||
     transcript.attempt?.operationId !== meter.operationId ||
     transcript.attempt?.purpose !== 'judge' ||
     transcript.attempt?.endpoint !== 'openai-chat-completions' ||
     transcript.request?.model !== INCREMENTAL_LONGMEMEVAL_JUDGE_MODEL ||
-    transcript.request?.bodyBytes !== meter.request.bytes ||
-    transcript.request?.bodySha256 !== meter.request.sha256 ||
-    transcript.terminal?.outcome !== meter.terminal.outcome) {
+    transcript.startedAt !== meter.startedAt ||
+    (terminalTranscriptLink &&
+      transcript.terminal?.outcome !==
+        meter.terminal.outcome) ||
+    (transcriptIsTerminal &&
+      (transcript.terminal?.response?.status ?? null) !==
+        meter.terminal.status)) {
     throw new IncrementalLongMemEvalJudgeTransportError(
       'JUDGE_EVIDENCE_INCOHERENT',
       'Judge transcript identity differs from its terminal meter.',
     )
   }
+  const normalizedBody = transcript.request?.normalizedBody
+  if (typeof normalizedBody !== 'string') {
+    throw new IncrementalLongMemEvalJudgeTransportError(
+      'JUDGE_EVIDENCE_INCOHERENT',
+      'Judge transcript lacks its exact normalized request body.',
+    )
+  }
+  const normalizedBodyBytes =
+    Buffer.byteLength(normalizedBody, 'utf8')
+  const normalizedBodySha256 = sha256(normalizedBody)
+  if (transcript.request.bodyBytes !== normalizedBodyBytes ||
+    transcript.request.bodySha256 !== normalizedBodySha256 ||
+    meter.request?.bytes !== normalizedBodyBytes ||
+    meter.request?.sha256 !== normalizedBodySha256) {
+    throw new IncrementalLongMemEvalJudgeTransportError(
+      'JUDGE_EVIDENCE_INCOHERENT',
+      'Judge request bytes or SHA-256 differ from its normalized body.',
+    )
+  }
+  let requestBody
+  try {
+    requestBody = JSON.parse(normalizedBody)
+    assertIncrementalLongMemEvalJudgeBody(requestBody)
+  } catch {
+    throw new IncrementalLongMemEvalJudgeTransportError(
+      'JUDGE_EVIDENCE_INCOHERENT',
+      'Judge transcript request body differs from its frozen contract.',
+    )
+  }
+  const expectedSettings = {
+    maxTokens: requestBody.max_tokens,
+    n: requestBody.n,
+    serviceTier: requestBody.service_tier,
+    store: requestBody.store,
+    temperature: requestBody.temperature,
+  }
+  if (!sameJson(transcript.request.settings, expectedSettings)) {
+    throw new IncrementalLongMemEvalJudgeTransportError(
+      'JUDGE_EVIDENCE_INCOHERENT',
+      'Judge transcript settings differ from its request body.',
+    )
+  }
+  let canonicalReservation
+  try {
+    canonicalReservation = validateReservation(
+      requestBody,
+      meter.reservation,
+    )
+  } catch {
+    throw new IncrementalLongMemEvalJudgeTransportError(
+      'JUDGE_EVIDENCE_INCOHERENT',
+      'Judge meter reservation differs from the canonical full-window value.',
+    )
+  }
+  validateStoredCapContext(meter.capContext, canonicalReservation)
   if (meter.terminal.outcome === 'success') {
     const parsed = parseIncrementalLongMemEvalJudgeResponse({
-      body: JSON.parse(transcript.request.normalizedBody),
+      body: requestBody,
       rawBody: transcript.terminal?.response?.rawBody,
-      reservation: meter.reservation,
+      reservation: canonicalReservation,
     })
-    if (!sameJson(parsed.measured, meter.terminal.measured) ||
+    if (meter.terminal.status !== 200 ||
+      transcript.terminal?.response?.status !== 200 ||
+      transcript.terminal?.response?.finishReason !==
+        parsed.finishReason ||
+      !sameJson(
+        transcript.terminal?.response?.usage,
+        parsed.rawUsage,
+      ) ||
+      !sameJson(parsed.measured, meter.terminal.measured) ||
       meter.terminal.uncertain !== null ||
       meter.terminal.accountedUsd !== parsed.measured.usd) {
       throw new IncrementalLongMemEvalJudgeTransportError(
@@ -832,8 +995,8 @@ async function verifyFactoryEvidence({
       )
     }
   } else if (meter.terminal.measured !== null ||
-    !sameJson(meter.terminal.uncertain, meter.reservation) ||
-    meter.terminal.accountedUsd !== meter.reservation.usd) {
+    !sameJson(meter.terminal.uncertain, canonicalReservation) ||
+    meter.terminal.accountedUsd !== canonicalReservation.usd) {
     throw new IncrementalLongMemEvalJudgeTransportError(
       'JUDGE_EVIDENCE_INCOHERENT',
       'Judge failure does not retain its full reservation.',
@@ -842,10 +1005,12 @@ async function verifyFactoryEvidence({
   return {
     meter: cloneJson(meter),
     snapshot: snapshotFromMeter(meter),
-    transcript: {
-      file,
-      sha256: sha256(transcriptText),
-    },
+    transcript: terminalTranscriptLink
+      ? {
+          file: startedTranscriptFile,
+          sha256: sha256(transcriptText),
+        }
+      : null,
   }
 }
 

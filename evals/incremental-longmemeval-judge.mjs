@@ -22,6 +22,12 @@ export const INCREMENTAL_LONGMEMEVAL_JUDGE_REQUEST = Object.freeze({
   temperature: LONGMEMEVAL_JUDGE_REQUEST.temperature,
 })
 
+// OpenAI documents a 128,000-token context window for this snapshot. Reserve
+// that full input field plus the independently bounded 10-token completion;
+// the slight overlap is deliberate and avoids relying on a local byte/token
+// heuristic.
+export const INCREMENTAL_LONGMEMEVAL_JUDGE_CONTEXT_TOKENS = 128_000
+
 // Current official GPT-4o prices per token:
 // https://developers.openai.com/api/docs/pricing
 //
@@ -141,7 +147,7 @@ export function buildIncrementalLongMemEvalJudgeBody(
 export function reserveIncrementalLongMemEvalJudge(body) {
   assertIncrementalLongMemEvalJudgeBody(body)
   const judgeInputTokens =
-    Buffer.byteLength(JSON.stringify(body), 'utf8') + 512
+    INCREMENTAL_LONGMEMEVAL_JUDGE_CONTEXT_TOKENS
   const judgeOutputTokens = body.max_tokens
   const prices =
     INCREMENTAL_LONGMEMEVAL_JUDGE_PRICING.reservationHighestTier
@@ -194,6 +200,7 @@ function measureUsage({ body, parsed, reservation }) {
     cachedInputTokens < 0 ||
     cachedInputTokens > judgeInputTokens ||
     totalTokens !== judgeInputTokens + judgeOutputTokens ||
+    totalTokens > INCREMENTAL_LONGMEMEVAL_JUDGE_CONTEXT_TOKENS ||
     judgeInputTokens > reservation.judgeInputTokens ||
     judgeOutputTokens > reservation.judgeOutputTokens ||
     judgeOutputTokens > body.max_tokens) {
@@ -222,6 +229,12 @@ export function parseIncrementalLongMemEvalJudgeResponse({
 } = {}) {
   assertIncrementalLongMemEvalJudgeBody(body)
   const parsed = parseResponse(rawBody)
+  if (parsed.object !== 'chat.completion') {
+    throw new IncrementalLongMemEvalJudgeError(
+      'JUDGE_OBJECT_MISMATCH',
+      'OpenAI judge response is not one chat completion.',
+    )
+  }
   if (parsed.model !== LONGMEMEVAL_JUDGE_MODEL) {
     throw new IncrementalLongMemEvalJudgeError(
       'JUDGE_MODEL_MISMATCH',
@@ -241,7 +254,14 @@ export function parseIncrementalLongMemEvalJudgeResponse({
     )
   }
   const choice = parsed.choices[0]
-  if (choice?.finish_reason !== 'stop') {
+  if (choice?.index !== 0 ||
+    choice?.message?.role !== 'assistant') {
+    throw new IncrementalLongMemEvalJudgeError(
+      'JUDGE_CHOICE_INVALID',
+      'OpenAI judge choice differs from the assistant response schema.',
+    )
+  }
+  if (choice.finish_reason !== 'stop') {
     throw new IncrementalLongMemEvalJudgeError(
       choice?.finish_reason === 'length'
         ? 'JUDGE_TRUNCATED'

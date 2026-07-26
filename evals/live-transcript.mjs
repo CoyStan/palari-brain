@@ -6,12 +6,12 @@
 
 import { createHash } from 'node:crypto'
 import {
+  lstat,
   mkdir,
   open,
   readFile,
   readdir,
   rename,
-  stat,
   unlink,
 } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
@@ -21,6 +21,7 @@ const ALLOWED_RESPONSE_HEADERS = new Set([
   'content-type',
   'retry-after',
   'retry-after-ms',
+  'x-gemini-service-tier',
   'x-should-retry',
   'x-request-id',
 ])
@@ -213,6 +214,29 @@ async function syncDirectory(path) {
   }
 }
 
+function assertPrivateTranscriptDirectory(metadata) {
+  if (metadata.isSymbolicLink() ||
+    !metadata.isDirectory() ||
+    (metadata.mode & 0o777) !== 0o700) {
+    throw new LiveTranscriptError(
+      'TRANSCRIPT_DIRECTORY_UNSAFE',
+      'Transcript directory must be one real mode-0700 directory.',
+    )
+  }
+}
+
+function assertPrivateTranscriptFile(metadata, label) {
+  if (metadata.isSymbolicLink() ||
+    !metadata.isFile() ||
+    metadata.nlink !== 1 ||
+    (metadata.mode & 0o777) !== 0o600) {
+    throw new LiveTranscriptError(
+      'TRANSCRIPT_MODE_MISMATCH',
+      `${label} must be one unlinked regular mode-0600 file.`,
+    )
+  }
+}
+
 async function createDurableExclusive(path, text) {
   const handle = await open(path, 'wx', 0o600).catch((error) => {
     if (error?.code === 'EEXIST') {
@@ -345,6 +369,7 @@ export async function createLiveTranscriptRecorder({
   const root = resolve(directory)
   const secrets = normalizeSecrets(forbiddenSecrets)
   await mkdir(root, { recursive: true, mode: 0o700 })
+  assertPrivateTranscriptDirectory(await lstat(root))
 
   return {
     directory: root,
@@ -423,6 +448,7 @@ export async function createLiveTranscriptRecorder({
       const initialText = serializeRecord(record, secrets)
       const transcriptFile = transcriptFilename(attemptId)
       const transcriptPath = join(root, transcriptFile)
+      assertPrivateTranscriptDirectory(await lstat(root))
       await createDurableExclusive(transcriptPath, initialText)
       const initialSha256 = transcriptSha256(initialText)
       let finished = false
@@ -454,6 +480,11 @@ export async function createLiveTranscriptRecorder({
               'Transcript terminal outcome must be a non-empty string.',
             )
           }
+          assertPrivateTranscriptDirectory(await lstat(root))
+          assertPrivateTranscriptFile(
+            await lstat(transcriptPath),
+            'Provider transcript',
+          )
           const existingText = await readFile(transcriptPath, 'utf8')
           if (transcriptSha256(existingText) !== initialSha256) {
             throw new LiveTranscriptError(
@@ -504,6 +535,30 @@ export async function verifyLiveTranscriptArtifacts({
     )
   }
   const root = resolve(directory)
+  let rootMetadata
+  let journalMetadata
+  try {
+    [rootMetadata, journalMetadata] = await Promise.all([
+      lstat(root),
+      lstat(journalPath),
+    ])
+  } catch (error) {
+    throw new LiveTranscriptError(
+      'TRANSCRIPT_EVIDENCE_MISSING',
+      'Transcript verification could not inspect its private evidence.',
+      { cause: error },
+    )
+  }
+  assertPrivateTranscriptDirectory(rootMetadata)
+  if (journalMetadata.isSymbolicLink() ||
+    !journalMetadata.isFile() ||
+    journalMetadata.nlink !== 1 ||
+    (journalMetadata.mode & 0o777) !== 0o600) {
+    throw new LiveTranscriptError(
+      'TRANSCRIPT_METER_MODE_MISMATCH',
+      'Transcript meter must be one unlinked regular mode-0600 file.',
+    )
+  }
   let journalText
   try {
     journalText = await readFile(journalPath, 'utf8')
@@ -596,16 +651,9 @@ export async function verifyLiveTranscriptArtifacts({
       )
     }
     const path = join(root, start.transcriptFile)
-    const [metadata, text] = await Promise.all([
-      stat(path),
-      readFile(path, 'utf8'),
-    ])
-    if (!metadata.isFile() || (metadata.mode & 0o777) !== 0o600) {
-      throw new LiveTranscriptError(
-        'TRANSCRIPT_MODE_MISMATCH',
-        'Every transcript must be one regular mode-0600 file.',
-      )
-    }
+    const metadata = await lstat(path)
+    assertPrivateTranscriptFile(metadata, 'Every transcript')
+    const text = await readFile(path, 'utf8')
     const fileSha256 = transcriptSha256(text)
     if (fileSha256 !== terminal.transcriptSha256) {
       throw new LiveTranscriptError(

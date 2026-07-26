@@ -10,9 +10,16 @@ import {
 } from '../src/index.mjs'
 import {
   INCREMENTAL_LONGMEMEVAL_ANSWER_GENERATION,
+  INCREMENTAL_LONGMEMEVAL_HARD_CAP_ANSWER_GENERATION,
+  INCREMENTAL_LONGMEMEVAL_HARD_CAP_MODEL,
+  INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_GENERATION,
+  INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_ID,
+  INCREMENTAL_LONGMEMEVAL_MODEL,
   INCREMENTAL_LONGMEMEVAL_RESPONSE_SCHEMA,
   INCREMENTAL_LONGMEMEVAL_REDUCER_GENERATION,
   buildIncrementalLongMemEvalAnswerBody,
+  buildIncrementalLongMemEvalHardCapAnswerBody,
+  buildIncrementalLongMemEvalHardCapReducerBody,
   buildIncrementalLongMemEvalReducerBody,
   incrementalLongMemEvalExchangePlan,
   incrementalLongMemEvalExchangeStats,
@@ -23,12 +30,14 @@ import {
   buildIncrementalLongMemEvalJudgeBody,
 } from '../evals/incremental-longmemeval-judge.mjs'
 
-const MODEL_VERSION = 'gemini-3.5-flash-lite'
+const MODEL_VERSION = INCREMENTAL_LONGMEMEVAL_MODEL
 
-function validated(text) {
+function validated(text, {
+  modelVersion = MODEL_VERSION,
+} = {}) {
   return {
     finishReason: 'STOP',
-    modelVersion: MODEL_VERSION,
+    modelVersion,
     text,
     usage: {
       geminiInputTokens: 10,
@@ -148,7 +157,7 @@ function noMemoryPayload(body) {
   }
 }
 
-test('full reducer schema mirrors feasible host limits and no-store mapping',
+test('historical and hard-cap provider contracts remain isolated',
   () => {
     const action = INCREMENTAL_LONGMEMEVAL_RESPONSE_SCHEMA
       .properties.actions
@@ -166,6 +175,14 @@ test('full reducer schema mirrors feasible host limits and no-store mapping',
         .properties.dispositions.maxItems,
       2,
     )
+    assert.equal(
+      INCREMENTAL_LONGMEMEVAL_MODEL,
+      'gemini-3.5-flash-lite',
+    )
+    assert.equal(
+      INCREMENTAL_LONGMEMEVAL_HARD_CAP_MODEL,
+      'gemini-2.5-flash-lite',
+    )
     assert.deepEqual(INCREMENTAL_LONGMEMEVAL_REDUCER_GENERATION, {
       maxOutputTokens: 2_000,
       responseFormat: {
@@ -180,6 +197,24 @@ test('full reducer schema mirrors feasible host limits and no-store mapping',
       maxOutputTokens: 256,
       thinkingConfig: { thinkingLevel: 'MINIMAL' },
     })
+    assert.deepEqual(
+      INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_GENERATION,
+      {
+        candidateCount: 1,
+        maxOutputTokens: 2_000,
+        responseJsonSchema: INCREMENTAL_LONGMEMEVAL_RESPONSE_SCHEMA,
+        responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    )
+    assert.deepEqual(
+      INCREMENTAL_LONGMEMEVAL_HARD_CAP_ANSWER_GENERATION,
+      {
+        candidateCount: 1,
+        maxOutputTokens: 256,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    )
 
     const malicious = {
       contractVersion: 'active-memory-reducer/v1',
@@ -191,8 +226,32 @@ test('full reducer schema mirrors feasible host limits and no-store mapping',
       },
       systemInstructions: { MALICIOUS_SYSTEM_SENTINEL: true },
     }
-    const reducer = buildIncrementalLongMemEvalReducerBody(malicious)
+    const historicalReducer =
+      buildIncrementalLongMemEvalReducerBody(malicious)
+    assert.equal(historicalReducer.store, false)
+    assert.equal(
+      'responseFormat' in historicalReducer.generationConfig,
+      true,
+    )
+    assert.equal(
+      historicalReducer.generationConfig
+        .thinkingConfig.thinkingLevel,
+      'MINIMAL',
+    )
+    const historicalAnswer =
+      buildIncrementalLongMemEvalAnswerBody('answer prompt')
+    assert.equal(historicalAnswer.store, false)
+    assert.deepEqual(
+      historicalAnswer.generationConfig,
+      INCREMENTAL_LONGMEMEVAL_ANSWER_GENERATION,
+    )
+
+    const reducer =
+      buildIncrementalLongMemEvalHardCapReducerBody(malicious)
     assert.equal(reducer.store, false)
+    assert.equal('responseFormat' in reducer.generationConfig, false)
+    assert.equal('thinkingLevel' in
+      reducer.generationConfig.thinkingConfig, false)
     assert.equal(
       JSON.stringify(reducer.systemInstruction).includes(
         'MALICIOUS_SYSTEM_SENTINEL',
@@ -206,11 +265,11 @@ test('full reducer schema mirrors feasible host limits and no-store mapping',
       ['contractVersion', 'input'],
     )
     const answer =
-      buildIncrementalLongMemEvalAnswerBody('answer prompt')
+      buildIncrementalLongMemEvalHardCapAnswerBody('answer prompt')
     assert.equal(answer.store, false)
     assert.deepEqual(
       answer.generationConfig,
-      INCREMENTAL_LONGMEMEVAL_ANSWER_GENERATION,
+      INCREMENTAL_LONGMEMEVAL_HARD_CAP_ANSWER_GENERATION,
     )
   })
 
@@ -471,7 +530,14 @@ test('scoring arm sends complete honest local absence to the judge path',
         async callGemini(request) {
           calls += 1
           assert.equal(request.purpose, 'writer')
-          return validated(JSON.stringify(noMemoryPayload(request.body)))
+          assert.deepEqual(
+            request.body.generationConfig,
+            INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_GENERATION,
+          )
+          return validated(
+            JSON.stringify(noMemoryPayload(request.body)),
+            { modelVersion: INCREMENTAL_LONGMEMEVAL_HARD_CAP_MODEL },
+          )
         },
         instance,
         async onCheckpoint(checkpoint) {
@@ -502,6 +568,10 @@ test('scoring arm sends complete honest local absence to the judge path',
       })
       assert.equal(result.digestStatus.ready, true)
       assert.equal(result.digestStatus.pending, 0)
+      assert.equal(
+        result.digestStatus.reducerId,
+        INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_ID,
+      )
       const judgeBody = buildIncrementalLongMemEvalJudgeBody(
         instance,
         result.answer,

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import test from 'node:test'
@@ -186,6 +187,24 @@ test('sealed identity rejects current successor-only runtime drift',
         }),
         (error) => error.code === 'INCREMENTAL_ARTIFACT_CHANGED',
       )
+      const changedArtifacts = []
+      for (const artifact of loaded.config.artifacts) {
+        const bytes = await readFile(
+          new URL(`../${artifact.path}`, import.meta.url),
+        )
+        const actualSha256 =
+          createHash('sha256').update(bytes).digest('hex')
+        if (actualSha256 !== artifact.sha256) {
+          changedArtifacts.push(artifact.path)
+        }
+      }
+      assert.deepEqual(changedArtifacts.sort(), [
+        'evals/arms/incremental-memory-longmemeval-live-arm.mjs',
+        'evals/incremental-longmemeval-judge-transport.mjs',
+        'evals/incremental-longmemeval-judge.mjs',
+        'evals/live-transcript.mjs',
+        'evals/run-incremental-longmemeval-live.mjs',
+      ])
     }
   })
 

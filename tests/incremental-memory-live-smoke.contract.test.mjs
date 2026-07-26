@@ -43,6 +43,13 @@ import {
   gradeIncrementalMemorySmokePredictions,
 } from '../evals/run-incremental-memory-smoke.mjs'
 
+const INCREMENTAL_MEMORY_SMOKE_CONFIG_SHA256 =
+  '503d45de64f66c2fe2acd5023c52d34cb9ca340dd73449401c2334a6f6d4ee58'
+const INCREMENTAL_MEMORY_SMOKE_AUTHORITY_SHA256 =
+  'ae3cd7e30a40a377cda3c8f7a3833f6744d7a025bfecb92226d9dcf9baf3b5a5'
+const INCREMENTAL_MEMORY_SMOKE_PREDICTIONS_SHA256 =
+  'bf1162053712cbba4df7936aaa146045eacdc6c205895952c832e049dfdd73bf'
+
 function validated(text) {
   return {
     finishReason: 'STOP',
@@ -436,6 +443,18 @@ test('frozen config, FINAL predictions, authority, and tracked artifacts reconci
   assert.equal(authority.authority.datasetLoaded, false)
   assert.equal(authority.authority.maximumPhysicalDispatches, 3)
   assert.equal(authority.authority.retryDispatches, 0)
+  assert.equal(
+    loaded.configSha256,
+    INCREMENTAL_MEMORY_SMOKE_CONFIG_SHA256,
+  )
+  assert.equal(
+    loaded.predictionsSha256,
+    INCREMENTAL_MEMORY_SMOKE_PREDICTIONS_SHA256,
+  )
+  assert.equal(
+    authority.authoritySha256,
+    INCREMENTAL_MEMORY_SMOKE_AUTHORITY_SHA256,
+  )
   if (INCREMENTAL_MEMORY_SMOKE_TERMINAL_RUN_IDS.length === 0) {
     const artifacts = await auditIncrementalMemoryTrackedArtifacts({
       config: loaded.config,
@@ -443,17 +462,26 @@ test('frozen config, FINAL predictions, authority, and tracked artifacts reconci
     })
     assert.equal(artifacts.artifacts, 53)
   } else {
+    const successorDrift = []
     for (const artifact of loaded.config.artifacts) {
       const current = incrementalMemorySmokeSha256(
         await readFile(join(repoRoot, artifact.path)),
       )
-      if (artifact.path ===
-        'evals/run-incremental-memory-smoke.mjs') {
-        assert.notEqual(current, artifact.sha256)
-      } else {
-        assert.equal(current, artifact.sha256)
+      if (current !== artifact.sha256) {
+        successorDrift.push(artifact.path)
       }
     }
+    assert.deepEqual(successorDrift.sort(), [
+      'evals/live-transcript.mjs',
+      'evals/run-incremental-memory-smoke.mjs',
+    ])
+    assert.equal(
+      successorDrift.includes(
+        'evals/run-incremental-memory-smoke.mjs',
+      ),
+      true,
+      'terminal runner bytes must remain outside the executable identity',
+    )
   }
 })
 

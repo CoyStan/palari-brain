@@ -2,11 +2,19 @@
 
 Date: 2026-07-26
 
-Status: **offline audit complete; another live run is blocked**
+Status: **historical audit complete; successor safety contract prepared
+offline; no live identity is open**
 
 No provider request was made during this audit. The failed
 `j4-active-brain-incremental-longmemeval-q1-v1` identity, its tracked
 preparation cut, and its private evidence were not changed or rerun.
+
+Later on the same date, the founder said “do it” after being offered the first
+option below: move to a model with documented thinking-off support and repair
+the cap proof offline. `docs/J4-INCREMENTAL-HARD-CAP-CONTRACT.md` and the
+successor-only implementation now close the technical blockers identified
+here. The component table below is retained as the finding at commit
+`c69e30f`, not as the current successor verdict.
 
 ## Bottom line
 
@@ -32,11 +40,12 @@ official judge to mark it wrong. The historical export retains that behavior;
 the new opt-in scoring export treats only a complete, ready, empty digest as a
 gradable answer.
 
-One blocker remains: the stated `$7.10` fresh limit is not proved to be a
-mathematical hard cap. Gemini thinking can exceed the candidate reservation,
-and both provider input reservations use an engineering estimate rather than
-a provider-guaranteed token count. Another live identity must not be prepared
-until the founder chooses how to resolve that.
+At commit `c69e30f`, one blocker remained: the stated `$7.10` fresh limit was
+not proved to be a mathematical hard cap. Gemini thinking could exceed the
+candidate reservation, and both provider input reservations used an
+engineering estimate rather than a provider-guaranteed token count. The
+successor resolution below closes that offline design blocker without
+creating live-run authority.
 
 ## Component-by-component result
 
@@ -118,10 +127,60 @@ different evaluation contracts:
 Until that choice is explicit, there is no live identity, no permitted
 provider call, and no benchmark result to report.
 
+## Successor resolution
+
+The founder selected option 1 for offline preparation, not execution. The
+successor now:
+
+- uses stable `gemini-2.5-flash-lite`, exact
+  `thinkingBudget: 0`, provider-enforced JSON, one candidate, text-only
+  inputs, and `store: false`;
+- reserves the full 1,048,576-token input and 65,536-token output limits at
+  Priority prices before each dispatch, then reconciles only a response whose
+  tier header and usage metadata both contain the lowercase wire value
+  `standard`;
+- accepts unavoidable Gemini 2.5 implicit-cache hits and prices their reported
+  tokens at the documented Standard cached-input rate;
+- reserves the OpenAI judge's full 128,000-token context plus its separately
+  bounded ten-token output at Priority prices;
+- derives Gemini's one meter cap as no greater than both the cumulative cap
+  and opening spend plus the fresh cap, and requires the runtime's
+  accidental-network guard before any dispatch;
+- streams at most eight MiB under one request-and-body deadline, treats only
+  exact HTTP 200 as success, and replays every prior success or failure before
+  another attempt can start;
+- keeps one immutable, hash-linked interaction receipt before replacing the
+  aggregate checkpoint, safely adopts only its exact interrupted-publication
+  hard link after a crash, and permanently stops the invocation after a write
+  failure;
+- replays provider accounting from exact private transcript bytes, pins the
+  exact private instance, reconstructs reducer and answer requests from that
+  instance, classifies the complete allowed evidence-path set, and grades
+  predictions from validated evidence rather than caller-supplied success
+  booleans.
+
+Private directories and files are checked with non-following metadata:
+symlinks, extra hard links, unsafe modes, orphan attempts, and substituted
+judge response metadata all fail closed. The global-fetch guard is an
+accidental-call detector, not an operating-system network sandbox; a future
+runner must still capture and pass both metered provider transports
+explicitly.
+
+The generic historical exports remain bound to the original Gemini 3.5
+contract. Explicit successor-only constants and request builders carry the
+Gemini 2.5 contract, so historical config hashes continue to describe the
+sealed run instead of being reinterpreted by current code.
+
+This is still not authority to call either provider. No replacement run ID,
+benchmark scope, fresh cap, cumulative cap, configuration, or FINAL
+predictions have been frozen. The sealed v1 identity remains untouched and
+cannot be resumed. A live successor therefore remains at a founder gate even
+though the offline hard-cap design is no longer the blocker.
+
 ## Offline verification
 
-- Focused provider/composition/scoring contracts: 50/50 pass.
-- Full repository suite: 333/333 pass.
+- Focused provider/composition/scoring contracts: 131/131 pass.
+- Full repository suite: 399/399 pass.
 - `npm run quickstart`: exit 0, `QUICKSTART COMPLETE`.
 - `npm run bakeoff`: exit 0, `BAKEOFF DRY RUN COMPLETE`.
 - `npm pack --dry-run`: exit 0, 28 package files.

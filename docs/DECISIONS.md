@@ -1483,3 +1483,50 @@ dates. Agents record; the founder decides.
   no provider was called, and cumulative J4 spend remains `$0.7761082`
   accounted. Focused contracts pass 50/50 and the full suite passes 333/333;
   quickstart, dry bake-off, and package dry-run are green.
+- 2026-07-26 (FOUNDER GO — J4.2K-R2-L1-B offline successor hard-cap
+  contract) After the component audit exposed that the old byte-based
+  reservations could not prove an absolute billing boundary, the founder
+  selected the offered first option and then said “do it”: prepare the safer
+  successor contract offline, without creating or executing a run.
+
+  The successor uses stable `gemini-2.5-flash-lite`, turns thinking off with
+  `thinkingBudget: 0`, and reserves the model's complete documented input and
+  output windows at the higher Priority prices before every dispatch. It
+  accepts reconciliation to measured Standard pricing only when the response
+  tier header, usage tier, model, finish reason, token relationships, and
+  zero-thought requirement all agree. Provider-controlled implicit cache hits
+  remain valid and are charged at the documented Standard cached-input rate.
+  The GPT-4o judge similarly reserves its full 128,000-token context plus its
+  ten-token output allowance at Priority prices. A smaller run cap is
+  therefore a proven next-dispatch boundary, not a promise that all 245
+  possible calls will fit.
+
+  Historical generic arm exports remain bound to the sealed Gemini 3.5
+  contract. Explicit successor-only bindings carry Gemini 2.5, preventing
+  current code from changing the meaning of the old config and artifact
+  hashes. The successor path has one physical attempt, a private hash-linked
+  transcript journal, immutable per-interaction receipts before aggregate
+  checkpoint replacement, fail-closed recovery, and an evidence oracle that
+  reconstructs the exact instance, reducer and answer prompts, transcripts,
+  accounting, checkpoints, and official judge observation. Caller-supplied
+  success flags cannot mint a prediction hit.
+
+  The final adversarial pass also closed execution-evidence gaps that ordinary
+  happy-path tests had missed: the runtime derives Gemini's meter cap from
+  both fresh and cumulative limits, only exact HTTP 200 releases a
+  reservation, one deadline covers the streamed bounded body, prior
+  transcript/accounting evidence is replayed before another dispatch,
+  success and failure outcomes are both semantically verified, and the
+  designated runtime requires its accidental-network guard. Checkpoint
+  recovery adopts only the exact owned publication hard link; private
+  directories, transcripts, journals, and judge evidence reject symlinks,
+  extra hard links, unsafe modes, forged response metadata, and orphan
+  attempts. Focused successor contracts pass 131/131 and the full suite passes
+  399/399; quickstart, dry bake-off, and package dry-run are green.
+
+  This GO authorizes no live identity, credential access, provider request,
+  reroll, question 2, Mem0, S-490, score publication, or announcement. The
+  sealed `j4-active-brain-incremental-longmemeval-q1-v1` identity remains
+  terminal. Cumulative J4 spend remains `$0.7761082` accounted. This is the
+  second consecutive infrastructure unit, so the charter requires a product
+  drift stop after its offline verification and commit.

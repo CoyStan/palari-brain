@@ -1,5 +1,12 @@
 import assert from 'node:assert/strict'
-import { readFile, readdir, rm, stat } from 'node:fs/promises'
+import {
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  symlink,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
@@ -47,6 +54,32 @@ function requestBody() {
     response_format: { type: 'json_object' },
   })
 }
+
+test('recorder rejects a transcript-directory symlink before any request write',
+  async () => {
+    const root = await mkdtemp(join(
+      tmpdir(),
+      'palari-live-transcript-symlink-',
+    ))
+    const target = join(root, 'target')
+    const transcripts = join(root, 'transcripts')
+    try {
+      await mkdir(target, { mode: 0o700 })
+      await symlink(target, transcripts)
+      await assert.rejects(
+        createLiveTranscriptRecorder({
+          directory: transcripts,
+          forbiddenSecrets: [FAKE_KEY],
+        }),
+        (error) =>
+          error instanceof LiveTranscriptError &&
+          error.code === 'TRANSCRIPT_DIRECTORY_UNSAFE',
+      )
+      assert.deepEqual(await readdir(target), [])
+    } finally {
+      await rm(root, { force: true, recursive: true })
+    }
+  })
 
 test('records one mode-0600 success transcript with exact bodies and safe headers', async () => {
   await withRecorder(async ({ recorder, transcripts }) => {
@@ -99,6 +132,7 @@ test('records one mode-0600 success transcript with exact bodies and safe header
         'content-type': 'application/json',
         'retry-after': '0.25',
         'set-cookie': `credential=${FAKE_KEY}`,
+        'x-gemini-service-tier': 'standard',
         'x-ratelimit-limit-requests': '500',
         'x-ratelimit-remaining-tokens': '99999',
         'x-request-id': 'req_safe_123',
@@ -133,6 +167,7 @@ test('records one mode-0600 success transcript with exact bodies and safe header
     assert.deepEqual(record.terminal.response.headers, {
       'content-type': 'application/json',
       'retry-after': '0.25',
+      'x-gemini-service-tier': 'standard',
       'x-ratelimit-limit-requests': '500',
       'x-ratelimit-remaining-tokens': '99999',
       'x-request-id': 'req_safe_123',

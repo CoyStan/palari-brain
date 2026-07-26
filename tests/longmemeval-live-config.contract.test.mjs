@@ -569,11 +569,28 @@ test('J4 v5 frozen bytes survive terminal sealing and fail closed as runnable', 
     config.costEstimate.conservative.cumulativeUsd <
       config.costEstimate.capUsd,
   )
+  const successorDrift = []
+  for (const artifact of config.artifacts) {
+    const currentBytes = await readFile(
+      new URL(`../${artifact.path}`, import.meta.url),
+    )
+    if (j4Sha256(currentBytes) !== artifact.sha256) {
+      successorDrift.push(artifact.path)
+    }
+  }
+  assert.deepEqual(successorDrift.sort(), [
+    'evals/live-transcript.mjs',
+    'evals/run-longmemeval-live.mjs',
+  ])
+  assert.equal(
+    successorDrift.includes('evals/run-longmemeval-live.mjs'),
+    true,
+    'terminal runner bytes must no longer match the executable v5 identity',
+  )
   await assert.rejects(
     loadJ4LiveConfig({ repoRoot: REPO_ROOT }),
     (error) =>
       error.code === 'ARTIFACT_HASH' &&
-      /evals\/run-longmemeval-live\.mjs/.test(error.message),
-    'terminal runner bytes must no longer match the executable v5 identity',
+      successorDrift.some((path) => error.message.includes(path)),
   )
 })

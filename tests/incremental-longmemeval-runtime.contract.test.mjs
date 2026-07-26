@@ -9,22 +9,23 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import {
-  createActiveBrainMeteredTransport,
-} from '../evals/active-brain-live-meter.mjs'
-import {
-  buildIncrementalLongMemEvalAnswerBody,
-  buildIncrementalLongMemEvalReducerBody,
-  INCREMENTAL_LONGMEMEVAL_ANSWER_GENERATION,
-  INCREMENTAL_LONGMEMEVAL_MODEL,
-  INCREMENTAL_LONGMEMEVAL_REDUCER_GENERATION,
+  buildIncrementalLongMemEvalHardCapAnswerBody,
+  buildIncrementalLongMemEvalHardCapReducerBody,
+  INCREMENTAL_LONGMEMEVAL_HARD_CAP_ANSWER_GENERATION,
+  INCREMENTAL_LONGMEMEVAL_HARD_CAP_MODEL,
+  INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_GENERATION,
   runIncrementalLongMemEvalQuestionForScoring,
 } from '../evals/arms/incremental-memory-longmemeval-live-arm.mjs'
 import {
+  INCREMENTAL_LONGMEMEVAL_CUMULATIVE_CAP_USD,
   INCREMENTAL_LONGMEMEVAL_FRESH_SUBCAP_USD,
-  INCREMENTAL_LONGMEMEVAL_GEMINI_LIMITS,
 } from '../evals/incremental-longmemeval-live-config.mjs'
 import {
+  createIncrementalLongMemEvalHardCapGeminiTransport,
+} from '../evals/incremental-longmemeval-hard-cap-gemini.mjs'
+import {
   createIncrementalLongMemEvalGeminiTransport,
+  incrementalLongMemEvalGeminiEffectiveCap,
   INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT,
 } from '../evals/incremental-longmemeval-runtime.mjs'
 import {
@@ -47,7 +48,7 @@ function geminiResponse(text) {
       },
       finishReason: 'STOP',
     }],
-    modelVersion: INCREMENTAL_LONGMEMEVAL_MODEL,
+    modelVersion: INCREMENTAL_LONGMEMEVAL_HARD_CAP_MODEL,
     usageMetadata: {
       candidatesTokenCount: 5,
       promptTokenCount: 20,
@@ -56,13 +57,16 @@ function geminiResponse(text) {
       totalTokenCount: 25,
     },
   }), {
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      'x-gemini-service-tier': 'standard',
+    },
     status: 200,
   })
 }
 
 function reducerBody() {
-  return buildIncrementalLongMemEvalReducerBody({
+  return buildIncrementalLongMemEvalHardCapReducerBody({
     contractVersion: 'active-memory-reducer/v1',
     input: {
       baseRevision: 0,
@@ -180,6 +184,7 @@ function judgeResponse() {
       },
     }],
     model: INCREMENTAL_LONGMEMEVAL_JUDGE_MODEL,
+    object: 'chat.completion',
     service_tier: 'default',
     usage: {
       completion_tokens: 1,
@@ -222,15 +227,15 @@ test('runtime composition owns every frozen provider binding', () => {
   )
   assert.strictEqual(
     INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT.answerGeneration,
-    INCREMENTAL_LONGMEMEVAL_ANSWER_GENERATION,
+    INCREMENTAL_LONGMEMEVAL_HARD_CAP_ANSWER_GENERATION,
   )
   assert.equal(
     INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT.geminiModel,
-    INCREMENTAL_LONGMEMEVAL_MODEL,
+    INCREMENTAL_LONGMEMEVAL_HARD_CAP_MODEL,
   )
   assert.strictEqual(
     INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT.writerGeneration,
-    INCREMENTAL_LONGMEMEVAL_REDUCER_GENERATION,
+    INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_GENERATION,
   )
   assert.equal(
     Object.values(INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT)
@@ -239,7 +244,34 @@ test('runtime composition owns every frozen provider binding', () => {
   )
 })
 
-test('real meter fails closed when any composition binding is absent',
+test('runtime derives one Gemini cap from both run caps', () => {
+  assert.equal(
+    incrementalLongMemEvalGeminiEffectiveCap({
+      cumulativeCapUsd: 8,
+      freshSubcapUsd: 7.1,
+      openingAccountedUsd: 0.7761082,
+    }),
+    7.8761082,
+  )
+  assert.equal(
+    incrementalLongMemEvalGeminiEffectiveCap({
+      cumulativeCapUsd: 7.5,
+      freshSubcapUsd: 7.1,
+      openingAccountedUsd: 0.7761082,
+    }),
+    7.5,
+  )
+  assert.throws(
+    () => incrementalLongMemEvalGeminiEffectiveCap({
+      cumulativeCapUsd: 0.5,
+      freshSubcapUsd: 0.1,
+      openingAccountedUsd: 0.6,
+    }),
+    (error) => error?.code === 'CAP_INVALID',
+  )
+})
+
+test('hard-cap meter fails closed when a generation binding is absent',
   async () => {
     const root = await mkdtemp(join(
       tmpdir(),
@@ -247,30 +279,38 @@ test('real meter fails closed when any composition binding is absent',
     ))
     try {
       const complete = {
-        ...INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT,
+        answerGeneration:
+          INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT.answerGeneration,
         capUsd: INCREMENTAL_LONGMEMEVAL_FRESH_SUBCAP_USD,
         fetchImpl: async () => {
           throw new Error('fetch must not run')
         },
         geminiApiKey: GEMINI_KEY,
         journalPath: join(root, 'meter.jsonl'),
-        limits: INCREMENTAL_LONGMEMEVAL_GEMINI_LIMITS,
-        openaiApiKey: OPENAI_KEY,
+        model: INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT.geminiModel,
         transcriptDirectory: join(root, 'transcripts'),
+        writerGeneration:
+          INCREMENTAL_LONGMEMEVAL_GEMINI_CONTRACT.writerGeneration,
       }
       for (const binding of [
         'answerGeneration',
-        'geminiModel',
         'writerGeneration',
       ]) {
         const options = { ...complete }
         delete options[binding]
         await assert.rejects(
-          createActiveBrainMeteredTransport(options),
-          (error) => error?.code === 'ACTIVE_CONFIGURATION_MISSING',
+          createIncrementalLongMemEvalHardCapGeminiTransport(options),
+          (error) => error?.code === 'GENERATION_CONTRACT_INVALID',
           binding,
         )
       }
+      await assert.rejects(
+        createIncrementalLongMemEvalHardCapGeminiTransport({
+          ...complete,
+          model: 'gemini-other',
+        }),
+        (error) => error?.code === 'MODEL_FIXED',
+      )
     } finally {
       await rm(root, { force: true, recursive: true })
     }
@@ -286,7 +326,9 @@ test('shared seam drives the real meter through writer and answer fake HTTP',
     let transport
     try {
       transport = await createIncrementalLongMemEvalGeminiTransport({
-        capUsd: INCREMENTAL_LONGMEMEVAL_FRESH_SUBCAP_USD,
+        cumulativeCapUsd:
+          INCREMENTAL_LONGMEMEVAL_CUMULATIVE_CAP_USD,
+        freshSubcapUsd: INCREMENTAL_LONGMEMEVAL_FRESH_SUBCAP_USD,
         async fetchImpl(url, init) {
           requests.push({
             body: JSON.parse(init.body),
@@ -304,10 +346,20 @@ test('shared seam drives the real meter through writer and answer fake HTTP',
         },
         geminiApiKey: GEMINI_KEY,
         journalPath: join(root, 'meter.jsonl'),
-        limits: INCREMENTAL_LONGMEMEVAL_GEMINI_LIMITS,
-        retryJitterImpl: () => 0,
         transcriptDirectory: join(root, 'transcripts'),
       })
+      await assert.rejects(
+        transport.callGemini({
+          body: reducerBody(),
+          cellId: 'offline-writer',
+          operationId: 'offline-writer:1',
+          purpose: 'writer',
+        }),
+        (error) => error?.code === 'NETWORK_GUARD_REQUIRED',
+      )
+      assert.equal(requests.length, 0)
+      assert.equal((await transport.snapshot()).attempts, 0)
+      transport.installNetworkGuard()
       const writer = await transport.callGemini({
         body: reducerBody(),
         cellId: 'offline-writer',
@@ -315,7 +367,7 @@ test('shared seam drives the real meter through writer and answer fake HTTP',
         purpose: 'writer',
       })
       const answer = await transport.callGemini({
-        body: buildIncrementalLongMemEvalAnswerBody(
+        body: buildIncrementalLongMemEvalHardCapAnswerBody(
           'Answer from the supplied digest.',
         ),
         cellId: 'offline-answer',
@@ -334,7 +386,7 @@ test('shared seam drives the real meter through writer and answer fake HTTP',
         assert.equal(request.method, 'POST')
         assert.equal(
           request.url,
-          `https://generativelanguage.googleapis.com/v1beta/models/${INCREMENTAL_LONGMEMEVAL_MODEL}:generateContent`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${INCREMENTAL_LONGMEMEVAL_HARD_CAP_MODEL}:generateContent`,
         )
         assert.deepEqual(
           Object.keys(request.headers).sort(),
@@ -345,12 +397,12 @@ test('shared seam drives the real meter through writer and answer fake HTTP',
       }
       assert.deepEqual(
         requests[0].body.generationConfig,
-        INCREMENTAL_LONGMEMEVAL_REDUCER_GENERATION,
+        INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_GENERATION,
       )
       assert.ok(requests[0].body.systemInstruction)
       assert.deepEqual(
         requests[1].body.generationConfig,
-        INCREMENTAL_LONGMEMEVAL_ANSWER_GENERATION,
+        INCREMENTAL_LONGMEMEVAL_HARD_CAP_ANSWER_GENERATION,
       )
       assert.equal(
         Object.hasOwn(requests[1].body, 'systemInstruction'),
@@ -361,7 +413,7 @@ test('shared seam drives the real meter through writer and answer fake HTTP',
         answer: 1,
         writer: 1,
       })
-      assert.equal(verified.ledger.attempts, 2)
+      assert.equal(verified.meter.attempts, 2)
       assert.equal(verified.transcripts.attempts, 2)
     } finally {
       transport?.closeNetworkGuard()
@@ -379,7 +431,9 @@ test('shared seam forbids a retry after one retryable fake response',
     let transport
     try {
       transport = await createIncrementalLongMemEvalGeminiTransport({
-        capUsd: INCREMENTAL_LONGMEMEVAL_FRESH_SUBCAP_USD,
+        cumulativeCapUsd:
+          INCREMENTAL_LONGMEMEVAL_CUMULATIVE_CAP_USD,
+        freshSubcapUsd: INCREMENTAL_LONGMEMEVAL_FRESH_SUBCAP_USD,
         async fetchImpl() {
           calls += 1
           return new Response(JSON.stringify({
@@ -391,10 +445,9 @@ test('shared seam forbids a retry after one retryable fake response',
         },
         geminiApiKey: GEMINI_KEY,
         journalPath: join(root, 'meter.jsonl'),
-        limits: INCREMENTAL_LONGMEMEVAL_GEMINI_LIMITS,
-        retryJitterImpl: () => 0,
         transcriptDirectory: join(root, 'transcripts'),
       })
+      transport.installNetworkGuard()
       await assert.rejects(
         transport.callGemini({
           body: reducerBody(),
@@ -402,8 +455,7 @@ test('shared seam forbids a retry after one retryable fake response',
           operationId: 'offline-retry:1',
           purpose: 'writer',
         }),
-        (error) =>
-          error?.code === 'INCREMENTAL_LONGMEMEVAL_RETRY_FORBIDDEN',
+        (error) => error?.code === 'GEMINI_HTTP_429',
       )
       const snapshot = await transport.snapshot()
       const verified = await transport.verify()
@@ -411,7 +463,7 @@ test('shared seam forbids a retry after one retryable fake response',
       assert.equal(snapshot.attempts, 1)
       assert.deepEqual(snapshot.logicalRequests, { writer: 1 })
       assert.ok(snapshot.uncertain.usd > 0)
-      assert.equal(verified.ledger.attempts, 1)
+      assert.equal(verified.meter.attempts, 1)
       assert.equal(verified.transcripts.attempts, 1)
     } finally {
       transport?.closeNetworkGuard()
@@ -432,7 +484,9 @@ test('honest absence crosses the real Gemini and judge meters without an answer 
     let gemini
     try {
       gemini = await createIncrementalLongMemEvalGeminiTransport({
-        capUsd: INCREMENTAL_LONGMEMEVAL_FRESH_SUBCAP_USD,
+        cumulativeCapUsd:
+          INCREMENTAL_LONGMEMEVAL_CUMULATIVE_CAP_USD,
+        freshSubcapUsd: INCREMENTAL_LONGMEMEVAL_FRESH_SUBCAP_USD,
         async fetchImpl(_url, init) {
           geminiCalls += 1
           const body = JSON.parse(init.body)
@@ -444,10 +498,9 @@ test('honest absence crosses the real Gemini and judge meters without an answer 
         },
         geminiApiKey: GEMINI_KEY,
         journalPath: join(root, 'gemini-meter.jsonl'),
-        limits: INCREMENTAL_LONGMEMEVAL_GEMINI_LIMITS,
-        retryJitterImpl: () => 0,
         transcriptDirectory: join(root, 'gemini-transcripts'),
       })
+      gemini.installNetworkGuard()
       const armResult =
         await runIncrementalLongMemEvalQuestionForScoring({
           callGemini: gemini.callGemini,
@@ -493,7 +546,7 @@ test('honest absence crosses the real Gemini and judge meters without an answer 
       })
       assert.match(armResult.answer, /no stored memories/i)
       assert.equal(judged.validated, true)
-      assert.equal(geminiEvidence.ledger.attempts, 2)
+      assert.equal(geminiEvidence.meter.attempts, 2)
       assert.equal(geminiEvidence.transcripts.attempts, 2)
       assert.equal(judgeEvidence.snapshot.attempts, 1)
       assert.equal(judgeEvidence.snapshot.state, 'terminal')
@@ -516,7 +569,9 @@ test('real arm, Gemini meter, and judge meter compose through fake HTTP',
     let gemini
     try {
       gemini = await createIncrementalLongMemEvalGeminiTransport({
-        capUsd: INCREMENTAL_LONGMEMEVAL_FRESH_SUBCAP_USD,
+        cumulativeCapUsd:
+          INCREMENTAL_LONGMEMEVAL_CUMULATIVE_CAP_USD,
+        freshSubcapUsd: INCREMENTAL_LONGMEMEVAL_FRESH_SUBCAP_USD,
         async fetchImpl(_url, init) {
           geminiCalls += 1
           const body = JSON.parse(init.body)
@@ -528,10 +583,9 @@ test('real arm, Gemini meter, and judge meter compose through fake HTTP',
         },
         geminiApiKey: GEMINI_KEY,
         journalPath: join(root, 'gemini-meter.jsonl'),
-        limits: INCREMENTAL_LONGMEMEVAL_GEMINI_LIMITS,
-        retryJitterImpl: () => 0,
         transcriptDirectory: join(root, 'gemini-transcripts'),
       })
+      gemini.installNetworkGuard()
       const armResult =
         await runIncrementalLongMemEvalQuestionForScoring({
           callGemini: gemini.callGemini,
@@ -584,7 +638,7 @@ test('real arm, Gemini meter, and judge meter compose through fake HTTP',
       assert.match(armResult.answer, /mint tea/i)
       assert.equal(judged.validated, true)
       assert.equal(judged.text, 'yes')
-      assert.equal(geminiEvidence.ledger.attempts, 3)
+      assert.equal(geminiEvidence.meter.attempts, 3)
       assert.equal(geminiEvidence.transcripts.attempts, 3)
       assert.equal(judgeEvidence.snapshot.attempts, 1)
       assert.equal(judgeEvidence.snapshot.state, 'terminal')

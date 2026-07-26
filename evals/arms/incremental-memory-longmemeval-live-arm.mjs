@@ -77,6 +77,10 @@ export const INCREMENTAL_LONGMEMEVAL_MODEL =
   ACTIVE_BRAIN_LONGMEMEVAL_MODEL
 export const INCREMENTAL_LONGMEMEVAL_REDUCER_ID =
   `google:${INCREMENTAL_LONGMEMEVAL_MODEL}:palari-active-memory/v1`
+export const INCREMENTAL_LONGMEMEVAL_HARD_CAP_MODEL =
+  'gemini-2.5-flash-lite'
+export const INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_ID =
+  `google:${INCREMENTAL_LONGMEMEVAL_HARD_CAP_MODEL}:palari-active-memory/v1`
 export const INCREMENTAL_LONGMEMEVAL_PALARI_ID =
   'palari-longmemeval-incremental'
 export const INCREMENTAL_LONGMEMEVAL_USER_ID =
@@ -228,6 +232,26 @@ export const INCREMENTAL_LONGMEMEVAL_ANSWER_GENERATION = deepFreeze({
   },
 })
 
+export const INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_GENERATION =
+  deepFreeze({
+    candidateCount: 1,
+    maxOutputTokens: 2_000,
+    responseJsonSchema: INCREMENTAL_LONGMEMEVAL_RESPONSE_SCHEMA,
+    responseMimeType: 'application/json',
+    thinkingConfig: {
+      thinkingBudget: 0,
+    },
+  })
+
+export const INCREMENTAL_LONGMEMEVAL_HARD_CAP_ANSWER_GENERATION =
+  deepFreeze({
+    candidateCount: 1,
+    maxOutputTokens: ACTIVE_BRAIN_ANSWER_GENERATION.maxOutputTokens,
+    thinkingConfig: {
+      thinkingBudget: 0,
+    },
+  })
+
 export function buildIncrementalLongMemEvalReducerBody(request) {
   return {
     contents: [{
@@ -252,6 +276,42 @@ export function buildIncrementalLongMemEvalAnswerBody(prompt) {
   return buildActiveBrainAnswerBody(prompt, {
     generation: INCREMENTAL_LONGMEMEVAL_ANSWER_GENERATION,
   })
+}
+
+export function buildIncrementalLongMemEvalHardCapReducerBody(request) {
+  return {
+    contents: [{
+      parts: [{
+        text: JSON.stringify({
+          contractVersion: request?.contractVersion,
+          input: request?.input,
+        }),
+      }],
+      role: 'user',
+    }],
+    generationConfig:
+      structuredClone(
+        INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_GENERATION,
+      ),
+    store: false,
+    systemInstruction: {
+      parts: [{ text: reducerInstruction }],
+    },
+  }
+}
+
+export function buildIncrementalLongMemEvalHardCapAnswerBody(prompt) {
+  return {
+    contents: [{
+      parts: [{ text: String(prompt) }],
+      role: 'user',
+    }],
+    generationConfig:
+      structuredClone(
+        INCREMENTAL_LONGMEMEVAL_HARD_CAP_ANSWER_GENERATION,
+      ),
+    store: false,
+  }
 }
 
 export class IncrementalLongMemEvalError extends Error {
@@ -416,6 +476,7 @@ function assertCompletedInteraction({
   exchange,
   expectedCanonicalRows,
   ordinal,
+  reducerId,
   result,
   scope,
 }) {
@@ -443,7 +504,7 @@ function assertCompletedInteraction({
     digest.status !== 'ready' ||
     digest.ready !== true ||
     digest.pending !== 0 ||
-    digest.reducerId !== INCREMENTAL_LONGMEMEVAL_REDUCER_ID ||
+    digest.reducerId !== reducerId ||
     digest.contractVersion !== ACTIVE_MEMORY_REDUCER_VERSION ||
     digest.digestRevision !== ordinal ||
     digest.sourceRevision !== ordinal ||
@@ -464,7 +525,11 @@ async function runIncrementalLongMemEvalQuestionCore({
   onCheckpoint = async () => {},
   workspaceDir,
 } = {}, {
+  answerBodyBuilder = buildIncrementalLongMemEvalAnswerBody,
+  expectedModel = null,
   gradeHonestAbsence = false,
+  reducerBodyBuilder = buildIncrementalLongMemEvalReducerBody,
+  reducerId = INCREMENTAL_LONGMEMEVAL_REDUCER_ID,
 } = {}) {
   if (typeof callGemini !== 'function') {
     throw new TypeError(
@@ -531,7 +596,7 @@ async function runIncrementalLongMemEvalQuestionCore({
       )
     }
     assertReducerRequest(request, currentExchange, ordinal)
-    const body = buildIncrementalLongMemEvalReducerBody(request)
+    const body = reducerBodyBuilder(request)
     const requestSha256 = sha256(JSON.stringify(body))
     try {
       const response = assertValidatedActiveBrainGeminiResponse(
@@ -544,11 +609,13 @@ async function runIncrementalLongMemEvalQuestionCore({
         }),
         `incremental reducer ${ordinal}`,
       )
-      if (lockedModelVersion &&
-        response.modelVersion !== lockedModelVersion) {
+      if ((expectedModel &&
+          response.modelVersion !== expectedModel) ||
+        (lockedModelVersion &&
+          response.modelVersion !== lockedModelVersion)) {
         throw new IncrementalLongMemEvalError(
           'INCREMENTAL_MODEL_MISMATCH',
-          'Incremental reducer modelVersion changed during replay.',
+          'Incremental reducer returned an unexpected modelVersion.',
         )
       }
       lockedModelVersion ??= response.modelVersion
@@ -585,7 +652,7 @@ async function runIncrementalLongMemEvalQuestionCore({
         userMessage: exchange.userMessage,
       }, {
         reducer,
-        reducerId: INCREMENTAL_LONGMEMEVAL_REDUCER_ID,
+        reducerId,
       })
       if (providerFailure) throw providerFailure
 
@@ -596,6 +663,7 @@ async function runIncrementalLongMemEvalQuestionCore({
           exchange,
           expectedCanonicalRows: canonicalRows,
           ordinal,
+          reducerId,
           result,
           scope,
         })
@@ -668,7 +736,7 @@ async function runIncrementalLongMemEvalQuestionCore({
           )
         }
         promptSha256 = sha256(prompt)
-        const body = buildIncrementalLongMemEvalAnswerBody(prompt)
+        const body = answerBodyBuilder(prompt)
         answerRequestSha256 = sha256(JSON.stringify(body))
         const response = assertValidatedActiveBrainGeminiResponse(
           await callGemini({
@@ -679,7 +747,9 @@ async function runIncrementalLongMemEvalQuestionCore({
           }),
           'incremental answer',
         )
-        if (response.modelVersion !== lockedModelVersion) {
+        if ((expectedModel &&
+            response.modelVersion !== expectedModel) ||
+          response.modelVersion !== lockedModelVersion) {
           throw new IncrementalLongMemEvalError(
             'INCREMENTAL_MODEL_MISMATCH',
             'Incremental answer modelVersion differs from its reducers.',
@@ -715,7 +785,7 @@ async function runIncrementalLongMemEvalQuestionCore({
       !sameJson(includedIds, activeIds) ||
       finalDigest.ready !== true ||
       finalDigest.pending !== 0 ||
-      finalDigest.reducerId !== INCREMENTAL_LONGMEMEVAL_REDUCER_ID) {
+      finalDigest.reducerId !== reducerId) {
       throw new IncrementalLongMemEvalError(
         'INCREMENTAL_ANSWER_INVALID',
         'Incremental LongMemEval answer did not use one complete ready digest.',
@@ -773,6 +843,10 @@ export async function runIncrementalLongMemEvalQuestion(options) {
 // official judge path.
 export async function runIncrementalLongMemEvalQuestionForScoring(options) {
   return runIncrementalLongMemEvalQuestionCore(options, {
+    answerBodyBuilder: buildIncrementalLongMemEvalHardCapAnswerBody,
+    expectedModel: INCREMENTAL_LONGMEMEVAL_HARD_CAP_MODEL,
     gradeHonestAbsence: true,
+    reducerBodyBuilder: buildIncrementalLongMemEvalHardCapReducerBody,
+    reducerId: INCREMENTAL_LONGMEMEVAL_HARD_CAP_REDUCER_ID,
   })
 }
