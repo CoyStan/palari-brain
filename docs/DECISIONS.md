@@ -1386,3 +1386,38 @@ dates. Agents record; the founder decides.
   are FINAL before execution. No provider call for this identity occurred at
   the preparation cut point; raw benchmark content, transcripts, answers,
   checkpoints, and live scores remain private and gitignored.
+- 2026-07-26 (J4.2K-R2-L1 TERMINAL — harness setup failed before provider
+  dispatch) The pushed `09dedad` preparation cut was invoked exactly once.
+  Tracked-byte, predecessor, spend, dataset, population, and credential
+  preflights passed. Before creating a Gemini transport, the reused meter
+  rejected its configuration with `ACTIVE_CONFIGURATION_MISSING`. The runner
+  referenced `INCREMENTAL_LONGMEMEVAL_MODEL`,
+  `INCREMENTAL_LONGMEMEVAL_ANSWER_GENERATION`, and
+  `INCREMENTAL_LONGMEMEVAL_REDUCER_GENERATION` through the live-config module
+  namespace, but that module imported those constants without re-exporting
+  them. All three runner arguments were therefore `undefined`.
+
+  This is a harness wiring failure, not a memory-quality result. No transport
+  was created; zero reducer, answer, judge, retry, or other provider calls
+  occurred; zero interactions completed; and fresh measured, uncertain, and
+  accounted spend are all `$0`. Cumulative J4 spend remains `$0.7761082`
+  accounted (`$0.7736072` measured plus `$0.0025010` uncertain). No benchmark
+  score exists and question 2 did not start. The nine immutable predictions
+  were graded privately against the terminal evidence; preparation-boundary
+  claims survived while provider-dependent claims were not achieved.
+
+  The ignored private bundle verifies. Artifact-manifest SHA-256 is
+  `1897dd1c0d643478793f7b201c1fb748e424403bb8dd738b66cdee08f9c8d499`;
+  checkpoint SHA-256 is
+  `84b272bcb231292a8d540abf0526e5d2a43094c05e3d7230f8eb59efe3bdbd40`;
+  report JSON SHA-256 is
+  `b602cd554cf3e12c19acd4c89101e580c562711629c19ecaa49fdc6593f94d09`;
+  report Markdown SHA-256 is
+  `fba7fd18b5ac39a26a68e82238536d226aa71f3286e06af7ed46ca9850a332c3`.
+  The runner is sealed at SHA-256
+  `3c444aaa9341feeeacac146d07026d7aec4034b3980a2e7f3d9b6861e88df0c3`
+  and refuses before dependencies, files, results, or credentials. The
+  identity cannot be resumed or rerolled. The minimal known harness repair,
+  an integration test that constructs the real meter, a successor identity,
+  any provider call, question 2, Mem0, S-490, publication, and announcement
+  all require a fresh founder GO.

@@ -61,7 +61,9 @@ export const INCREMENTAL_LONGMEMEVAL_REPO_ROOT = dirname(here)
 // The post-run seal adds the run ID. At the preparation cut this must remain
 // empty so exactly one clean, pushed invocation is possible.
 export const INCREMENTAL_LONGMEMEVAL_TERMINAL_RUN_IDS =
-  Object.freeze([])
+  Object.freeze([
+    liveConfig.INCREMENTAL_LONGMEMEVAL_RUN_ID,
+  ])
 const terminalRunIds = new Set(
   INCREMENTAL_LONGMEMEVAL_TERMINAL_RUN_IDS,
 )

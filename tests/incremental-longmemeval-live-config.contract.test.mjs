@@ -22,6 +22,7 @@ import {
   loadIncrementalLongMemEvalConfig,
 } from '../evals/incremental-longmemeval-live-config.mjs'
 import {
+  INCREMENTAL_LONGMEMEVAL_TERMINAL_RUN_IDS,
   auditIncrementalLongMemEvalTrackedArtifacts,
 } from '../evals/run-incremental-longmemeval-live.mjs'
 
@@ -147,17 +148,12 @@ test('FINAL predictions are byte-external and match the frozen rows',
     )
   })
 
-test('tracked authority, config, predictions, and runtime closure verify',
+test('tracked identity remains frozen and only the seal changes runtime closure',
   async () => {
     const repoRoot = new URL('..', import.meta.url).pathname
     const loaded = await loadIncrementalLongMemEvalConfig({ repoRoot })
     const authority =
       await loadIncrementalLongMemEvalAuthority({ repoRoot })
-    const artifacts =
-      await auditIncrementalLongMemEvalTrackedArtifacts({
-        config: loaded.config,
-        repoRoot,
-      })
     assert.equal(
       loaded.configSha256,
       '16fab020b245e96a34a472606faa1b7414006ee41cf7bf2d3f5ed24db81aac5e',
@@ -170,11 +166,27 @@ test('tracked authority, config, predictions, and runtime closure verify',
       authority.authoritySha256,
       'fd1ea14932633b3716668a6f16e400b2ed412277bd6f2acc58a1d05fe4467967',
     )
-    assert.deepEqual(artifacts, {
-      artifacts: 38,
-      artifactSetSha256:
-        'b8b6ebbb5a800df46f4085e249f3d48cc1d409dd81ff9ec22016f3d11ce22cdf',
-    })
+    if (INCREMENTAL_LONGMEMEVAL_TERMINAL_RUN_IDS.length === 0) {
+      assert.deepEqual(
+        await auditIncrementalLongMemEvalTrackedArtifacts({
+          config: loaded.config,
+          repoRoot,
+        }),
+        {
+          artifacts: 38,
+          artifactSetSha256:
+            'b8b6ebbb5a800df46f4085e249f3d48cc1d409dd81ff9ec22016f3d11ce22cdf',
+        },
+      )
+    } else {
+      await assert.rejects(
+        auditIncrementalLongMemEvalTrackedArtifacts({
+          config: loaded.config,
+          repoRoot,
+        }),
+        (error) => error.code === 'INCREMENTAL_ARTIFACT_CHANGED',
+      )
+    }
   })
 
 test('environment gate requires both keys and exact raised caps', () => {

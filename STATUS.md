@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-R2-L1-P ONE-QUESTION INCREMENTAL LONGMEMEVAL PREPARED;
-FOUNDER GO OPEN — EXACTLY ONE LIVE INVOCATION (2026-07-26).
+Loop state: J4.2K-R2-L1-E ONE-QUESTION HARNESS SETUP FAILURE SEALED;
+FOUNDER GATE — NO LIVE IDENTITY OPEN (2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -260,7 +260,26 @@ a conservative fresh maximum of `$7.0754981` and cumulative maximum of
 answer reservation, and one highest-synchronous-tier judge reservation.
 Authority, configuration, 38 runtime hashes, the exact question population,
 cost arithmetic, and nine FINAL predictions are frozen and offline-verified.
-No call for this identity has occurred at this preparation cut point.
+No call for this identity had occurred at the preparation cut point.
+
+The pushed `09dedad` cut was invoked exactly once. After all tracked,
+predecessor, dataset, spend, and credential checks passed, the reused Gemini
+meter rejected construction with `ACTIVE_CONFIGURATION_MISSING`. The runner
+read the model and generation contracts from the configuration module
+namespace, but that module imported without re-exporting those values, so the
+meter received `undefined`. This is a live-harness wiring failure, not a
+memory-quality observation. It occurred before transport creation: zero
+reducer, answer, judge, or other provider calls; zero interactions completed;
+zero fresh measured, uncertain, or accounted spend; and no benchmark score.
+Question 2 never started.
+
+The ignored private three-artifact evidence bundle verifies and records the
+terminal failure. The identity is sealed in code and cannot be resumed or
+rerolled. The accumulated J4 totals remain `$0.7761082` accounted,
+`$0.7736072` measured, and `$0.0025010` uncertain. Exporting or directly
+importing the three missing meter arguments, adding an integration test that
+constructs the real meter, and creating any successor identity require a new
+founder GO.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -742,7 +761,7 @@ session itself).
     and the full suite is 295/295; quickstart, dry bake-off, package dry-run,
     diff checks, manifest verification, and direct terminal refusal are green.
   - [x] J4.2K-R2-L1-P — ONE-QUESTION INCREMENTAL LONGMEMEVAL PREPARED
-    2026-07-26 (`this commit`). Froze exactly S-60 ordinal 1,
+    2026-07-26 (`09dedad`). Froze exactly S-60 ordinal 1,
     `08e075c7`, as 243 sequential reducer operations, one Gemini answer,
     one official OpenAI judge, 243 interaction checkpoints, no retry, and a
     mandatory stop before question 2. The exact 484-message population,
@@ -757,11 +776,24 @@ session itself).
     FINAL predictions SHA-256
     `6bf388c9898cd1198af75252f7b46f9c7554c19532d92f15bb093cd1361a72b0`.
     Focused tests are 27/27 and the full suite is 322/322; quickstart, dry
-    bake-off, and package dry-run are green. No provider call has occurred.
-  - [ ] J4.2K-R2-L1-E — ONE-QUESTION INCREMENTAL LONGMEMEVAL EXECUTION.
-    Invoke the pushed preparation exactly once, grade the immutable
-    predictions failing categories first, seal the identity, and stop before
-    question 2 regardless of outcome.
+    bake-off, and package dry-run are green. No provider call had occurred at
+    that preparation cut.
+  - [x] J4.2K-R2-L1-E — HARNESS SETUP FAILURE SEALED 2026-07-26
+    (`this commit`). Invoked pushed `09dedad` exactly once. The real Gemini
+    meter rejected missing generation/model arguments before it created a
+    transport or dispatched a request. The configuration module had imported
+    but not re-exported the constants that the runner read from its namespace.
+    Zero interactions and zero provider calls completed; fresh spend was
+    exactly `$0`, cumulative spend remains `$0.7761082`, no score exists, and
+    question 2 never started. Private manifest SHA-256
+    `1897dd1c0d643478793f7b201c1fb748e424403bb8dd738b66cdee08f9c8d499`;
+    checkpoint SHA-256
+    `84b272bcb231292a8d540abf0526e5d2a43094c05e3d7230f8eb59efe3bdbd40`;
+    sealed runner SHA-256
+    `3c444aaa9341feeeacac146d07026d7aec4034b3980a2e7f3d9b6861e88df0c3`.
+    The ignored bundle verifies and terminal refusal occurs before dependency,
+    file, or credential access. Post-seal focused tests are 27/27 and the full
+    suite is 322/322; quickstart, dry bake-off, and package dry-run are green.
   - [ ] J4.3 — LATER S-60 FOUNDER GATES. Stop and report after every
     cumulative boundary 5/15/25/35/45/55/60. Later batches are ten new
     questions except the final five. Each requires a fresh GO raising the
@@ -774,19 +806,17 @@ session itself).
 
 ## Next
 
-FOUNDER GO OPEN. After this coherent preparation is committed and pushed to a
-clean synchronized `main`, invoke
-`j4-active-brain-incremental-longmemeval-q1-v1` exactly once with the exact
-`$7.10` fresh and `$8.00` cumulative confirmations. Process only question
-`08e075c7`, checkpoint all 243 chronological interactions, make at most one
-Gemini answer and one official OpenAI judge call, then stop regardless of
-outcome. Retry dispatches are forbidden.
+FOUNDER GATE. Report the terminal harness setup failure and stop. No live
+identity is open, no provider was called, no benchmark score exists, and the
+approved cap increase was not spent.
 
-After the invocation, preserve and verify the private evidence, grade the nine
-FINAL predictions with misses first, seal this identity in code, record no
-live score in git, commit and push the terminal cut point, and report. Do not
-start question 2, rerun or regrade the identity, change product behavior,
-execute Mem0 or S-490, publish, or announce.
+Do not resume or rerun
+`j4-active-brain-incremental-longmemeval-q1-v1`. The minimal harness repair is
+known: pass the actual model, answer-generation, and reducer-generation
+exports into the reused meter and test real meter construction instead of
+mocking it. Implementing that repair, freezing a successor identity, making
+any provider call, starting question 2, changing product behavior, executing
+Mem0 or S-490, publishing, or announcing requires a fresh founder GO.
 
 ## Log
 
@@ -1025,6 +1055,14 @@ no-retry runner, 38 runtime hashes, exact population, FINAL predictions,
 provider contracts, and independent audits are green; no provider call
 occurred. Focused tests 27/27 and full suite 322/322; quickstart, dry
 bake-off, and package dry-run green.
+2026-07-26 — J4.2K-R2-L1-E — this commit — Invoked pushed `09dedad` once;
+the reused Gemini meter rejected three undefined namespace exports before
+transport creation, so zero interactions, provider calls, retries, or fresh
+spend occurred and no score exists. The private failure bundle verifies,
+question 2 never started, and the identity is sealed. The exact harness fix
+and any successor run require a fresh founder GO. Post-seal focused tests
+27/27 and full suite 322/322; quickstart, dry bake-off, and package dry-run
+green.
 
 ## Product stop-rule record
 
@@ -1930,3 +1968,22 @@ bake-off, and package dry-run green.
    could not be measured safely or attributed reproducibly; a failed middle
    interaction could consume spend without a durable exact checkpoint, or
    execution could drift into question 2.
+
+### J4.2K-R2-L1-E terminal harness setup failure
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? No. It made no product
+   change and produced no memory-quality measurement. It found a pre-dispatch
+   runner integration bug and preserved it without spending provider money.
+3. Does an existing framework already provide what this unit added? The
+   external benchmark and providers were never reached. The terminal seal and
+   evidence handling reuse the repository's existing run controls.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder authorized exactly one invocation and required checkpoints,
+   bounded spend, no reroll, and a stop before question 2.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? Runtime product behavior would not change, but the spent
+   identity could be accidentally rerun and the exact reason the measurement
+   failed could be lost. The evidence distinguishes a harness wiring error
+   from a false claim about Palari's memory quality.

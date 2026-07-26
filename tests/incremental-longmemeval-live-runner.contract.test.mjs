@@ -128,9 +128,12 @@ function fakeJudgeMeter() {
   }
 }
 
-test('pre-run surface accepts only the exact identity and forbids retry',
+test('exact identity is one-way sealed and retry remains forbidden',
   async () => {
-    assert.deepEqual(INCREMENTAL_LONGMEMEVAL_TERMINAL_RUN_IDS, [])
+    assert.deepEqual(
+      INCREMENTAL_LONGMEMEVAL_TERMINAL_RUN_IDS,
+      [liveConfig.INCREMENTAL_LONGMEMEVAL_RUN_ID],
+    )
     assert.equal(
       parseIncrementalLongMemEvalArgs([
         '--run',
@@ -138,11 +141,11 @@ test('pre-run surface accepts only the exact identity and forbids retry',
       ]),
       liveConfig.INCREMENTAL_LONGMEMEVAL_RUN_ID,
     )
-    assert.equal(
-      assertIncrementalLongMemEvalOpen(
+    assert.throws(
+      () => assertIncrementalLongMemEvalOpen(
         liveConfig.INCREMENTAL_LONGMEMEVAL_RUN_ID,
       ),
-      liveConfig.INCREMENTAL_LONGMEMEVAL_RUN_ID,
+      (error) => error.code === 'J4_RUN_TERMINAL',
     )
     assert.throws(
       () => parseIncrementalLongMemEvalArgs([
@@ -160,6 +163,34 @@ test('pre-run surface accepts only the exact identity and forbids retry',
 
 test('mocked one-shot execution checkpoints 243 interactions then stops',
   async () => {
+    if (INCREMENTAL_LONGMEMEVAL_TERMINAL_RUN_IDS.includes(
+      liveConfig.INCREMENTAL_LONGMEMEVAL_RUN_ID,
+    )) {
+      let reads = 0
+      await assert.rejects(
+        main({
+          args: [
+            '--run',
+            liveConfig.INCREMENTAL_LONGMEMEVAL_RUN_ID,
+          ],
+          dependencies: new Proxy({}, {
+            get() {
+              reads += 1
+              throw new Error('terminal runner read dependencies')
+            },
+          }),
+          env: new Proxy({}, {
+            get() {
+              reads += 1
+              throw new Error('terminal runner read environment')
+            },
+          }),
+        }),
+        (error) => error.code === 'J4_RUN_TERMINAL',
+      )
+      assert.equal(reads, 0)
+      return
+    }
     const root = await mkdtemp(
       join(tmpdir(), 'palari-incremental-live-runner-'),
     )
@@ -188,7 +219,7 @@ test('mocked one-shot execution checkpoints 243 interactions then stops',
                   liveConfig.INCREMENTAL_LONGMEMEVAL_PREDECESSOR,
                 productCommit:
                   liveConfig.INCREMENTAL_LONGMEMEVAL_PRODUCT_COMMIT,
-                runDate: '2026-07-25',
+                runDate: '2026-07-26',
                 runId: liveConfig.INCREMENTAL_LONGMEMEVAL_RUN_ID,
               },
               configPath: join(root, 'config.json'),
