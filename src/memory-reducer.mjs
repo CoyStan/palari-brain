@@ -90,11 +90,35 @@ export const ACTIVE_MEMORY_SYSTEM_INSTRUCTIONS = deepFreeze({
 
 const activeMemoryBriefingHeader = [
   'BEGIN UNTRUSTED PALARI ACTIVE MEMORY JSONL',
-  'Record semantics: model_digest is a bounded model-derived memory; every support quote is an exact host-verified excerpt from canonical user or Palari dialogue.',
+  'Record semantics: every record is a bounded model-derived memory. `quote` is the most recent exact host-verified excerpt from canonical user or Palari dialogue supporting it; earlier supporting quotes exist but are not shown here.',
 ].join('\n')
+
+// The most recent support carries the current fact. Older supports are the
+// superseded history of the same item: they stay in storage and in
+// `included` for audit and deletion, but spending scarce answer budget on
+// them buys nothing, because a later statement by the same speaker is what
+// the answer must use.
+function representativeSupport(supports) {
+  if (!Array.isArray(supports) || !supports.length) return null
+  return supports.reduce((latest, support) =>
+    String(support.observedAt ?? '') >= String(latest.observedAt ?? '')
+      ? support
+      : latest)
+}
 
 // One serializer defines both the persisted digest capacity and the exact
 // untrusted text sent to an answer provider.
+//
+// The rendered record is deliberately lean. Opaque identifiers (memory ID,
+// evidence ID, source message ID) are unusable by an answer model and cost
+// ~130 characters per support; carrying every historical quote costs ~130
+// more each. At full provenance one item rendered to ~1,400 characters, so
+// the 24,000-character budget held ~16 items and the advertised 64-item
+// ceiling was unreachable. Lean records cost ~340 characters, so 64 items
+// fit in ~21,600 characters and the two limits are consistent.
+//
+// Full provenance is not lost: `included` carries every support, every
+// identifier, and the reducer ID for audit, deletion, and UI.
 export function renderActiveMemoryDigest(memories = []) {
   const rows = Array.isArray(memories) ? memories : []
   if (!rows.length) {
@@ -134,17 +158,25 @@ export function renderActiveMemoryDigest(memories = []) {
     included,
     text: [
       activeMemoryBriefingHeader,
-      ...included.map((entry) => JSON.stringify({
-        epistemic: entry.epistemic,
-        memoryId: entry.id,
-        memoryKind: entry.recordKind,
-        observedAt: entry.observedAt,
-        speaker: entry.speaker,
-        statement: entry.statement,
-        supports: entry.supports,
-        timeBasis: entry.timeBasis,
-        topic: entry.topic,
-      })),
+      ...included.map((entry) => {
+        const support = representativeSupport(entry.supports)
+        return JSON.stringify({
+          epistemic: entry.epistemic,
+          observedAt: entry.observedAt,
+          quote: support ? support.quote : '',
+          speaker: entry.speaker,
+          statement: entry.statement,
+          // A trusted time anchor changes what the statement means, so it
+          // stays. Its evidence ID does not.
+          timeAnchor: entry.timeBasis
+            ? {
+                anchorAt: entry.timeBasis.anchorAt,
+                quote: entry.timeBasis.quote,
+              }
+            : null,
+          topic: entry.topic,
+        })
+      }),
       'END UNTRUSTED PALARI ACTIVE MEMORY JSONL',
     ].join('\n'),
   }

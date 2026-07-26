@@ -130,38 +130,55 @@ Mechanical limits:
 - statement and exact support quote at most 500 characters;
 - active result at most 64 items and 24,000 rendered characters.
 
-### Which limit actually binds
+### Working-memory size and density
 
-The 64-item figure is a ceiling, not a capacity. The binding constraint is
-almost always the 24,000-character digest, because every retained support
-costs roughly 330 characters — a 73-character evidence ID, a source message
-ID, an observation time, a speaker label, and the quote itself.
+The digest is sized to be competitive with production memory frameworks.
+Mem0 reports under 7,000 tokens per retrieval at a 200-memory budget; a
+full-context baseline on LongMemEval-S runs 25,000-115,000 tokens per query.
+Palari's 24,000-character cap is roughly 6,000 tokens, so the *budget* is
+right. What matters is how many facts fit inside it.
 
-Effective capacity is therefore `24,000 / mean rendered item size`:
+Records sent to the answer model are therefore lean. They carry the
+statement, speaker, observation time, topic, epistemic state, an optional
+trusted time anchor, and one exact supporting quote — the most recent one,
+which is the quote that proves the current fact. Opaque identifiers cost
+~130 characters each and an answer model cannot use them; every additional
+historical quote costs ~130 more.
 
-| mean item | rendered supports | items that fit |
+| rendered record | cost | items in 24,000 chars |
 | --- | --- | --- |
-| ~375 chars | 1 short quote, terse statement | ~64 (the ceiling) |
-| ~600 chars | 1 typical quote | ~40 |
-| ~1,470 chars | 4 accumulated supports | ~16 |
+| full provenance, every quote and ID | ~1,400 chars | ~16 |
+| lean record, one exact quote | ~340 chars | ~70 |
 
-`npm run memory-bench` measures this directly and prints both numbers.
+At ~340 characters the 64-item ceiling costs ~21,600 characters, so both
+limits are reachable together. Under full provenance rendering the character
+cap bound at ~16 items and the 64-item ceiling was unreachable.
 
-Two consequences matter for a reducer author:
-
-1. **Terse statements buy items.** Spending the permitted 500 characters on
-   every statement and quote exhausts the digest in roughly 16 items.
-2. **Supersession accumulates.** Replacing an item carries its transitive
-   quote lineage forward, so correcting one fact repeatedly grows that item
-   by about 330 characters per correction and never sheds the old lineage.
-   A long conversation that revisits the same facts can exhaust the
-   character budget at a constant item count.
+Nothing is lost. `briefing.included` still carries every support, every
+identifier, and the reducer ID for audit, deletion, and UI, and the canonical
+journal remains exact and complete.
 
 Use `input.utilization` to budget. It reports `items`, `itemsRemaining`,
 `digestChars`, and `digestCharsRemaining`, all measured with the same
 serializer that enforces the cap; `digestChars / items` gives the mean cost
 of an item so far. Compact with `summarizes` before the budget is gone: a
 response whose resulting state exceeds a limit is rejected in full.
+
+### Lineage depth is bounded
+
+Replacing an item carries its supporting quotes forward. That accumulation
+is capped at 16 supports per item: when a replacement would exceed it, the
+oldest supports are shed and the newest are kept. The support proving the
+new statement is always the newest, so it is never the one dropped.
+
+This bound exists because lineage was previously monotonic, which meant an
+item could absorb only 16 corrections before the whole reduction failed and
+every later interaction stalled behind it. Correcting one preference more
+than 16 times is ordinary use.
+
+Shedding affects only the depth of the correction chain inside bounded
+working memory. The canonical journal still holds every message exactly and
+losslessly, and `recallAllStatements` still reads it in full.
 
 Every current evidence row receives exactly one `used` or `no_memory`
 disposition. `used` is valid only when an action actually cites that evidence.
@@ -177,7 +194,8 @@ timestamp, sharing policy, confidence score, or deletion operation. The host:
 - checks every evidence quote as an exact contiguous substring;
 - derives speaker and time from canonical rows;
 - rejects an item that mixes user and Palari authority;
-- carries exact transitive quote lineage when replacing an item;
+- carries transitive quote lineage when replacing an item, bounded to the
+  newest 16 supports;
 - applies the whole action set atomically or not at all.
 
 Unmentioned prior items remain active. Model omission cannot erase them.

@@ -31,26 +31,82 @@ test('the bench runs offline with no provider and no credential', async () => {
   assert.ok(result.digestChars <= ACTIVE_MEMORY_MAX_DIGEST_CHARS)
 })
 
-test('the bench reports the capacity wall instead of hiding it', async () => {
-  // Long enough to exhaust the character budget. The point of the bench is
-  // that this is visible and attributed, not silent.
-  const result = await runOfflineMemoryBench({
-    population: syntheticPopulation({ interactions: 120 }),
+test('a long conversation reduces completely and stays inside both caps',
+  async () => {
+    // 240 interactions with recurring subjects, so the same facts are
+    // corrected far more than the 16-support lineage limit allows an item
+    // to accumulate. Before lean digest records and lineage shedding this
+    // stalled after 33 of 240 with 69 units quarantined.
+    const result = await runOfflineMemoryBench({
+      population: syntheticPopulation({ interactions: 240 }),
+    })
+    assert.equal(result.processed, 240)
+    assert.equal(result.reductionsApplied, 240)
+    assert.equal(result.pending, 0)
+    assert.deepEqual(result.blocked, [])
+    assert.deepEqual(result.failures, {})
+    assert.equal(result.digestReady, true)
+    assert.equal(result.digestStatus, 'ready')
+
+    // Inside both limits, with the character budget no longer the binding
+    // constraint at this item count.
+    assert.ok(result.digestItems <= ACTIVE_MEMORY_MAX_ITEMS)
+    assert.ok(result.digestChars <= ACTIVE_MEMORY_MAX_DIGEST_CHARS)
+    assert.ok(
+      result.digestChars < ACTIVE_MEMORY_MAX_DIGEST_CHARS / 2,
+      'lean records should leave real headroom, not just squeak under',
+    )
+
+    // The memory layer must actually shrink the conversation to earn its
+    // place. Full provenance rendering achieved only 1.4x.
+    assert.ok(
+      result.canonicalChars / result.digestChars > 4,
+      'digest must be materially smaller than the canonical text',
+    )
+
+    // Recall serves the digest itself, not the canonical fallback.
+    assert.equal(result.briefingMode, 'incremental_digest')
+
+    // The fact a later question would need is still supported.
+    assert.equal(result.retention.checked, 1)
+    assert.equal(result.retention.retained, 1)
+
+    // Canonical dialogue is complete regardless.
+    assert.equal(result.canonicalRows, 480)
   })
-  assert.ok(result.digestChars <= ACTIVE_MEMORY_MAX_DIGEST_CHARS)
-  assert.equal(result.failures.REDUCER_DIGEST_CAPACITY > 0, true)
-  assert.ok(result.blocked.length > 0)
-  assert.ok(result.blocked.every(
-    (unit) => unit.category === 'REDUCER_DIGEST_CAPACITY',
-  ))
-  // The character cap binds long before the advertised item ceiling.
-  assert.ok(
-    result.digestItems < ACTIVE_MEMORY_MAX_ITEMS,
-    'the 64-item ceiling is not what limits this digest',
-  )
-  // Canonical dialogue is never lost to a reduction failure.
-  assert.equal(result.canonicalRows, 240)
-})
+
+test('correcting one fact more than the lineage limit sheds oldest support',
+  async () => {
+    // The same topic every interaction: one item, corrected 40 times. The
+    // 16-support cap used to fail the whole reduction at correction 17.
+    const exchanges = Array.from({ length: 40 }, (unused, index) => ({
+      assistantMessage: '',
+      // Strictly increasing: a correction must be newer than what it
+      // supersedes, so the clock may never wrap.
+      eventAt: new Date(
+        Date.UTC(2025, 0, 1) + index * 3_600_000,
+      ).toISOString(),
+      hasAnswer: false,
+      representedTurns: 1,
+      sourceMessageId: `lineage:${index}`,
+      userMessage: `About my commute route: revision ${index} is current.`,
+    }))
+    const result = await runOfflineMemoryBench({
+      population: {
+        exchanges,
+        label: 'single-topic-corrections',
+        questionId: 'lineage-0001',
+      },
+    })
+    assert.equal(result.reductionsApplied, 40)
+    assert.deepEqual(result.blocked, [])
+    assert.deepEqual(result.failures, {})
+    // One topic collapses to one item, whose lineage is capped, not failed.
+    assert.equal(result.digestItems, 1)
+    assert.ok(result.maxSupportsPerItem <= 16)
+    // Every message is still in the lossless journal.
+    assert.equal(result.canonicalRows, 40)
+  })
 
 test('the deterministic reducer honours the reduction contract', () => {
   const request = {

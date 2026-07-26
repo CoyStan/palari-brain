@@ -605,7 +605,7 @@ test('reservation envelope is derived from host-valid maximum fixture bodies', a
       Buffer.byteLength(JSON.stringify(body)))
     const operations =
       INCREMENTAL_MEMORY_SMOKE_RESERVATION_ENVELOPE.operations
-    assert.deepEqual(bodyBytes, [4_988, 9_697, 12_451])
+    assert.deepEqual(bodyBytes, [4_988, 9_697, 10_628])
     assert.equal(result.activeMemories.length, 2)
     assert.deepEqual(
       result.activeMemories.map((memory) => memory.supports.length),
@@ -622,9 +622,10 @@ test('reservation envelope is derived from host-valid maximum fixture bodies', a
         bytes <= operations[index].maximumRequestBytes),
       [false, false, true],
     )
-    // The unchanged answer request proves the growth is confined to the
-    // reducer contract and did not touch the answer prompt.
-    assert.equal(bodyBytes[2], operations[2].maximumRequestBytes)
+    // The answer request moved the other way: lean digest records dropped it
+    // well under the frozen ceiling. Cheaper answers are always safe for a
+    // reservation, unlike the larger reducer requests above.
+    assert.ok(bodyBytes[2] < operations[2].maximumRequestBytes)
 
     // The frozen envelope's own arithmetic still reconciles as a historical
     // record. These are the sealed identity's numbers, not the successor's.

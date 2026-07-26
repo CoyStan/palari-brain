@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.3K-R2 OFFLINE MEMORY BENCH COMPLETE; FOUNDER GATE — NO LIVE
-IDENTITY OPEN; CAPACITY FINDING NEEDS A FOUNDER DECISION (2026-07-26).
+Loop state: J4.3K-R3 DIGEST DENSITY REPAIR COMPLETE; FOUNDER GATE — NO LIVE
+IDENTITY OPEN; BENCH NOW COMPLETES 240/240 INTERACTIONS (2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -929,6 +929,19 @@ session itself).
     sheds; compression is 1.4x; the queue stalled after 33 of 240
     interactions and the answer-bearing fact never entered memory. Caps were
     not changed — that is a founder thesis decision. Suite 402/402.
+  - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
+    records are now lean: statement, speaker, time, topic, epistemic, optional
+    time anchor, and the single most recent exact quote. Opaque IDs and
+    historical quotes left the rendered text only; `included` and the
+    canonical journal are unchanged. Item cost fell ~1,400 -> ~340 chars, so
+    the 64-item ceiling costs ~21,600 of 24,000 and both caps are reachable
+    together for the first time. Replacement lineage is bounded to the newest
+    16 supports instead of failing, so a fact can be corrected more than 16
+    times. Bench result moved from 33/240 reduced, 69 quarantined, 138
+    stalled, 1.4x compression, answer fact lost -> 240/240 reduced, 0
+    quarantined, 0 stalled, 6.0x compression, answer fact retained. The
+    sealed answer request shrank 12,451 -> 10,628 bytes, safely under its
+    frozen ceiling. Suite 403/403.
   - [x] J4.2K-R2-L1-B — OFFLINE SUCCESSOR SAFETY CONTRACT COMPLETE
     2026-07-26 (`this commit`). Preserved the sealed Gemini 3.5 identity while
     adding explicit Gemini 2.5 successor bindings, full-window Priority
@@ -954,25 +967,24 @@ session itself).
 
 ## Next
 
-FOUNDER DECISION ON DIGEST CAPACITY. `npm run memory-bench` shows the active
-digest exhausts 24,000 characters at ~16 items and that compression on a long
-conversation is 1.4x. Nothing downstream is worth measuring live until that is
-resolved. The three options, none of which an agent should pick alone:
+The digest capacity question is RESOLVED, and it was not a budget problem.
+The founder noted the cost envelopes were agent-authored conservatism, not a
+founder constraint, and asked what working-memory size is realistic against
+competing frameworks. External anchor: Mem0 reports under 7,000 tokens per
+retrieval at a 200-memory budget, and full-context LongMemEval-S baselines
+run 25,000-115,000 tokens per query. Palari's 24,000-character cap is ~6,000
+tokens, so the budget was already competitive. The defect was density: at
+~1,400 characters per rendered item Palari fit 16 facts where Mem0 fits ~200,
+about 10x more expensive per remembered fact. No cap was raised.
 
-1. Raise `ACTIVE_MEMORY_MAX_DIGEST_CHARS`. Costs answer context and
-   invalidates every cost envelope.
-2. Shed superseded lineage so a corrected item stops growing. Trades away the
-   documented exact-transitive-lineage guarantee; canonical evidence would
-   still hold the history losslessly.
-3. Accept ~16 items as the real working-memory size and decide whether a
-   blind, query-independent digest of that size can serve LongMemEval at all.
-   The bench says the answer-bearing fact never entered memory on a
-   240-interaction population.
+The bench now completes 240/240 interactions with zero quarantines and 6.0x
+compression, and the answer-bearing fact survives. The remaining open
+question is the product thesis itself, unchanged by this work: the active
+path has no query-conditioned retrieval by explicit founder direction, so a
+blind digest must hold the right facts by construction. The bench can now
+answer that offline for any population, for free, before any paid run.
 
-Option 3 is the honest one to answer first, because it tests the product
-thesis rather than a constant. It also remains true that the active path has
-no query-conditioned retrieval by explicit founder direction; that constraint
-and this capacity finding compound.
+A live successor still requires a fresh founder GO under the terms below.
 
 PRIOR FOUNDER GATE AND PRODUCT-DRIFT STOP. The offline provider hard-cap contract is
 resolved, but it creates no run authority. J4.2K-R2-L1-A and

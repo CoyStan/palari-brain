@@ -601,12 +601,22 @@ function uniqueSupports(supports) {
     if (!unique.has(key)) unique.set(key, support)
   }
   const values = [...unique.values()]
-  if (values.length > ACTIVE_MEMORY_MAX_BASIS) {
-    const error = new Error('Reducer item exceeds the evidence-basis limit.')
-    error.code = 'REDUCER_BASIS_CAPACITY'
-    throw error
-  }
+  if (values.length <= ACTIVE_MEMORY_MAX_BASIS) return values
+  // Lineage is monotonic: every correction of the same fact adds a support
+  // and nothing ever removed one, so an item could take only 16 corrections
+  // before REDUCER_BASIS_CAPACITY failed the whole reduction and, with it,
+  // every later interaction behind it. A user correcting one preference 17
+  // times is ordinary, not exceptional.
+  //
+  // Keep the newest supports and shed the oldest. This is derived, bounded
+  // memory: the canonical journal still holds every message losslessly and
+  // exactly, so nothing is destroyed — only the depth of the correction
+  // chain carried inside working memory is bounded. The newest support is
+  // always retained, so the current evidence proving the new statement can
+  // never be the one dropped.
   return values
+    .sort((left, right) => compareEvidence(left.evidence, right.evidence))
+    .slice(-ACTIVE_MEMORY_MAX_BASIS)
 }
 
 function actionMaterial(db, scope, action, currentEvidenceIds) {
