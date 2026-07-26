@@ -69,10 +69,11 @@ const here = dirname(fileURLToPath(import.meta.url))
 export const EXPLORATION_LONGMEMEVAL_REPO_ROOT = dirname(here)
 export const EXPLORATION_LONGMEMEVAL_RESULTS_ROOT = 'evals/results'
 
-// Preparation state: the post-run seal adds this run ID. Keeping this empty
-// is what permits one clean invocation after the separate cap confirmation.
+// Terminal evidence exists for this one-shot identity. The seal is checked
+// before dependencies, files, credentials, result paths, dataset access, or
+// network so the failed run can never be resumed or rerolled.
 export const EXPLORATION_LONGMEMEVAL_TERMINAL_RUN_IDS =
-  Object.freeze([])
+  Object.freeze([liveConfig.EXPLORATION_LONGMEMEVAL_RUN_ID])
 const terminalRunIds = new Set(
   EXPLORATION_LONGMEMEVAL_TERMINAL_RUN_IDS,
 )

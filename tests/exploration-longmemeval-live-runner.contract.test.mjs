@@ -308,9 +308,43 @@ function loadedContract(root, dispatchAuthorized = true) {
   }
 }
 
-test('preparation identity is open exactly once and argument-pinned',
-  () => {
-    assert.deepEqual(EXPLORATION_LONGMEMEVAL_TERMINAL_RUN_IDS, [])
+async function assertTerminalMainReadsNothing() {
+  let reads = 0
+  await assert.rejects(
+    main({
+      args: [
+        '--run',
+        liveConfig.EXPLORATION_LONGMEMEVAL_RUN_ID,
+      ],
+      dependencies: new Proxy({}, {
+        get() {
+          reads += 1
+          throw new Error('terminal runner read dependencies')
+        },
+      }),
+      env: new Proxy({}, {
+        get() {
+          reads += 1
+          throw new Error('terminal runner read environment')
+        },
+      }),
+    }),
+    (error) => error.code === 'J4_RUN_TERMINAL',
+  )
+  assert.equal(reads, 0)
+}
+
+const explorationIdentitySealed =
+  EXPLORATION_LONGMEMEVAL_TERMINAL_RUN_IDS.includes(
+    liveConfig.EXPLORATION_LONGMEMEVAL_RUN_ID,
+  )
+
+test('exact identity is one-way sealed and argument-pinned',
+  async () => {
+    assert.deepEqual(
+      EXPLORATION_LONGMEMEVAL_TERMINAL_RUN_IDS,
+      [liveConfig.EXPLORATION_LONGMEMEVAL_RUN_ID],
+    )
     assert.equal(
       parseExplorationLongMemEvalArgs([
         '--run',
@@ -318,11 +352,11 @@ test('preparation identity is open exactly once and argument-pinned',
       ]),
       liveConfig.EXPLORATION_LONGMEMEVAL_RUN_ID,
     )
-    assert.equal(
-      assertExplorationLongMemEvalOpen(
+    assert.throws(
+      () => assertExplorationLongMemEvalOpen(
         liveConfig.EXPLORATION_LONGMEMEVAL_RUN_ID,
       ),
-      liveConfig.EXPLORATION_LONGMEMEVAL_RUN_ID,
+      (error) => error.code === 'J4_RUN_TERMINAL',
     )
     assert.throws(
       () => parseExplorationLongMemEvalArgs([
@@ -331,6 +365,7 @@ test('preparation identity is open exactly once and argument-pinned',
       ]),
       (error) => error.code === 'RUN_ID_REQUIRED',
     )
+    await assertTerminalMainReadsNothing()
   })
 
 test('session pseudonyms remove answer labels before provider replay',
@@ -373,7 +408,11 @@ test('session pseudonyms remove answer labels before provider replay',
     assert.equal(raw.sessions[1].sessionId, 'answer_gold_1')
   })
 
-test('successful answer evidence survives a terminal judge failure',
+test('historical open-run path preserves answer evidence on judge failure',
+  {
+    skip: explorationIdentitySealed &&
+      'the one-shot identity is terminal',
+  },
   async () => {
     const root = await mkdtemp(
       join(tmpdir(), 'palari-exploration-judge-failure-'),
@@ -530,7 +569,11 @@ test('successful answer evidence survives a terminal judge failure',
     }
   })
 
-test('tracked pending authority blocks before any credential read',
+test('historical open-run path checks authority before credentials',
+  {
+    skip: explorationIdentitySealed &&
+      'the one-shot identity is terminal',
+  },
   async () => {
     const root = await mkdtemp(
       join(tmpdir(), 'palari-exploration-pending-'),
@@ -664,7 +707,11 @@ test('actual constructor accepts batch writer and all native tool bindings',
     }
   })
 
-test('mocked execution checkpoints 243 interactions, judges once, stops',
+test('historical open-run path checkpoints 243 interactions and stops',
+  {
+    skip: explorationIdentitySealed &&
+      'the one-shot identity is terminal',
+  },
   async () => {
     const root = await mkdtemp(
       join(tmpdir(), 'palari-exploration-runner-'),

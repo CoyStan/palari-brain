@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-L1-G EXACT LIVE CAP AUTHORITY RECORDED;
-ONE-SHOT AUTONOMOUS EXPLORATION EXECUTION NEXT (2026-07-26).
+Loop state: J4.4K-L1-E TERMINAL LIVE SETUP FAILURE SEALED;
+FOUNDER GATE — AUTONOMOUS SEARCH REMAINS UNMEASURED (2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -454,6 +454,35 @@ permits one invocation of only that frozen identity. Every question, model,
 artifact, prediction, dispatch ceiling, no-reroll rule, private-results rule,
 and stop remains unchanged. At this authorization cut no provider call,
 result, score, or new spend exists.
+
+The pushed `fecf6cc` authority cut was invoked exactly once. Its first and
+only physical provider request was reducer dispatch 1. Gemini returned
+non-retryable HTTP 400 `INVALID_ARGUMENT` because the provider-enforced
+reducer schema produced too many serving states. No transport retry occurred.
+The meter became terminal immediately; subsequent local batch isolation
+continued against that terminal meter until the frozen application ceiling
+refused would-be reducer dispatch 28. That dispatch-limit refusal was
+secondary, not the root failure. The last receipt-backed durable checkpoint
+contains 32 processed interactions, 64 canonical messages, 26 reducer
+dispatches, 13 blocked units, and a digest that was not ready. The sealed
+SQLite workspace contains one additional committed but unreceipted
+interaction: 33 turns, 66 canonical messages, 14 blocked units, and 19 still
+actionable. Exploration never began: zero exploration-model dispatches, zero
+tool calls, no model-chosen phrases, no answer, `consultedEvidenceIds: []`,
+no judge call, and no benchmark score. Question 2 never started.
+
+The frozen report mechanically marks all six predictions MISS; only ingestion
+is a directly observed substantive failure. Predictions 2–6 were unobserved
+because ingestion failed, so this run says nothing about whether autonomous
+exact-only exploration is sufficient. Fresh measured spend was `$0`;
+the unresolved Gemini reservation leaves fresh accounted spend at
+`$0.2359296`. Cumulative J4 spend is `$0.7736072` measured, `$0.2384306`
+uncertain, and `$1.0120378` accounted, within both caps. The 40-file ignored
+private bundle verifies at manifest SHA-256
+`9db1ef0987d8469cd98433995f8295838bda891881876e496263ba13f736669d`;
+report SHA-256 is
+`86e2a7fcf2973ffc4dd2f7da9a00afae0a1d2d5a2bdf5f0d0602457c06849118`.
+The identity is sealed and cannot be resumed or rerolled.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -1057,6 +1086,24 @@ session itself).
     every frozen byte, scope limit, prediction, stop, and prohibition remains
     unchanged. Focused authority/config contracts and quickstart are green.
     No provider call, result, score, or spend occurred at this cut.
+  - [x] J4.4K-L1-E — TERMINAL AUTONOMOUS-EXPLORATION SETUP FAILURE SEALED
+    2026-07-26 (`this commit`). Invoked the authorized identity once. Gemini
+    rejected the first reducer request with non-retryable HTTP 400 because
+    the provider-enforced JSON schema was too complex. The later dispatch-28
+    refusal was a secondary consequence of local batch isolation continuing
+    against the terminal meter. Only 32/243 interactions reached published
+    durable checkpoints; the sealed workspace has one additional committed
+    but unreceipted interaction. The digest never became ready, no exploration
+    tool or phrase was chosen, no answer or judge ran, and no benchmark score
+    exists. All six frozen predictions mechanically MISS because the run did
+    not reach exploration; only ingestion is a directly observed substantive
+    failure. Autonomous exact-only search therefore remains unmeasured.
+    The ignored 40-file bundle verifies; fresh accounted spend is
+    `$0.2359296` and cumulative accounted spend is `$1.0120378`. The identity
+    is terminal in code. Focused contracts report 20 pass, 0 fail, and three
+    historical open-run cases explicitly skipped; the full suite reports 467
+    pass, 0 fail, and the same three skips. Quickstart, dry bake-off, and
+    package dry-run are green.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1095,25 +1142,21 @@ session itself).
 
 ## Next
 
-Invoke `j4-active-brain-exploration-longmemeval-q1-v1` exactly once from this
-pushed authority cut. It may process only LongMemEval-S ordinal 1, use at most
-27 reducer dispatches, six tools across seven exploration-model dispatches,
-and one official judge, then stop before question 2. There are zero transport
-retries; reducer batch isolation may occur only inside the frozen
-27-dispatch ceiling. A provider, contract, model, cap, or transport failure is
-terminal evidence, not authority to resume.
+**FOUNDER GATE.** Do not resume or alter
+`j4-active-brain-exploration-longmemeval-q1-v1`. The live experiment failed
+before autonomous navigation, so exact substring exploration is neither
+validated nor disproved.
 
-After invocation, verify the ignored private bundle and grade all six FINAL
-predictions with misses first. Report the exact ordered tool calls and
-model-chosen phrases, each tool result, `consultedEvidenceIds`, measured fresh
-and cumulative spend, and whether exact-only exploration is sufficient. Then
-seal the identity, update STATUS without committing any result or score, run
-the standing offline gates, commit, push, and stop.
+The smallest possible successor would use a fresh identity and simplify only
+the provider-enforced reducer response schema while retaining strict
+host-side validation. A separate fail-fast correction could stop ingestion
+immediately when the meter becomes terminal instead of consuming local
+isolation dispatches. Neither correction, nor another provider call, is
+authorized.
 
-Question 2, Mem0, S-490, prompt tuning, semantic fallback, reroll,
-publication, and announcement remain separately founder-gated. Never resume
-or alter the sealed `j4-active-brain-incremental-longmemeval-q1-v1` identity
-or any prior private bundle.
+A fresh founder GO is required before either behavioral repair or any
+successor run. Question 2, prompt/tool-description tuning, semantic fallback,
+Mem0, S-490, reroll, publication, and announcement remain closed.
 
 ## Log
 
@@ -1396,6 +1439,16 @@ founder cap confirmation remains required.
 identity and activated its one-shot authority. Focused contracts and
 quickstart are green; no provider call, result, score, or spend occurred at
 this authorization cut.
+2026-07-26 — J4.4K-L1-E — this commit — Invoked the pushed
+autonomous-exploration identity once and sealed it after Gemini rejected the
+first reducer schema with non-retryable HTTP 400. The later dispatch-28
+refusal was secondary. Exploration, answer, and judge never ran; no score
+exists and autonomous exact-only search remains unmeasured. The private
+bundle verifies;
+fresh accounted spend is `$0.2359296`, cumulative accounted spend is
+`$1.0120378`. Focused contracts report 20 pass, 0 fail, and three historical
+skips; the full suite reports 467 pass, 0 fail, and the same three skips.
+Quickstart, dry bake-off, and package dry-run are green.
 
 ## Product stop-rule record
 
@@ -2442,3 +2495,22 @@ this authorization cut.
    could not prove that its precise spend envelope was authorized. This is a
    mandatory governance cut immediately before the already-approved product
    experiment, not permission for more infrastructure.
+
+### J4.4K-L1-E autonomous exploration terminal closeout
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No. It exposed a live
+   provider-schema incompatibility before memory navigation began.
+3. Does an existing framework already provide what this unit added? Gemini
+   provides structured output and LongMemEval provides the test instance;
+   this unit added only Palari-specific execution evidence and terminal
+   sealing.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly authorized this exact one-question autonomous-navigation
+   measurement.
+5. If this unit's code or record were deleted, what user-visible behavior
+   would get worse? Runtime behavior would not immediately change, but the
+   failed identity could be rerun and the schema failure could be mistaken
+   for evidence about exact search. This is an experiment closeout/governance
+   unit, so work stops at the founder gate.

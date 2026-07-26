@@ -1612,3 +1612,35 @@ dates. Agents record; the founder decides.
   predictions, providers, models, population bytes, stop conditions, and
   publication prohibitions remain unchanged. At this authorization cut no
   provider call or result exists and cumulative spend remains `$0.7761082`.
+- 2026-07-26 (J4.4K-L1 execution closeout — terminal reducer-schema failure)
+  The pushed `j4-active-brain-exploration-longmemeval-q1-v1` authority cut was
+  invoked exactly once. Gemini rejected the first and only physical provider
+  request with non-retryable HTTP 400 `INVALID_ARGUMENT` because the
+  provider-enforced reducer schema produced too many serving states. No retry
+  occurred. The terminal meter then caused local batch-isolation attempts to
+  quarantine units until the frozen runner refused would-be reducer dispatch
+  28; that refusal was secondary to the original schema rejection.
+
+  The last receipt-backed durable checkpoint contains 32 processed
+  interactions, 64 canonical messages, 13 blocked units, and 19 actionable
+  units. The sealed SQLite workspace contains one additional committed but
+  unreceipted interaction: 33 turns, 66 canonical messages, 14 blocked units,
+  and 19 actionable units. The digest was not ready. No exploration-model
+  dispatch, memory tool call, search phrase, answer, judge call, or benchmark
+  score exists; `consultedEvidenceIds` is empty and question 2 never started.
+  Consequently, whether autonomous exact-only search is sufficient remains
+  unmeasured. The six frozen predictions mechanically MISS because ingestion
+  did not complete, not because the model attempted and failed journal
+  navigation; only ingestion is a directly observed substantive failure.
+
+  Fresh measured spend is `$0`; fresh accounted spend is `$0.2359296` because
+  the unresolved Gemini reservation remains retained conservatively in the
+  run's accounting.
+  Cumulative J4 spend is `$0.7736072` measured, `$0.2384306` uncertain, and
+  `$1.0120378` accounted. The ignored 40-file private bundle verifies at
+  manifest SHA-256
+  `9db1ef0987d8469cd98433995f8295838bda891881876e496263ba13f736669d`.
+  The identity is terminal and may not be resumed or rerolled. Simplifying
+  the provider-side reducer schema, adding terminal-meter fail-fast behavior,
+  or creating a successor identity requires a fresh founder GO. Search
+  prompting and semantic fallback remain unchanged.
