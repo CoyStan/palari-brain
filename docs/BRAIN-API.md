@@ -130,6 +130,39 @@ Mechanical limits:
 - statement and exact support quote at most 500 characters;
 - active result at most 64 items and 24,000 rendered characters.
 
+### Which limit actually binds
+
+The 64-item figure is a ceiling, not a capacity. The binding constraint is
+almost always the 24,000-character digest, because every retained support
+costs roughly 330 characters — a 73-character evidence ID, a source message
+ID, an observation time, a speaker label, and the quote itself.
+
+Effective capacity is therefore `24,000 / mean rendered item size`:
+
+| mean item | rendered supports | items that fit |
+| --- | --- | --- |
+| ~375 chars | 1 short quote, terse statement | ~64 (the ceiling) |
+| ~600 chars | 1 typical quote | ~40 |
+| ~1,470 chars | 4 accumulated supports | ~16 |
+
+`npm run memory-bench` measures this directly and prints both numbers.
+
+Two consequences matter for a reducer author:
+
+1. **Terse statements buy items.** Spending the permitted 500 characters on
+   every statement and quote exhausts the digest in roughly 16 items.
+2. **Supersession accumulates.** Replacing an item carries its transitive
+   quote lineage forward, so correcting one fact repeatedly grows that item
+   by about 330 characters per correction and never sheds the old lineage.
+   A long conversation that revisits the same facts can exhaust the
+   character budget at a constant item count.
+
+Use `input.utilization` to budget. It reports `items`, `itemsRemaining`,
+`digestChars`, and `digestCharsRemaining`, all measured with the same
+serializer that enforces the cap; `digestChars / items` gives the mean cost
+of an item so far. Compact with `summarizes` before the budget is gone: a
+response whose resulting state exceeds a limit is rejected in full.
+
 Every current evidence row receives exactly one `used` or `no_memory`
 disposition. `used` is valid only when an action actually cites that evidence.
 A valid all-`no_memory` response advances coverage without storing filler.
@@ -176,10 +209,11 @@ A missing, throwing, malformed, oversized, stale, or invalid reducer:
 - does not roll back canonical dialogue;
 - leaves the earlier digest unchanged;
 - leaves the oldest unit pending;
-- returns structured `reductionStatus`, `reductionReason`, and
-  `reductionPending` fields from ingestion.
+- returns structured `reductionStatus`, `reductionReason`,
+  `reductionPending`, and `reductionBlocked` fields from ingestion.
 
-Later units do not skip the failed unit. Recovery is explicit:
+Later units do not skip the failed unit while it is still actionable.
+Recovery is explicit:
 
 ```js
 import { reducePendingTurns } from 'palari-brain'
@@ -197,6 +231,30 @@ An exact replay of an already reduced turn does not call the reducer or
 advance revisions. A failed turn may be replayed to retry its still-pending
 unit.
 
+### Quarantine
+
+A unit that keeps failing is quarantined rather than blocking its scope
+forever. After `maxAttempts` failures (default 3, overridable per call), or
+on the first failure for a deterministic category such as
+`REDUCER_INPUT_CAPACITY`, the unit leaves the actionable queue.
+
+A quarantined unit stays `pending`, so its canonical evidence is never
+recorded as reduced. What changes is that later interactions are no longer
+stuck behind it. The gap is reported, never hidden:
+
+- `digestStatus()` returns `blocked` and a `ready_with_gaps` status;
+- ingestion returns `reductionBlocked` and `reduction.quarantined`;
+- `recallMemory` and `answerQuestion` carry `reductionBlocked` through;
+- `listBlockedReductions(scope)` names every quarantined unit and why.
+
+A digest with gaps is still usable, and honest absence from such a digest
+means "not retained", not "never happened". Recovery is explicit and never
+automatic — an automatic requeue would rebuild the deadlock this prevents:
+
+```js
+brain.requeueBlockedReductions({ palariId, userId })
+```
+
 One scope keeps one reducer identity. Changing `reducerId` without an
 explicit rebuild fails `REDUCER_ID_CONFLICT`; silent mixed-model state is not
 accepted. A reducer-contract version mismatch similarly fails
@@ -204,9 +262,10 @@ accepted. A reducer-contract version mismatch similarly fails
 not claim either identity.
 
 If one complete interaction makes the rendered request exceed 40,000
-characters, the failure category is `REDUCER_INPUT_CAPACITY`. The interaction
-remains canonical and remains the queue head; later interactions are not
-reduced around it. This is deliberately not automatic segmentation:
+characters, the failure category is `REDUCER_INPUT_CAPACITY`. Retrying cannot
+change that outcome, so the interaction is quarantined on its first failure.
+It remains canonical and remains unreduced, and the gap stays visible in
+`blocked`. This is deliberately not automatic segmentation:
 splitting after admission would create a second provenance and chronology
 contract. A host should bound a durable interaction before ingest. Once
 stored, the safe choices are to keep it pending, delete its exact evidence if

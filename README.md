@@ -28,11 +28,16 @@ partial memory.
 ## Quickstart
 
 ```bash
+npm install          # required: the comparison arm has a devDependency
 npm test
 npm run quickstart
 ```
 
-Both commands are offline. The quickstart demonstrates:
+All three are offline and spend-free. Tests that need the gitignored
+LongMemEval dataset skip themselves when it is absent, so a fresh clone is
+green without it.
+
+The quickstart demonstrates:
 
 - complete user and Palari messages stored with `user_message` and
   `assistant_message` provenance;
@@ -42,6 +47,35 @@ Both commands are offline. The quickstart demonstrates:
   old and new support survives in canonical provenance;
 - exact-ID deletion followed by honest absence;
 - source-document text excluded from canonical and reducer evidence.
+
+## Running the memory bench
+
+```bash
+npm run memory-bench                       # synthetic population, always runs
+npm run memory-bench -- --limit 50         # shorter run
+npm run memory-bench -- --dataset          # real LongMemEval-S ordinal 1
+npm run memory-bench -- --question 08e075c7
+```
+
+This replays a long conversation through the real write path with a
+deterministic, provider-free reducer. No credential is read, no provider is
+called, no live identity or score is created, and it costs nothing.
+
+It answers the structural questions that a paid benchmark run cannot afford
+to discover: does the reduction queue stall, does the digest hit its item or
+character cap, does compaction stay inside the lineage limit, and — on the
+real dataset — is evidence from the answer-bearing turns still in the digest
+at the end. It exits non-zero if the queue stalls.
+
+It does **not** measure answer quality. There is no model in the loop. Treat
+its retention number as a structural floor, never as a benchmark score.
+
+The `--dataset` modes need `data/longmemeval_s_cleaned.json`, which is
+gitignored and not distributed here. Obtain LongMemEval-S from the upstream
+project (<https://github.com/xiaowu0162/LongMemEval>, MIT; licence verdict
+recorded in `docs/DECISIONS.md`) and place the cleaned S split at that path.
+Without it, those modes fail with a message pointing here, and the synthetic
+population runs instead.
 
 ## Use it in a chatbot
 

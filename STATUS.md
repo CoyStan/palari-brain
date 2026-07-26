@@ -1,8 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.2K-R2-L1-B OFFLINE SUCCESSOR SAFETY CONTRACT COMPLETE;
-FOUNDER GATE — NO LIVE IDENTITY OPEN; SECOND CONSECUTIVE INFRASTRUCTURE
-UNIT, STOP (2026-07-26).
+Loop state: J4.3K-R2 OFFLINE MEMORY BENCH COMPLETE; FOUNDER GATE — NO LIVE
+IDENTITY OPEN; CAPACITY FINDING NEEDS A FOUNDER DECISION (2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -336,6 +335,58 @@ credential was read, no provider was called, no live identity or score was
 created, and cumulative J4 spend remains `$0.7761082` accounted. This is the
 second consecutive infrastructure unit after J4.2K-R2-L1-A, so the product
 stop rule requires a drift stop before any third infrastructure unit.
+
+The founder then took direct ownership of the review findings and directed
+that they be fixed. J4.3K-R1 repaired the product path offline. A failing
+reduction unit no longer blocks its scope forever: it quarantines after
+maxAttempts, or on first failure for deterministic categories, leaves the
+actionable queue, and stays visible as `blocked` in digest status, ingestion,
+recall, and answering. Recovery is explicit through
+`requeueBlockedReductions`. Supersession no longer demands byte-exact topic
+equality, comparing NFC case-folded whitespace-collapsed topics instead, with
+no stemming because that comparison decides what may destroy memory. The
+reducer request now carries `input.utilization` so a reducer can compact
+before the cap rather than discovering it by failing. Chronology ordinals come
+from a monotonic per-scope watermark, so deleting the newest message cannot
+free its ordinal for reuse. Two tests that failed on any fresh clone now skip
+correctly: the gitignored dataset and the uninstalled `mem0ai` devDependency.
+
+J4.3K-R2 added `npm run memory-bench`, the first memory test in this repo that
+can actually be run. It replays a long conversation through the real write
+path with a deterministic provider-free reducer: no credential, no provider,
+no live identity, no spend. It reports queue stalls, quarantines by category,
+digest items and characters, compression, and — on the real dataset —
+whether answer-bearing evidence survived into the digest.
+
+Its first run is a significant finding, and it needs a founder decision.
+On a 240-interaction synthetic population the digest exhausts its
+24,000-character budget at 16 items, not the advertised 64. Every retained
+support costs about 330 characters, and `supersedes` accumulates transitive
+lineage that is never shed, so repeatedly correcting the same fact grows an
+item by ~330 characters per correction at a constant item count. Once the
+character cap binds, reductions fail with `REDUCER_DIGEST_CAPACITY`; the run
+applied 33 reductions, quarantined 69 units, and left 138 actionable. Measured
+compression was 1.4x — the digest was barely smaller than the canonical text
+it replaces — and the late answer-bearing fact never entered memory because
+the queue had already stalled. Canonical dialogue survived every failure.
+
+The 64-item ceiling is therefore reachable only with terse statements and one
+short quote per item. `docs/BRAIN-API.md` now documents the real relationship
+and the two consequences for reducer authors. The numeric caps were NOT
+changed: raising `ACTIVE_MEMORY_MAX_DIGEST_CHARS` alters the answer context
+budget and every cost envelope, and shedding superseded lineage would trade
+away a documented provenance guarantee. Both are founder thesis decisions.
+
+Sealed identities were not touched. Frozen configs, authorities, predictions,
+and private evidence keep their exact bytes; product-path drift is recorded in
+the expected-drift lists so the sealed runners refuse, and the
+incremental-smoke reservation test now proves the current reducer request
+exceeds that identity's frozen envelope. The package now ships only the
+runtime import closure instead of the whole `src/` tree including the frozen
+v0.5 comparator. No provider was called, no live identity was created, no
+score exists, and cumulative J4 spend remains `$0.7761082` accounted.
+Suite 402/402 with 7 skipped; quickstart, dry bake-off, package dry-run, and
+the memory bench are green.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -864,6 +915,20 @@ session itself).
     hard-cap claim unproved. Focused tests are 50/50 and the full suite is
     333/333; quickstart, dry bake-off, and package dry-run are green. No
     provider call, identity, result, reroll, score, or spend occurred.
+  - [x] J4.3K-R1 — OFFLINE PRODUCT REPAIR FROM FOUNDER REVIEW 2026-07-26
+    (`7119923`). Quarantine replaces permanent queue blocking; supersession
+    compares normalized topics; `input.utilization` exposes capacity
+    pressure; chronology ordinals are monotonic. Dataset and `mem0ai` tests
+    skip instead of failing a fresh clone. Sealed identities untouched;
+    product drift recorded in the expected-drift lists. Suite 397/397.
+  - [x] J4.3K-R2 — OFFLINE MEMORY BENCH 2026-07-26 (`this commit`). Added
+    `npm run memory-bench`: the real write path, a deterministic
+    provider-free reducer, no credential, no spend, exit non-zero on stall.
+    First finding: the digest exhausts 24,000 characters at 16 items, not
+    64; supports cost ~330 characters each and superseded lineage never
+    sheds; compression is 1.4x; the queue stalled after 33 of 240
+    interactions and the answer-bearing fact never entered memory. Caps were
+    not changed — that is a founder thesis decision. Suite 402/402.
   - [x] J4.2K-R2-L1-B — OFFLINE SUCCESSOR SAFETY CONTRACT COMPLETE
     2026-07-26 (`this commit`). Preserved the sealed Gemini 3.5 identity while
     adding explicit Gemini 2.5 successor bindings, full-window Priority
@@ -889,7 +954,27 @@ session itself).
 
 ## Next
 
-FOUNDER GATE AND PRODUCT-DRIFT STOP. The offline provider hard-cap contract is
+FOUNDER DECISION ON DIGEST CAPACITY. `npm run memory-bench` shows the active
+digest exhausts 24,000 characters at ~16 items and that compression on a long
+conversation is 1.4x. Nothing downstream is worth measuring live until that is
+resolved. The three options, none of which an agent should pick alone:
+
+1. Raise `ACTIVE_MEMORY_MAX_DIGEST_CHARS`. Costs answer context and
+   invalidates every cost envelope.
+2. Shed superseded lineage so a corrected item stops growing. Trades away the
+   documented exact-transitive-lineage guarantee; canonical evidence would
+   still hold the history losslessly.
+3. Accept ~16 items as the real working-memory size and decide whether a
+   blind, query-independent digest of that size can serve LongMemEval at all.
+   The bench says the answer-bearing fact never entered memory on a
+   240-interaction population.
+
+Option 3 is the honest one to answer first, because it tests the product
+thesis rather than a constant. It also remains true that the active path has
+no query-conditioned retrieval by explicit founder direction; that constraint
+and this capacity finding compound.
+
+PRIOR FOUNDER GATE AND PRODUCT-DRIFT STOP. The offline provider hard-cap contract is
 resolved, but it creates no run authority. J4.2K-R2-L1-A and
 J4.2K-R2-L1-B are two consecutive infrastructure units; do not start a third
 infrastructure unit autonomously. The founder must decide whether the next
