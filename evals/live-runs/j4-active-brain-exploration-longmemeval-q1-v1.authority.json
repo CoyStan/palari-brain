@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "runId": "j4-active-brain-exploration-longmemeval-q1-v1",
-  "founderAuthorization": "2026-07-26: founder approved Step 2 execution for exactly LongMemEval-S ordinal 1 with batched reduction, one bounded model-chosen memory exploration answer, one official judge, and a mandatory stop. The founder's run discipline separately requires confirmation of the exact conservative fresh cap before dispatch.",
+  "founderAuthorization": "2026-07-26: founder approved Step 2 execution for exactly LongMemEval-S ordinal 1 with batched reduction, one bounded model-chosen memory exploration answer, one official judge, and a mandatory stop. After the frozen pre-run reported the exact conservative envelope, the founder confirmed freshSubcapUsd: 4.1316452 for this exact run ID.",
   "scope": "one-exploration-longmemeval-question-only",
   "preRunPreparationAuthorized": true,
-  "dispatchAuthorized": false,
-  "exactCapConfirmationRequired": true,
+  "dispatchAuthorized": true,
+  "exactCapConfirmationRequired": false,
   "providers": [
     "gemini",
     "openai"

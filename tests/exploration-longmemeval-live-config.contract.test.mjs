@@ -289,11 +289,21 @@ test('loader validates FINAL predictions and the frozen artifact closure',
       EXPLORATION_LONGMEMEVAL_PREDICTIONS_PATH))
     assert.equal(loaded.authorityPath, join(repoRoot,
       EXPLORATION_LONGMEMEVAL_AUTHORITY_PATH))
+    assert.equal(loaded.authority.dispatchAuthorized, true)
+    assert.equal(
+      loaded.authority.exactCapConfirmationRequired,
+      false,
+    )
   })
 
-test('pending authority refuses before credential fields are read',
+test('synthetic pending authority refuses before credential fields are read',
   async () => {
     const loaded = await loadExplorationLongMemEvalContract({ repoRoot })
+    const authority = {
+      ...loaded.authority,
+      dispatchAuthorized: false,
+      exactCapConfirmationRequired: true,
+    }
     let keyReads = 0
     const env = {}
     for (const key of ['GEMINI_API_KEY', 'OPENAI_API_KEY']) {
@@ -308,28 +318,18 @@ test('pending authority refuses before credential fields are read',
       () => assertExplorationLongMemEvalEnvironment(
         env,
         loaded.config,
-        loaded.authority,
+        authority,
       ),
       (error) => error?.code === 'FOUNDER_CAP_CONFIRMATION_REQUIRED',
     )
     assert.equal(keyReads, 0)
-    assert.equal(loaded.authority.dispatchAuthorized, false)
-    assert.equal(loaded.authority.exactCapConfirmationRequired, true)
+    assert.equal(authority.dispatchAuthorized, false)
+    assert.equal(authority.exactCapConfirmationRequired, true)
   })
 
 test('activated gate still requires exact environment confirmations',
   async () => {
     const loaded = await loadExplorationLongMemEvalContract({ repoRoot })
-    const config = structuredClone(loaded.config)
-    config.artifacts = [{
-      path: 'evals/final-runtime-artifact.mjs',
-      sha256: '0'.repeat(64),
-    }]
-    const authority = {
-      ...loaded.authority,
-      dispatchAuthorized: true,
-      exactCapConfirmationRequired: false,
-    }
     const env = {
       GEMINI_API_KEY: 'fake-gemini-key',
       OPENAI_API_KEY: 'fake-openai-key',
@@ -343,8 +343,8 @@ test('activated gate still requires exact environment confirmations',
     }
     const runtime = assertExplorationLongMemEvalEnvironment(
       env,
-      config,
-      authority,
+      loaded.config,
+      loaded.authority,
     )
     assert.equal(runtime.cumulativeCapUsd, 8)
     assert.equal(runtime.freshSubcapUsd, 4.1316452)
@@ -357,8 +357,8 @@ test('activated gate still requires exact environment confirmations',
           ...env,
           PALARI_EXPLORATION_LONGMEMEVAL_FRESH_SUBCAP_USD: '4.14',
         },
-        config,
-        authority,
+        loaded.config,
+        loaded.authority,
       ),
       (error) => error?.code === 'LIVE_CONFIRMATION_MISSING',
     )

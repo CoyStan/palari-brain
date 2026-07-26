@@ -1,8 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-L1-P AUTONOMOUS EXPLORATION ONE-QUESTION PRE-RUN COMPLETE;
-FOUNDER GATE — EXACT `$4.1316452` FRESH CAP CONFIRMATION REQUIRED
-(2026-07-26).
+Loop state: J4.4K-L1-G EXACT LIVE CAP AUTHORITY RECORDED;
+ONE-SHOT AUTONOMOUS EXPLORATION EXECUTION NEXT (2026-07-26).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -448,6 +447,13 @@ exact number, tracked authority remains preparation-only:
 `dispatchAuthorized: false`. The 38-file runtime closure and six FINAL
 predictions are frozen. No credential was accessed, no provider was called,
 no private result or score was created, and spend is unchanged.
+
+The founder then confirmed exactly `freshSubcapUsd: 4.1316452` for
+`j4-active-brain-exploration-longmemeval-q1-v1`. The tracked authority now
+permits one invocation of only that frozen identity. Every question, model,
+artifact, prediction, dispatch ceiling, no-reroll rule, private-results rule,
+and stop remains unchanged. At this authorization cut no provider call,
+result, score, or new spend exists.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -1043,6 +1049,14 @@ session itself).
     are green. Authority remains preparation-only pending exact founder
     confirmation; no credential, provider call, result, score, or spend
     occurred.
+  - [x] J4.4K-L1-G — EXACT LIVE CAP AUTHORITY RECORDED 2026-07-26
+    (`this commit`). Recorded the founder's exact `$4.1316452` fresh-cap
+    confirmation for only
+    `j4-active-brain-exploration-longmemeval-q1-v1`. Authority SHA-256 is
+    `6aa885db50e31ea33644ef16d83c32a5f41d59babcfa4613b4bd25975426d793`;
+    every frozen byte, scope limit, prediction, stop, and prohibition remains
+    unchanged. Focused authority/config contracts and quickstart are green.
+    No provider call, result, score, or spend occurred at this cut.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1081,27 +1095,25 @@ session itself).
 
 ## Next
 
-STOP. Preparation for
-`j4-active-brain-exploration-longmemeval-q1-v1` is complete, but paid
-dispatch is not yet authorized under its exact cap. Expected fresh cost is
-`$0.0660333`; the conservative fresh hard cap is `$4.1316452`. With
-`$0.7761082` opening spend, the projected cumulative maximum is
-`$4.9077534`, below the existing `$8.00` cumulative cap.
+Invoke `j4-active-brain-exploration-longmemeval-q1-v1` exactly once from this
+pushed authority cut. It may process only LongMemEval-S ordinal 1, use at most
+27 reducer dispatches, six tools across seven exploration-model dispatches,
+and one official judge, then stop before question 2. There are zero transport
+retries; reducer batch isolation may occur only inside the frozen
+27-dispatch ceiling. A provider, contract, model, cap, or transport failure is
+terminal evidence, not authority to resume.
 
-The only founder decision required is explicit confirmation of
-`freshSubcapUsd: 4.1316452` for this identity. Before that confirmation, do
-not access credentials or make a provider request. If confirmed, record the
-confirmation in the authority file in one coherent committed and pushed cut,
-then invoke the identity exactly once.
+After invocation, verify the ignored private bundle and grade all six FINAL
+predictions with misses first. Report the exact ordered tool calls and
+model-chosen phrases, each tool result, `consultedEvidenceIds`, measured fresh
+and cumulative spend, and whether exact-only exploration is sufficient. Then
+seal the identity, update STATUS without committing any result or score, run
+the standing offline gates, commit, push, and stop.
 
-After invocation, grade all six FINAL predictions with misses first; report
-the exact ordered tool calls and model-chosen phrases, each tool result,
-`consultedEvidenceIds`, measured fresh and cumulative spend, and whether
-exact-only exploration is sufficient. Then stop. Question 2, Mem0, S-490,
-prompt tuning, semantic fallback, reroll, publication, and announcement all
-remain separately founder-gated. Never resume or alter the sealed
-`j4-active-brain-incremental-longmemeval-q1-v1` identity or any prior private
-bundle.
+Question 2, Mem0, S-490, prompt tuning, semantic fallback, reroll,
+publication, and announcement remain separately founder-gated. Never resume
+or alter the sealed `j4-active-brain-incremental-longmemeval-q1-v1` identity
+or any prior private bundle.
 
 ## Log
 
@@ -1379,6 +1391,11 @@ immutable evidence oracle, six FINAL predictions, 38 runtime hashes, and
 `$4.1316452` conservative fresh envelope. Full offline verification is
 green; no credential, provider call, result, score, or spend occurred. Exact
 founder cap confirmation remains required.
+2026-07-26 — J4.4K-L1-G — this commit — Recorded the founder's exact
+`$4.1316452` fresh-cap confirmation for only the frozen autonomous-exploration
+identity and activated its one-shot authority. Focused contracts and
+quickstart are green; no provider call, result, score, or spend occurred at
+this authorization cut.
 
 ## Product stop-rule record
 
@@ -2407,3 +2424,21 @@ founder cap confirmation remains required.
    measurement the founder requested. This is the pre-call half of one
    founder-requested product experiment, not authority for another
    infrastructure layer.
+
+### J4.4K-L1-G exact live-cap authority
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No product byte changed.
+   It converts the already-prepared founder-requested measurement from a
+   blocked proposal into an exact one-shot authority.
+3. Does an existing framework already provide what this unit added? Provider
+   and evaluation frameworks provide spend controls, but this cut adds no
+   framework. It records only the repository-specific founder gate.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder confirmed the exact run ID and `$4.1316452` fresh cap verbatim.
+5. If this unit's code or record were deleted, what user-visible behavior
+   would get worse? Runtime memory would not change, but the provider run
+   could not prove that its precise spend envelope was authorized. This is a
+   mandatory governance cut immediately before the already-approved product
+   experiment, not permission for more infrastructure.

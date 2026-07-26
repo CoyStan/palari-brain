@@ -1600,3 +1600,15 @@ dates. Agents record; the founder decides.
   No credential was accessed, no provider request was made, no result or
   score was created, and cumulative spend remains `$0.7761082`. Paid
   dispatch requires the founder to confirm exactly `$4.1316452`.
+- 2026-07-26 (FOUNDER GO — exact J4.4K-L1 live cap confirmed) After reviewing
+  the frozen pre-run, the founder stated:
+  `I confirm freshSubcapUsd: 4.1316452 for
+  j4-active-brain-exploration-longmemeval-q1-v1`. This opens exactly the
+  already-frozen one-question dispatch and no other scope. The activated
+  authority has SHA-256
+  `6aa885db50e31ea33644ef16d83c32a5f41d59babcfa4613b4bd25975426d793`,
+  with `dispatchAuthorized: true` and
+  `exactCapConfirmationRequired: false`. All other limits, artifacts,
+  predictions, providers, models, population bytes, stop conditions, and
+  publication prohibitions remain unchanged. At this authorization cut no
+  provider call or result exists and cumulative spend remains `$0.7761082`.
