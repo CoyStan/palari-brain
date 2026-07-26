@@ -165,6 +165,28 @@ test('timeline navigates structurally without any query', async (t) => {
   )
 })
 
+test('session reads treat SQL wildcard characters as literal identity',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [
+      { id: 'wild%:0', user: 'Literal percent session.' },
+      { id: 'wildcard:0', user: 'Different percent-shaped session.' },
+      { id: 'under_:0', user: 'Literal underscore session.' },
+      { id: 'underX:0', user: 'Different underscore-shaped session.' },
+    ])
+
+    assert.deepEqual(
+      brain.exploreRead(SCOPE, { session: 'wild%' })
+        .messages.map(({ text }) => text),
+      ['Literal percent session.'],
+    )
+    assert.deepEqual(
+      brain.exploreRead(SCOPE, { session: 'under_' })
+        .messages.map(({ text }) => text),
+      ['Literal underscore session.'],
+    )
+  })
+
 test('exploration inherits every gate guarantee', async (t) => {
   const brain = await openBrain(t)
   await seed(brain, CONVERSATION)

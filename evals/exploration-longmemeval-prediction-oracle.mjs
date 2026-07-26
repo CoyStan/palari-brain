@@ -60,18 +60,23 @@ function sortedUnique(values) {
   return [...new Set(values.map(String))].sort()
 }
 
-function resultEvidenceIds(entry) {
+function resultEvidenceRows(entry) {
   if (entry.tool === 'memory_find') {
     return Array.isArray(entry.result?.matches)
-      ? entry.result.matches.map(({ evidenceId }) => evidenceId)
+      ? entry.result.matches
       : null
   }
   if (entry.tool === 'memory_read') {
     return Array.isArray(entry.result?.messages)
-      ? entry.result.messages.map(({ evidenceId }) => evidenceId)
+      ? entry.result.messages
       : null
   }
   return entry.tool === 'memory_timeline' ? [] : null
+}
+
+function resultEvidenceIds(entry) {
+  return resultEvidenceRows(entry)?.map(({ evidenceId }) => evidenceId) ??
+    null
 }
 
 function validToolTranscript(value) {
@@ -90,10 +95,14 @@ function validToolTranscript(value) {
       entry.modelDispatch < 1) {
       return false
     }
-    const evidenceIds = resultEvidenceIds(entry)
-    return evidenceIds !== null &&
-      evidenceIds.every((id) =>
-        typeof id === 'string' && Boolean(id))
+    const evidenceRows = resultEvidenceRows(entry)
+    return evidenceRows !== null &&
+      evidenceRows.every((row) =>
+        isObject(row) &&
+        typeof row.evidenceId === 'string' &&
+        Boolean(row.evidenceId) &&
+        typeof row.session === 'string' &&
+        Boolean(row.session))
   })
 }
 
@@ -288,11 +297,30 @@ function reducerEvidence({
   }
 }
 
-function recoveredAfterFirstMiss(transcript) {
+function answerSessionSet(runState) {
+  const values = runState?.oracle?.answerSessionIds
+  if (!Array.isArray(values) ||
+    values.length < 1 ||
+    values.some((value) =>
+      typeof value !== 'string' || !value) ||
+    new Set(values).size !== values.length) {
+    return null
+  }
+  return new Set(values)
+}
+
+function hasAnswerSessionRow(entry, answerSessions) {
+  const rows = resultEvidenceRows(entry)
+  return Array.isArray(rows) &&
+    rows.some(({ session }) => answerSessions.has(session))
+}
+
+function recoveredAfterFirstMiss(transcript, answerSessions) {
   const firstFindIndex = transcript.findIndex(
     ({ tool }) => tool === 'memory_find',
   )
-  if (firstFindIndex < 0 ||
+  if (!answerSessions ||
+    firstFindIndex < 0 ||
     transcript[firstFindIndex].result.matches.length !== 0) {
     return false
   }
@@ -306,24 +334,32 @@ function recoveredAfterFirstMiss(transcript) {
     entry.modelDispatch > firstDispatch &&
     entry.tool === 'memory_find' &&
     String(entry.input.phrase ?? '') !== firstPhrase &&
-    entry.result.matches.length > 0)
+    hasAnswerSessionRow(entry, answerSessions))
   const timelineIndex = later.findIndex(
-    ({ modelDispatch, tool }) =>
+    ({ modelDispatch, result, tool }) =>
       modelDispatch > firstDispatch &&
-      tool === 'memory_timeline',
+      tool === 'memory_timeline' &&
+      Array.isArray(result?.sessions) &&
+      result.sessions.some(({ session }) =>
+        answerSessions.has(session)),
   )
   const navigatedHit = timelineIndex >= 0 &&
     later.slice(timelineIndex + 1).some((entry) =>
       entry.modelDispatch >
         later[timelineIndex].modelDispatch &&
       entry.tool === 'memory_read' &&
-      entry.result.messages.length > 0)
+      hasAnswerSessionRow(entry, answerSessions))
   return rewordedHit || navigatedHit
 }
 
-function consultedEvidenceIsExact(result, transcript) {
+function consultedEvidenceIsExact(
+  result,
+  transcript,
+  answerSessions,
+) {
   if (!Array.isArray(result?.consultedEvidenceIds) ||
     result.consultedEvidenceIds.length < 1 ||
+    !answerSessions ||
     result.consultedEvidenceIds.some((id) =>
       typeof id !== 'string' || !id)) {
     return false
@@ -331,10 +367,17 @@ function consultedEvidenceIsExact(result, transcript) {
   const returned = transcript.flatMap(
     (entry) => resultEvidenceIds(entry),
   )
-  return sameJson(
+  const exactConsultedSet = sameJson(
     sortedUnique(result.consultedEvidenceIds),
     sortedUnique(returned),
   )
+  const answerEvidenceIds = transcript.flatMap((entry) =>
+    (resultEvidenceRows(entry) ?? [])
+      .filter(({ session }) => answerSessions.has(session))
+      .map(({ evidenceId }) => evidenceId))
+  return exactConsultedSet &&
+    answerEvidenceIds.some((evidenceId) =>
+      result.consultedEvidenceIds.includes(evidenceId))
 }
 
 function runStateIsOneQuestion(runState) {
@@ -399,6 +442,7 @@ export function auditExplorationLongMemEvalPredictionEvidence({
     ? transcript.filter(({ tool }) => tool === 'memory_find')
     : []
   const finalDigest = checkpoint.final?.digest
+  const answerSessions = answerSessionSet(runState)
   const reducers = reducerEvidence({
     checkpointAggregate,
     finalAnswer,
@@ -441,7 +485,11 @@ export function auditExplorationLongMemEvalPredictionEvidence({
     typeof result.answer === 'string' &&
     Boolean(result.answer.trim()) &&
     result.answerProviderCalled === true &&
-    consultedEvidenceIsExact(result, transcript)
+    consultedEvidenceIsExact(
+      result,
+      transcript,
+      answerSessions,
+    )
   const oneQuestion = runStateIsOneQuestion(runState)
   const observedExplorationCalls = finalAnswer
     ? result.explorationCalls
@@ -472,7 +520,7 @@ export function auditExplorationLongMemEvalPredictionEvidence({
     RECOVERS_AFTER_MISS:
       transcriptCoherent &&
       modelTranscript.coherent &&
-      recoveredAfterFirstMiss(transcript),
+      recoveredAfterFirstMiss(transcript, answerSessions),
   })
   return Object.freeze({
     computed: Object.freeze({

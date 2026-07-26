@@ -164,7 +164,8 @@ function evidence() {
             chars: 100,
             matches: [{
               evidenceId: 'evidence-1',
-              text: 'The answer was violet.',
+              session: 'answer-session',
+              snippet: 'The answer was violet.',
             }],
             operation: 'memory_find',
             phrase: 'violet',
@@ -184,6 +185,9 @@ function evidence() {
         question2Started: false,
         questionIds: [EXPLORATION_LONGMEMEVAL_QUESTION_ID],
       }],
+      oracle: {
+        answerSessionIds: ['answer-session'],
+      },
       question: {
         questionId: EXPLORATION_LONGMEMEVAL_QUESTION_ID,
       },
@@ -228,6 +232,7 @@ test('a first exact-search hit and no recovery are misses, sorted first',
     const raw = evidence()
     raw.result.toolTranscript[0].result.matches = [{
       evidenceId: 'evidence-1',
+      session: 'answer-session',
     }]
     raw.result.toolTranscript.splice(1)
     raw.result.modelTurns = [
@@ -276,6 +281,16 @@ test('grounding requires consulted IDs to equal tool-returned evidence',
     assert.equal(audit.observations.RECOVERS_AFTER_MISS, true)
   })
 
+test('an irrelevant hit is neither answer recovery nor grounding', () => {
+  const raw = evidence()
+  raw.result.toolTranscript[1].result.matches[0].session =
+    'irrelevant-session'
+  const audit =
+    auditExplorationLongMemEvalPredictionEvidence(raw)
+  assert.equal(audit.observations.RECOVERS_AFTER_MISS, false)
+  assert.equal(audit.observations.GROUNDED_FINAL_ANSWER, false)
+})
+
 test('recovery can navigate timeline then read a non-empty session',
   () => {
     const raw = evidence()
@@ -285,7 +300,7 @@ test('recovery can navigate timeline then read a non-empty session',
         input: {},
         result: {
           operation: 'memory_timeline',
-          sessions: [{ session: 'session-1' }],
+          sessions: [{ session: 'answer-session' }],
           totalMessages: 2,
           totalSessions: 1,
         },
@@ -293,11 +308,12 @@ test('recovery can navigate timeline then read a non-empty session',
         tool: 'memory_timeline',
       },
       {
-        input: { session: 'session-1' },
+        input: { session: 'answer-session' },
         result: {
           chars: 50,
           messages: [{
             evidenceId: 'evidence-1',
+            session: 'answer-session',
             text: 'The answer was violet.',
           }],
           operation: 'memory_read',
@@ -313,7 +329,7 @@ test('recovery can navigate timeline then read a non-empty session',
       }),
       functionTurn(2, 'memory_timeline', {}),
       functionTurn(3, 'memory_read', {
-        session: 'session-1',
+        session: 'answer-session',
       }),
       finalTurn(
         4,
@@ -328,6 +344,7 @@ test('recovery can navigate timeline then read a non-empty session',
     const audit =
       auditExplorationLongMemEvalPredictionEvidence(raw)
     assert.equal(audit.observations.RECOVERS_AFTER_MISS, true)
+    assert.equal(audit.observations.GROUNDED_FINAL_ANSWER, true)
   })
 
 test('prediction input cannot omit or rename a frozen row', () => {

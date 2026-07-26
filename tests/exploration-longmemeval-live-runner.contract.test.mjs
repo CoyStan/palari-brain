@@ -236,7 +236,10 @@ function fakeArmResult() {
         input: { phrase: 'violet' },
         modelDispatch: 2,
         result: {
-          matches: [{ evidenceId: 'evidence-1' }],
+          matches: [{
+            evidenceId: 'evidence-1',
+            session: 'answer-session',
+          }],
           operation: 'memory_find',
         },
         tool: 'memory_find',
@@ -421,6 +424,7 @@ test('successful answer evidence survives a terminal judge failure',
               return {
                 instance: {
                   answer: 'violet',
+                  answerSessionIds: ['answer-session'],
                   isAbstention: false,
                   question: 'What was recorded?',
                   questionId:
@@ -730,6 +734,7 @@ test('mocked execution checkpoints 243 interactions, judges once, stops',
             return {
               instance: {
                 answer: 'violet',
+                answerSessionIds: ['answer-session'],
                 isAbstention: false,
                 question: 'What was recorded?',
                 questionId:

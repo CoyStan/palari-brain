@@ -162,12 +162,12 @@ export function createMemoryExplorer(store, {
         cap,
       ).map(messageRow)
     } else if (session) {
-      const prefix = `${String(session)}:%`
+      const prefix = `${String(session)}:`
       rows = scoped(
         scope,
-        `WHERE source_message_id LIKE ?
+        `WHERE substr(source_message_id, 1, length(?)) = ?
          ORDER BY event_at ASC, dialogue_order ASC`,
-        [prefix],
+        [prefix, prefix],
         cap,
       ).map(messageRow)
     } else {

@@ -392,7 +392,13 @@ export function explorationLongMemEvalPopulation(prepared = {}) {
       liveConfig.EXPLORATION_LONGMEMEVAL_POPULATION
         .visibleCharacters ||
     stats.visibleMessages !==
-      liveConfig.EXPLORATION_LONGMEMEVAL_POPULATION.visibleMessages) {
+      liveConfig.EXPLORATION_LONGMEMEVAL_POPULATION.visibleMessages ||
+    !Array.isArray(instance?.answerSessionIds) ||
+    instance.answerSessionIds.length < 1 ||
+    new Set(instance.answerSessionIds).size !==
+      instance.answerSessionIds.length ||
+    instance.answerSessionIds.some((sessionId) =>
+      typeof sessionId !== 'string' || !sessionId)) {
     throw new ExplorationLongMemEvalLiveError(
       'POPULATION_CHANGED',
       'The exact one-question exploration population changed.',
@@ -477,6 +483,11 @@ function initialRunState({
     meter: {
       gemini: null,
       judge: null,
+    },
+    oracle: {
+      // Private grading metadata from the pinned instance. This is never
+      // included in the model prompt or any provider request.
+      answerSessionIds: [...population.instance.answerSessionIds],
     },
     population: {
       ...liveConfig.EXPLORATION_LONGMEMEVAL_POPULATION,
