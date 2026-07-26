@@ -23,6 +23,7 @@ import { join } from 'node:path'
 
 import { renderActiveMemoryDigest } from '../src/memory-reducer.mjs'
 import {
+  ACTIVE_MEMORY_MAX_ACTIONS,
   ACTIVE_MEMORY_MAX_BASIS,
   ACTIVE_MEMORY_MAX_DIGEST_CHARS,
   ACTIVE_MEMORY_MAX_ITEMS,
@@ -32,6 +33,7 @@ import {
   createPalariBrain,
   ingestChatTurn,
   recallMemory,
+  reducePendingTurns,
 } from '../src/index.mjs'
 
 export const OFFLINE_BENCH_REDUCER_ID = 'offline-memory-bench/v1'
@@ -179,18 +181,33 @@ export function offlineBenchReducer({ request }) {
     utilization.digestCharsRemaining / Math.max(meanItemChars, 1),
   )
 
+  // Consolidate the batch before proposing anything. One reduction may carry
+  // at most 8 actions no matter how many interactions it covers, so a
+  // batched reducer must summarise a span of dialogue into a few facts
+  // rather than emit one memory per message. That consolidation is the point
+  // of batching, not a workaround for the limit.
+  const groups = new Map()
   for (const item of evidence) {
     const topic = benchTopic(item.text)
-    const mine = sameSpeakerPrior(projected, item.speaker)
+    const key = `${item.speaker}\u0000${topic.trim().toLowerCase()}`
+    if (!groups.has(key)) {
+      groups.set(key, { items: [], speaker: item.speaker, topic })
+    }
+    // Newest evidence last: the group's statement describes its latest state.
+    groups.get(key).items.push(item)
+  }
+
+  for (const group of groups.values()) {
+    if (actions.length >= ACTIVE_MEMORY_MAX_ACTIONS) break
+    const latest = group.items.at(-1)
+    const mine = sameSpeakerPrior(projected, group.speaker)
     const existing = mine.find((candidate) =>
-      candidate.topic.trim().toLowerCase() === topic.trim().toLowerCase())
+      candidate.topic.trim().toLowerCase() ===
+        group.topic.trim().toLowerCase())
 
     if (existing) {
-      // Same speaker revisiting a subject: correct in place instead of
-      // growing the digest. Costs no additional item and no extra lineage
-      // beyond the superseded item's own.
-      actions.push(supersedeAction(item, existing))
-      used.add(item.id)
+      actions.push(supersedeAction(latest, existing))
+      used.add(latest.id)
       continue
     }
 
@@ -200,35 +217,32 @@ export function offlineBenchReducer({ request }) {
 
     if (!roomToGrow) {
       if (mine.length >= MAX_SUMMARIZE_TARGETS) {
-        // Compact before the cap. Bounded by lineage capacity, not just
-        // item count: each target contributes its own evidence quotes and
-        // the host caps an item's total supports.
         const targets = mine.slice(0, MAX_SUMMARIZE_TARGETS)
-        actions.push(summarizeAction(item, targets))
-        used.add(item.id)
+        actions.push(summarizeAction(latest, targets))
+        used.add(latest.id)
         for (const target of targets) {
           const index = projected.indexOf(target)
           if (index >= 0) projected.splice(index, 1)
         }
         projected.push({
           id: `projected-${projected.length}`,
-          speaker: item.speaker,
-          topic,
+          speaker: group.speaker,
+          topic: group.topic,
         })
         continue
       }
-      // Nothing safe to do for this evidence. Record no memory rather than
-      // propose an action that fails the whole reduction and costs the
-      // interaction. Canonical evidence is unaffected either way.
+      // Nothing safe to do for this group. Record no memory rather than
+      // propose an action that fails the whole reduction. Canonical evidence
+      // is unaffected either way.
       continue
     }
 
-    actions.push(addAction(item, topic))
-    used.add(item.id)
+    actions.push(addAction(latest, group.topic))
+    used.add(latest.id)
     projected.push({
       id: `projected-${projected.length}`,
-      speaker: item.speaker,
-      topic,
+      speaker: group.speaker,
+      topic: group.topic,
     })
   }
 
@@ -305,6 +319,7 @@ export async function runOfflineMemoryBench({
   interactionLimit = Number.POSITIVE_INFINITY,
   onProgress,
   population,
+  reduceEvery = 1,
   workspaceDir,
 } = {}) {
   const scope = { palariId: 'offline-bench', userId: 'offline-bench-user' }
@@ -321,6 +336,9 @@ export async function runOfflineMemoryBench({
   let applied = 0
   let processed = 0
   let canonicalChars = 0
+  // The number that actually drives ingestion cost: one provider request per
+  // reducer invocation, regardless of how many interactions it covers.
+  let reducerCalls = 0
 
   try {
     const planned = population.exchanges.slice(
@@ -339,7 +357,11 @@ export async function runOfflineMemoryBench({
         userId: scope.userId,
         userMessage: exchange.userMessage,
       }, {
-        reducer: offlineBenchReducer,
+        reduceEvery,
+        reducer(payload) {
+          reducerCalls += 1
+          return offlineBenchReducer(payload)
+        },
         reducerId: OFFLINE_BENCH_REDUCER_ID,
       })
       processed += 1
@@ -354,6 +376,20 @@ export async function runOfflineMemoryBench({
         blocked: Number(result.reductionBlocked ?? 0),
         processed,
         total: planned.length,
+      })
+    }
+
+    // A cadence above 1 leaves a tail of deferred interactions. Drain it so
+    // the reported digest reflects the whole population.
+    if (reduceEvery > 1) {
+      await reducePendingTurns(brain, {
+        ...scope,
+        maxTurns: 10_000,
+        reducer(payload) {
+          reducerCalls += 1
+          return offlineBenchReducer(payload)
+        },
+        reducerId: OFFLINE_BENCH_REDUCER_ID,
       })
     }
 
@@ -391,6 +427,8 @@ export async function runOfflineMemoryBench({
       )),
       processed,
       questionId: population.questionId,
+      reduceEvery,
+      reducerCalls,
       reductionsApplied: applied,
       retention: retentionReport(population, memories),
     }
@@ -410,6 +448,8 @@ export function formatOfflineBenchReport(result) {
     `canonical rows    ${result.canonicalRows}`,
     `reductions        ${result.reductionsApplied} applied, ` +
       `${result.pending} still actionable`,
+    `provider calls    ${result.reducerCalls} reducer requests ` +
+      `(cadence: reduce every ${result.reduceEvery} interaction(s))`,
     `quarantined       ${result.blocked.length}`,
     `digest            ${result.digestItems}/${ACTIVE_MEMORY_MAX_ITEMS} items, ` +
       `${result.digestChars}/${ACTIVE_MEMORY_MAX_DIGEST_CHARS} chars, ` +

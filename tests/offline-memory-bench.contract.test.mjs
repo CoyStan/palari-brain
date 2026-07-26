@@ -171,6 +171,7 @@ test('bench arguments parse without reaching for a dataset by default', () => {
     dataset: false,
     limit: Number.POSITIVE_INFINITY,
     questionId: '08e075c7',
+    reduceEvery: 1,
   })
   assert.equal(parseBenchArgs(['--dataset']).dataset, true)
   // Naming a question implies the real dataset.
@@ -178,8 +179,85 @@ test('bench arguments parse without reaching for a dataset by default', () => {
     dataset: true,
     limit: Number.POSITIVE_INFINITY,
     questionId: 'abc123',
+    reduceEvery: 1,
   })
+  assert.equal(parseBenchArgs(['--reduce-every', '20']).reduceEvery, 20)
+  assert.throws(
+    () => parseBenchArgs(['--reduce-every', '0']),
+    /positive integer/,
+  )
   assert.equal(parseBenchArgs(['--limit', '25']).limit, 25)
   assert.throws(() => parseBenchArgs(['--limit', '0']), /positive integer/)
   assert.throws(() => parseBenchArgs(['--nope']), /Unknown argument/)
 })
+
+test('batching cuts provider calls, and the bench shows what it costs',
+  async () => {
+    const population = syntheticPopulation({ interactions: 240 })
+    const everyMessage = await runOfflineMemoryBench({
+      population,
+      reduceEvery: 1,
+    })
+    const batched = await runOfflineMemoryBench({
+      population,
+      reduceEvery: 20,
+    })
+
+    // One reducer request per message is the expensive default.
+    assert.equal(everyMessage.reducerCalls, 240)
+    // Batching consolidates a span of dialogue into a few facts per call.
+    assert.ok(
+      batched.reducerCalls * 10 < everyMessage.reducerCalls,
+      `expected a large saving, got ${batched.reducerCalls} vs 240`,
+    )
+
+    // Both must still complete: batching may not trade correctness for cost.
+    for (const result of [everyMessage, batched]) {
+      assert.equal(result.pending, 0)
+      assert.deepEqual(result.blocked, [])
+      assert.equal(result.digestReady, true)
+      assert.equal(result.canonicalRows, 480)
+    }
+
+    // The honest cost, measured rather than assumed: consolidating a wide
+    // span makes a rare one-off fact more likely to be summarised away.
+    // Recovering it is what memory exploration is for.
+    assert.equal(everyMessage.retention.retained, 1)
+    assert.equal(batched.retention.retained, 0)
+  })
+
+test('a failing interaction inside a batch is isolated, not blamed on the batch',
+  async () => {
+    // Batch reduction must not let one bad interaction quarantine the 19
+    // innocent ones queued alongside it.
+    const exchanges = Array.from({ length: 6 }, (unused, index) => ({
+      assistantMessage: '',
+      eventAt: new Date(Date.UTC(2025, 0, 1) + index * 3_600_000)
+        .toISOString(),
+      hasAnswer: false,
+      representedTurns: 1,
+      sourceMessageId: `batch:${index}`,
+      userMessage: index === 3
+        // Too large to render into any request: a deterministic failure.
+        ? `oversized ${'x'.repeat(45_000)}`
+        : `About my commute route: revision ${index} is current.`,
+    }))
+    const result = await runOfflineMemoryBench({
+      population: {
+        exchanges,
+        label: 'poison-in-batch',
+        questionId: 'batch-0001',
+      },
+      reduceEvery: 6,
+    })
+    // Exactly the one poison interaction is quarantined.
+    assert.equal(result.blocked.length, 1)
+    assert.deepEqual(
+      result.blocked.map((unit) => unit.category),
+      ['REDUCER_INPUT_CAPACITY'],
+    )
+    // Everything else got through, and nothing is left stuck.
+    assert.equal(result.pending, 0)
+    assert.ok(result.digestItems > 0)
+    assert.equal(result.canonicalRows, 6)
+  })

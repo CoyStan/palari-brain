@@ -230,7 +230,9 @@ A missing, throwing, malformed, oversized, stale, or invalid reducer:
 - returns structured `reductionStatus`, `reductionReason`,
   `reductionPending`, and `reductionBlocked` fields from ingestion.
 
-Later units do not skip the failed unit while it is still actionable.
+Later units do not skip the failed unit while it is still actionable. Once a
+unit is quarantined the queue head has moved, so a drain keeps going rather
+than leaving healthy interactions stuck behind one standing defect.
 Recovery is explicit:
 
 ```js
@@ -249,6 +251,40 @@ An exact replay of an already reduced turn does not call the reducer or
 advance revisions. A failed turn may be replayed to retry its still-pending
 unit.
 
+### Reduction cadence and batching
+
+By default `ingestChatTurn` reduces after every interaction. That makes the
+reducer re-read all of active memory on every message, so per-message cost
+scales with how much is remembered. Two options decouple them:
+
+```js
+await ingestChatTurn(brain, turn, {
+  reducer,
+  reducerId: 'my-memory-reducer/v1',
+  reduceEvery: 20,          // reduce once per 20 pending interactions
+  maxInteractionsPerCall: 20, // how many may share one reducer request
+})
+```
+
+Waiting loses nothing. Canonical dialogue is already durable, and recall
+falls back to the complete journal while reduction is pending.
+
+A batched request carries several interactions' evidence at once, but the
+response is still capped at 8 actions. A batched reducer must therefore
+**consolidate** — summarise a span of dialogue into a few facts — rather than
+emit one memory per message. That consolidation is the point of batching.
+
+Batch size is bounded by the 40,000-character request cap; interactions are
+added from the queue head while the rendered request still fits, and the head
+is never skipped. If a batch fails, no single interaction has earned an
+attempt against it, so the same head is retried one interaction at a time.
+That isolates the offender and lets the rest through.
+
+Batching trades recall of rare one-off facts for cost: a wide consolidation
+span makes an unusual fact more likely to be summarised away.
+`npm run memory-bench -- --reduce-every N` measures that trade-off on your
+own data before you commit to a cadence.
+
 ### Quarantine
 
 A unit that keeps failing is quarantined rather than blocking its scope
@@ -261,6 +297,8 @@ recorded as reduced. What changes is that later interactions are no longer
 stuck behind it. The gap is reported, never hidden:
 
 - `digestStatus()` returns `blocked` and a `ready_with_gaps` status;
+- a drain that quarantined something returns `completed_with_gaps` and
+  `quarantinedCategories`, never plain `completed`;
 - ingestion returns `reductionBlocked` and `reduction.quarantined`;
 - `recallMemory` and `answerQuestion` carry `reductionBlocked` through;
 - `listBlockedReductions(scope)` names every quarantined unit and why.

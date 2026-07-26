@@ -898,8 +898,13 @@ test('one oversized interaction is quarantined, stays canonical, and does not bl
   )
   // The request never renders, so no provider call is ever made for it.
   assert.equal(reducerCalls, 0)
-  assert.equal(first.reductionStatus, 'failed')
-  assert.equal(first.reduction.errorCategory, 'REDUCER_INPUT_CAPACITY')
+  // The drain quarantines the offender and keeps going, so the call reports
+  // completion with an explicit gap rather than plain success or failure.
+  assert.equal(first.reductionStatus, 'completed_with_gaps')
+  assert.deepEqual(
+    first.reduction.quarantinedCategories,
+    ['REDUCER_INPUT_CAPACITY'],
+  )
   // Deterministic failure: retrying cannot change the outcome, so the unit
   // quarantines on the first attempt rather than after maxAttempts.
   assert.equal(first.reduction.quarantined, true)
@@ -1005,7 +1010,10 @@ test('a repeatedly failing reducer quarantines after maxAttempts instead of bloc
       ...SCOPE,
       ...failing,
     })
-    assert.equal(retry.status, 'failed')
+    assert.equal(
+      retry.status,
+      attempt === 3 ? 'completed_with_gaps' : 'failed',
+    )
     assert.equal(retry.quarantined, attempt === 3)
   }
   assert.equal(reducerCalls, 3)
@@ -1060,6 +1068,7 @@ test('a lower maxAttempts quarantines sooner', async (t) => {
       reducerId: REDUCER_ID,
     },
   )
+  assert.equal(result.reductionStatus, 'completed_with_gaps')
   assert.equal(result.reduction.quarantined, true)
   assert.equal(result.reductionBlocked, 1)
 })

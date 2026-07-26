@@ -8,6 +8,7 @@
 import { createHash } from 'node:crypto'
 
 import {
+  buildMemoryReductionRequest,
   ACTIVE_MEMORY_MAX_BASIS,
   ACTIVE_MEMORY_MAX_DIGEST_CHARS,
   ACTIVE_MEMORY_MAX_ITEMS,
@@ -830,12 +831,20 @@ export function createMemoryDigestStore(store, {
     }))
   }
 
-  function prepareOldest(scopeInput, reducerId) {
+  function prepareOldest(scopeInput, reducerId, {
+    maxInteractions = 1,
+  } = {}) {
     if (!store?.enabled) return null
     const scope = normalizedScope(scopeInput)
+    const batchLimit = Number(maxInteractions)
+    if (!Number.isSafeInteger(batchLimit) || batchLimit < 1) {
+      throw new TypeError('maxInteractions must be a positive integer.')
+    }
     store.db.exec('BEGIN IMMEDIATE')
     try {
-      const unit = store.db.prepare(`
+      // Contiguous from the queue head. Never skip a unit: chronology and
+      // supersession both depend on interactions arriving in order.
+      const units = store.db.prepare(`
         SELECT *
         FROM dialogue_reduction_units
         WHERE palari_id = ?
@@ -843,8 +852,9 @@ export function createMemoryDigestStore(store, {
           AND status = 'pending'
           AND blocked_at IS NULL
         ORDER BY unit_order ASC
-        LIMIT 1
-      `).get(scope.palariId, scope.userId)
+        LIMIT ?
+      `).all(scope.palariId, scope.userId, batchLimit)
+      const unit = units[0]
       if (!unit) {
         store.db.exec('COMMIT')
         return null
@@ -923,8 +933,8 @@ export function createMemoryDigestStore(store, {
         }
       }
 
-      const evidenceRows = pendingUnitEvidence(store.db, unit)
-      if (!evidenceRows.length) {
+      const headEvidence = pendingUnitEvidence(store.db, unit)
+      if (!headEvidence.length) {
         const error = new Error(
           'Pending reduction unit has no live evidence.',
         )
@@ -932,25 +942,61 @@ export function createMemoryDigestStore(store, {
         throw error
       }
       const prior = listMemoriesFromDb(store.db, scope)
+      const utilization = Object.freeze({
+        // Measured with the same serializer that enforces the cap, so the
+        // reducer sees the number it will actually be judged against.
+        digestChars: renderedDigestChars(prior),
+        items: prior.length,
+      })
+      const priorForBuild = priorForRequest(prior)
+      const baseRevision = Number(state.digest_revision)
+
+      // Grow the batch one interaction at a time while the rendered request
+      // still fits. The queue head is always included: if it alone does not
+      // fit, that is REDUCER_INPUT_CAPACITY and must surface as such rather
+      // than silently producing an empty batch.
+      const accepted = [{ evidence: headEvidence, unit }]
+      for (const candidate of units.slice(1)) {
+        const candidateEvidence = pendingUnitEvidence(store.db, candidate)
+        if (!candidateEvidence.length) break
+        const trial = [...accepted, {
+          evidence: candidateEvidence,
+          unit: candidate,
+        }]
+        try {
+          buildMemoryReductionRequest({
+            baseRevision,
+            evidence: evidenceForRequest(
+              trial.flatMap((entry) => entry.evidence),
+            ),
+            prior: priorForBuild,
+            utilization,
+          })
+        } catch {
+          break
+        }
+        accepted.push(trial.at(-1))
+      }
+
+      const evidenceRows = accepted.flatMap((entry) => entry.evidence)
       const prepared = Object.freeze({
-        baseRevision: Number(state.digest_revision),
+        baseRevision,
         contractVersion: ACTIVE_MEMORY_REDUCER_VERSION,
         evidence: evidenceForRequest(evidenceRows),
         evidenceIds: Object.freeze(
           evidenceRows.map((row) => String(row.id)),
         ),
-        prior: priorForRequest(prior),
+        interactions: accepted.length,
+        prior: priorForBuild,
         priorIds: Object.freeze(prior.map((item) => item.id)),
-        // Measured with the same serializer that enforces the cap, so the
-        // reducer sees the number it will actually be judged against.
-        utilization: Object.freeze({
-          digestChars: renderedDigestChars(prior),
-          items: prior.length,
-        }),
+        utilization,
         reducerId: normalizedReducerId,
         scope: Object.freeze(scope),
         sourceRevision: Number(state.source_revision),
         unitOrder: Number(unit.unit_order),
+        unitOrders: Object.freeze(
+          accepted.map((entry) => Number(entry.unit.unit_order)),
+        ),
       })
       store.db.exec('COMMIT')
       return prepared
@@ -1011,6 +1057,26 @@ export function createMemoryDigestStore(store, {
       ? limit
       : DEFAULT_REDUCTION_MAX_ATTEMPTS
     const now = isoNow(clock)
+    if (Number(prepared.unitOrders?.length ?? 1) > 1) {
+      // A batch failed. Any member could be responsible, so no single unit
+      // has earned an attempt against it. The caller retries at batch size
+      // one, which isolates the offender and lets the rest through.
+      store.db.prepare(`
+        UPDATE dialogue_reduction_units
+        SET last_error_category = ?
+        WHERE unit_order = ?
+          AND palari_id = ?
+          AND user_id = ?
+          AND status = 'pending'
+          AND blocked_at IS NULL
+      `).run(
+        safeCategory,
+        prepared.unitOrder,
+        prepared.scope.palariId,
+        prepared.scope.userId,
+      )
+      return { batched: true, blocked: false, category: safeCategory }
+    }
     store.db.exec('BEGIN IMMEDIATE')
     try {
       const updated = store.db.prepare(`
@@ -1164,20 +1230,13 @@ export function createMemoryDigestStore(store, {
         error.code = 'REDUCER_CONTRACT_CONFLICT'
         throw error
       }
-      const unit = store.db.prepare(`
-        SELECT *
-        FROM dialogue_reduction_units
-        WHERE unit_order = ?
-          AND palari_id = ?
-          AND user_id = ?
-          AND status = 'pending'
-          AND blocked_at IS NULL
-      `).get(
-        prepared.unitOrder,
-        scope.palariId,
-        scope.userId,
-      )
-      const oldest = store.db.prepare(`
+      const batchOrders = prepared.unitOrders?.length
+        ? [...prepared.unitOrders]
+        : [prepared.unitOrder]
+      // The whole batch must still be the contiguous queue head. If anything
+      // was applied, deleted, or quarantined in between, the proposal was
+      // computed against a state that no longer exists.
+      const head = store.db.prepare(`
         SELECT unit_order
         FROM dialogue_reduction_units
         WHERE palari_id = ?
@@ -1185,15 +1244,28 @@ export function createMemoryDigestStore(store, {
           AND status = 'pending'
           AND blocked_at IS NULL
         ORDER BY unit_order ASC
-        LIMIT 1
-      `).get(scope.palariId, scope.userId)
-      if (!unit || Number(oldest?.unit_order) !== prepared.unitOrder) {
+        LIMIT ?
+      `).all(scope.palariId, scope.userId, batchOrders.length)
+        .map((row) => Number(row.unit_order))
+      if (head.length !== batchOrders.length ||
+        head.some((order, index) => order !== batchOrders[index])) {
+        const error = new Error('Reducer unit is no longer the queue head.')
+        error.code = 'REDUCER_STATE_CONFLICT'
+        throw error
+      }
+      const batchUnits = batchOrders.map((order) => store.db.prepare(`
+        SELECT *
+        FROM dialogue_reduction_units
+        WHERE unit_order = ? AND palari_id = ? AND user_id = ?
+      `).get(order, scope.palariId, scope.userId))
+      if (batchUnits.some((entry) => !entry)) {
         const error = new Error('Reducer unit is no longer the queue head.')
         error.code = 'REDUCER_STATE_CONFLICT'
         throw error
       }
       const liveUnitIds = new Set(
-        pendingUnitEvidence(store.db, unit).map((row) => String(row.id)),
+        batchUnits.flatMap((entry) =>
+          pendingUnitEvidence(store.db, entry).map((row) => String(row.id))),
       )
       if (
         liveUnitIds.size !== prepared.evidenceIds.length ||
@@ -1362,15 +1434,17 @@ export function createMemoryDigestStore(store, {
       }
 
       const nextDigestRevision = Number(state.digest_revision) + 1
-      store.db.prepare(`
-        UPDATE dialogue_reduction_units
-        SET
-          status = 'applied',
-          attempts = attempts + 1,
-          last_error_category = NULL,
-          applied_at = ?
-        WHERE unit_order = ?
-      `).run(now, prepared.unitOrder)
+      for (const order of batchOrders) {
+        store.db.prepare(`
+          UPDATE dialogue_reduction_units
+          SET
+            status = 'applied',
+            attempts = attempts + 1,
+            last_error_category = NULL,
+            applied_at = ?
+          WHERE unit_order = ?
+        `).run(now, order)
+      }
       const pending = Number(store.db.prepare(`
         SELECT COUNT(*) AS count
         FROM dialogue_reduction_units
@@ -1404,10 +1478,12 @@ export function createMemoryDigestStore(store, {
         appliedActions: normalized.actions.length,
         digestChars,
         digestRevision: nextDigestRevision,
+        interactions: batchOrders.length,
         itemCount: completeItems.length,
         pending,
         status: 'completed',
         unitOrder: prepared.unitOrder,
+        unitOrders: batchOrders,
       }
     } catch (error) {
       store.db.exec('ROLLBACK')

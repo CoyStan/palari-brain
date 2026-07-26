@@ -223,8 +223,11 @@ function skippedReduction(reason, pending = 0, blocked = 0) {
   }
 }
 
+export const DEFAULT_REDUCTION_BATCH_INTERACTIONS = 20
+
 export async function reducePendingTurns(brain, {
   maxAttempts,
+  maxInteractionsPerCall = DEFAULT_REDUCTION_BATCH_INTERACTIONS,
   maxTurns = 1,
   palariId,
   reducer,
@@ -236,6 +239,7 @@ export async function reducePendingTurns(brain, {
     if (typeof brain?.reducePendingTurns === 'function') {
       return brain.reducePendingTurns({
         maxAttempts,
+        maxInteractionsPerCall,
         maxTurns,
         palariId,
         reducer,
@@ -256,11 +260,24 @@ export async function reducePendingTurns(brain, {
     return skippedReduction('reducer_missing', status.pending, status.blocked)
   }
 
+  const batchCeiling = Number(maxInteractionsPerCall)
+  if (!Number.isSafeInteger(batchCeiling) || batchCeiling < 1) {
+    throw new TypeError(
+      'maxInteractionsPerCall must be a positive integer.',
+    )
+  }
+
   const results = []
+  const quarantined = []
+  // Dropped to 1 after a batch failure so the offending interaction is
+  // isolated instead of taking the whole batch down with it.
+  let batchSize = batchCeiling
   for (let index = 0; index < turns; index += 1) {
     let prepared
     try {
-      prepared = internal.gate.prepareOldestReduction(scope, reducerId)
+      prepared = internal.gate.prepareOldestReduction(scope, reducerId, {
+        maxInteractions: batchSize,
+      })
     } catch (error) {
       const status = internal.gate.digestStatus(scope)
       return {
@@ -307,6 +324,23 @@ export async function reducePendingTurns(brain, {
         errorCategory,
         { maxAttempts },
       )
+      if (failure?.batched) {
+        // Any member of the batch could be responsible. Retry the same
+        // queue head one interaction at a time; that either succeeds or
+        // attributes the failure to the exact interaction that caused it.
+        batchSize = 1
+        index -= 1
+        continue
+      }
+      if (failure?.blocked) {
+        // The offending unit has been quarantined, so the queue head has
+        // moved and the units behind it are no longer stuck. Keep draining;
+        // stopping here would leave healthy interactions unreduced because
+        // of one standing defect.
+        quarantined.push(errorCategory)
+        batchSize = batchCeiling
+        continue
+      }
       const status = internal.gate.digestStatus(scope)
       return {
         applied: results.length,
@@ -319,6 +353,8 @@ export async function reducePendingTurns(brain, {
         status: 'failed',
       }
     }
+    // A clean pass earns the full batch size back.
+    batchSize = batchCeiling
   }
   const finalStatus = internal.gate.digestStatus(scope)
   if (finalStatus.status === 'contract_mismatch') {
@@ -336,9 +372,18 @@ export async function reducePendingTurns(brain, {
     applied: results.length,
     blocked: finalStatus.blocked,
     pending: finalStatus.pending,
+    quarantined: quarantined.length > 0,
+    quarantinedCategories: quarantined,
     reason: results.length ? '' : 'no_pending_reductions',
     results,
-    status: finalStatus.pending ? 'partial' : 'completed',
+    // A drain that quarantined something is not plainly 'completed': the
+    // queue is empty, but interactions were dropped from the digest. Mirror
+    // the digest's own `ready_with_gaps` rather than reporting clean success.
+    status: finalStatus.pending
+      ? 'partial'
+      : quarantined.length
+        ? 'completed_with_gaps'
+        : 'completed',
   }
 }
 
@@ -346,6 +391,8 @@ export async function ingestChatTurn(brain, turn = {}, {
   extractor,
   extractorId = 'unidentified-extractor',
   maxAttempts,
+  maxInteractionsPerCall,
+  reduceEvery = 1,
   reducer,
   reducerId,
 } = {}) {
@@ -356,6 +403,8 @@ export async function ingestChatTurn(brain, turn = {}, {
         extractor,
         extractorId,
         maxAttempts,
+        maxInteractionsPerCall,
+        reduceEvery,
         reducer,
         reducerId,
       })
@@ -431,23 +480,45 @@ export async function ingestChatTurn(brain, turn = {}, {
   }
 
   const evidence = internal.gate.appendEvidence(normalizedTurn)
-  const reduction = typeof reducer === 'function'
-    ? await reducePendingTurns(internal, {
-        maxAttempts,
-        maxTurns: 1,
-        palariId: normalizedTurn.palariId,
-        reducer,
-        reducerId,
-        userId: normalizedTurn.userId,
-      })
-    : (() => {
-        const status = internal.gate.digestStatus(normalizedTurn)
-        return skippedReduction(
-          'reducer_missing',
-          status.pending,
-          status.blocked,
+
+  // Reducing on every message makes the model re-read all of memory on every
+  // message, so per-message cost scales with how much is remembered. Letting
+  // interactions accumulate and reducing them together decouples the two.
+  // Canonical dialogue is already durable, so waiting loses nothing: recall
+  // falls back to the complete journal while reduction is pending.
+  const cadence = Number(reduceEvery)
+  if (!Number.isSafeInteger(cadence) || cadence < 1) {
+    throw new TypeError('reduceEvery must be a positive integer.')
+  }
+  const digestBefore = internal.gate.digestStatus(normalizedTurn)
+  // An empty queue is "nothing to do", not "waiting for more" — an exact
+  // replay of an already-reduced turn must stay a no-op either way.
+  const dueForReduction = digestBefore.pending > 0 &&
+    digestBefore.pending >= cadence
+
+  const reduction = typeof reducer !== 'function'
+    ? skippedReduction(
+        'reducer_missing',
+        digestBefore.pending,
+        digestBefore.blocked,
+      )
+    : dueForReduction
+      ? await reducePendingTurns(internal, {
+          maxAttempts,
+          maxInteractionsPerCall,
+          maxTurns: Math.ceil(digestBefore.pending / cadence),
+          palariId: normalizedTurn.palariId,
+          reducer,
+          reducerId,
+          userId: normalizedTurn.userId,
+        })
+      : skippedReduction(
+          digestBefore.pending > 0
+            ? 'reduction_deferred'
+            : 'no_pending_reductions',
+          digestBefore.pending,
+          digestBefore.blocked,
         )
-      })()
   const base = {
     alreadyPresent: evidence.existing,
     evidenceOutcomes: evidence.outcomes,

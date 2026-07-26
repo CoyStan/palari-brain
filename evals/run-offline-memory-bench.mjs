@@ -4,6 +4,7 @@
 //   npm run memory-bench -- --dataset     real LongMemEval-S, if installed
 //   npm run memory-bench -- --dataset --question 08e075c7
 //   npm run memory-bench -- --limit 50
+//   npm run memory-bench -- --reduce-every 20   batch reduction
 //
 // Offline and spend-free: no credential is read, no provider is called, and
 // no live identity or score is created.
@@ -31,6 +32,7 @@ export function parseBenchArgs(argv = []) {
     dataset: false,
     limit: Number.POSITIVE_INFINITY,
     questionId: DEFAULT_QUESTION_ID,
+    reduceEvery: 1,
   }
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
@@ -39,6 +41,12 @@ export function parseBenchArgs(argv = []) {
     } else if (arg === '--question') {
       options.questionId = String(argv[index += 1] ?? '')
       options.dataset = true
+    } else if (arg === '--reduce-every') {
+      const value = Number(argv[index += 1])
+      if (!Number.isSafeInteger(value) || value < 1) {
+        throw new Error('--reduce-every must be a positive integer.')
+      }
+      options.reduceEvery = value
     } else if (arg === '--limit') {
       const value = Number(argv[index += 1])
       if (!Number.isSafeInteger(value) || value < 1) {
@@ -105,6 +113,7 @@ async function main() {
   )
   const result = await runOfflineMemoryBench({
     interactionLimit: options.limit,
+    reduceEvery: options.reduceEvery,
     onProgress({ processed, total }) {
       if (processed % 25 === 0 || processed === total) {
         process.stdout.write(`  ...${processed}/${total}\n`)
