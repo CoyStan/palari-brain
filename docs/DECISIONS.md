@@ -1749,3 +1749,17 @@ dates. Agents record; the founder decides.
   `exactCapConfirmationRequired: true` pending exact founder confirmation of
   `$1.5944676`. The project `.env` is present and gitignored, but no credential
   value was read. No provider call, result, score, or new spend occurred.
+- 2026-07-27 (FOUNDER GO — exact J4.4K-L2 live cap confirmed) The founder
+  stated verbatim:
+  `I confirm freshSubcapUsd: 1.5944676 for
+  j4-journal-navigation-longmemeval-q1-v1.` This activates exactly the
+  already-frozen smoke-first ordinal-1 identity and no other scope. The
+  authority now records `dispatchAuthorized: true` and
+  `exactCapConfirmationRequired: false` at SHA-256
+  `9e455afd78a81fc8bbe07a227ffaa52e8043b148abe4c4aca260a8d03eae53ba`.
+  Every artifact, model, prediction, call ceiling, no-retry rule,
+  successful-smoke one-cent condition, durable receipt requirement, stop
+  before question 2, private-results rule, and publication prohibition
+  remains unchanged. At this authority cut no credential value was read, no
+  provider call or result exists, and cumulative J4 spend remains
+  `$1.0120378` accounted.

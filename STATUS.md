@@ -1,8 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-L2-P SMOKE-FIRST NAVIGATION SUCCESSOR PREPARED;
-FOUNDER GATE — EXACT `$1.5944676` FRESH SUBCAP NOT CONFIRMED
-(2026-07-27).
+Loop state: J4.4K-L2-G EXACT LIVE CAP AUTHORITY RECORDED;
+ONE-SHOT SMOKE-FIRST NAVIGATION EXECUTION AUTHORIZED (2026-07-27).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -511,6 +510,14 @@ envelope is `$1.5944676`, projecting cumulative accounted spend of
 but paid dispatch remains blocked until the founder confirms that exact fresh
 subcap. No credential value was read and no provider call, result, score, or
 new spend occurred.
+
+The founder then confirmed exactly `freshSubcapUsd: 1.5944676` for
+`j4-journal-navigation-longmemeval-q1-v1`. The tracked authority now permits
+one invocation of only that frozen identity. Every model, artifact,
+prediction, call ceiling, smoke receipt requirement, no-reroll law, private
+result rule, and stop before question 2 remains unchanged. At this authority
+cut no credential value was read, no provider call or result exists, and
+cumulative accounted spend remains `$1.0120378`.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -1182,6 +1189,16 @@ session itself).
     composition are green. Authority remains preparation-only pending exact
     founder cap confirmation; no credential value, provider call, result,
     score, or spend occurred.
+  - [x] J4.4K-L2-G — EXACT LIVE CAP AUTHORITY RECORDED 2026-07-27
+    (`this commit`). Recorded the founder's verbatim confirmation of
+    `freshSubcapUsd: 1.5944676` for only
+    `j4-journal-navigation-longmemeval-q1-v1`. Activated authority SHA-256 is
+    `9e455afd78a81fc8bbe07a227ffaa52e8043b148abe4c4aca260a8d03eae53ba`;
+    all frozen artifacts, predictions, models, scopes, call ceilings,
+    successful-smoke `<$0.01` condition, stop rules, and publication
+    prohibitions are unchanged. Four focused authority/config checks and
+    quickstart are green. No credential value, provider call, result, score,
+    or spend occurred at this cut.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1220,28 +1237,18 @@ session itself).
 
 ## Next
 
-**FOUNDER GATE.** Do not resume or alter
-`j4-active-brain-exploration-longmemeval-q1-v1`. Its failure remains sealed.
+**AUTHORIZED ONE-SHOT EXECUTION.** Do not resume or alter the sealed
+`j4-active-brain-exploration-longmemeval-q1-v1`.
 
-Fresh identity `j4-journal-navigation-longmemeval-q1-v1` is prepared but may
-not dispatch until the founder confirms exactly:
-
-`I confirm freshSubcapUsd: 1.5944676 for
-j4-journal-navigation-longmemeval-q1-v1.`
-
-That confirmation means the requested “under a cent” condition is successful
-measured smoke spend. An ambiguous failed Gemini dispatch can retain the
-meter's conservative `$0.2359296` reservation; if the founder instead means
-an absolute sub-cent ceiling under ambiguous failure, the meter must be
-redesigned before dispatch.
-
-After confirmation, use the project `.env` for `OPENAI_API_KEY` and the
-existing private provider-secrets file for `GEMINI_API_KEY`, without printing
-or committing either. The runner must first complete exactly one reducer,
-one exploration selection, and one answer continuation; require zero retry,
-measured spend below `$0.01`, and a durable verified receipt. Only then may
-the same one-shot invocation parse and replay ordinal 1, perform autonomous
-journal navigation, call one official judge, and stop.
+Invoke only the pushed
+`j4-journal-navigation-longmemeval-q1-v1` authority once. Load
+`OPENAI_API_KEY` from the project `.env` and `GEMINI_API_KEY` from the
+existing private provider-secrets file without printing either. First require
+exactly one reducer, one exploration selection, and one answer continuation,
+zero retry, successful measured spend below `$0.01`, and a durable verified
+receipt. If any smoke condition fails, seal and stop before parsing the
+dataset. Only a passing receipt permits ordinal-1 replay, autonomous journal
+navigation, one official judge, and the terminal stop.
 
 Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
 rerolls, publication, and announcement remain closed.
@@ -1554,6 +1561,11 @@ FINAL predictions, 39 runtime hashes, immutable predecessor accounting, and
 the exact `$1.5944676` fresh envelope; full suite 508 pass, 0 fail, three
 historical skips. Authority remains blocked pending exact cap confirmation;
 no credential value, provider call, result, score, or spend occurred.
+2026-07-27 — J4.4K-L2-G — this commit — Recorded the founder's exact
+`$1.5944676` fresh-cap confirmation and activated only the already-frozen
+smoke-first ordinal-1 identity. Four focused authority/config checks and
+quickstart are green; no credential value, provider call, result, score, or
+spend occurred at this authority cut.
 
 ## Product stop-rule record
 
@@ -2675,3 +2687,21 @@ the live founder gate.
    wire defect, or lose the model's exact partial tool sequence on failure.
    This is one founder-requested preparation unit paired with its gated live
    execution; it stops before the required exact cap decision.
+
+### J4.4K-L2-G exact live-cap authority
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No product byte changed.
+   It turns the already-prepared founder-requested measurement from a blocked
+   proposal into one exact one-shot authority.
+3. Does an existing framework already provide what this unit added? Provider
+   and evaluation frameworks provide spend controls; this unit adds no
+   framework, only the repository-specific founder gate.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder confirmed the exact run ID and `$1.5944676` fresh subcap verbatim.
+5. If this unit's code or record were deleted, what user-visible behavior
+   would get worse? Runtime memory would not change, but the paid run could
+   not prove that its precise identity and spend envelope were authorized.
+   This mandatory governance cut immediately precedes the approved product
+   experiment.

@@ -23,10 +23,10 @@ test('fresh contract pins its complete runtime and sealed predecessor',
     assert.equal(loaded.predictions.status, 'FINAL')
     assert.equal(loaded.predictions.predictions.length, 12)
     assert.equal(loaded.config.artifacts.length, 39)
-    assert.equal(loaded.authority.dispatchAuthorized, false)
+    assert.equal(loaded.authority.dispatchAuthorized, true)
     assert.equal(
       loaded.authority.exactCapConfirmationRequired,
-      true,
+      false,
     )
 
     const artifactAudit =
@@ -78,11 +78,16 @@ test('cap covers maximum validated responses plus a pending judge', () => {
   )
 })
 
-test('pending cap gate refuses before credential fields are read',
+test('synthetic pending cap gate refuses before credential fields are read',
   async () => {
     const loaded = await loadJournalNavigationLiveContract({
       repoRoot: REPO_ROOT,
     })
+    const pendingAuthority = {
+      ...loaded.authority,
+      dispatchAuthorized: false,
+      exactCapConfirmationRequired: true,
+    }
     const env = new Proxy({}, {
       get(_target, property) {
         if (['GEMINI_API_KEY', 'OPENAI_API_KEY'].includes(property)) {
@@ -95,8 +100,50 @@ test('pending cap gate refuses before credential fields are read',
       () => assertJournalNavigationLiveEnvironment(
         env,
         loaded.config,
-        loaded.authority,
+        pendingAuthority,
       ),
       { code: 'FOUNDER_CAP_CONFIRMATION_REQUIRED' },
+    )
+  })
+
+test('activated cap gate accepts only the exact frozen environment',
+  async () => {
+    const loaded = await loadJournalNavigationLiveContract({
+      repoRoot: REPO_ROOT,
+    })
+    const env = {
+      GEMINI_API_KEY: 'fake-gemini-key',
+      OPENAI_API_KEY: 'fake-openai-key',
+      PALARI_JOURNAL_NAVIGATION_CONFIRM_SPEND: '1',
+      PALARI_JOURNAL_NAVIGATION_CUMULATIVE_CAP_USD: '8',
+      PALARI_JOURNAL_NAVIGATION_FRESH_SUBCAP_USD: '1.5944676',
+      PALARI_JOURNAL_NAVIGATION_MODEL: 'gemini-2.5-flash-lite',
+      PALARI_JOURNAL_NAVIGATION_RUN_ID:
+        JOURNAL_NAVIGATION_LIVE_RUN_ID,
+    }
+    assert.deepEqual(
+      assertJournalNavigationLiveEnvironment(
+        env,
+        loaded.config,
+        loaded.authority,
+      ),
+      {
+        cumulativeCapUsd: 8,
+        freshSubcapUsd: 1.5944676,
+        geminiApiKey: 'fake-gemini-key',
+        openaiApiKey: 'fake-openai-key',
+        runId: JOURNAL_NAVIGATION_LIVE_RUN_ID,
+      },
+    )
+    assert.throws(
+      () => assertJournalNavigationLiveEnvironment(
+        {
+          ...env,
+          PALARI_JOURNAL_NAVIGATION_FRESH_SUBCAP_USD: '1.59',
+        },
+        loaded.config,
+        loaded.authority,
+      ),
+      { code: 'LIVE_CONFIRMATION_MISSING' },
     )
   })

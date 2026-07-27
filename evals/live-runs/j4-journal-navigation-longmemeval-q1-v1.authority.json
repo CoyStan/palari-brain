@@ -4,8 +4,8 @@
   "founderAuthorization": "Add a compatibility smoke to the exploration runner before authorising another run. One reducer call, one exploration call, one answer call — under a cent — that must pass before the 243-interaction loop starts. Then re-run.",
   "scope": "three-call-smoke-then-one-navigation-question",
   "preRunPreparationAuthorized": true,
-  "dispatchAuthorized": false,
-  "exactCapConfirmationRequired": true,
+  "dispatchAuthorized": true,
+  "exactCapConfirmationRequired": false,
   "providers": [
     "gemini",
     "openai"
