@@ -138,6 +138,39 @@ export const PROVIDER_DEVIATIONS = Object.freeze([
     unit: 'J4.4K-L3-E',
   }),
   Object.freeze({
+    // J4.4K-P2-E, first proposal. The provider treated one semantic update as
+    // three independently named dimensions even though `targets` is a list of
+    // prior-memory aliases, not a list of fields being changed.
+    expectedFragment: 'actions[0].targets',
+    id: 'supersede-with-multiple-targets',
+    observed: true,
+    payload: payload(action({
+      op: 'supersede',
+      targets: ['residence', 'workplace', 'shift_type'],
+    })),
+    repairable: true,
+    summary:
+      'A supersede names several semantic dimensions instead of exactly one prior-memory alias.',
+    unit: 'J4.4K-P2-E',
+  }),
+  Object.freeze({
+    // J4.4K-P2-E, repair proposal. The first objection said only that one
+    // target was required. The provider reduced the list to one item but used
+    // the prior fact's topic ("occupation") rather than its supplied alias.
+    // This proves that a field-only objection is not always repair-usable.
+    expectedFragment: 'actions[0].targets[0]',
+    id: 'supersede-target-is-topic-not-prior-ref',
+    observed: true,
+    payload: payload(action({
+      op: 'supersede',
+      targets: ['residence'],
+    })),
+    repairable: true,
+    summary:
+      'A supersede uses the prior fact topic instead of its supplied memory alias.',
+    unit: 'J4.4K-P2-E',
+  }),
+  Object.freeze({
     expectedFragment: 'Lean memory proposal',
     id: 'markdown-fenced-json',
     observed: false,

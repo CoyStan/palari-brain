@@ -92,6 +92,8 @@ test('the corpus records the live failures that produced it', () => {
       'host-timestamp-as-quote',
       'unenumerated-vocabulary-value',
       'empty-successful-response',
+      'supersede-with-multiple-targets',
+      'supersede-target-is-topic-not-prior-ref',
     ],
   )
   for (const deviation of OBSERVED_PROVIDER_DEVIATIONS) {

@@ -1,8 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-P2-G ONE-DOLLAR DEVELOPMENT PROBE AUTHORIZED;
-PRE-RUN CUT PUSH REQUIRED BEFORE EXACTLY ONE DISPATCH; V3 REMAINS CLOSED
-(2026-07-27).
+Loop state: J4.4K-P2-E ONE-DOLLAR DEVELOPMENT PROBE RECORDED;
+FOUNDER GATE — PROBE AUTHORITY CONSUMED AND V3 REMAINS CLOSED (2026-07-27).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -1398,6 +1397,33 @@ session itself).
     a dataset question, judge, score, publication, or any post-observation
     behavioral repair. A bad provider result is a finding and will not be
     rerolled.
+  - [x] J4.4K-P2-E — ONE-DOLLAR DEVELOPMENT PROBE RECORDED 2026-07-27
+    (`this commit`). Invoked pushed `8008f22` exactly once with one attempt,
+    one possible repair, and the authorized `$1.00` hard cap. Gemini returned
+    HTTP 200 / `STOP` twice using `gemini-2.5-flash-lite`. The first proposal
+    used three topic/field labels as `actions[0].targets`; the host rejected it
+    because a supersede requires exactly one target. The repair reduced that
+    list to `["occupation"]`, the prior fact's topic, instead of the supplied
+    prior-memory alias `m0`; the host rejected it as
+    `actions[0].targets[0] is unknown`.
+
+    Outcome: zero accepted, zero repaired, one rejected; two physical
+    dispatches and two logical invocations. The first dispatch used 293 input
+    and 244 output tokens for `$0.0001269`; the repair used 639 input and 271
+    output tokens for `$0.0001723`. Total measured and accounted probe spend
+    is `$0.0002992`, well below `$1.00`. There were no transport retries.
+    Private transcripts and the chained meter ledger remain gitignored under
+    `.palari-probe/`; no secret or score entered git.
+
+    The provider did receive the host objection, so the feedback wire works.
+    The objection was not semantically sufficient: it said to use one target
+    but did not say that the value must be one supplied `prior[].ref` alias, or
+    that this input had no same-topic prior eligible for supersession. Both
+    observed deviations are now permanent offline corpus fixtures. No prompt,
+    validator, reducer, v3 byte, or product behavior was changed after the
+    observation, and the probe was not rerun. The probe/corpus/repair contracts
+    report 22/22; the full suite reports 541 pass, 0 fail, and three skips;
+    quickstart is green. V3's closed contract tests remain green.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1442,16 +1468,22 @@ identities:
 `j4-journal-navigation-longmemeval-q1-v1` or
 `j4-journal-navigation-longmemeval-q1-v2`.
 
-After this cut is pushed, execute exactly one development probe invocation:
-`npm run probe -- --attempts 1 --repairs 1`, with
-`PALARI_PROBE_CONFIRM_SPEND=1` and `PALARI_PROBE_CAP_USD=1`. Record its first
-honest result and stop. Do not rerun it regardless of whether the proposal is
-accepted, repaired, rejected, or transport-failed.
+**FOUNDER GATE.** The one-dollar probe authority is consumed. Do not rerun it.
+Its first proposal and its one repair both reached Gemini and were host-
+rejected. The smallest prospective correction is to make the target contract
+mechanical: a supersede target must be exactly one supplied `prior[].ref`
+alias, and a repair objection must identify the eligible alias or state that
+none exists. That correction and any successor probe require a fresh founder
+GO.
 
 Fresh `j4-journal-navigation-longmemeval-q1-v3` remains prepared but not
 authorized to dispatch. Its exact required fresh subcap is `$1.7001252`
 against the unchanged `$8.00` cumulative cap. Activating it still requires a
-new founder message confirming that exact subcap and identity.
+new founder message confirming that exact subcap and identity. Its frozen
+opening does not include the identity-free probe; for operator accounting, the
+probe adds `$0.0002992`, making total J4-related accounted spend
+`$1.2484699` and projected cumulative maximum with v3 `$2.9485951`, still
+below `$8.00`.
 
 Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
 rerolls, publication, and announcement remain closed.
@@ -1803,6 +1835,11 @@ the probe was not rerun.
 default cap and misleading dispatch/spend fields, then recorded authority for
 exactly one one-attempt/one-repair invocation under a `$1.00` hard cap. V3
 remains closed and nothing was dispatched at this cut.
+2026-07-27 — J4.4K-P2-E — this commit — Invoked pushed `8008f22` once.
+Gemini's first proposal used multiple field-like targets; its repair used a
+topic instead of the supplied prior alias. Both were host-rejected. Two
+physical calls spent `$0.0002992`; the deviations are now offline fixtures,
+the probe was not rerun, and v3 remains closed.
 
 ## Product stop-rule record
 
@@ -3143,3 +3180,23 @@ harness code and stops at the founder gate.
 This is a bounded correction coupled directly to the authorized measurement.
 It does not open another infrastructure unit; the only next action is the
 single live probe and closeout.
+
+### J4.4K-P2-E one-dollar provider-probe closeout
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No. It measured the live
+   provider seam and found that one repair turn receives the objection but
+   still cannot infer the target alias contract from the current wording.
+3. Does an existing framework already provide what this unit added? No product
+   feature was added. The observed failure is specific to the boundary between
+   Palari's lean proposal aliases and its host validator.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly authorized one probe under a raised `$1.00` cap.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? Runtime behavior would not change, but the same
+   multi-target/topic-as-target provider deviations could again consume a
+   live attempt without being represented in offline regression coverage.
+
+This is a live measurement closeout. It changes no runtime behavior and stops
+at the founder gate before any prompt or repair-policy correction.

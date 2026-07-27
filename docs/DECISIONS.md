@@ -2030,3 +2030,40 @@ dates. Agents record; the founder decides.
   change after seeing the result. The pre-live correction and authority must
   be committed and pushed before the one invocation. Its first result is
   final and will not be rerolled.
+
+- 2026-07-27 (J4.4K-P2-E — one-dollar development probe closeout) The pushed
+  `8008f22` authority cut was invoked exactly once with `attempts: 1`,
+  `maxRepairs: 1`, `PALARI_PROBE_CONFIRM_SPEND=1`, and a `$1.00` cap. Both
+  physical Gemini requests returned HTTP 200, finish reason `STOP`, and model
+  version `gemini-2.5-flash-lite`; no transport retry occurred.
+
+  The first proposal tried to supersede with
+  `targets: ["occupation", "workplace", "shift_type"]`. The host rejected it
+  with `actions[0].targets must contain one item for supersede.` The separately
+  metered repair request included the rejected JSON and that exact objection.
+  Gemini reduced the first target list to `["occupation"]`, which is the
+  prior fact's topic, not its supplied alias `m0`. The host then rejected the
+  repaired proposal with `actions[0].targets[0] is unknown.` Nothing was
+  stored.
+
+  The first call used 293 input and 244 output tokens and cost `$0.0001269`.
+  The repair used 639 input and 271 output tokens and cost `$0.0001723`.
+  Total probe spend is therefore `$0.0002992`: zero accepted, zero repaired,
+  one rejected across two physical dispatches and two logical invocations.
+  Private chained evidence remains under gitignored `.palari-probe/`; no
+  secret, response, result, or score enters git.
+
+  This proves that the objection reaches the model but that a field-count-only
+  objection is not enough to make the target contract mechanical. The two
+  live deviations — multiple field-like supersede targets, then a topic used
+  instead of a prior alias — are recorded in
+  `evals/provider-deviation-corpus.mjs`. This is offline regression evidence,
+  not a behavioral repair. No prompt, schema, validator, reducer, or frozen v3
+  byte changed after the observation, and no rerun occurred.
+
+  The probe's `$0.0002992` is separate from v3's frozen predecessor opening.
+  For overall operator accounting it raises J4-related accounted spend from
+  `$1.2481707` to `$1.2484699` and the projected cumulative maximum if v3 were
+  later activated from `$2.9482959` to `$2.9485951`, still below the unchanged
+  `$8.00` cap. V3 remains closed. Any target-contract correction, successor
+  probe, or v3 dispatch requires a fresh founder GO.
