@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-L3-E TERMINAL V2 COMPATIBILITY-SMOKE FAILURE SEALED;
-FOUNDER GATE — AUTONOMOUS SEARCH REMAINS UNMEASURED (2026-07-27).
+Loop state: J4.4K-L4-P FRESH V3 SUCCESSOR FROZEN;
+FOUNDER GATE — EXACT CAP CONFIRMATION AND ANY LIVE DISPATCH REMAIN CLOSED
+(2026-07-27).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -1313,6 +1314,43 @@ session itself).
     open-path skip; the full suite reports 510 pass, 0 fail, and four skips.
     Quickstart, dry bake-off, package dry-run, and private-manifest
     verification are green. No score is committed or published.
+  - [x] J4.4K-L4-P — REPAIRING V3 SUCCESSOR PREPARED 2026-07-27
+    (`this commit`). Froze fresh
+    `j4-journal-navigation-longmemeval-q1-v3` from `f4f50e6`. Both v1 and v2
+    remain terminal and their tracked/private evidence verifies. V3 adopts
+    `createRepairingLeanMemoryReducer` only for the reducer compatibility
+    smoke, with `maxRepairs: 1`; the repair is a second writer operation with
+    ID `smoke:reducer:repair:1`, not a transport retry. Empty successful
+    reducer content is terminal `LEAN_REDUCER_EMPTY_RESPONSE` and is never
+    repaired. The smoke therefore uses three provider calls when the first
+    proposal validates and at most four when it needs the one repair.
+
+    V3 carries the exact sealed v1+v2 cumulative accounted/measured/uncertain
+    spend of `$1.2481707`/`$0.7738105`/`$0.4743602`. Its exact fresh subcap is
+    `$1.7001252`: two maximum writer responses (`2 * $0.1056576`) plus nine
+    maximum exploration responses (`9 * $0.1049600`) plus one full judge
+    reservation (`$0.5441700`). The projected cumulative maximum is
+    `$2.9482959`, below the unchanged `$8.00` cap. The extra repair raises the
+    maximum physical provider dispatch count from 11 to 12.
+
+    Authority is frozen closed (`dispatchAuthorized: false`,
+    `exactCapConfirmationRequired: true`). All twelve v2 predictions remain
+    FINAL and unchanged; expecting exactly three smoke calls now explicitly
+    predicts that the first reducer proposal validates. A used repair is an
+    honest miss on that row, not a reroll. The 41-file runtime closure,
+    predecessor chain, distinct repair operation, empty-response
+    classification, three-call path, four-call metered path, full
+    one-question fake-HTTP composition, and frozen v2 drift list all verify
+    offline. Config/authority/FINAL-predictions SHA-256 values are
+    `e038f767140f0e07d3457bdcca056d4ce6707832199d0c01849b7c5a2a3c7e8b`,
+    `62ba61ed7311d26da8749cd629b9277d883dec6e5a02e356055faaae55107079`,
+    and
+    `f931dfcbe446c18f2721207142a38ff362f390a35e951c2359ab3529168b0740`;
+    artifact-set SHA-256 is
+    `3df2ad60f83425d51d1007de422a39bc37e56030de79bf44ba10decd53e6beb0`.
+    Focused contracts report 30 pass, 0 fail; the full suite reports 540 pass,
+    0 fail, and three skips; quickstart is green. No credential, provider
+    call, result, score, or new spend occurred.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1355,25 +1393,21 @@ session itself).
 identities:
 `j4-active-brain-exploration-longmemeval-q1-v1` or
 `j4-journal-navigation-longmemeval-q1-v1` or
-`j4-journal-navigation-longmemeval-q1-v2`. The timestamp repair is confirmed,
-but the v2 continuation returned an empty provider candidate. This is not
-evidence for or against exact-only autonomous journal search: the benchmark
-model never saw the LongMemEval question.
+`j4-journal-navigation-longmemeval-q1-v2`.
 
-The smallest next decision is whether to accept this as provider variance and
-authorize a fresh v3 with the unchanged bytes, or first add a cheaper
-continuation-only compatibility probe to measure empty-response frequency.
-Either option is a fresh identity and provider call requiring explicit GO.
+Fresh `j4-journal-navigation-longmemeval-q1-v3` is prepared but not
+authorized to dispatch. Its exact required fresh subcap is `$1.7001252`
+against the unchanged `$8.00` cumulative cap. Dispatch requires a new founder
+message confirming that exact subcap and identity; activating authority is a
+separate pushed cut point.
 
-J4.4K-A1 (below) prepared the second option and one thing more. It added, as
-new files only, an offline corpus of what real models actually returned, a
-one-turn host-guided repair reducer, and an ungated development probe. None
-of the 39 frozen v2 artifacts changed — the authorized
-`j4-journal-navigation-longmemeval-q1-v2` dispatch and its expected-drift
-list of exactly `evals/run-journal-navigation-live.mjs` are intact, so that
-run remains executable exactly as frozen. Adopting the repair reducer or the
-probe requires a fresh successor identity and an explicit GO; nothing was
-dispatched.
+Recommendation before activating v3: run `npm run probe` first. Every live
+failure so far has occurred at the provider boundary, and the probe can test
+the same writer/repair/continuation wire without consuming or terminating the
+v3 identity. It is still a live provider call and therefore still requires
+explicit founder GO, `PALARI_PROBE_CONFIRM_SPEND=1`, and its own cap no higher
+than `$1`. If the founder instead chooses direct v3 activation, no prompt,
+model, artifact, prediction, or cap arithmetic should change.
 
 Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
 rerolls, publication, and announcement remain closed.
@@ -1710,6 +1744,10 @@ timestamp-safe reducer and `memory_find("compatibility token")` succeeded,
 then Gemini returned an empty HTTP-200 answer continuation. The smoke stopped
 before dataset parsing; fresh measured/accounted spend is
 `$0.0001219`/`$0.2360515`, and v2 is sealed.
+2026-07-27 — J4.4K-L4-P — this commit — Froze the founder-requested v3
+successor with one separately metered reducer repair, terminal empty-response
+classification, exact `$1.7001252` fresh envelope, sealed v1+v2 accounting,
+and authority closed pending exact founder confirmation. Nothing dispatched.
 
 ## Product stop-rule record
 
@@ -2983,3 +3021,28 @@ list unchanged.
 
 This unit is infrastructure by the stop rule. It is the first in a row, and
 the next unit must be a measurement or a product change, not a third harness.
+
+### J4.4K-L4-P repairing v3 successor preparation
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No product behavior
+   changed. It converted the A1 repair instrument into a bounded, frozen
+   measurement successor without dispatching it.
+3. Does an existing framework already provide what this unit added? Provider
+   clients retry transport faults, but they do not preserve Palari's strict
+   quote provenance while sending the host's precise validation objection
+   back as a separately metered operation.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly ordered a fresh v3 with `maxRepairs: 1`, terminal
+   `LEAN_REDUCER_EMPTY_RESPONSE`, sealed-spend carry-forward, frozen
+   predictions/hashes, and no dispatch.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Nothing in the package today. The next live measurement would lose
+   its one bounded path for correcting a rejected proposal and could again
+   spend a sealed identity on a catalogued provider deviation.
+
+This is a second infrastructure unit in a row. The charter's drift threshold
+is reached: no further harness work may start. The next unit must be a
+founder-authorized live measurement (the recommended probe or v3 itself) or a
+product change.

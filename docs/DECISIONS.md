@@ -1915,3 +1915,52 @@ dates. Agents record; the founder decides.
   remains executable as frozen. Adopting the repair reducer or the probe in a
   metered path requires a fresh successor identity and an explicit GO. Suite
   521/521 with 14 skips; quickstart green.
+
+- 2026-07-27 (FOUNDER PREPARATION AUTHORITY — J4.4K-L4-P repairing v3
+  successor) The founder directed the agent to pull `f4f50e6`, verify the
+  offline baseline and exact frozen-v2 drift, then prepare — but not dispatch
+  — fresh `j4-journal-navigation-longmemeval-q1-v3`. The authorized
+  preparation scope is exact: adopt `createRepairingLeanMemoryReducer` with
+  `maxRepairs: 1`, classify empty successful reducer content as terminal
+  `LEAN_REDUCER_EMPTY_RESPONSE`, carry sealed v1+v2 spend under the unchanged
+  `$8.00` cumulative cap, freeze config/authority/artifacts/FINAL predictions,
+  push, and stop for a separate dispatch GO.
+
+  V3 changes no package source and preserves both terminal identities. Its
+  smoke reducer may dispatch `smoke:reducer:1` and, only after the host rejects
+  that proposal, the distinct operation
+  `smoke:reducer:repair:1`. The second request contains the rejected proposal
+  and the validator's exact objection, passes through the same validator, and
+  is accounted as a second writer request. It is not a retry. Empty content
+  has nothing to correct, so it stops after the first request and is never
+  repaired. Offline tests cover the valid three-call path, rejected-then-
+  repaired four-call path through the real metered wire, empty-response
+  terminal path, call order, one-repair bound, full 243-interaction fake-HTTP
+  composition, and stop before question 2.
+
+  The sealed opening is `$1.2481707` accounted, `$0.7738105` measured, and
+  `$0.4743602` uncertain. The additional possible writer response adds exactly
+  `$0.1056576` to v2's fresh envelope. V3 therefore reserves
+  `$1.7001252` fresh: two maximum writer responses
+  (`2 * $0.1056576`) plus nine maximum exploration responses
+  (`9 * $0.1049600`) plus one full judge reservation (`$0.5441700`).
+  Projected cumulative maximum is `$2.9482959`, below `$8.00`. Maximum
+  physical provider dispatches rise by one, from 11 to 12.
+
+  The same twelve outcomes remain FINAL. The three-call row is intentionally
+  unchanged: it predicts that the first reducer proposal validates. If the
+  repair is used, that row misses even if the smoke later passes. Authority is
+  frozen closed with `dispatchAuthorized: false` and
+  `exactCapConfirmationRequired: true`. Config, authority, FINAL predictions,
+  and the 41-file artifact set hash to
+  `e038f767140f0e07d3457bdcca056d4ce6707832199d0c01849b7c5a2a3c7e8b`,
+  `62ba61ed7311d26da8749cd629b9277d883dec6e5a02e356055faaae55107079`,
+  `f931dfcbe446c18f2721207142a38ff362f390a35e951c2359ab3529168b0740`,
+  and
+  `3df2ad60f83425d51d1007de422a39bc37e56030de79bf44ba10decd53e6beb0`.
+  No credential or network access, result, score, publication, or spend
+  occurred. Focused contracts pass 30/30; the full suite reports 540 pass, 0
+  fail, and three skips; quickstart is green. The recommended next live action
+  is the identity-free development probe, because it can shake out provider
+  wire deviations without consuming v3, but the probe is itself founder-gated
+  spend and was not run here.

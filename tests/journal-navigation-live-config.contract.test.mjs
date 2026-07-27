@@ -81,9 +81,9 @@ test('terminal v2 contract pins its pre-run runtime and v1 predecessor',
         uncertainUsd: predecessor.uncertainUsd,
       },
       {
-        accountedUsd: 1.0121192,
-        measuredUsd: 0.7736886,
-        uncertainUsd: 0.2384306,
+        accountedUsd: 1.2481707,
+        measuredUsd: 0.7738105,
+        uncertainUsd: 0.4743602,
       },
     )
   })

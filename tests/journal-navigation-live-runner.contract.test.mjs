@@ -28,7 +28,7 @@ import {
 import {
   JOURNAL_NAVIGATION_LIVE_RUN_ID,
   loadJournalNavigationLiveContract,
-} from '../evals/journal-navigation-live-config.mjs'
+} from '../evals/journal-navigation-live-v3-config.mjs'
 import {
   assertJournalNavigationRunOpen,
   createJournalNavigationCallGate,
@@ -114,13 +114,13 @@ function httpSuccess(content, {
   })
 }
 
-test('runner import keeps both one-shot identities sealed',
+test('runner import keeps both predecessors sealed and opens only v3',
   async () => {
     assert.deepEqual(
       JOURNAL_NAVIGATION_TERMINAL_RUN_IDS,
       [
         'j4-journal-navigation-longmemeval-q1-v1',
-        JOURNAL_NAVIGATION_LIVE_RUN_ID,
+        'j4-journal-navigation-longmemeval-q1-v2',
       ],
     )
     assert.equal(
@@ -130,15 +130,21 @@ test('runner import keeps both one-shot identities sealed',
       ]),
       JOURNAL_NAVIGATION_LIVE_RUN_ID,
     )
+    assert.equal(
+      assertJournalNavigationRunOpen(
+        JOURNAL_NAVIGATION_LIVE_RUN_ID,
+      ),
+      JOURNAL_NAVIGATION_LIVE_RUN_ID,
+    )
     assert.throws(
       () => assertJournalNavigationRunOpen(
-        JOURNAL_NAVIGATION_LIVE_RUN_ID,
+        'j4-journal-navigation-longmemeval-q1-v1',
       ),
       { code: 'RUN_TERMINAL' },
     )
     assert.throws(
       () => assertJournalNavigationRunOpen(
-        'j4-journal-navigation-longmemeval-q1-v1',
+        'j4-journal-navigation-longmemeval-q1-v2',
       ),
       { code: 'RUN_TERMINAL' },
     )
@@ -169,6 +175,26 @@ test('runner import keeps both one-shot identities sealed',
       { code: 'RUN_ID_REQUIRED' },
     )
     assert.equal(reads, 0)
+  })
+
+test('prepared v3 refuses before credentials, result paths, or dispatch',
+  async () => {
+    let credentialReads = 0
+    await assert.rejects(
+      main({
+        args: ['--run', JOURNAL_NAVIGATION_LIVE_RUN_ID],
+        env: new Proxy({}, {
+          get(_target, property) {
+            if (['GEMINI_API_KEY', 'OPENAI_API_KEY'].includes(property)) {
+              credentialReads += 1
+            }
+            return undefined
+          },
+        }),
+      }),
+      { code: 'FOUNDER_CAP_CONFIRMATION_REQUIRED' },
+    )
+    assert.equal(credentialReads, 0)
   })
 
 test('private terminal smoke evidence verifies when present',
@@ -228,7 +254,10 @@ test('private terminal smoke evidence verifies when present',
 
 test('private v2 terminal evidence preserves the empty continuation',
   async (context) => {
-    const paths = journalNavigationLiveResultPaths(SOURCE_ROOT)
+    const paths = journalNavigationLiveResultPaths(
+      SOURCE_ROOT,
+      'j4-journal-navigation-longmemeval-q1-v2',
+    )
     let manifestBytes
     try {
       manifestBytes = await readFile(paths.artifactManifestPath)
@@ -377,7 +406,132 @@ test('real product smoke completes one reducer and one native tool round trip',
     }
   })
 
-test('call gate refuses a fourth smoke call before transport', async () => {
+test('real product smoke repairs one rejected reducer proposal', async () => {
+  const root = await mkdtemp(
+    join(tmpdir(), 'palari-navigation-live-repair-smoke-'),
+  )
+  const requests = []
+  try {
+    const gate = createJournalNavigationCallGate(
+      async (request) => {
+        requests.push(structuredClone(request))
+        if (request.operationId === 'smoke:reducer:1') {
+          const input = JSON.parse(
+            request.body.contents[0].parts[0].text,
+          )
+          const evidence = input.evidence[0]
+          return {
+            text: JSON.stringify({
+              actions: [{
+                epistemic: 'asserted',
+                evidenceQuotes: [`${evidence.text} paraphrased`],
+                evidenceRefs: [evidence.ref],
+                op: 'add',
+                statement: 'A rejected first proposal.',
+                targets: [],
+                timeEvidenceRef: '',
+                timeQuote: '',
+                topic: 'compatibility token',
+              }],
+            }),
+          }
+        }
+        if (request.operationId === 'smoke:reducer:repair:1') {
+          assert.equal(request.body.contents.length, 1)
+          const input = JSON.parse(
+            request.body.contents[0].parts[0].text,
+          )
+          assert.match(
+            input.rejection.reason,
+            /evidenceQuotes/u,
+          )
+          assert.match(input.rejectedResponse, /paraphrased/u)
+          const evidence = input.evidence[0]
+          return {
+            text: JSON.stringify({
+              actions: [{
+                epistemic: 'asserted',
+                evidenceQuotes: [evidence.text],
+                evidenceRefs: [evidence.ref],
+                op: 'add',
+                statement:
+                  `The user's compatibility token is ${JOURNAL_NAVIGATION_GEMINI_SMOKE_TOKEN}.`,
+                targets: [],
+                timeEvidenceRef: '',
+                timeQuote: '',
+                topic: 'compatibility token',
+              }],
+            }),
+          }
+        }
+        if (request.operationId === 'smoke:explore:1') {
+          return functionCallResponse()
+        }
+        if (request.operationId === 'smoke:answer:1') {
+          return finalResponse()
+        }
+        assert.fail(`Unexpected operation ${request.operationId}`)
+      },
+    )
+    const result = await runJournalNavigationCompatibilitySmoke({
+      callGate: gate,
+      expectedModel: MODEL,
+      workspacePaths: {
+        smokeNavigationWorkspaceDir: join(root, 'navigation'),
+        smokeReducerWorkspaceDir: join(root, 'reducer'),
+      },
+    })
+
+    assert.deepEqual(
+      requests.map(({ operationId }) => operationId),
+      [
+        'smoke:reducer:1',
+        'smoke:reducer:repair:1',
+        'smoke:explore:1',
+        'smoke:answer:1',
+      ],
+    )
+    assert.equal(result.reducer.providerCalls, 2)
+    assert.equal(result.reducer.repairs, 1)
+    assert.equal(result.reducer.digestItems, 1)
+    assert.equal(result.exploration.modelDispatches, 2)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('empty reducer response is terminal and is never repaired', async () => {
+  const root = await mkdtemp(
+    join(tmpdir(), 'palari-navigation-live-empty-smoke-'),
+  )
+  let dispatched = 0
+  try {
+    const gate = createJournalNavigationCallGate(async () => {
+      dispatched += 1
+      return { text: '' }
+    })
+    await assert.rejects(
+      runJournalNavigationCompatibilitySmoke({
+        callGate: gate,
+        expectedModel: MODEL,
+        workspacePaths: {
+          smokeNavigationWorkspaceDir: join(root, 'navigation'),
+          smokeReducerWorkspaceDir: join(root, 'reducer'),
+        },
+      }),
+      { code: 'LEAN_REDUCER_EMPTY_RESPONSE' },
+    )
+    assert.equal(dispatched, 1)
+    assert.deepEqual(
+      gate.calls.map(({ operationId }) => operationId),
+      ['smoke:reducer:1'],
+    )
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('call gate permits one reducer repair and refuses a third', async () => {
   let dispatched = 0
   const gate = createJournalNavigationCallGate(async () => {
     dispatched += 1
@@ -387,6 +541,17 @@ test('call gate refuses a fourth smoke call before transport', async () => {
     operationId: 'smoke:reducer:1',
     purpose: 'writer',
   })
+  await gate.call({
+    operationId: 'smoke:reducer:repair:1',
+    purpose: 'writer',
+  })
+  await assert.rejects(
+    gate.call({
+      operationId: 'smoke:reducer:repair:2',
+      purpose: 'writer',
+    }),
+    { code: 'SMOKE_CALL_ORDER_INVALID' },
+  )
   gate.enterSmokeNavigation()
   await gate.call({
     operationId: 'smoke:explore:1',
@@ -403,7 +568,7 @@ test('call gate refuses a fourth smoke call before transport', async () => {
     }),
     { code: 'SMOKE_CALL_ORDER_INVALID' },
   )
-  assert.equal(dispatched, 3)
+  assert.equal(dispatched, 4)
 })
 
 test('navigation failures preserve the exact partial host-tool audit', () => {
@@ -453,7 +618,7 @@ test('navigation failures preserve the exact partial host-tool audit', () => {
   assert.equal(JSON.stringify(evidence).includes(secret), false)
 })
 
-test('the exact three-call smoke composes through the real hard-cap wire',
+test('the predicted three-call smoke composes through the real hard-cap wire',
   async () => {
     const root = await mkdtemp(
       join(tmpdir(), 'palari-navigation-real-meter-smoke-'),
@@ -554,12 +719,124 @@ test('the exact three-call smoke composes through the real hard-cap wire',
     }
   })
 
-test('historical open path proves smoke gates replay, navigation, and judge',
-  {
-    skip: JOURNAL_NAVIGATION_TERMINAL_RUN_IDS.includes(
-      JOURNAL_NAVIGATION_LIVE_RUN_ID,
-    ) && 'the one-shot identity is terminal',
-  },
+test('the four-call repair smoke composes through the real hard-cap wire',
+  async () => {
+    const root = await mkdtemp(
+      join(tmpdir(), 'palari-navigation-real-meter-repair-'),
+    )
+    const bodies = []
+    const transport = await createIncrementalLongMemEvalGeminiTransport({
+      cumulativeCapUsd: 2,
+      explorationGeneration: JOURNAL_NAVIGATION_GEMINI_GENERATION,
+      explorationSystemInstruction:
+        JOURNAL_NAVIGATION_GEMINI_SYSTEM_INSTRUCTION,
+      explorationToolConfig: JOURNAL_NAVIGATION_GEMINI_TOOL_CONFIG,
+      explorationTools: JOURNAL_NAVIGATION_GEMINI_TOOLS,
+      fetchImpl: async (_url, init) => {
+        const body = JSON.parse(init.body)
+        bodies.push(body)
+        if (bodies.length === 1) {
+          const input = JSON.parse(
+            body.contents[0].parts[0].text,
+          )
+          const evidence = input.evidence[0]
+          return httpSuccess({
+            parts: [{
+              text: JSON.stringify({
+                actions: [{
+                  epistemic: 'asserted',
+                  evidenceQuotes: [`${evidence.text} paraphrased`],
+                  evidenceRefs: [evidence.ref],
+                  op: 'add',
+                  statement: 'A rejected first proposal.',
+                  targets: [],
+                  timeEvidenceRef: '',
+                  timeQuote: '',
+                  topic: 'compatibility token',
+                }],
+              }),
+            }],
+            role: 'model',
+          })
+        }
+        if (bodies.length === 2) {
+          assert.equal(body.contents.length, 1)
+          const input = JSON.parse(
+            body.contents[0].parts[0].text,
+          )
+          assert.match(input.rejectedResponse, /paraphrased/u)
+          assert.match(input.rejection.reason, /evidenceQuotes/u)
+          const evidence = input.evidence[0]
+          return httpSuccess({
+            parts: [{
+              text: JSON.stringify({
+                actions: [{
+                  epistemic: 'asserted',
+                  evidenceQuotes: [evidence.text],
+                  evidenceRefs: [evidence.ref],
+                  op: 'add',
+                  statement:
+                    `The user's compatibility token is ${JOURNAL_NAVIGATION_GEMINI_SMOKE_TOKEN}.`,
+                  targets: [],
+                  timeEvidenceRef: '',
+                  timeQuote: '',
+                  topic: 'compatibility token',
+                }],
+              }),
+            }],
+            role: 'model',
+          })
+        }
+        if (bodies.length === 3) {
+          return httpSuccess(
+            functionCallResponse().candidateContent,
+            { toolTokens: 9 },
+          )
+        }
+        assert.equal(bodies.length, 4)
+        return httpSuccess(finalResponse().candidateContent, {
+          toolTokens: 12,
+        })
+      },
+      freshSubcapUsd: 1.5,
+      geminiApiKey: 'fake-real-wire-repair-key',
+      journalPath: join(root, 'meter.jsonl'),
+      openingAccountedUsd: 0,
+      transcriptDirectory: join(root, 'transcripts'),
+      writerGeneration: LEAN_MEMORY_REDUCER_GENERATION,
+    })
+    try {
+      const gate = createJournalNavigationCallGate(
+        transport.callGemini,
+      )
+      transport.installNetworkGuard()
+      const result = await runJournalNavigationCompatibilitySmoke({
+        callGate: gate,
+        expectedModel: MODEL,
+        workspacePaths: {
+          smokeNavigationWorkspaceDir: join(root, 'navigation'),
+          smokeReducerWorkspaceDir: join(root, 'reducer'),
+        },
+      })
+      const verified = await transport.verify()
+      assert.equal(result.reducer.digestItems, 1)
+      assert.equal(result.reducer.providerCalls, 2)
+      assert.equal(result.reducer.repairs, 1)
+      assert.equal(result.exploration.modelDispatches, 2)
+      assert.equal(bodies.length, 4)
+      assert.equal(verified.meter.attempts, 4)
+      assert.deepEqual(verified.meter.logicalRequests, {
+        explore: 2,
+        writer: 2,
+      })
+      assert.equal(verified.meter.terminal, false)
+    } finally {
+      transport.closeNetworkGuard()
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+test('open v3 path proves smoke gates replay, navigation, and judge',
   async () => {
     const root = await mkdtemp(
       join(tmpdir(), 'palari-navigation-main-composition-'),
@@ -582,15 +859,15 @@ test('historical open path proves smoke gates replay, navigation, and judge',
       },
       authorityPath: join(
         root,
-        'evals/live-runs/j4-journal-navigation-longmemeval-q1-v2.authority.json',
+        `evals/live-runs/${JOURNAL_NAVIGATION_LIVE_RUN_ID}.authority.json`,
       ),
       configPath: join(
         root,
-        'evals/live-runs/j4-journal-navigation-longmemeval-q1-v2.json',
+        `evals/live-runs/${JOURNAL_NAVIGATION_LIVE_RUN_ID}.json`,
       ),
       predictionsPath: join(
         root,
-        'evals/predictions/j4-journal-navigation-longmemeval-q1-v2.json',
+        `evals/predictions/${JOURNAL_NAVIGATION_LIVE_RUN_ID}.json`,
       ),
     }
     const geminiKey = `gemini-${randomUUID()}`
@@ -611,7 +888,7 @@ test('historical open path proves smoke gates replay, navigation, and judge',
         dependencies: {
           async auditArtifacts() {
             return {
-              artifacts: 39,
+              artifacts: 41,
               artifactSetSha256: 'a'.repeat(64),
             }
           },
@@ -624,7 +901,7 @@ test('historical open path proves smoke gates replay, navigation, and judge',
           assertEnvironment() {
             return {
               cumulativeCapUsd: 8,
-              freshSubcapUsd: 1.5944676,
+              freshSubcapUsd: 1.7001252,
               geminiApiKey: geminiKey,
               openaiApiKey: openaiKey,
               runId: JOURNAL_NAVIGATION_LIVE_RUN_ID,
@@ -741,10 +1018,10 @@ test('historical open path proves smoke gates replay, navigation, and judge',
           log() {},
           async verifyPredecessor() {
             return {
-              accountedUsd: 1.0121192,
-              measuredUsd: 0.7736886,
+              accountedUsd: 1.2481707,
+              measuredUsd: 0.7738105,
               runId: 'sealed-predecessor',
-              uncertainUsd: 0.2384306,
+              uncertainUsd: 0.4743602,
             }
           },
         },

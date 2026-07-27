@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "runId": "j4-journal-navigation-longmemeval-q1-v3",
+  "founderAuthorization": "Prepare — do not dispatch — a fresh j4-journal-navigation-longmemeval-q1-v3 successor that adopts createRepairingLeanMemoryReducer with maxRepairs: 1 and classifies an empty provider response as LEAN_REDUCER_EMPTY_RESPONSE.",
+  "scope": "repairing-smoke-then-one-navigation-question",
+  "preRunPreparationAuthorized": true,
+  "dispatchAuthorized": false,
+  "exactCapConfirmationRequired": true,
+  "providers": [
+    "gemini",
+    "openai"
+  ],
+  "models": {
+    "exploration": "gemini-2.5-flash-lite",
+    "judge": "gpt-4o-2024-08-06",
+    "smokeReducer": "gemini-2.5-flash-lite"
+  },
+  "questionIds": [
+    "08e075c7"
+  ],
+  "smokeMinimumGeminiDispatches": 3,
+  "smokeMaximumGeminiDispatches": 4,
+  "smokeMaximumReducerDispatches": 2,
+  "smokeReducerMaxRepairs": 1,
+  "mainMaximumGeminiDispatches": 7,
+  "mainMaximumToolCalls": 6,
+  "mainProviderReducerDispatches": 0,
+  "judgeOperations": 1,
+  "maximumPhysicalProviderDispatches": 12,
+  "transportRetryDispatches": 0,
+  "question2Allowed": false,
+  "cumulativeCapUsd": 8,
+  "freshSubcapUsd": 1.7001252,
+  "publish": false
+}

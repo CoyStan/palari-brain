@@ -1,7 +1,7 @@
 // Founder-gated, one-shot journal-navigation measurement.
 //
 // Order is the contract:
-//   preflight -> exactly three-call compatibility smoke -> durable receipt
+//   preflight -> three/four-call compatibility smoke -> durable receipt
 //   -> parse/replay LongMemEval ordinal 1 -> autonomous navigation -> judge
 //   -> stop before question 2.
 //
@@ -42,8 +42,10 @@ import {
 } from './arms/journal-navigation-arm.mjs'
 import {
   LEAN_MEMORY_REDUCER_GENERATION,
-  createLeanMemoryReducer,
 } from './arms/lean-memory-reducer-contract.mjs'
+import {
+  createRepairingLeanMemoryReducer,
+} from './arms/lean-memory-reducer-repair.mjs'
 import {
   buildIncrementalLongMemEvalJudgeBody,
 } from './incremental-longmemeval-judge.mjs'
@@ -53,7 +55,7 @@ import {
 import {
   createIncrementalLongMemEvalGeminiTransport,
 } from './incremental-longmemeval-runtime.mjs'
-import * as liveConfig from './journal-navigation-live-config.mjs'
+import * as liveConfig from './journal-navigation-live-v3-config.mjs'
 import {
   gradeJournalNavigationPredictionsFromEvidence,
 } from './journal-navigation-prediction-oracle.mjs'
@@ -80,16 +82,16 @@ const execFile = promisify(execFileCallback)
 export const JOURNAL_NAVIGATION_LIVE_REPO_ROOT = dirname(here)
 export const JOURNAL_NAVIGATION_LIVE_RESULTS_ROOT = 'evals/results'
 
-// Terminal evidence exists for v1. Its seal is checked before dependencies,
-// files, credentials, result paths, dataset access, or network. V2 is the
-// fresh one-shot successor and never resumes or overwrites v1.
+// Terminal evidence exists for v1 and v2. Their seals are checked before
+// credentials, result creation, dataset parsing, or network. V3 is the fresh
+// one-shot successor and never resumes or overwrites either predecessor.
 export const JOURNAL_NAVIGATION_TERMINAL_RUN_IDS = Object.freeze([
   'j4-journal-navigation-longmemeval-q1-v1',
-  liveConfig.JOURNAL_NAVIGATION_LIVE_RUN_ID,
+  'j4-journal-navigation-longmemeval-q1-v2',
 ])
 const terminalRunIds = new Set(JOURNAL_NAVIGATION_TERMINAL_RUN_IDS)
 
-const PREDECESSOR = Object.freeze({
+const V1_PREDECESSOR = Object.freeze({
   authority: Object.freeze({
     path:
       'evals/live-runs/j4-journal-navigation-longmemeval-q1-v1.authority.json',
@@ -138,6 +140,58 @@ const PREDECESSOR = Object.freeze({
       'evals/results/j4-journal-navigation-longmemeval-q1-v1/transcripts/gemini/smoke-reducer-1-attempt-1--dc816d1bde826038.json',
     sha256:
       'c6fd4de03bf15f18ca563f1107161b1ca966a7059e216ecbd08463fb67ee5b3f',
+  }),
+})
+
+const V2_PREDECESSOR = Object.freeze({
+  authority: Object.freeze({
+    path:
+      'evals/live-runs/j4-journal-navigation-longmemeval-q1-v2.authority.json',
+    sha256:
+      '36bbcb040b72c99b166271715154aadecdad76299b2996d03d73d7808d0baefb',
+  }),
+  config: Object.freeze({
+    path:
+      'evals/live-runs/j4-journal-navigation-longmemeval-q1-v2.json',
+    sha256:
+      '12208c4a60ff9362d91c9a631ef508ecd4b281618048ed6e0ec5a5c274979a9a',
+  }),
+  manifest: Object.freeze({
+    path:
+      'evals/results/j4-journal-navigation-longmemeval-q1-v2/artifact-manifest.json',
+    sha256:
+      '3426117fc4789f60681d65529845316c3acd03cc5bfc09d04030dd8d7e733f1f',
+  }),
+  predictions: Object.freeze({
+    path:
+      'evals/predictions/j4-journal-navigation-longmemeval-q1-v2.json',
+    sha256:
+      '56251b0c4e573b8f8bb75320bbb6d56ebd9fe1603c664929a7826267657915c7',
+  }),
+  report: Object.freeze({
+    path:
+      'evals/results/j4-journal-navigation-longmemeval-q1-v2/report.json',
+    sha256:
+      '76ab53bd90b1095eeefde3c0fc3d2a33a17ec2542c0183cc3640f59ff33c5615',
+  }),
+  runId: 'j4-journal-navigation-longmemeval-q1-v2',
+  runState: Object.freeze({
+    path:
+      'evals/results/j4-journal-navigation-longmemeval-q1-v2/run-state.json',
+    sha256:
+      '999bd47caf206fd05e21f4ccf209ca1974893abdde347877e5fa7aa7f53cff18',
+  }),
+  runner: Object.freeze({
+    commit: '538d3a6aa7b346839ce975a9796cc838c10ec8b1',
+    path: 'evals/run-journal-navigation-live.mjs',
+    sha256:
+      'e34a1d54727c852c8761866787a8c7eb96305c4088c42faa601c4812a2496671',
+  }),
+  transcript: Object.freeze({
+    path:
+      'evals/results/j4-journal-navigation-longmemeval-q1-v2/transcripts/gemini/smoke-answer-1-attempt-1--5682340ef92a5450.json',
+    sha256:
+      '4eddb5524964ac45f9f76b683af5d9e7b27eebe1b87e43907c328b179f141108',
   }),
 })
 
@@ -379,11 +433,13 @@ export async function auditJournalNavigationTrackedArtifacts({
     'evals/arms/journal-navigation-arm.mjs',
     'evals/arms/journal-navigation-gemini-live-adapter.mjs',
     'evals/arms/lean-memory-reducer-contract.mjs',
+    'evals/arms/lean-memory-reducer-repair.mjs',
     'evals/incremental-longmemeval-hard-cap-gemini.mjs',
     'evals/incremental-longmemeval-judge-transport.mjs',
     'evals/incremental-longmemeval-judge.mjs',
     'evals/incremental-longmemeval-runtime.mjs',
     'evals/journal-navigation-live-config.mjs',
+    'evals/journal-navigation-live-v3-config.mjs',
     'evals/journal-navigation-prediction-oracle.mjs',
     'evals/longmemeval-plan.mjs',
     'evals/run-journal-navigation-live.mjs',
@@ -408,64 +464,89 @@ export async function auditJournalNavigationTrackedArtifacts({
 export async function verifyJournalNavigationPredecessor({
   repoRoot = JOURNAL_NAVIGATION_LIVE_REPO_ROOT,
 } = {}) {
-  for (const entry of [
-    PREDECESSOR.authority,
-    PREDECESSOR.config,
-    PREDECESSOR.manifest,
-    PREDECESSOR.predictions,
-    PREDECESSOR.report,
-    PREDECESSOR.runState,
-    PREDECESSOR.transcript,
-  ]) {
-    if (await sha256File(resolve(repoRoot, entry.path)) !== entry.sha256) {
+  for (const predecessor of [V1_PREDECESSOR, V2_PREDECESSOR]) {
+    for (const entry of [
+      predecessor.authority,
+      predecessor.config,
+      predecessor.manifest,
+      predecessor.predictions,
+      predecessor.report,
+      predecessor.runState,
+      predecessor.transcript,
+    ]) {
+      if (await sha256File(resolve(repoRoot, entry.path)) !== entry.sha256) {
+        throw new JournalNavigationLiveError(
+          'PREDECESSOR_CHANGED',
+          `Sealed predecessor changed: ${entry.path}.`,
+        )
+      }
+    }
+    if (await sha256GitFile(
+      repoRoot,
+      predecessor.runner.commit,
+      predecessor.runner.path,
+    ) !== predecessor.runner.sha256) {
       throw new JournalNavigationLiveError(
         'PREDECESSOR_CHANGED',
-        `Sealed predecessor changed: ${entry.path}.`,
+        `The sealed ${predecessor.runId} runner differs from its pinned git object.`,
       )
     }
+    await verifyJ4ArtifactManifest(resolve(
+      repoRoot,
+      `evals/results/${predecessor.runId}`,
+    ))
   }
-  if (await sha256GitFile(
-    repoRoot,
-    PREDECESSOR.runner.commit,
-    PREDECESSOR.runner.path,
-  ) !== PREDECESSOR.runner.sha256) {
-    throw new JournalNavigationLiveError(
-      'PREDECESSOR_CHANGED',
-      'The sealed v1 runner differs from its pinned git object.',
-    )
-  }
-  await verifyJ4ArtifactManifest(resolve(
-    repoRoot,
-    `evals/results/${PREDECESSOR.runId}`,
-  ))
-  const runState = JSON.parse(await readFile(
-    resolve(repoRoot, PREDECESSOR.runState.path),
+  const v1State = JSON.parse(await readFile(
+    resolve(repoRoot, V1_PREDECESSOR.runState.path),
     'utf8',
   ))
-  if (runState.status !== 'failed' ||
-    runState.identity?.runId !== PREDECESSOR.runId ||
-    runState.question?.question2Started !== false ||
-    runState.smoke?.datasetLoaded !== false ||
-    runState.smoke?.receiptFile !== null ||
-    runState.meter?.gemini?.attempts !== 1 ||
-    !sameJson(runState.meter?.gemini?.logicalRequests, {
+  const v2State = JSON.parse(await readFile(
+    resolve(repoRoot, V2_PREDECESSOR.runState.path),
+    'utf8',
+  ))
+  if (v1State.status !== 'failed' ||
+    v1State.identity?.runId !== V1_PREDECESSOR.runId ||
+    v1State.question?.question2Started !== false ||
+    v1State.smoke?.datasetLoaded !== false ||
+    v1State.smoke?.receiptFile !== null ||
+    v1State.meter?.gemini?.attempts !== 1 ||
+    !sameJson(v1State.meter?.gemini?.logicalRequests, {
       writer: 1,
     }) ||
-    runState.meter?.judge?.attempts !== 0 ||
-    !sameUsd(runState.spend?.cumulativeAccountedUsd, 1.0121192) ||
-    !sameUsd(runState.spend?.cumulativeMeasuredUsd, 0.7736886) ||
-    !sameUsd(runState.spend?.cumulativeUncertainUsd, 0.2384306)) {
+    v1State.meter?.judge?.attempts !== 0 ||
+    !sameUsd(v1State.spend?.cumulativeAccountedUsd, 1.0121192) ||
+    !sameUsd(v1State.spend?.cumulativeMeasuredUsd, 0.7736886) ||
+    !sameUsd(v1State.spend?.cumulativeUncertainUsd, 0.2384306) ||
+    v2State.status !== 'failed' ||
+    v2State.identity?.runId !== V2_PREDECESSOR.runId ||
+    v2State.failure?.code !== 'GEMINI_CONTENT_INVALID' ||
+    v2State.question?.question2Started !== false ||
+    v2State.smoke?.datasetLoaded !== false ||
+    v2State.smoke?.receiptFile !== null ||
+    v2State.meter?.gemini?.attempts !== 3 ||
+    !sameJson(v2State.meter?.gemini?.logicalRequests, {
+      writer: 1,
+      explore: 2,
+    }) ||
+    v2State.meter?.judge?.attempts !== 0 ||
+    !sameUsd(v2State.spend?.cumulativeAccountedUsd, 1.2481707) ||
+    !sameUsd(v2State.spend?.cumulativeMeasuredUsd, 0.7738105) ||
+    !sameUsd(v2State.spend?.cumulativeUncertainUsd, 0.4743602)) {
     throw new JournalNavigationLiveError(
       'PREDECESSOR_STATE_CHANGED',
-      'Sealed predecessor state no longer matches its terminal evidence.',
+      'Sealed v1/v2 predecessor state no longer matches its terminal evidence.',
     )
   }
   return {
-    accountedUsd: 1.0121192,
-    measuredUsd: 0.7736886,
-    uncertainUsd: 0.2384306,
-    manifestSha256: PREDECESSOR.manifest.sha256,
-    runId: PREDECESSOR.runId,
+    accountedUsd: 1.2481707,
+    measuredUsd: 0.7738105,
+    uncertainUsd: 0.4743602,
+    manifestSha256: V2_PREDECESSOR.manifest.sha256,
+    runId: V2_PREDECESSOR.runId,
+    sealedRunIds: [
+      V1_PREDECESSOR.runId,
+      V2_PREDECESSOR.runId,
+    ],
   }
 }
 
@@ -476,41 +557,44 @@ export function createJournalNavigationCallGate(callGemini) {
   let phase = 'smoke_reducer'
   const calls = []
   let benchmarkDispatch = 0
-
-  const expectedSmoke = [
-    {
-      operationId: 'smoke:reducer:1',
-      phase: 'smoke_reducer',
-      purpose: 'writer',
-    },
-    {
-      operationId: 'smoke:explore:1',
-      phase: 'smoke_navigation',
-      purpose: 'explore',
-    },
-    {
-      operationId: 'smoke:answer:1',
-      phase: 'smoke_navigation',
-      purpose: 'explore',
-    },
-  ]
+  let smokeNavigationDispatch = 0
+  let smokeReducerDispatch = 0
 
   return Object.freeze({
     calls,
 
     async call(request = {}) {
       const physicalCall = calls.length + 1
-      if (phase.startsWith('smoke')) {
-        const expected = expectedSmoke[calls.length]
-        if (!expected ||
-          expected.phase !== phase ||
-          request.operationId !== expected.operationId ||
-          request.purpose !== expected.purpose) {
+      if (phase === 'smoke_reducer') {
+        const nextSmokeReducerDispatch = smokeReducerDispatch + 1
+        const expectedOperationId = nextSmokeReducerDispatch === 1
+          ? 'smoke:reducer:1'
+          : 'smoke:reducer:repair:1'
+        if (nextSmokeReducerDispatch >
+            liveConfig.JOURNAL_NAVIGATION_LIVE_SCOPE
+              .smokeMaximumReducerDispatches ||
+          request.operationId !== expectedOperationId ||
+          request.purpose !== 'writer') {
           throw new JournalNavigationLiveError(
             'SMOKE_CALL_ORDER_INVALID',
-            'Compatibility smoke attempted a call outside its exact three-call sequence.',
+            'Compatibility smoke attempted a reducer call outside its frozen one-repair sequence.',
           )
         }
+        smokeReducerDispatch = nextSmokeReducerDispatch
+      } else if (phase === 'smoke_navigation') {
+        const nextSmokeNavigationDispatch = smokeNavigationDispatch + 1
+        const expectedOperationId = nextSmokeNavigationDispatch === 1
+          ? 'smoke:explore:1'
+          : 'smoke:answer:1'
+        if (nextSmokeNavigationDispatch > 2 ||
+          request.operationId !== expectedOperationId ||
+          request.purpose !== 'explore') {
+          throw new JournalNavigationLiveError(
+            'SMOKE_CALL_ORDER_INVALID',
+            'Compatibility smoke attempted a navigation call outside its exact two-call sequence.',
+          )
+        }
+        smokeNavigationDispatch = nextSmokeNavigationDispatch
       } else if (phase === 'benchmark') {
         benchmarkDispatch += 1
         if (request.purpose !== 'explore' ||
@@ -551,8 +635,9 @@ export function createJournalNavigationCallGate(callGemini) {
 
     enterSmokeNavigation() {
       if (phase !== 'smoke_reducer' ||
-        calls.length !== 1 ||
-        calls[0].status !== 'success') {
+        ![1, 2].includes(smokeReducerDispatch) ||
+        calls.length !== smokeReducerDispatch ||
+        calls.some(({ status }) => status !== 'success')) {
         throw new JournalNavigationLiveError(
           'SMOKE_PHASE_INVALID',
           'Reducer smoke must pass before navigation smoke.',
@@ -563,11 +648,12 @@ export function createJournalNavigationCallGate(callGemini) {
 
     enterBenchmark() {
       if (phase !== 'smoke_navigation' ||
-        calls.length !== 3 ||
+        smokeNavigationDispatch !== 2 ||
+        calls.length !== smokeReducerDispatch + smokeNavigationDispatch ||
         calls.some(({ status }) => status !== 'success')) {
         throw new JournalNavigationLiveError(
           'SMOKE_PHASE_INVALID',
-          'All three smoke calls must pass before benchmark dispatch.',
+          'All three or four smoke calls must pass before benchmark dispatch.',
         )
       }
       phase = 'benchmark'
@@ -582,6 +668,8 @@ export function createJournalNavigationCallGate(callGemini) {
         benchmarkDispatch,
         calls: clone(calls),
         phase,
+        smokeNavigationDispatch,
+        smokeReducerDispatch,
       }
     },
   })
@@ -624,17 +712,21 @@ async function runReducerCompatibilitySmoke({
       )
     }
     let providerCalls = 0
-    const reducer = createLeanMemoryReducer({
-      async invoke({ body }) {
+    const reducer = createRepairingLeanMemoryReducer({
+      async invoke({ attempt, body }) {
         providerCalls += 1
         const response = await callGemini({
           body,
           cellId: 'compatibility-smoke',
-          operationId: 'smoke:reducer:1',
+          operationId: attempt === 0
+            ? 'smoke:reducer:1'
+            : 'smoke:reducer:repair:1',
           purpose: 'writer',
         })
         return { text: response.text }
       },
+      maxRepairs:
+        liveConfig.JOURNAL_NAVIGATION_LIVE_SCOPE.smokeReducerMaxRepairs,
     })
     const reduction = await reducePendingTurns(brain, {
       maxAttempts: 1,
@@ -648,7 +740,10 @@ async function runReducerCompatibilitySmoke({
     const memories = brain.listActiveMemories(SMOKE_SCOPE)
     const canonical = brain.listStatements(SMOKE_SCOPE)
     const memory = memories[0]
-    if (providerCalls !== 1 ||
+    if (providerCalls < 1 ||
+      providerCalls >
+        liveConfig.JOURNAL_NAVIGATION_LIVE_SCOPE
+          .smokeMaximumReducerDispatches ||
       reduction.status !== 'completed' ||
       digest.ready !== true ||
       digest.status !== 'ready' ||
@@ -675,6 +770,7 @@ async function runReducerCompatibilitySmoke({
       digestItems: memories.length,
       memory: clone(memory),
       providerCalls,
+      repairs: providerCalls - 1,
       reduction: clone(reduction),
     }
   } finally {
@@ -846,14 +942,17 @@ async function writeAndVerifySmokeReceipt({
     toolObservationSha256: sha256(JSON.stringify(smoke.exploration)),
     transcriptAudit: clone(transcriptAudit.transcripts),
   }
-  if (receipt.calls.length !== 3 ||
+  const writerRequests =
+    transcriptAudit.meter?.logicalRequests?.writer
+  const expectedAttempts = writerRequests + 2
+  if (![3, 4].includes(receipt.calls.length) ||
     receipt.calls.some(({ status }) => status !== 'success') ||
     receipt.smokeMeasuredUsd < 0 ||
     receipt.smokeMeasuredUsd >=
       liveConfig.JOURNAL_NAVIGATION_LIVE_HARD_CAP
         .smokeMeasuredPassExclusiveUsd ||
-    transcriptAudit.meter?.attempts !== 3 ||
-    transcriptAudit.meter?.logicalRequests?.writer !== 1 ||
+    ![1, 2].includes(writerRequests) ||
+    transcriptAudit.meter?.attempts !== expectedAttempts ||
     transcriptAudit.meter?.logicalRequests?.explore !== 2 ||
     transcriptAudit.meter?.terminal !== false) {
     throw new JournalNavigationLiveError(
@@ -1461,7 +1560,7 @@ export async function main({
           navigationFailureEvidence(error, secrets)
       }
       if (callGate) {
-        evidence.smoke.calls = clone(callGate.calls.slice(0, 3))
+        evidence.smoke.calls = clone(callGate.calls)
       }
       if (transport) {
         evidence.meter.smokeAfter ??=
