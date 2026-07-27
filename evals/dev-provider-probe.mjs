@@ -41,7 +41,7 @@
 // deviation, the deviation belongs in `evals/provider-deviation-corpus.mjs`
 // so it is caught offline from then on.
 
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import {
@@ -51,11 +51,8 @@ import {
   LEAN_MEMORY_REDUCER_GENERATION,
 } from './arms/lean-memory-reducer-contract.mjs'
 import {
-  buildClarifiedLeanMemoryReducerGeminiBody,
-} from './arms/lean-memory-reducer-instructions.mjs'
-import {
-  createRepairingLeanMemoryReducer,
-} from './arms/lean-memory-reducer-repair.mjs'
+  createTargetAwareRepairingLeanMemoryReducer,
+} from './arms/lean-memory-reducer-target-contract.mjs'
 
 export const DEV_PROBE_DIRECTORY = '.palari-probe'
 // One maximum validated writer response ($0.1056576), followed by one full
@@ -69,6 +66,37 @@ export class DevProviderProbeError extends Error {
     this.code = code
     this.name = 'DevProviderProbeError'
   }
+}
+
+// Every invocation gets a fresh local meter namespace. The original probe
+// wrote directly under `.palari-probe/`; treat those legacy bytes as probe 1
+// and preserve them. This is not a benchmark run identity: it is only the
+// operation namespace required to keep a repeatable diagnostic from colliding
+// with an earlier meter journal.
+export async function reserveDevProbeDirectory(root) {
+  const entries = await readdir(root, { withFileTypes: true })
+  let highest = entries.some((entry) =>
+    entry.name === 'gemini-journal.jsonl' ||
+    entry.name === 'transcripts') ? 1 : 0
+  for (const entry of entries) {
+    const match = /^probe-(\d{4})$/u.exec(entry.name)
+    if (match) highest = Math.max(highest, Number(match[1]))
+  }
+
+  for (let index = highest + 1; index <= 9_999; index += 1) {
+    const probeId = `probe-${String(index).padStart(4, '0')}`
+    const path = join(root, probeId)
+    try {
+      await mkdir(path, { mode: 0o700 })
+      return { path, probeId }
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error
+    }
+  }
+  throw new DevProviderProbeError(
+    'PROBE_NAMESPACE_EXHAUSTED',
+    'No fresh local provider-probe namespace remains.',
+  )
 }
 
 // A synthetic exchange, not benchmark data.
@@ -191,15 +219,16 @@ export async function runDevProviderProbe({
 
   const root = probeRoot ?? join(repoRoot, DEV_PROBE_DIRECTORY)
   await mkdir(root, { mode: 0o700, recursive: true })
+  const probe = await reserveDevProbeDirectory(root)
 
   const transport = await createIncrementalLongMemEvalGeminiTransport({
     cumulativeCapUsd: capUsd,
     fetchImpl,
     freshSubcapUsd: capUsd,
     geminiApiKey,
-    journalPath: join(root, 'gemini-journal.jsonl'),
+    journalPath: join(probe.path, 'gemini-journal.jsonl'),
     openingAccountedUsd: 0,
-    transcriptDirectory: join(root, 'transcripts'),
+    transcriptDirectory: join(probe.path, 'transcripts'),
     writerGeneration: LEAN_MEMORY_REDUCER_GENERATION,
   })
 
@@ -209,8 +238,7 @@ export async function runDevProviderProbe({
   try {
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
       const repairs = []
-      const reduce = createRepairingLeanMemoryReducer({
-        buildBody: buildClarifiedLeanMemoryReducerGeminiBody,
+      const reduce = createTargetAwareRepairingLeanMemoryReducer({
         invoke: async ({ attempt: repairAttempt, body }) => {
           operationInvocations += 1
           // A repair is a distinct logical operation, so it gets a distinct
@@ -273,6 +301,7 @@ export async function runDevProviderProbe({
     dispatches,
     observations,
     operationInvocations,
+    probeId: probe.probeId,
     rejected: observations.filter((entry) => entry.outcome === 'rejected')
       .length,
     repaired: observations.filter((entry) => entry.outcome === 'repaired')

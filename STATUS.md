@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-P2-E ONE-DOLLAR DEVELOPMENT PROBE RECORDED;
-FOUNDER GATE — PROBE AUTHORITY CONSUMED AND V3 REMAINS CLOSED (2026-07-27).
+Loop state: J4.4K-R3 TARGET CONTRACT CORRECTED OFFLINE;
+FOUNDER GATE — NO SUCCESSOR PROBE OR V3 DISPATCH AUTHORIZED (2026-07-27).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -1424,6 +1424,38 @@ session itself).
     observation, and the probe was not rerun. The probe/corpus/repair contracts
     report 22/22; the full suite reports 541 pass, 0 fail, and three skips;
     quickstart is green. V3's closed contract tests remain green.
+  - [x] J4.4K-R3 — TARGET CONTRACT CORRECTED OFFLINE 2026-07-27
+    (`this commit`). After confirming that Palari—not Gemini—defined the
+    one-target rule and that the live prompt did not explain its vocabulary,
+    the founder said “Okay so we need to improve the rule, lets do it.” The
+    old prompt, normalizer, and repair module are among v3's 41 frozen
+    artifacts. The concurrently landed A2 edit to the repair module was
+    restored to its pinned bytes; a successor-only target-aware contract now
+    composes those frozen files with A2's clarified instructions, and the
+    unsealed development probe opts into it.
+
+    The provider now receives the rule twice, in plain language and in a
+    compact request object: `targets` values may only be copied from
+    `prior[].ref`; current evidence is never targetable; `supersede` requires
+    exactly one same-speaker, same-topic prior item; without one eligible prior
+    the action must be `add` with `targets: []`; and several corrected prior
+    items require separate actions. Before the unchanged authoritative
+    normalizer runs, the successor checks every action's target semantics and
+    returns all target objections in one repair message. For the probe's
+    observed shape it tells both actions that no eligible prior exists and to
+    use `add`, rather than merely complaining about list length.
+
+    The repeatable probe also reserves a fresh local meter directory for every
+    invocation. Legacy `.palari-probe/` evidence is preserved as probe 1, and
+    future invocations use `probe-0002`, `probe-0003`, and so on. This prevents
+    a successor probe from colliding with the already-terminal operation IDs
+    while retaining every private transcript. It does not create a benchmark
+    identity or authorize a call.
+
+    Target/probe/v3 focused contracts report 23/23; the full suite reports 553
+    pass, 0 fail, and three skips; quickstart is green. Direct hashing reports
+    all 41 frozen v3 artifacts with zero drift. No credential, provider call,
+    result, score, publication, dataset access, or spend occurred.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1469,12 +1501,13 @@ identities:
 `j4-journal-navigation-longmemeval-q1-v2`.
 
 **FOUNDER GATE.** The one-dollar probe authority is consumed. Do not rerun it.
-Its first proposal and its one repair both reached Gemini and were host-
-rejected. The smallest prospective correction is to make the target contract
-mechanical: a supersede target must be exactly one supplied `prior[].ref`
-alias, and a repair objection must identify the eligible alias or state that
-none exists. That correction and any successor probe require a fresh founder
-GO.
+The target-contract correction is complete offline, and each future probe now
+gets a fresh local meter namespace. A live successor probe still requires a
+fresh founder GO. Under the current `$1.00` probe ceiling, three attempts with
+at most one repair each fit the conservative envelope: six maximum validated
+writer responses cost `$0.6339456`, and five such responses plus one pending
+reservation require at most `$0.7642176`. Ten fully guaranteed two-call
+attempts would require a separate cap/code decision and are not authorized.
 
 Fresh `j4-journal-navigation-longmemeval-q1-v3` remains prepared but not
 authorized to dispatch. Its exact required fresh subcap is `$1.7001252`
@@ -1840,6 +1873,10 @@ Gemini's first proposal used multiple field-like targets; its repair used a
 topic instead of the supplied prior alias. Both were host-rejected. Two
 physical calls spent `$0.0002992`; the deviations are now offline fixtures,
 the probe was not rerun, and v3 remains closed.
+2026-07-27 — J4.4K-R3 — this commit — Added a successor-only mechanical
+target contract, all-action repair feedback, and fresh per-invocation probe
+meter namespaces while preserving all 41 frozen v3 artifacts. Suite 547 pass,
+0 fail, three skips; quickstart green; nothing dispatched.
 
 ## Product stop-rule record
 
@@ -3279,3 +3316,26 @@ Suite 536/536 with 14 skips; quickstart green. Nothing dispatched.
 5. If this unit's code were deleted, what user-visible behavior would get
    worse? Every self-correction inside a single reduction batch would fail the
    reduction, which on LongMemEval sessions is most of them.
+
+### J4.4K-R3 target-contract correction
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? Not yet. It corrects the
+   unsealed provider contract that must pass a live probe before a successor
+   can use it; the package's current memory journey is unchanged.
+3. Does an existing framework already provide what this unit added? JSON
+   schemas and provider repair loops are common, but they do not define
+   Palari's distinction between current evidence aliases and targetable prior
+   memory aliases.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly directed us to improve the one-target rule after the
+   live failure and its cause were explained.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? The current package would not change, but the next provider probe
+   would again receive an ambiguous target vocabulary and could collide with
+   the previous probe's terminal meter operations.
+
+This is one infrastructure correction following a live measurement. It stops
+at the founder gate; the next unit must be the authorized provider
+measurement or a product unit, not another harness refinement.

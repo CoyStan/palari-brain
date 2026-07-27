@@ -42,7 +42,7 @@ export const LEAN_MEMORY_REDUCER_INSTRUCTIONS_VERSION =
   'palari-lean-memory-instructions/v2'
 
 export const LEAN_MEMORY_REDUCER_REFERENCE_RULES = Object.freeze([
-  'Refer to things only by the exact "ref" values in the input: evidence refs are e0, e1, e2 and prior memory refs are m0, m1, m2.',
+  'Refer to things only by the exact "ref" values in the input: evidence refs are e0, e1, and so on; prior memory refs are m0, m1, and so on.',
   'evidenceRefs must contain evidence refs. targets must contain exactly one prior memory ref for supersede, and nothing for add.',
   'Never put an evidence ref, a statement, a topic, or any other identifier in targets, and never invent a ref that is not listed in the input.',
   'Supersede only a fact that appears under prior. If the current dialogue corrects something said earlier in the same current dialogue, that earlier version was never stored: add only the final version and leave targets empty.',

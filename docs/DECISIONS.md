@@ -2111,3 +2111,52 @@ dates. Agents record; the founder decides.
   no evidence is at risk; re-freeze the pre-run cut before any GO. Sealed
   v1/v2 artifacts are untouched. Suite 536/536 with 14 skips; quickstart
   green; nothing dispatched.
+
+- 2026-07-27 (FOUNDER GO — J4.4K-R3 offline target-contract correction) After
+  the repository rule and the missing provider instructions were traced, the
+  founder said: “Okay so we need to improve the rule, lets do it.” This GO is
+  interpreted as an offline correction only. It does not authorize a
+  credential read, provider call, successor probe, v3 dispatch, dataset
+  question, score, publication, reroll, or spend.
+
+  The one-target rule remains: one `supersede` action can replace exactly one
+  prior memory, preserving mechanically checkable replacement provenance. One
+  dialogue update may still correct several facts by returning separate
+  actions. The defect was the wire contract, not that safety property. The v1
+  schema described `targets` only as an array of strings; the prompt did not
+  say that every value must be copied from `prior[].ref`; and the first repair
+  objection named only the required item count. It also failed to distinguish
+  current-batch evidence from targetable prior memory.
+
+  V3 freezes the v1 contract, normalizer, and repair module. The concurrent A2
+  edit to the repair module was restored to its pinned bytes; new
+  `evals/arms/lean-memory-reducer-target-contract.mjs` composes those frozen
+  files with A2's clarified instructions as successor version
+  `palari-lean-memory-proposal/v2-targets`. Its request
+  states both structurally and in plain language that target values come only
+  from `prior[].ref`, current evidence is not targetable, supersession requires
+  exactly one same-speaker/same-topic prior item, and no eligible prior means
+  `add` with `targets: []`. It prechecks every action and sends all target
+  objections in the single bounded repair turn before the unchanged v1
+  normalizer remains the final authority.
+
+  The unsealed development probe adopts the successor contract. It also
+  reserves a fresh private local meter directory per invocation, preserving
+  the legacy root evidence as probe 1 and using monotonically named
+  `probe-0002`, `probe-0003`, and later directories. Without that namespace,
+  the meter would correctly refuse reuse of the terminal
+  `probe-1-writer-*` operation IDs, contradicting the probe's repeatable
+  contract. This is local evidence separation, not a scored run identity.
+
+  Focused target/probe/v3 contracts report 23 pass, 0 fail. The full suite
+  reports 553 pass, 0 fail, and three skips; quickstart is green. Direct
+  hashing of v3's 41-artifact manifest reports zero drift. No credential,
+  network, dataset, result, score, publication, or spend occurred.
+
+  A live successor probe remains founder-gated. Three attempts with at most
+  one repair each fit beneath the current `$1.00` ceiling even under the
+  conservative maximum-response accounting: six responses total
+  `$0.6339456`, and the largest pre-dispatch state is five such responses plus
+  one `$0.2359296` reservation, or `$0.7642176`. A guaranteed ten-attempt
+  two-call study would require a separate increase to the probe ceiling and
+  is not authorized by this GO. V3 remains frozen and closed.

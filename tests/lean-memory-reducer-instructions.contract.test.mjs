@@ -12,8 +12,8 @@ import {
   LEAN_MEMORY_REDUCER_REFERENCE_RULES,
 } from '../evals/arms/lean-memory-reducer-instructions.mjs'
 import {
-  createRepairingLeanMemoryReducer,
-} from '../evals/arms/lean-memory-reducer-repair.mjs'
+  createTargetAwareRepairingLeanMemoryReducer,
+} from '../evals/arms/lean-memory-reducer-target-contract.mjs'
 import { devProbeRequest } from '../evals/dev-provider-probe.mjs'
 
 test('the instruction names every reference the host will resolve', () => {
@@ -21,8 +21,8 @@ test('the instruction names every reference the host will resolve', () => {
   assert.ok(text.startsWith(LEAN_MEMORY_REDUCER_SYSTEM_INSTRUCTION))
   // The three facts the model had no way to know. Each one corresponds
   // directly to the J4.4K-P2-E rejection.
-  assert.match(text, /evidence refs are e0, e1, e2/)
-  assert.match(text, /prior memory refs are m0, m1, m2/)
+  assert.match(text, /evidence refs are e0, e1, and so on/)
+  assert.match(text, /prior memory refs are m0, m1, and so on/)
   assert.match(text, /targets must contain exactly one prior memory ref/)
   assert.match(text, /never invent a ref that is not listed/)
   assert.match(text, /add only the final version and leave targets empty/)
@@ -109,11 +109,10 @@ test('an intra-batch correction is representable as an add', () => {
   assert.ok(!JSON.stringify(proposal).includes('probe-mem-1'))
 })
 
-test('a caller may override the instruction without changing host rules',
+test('the successor adopts the instruction without changing host rules',
   async () => {
     const bodies = []
-    const reduce = createRepairingLeanMemoryReducer({
-      buildBody: buildClarifiedLeanMemoryReducerGeminiBody,
+    const reduce = createTargetAwareRepairingLeanMemoryReducer({
       invoke: async ({ body }) => {
         bodies.push(body)
         return JSON.stringify({ actions: [] })
@@ -123,7 +122,7 @@ test('a caller may override the instruction without changing host rules',
     assert.equal(bodies.length, 1)
     assert.match(
       bodies[0].systemInstruction.parts[0].text,
-      /prior memory refs are m0, m1, m2/,
+      /prior memory refs are m0, m1, and so on/,
     )
   })
 
@@ -131,8 +130,7 @@ test('the repair turn inherits the clarified instruction', async () => {
   // If only the first dispatch carried the reference rules, the repair would
   // re-ask the question that caused the rejection.
   const bodies = []
-  const reduce = createRepairingLeanMemoryReducer({
-    buildBody: buildClarifiedLeanMemoryReducerGeminiBody,
+  const reduce = createTargetAwareRepairingLeanMemoryReducer({
     invoke: async ({ body }) => {
       bodies.push(body)
       return bodies.length === 1
@@ -160,5 +158,6 @@ test('the repair turn inherits the clarified instruction', async () => {
     )
   }
   const repaired = JSON.parse(bodies[1].contents[0].parts[0].text)
-  assert.match(repaired.rejection.reason, /actions\[0\]\.targets\[0\]/)
+  assert.match(repaired.rejection.reason, /actions\[0\]/)
+  assert.match(repaired.rejection.reason, /eligible refs are \["m1"\]/)
 })

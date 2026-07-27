@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, readdir } from 'node:fs/promises'
+import { mkdtemp, readdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -8,6 +8,7 @@ import {
   assertDevProbeAuthorized,
   DEV_PROBE_DEFAULT_CAP_USD,
   devProbeRequest,
+  reserveDevProbeDirectory,
   runDevProviderProbe,
 } from '../evals/dev-provider-probe.mjs'
 import { parseDevProbeArgs } from '../evals/run-dev-provider-probe.mjs'
@@ -111,6 +112,22 @@ test('the probe scenario carries a correction and a spoken time anchor', () => {
   }
 })
 
+test('each invocation reserves a fresh namespace and preserves legacy evidence',
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), 'palari-probe-namespace-'))
+    await writeFile(join(root, 'gemini-journal.jsonl'), 'legacy evidence')
+
+    const second = await reserveDevProbeDirectory(root)
+    const third = await reserveDevProbeDirectory(root)
+
+    assert.equal(second.probeId, 'probe-0002')
+    assert.equal(third.probeId, 'probe-0003')
+    assert.deepEqual(
+      (await readdir(root)).sort(),
+      ['gemini-journal.jsonl', 'probe-0002', 'probe-0003'],
+    )
+  })
+
 test('the probe writes nothing into the sealed results tree', async () => {
   const root = await mkdtemp(join(tmpdir(), 'palari-probe-'))
   let fetches = 0
@@ -132,10 +149,11 @@ test('the probe writes nothing into the sealed results tree', async () => {
   assert.equal(summary.dispatches, 1)
   assert.equal(summary.operationInvocations, 1)
   assert.equal(summary.spentUsd, 0.2359296)
+  assert.equal(summary.probeId, 'probe-0001')
   assert.equal(fetches, 1)
 
   const written = await readdir(root)
-  assert.ok(written.length >= 1)
+  assert.deepEqual(written, ['probe-0001'])
   assert.ok(!written.includes('results'))
 })
 
@@ -161,6 +179,7 @@ test('a preflight cap refusal is not reported as a physical dispatch',
     assert.equal(summary.observations[0].code, 'CAP_REFUSED')
     assert.equal(summary.dispatches, 0)
     assert.equal(summary.operationInvocations, 1)
+    assert.equal(summary.probeId, 'probe-0001')
     assert.equal(summary.spentUsd, 0)
     assert.equal(fetches, 0)
   })
