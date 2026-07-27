@@ -51,6 +51,7 @@ test('the probe reads no credential until both gates pass', () => {
 
 test('the probe cap is small by default and cannot be raised past a dollar',
   () => {
+    assert.equal(DEV_PROBE_DEFAULT_CAP_USD, 0.3415872)
     assert.deepEqual(
       assertDevProbeAuthorized(AUTHORIZED),
       { capUsd: DEV_PROBE_DEFAULT_CAP_USD, geminiApiKey: 'fake-probe-key' },
@@ -61,6 +62,13 @@ test('the probe cap is small by default and cannot be raised past a dollar',
         PALARI_PROBE_CAP_USD: '0.25',
       }).capUsd,
       0.25,
+    )
+    assert.equal(
+      assertDevProbeAuthorized({
+        ...AUTHORIZED,
+        PALARI_PROBE_CAP_USD: '1',
+      }).capUsd,
+      1,
     )
     for (const capUsd of ['0', '-1', '1.01', '25', 'lots', 'Infinity']) {
       assert.throws(
@@ -102,12 +110,12 @@ test('the probe scenario carries a correction and a spoken time anchor', () => {
 
 test('the probe writes nothing into the sealed results tree', async () => {
   const root = await mkdtemp(join(tmpdir(), 'palari-probe-'))
-  let dispatches = 0
+  let fetches = 0
   const summary = await runDevProviderProbe({
     attempts: 2,
     env: AUTHORIZED,
     fetchImpl: async () => {
-      dispatches += 1
+      fetches += 1
       throw new Error('probe fetch refused in test')
     },
     log: () => {},
@@ -118,12 +126,41 @@ test('the probe writes nothing into the sealed results tree', async () => {
   assert.equal(summary.rejected, 1)
   assert.equal(summary.accepted, 0)
   assert.equal(summary.capUsd, DEV_PROBE_DEFAULT_CAP_USD)
-  assert.equal(dispatches <= 1, true)
+  assert.equal(summary.dispatches, 1)
+  assert.equal(summary.operationInvocations, 1)
+  assert.equal(summary.spentUsd, 0.2359296)
+  assert.equal(fetches, 1)
 
   const written = await readdir(root)
   assert.ok(written.length >= 1)
   assert.ok(!written.includes('results'))
 })
+
+test('a preflight cap refusal is not reported as a physical dispatch',
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), 'palari-probe-cap-'))
+    let fetches = 0
+    const summary = await runDevProviderProbe({
+      env: {
+        ...AUTHORIZED,
+        PALARI_PROBE_CAP_USD: '0.05',
+      },
+      fetchImpl: async () => {
+        fetches += 1
+        throw new Error('cap refusal reached fetch')
+      },
+      log: () => {},
+      probeRoot: root,
+    })
+
+    assert.equal(summary.accepted, 0)
+    assert.equal(summary.rejected, 1)
+    assert.equal(summary.observations[0].code, 'CAP_REFUSED')
+    assert.equal(summary.dispatches, 0)
+    assert.equal(summary.operationInvocations, 1)
+    assert.equal(summary.spentUsd, 0)
+    assert.equal(fetches, 0)
+  })
 
 test('probe flags are explicit and unknown flags are refused', () => {
   assert.deepEqual(parseDevProbeArgs([]), { attempts: 1, maxRepairs: 1 })

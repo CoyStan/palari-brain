@@ -2007,3 +2007,26 @@ dates. Agents record; the founder decides.
   full pending reservation (`$0.2359296`). This arithmetic covers the case
   where the first transport-valid proposal is host-rejected and the repair
   operation becomes uncertain.
+
+- 2026-07-27 (FOUNDER GO — J4.4K-P2-G one-dollar development provider probe)
+  After the zero-network preflight refusal and the exact correction and
+  envelope were reported, the founder replied: “Yes increase the cap to 1
+  usd, go”. This GO authorizes the two identified observation corrections and
+  exactly one fresh development-probe invocation with `attempts: 1`,
+  `maxRepairs: 1`, `PALARI_PROBE_CONFIRM_SPEND=1`, and
+  `PALARI_PROBE_CAP_USD=1`.
+
+  The default is corrected from the internally impossible `$0.05` to the
+  conservative `$0.3415872` one-attempt envelope: one maximum validated writer
+  response (`$0.1056576`) plus one full pending repair reservation
+  (`$0.2359296`). The probe now reports meter-accepted physical attempts
+  separately from logical operation invocations and reads accounted spend from
+  `snapshot.accounted.usd`. A cap refusal before fetch therefore reports zero
+  physical dispatches and zero spend.
+
+  This GO does not activate, modify, or dispatch
+  `j4-journal-navigation-longmemeval-q1-v3`; authorize a second probe
+  invocation, a dataset question, judge, score, publication, or a behavioral
+  change after seeing the result. The pre-live correction and authority must
+  be committed and pushed before the one invocation. Its first result is
+  final and will not be rerolled.

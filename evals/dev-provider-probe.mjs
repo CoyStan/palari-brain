@@ -55,7 +55,10 @@ import {
 } from './arms/lean-memory-reducer-repair.mjs'
 
 export const DEV_PROBE_DIRECTORY = '.palari-probe'
-export const DEV_PROBE_DEFAULT_CAP_USD = 0.05
+// One maximum validated writer response ($0.1056576), followed by one full
+// pending reservation ($0.2359296) if the host rejects that proposal and the
+// separately metered repair becomes uncertain.
+export const DEV_PROBE_DEFAULT_CAP_USD = 0.3415872
 
 export class DevProviderProbeError extends Error {
   constructor(code, message) {
@@ -180,14 +183,14 @@ export async function runDevProviderProbe({
   })
 
   const observations = []
-  let dispatches = 0
+  let operationInvocations = 0
   transport.installNetworkGuard()
   try {
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
       const repairs = []
       const reduce = createRepairingLeanMemoryReducer({
         invoke: async ({ attempt: repairAttempt, body }) => {
-          dispatches += 1
+          operationInvocations += 1
           // A repair is a distinct logical operation, so it gets a distinct
           // operation identity. The meter still sees one dispatch per
           // operation; it is simply told the truth about how many there were.
@@ -238,21 +241,26 @@ export async function runDevProviderProbe({
   }
 
   const snapshot = await transport.snapshot()
+  const dispatches = Number.isSafeInteger(snapshot?.attempts)
+    ? snapshot.attempts
+    : 0
   const summary = {
     accepted: observations.filter((entry) => entry.outcome === 'accepted')
       .length,
     capUsd,
     dispatches,
     observations,
+    operationInvocations,
     rejected: observations.filter((entry) => entry.outcome === 'rejected')
       .length,
     repaired: observations.filter((entry) => entry.outcome === 'repaired')
       .length,
-    spentUsd: snapshot?.accountedUsd ?? null,
+    spentUsd: snapshot?.accounted?.usd ?? null,
   }
   log(`${summary.accepted} accepted, ${summary.repaired} repaired, ` +
-    `${summary.rejected} rejected across ${dispatches} dispatches ` +
-    `($${summary.spentUsd ?? '?'} of $${capUsd}).`)
+    `${summary.rejected} rejected across ${dispatches} physical dispatches ` +
+    `(${operationInvocations} logical invocations; ` +
+    `$${summary.spentUsd ?? '?'} of $${capUsd}).`)
   if (summary.rejected) {
     log('Add any new deviation to evals/provider-deviation-corpus.mjs so it ' +
       'is caught offline from now on.')

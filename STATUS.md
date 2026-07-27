@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-P1-E DEVELOPMENT PROBE PREFLIGHT REFUSAL RECORDED;
-FOUNDER GATE — NO PROVIDER MEASUREMENT OCCURRED AND V3 REMAINS CLOSED
+Loop state: J4.4K-P2-G ONE-DOLLAR DEVELOPMENT PROBE AUTHORIZED;
+PRE-RUN CUT PUSH REQUIRED BEFORE EXACTLY ONE DISPATCH; V3 REMAINS CLOSED
 (2026-07-27).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
@@ -1378,6 +1378,26 @@ session itself).
     provider deviation belongs in the corpus because no provider was reached.
     The authorized attempt is consumed and was not rerun. No code was changed;
     v3's frozen artifacts and closed authority remain untouched.
+  - [x] J4.4K-P2-G — ONE-DOLLAR DEVELOPMENT PROBE AUTHORIZED 2026-07-27
+    (`this commit`). The founder replied “Yes increase the cap to 1 usd, go”
+    after reviewing the `$0.3415872` conservative one-attempt envelope. This
+    authorizes the two already identified observation corrections and exactly
+    one fresh `npm run probe` invocation with `attempts: 1`, `maxRepairs: 1`,
+    `PALARI_PROBE_CONFIRM_SPEND=1`, and a `$1.00` hard cap.
+
+    The probe default is now `$0.3415872`, derived as one maximum validated
+    writer response (`$0.1056576`) plus one full pending repair reservation
+    (`$0.2359296`). Physical dispatches come from the meter's accepted attempt
+    count, while logical operation invocations are reported separately; spend
+    comes from `snapshot.accounted.usd`. A regression test proves that a local
+    `$0.05` `CAP_REFUSED` event reports zero physical dispatches and zero
+    spend. No credential or network access occurred at this pushed authority
+    cut.
+
+    This GO does not activate or alter v3, authorize a second probe invocation,
+    a dataset question, judge, score, publication, or any post-observation
+    behavioral repair. A bad provider result is a finding and will not be
+    rerolled.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1416,23 +1436,17 @@ session itself).
 
 ## Next
 
-**FOUNDER GATE.** Do not resume, reroll, or alter any of these terminal
+Do not resume, reroll, or alter any of these terminal
 identities:
 `j4-active-brain-exploration-longmemeval-q1-v1` or
 `j4-journal-navigation-longmemeval-q1-v1` or
 `j4-journal-navigation-longmemeval-q1-v2`.
 
-The first probe authorization is consumed. It measured no provider behavior:
-the frozen `$0.05` default is internally incompatible with the transport's
-`$0.2359296` pre-dispatch reservation. Do not rerun it.
-
-The smallest next option is an offline probe correction followed by a new
-founder GO. For the default one attempt with one possible repair, the
-conservative fresh cap is `$0.3415872`: one maximum validated writer response
-(`$0.1056576`) plus one full pending reservation (`$0.2359296`). The same
-correction should report physical attempts from the meter and spend from
-`snapshot.accounted.usd`, rather than the current pre-call counter and wrong
-field. No correction or successor probe is authorized yet.
+After this cut is pushed, execute exactly one development probe invocation:
+`npm run probe -- --attempts 1 --repairs 1`, with
+`PALARI_PROBE_CONFIRM_SPEND=1` and `PALARI_PROBE_CAP_USD=1`. Record its first
+honest result and stop. Do not rerun it regardless of whether the proposal is
+accepted, repaired, rejected, or transport-failed.
 
 Fresh `j4-journal-navigation-longmemeval-q1-v3` remains prepared but not
 authorized to dispatch. Its exact required fresh subcap is `$1.7001252`
@@ -1785,6 +1799,10 @@ one identity-free provider probe attempt with one repair and the default
 local meter refused the `$0.05` cap before Gemini because its mandatory
 reservation is `$0.2359296`; zero physical calls and zero spend occurred, and
 the probe was not rerun.
+2026-07-27 — J4.4K-P2-G — this commit — Corrected the probe's impossible
+default cap and misleading dispatch/spend fields, then recorded authority for
+exactly one one-attempt/one-repair invocation under a `$1.00` hard cap. V3
+remains closed and nothing was dispatched at this cut.
 
 ## Product stop-rule record
 
@@ -3103,3 +3121,25 @@ product change.
 
 This is a measurement closeout, not a third infrastructure build. It adds no
 harness code and stops at the founder gate.
+
+### J4.4K-P2-G corrected provider-probe authority
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No. It corrects the
+   measurement boundary so the founder-authorized live probe can reach the
+   provider and report physical calls and spend truthfully.
+3. Does an existing framework already provide what this unit added? Provider
+   SDKs expose request accounting, but they do not reconcile this repository's
+   conservative full-window meter with its probe summary.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly raised the one-probe cap to `$1.00` and said to go after
+   the two reporting defects were identified.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Product behavior would not change, but the probe would again refuse
+   its default before network and could misreport local refusals as provider
+   dispatches with unknown spend.
+
+This is a bounded correction coupled directly to the authorized measurement.
+It does not open another infrastructure unit; the only next action is the
+single live probe and closeout.
