@@ -33,7 +33,8 @@
     "test": "node --test",
     "quickstart": "node examples/quickstart.mjs",
     "bakeoff": "node evals/run-bakeoff.mjs",
-    "memory-bench": "node evals/run-offline-memory-bench.mjs"
+    "memory-bench": "node evals/run-offline-memory-bench.mjs",
+    "probe": "node evals/run-dev-provider-probe.mjs"
   },
   "devDependencies": {
     "mem0ai": "3.1.1"

@@ -1862,3 +1862,56 @@ dates. Agents record; the founder decides.
   and
   `999bd47caf206fd05e21f4ccf209ca1974893abdde347877e5fa7aa7f53cff18`.
   V2 is terminal and cannot be resumed or rerolled.
+
+- 2026-07-27 (FOUNDER GO — J4.4K-A1 offline provider-boundary repair surface)
+  The founder asked for the deeper cause of the repeated live failures and
+  then said to fix whatever could be fixed without waiting. The finding: all
+  nine terminal live failures to date occurred at the host<->provider seam and
+  none in reduction, digest, journal, or navigation logic. The cause is not
+  nine bugs. It is (a) strict validation plus fail-closed plus one dispatch
+  per operation, with no way to tell the model what it got wrong, so any
+  deviation is terminal; and (b) offline fakes that are cooperative by
+  construction and therefore cannot discover a deviation, with nothing between
+  them and a sealed one-shot identity.
+
+  Three additions, all new files, no frozen byte changed:
+
+  `evals/provider-deviation-corpus.mjs` catalogues eleven reducer payloads,
+  three replaying real terminal failures and eight anticipated, each labelled
+  with whether it was observed and which unit found it. The mocks-are-not-
+  gates law is unchanged: only a live run can discover a deviation. The corpus
+  is where a discovered deviation stops costing a second sealed identity.
+
+  `evals/arms/lean-memory-reducer-repair.mjs` adds one host-guided repair
+  turn. It is not a retry — the second dispatch carries a different request
+  and its own operation identity, so the meter is told the truth about how
+  many dispatches occurred. Provenance is unchanged: the repaired proposal
+  passes the same `normalizeLeanMemoryReducerProposal`, so the model still
+  cannot author an ID, scope, speaker, timestamp, or deletion, and every quote
+  is still checked as an exact contiguous substring. An empty successful
+  response is classified `LEAN_REDUCER_EMPTY_RESPONSE` and never repaired,
+  because there is nothing in it to correct and re-sending an accepted request
+  is the retry the meter forbids. `maxRepairs: 0` reproduces current behavior.
+
+  `evals/dev-provider-probe.mjs` plus `npm run probe` is a live loop with no
+  run identity, no score, no dataset dependency, nothing written under
+  `evals/results/`, and a hard cap of at most $1. Repeating it is not a
+  re-roll because there is no result to re-roll. Spending remains founder-
+  gated by `PALARI_PROBE_CONFIRM_SPEND=1`; the credential is read only after
+  the confirmation and cap checks pass. What the probe removes is ceremony,
+  not the gate.
+
+  Recorded constraint discovered while building this: the metered transport's
+  `assertRequestBody` requires `contents.length === 1` for a writer dispatch,
+  so a three-turn correction would fail `REQUEST_SCHEMA_INVALID` before
+  reaching the provider. The repair therefore rides inside the request
+  document on the same single turn, which is what makes the module adoptable
+  without editing the hash-pinned transport.
+
+  Nothing was dispatched. All 39 artifacts frozen by
+  `j4-journal-navigation-longmemeval-q1-v2` are byte-identical and its
+  expected-drift list still contains exactly
+  `evals/run-journal-navigation-live.mjs`, so the authorized v2 dispatch
+  remains executable as frozen. Adopting the repair reducer or the probe in a
+  metered path requires a fresh successor identity and an explicit GO. Suite
+  521/521 with 14 skips; quickstart green.

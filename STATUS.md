@@ -1365,6 +1365,16 @@ authorize a fresh v3 with the unchanged bytes, or first add a cheaper
 continuation-only compatibility probe to measure empty-response frequency.
 Either option is a fresh identity and provider call requiring explicit GO.
 
+J4.4K-A1 (below) prepared the second option and one thing more. It added, as
+new files only, an offline corpus of what real models actually returned, a
+one-turn host-guided repair reducer, and an ungated development probe. None
+of the 39 frozen v2 artifacts changed — the authorized
+`j4-journal-navigation-longmemeval-q1-v2` dispatch and its expected-drift
+list of exactly `evals/run-journal-navigation-live.mjs` are intact, so that
+run remains executable exactly as frozen. Adopting the repair reducer or the
+probe requires a fresh successor identity and an explicit GO; nothing was
+dispatched.
+
 Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
 rerolls, publication, and announcement remain closed.
 
@@ -2909,3 +2919,67 @@ the live founder gate.
    would get worse? The product would not immediately change, but v2 could be
    rerolled and its empty provider response could be misreported as a search
    result. The terminal seal preserves the honest finding.
+
+### J4.4K-A1 provider-boundary repair surface
+
+Nine of nine terminal live failures to date happened at the host<->provider
+seam. None happened in reduction, digest, journal, or navigation logic. That
+is not nine unrelated bugs; it is one missing capability and one process
+shape, and this unit addresses both without touching a single frozen byte.
+
+What it added, all as new files:
+
+- `evals/provider-deviation-corpus.mjs` — eleven reducer payloads, three of
+  them replaying real terminal failures (`J4.4K-L2-E` host timestamp used as
+  a quote, `J4.2`/`J4.2R` unenumerated vocabulary value, `J4.4K-L3-E` empty
+  successful response) and eight anticipated, each labelled honestly. This
+  does not weaken the mocks-are-not-gates law: a live run remains the only
+  thing that can DISCOVER a deviation. The corpus is where a discovered
+  deviation stops costing a second sealed identity.
+- `tests/provider-deviation-corpus.contract.test.mjs` — replays all eleven
+  through the real `normalizeLeanMemoryReducerProposal`, and asserts each
+  rejection names the offending field, because that message is what a repair
+  turn has to act on.
+- `evals/arms/lean-memory-reducer-repair.mjs` — one host-guided repair turn.
+  Not a retry: the second dispatch carries a different request (the original
+  input plus the model's rejected output plus the host's specific objection)
+  and gets its own operation identity. The repaired proposal goes through the
+  same validator, so the model still cannot author an ID, scope, speaker,
+  timestamp, or deletion, and every quote is still an exact contiguous
+  substring. `maxRepairs: 0` reproduces today's behavior exactly.
+- `evals/dev-provider-probe.mjs`, `evals/run-dev-provider-probe.mjs`,
+  `npm run probe` — a live loop with no run identity, no score, no dataset,
+  nothing written under `evals/results/`, and a hard cap of at most $1.
+  Repeating it is not a re-roll because there is no result to re-roll.
+  Spending is still founder-gated by `PALARI_PROBE_CONFIRM_SPEND=1`, and the
+  credential is read only after both gates pass.
+
+One finding worth recording on its own: the metered transport's
+`assertRequestBody` requires `contents.length === 1` for a writer dispatch, so
+the natural three-turn correction shape would die at `REQUEST_SCHEMA_INVALID`
+before reaching the provider. The repair therefore rides inside the request
+document as two extra keys on the same single turn. That keeps the module
+adoptable by a successor without editing the hash-pinned transport, and it is
+asserted in `tests/lean-memory-reducer-repair.contract.test.mjs`.
+
+Suite 521/521 with 14 skips (+21 tests); quickstart green; frozen v2 drift
+list unchanged.
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? Not yet, and it says so.
+   Nothing here is wired into a live path. It is the instrument that makes the
+   next paid measurement likely to survive its first minute.
+3. Does an existing framework already provide what this unit added? Provider
+   SDKs retry transport faults. None of them repair a violation of Palari's
+   own provenance boundary, because no other framework enforces one.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder asked for the deeper cause of the repeated live failures and then
+   asked for whatever could be fixed without waiting.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Nothing immediately. What would return is the condition that has
+   already cost nine identities: a one-character paraphrase in a quote ends a
+   paid run, and the same wire-format defect can be discovered twice.
+
+This unit is infrastructure by the stop rule. It is the first in a row, and
+the next unit must be a measurement or a product change, not a third harness.
