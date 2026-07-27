@@ -1285,13 +1285,14 @@ a semantic contract mismatch for `$0.0000814` before dataset parsing.
 Autonomous exact-only journal navigation remains neither validated nor
 disproved.
 
-The smallest successor correction is subtractive: remove model-authored
-`timeEvidenceRef` and `timeQuote` from the lean proposal and let the host keep
-the already-authoritative event timestamp as observation metadata. An
-alternative prompt-only rule could explicitly forbid treating `observedAt`
-metadata as a quoted time anchor, but that leaves the same unnecessary
-failure surface. Either behavioral change and any fresh run identity require
-a new founder GO.
+The smallest successor correction is subtractive: remove host-owned
+`observedAt` timestamps from the provider-facing lean proposal input while
+retaining them inside Palari for chronology. Keep `timeEvidenceRef` and
+`timeQuote` only for explicit time phrases that really occur in dialogue.
+That removes the metadata value Gemini copied without discarding temporal
+quotes the user actually said. A prompt-only prohibition would leave the
+same unnecessary failure surface. This behavioral change and any fresh run
+identity require a new founder GO.
 
 Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
 rerolls, publication, and announcement remain closed.
