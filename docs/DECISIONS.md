@@ -1833,3 +1833,32 @@ dates. Agents record; the founder decides.
   runner from its git object. Focused contracts pass 21/21 over the real
   product and fake transports. No credential, provider call, result, score,
   or spend occurred at this pushed pre-run boundary.
+- 2026-07-27 (J4.4K-L3-E — terminal v2 compatibility-smoke closeout) The
+  pushed `538d3a6` cut was invoked exactly once. Gemini's reducer response
+  used only dialogue evidence, stored `PALARI-COMPAT-7319`, and confirmed the
+  `observedAt` boundary repair. The exploration selection then called
+  `memory_find` with the seeded phrase `compatibility token`; Palari returned
+  the expected canonical evidence. The continuation request returned HTTP
+  200, Standard tier, exact model, and `STOP`, but its candidate content was
+  only `{ "role": "model" }`, with no parts, text, or function call. The
+  transport rejected it as `GEMINI_CONTENT_INVALID`.
+
+  Exactly three Gemini requests and zero transport retries occurred. The two
+  valid responses measured 707 input and 128 output tokens for `$0.0001219`.
+  The invalid third response reported 725 prompt tokens and zero output
+  tokens, but fail-closed accounting retains the complete `$0.2359296`
+  reservation instead of trusting a semantically invalid response. Fresh
+  accounted spend is `$0.2360515`; cumulative accounted/measured/uncertain
+  spend is `$1.2481707`/`$0.7738105`/`$0.4743602`.
+
+  No smoke receipt exists, the dataset was never parsed, and there is no
+  benchmark ingestion, autonomous phrase, answer, consulted evidence ID,
+  judge call, question-2 start, or score. The ignored manifest, report, run
+  state, all three transcripts, workspaces, modes, hashes, and secret checks
+  verify. Manifest SHA-256 is
+  `3426117fc4789f60681d65529845316c3acd03cc5bfc09d04030dd8d7e733f1f`;
+  report and run-state SHA-256 values are
+  `76ab53bd90b1095eeefde3c0fc3d2a33a17ec2542c0183cc3640f59ff33c5615`
+  and
+  `999bd47caf206fd05e21f4ccf209ca1974893abdde347877e5fa7aa7f53cff18`.
+  V2 is terminal and cannot be resumed or rerolled.

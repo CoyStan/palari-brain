@@ -114,11 +114,14 @@ function httpSuccess(content, {
   })
 }
 
-test('runner import keeps v1 sealed and opens only the fresh v2 identity',
+test('runner import keeps both one-shot identities sealed',
   async () => {
     assert.deepEqual(
       JOURNAL_NAVIGATION_TERMINAL_RUN_IDS,
-      ['j4-journal-navigation-longmemeval-q1-v1'],
+      [
+        'j4-journal-navigation-longmemeval-q1-v1',
+        JOURNAL_NAVIGATION_LIVE_RUN_ID,
+      ],
     )
     assert.equal(
       parseJournalNavigationLiveArgs([
@@ -127,11 +130,11 @@ test('runner import keeps v1 sealed and opens only the fresh v2 identity',
       ]),
       JOURNAL_NAVIGATION_LIVE_RUN_ID,
     )
-    assert.equal(
-      assertJournalNavigationRunOpen(
+    assert.throws(
+      () => assertJournalNavigationRunOpen(
         JOURNAL_NAVIGATION_LIVE_RUN_ID,
       ),
-      JOURNAL_NAVIGATION_LIVE_RUN_ID,
+      { code: 'RUN_TERMINAL' },
     )
     assert.throws(
       () => assertJournalNavigationRunOpen(
@@ -220,6 +223,57 @@ test('private terminal smoke evidence verifies when present',
     assert.equal(runState.meter.judge.attempts, 0)
     assert.equal(report.spend.freshMeasuredUsd, 0.0000814)
     assert.equal(report.spend.freshAccountedUsd, 0.0000814)
+    assert.deepEqual(report.computed.navigation.toolCalls, [])
+  })
+
+test('private v2 terminal evidence preserves the empty continuation',
+  async (context) => {
+    const paths = journalNavigationLiveResultPaths(SOURCE_ROOT)
+    let manifestBytes
+    try {
+      manifestBytes = await readFile(paths.artifactManifestPath)
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        context.skip('gitignored v2 terminal evidence is absent')
+        return
+      }
+      throw error
+    }
+    await verifyJ4ArtifactManifest(paths.runDir)
+    const [reportBytes, runStateBytes] = await Promise.all([
+      readFile(paths.reportJsonPath),
+      readFile(paths.runStatePath),
+    ])
+    const digest = (bytes) =>
+      createHash('sha256').update(bytes).digest('hex')
+    assert.equal(
+      digest(manifestBytes),
+      '3426117fc4789f60681d65529845316c3acd03cc5bfc09d04030dd8d7e733f1f',
+    )
+    assert.equal(
+      digest(reportBytes),
+      '76ab53bd90b1095eeefde3c0fc3d2a33a17ec2542c0183cc3640f59ff33c5615',
+    )
+    assert.equal(
+      digest(runStateBytes),
+      '999bd47caf206fd05e21f4ccf209ca1974893abdde347877e5fa7aa7f53cff18',
+    )
+    const report = JSON.parse(reportBytes)
+    const runState = JSON.parse(runStateBytes)
+    assert.equal(runState.status, 'failed')
+    assert.equal(runState.failure.code, 'GEMINI_CONTENT_INVALID')
+    assert.equal(runState.smoke.datasetLoaded, false)
+    assert.equal(runState.smoke.receiptFile, null)
+    assert.equal(runState.question.question2Started, false)
+    assert.equal(runState.meter.gemini.attempts, 3)
+    assert.deepEqual(runState.meter.gemini.logicalRequests, {
+      explore: 2,
+      writer: 1,
+    })
+    assert.equal(runState.meter.judge.attempts, 0)
+    assert.equal(report.spend.freshMeasuredUsd, 0.0001219)
+    assert.equal(report.spend.freshAccountedUsd, 0.2360515)
+    assert.equal(report.computed.smoke.retries, 0)
     assert.deepEqual(report.computed.navigation.toolCalls, [])
   })
 

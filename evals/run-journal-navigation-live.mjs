@@ -85,6 +85,7 @@ export const JOURNAL_NAVIGATION_LIVE_RESULTS_ROOT = 'evals/results'
 // fresh one-shot successor and never resumes or overwrites v1.
 export const JOURNAL_NAVIGATION_TERMINAL_RUN_IDS = Object.freeze([
   'j4-journal-navigation-longmemeval-q1-v1',
+  liveConfig.JOURNAL_NAVIGATION_LIVE_RUN_ID,
 ])
 const terminalRunIds = new Set(JOURNAL_NAVIGATION_TERMINAL_RUN_IDS)
 

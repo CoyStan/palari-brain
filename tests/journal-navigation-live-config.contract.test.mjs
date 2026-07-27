@@ -18,7 +18,7 @@ import {
 
 const REPO_ROOT = new URL('..', import.meta.url).pathname
 
-test('fresh v2 contract pins its runtime and sealed v1 predecessor',
+test('terminal v2 contract pins its pre-run runtime and v1 predecessor',
   async () => {
     const loaded = await loadJournalNavigationLiveContract({
       repoRoot: REPO_ROOT,
@@ -35,13 +35,18 @@ test('fresh v2 contract pins its runtime and sealed v1 predecessor',
 
     assert.deepEqual(
       JOURNAL_NAVIGATION_TERMINAL_RUN_IDS,
-      ['j4-journal-navigation-longmemeval-q1-v1'],
+      [
+        'j4-journal-navigation-longmemeval-q1-v1',
+        JOURNAL_NAVIGATION_LIVE_RUN_ID,
+      ],
     )
-    const audit = await auditJournalNavigationTrackedArtifacts({
-      config: loaded.config,
-      repoRoot: REPO_ROOT,
-    })
-    assert.equal(audit.artifacts, 39)
+    await assert.rejects(
+      auditJournalNavigationTrackedArtifacts({
+        config: loaded.config,
+        repoRoot: REPO_ROOT,
+      }),
+      { code: 'ARTIFACT_CHANGED' },
+    )
     const drift = []
     for (const artifact of loaded.config.artifacts) {
       const current = journalNavigationLiveSha256(
@@ -49,7 +54,9 @@ test('fresh v2 contract pins its runtime and sealed v1 predecessor',
       )
       if (current !== artifact.sha256) drift.push(artifact.path)
     }
-    assert.deepEqual(drift, [])
+    assert.deepEqual(drift, [
+      'evals/run-journal-navigation-live.mjs',
+    ])
 
     const predecessor = await verifyJournalNavigationPredecessor({
       repoRoot: REPO_ROOT,
