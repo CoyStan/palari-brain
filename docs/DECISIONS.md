@@ -1763,3 +1763,40 @@ dates. Agents record; the founder decides.
   remains unchanged. At this authority cut no credential value was read, no
   provider call or result exists, and cumulative J4 spend remains
   `$1.0120378` accounted.
+- 2026-07-27 (J4.4K-L2 execution closeout — terminal reducer semantic
+  failure) The pushed `919b05d` authority cut was invoked exactly once. Its
+  first and only physical provider request was the compatibility reducer.
+  Gemini returned HTTP 200 with the exact frozen model and Standard service
+  tier, and the transport validated and reconciled the response without a
+  retry. The proposed fact and evidence reference were otherwise coherent,
+  but the model copied host event metadata into a field whose contract
+  requires an exact contiguous quote from dialogue text. Host semantic
+  validation blocked the reduction as `LEAN_REDUCER_PROPOSAL_INVALID`.
+
+  The digest retained zero items and no smoke-pass receipt was created. The
+  mandatory gate stopped before dataset parsing, so no exploration selection,
+  answer continuation, memory-tool call, model-chosen phrase, consulted
+  evidence ID, benchmark interaction, answer, or judge request exists.
+  Question 2 never started, autonomous exact-only search remains unmeasured,
+  and no benchmark score exists. The FINAL predictions were graded only in
+  the ignored private report; no score enters git or is published.
+
+  The single request used 238 Gemini input tokens and 144 output tokens.
+  Fresh measured and accounted spend is `$0.0000814`, with zero fresh
+  uncertainty. Cumulative J4 spend is `$0.7736886` measured, `$0.2384306`
+  uncertain, and `$1.0121192` accounted. The ignored private bundle verifies
+  at manifest SHA-256
+  `7de7342a05eb309e34330043966334c8faee077271472062b2cb7f8090c46c35`;
+  report and run-state SHA-256 values are respectively
+  `34149ecc8cafbe08ea22150734b81043905fa1187c9f5e27401bd748a6716b6f`
+  and
+  `d2c6575db2e47b3b246b439b19c1e69a320f55e62eaa4fff8b7e48035d6fc1d0`.
+  The post-run runner is sealed at SHA-256
+  `8223a22126aed99f35e9e208738812aca3461a5716d688771f86b6a5d6eaf138`
+  and refuses this identity before dependency, file, credential, result,
+  dataset, or network access. It cannot be resumed or rerolled. Any semantic
+  contract change or fresh successor run requires a new founder GO.
+  Post-seal focused contracts report 10 pass, 0 fail, and one historical
+  open-run skip; the full suite reports 509 pass, 0 fail, and four historical
+  skips. Quickstart, dry bake-off, package dry-run, manifest verification, and
+  diff checks are green.

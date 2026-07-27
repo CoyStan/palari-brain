@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import {
   copyFile,
   mkdir,
   mkdtemp,
+  readFile,
   rm,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -31,11 +32,16 @@ import {
 import {
   assertJournalNavigationRunOpen,
   createJournalNavigationCallGate,
+  JOURNAL_NAVIGATION_TERMINAL_RUN_IDS,
+  journalNavigationLiveResultPaths,
   main,
   navigationFailureEvidence,
   parseJournalNavigationLiveArgs,
   runJournalNavigationCompatibilitySmoke,
 } from '../evals/run-journal-navigation-live.mjs'
+import {
+  verifyJ4ArtifactManifest,
+} from '../evals/run-longmemeval-live.mjs'
 
 const MODEL = 'gemini-2.5-flash-lite'
 const SOURCE_ROOT = new URL('..', import.meta.url).pathname
@@ -108,23 +114,102 @@ function httpSuccess(content, {
   })
 }
 
-test('runner import is inert and accepts only the frozen fresh identity', () => {
-  assert.equal(
-    parseJournalNavigationLiveArgs([
-      '--run',
+test('runner import is inert and the exact identity is one-way sealed',
+  async () => {
+    assert.deepEqual(
+      JOURNAL_NAVIGATION_TERMINAL_RUN_IDS,
+      [JOURNAL_NAVIGATION_LIVE_RUN_ID],
+    )
+    assert.equal(
+      parseJournalNavigationLiveArgs([
+        '--run',
+        JOURNAL_NAVIGATION_LIVE_RUN_ID,
+      ]),
       JOURNAL_NAVIGATION_LIVE_RUN_ID,
-    ]),
-    JOURNAL_NAVIGATION_LIVE_RUN_ID,
-  )
-  assert.equal(
-    assertJournalNavigationRunOpen(JOURNAL_NAVIGATION_LIVE_RUN_ID),
-    JOURNAL_NAVIGATION_LIVE_RUN_ID,
-  )
-  assert.throws(
-    () => parseJournalNavigationLiveArgs(['--run', 'sealed-v1']),
-    { code: 'RUN_ID_REQUIRED' },
-  )
-})
+    )
+    assert.throws(
+      () => assertJournalNavigationRunOpen(
+        JOURNAL_NAVIGATION_LIVE_RUN_ID,
+      ),
+      { code: 'RUN_TERMINAL' },
+    )
+    assert.throws(
+      () => parseJournalNavigationLiveArgs(['--run', 'sealed-v1']),
+      { code: 'RUN_ID_REQUIRED' },
+    )
+    let reads = 0
+    await assert.rejects(
+      main({
+        args: ['--run', JOURNAL_NAVIGATION_LIVE_RUN_ID],
+        dependencies: new Proxy({}, {
+          get() {
+            reads += 1
+            throw new Error('terminal runner read dependencies')
+          },
+        }),
+        env: new Proxy({}, {
+          get() {
+            reads += 1
+            throw new Error('terminal runner read environment')
+          },
+        }),
+      }),
+      { code: 'RUN_TERMINAL' },
+    )
+    assert.equal(reads, 0)
+  })
+
+test('private terminal smoke evidence verifies when present',
+  async (context) => {
+    const paths = journalNavigationLiveResultPaths(SOURCE_ROOT)
+    let manifestBytes
+    try {
+      manifestBytes = await readFile(paths.artifactManifestPath)
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        context.skip('gitignored terminal evidence is absent')
+        return
+      }
+      throw error
+    }
+    await verifyJ4ArtifactManifest(paths.runDir)
+    const [reportBytes, runStateBytes] = await Promise.all([
+      readFile(paths.reportJsonPath),
+      readFile(paths.runStatePath),
+    ])
+    const digest = (bytes) =>
+      createHash('sha256').update(bytes).digest('hex')
+    assert.equal(
+      digest(manifestBytes),
+      '7de7342a05eb309e34330043966334c8faee077271472062b2cb7f8090c46c35',
+    )
+    assert.equal(
+      digest(reportBytes),
+      '34149ecc8cafbe08ea22150734b81043905fa1187c9f5e27401bd748a6716b6f',
+    )
+    assert.equal(
+      digest(runStateBytes),
+      'd2c6575db2e47b3b246b439b19c1e69a320f55e62eaa4fff8b7e48035d6fc1d0',
+    )
+    const report = JSON.parse(reportBytes)
+    const runState = JSON.parse(runStateBytes)
+    assert.equal(runState.status, 'failed')
+    assert.equal(
+      runState.failure.code,
+      'SMOKE_REDUCER_SEMANTICS_INVALID',
+    )
+    assert.equal(runState.smoke.datasetLoaded, false)
+    assert.equal(runState.smoke.receiptFile, null)
+    assert.equal(runState.question.question2Started, false)
+    assert.equal(runState.meter.gemini.attempts, 1)
+    assert.deepEqual(runState.meter.gemini.logicalRequests, {
+      writer: 1,
+    })
+    assert.equal(runState.meter.judge.attempts, 0)
+    assert.equal(report.spend.freshMeasuredUsd, 0.0000814)
+    assert.equal(report.spend.freshAccountedUsd, 0.0000814)
+    assert.deepEqual(report.computed.navigation.toolCalls, [])
+  })
 
 test('real product smoke completes one reducer and one native tool round trip',
   async () => {
@@ -403,7 +488,12 @@ test('the exact three-call smoke composes through the real hard-cap wire',
     }
   })
 
-test('fake HTTP proves smoke receipt gates replay, navigation, and judge',
+test('historical open path proves smoke gates replay, navigation, and judge',
+  {
+    skip: JOURNAL_NAVIGATION_TERMINAL_RUN_IDS.includes(
+      JOURNAL_NAVIGATION_LIVE_RUN_ID,
+    ) && 'the one-shot identity is terminal',
+  },
   async () => {
     const root = await mkdtemp(
       join(tmpdir(), 'palari-navigation-main-composition-'),

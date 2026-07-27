@@ -77,8 +77,12 @@ const here = dirname(fileURLToPath(import.meta.url))
 export const JOURNAL_NAVIGATION_LIVE_REPO_ROOT = dirname(here)
 export const JOURNAL_NAVIGATION_LIVE_RESULTS_ROOT = 'evals/results'
 
-// Populated in the close-out commit after this one-shot identity is invoked.
-export const JOURNAL_NAVIGATION_TERMINAL_RUN_IDS = Object.freeze([])
+// Terminal evidence exists for this one-shot identity. The seal is checked
+// before dependencies, files, credentials, result paths, dataset access, or
+// network so the failed run can never be resumed or rerolled.
+export const JOURNAL_NAVIGATION_TERMINAL_RUN_IDS = Object.freeze([
+  liveConfig.JOURNAL_NAVIGATION_LIVE_RUN_ID,
+])
 const terminalRunIds = new Set(JOURNAL_NAVIGATION_TERMINAL_RUN_IDS)
 
 const PREDECESSOR = Object.freeze({

@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-L2-G EXACT LIVE CAP AUTHORITY RECORDED;
-ONE-SHOT SMOKE-FIRST NAVIGATION EXECUTION AUTHORIZED (2026-07-27).
+Loop state: J4.4K-L2-E TERMINAL COMPATIBILITY-SMOKE FAILURE SEALED;
+FOUNDER GATE — AUTONOMOUS SEARCH REMAINS UNMEASURED (2026-07-27).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -518,6 +518,27 @@ prediction, call ceiling, smoke receipt requirement, no-reroll law, private
 result rule, and stop before question 2 remains unchanged. At this authority
 cut no credential value was read, no provider call or result exists, and
 cumulative accounted spend remains `$1.0120378`.
+
+The pushed `919b05d` authority cut was invoked exactly once. Gemini completed
+the first reducer request with valid HTTP 200, model and Standard-tier
+metadata, 238 input tokens, 144 output tokens, and no retry. Its action
+correctly proposed the compatibility fact, but copied host event metadata into
+a field reserved for an exact contiguous dialogue quote. The host rejected
+that semantic mismatch as `LEAN_REDUCER_PROPOSAL_INVALID`; no digest item was
+stored and no smoke-pass receipt was created.
+
+The mandatory gate stopped immediately. The dataset was never parsed, and
+there were zero exploration selections, answer continuations, memory-tool
+calls, phrases, consulted evidence IDs, benchmark interactions, answers, or
+judge requests. Question 2 never started. The FINAL predictions were graded
+privately; no score enters git. Fresh measured and accounted spend was
+`$0.0000814` with zero new uncertainty. Cumulative J4 spend is now
+`$0.7736886` measured, `$0.2384306` uncertain, and `$1.0121192` accounted.
+The ignored private bundle verifies at manifest SHA-256
+`7de7342a05eb309e34330043966334c8faee077271472062b2cb7f8090c46c35`;
+report SHA-256 is
+`34149ecc8cafbe08ea22150734b81043905fa1187c9f5e27401bd748a6716b6f`.
+The identity is sealed in code and cannot be resumed or rerolled.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -1199,6 +1220,26 @@ session itself).
     prohibitions are unchanged. Four focused authority/config checks and
     quickstart are green. No credential value, provider call, result, score,
     or spend occurred at this cut.
+  - [x] J4.4K-L2-E — TERMINAL COMPATIBILITY-SMOKE FAILURE SEALED
+    2026-07-27 (`this commit`). Invoked pushed `919b05d` once. The first and
+    only Gemini request returned a structurally valid reducer action, but
+    copied the host `observedAt` metadata into `timeQuote` even though the
+    timestamp was not a contiguous quote from the dialogue. Host semantic
+    validation blocked the unit as `LEAN_REDUCER_PROPOSAL_INVALID`, leaving
+    zero digest items and no smoke receipt. The gate stopped before dataset
+    parsing: zero exploration or answer dispatches, tools, phrases,
+    consulted evidence, benchmark interactions, judge calls, or score.
+    Fresh measured/accounted spend is `$0.0000814`; cumulative spend is
+    `$1.0121192` accounted. The ignored private bundle verifies at manifest
+    SHA-256
+    `7de7342a05eb309e34330043966334c8faee077271472062b2cb7f8090c46c35`;
+    sealed runner SHA-256
+    `8223a22126aed99f35e9e208738812aca3461a5716d688771f86b6a5d6eaf138`.
+    The identity refuses before dependency or credential access. Focused
+    closeout contracts report 10 pass, 0 fail, and one historical open-run
+    skip; the full suite reports 509 pass, 0 fail, and four historical skips.
+    Quickstart, dry bake-off, package dry-run, manifest verification, and diff
+    checks are green. No result or score is committed or published.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1237,18 +1278,20 @@ session itself).
 
 ## Next
 
-**AUTHORIZED ONE-SHOT EXECUTION.** Do not resume or alter the sealed
-`j4-active-brain-exploration-longmemeval-q1-v1`.
+**FOUNDER GATE.** Do not resume or alter either terminal identity:
+`j4-active-brain-exploration-longmemeval-q1-v1` or
+`j4-journal-navigation-longmemeval-q1-v1`. The new smoke did its job: it found
+a semantic contract mismatch for `$0.0000814` before dataset parsing.
+Autonomous exact-only journal navigation remains neither validated nor
+disproved.
 
-Invoke only the pushed
-`j4-journal-navigation-longmemeval-q1-v1` authority once. Load
-`OPENAI_API_KEY` from the project `.env` and `GEMINI_API_KEY` from the
-existing private provider-secrets file without printing either. First require
-exactly one reducer, one exploration selection, and one answer continuation,
-zero retry, successful measured spend below `$0.01`, and a durable verified
-receipt. If any smoke condition fails, seal and stop before parsing the
-dataset. Only a passing receipt permits ordinal-1 replay, autonomous journal
-navigation, one official judge, and the terminal stop.
+The smallest successor correction is subtractive: remove model-authored
+`timeEvidenceRef` and `timeQuote` from the lean proposal and let the host keep
+the already-authoritative event timestamp as observation metadata. An
+alternative prompt-only rule could explicitly forbid treating `observedAt`
+metadata as a quoted time anchor, but that leaves the same unnecessary
+failure surface. Either behavioral change and any fresh run identity require
+a new founder GO.
 
 Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
 rerolls, publication, and announcement remain closed.
@@ -1566,6 +1609,13 @@ no credential value, provider call, result, score, or spend occurred.
 smoke-first ordinal-1 identity. Four focused authority/config checks and
 quickstart are green; no credential value, provider call, result, score, or
 spend occurred at this authority cut.
+2026-07-27 — J4.4K-L2-E — this commit — Invoked pushed `919b05d` once and
+sealed the identity after Gemini copied non-dialogue `observedAt` metadata
+into a quote-only time field. The host rejected the first reducer action, so
+the smoke stopped before dataset parsing with no exploration, answer, tool,
+judge, or score. Fresh measured/accounted spend is `$0.0000814`; the private
+bundle verifies and cumulative accounted spend is `$1.0121192`. Full suite
+509 pass, 0 fail, four historical skips; all standing offline gates green.
 
 ## Product stop-rule record
 
@@ -2705,3 +2755,21 @@ the live founder gate.
    not prove that its precise identity and spend envelope were authorized.
    This mandatory governance cut immediately precedes the approved product
    experiment.
+
+### J4.4K-L2-E terminal compatibility-smoke closeout
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` remains green.
+2. Did this unit make that journey measurably better? It changed no product
+   behavior, but the required cheap smoke prevented another 243-interaction
+   paid setup failure and isolated the exact semantic mismatch.
+3. Does an existing framework already provide what this unit added? Gemini
+   supplied structured output. The finding concerns Palari's own boundary
+   between provider metadata and exact dialogue-quote provenance.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly required this smoke to pass before the benchmark loop.
+5. If this unit's code or record were deleted, what user-visible behavior
+   would get worse? Runtime behavior would not immediately change, but the
+   failed identity could be rerun and the provider's metadata-as-quote error
+   could be mistaken for a failure of journal search. The terminal record
+   proves that autonomous search was never exercised.

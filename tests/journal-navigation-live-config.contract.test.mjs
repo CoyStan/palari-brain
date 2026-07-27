@@ -1,20 +1,24 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import test from 'node:test'
 
 import {
   JOURNAL_NAVIGATION_LIVE_HARD_CAP,
   JOURNAL_NAVIGATION_LIVE_RUN_ID,
   assertJournalNavigationLiveEnvironment,
+  journalNavigationLiveSha256,
   loadJournalNavigationLiveContract,
 } from '../evals/journal-navigation-live-config.mjs'
 import {
   auditJournalNavigationTrackedArtifacts,
+  JOURNAL_NAVIGATION_TERMINAL_RUN_IDS,
   verifyJournalNavigationPredecessor,
 } from '../evals/run-journal-navigation-live.mjs'
 
 const REPO_ROOT = new URL('..', import.meta.url).pathname
 
-test('fresh contract pins its complete runtime and sealed predecessor',
+test('terminal contract pins its pre-run runtime and sealed predecessor',
   async () => {
     const loaded = await loadJournalNavigationLiveContract({
       repoRoot: REPO_ROOT,
@@ -29,12 +33,27 @@ test('fresh contract pins its complete runtime and sealed predecessor',
       false,
     )
 
-    const artifactAudit =
-      await auditJournalNavigationTrackedArtifacts({
+    assert.deepEqual(
+      JOURNAL_NAVIGATION_TERMINAL_RUN_IDS,
+      [JOURNAL_NAVIGATION_LIVE_RUN_ID],
+    )
+    await assert.rejects(
+      auditJournalNavigationTrackedArtifacts({
         config: loaded.config,
         repoRoot: REPO_ROOT,
-      })
-    assert.equal(artifactAudit.artifacts, 39)
+      }),
+      { code: 'ARTIFACT_CHANGED' },
+    )
+    const drift = []
+    for (const artifact of loaded.config.artifacts) {
+      const current = journalNavigationLiveSha256(
+        await readFile(join(REPO_ROOT, artifact.path)),
+      )
+      if (current !== artifact.sha256) drift.push(artifact.path)
+    }
+    assert.deepEqual(drift, [
+      'evals/run-journal-navigation-live.mjs',
+    ])
 
     const predecessor = await verifyJournalNavigationPredecessor({
       repoRoot: REPO_ROOT,
