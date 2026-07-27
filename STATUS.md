@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-P1-G ONE DEVELOPMENT PROBE AUTHORIZED;
-NEXT — EXECUTE EXACTLY ONE `$0.05` PROBE, WHILE V3 DISPATCH REMAINS CLOSED
+Loop state: J4.4K-P1-E DEVELOPMENT PROBE PREFLIGHT REFUSAL RECORDED;
+FOUNDER GATE — NO PROVIDER MEASUREMENT OCCURRED AND V3 REMAINS CLOSED
 (2026-07-27).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
@@ -1362,6 +1362,22 @@ session itself).
     available from the founder-designated secrets file, and its value was not
     printed or committed. No provider call or spend occurred at this pushed
     authority cut.
+  - [x] J4.4K-P1-E — PROBE PREFLIGHT CAP REFUSAL RECORDED 2026-07-27
+    (`this commit`). Invoked pushed `38788be` exactly once with one attempt,
+    `maxRepairs: 1`, and the authorized `$0.05` cap. The metered transport
+    refused locally as `CAP_REFUSED` because every writer operation must first
+    reserve its complete `$0.2359296` documented model window. The refusal
+    occurred before transcript creation, journal append, fetch, or Gemini.
+    `.palari-probe/gemini-journal.jsonl` is zero bytes, no transcript file
+    exists, physical provider dispatches are zero, and spend is exactly zero.
+
+    The CLI's “1 dispatches” and `$?` report are two local observation defects:
+    it increments `dispatches` before the meter accepts an operation, and it
+    reads `snapshot.accountedUsd` although the snapshot exposes
+    `snapshot.accounted.usd`. They do not change the evidence above. No
+    provider deviation belongs in the corpus because no provider was reached.
+    The authorized attempt is consumed and was not rerun. No code was changed;
+    v3's frozen artifacts and closed authority remain untouched.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1406,13 +1422,17 @@ identities:
 `j4-journal-navigation-longmemeval-q1-v1` or
 `j4-journal-navigation-longmemeval-q1-v2`.
 
-Execute exactly one identity-free development probe from the pushed
-J4.4K-P1-G cut: one attempt, `maxRepairs: 1`,
-`PALARI_PROBE_CONFIRM_SPEND=1`, and `PALARI_PROBE_CAP_USD=0.05`. Report its
-exact accepted/repaired/rejected outcome, operation count, host objection if
-any, and accounted spend. The probe creates no score, reads no dataset, and
-writes nothing under `evals/results/`. Do not run a second attempt without
-another founder GO.
+The first probe authorization is consumed. It measured no provider behavior:
+the frozen `$0.05` default is internally incompatible with the transport's
+`$0.2359296` pre-dispatch reservation. Do not rerun it.
+
+The smallest next option is an offline probe correction followed by a new
+founder GO. For the default one attempt with one possible repair, the
+conservative fresh cap is `$0.3415872`: one maximum validated writer response
+(`$0.1056576`) plus one full pending reservation (`$0.2359296`). The same
+correction should report physical attempts from the meter and spend from
+`snapshot.accounted.usd`, rather than the current pre-call counter and wrong
+field. No correction or successor probe is authorized yet.
 
 Fresh `j4-journal-navigation-longmemeval-q1-v3` remains prepared but not
 authorized to dispatch. Its exact required fresh subcap is `$1.7001252`
@@ -1761,6 +1781,10 @@ and authority closed pending exact founder confirmation. Nothing dispatched.
 2026-07-27 — J4.4K-P1-G — this commit — Recorded the founder's GO for exactly
 one identity-free provider probe attempt with one repair and the default
 `$0.05` cap. V3 remains closed; nothing dispatched at this authority cut.
+2026-07-27 — J4.4K-P1-E — this commit — Invoked pushed `38788be` once. The
+local meter refused the `$0.05` cap before Gemini because its mandatory
+reservation is `$0.2359296`; zero physical calls and zero spend occurred, and
+the probe was not rerun.
 
 ## Product stop-rule record
 
@@ -3059,3 +3083,23 @@ This is a second infrastructure unit in a row. The charter's drift threshold
 is reached: no further harness work may start. The next unit must be a
 founder-authorized live measurement (the recommended probe or v3 itself) or a
 product change.
+
+### J4.4K-P1-E provider-probe preflight closeout
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No. It attempted the
+   founder-authorized provider measurement and preserved the honest local
+   refusal rather than widening the cap or rerunning.
+3. Does an existing framework already provide what this unit added? No code
+   was added. The finding is specific to this repository's conservative
+   full-window reservation and the probe's incompatible default.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly authorized the recommended one-attempt probe.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? No product behavior would change, but the next operator
+   could mistake the CLI's “1 dispatches” for a provider call, assume the
+   `$0.05` default works, and repeat the same zero-network failure.
+
+This is a measurement closeout, not a third infrastructure build. It adds no
+harness code and stops at the founder gate.

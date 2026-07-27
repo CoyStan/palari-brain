@@ -1981,3 +1981,29 @@ dates. Agents record; the founder decides.
   authority, predictions, and 41 runtime artifacts remain frozen exactly as
   pushed at `6ea34e0`. The probe result is a provider-compatibility
   observation, not a benchmark finding.
+
+- 2026-07-27 (J4.4K-P1-E — development probe preflight refusal) The pushed
+  `38788be` authority cut was invoked exactly once with `attempts: 1`,
+  `maxRepairs: 1`, `PALARI_PROBE_CONFIRM_SPEND=1`, and
+  `PALARI_PROBE_CAP_USD=0.05`. The real metered transport refused the writer
+  operation as `CAP_REFUSED` before network because its mandatory documented
+  model-window reservation is `$0.2359296`, greater than the authorized probe
+  cap. The ignored `.palari-probe/gemini-journal.jsonl` is zero bytes and no
+  transcript file exists. Therefore physical Gemini calls are zero and spend
+  is exactly `$0`.
+
+  The probe CLI nevertheless printed “across 1 dispatches ($? of $0.05).”
+  Inspection established two local reporting defects: `dispatches` increments
+  immediately before `transport.callGemini`, so a local meter refusal is
+  counted as if dispatched; and the summary reads `snapshot.accountedUsd`
+  while the transport exposes `snapshot.accounted.usd`. No provider response
+  exists, so nothing is added to the provider-deviation corpus.
+
+  This first authorization is consumed. The probe was not rerun, its cap was
+  not raised, no code was changed after observing the failure, and v3 remains
+  frozen and unauthorized. A future one-attempt/one-repair probe would require
+  an offline correction and fresh founder GO. Its conservative envelope is
+  `$0.3415872`: one maximum validated writer response (`$0.1056576`) plus one
+  full pending reservation (`$0.2359296`). This arithmetic covers the case
+  where the first transport-valid proposal is host-rejected and the repair
+  operation becomes uncertain.
