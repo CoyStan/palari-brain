@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-R2 HOST-TIMESTAMP BOUNDARY REPAIRED;
-FOUNDER GO — FRESH V2 NAVIGATION SUCCESSOR AUTHORIZED (2026-07-27).
+Loop state: J4.4K-L3-G FRESH V2 NAVIGATION SUCCESSOR FROZEN AND AUTHORIZED;
+LIVE EXECUTION NEXT (2026-07-27).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -192,6 +192,24 @@ Cumulative spend is `$0.7731323` accounted, `$0.7706313` measured, and
 `$0.0025010` uncertain. The ignored private bundle passes manifest,
 transcript, ledger, mode, predecessor, provenance, and exact-secret audits.
 The identity is sealed in code and cannot be resumed or rerolled.
+
+The founder then authorized the narrow host-timestamp repair and one fresh
+successor execution. `j4-journal-navigation-longmemeval-q1-v2` is frozen from
+product commit `a0d75b0ec6e4bf5301d231305eea1012d283cff9`. Its only
+provider-behavior change from v1 is that host-owned `observedAt` values no
+longer enter the lean reducer's model-facing evidence or prior-memory aliases;
+Palari retains internal chronology and exact dialogue time-quote validation.
+All twelve FINAL outcomes, models, smoke-first ordering, ordinal-1 scope,
+call ceilings, no-retry law, and stop before question 2 are unchanged.
+
+V2 verifies v1's tracked authority/config/predictions and ignored manifest,
+report, run state, and transcript, plus the sealed runner bytes at commit
+`64e90ee9ab16ce1398bb7c198a20b879b7574458`. It carries forward
+`$1.0121192` accounted (`$0.7736886` measured and `$0.2384306` uncertain).
+The fresh cap remains `$1.5944676`, the cumulative cap remains `$8.00`, and
+the projected maximum is `$2.6065868`. Config, authority, predictions, and
+the 39-file runtime closure are frozen and offline-verified. No credential
+was read, no v2 result exists, and no new spend occurred at this cut.
 
 The founder then identified the architectural mistake directly: canonical
 turns were entering storage one interaction at a time, but answer-time recall
@@ -1248,6 +1266,16 @@ session itself).
     in dialogue. The sealed v1 contract and private evidence remain
     unchanged; its expected artifact drift now names this product correction.
     No credential was read, no provider was called, and spend is unchanged.
+  - [x] J4.4K-L3-G — FRESH V2 SUCCESSOR FROZEN AND AUTHORIZED 2026-07-27
+    (`this commit`). Froze `j4-journal-navigation-longmemeval-q1-v2` from
+    product commit `a0d75b0`, with all twelve v1 outcomes unchanged and FINAL.
+    The 39-file runtime closure, exact v1 tracked/private predecessor, and
+    `$1.0121192` opening spend verify. Authority directly records the
+    founder's “fix ... then run it again GO” for the unchanged
+    `$1.5944676` fresh and `$8.00` cumulative caps. Focused fake-HTTP
+    composition completes the smoke, 243-interaction replay, autonomous tool
+    loop, and judge without reaching question 2. No credential, provider
+    call, result, score, or new spend occurred at this pre-run cut.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1286,14 +1314,13 @@ session itself).
 
 ## Next
 
-Do not resume or alter either terminal identity:
+Execute exactly one invocation of
+`j4-journal-navigation-longmemeval-q1-v2` from the clean pushed cut. Do not
+resume or alter either terminal identity:
 `j4-active-brain-exploration-longmemeval-q1-v1` or
-`j4-journal-navigation-longmemeval-q1-v1`. The subtractive timestamp-boundary
-repair is complete. The founder stated, “okay fix that error and then run it
-again GO,” authorizing one fresh successor with the same models, smoke-first
-scope, ordinal-1-only boundary, `$1.5944676` fresh subcap, and `$8.00`
-cumulative cap. Freeze the v2 identity from this repaired product cut, carry
-all prior spend and immutable v1 evidence, execute it once, seal it, and stop.
+`j4-journal-navigation-longmemeval-q1-v1`. V2 must pass its three-call smoke
+and durable receipt before dataset parsing; regardless of success or failure,
+seal v2 afterward and stop.
 
 Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
 rerolls, publication, and announcement remain closed.
@@ -1621,6 +1648,10 @@ bundle verifies and cumulative accounted spend is `$1.0121192`. Full suite
 2026-07-27 — J4.4K-R2 — this commit — Removed host-only event timestamps from
 the model-facing lean reducer input while retaining internal chronology and
 exact dialogue time-quote validation. No live call or spend occurred.
+2026-07-27 — J4.4K-L3-G — this commit — Froze and activated the fresh v2
+smoke-first ordinal-1 identity around product commit `a0d75b0`, all unchanged
+FINAL outcomes, the complete sealed-v1 evidence chain, and the unchanged
+`$1.5944676` fresh cap. No credential, call, result, score, or spend occurred.
 
 ## Product stop-rule record
 
@@ -2794,3 +2825,21 @@ the live founder gate.
 5. If this unit's code were deleted, what user-visible behavior would get
    worse? The model would again see a timestamp it is forbidden to quote and
    could turn a valid remembered statement into a rejected reduction.
+
+### J4.4K-L3-G fresh v2 successor pre-run
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It changes no additional
+   product byte. It makes the founder-requested live check executable without
+   reopening or overwriting the failed identity.
+3. Does an existing framework already provide what this unit added? Gemini and
+   LongMemEval provide the model and benchmark. This unit adds only Palari's
+   immutable one-shot evidence, spend, and sequencing contract.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly said to fix the error and run it again.
+5. If this unit's code or evidence were deleted, what user-visible behavior
+   would get worse? The memory product would be unchanged, but the paid result
+   could not prove it used the corrected bytes or carried v1 spend and
+   evidence honestly. This is the authorized measurement cut paired directly
+   with execution, not a new infrastructure direction.

@@ -1810,3 +1810,26 @@ dates. Agents record; the founder decides.
   reopen v1 or authorize question 2, prompt/tool tuning, semantic fallback,
   Mem0, S-490, rerolls, publication, or announcement. V1's `$0.0000814`
   measured spend remains in the cumulative opening balance.
+- 2026-07-27 (J4.4K-L3-G — fresh v2 successor frozen and authorized) Fresh
+  identity `j4-journal-navigation-longmemeval-q1-v2` pins product commit
+  `a0d75b0ec6e4bf5301d231305eea1012d283cff9`. The twelve FINAL
+  predicted outcomes remain exactly the v1 rows; the added note records that
+  only provider-visible host event timestamps were removed. Models, prompts,
+  smoke-first ordering, one-question scope, six-tool/seven-model-turn limit,
+  zero transport retries, one judge, private results, and stop before
+  question 2 are unchanged.
+
+  V2 carries `$1.0121192` accounted opening spend and retains the confirmed
+  `$1.5944676` fresh and `$8.00` cumulative caps, projecting a conservative
+  maximum of `$2.6065868`. Config SHA-256 is
+  `12208c4a60ff9362d91c9a631ef508ecd4b281618048ed6e0ec5a5c274979a9a`;
+  authority SHA-256 is
+  `36bbcb040b72c99b166271715154aadecdad76299b2996d03d73d7808d0baefb`;
+  FINAL predictions SHA-256 is
+  `56251b0c4e573b8f8bb75320bbb6d56ebd9fe1603c664929a7826267657915c7`;
+  and the 39-file artifact-set SHA-256 is
+  `46253c986f4c2556c52dfe02e8a83d3cb697300b3d2413fd97808a96352a6a4c`.
+  The complete v1 tracked/private predecessor verifies, including the sealed
+  runner from its git object. Focused contracts pass 21/21 over the real
+  product and fake transports. No credential, provider call, result, score,
+  or spend occurred at this pushed pre-run boundary.

@@ -8,6 +8,7 @@
 // Importing this file is inert. It owns no provider retry path.
 
 import { createHash } from 'node:crypto'
+import { execFile as execFileCallback } from 'node:child_process'
 import {
   access,
   chmod,
@@ -17,6 +18,7 @@ import {
 } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
 
 import {
   createPalariBrain,
@@ -74,53 +76,67 @@ import {
 } from './run-longmemeval-live.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
+const execFile = promisify(execFileCallback)
 export const JOURNAL_NAVIGATION_LIVE_REPO_ROOT = dirname(here)
 export const JOURNAL_NAVIGATION_LIVE_RESULTS_ROOT = 'evals/results'
 
-// Terminal evidence exists for this one-shot identity. The seal is checked
-// before dependencies, files, credentials, result paths, dataset access, or
-// network so the failed run can never be resumed or rerolled.
+// Terminal evidence exists for v1. Its seal is checked before dependencies,
+// files, credentials, result paths, dataset access, or network. V2 is the
+// fresh one-shot successor and never resumes or overwrites v1.
 export const JOURNAL_NAVIGATION_TERMINAL_RUN_IDS = Object.freeze([
-  liveConfig.JOURNAL_NAVIGATION_LIVE_RUN_ID,
+  'j4-journal-navigation-longmemeval-q1-v1',
 ])
 const terminalRunIds = new Set(JOURNAL_NAVIGATION_TERMINAL_RUN_IDS)
 
 const PREDECESSOR = Object.freeze({
   authority: Object.freeze({
     path:
-      'evals/live-runs/j4-active-brain-exploration-longmemeval-q1-v1.authority.json',
+      'evals/live-runs/j4-journal-navigation-longmemeval-q1-v1.authority.json',
     sha256:
-      '6aa885db50e31ea33644ef16d83c32a5f41d59babcfa4613b4bd25975426d793',
+      '9e455afd78a81fc8bbe07a227ffaa52e8043b148abe4c4aca260a8d03eae53ba',
   }),
   config: Object.freeze({
     path:
-      'evals/live-runs/j4-active-brain-exploration-longmemeval-q1-v1.json',
+      'evals/live-runs/j4-journal-navigation-longmemeval-q1-v1.json',
     sha256:
-      '0e7501310ea490315e929ca0940bbc520cdc904cfb574ded0cb59b48112bf83c',
+      'af9e63aa68f9b3d747922d33ad9b9386ae3e8c7a9e0b2ddd21fe5e9031451df4',
   }),
   manifest: Object.freeze({
     path:
-      'evals/results/j4-active-brain-exploration-longmemeval-q1-v1/artifact-manifest.json',
+      'evals/results/j4-journal-navigation-longmemeval-q1-v1/artifact-manifest.json',
     sha256:
-      '9db1ef0987d8469cd98433995f8295838bda891881876e496263ba13f736669d',
+      '7de7342a05eb309e34330043966334c8faee077271472062b2cb7f8090c46c35',
   }),
   predictions: Object.freeze({
     path:
-      'evals/predictions/j4-active-brain-exploration-longmemeval-q1-v1.json',
+      'evals/predictions/j4-journal-navigation-longmemeval-q1-v1.json',
     sha256:
-      'c25d043f93c0b23b7036737bac3324ce4b85f188587b3765da265d1a53cf0c2c',
+      'd7b107e932361360aa0b1a9795f5bfb98fd21cbbfdecbfea5caa2045d3775d6c',
   }),
-  runId: 'j4-active-brain-exploration-longmemeval-q1-v1',
+  report: Object.freeze({
+    path:
+      'evals/results/j4-journal-navigation-longmemeval-q1-v1/report.json',
+    sha256:
+      '34149ecc8cafbe08ea22150734b81043905fa1187c9f5e27401bd748a6716b6f',
+  }),
+  runId: 'j4-journal-navigation-longmemeval-q1-v1',
   runState: Object.freeze({
     path:
-      'evals/results/j4-active-brain-exploration-longmemeval-q1-v1/run-state.json',
+      'evals/results/j4-journal-navigation-longmemeval-q1-v1/run-state.json',
     sha256:
-      '45725916d3077d37aa9bd1c9a64de9731d0d54aa0f690b60867bbfaf82ece4b1',
+      'd2c6575db2e47b3b246b439b19c1e69a320f55e62eaa4fff8b7e48035d6fc1d0',
   }),
   runner: Object.freeze({
-    path: 'evals/run-exploration-longmemeval-live.mjs',
+    commit: '64e90ee9ab16ce1398bb7c198a20b879b7574458',
+    path: 'evals/run-journal-navigation-live.mjs',
     sha256:
-      '1598f10ba5634c85894e96e1c48e178b6497b7a3c1942e30f2f667ab3382b919',
+      '8223a22126aed99f35e9e208738812aca3461a5716d688771f86b6a5d6eaf138',
+  }),
+  transcript: Object.freeze({
+    path:
+      'evals/results/j4-journal-navigation-longmemeval-q1-v1/transcripts/gemini/smoke-reducer-1-attempt-1--dc816d1bde826038.json',
+    sha256:
+      'c6fd4de03bf15f18ca563f1107161b1ca966a7059e216ecbd08463fb67ee5b3f',
   }),
 })
 
@@ -162,6 +178,15 @@ function sha256(value) {
 
 async function sha256File(path) {
   return sha256(await readFile(path))
+}
+
+async function sha256GitFile(repoRoot, commit, path) {
+  const { stdout } = await execFile(
+    'git',
+    ['show', `${commit}:${path}`],
+    { cwd: repoRoot, maxBuffer: 5 * 1024 * 1024 },
+  )
+  return sha256(stdout)
 }
 
 async function exists(path) {
@@ -282,6 +307,7 @@ function assertDispatchAuthority(authority) {
 
 export function journalNavigationLiveResultPaths(
   repoRoot = JOURNAL_NAVIGATION_LIVE_REPO_ROOT,
+  runId = liveConfig.JOURNAL_NAVIGATION_LIVE_RUN_ID,
 ) {
   const resultsRoot = resolve(
     repoRoot,
@@ -289,7 +315,7 @@ export function journalNavigationLiveResultPaths(
   )
   const runDir = join(
     resultsRoot,
-    liveConfig.JOURNAL_NAVIGATION_LIVE_RUN_ID,
+    runId,
   )
   const transcriptsDir = join(runDir, 'transcripts')
   return {
@@ -301,7 +327,7 @@ export function journalNavigationLiveResultPaths(
     judgeTranscriptsDir: join(transcriptsDir, 'openai'),
     lockPath: join(
       resultsRoot,
-      `${liveConfig.JOURNAL_NAVIGATION_LIVE_RUN_ID}.lock`,
+      `${runId}.lock`,
     ),
     questionResultPath: join(runDir, 'question-result.json'),
     reportJsonPath: join(runDir, 'report.json'),
@@ -386,8 +412,9 @@ export async function verifyJournalNavigationPredecessor({
     PREDECESSOR.config,
     PREDECESSOR.manifest,
     PREDECESSOR.predictions,
+    PREDECESSOR.report,
     PREDECESSOR.runState,
-    PREDECESSOR.runner,
+    PREDECESSOR.transcript,
   ]) {
     if (await sha256File(resolve(repoRoot, entry.path)) !== entry.sha256) {
       throw new JournalNavigationLiveError(
@@ -395,6 +422,16 @@ export async function verifyJournalNavigationPredecessor({
         `Sealed predecessor changed: ${entry.path}.`,
       )
     }
+  }
+  if (await sha256GitFile(
+    repoRoot,
+    PREDECESSOR.runner.commit,
+    PREDECESSOR.runner.path,
+  ) !== PREDECESSOR.runner.sha256) {
+    throw new JournalNavigationLiveError(
+      'PREDECESSOR_CHANGED',
+      'The sealed v1 runner differs from its pinned git object.',
+    )
   }
   await verifyJ4ArtifactManifest(resolve(
     repoRoot,
@@ -407,10 +444,15 @@ export async function verifyJournalNavigationPredecessor({
   if (runState.status !== 'failed' ||
     runState.identity?.runId !== PREDECESSOR.runId ||
     runState.question?.question2Started !== false ||
-    runState.exploration?.modelDispatches !== 0 ||
-    runState.judge?.status !== 'not_reached' ||
-    !sameUsd(runState.spend?.cumulativeAccountedUsd, 1.0120378) ||
-    !sameUsd(runState.spend?.cumulativeMeasuredUsd, 0.7736072) ||
+    runState.smoke?.datasetLoaded !== false ||
+    runState.smoke?.receiptFile !== null ||
+    runState.meter?.gemini?.attempts !== 1 ||
+    !sameJson(runState.meter?.gemini?.logicalRequests, {
+      writer: 1,
+    }) ||
+    runState.meter?.judge?.attempts !== 0 ||
+    !sameUsd(runState.spend?.cumulativeAccountedUsd, 1.0121192) ||
+    !sameUsd(runState.spend?.cumulativeMeasuredUsd, 0.7736886) ||
     !sameUsd(runState.spend?.cumulativeUncertainUsd, 0.2384306)) {
     throw new JournalNavigationLiveError(
       'PREDECESSOR_STATE_CHANGED',
@@ -418,8 +460,8 @@ export async function verifyJournalNavigationPredecessor({
     )
   }
   return {
-    accountedUsd: 1.0120378,
-    measuredUsd: 0.7736072,
+    accountedUsd: 1.0121192,
+    measuredUsd: 0.7736886,
     uncertainUsd: 0.2384306,
     manifestSha256: PREDECESSOR.manifest.sha256,
     runId: PREDECESSOR.runId,

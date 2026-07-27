@@ -21,10 +21,10 @@ import {
 } from './incremental-longmemeval-judge.mjs'
 
 export const JOURNAL_NAVIGATION_LIVE_RUN_ID =
-  'j4-journal-navigation-longmemeval-q1-v1'
+  'j4-journal-navigation-longmemeval-q1-v2'
 export const JOURNAL_NAVIGATION_LIVE_RUN_DATE = '2026-07-27'
 export const JOURNAL_NAVIGATION_LIVE_PRODUCT_COMMIT =
-  'ffe9a8b1c729bc864790554a0dc579d82191760b'
+  'a0d75b0ec6e4bf5301d231305eea1012d283cff9'
 export const JOURNAL_NAVIGATION_LIVE_QUESTION_ID = '08e075c7'
 
 export const JOURNAL_NAVIGATION_LIVE_CONFIG_PATH =
@@ -71,8 +71,8 @@ export const JOURNAL_NAVIGATION_LIVE_SCOPE = Object.freeze({
 })
 
 export const JOURNAL_NAVIGATION_LIVE_OPENING_SPEND = Object.freeze({
-  accountedUsd: 1.0120378,
-  measuredUsd: 0.7736072,
+  accountedUsd: 1.0121192,
+  measuredUsd: 0.7736886,
   uncertainUsd: 0.2384306,
 })
 

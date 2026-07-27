@@ -114,11 +114,11 @@ function httpSuccess(content, {
   })
 }
 
-test('runner import is inert and the exact identity is one-way sealed',
+test('runner import keeps v1 sealed and opens only the fresh v2 identity',
   async () => {
     assert.deepEqual(
       JOURNAL_NAVIGATION_TERMINAL_RUN_IDS,
-      [JOURNAL_NAVIGATION_LIVE_RUN_ID],
+      ['j4-journal-navigation-longmemeval-q1-v1'],
     )
     assert.equal(
       parseJournalNavigationLiveArgs([
@@ -127,9 +127,15 @@ test('runner import is inert and the exact identity is one-way sealed',
       ]),
       JOURNAL_NAVIGATION_LIVE_RUN_ID,
     )
+    assert.equal(
+      assertJournalNavigationRunOpen(
+        JOURNAL_NAVIGATION_LIVE_RUN_ID,
+      ),
+      JOURNAL_NAVIGATION_LIVE_RUN_ID,
+    )
     assert.throws(
       () => assertJournalNavigationRunOpen(
-        JOURNAL_NAVIGATION_LIVE_RUN_ID,
+        'j4-journal-navigation-longmemeval-q1-v1',
       ),
       { code: 'RUN_TERMINAL' },
     )
@@ -140,7 +146,10 @@ test('runner import is inert and the exact identity is one-way sealed',
     let reads = 0
     await assert.rejects(
       main({
-        args: ['--run', JOURNAL_NAVIGATION_LIVE_RUN_ID],
+        args: [
+          '--run',
+          'j4-journal-navigation-longmemeval-q1-v1',
+        ],
         dependencies: new Proxy({}, {
           get() {
             reads += 1
@@ -154,14 +163,17 @@ test('runner import is inert and the exact identity is one-way sealed',
           },
         }),
       }),
-      { code: 'RUN_TERMINAL' },
+      { code: 'RUN_ID_REQUIRED' },
     )
     assert.equal(reads, 0)
   })
 
 test('private terminal smoke evidence verifies when present',
   async (context) => {
-    const paths = journalNavigationLiveResultPaths(SOURCE_ROOT)
+    const paths = journalNavigationLiveResultPaths(
+      SOURCE_ROOT,
+      'j4-journal-navigation-longmemeval-q1-v1',
+    )
     let manifestBytes
     try {
       manifestBytes = await readFile(paths.artifactManifestPath)
@@ -516,15 +528,15 @@ test('historical open path proves smoke gates replay, navigation, and judge',
       },
       authorityPath: join(
         root,
-        'evals/live-runs/j4-journal-navigation-longmemeval-q1-v1.authority.json',
+        'evals/live-runs/j4-journal-navigation-longmemeval-q1-v2.authority.json',
       ),
       configPath: join(
         root,
-        'evals/live-runs/j4-journal-navigation-longmemeval-q1-v1.json',
+        'evals/live-runs/j4-journal-navigation-longmemeval-q1-v2.json',
       ),
       predictionsPath: join(
         root,
-        'evals/predictions/j4-journal-navigation-longmemeval-q1-v1.json',
+        'evals/predictions/j4-journal-navigation-longmemeval-q1-v2.json',
       ),
     }
     const geminiKey = `gemini-${randomUUID()}`
@@ -675,8 +687,8 @@ test('historical open path proves smoke gates replay, navigation, and judge',
           log() {},
           async verifyPredecessor() {
             return {
-              accountedUsd: 1.0120378,
-              measuredUsd: 0.7736072,
+              accountedUsd: 1.0121192,
+              measuredUsd: 0.7736886,
               runId: 'sealed-predecessor',
               uncertainUsd: 0.2384306,
             }

@@ -18,7 +18,7 @@ import {
 
 const REPO_ROOT = new URL('..', import.meta.url).pathname
 
-test('terminal contract pins its pre-run runtime and sealed predecessor',
+test('fresh v2 contract pins its runtime and sealed v1 predecessor',
   async () => {
     const loaded = await loadJournalNavigationLiveContract({
       repoRoot: REPO_ROOT,
@@ -35,15 +35,13 @@ test('terminal contract pins its pre-run runtime and sealed predecessor',
 
     assert.deepEqual(
       JOURNAL_NAVIGATION_TERMINAL_RUN_IDS,
-      [JOURNAL_NAVIGATION_LIVE_RUN_ID],
+      ['j4-journal-navigation-longmemeval-q1-v1'],
     )
-    await assert.rejects(
-      auditJournalNavigationTrackedArtifacts({
-        config: loaded.config,
-        repoRoot: REPO_ROOT,
-      }),
-      { code: 'ARTIFACT_CHANGED' },
-    )
+    const audit = await auditJournalNavigationTrackedArtifacts({
+      config: loaded.config,
+      repoRoot: REPO_ROOT,
+    })
+    assert.equal(audit.artifacts, 39)
     const drift = []
     for (const artifact of loaded.config.artifacts) {
       const current = journalNavigationLiveSha256(
@@ -51,10 +49,7 @@ test('terminal contract pins its pre-run runtime and sealed predecessor',
       )
       if (current !== artifact.sha256) drift.push(artifact.path)
     }
-    assert.deepEqual(drift, [
-      'evals/arms/lean-memory-reducer-contract.mjs',
-      'evals/run-journal-navigation-live.mjs',
-    ])
+    assert.deepEqual(drift, [])
 
     const predecessor = await verifyJournalNavigationPredecessor({
       repoRoot: REPO_ROOT,
@@ -66,8 +61,8 @@ test('terminal contract pins its pre-run runtime and sealed predecessor',
         uncertainUsd: predecessor.uncertainUsd,
       },
       {
-        accountedUsd: 1.0120378,
-        measuredUsd: 0.7736072,
+        accountedUsd: 1.0121192,
+        measuredUsd: 0.7736886,
         uncertainUsd: 0.2384306,
       },
     )
@@ -81,7 +76,7 @@ test('cap covers maximum validated responses plus a pending judge', () => {
     geminiPendingReservationUsd: 0.2359296,
     geminiSuccessfulMaximumUsd: 1.0502976,
     judgePendingReservationUsd: 0.54417,
-    projectedCumulativeMaximumUsd: 2.6065054,
+    projectedCumulativeMaximumUsd: 2.6065868,
     smokeMeasuredPassExclusiveUsd: 0.01,
     smokePendingReservationsUsd: 0.7077888,
     smokeSuccessfulMaximumUsd: 0.3155776,
