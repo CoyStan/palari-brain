@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "status": "FINAL",
+  "runId": "j4-journal-navigation-longmemeval-q1-v1",
+  "recordedAt": "2026-07-27",
+  "productCommit": "ffe9a8b1c729bc864790554a0dc579d82191760b",
+  "questionId": "08e075c7",
+  "models": {
+    "exploration": "gemini-2.5-flash-lite",
+    "judge": "gpt-4o-2024-08-06",
+    "smokeReducer": "gemini-2.5-flash-lite"
+  },
+  "noReroll": true,
+  "notes": [
+    "The synthetic smoke uses a seeded exact phrase only to test the live reducer/function-call/continuation wire.",
+    "The seeded smoke call is excluded from every autonomous navigation prediction.",
+    "The benchmark model receives no reference answer, answer-bearing session label, or preseeded search phrase."
+  ],
+  "predictions": [
+    {
+      "id": "SMOKE_THREE_GEMINI_CALLS",
+      "predicted": true,
+      "statement": "Compatibility smoke completes exactly one reducer, one tool-selection, and one answer-continuation Gemini call."
+    },
+    {
+      "id": "SMOKE_NO_RETRIES",
+      "predicted": true,
+      "statement": "Compatibility smoke uses zero retry dispatches."
+    },
+    {
+      "id": "SMOKE_MEASURED_UNDER_ONE_CENT",
+      "predicted": true,
+      "statement": "Successful compatibility-smoke measured spend is below $0.01."
+    },
+    {
+      "id": "SMOKE_REDUCER_READY",
+      "predicted": true,
+      "statement": "The lean reducer stores one grounded user fact and leaves a ready digest with no pending or blocked work."
+    },
+    {
+      "id": "SMOKE_NAVIGATION_ROUND_TRIP",
+      "predicted": true,
+      "statement": "The smoke issues one seeded memory_find call, receives the expected canonical evidence, and answers from it."
+    },
+    {
+      "id": "SMOKE_PRECEDES_DATASET",
+      "predicted": true,
+      "statement": "The smoke pass receipt is durably verified before the benchmark dataset is parsed."
+    },
+    {
+      "id": "INGESTION_COMPLETES",
+      "predicted": true,
+      "statement": "Ingestion completes: 243 interactions, 484 canonical rows, a ready empty digest, and zero provider reducer calls."
+    },
+    {
+      "id": "MEMORY_FIND_USED",
+      "predicted": true,
+      "statement": "The model issues at least one memory_find call."
+    },
+    {
+      "id": "FIRST_CHOICE_FIND_MISSES",
+      "predicted": true,
+      "statement": "The model's first-choice phrase MISSES (returns zero matches) at least once."
+    },
+    {
+      "id": "RECOVERS_AFTER_MISS",
+      "predicted": true,
+      "statement": "The model recovers after a miss — by rewording, or by using memory_timeline + memory_read — rather than giving up."
+    },
+    {
+      "id": "GROUNDED_FINAL_ANSWER",
+      "predicted": true,
+      "statement": "The final answer is grounded in at least one message in consultedEvidenceIds."
+    },
+    {
+      "id": "EXPLORATION_WITHIN_BUDGET",
+      "predicted": true,
+      "statement": "Total exploration calls <= 6; the budget is not exhausted."
+    }
+  ]
+}

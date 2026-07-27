@@ -1690,3 +1690,62 @@ dates. Agents record; the founder decides.
   and autonomous journal navigation can be measured independently before any
   integrated run is considered. Historical live bytes and private evidence
   remain sealed and unchanged.
+- 2026-07-27 (FOUNDER SCOPE GO — smoke-first autonomous journal navigation;
+  exact paid cap still gated) The founder directed a compatibility smoke to
+  precede another one-question run: one reducer call, one exploration
+  selection call, and one answer-continuation call, under one cent, must pass
+  before the 243-interaction loop begins. This supersedes the prior suggestion
+  to report those two measurements under separate founder gates. It does not
+  reopen or alter terminal identity
+  `j4-active-brain-exploration-longmemeval-q1-v1`, whose exact tracked and
+  private evidence remains hash-verified and whose `$1.0120378` cumulative
+  accounted spend is the fresh run's opening.
+
+  Fresh identity `j4-journal-navigation-longmemeval-q1-v1` implements that
+  order. The smoke invokes the real lean reducer once, commits its grounded
+  fact through the host gate, then lets Gemini issue one seeded
+  `memory_find` and continue from the real canonical host result. The initial
+  prompt does not contain the opaque answer token; the exact provider model
+  content, thought signature, optional function-call ID, tool result, and
+  consulted evidence ID must survive the continuation. It permits zero
+  retry. A successful smoke must measure strictly below `$0.01`, and its
+  verified receipt must be durable before the already-hashed dataset is
+  parsed. The smoke's seeded phrase is a wire check only and cannot contribute
+  to any autonomous-navigation prediction.
+
+  Only after that receipt may the same invocation replay LongMemEval-S ordinal
+  1, question `08e075c7`, as 243 interactions and 484 canonical rows. That
+  phase uses a local discard reducer and therefore makes zero provider
+  reducer calls. Gemini receives no reference answer, answer-bearing session
+  label, or pre-seeded search phrase; it may make at most six host-tool calls
+  across at most seven model dispatches. One official GPT-4o judge follows a
+  saved non-empty answer, and the runner then stops before question 2.
+  Partial host-tool sequences are retained even if navigation terminates
+  before an answer. Prompt tuning, semantic fallback, Mem0, S-490, rerolls,
+  and publication remain closed.
+
+  The twelve predictions are FINAL at SHA-256
+  `d7b107e932361360aa0b1a9795f5bfb98fd21cbbfdecbfea5caa2045d3775d6c`.
+  The 39-file runtime closure has artifact-set SHA-256
+  `50dfa9b61c34c28de4326bc718209788cea6c97fc476522f1a12af5c8979ec11`;
+  config and preparation-only authority SHA-256 values are respectively
+  `af9e63aa68f9b3d747922d33ad9b9386ae3e8c7a9e0b2ddd21fe5e9031451df4`
+  and
+  `b2d31541e5a8d262229c8261eb28595e7078d22e7782866b7bf6af4662dbe008`.
+  The complete fresh next-dispatch envelope is
+  `1 × $0.1056576 + 9 × $0.1049600 + $0.5441700 = $1.5944676`,
+  projecting `$2.6065054` cumulative accounted spend. The one-cent condition
+  is successful measured smoke spend: the fail-closed meter first reserves
+  the complete published Gemini window, so an ambiguous failed dispatch may
+  retain a conservative `$0.2359296` reservation. If the founder instead
+  means an absolute sub-cent ceiling under an ambiguous failure, a different
+  request-specific meter is required.
+
+  The real product, Gemini hard-cap transport, smoke receipt, full
+  243-interaction replay, three-tool recovery, judge ordering, and terminal
+  manifest compose over fake HTTP. The full suite reports 508 pass, 0 fail,
+  and three historical skips; quickstart, dry bake-off, and package dry-run
+  are green. Tracked authority remains `dispatchAuthorized: false` and
+  `exactCapConfirmationRequired: true` pending exact founder confirmation of
+  `$1.5944676`. The project `.env` is present and gitignored, but no credential
+  value was read. No provider call, result, score, or new spend occurred.

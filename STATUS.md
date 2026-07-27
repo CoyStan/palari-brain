@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-H1 OFFLINE SIMPLE HARNESS COMPLETE;
-FOUNDER GATE — LIVE COMPONENT CHECKS NOT AUTHORIZED (2026-07-26).
+Loop state: J4.4K-L2-P SMOKE-FIRST NAVIGATION SUCCESSOR PREPARED;
+FOUNDER GATE — EXACT `$1.5944676` FRESH SUBCAP NOT CONFIRMED
+(2026-07-27).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -483,6 +484,33 @@ private bundle verifies at manifest SHA-256
 report SHA-256 is
 `86e2a7fcf2973ffc4dd2f7da9a00afae0a1d2d5a2bdf5f0d0602457c06849118`.
 The identity is sealed and cannot be resumed or rerolled.
+
+The founder then directed the next fresh navigation runner to prove its live
+wire before touching the benchmark: exactly one reducer request, one
+model-selected exploration request, and one answer-continuation request must
+complete without retry and measure below one cent. Fresh identity
+`j4-journal-navigation-longmemeval-q1-v1` implements that order. The smoke
+uses the real lean reducer, product admission gate, canonical journal tool,
+Gemini continuation content, thought signature, and optional function-call
+ID. Its seeded phrase tests compatibility only; its tool call and evidence
+cannot count toward the autonomous benchmark predictions. The dataset is
+hash-checked but not parsed until a durable smoke-pass receipt verifies.
+
+After that receipt only, the same one-shot runner may replay LongMemEval-S
+ordinal 1 as 243 interactions and 484 exact canonical rows, use zero provider
+reducer requests, let Gemini choose at most six journal-tool calls across at
+most seven model dispatches, call one official judge, and stop before
+question 2. Partial tool evidence is retained even if navigation fails. The
+39-file runtime closure, fresh configuration, immutable predecessor, and
+twelve FINAL predictions are frozen and pass the real product and hard-cap
+transports over fake HTTP. Successful measured smoke spend must be below
+`$0.01`; an ambiguous failed Gemini dispatch can still retain the meter's
+conservative `$0.2359296` reservation. The complete fresh next-dispatch
+envelope is `$1.5944676`, projecting cumulative accounted spend of
+`$2.6065054` from the sealed `$1.0120378` opening. Preparation is authorized,
+but paid dispatch remains blocked until the founder confirms that exact fresh
+subcap. No credential value was read and no provider call, result, score, or
+new spend occurred.
 
 U8 is SEALED as a failed 9/10 reference baseline. Do not execute final
 question `1568498a`, resume, re-roll, grade publicly, or publish
@@ -1125,6 +1153,35 @@ session itself).
     dry bake-off, package dry-run, and the synthetic memory bench are green.
     No credential, provider call, identity, score, reroll, publication, or
     spend occurred.
+  - [x] J4.4K-L2-P — SMOKE-FIRST NAVIGATION SUCCESSOR PREPARED 2026-07-27
+    (`this commit`). Froze fresh identity
+    `j4-journal-navigation-longmemeval-q1-v1` over the sealed predecessor's
+    `$1.0120378` opening spend. Before the dataset is parsed, the real product
+    and metered Gemini path must complete exactly one lean-reducer call, one
+    seeded canonical `memory_find` call, and one grounded answer continuation,
+    with zero retry and successful measured spend below `$0.01`; only a
+    verified durable receipt unlocks ordinal 1. The main phase uses the local
+    discard reducer, 243 interactions, 484 canonical rows, at most six
+    model-chosen tools across seven Gemini dispatches, one official judge, and
+    no path to question 2. The seeded smoke cannot mint any main prediction
+    hit, main grounding requires evidence returned by a successful host tool,
+    and partial tool traces survive terminal failure. The exact fresh
+    next-dispatch envelope is `$1.5944676`, projecting `$2.6065054`
+    cumulative; a successful smoke's measured spend must be below one cent,
+    while an ambiguous failed Gemini dispatch can retain a `$0.2359296`
+    conservative reservation. Config SHA-256
+    `af9e63aa68f9b3d747922d33ad9b9386ae3e8c7a9e0b2ddd21fe5e9031451df4`;
+    authority SHA-256
+    `b2d31541e5a8d262229c8261eb28595e7078d22e7782866b7bf6af4662dbe008`;
+    FINAL predictions SHA-256
+    `d7b107e932361360aa0b1a9795f5bfb98fd21cbbfdecbfea5caa2045d3775d6c`;
+    39-file artifact-set SHA-256
+    `50dfa9b61c34c28de4326bc718209788cea6c97fc476522f1a12af5c8979ec11`.
+    The full suite reports 508 pass, 0 fail, and three historical skips;
+    quickstart, dry bake-off, package dry-run, and fake-HTTP end-to-end
+    composition are green. Authority remains preparation-only pending exact
+    founder cap confirmation; no credential value, provider call, result,
+    score, or spend occurred.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1164,27 +1221,30 @@ session itself).
 ## Next
 
 **FOUNDER GATE.** Do not resume or alter
-`j4-active-brain-exploration-longmemeval-q1-v1`. Its failure remains sealed,
-and autonomous exact-only search remains unmeasured.
+`j4-active-brain-exploration-longmemeval-q1-v1`. Its failure remains sealed.
 
-The offline repair is complete. The smallest empirical sequence is now
-deliberately separated:
+Fresh identity `j4-journal-navigation-longmemeval-q1-v1` is prepared but may
+not dispatch until the founder confirms exactly:
 
-1. A fresh, tiny reducer-compatibility smoke may test one new fact, one valid
-   `no_memory`, and one correction using the lean proposal contract. It
-   requires a new identity, frozen configuration/hashes/costs, FINAL
-   predictions, and an exact founder-approved subcap.
-2. Only after that result is reported and separately authorized, one
-   navigation-only LongMemEval ordinal-1 run may use the local discard
-   reducer, one answer session, at most six model-chosen tool calls, and one
-   official judge. It must make zero provider reducer calls and receive no
-   answer phrase, answer-bearing session ID, or reference answer.
-3. An integrated reducer-plus-navigation run is a later founder decision, not
-   an automatic continuation.
+`I confirm freshSubcapUsd: 1.5944676 for
+j4-journal-navigation-longmemeval-q1-v1.`
 
-No live authority exists for any of those steps. Question 2,
-prompt/tool-description tuning, semantic fallback, Mem0, S-490, reroll,
-publication, and announcement remain closed.
+That confirmation means the requested “under a cent” condition is successful
+measured smoke spend. An ambiguous failed Gemini dispatch can retain the
+meter's conservative `$0.2359296` reservation; if the founder instead means
+an absolute sub-cent ceiling under ambiguous failure, the meter must be
+redesigned before dispatch.
+
+After confirmation, use the project `.env` for `OPENAI_API_KEY` and the
+existing private provider-secrets file for `GEMINI_API_KEY`, without printing
+or committing either. The runner must first complete exactly one reducer,
+one exploration selection, and one answer continuation; require zero retry,
+measured spend below `$0.01`, and a durable verified receipt. Only then may
+the same one-shot invocation parse and replay ordinal 1, perform autonomous
+journal navigation, call one official judge, and stop.
+
+Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
+rerolls, publication, and announcement remain closed.
 
 ## Log
 
@@ -1486,6 +1546,14 @@ zero external reducer calls. Full suite 489 pass, 0 fail, three historical
 skips; quickstart, dry bake-off, package dry-run, and synthetic memory bench
 green. No credential, provider call, identity, score, reroll, publication, or
 spend.
+2026-07-27 — J4.4K-L2-P — this commit — Prepared the founder-directed
+smoke-first replacement identity: exactly three real-path Gemini compatibility
+calls must pass below one cent measured before the dataset is parsed, then
+only ordinal 1 may use autonomous journal tools and one judge. Froze twelve
+FINAL predictions, 39 runtime hashes, immutable predecessor accounting, and
+the exact `$1.5944676` fresh envelope; full suite 508 pass, 0 fail, three
+historical skips. Authority remains blocked pending exact cap confirmation;
+no credential value, provider call, result, score, or spend occurred.
 
 ## Product stop-rule record
 
@@ -2582,3 +2650,28 @@ This unit contains one product correction (truthful reducer failure handling)
 and one reduction in evaluation coupling. It removes infrastructure from the
 next experiment rather than adding another integrated layer, and stops before
 the live founder gate.
+
+### J4.4K-L2-P smoke-first navigation successor preparation
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It changes no product
+   behavior and makes no live-quality claim. It prevents another full paid
+   setup failure by requiring the exact reducer/function-call/continuation
+   wire to pass before the 243-interaction replay, and it preserves partial
+   tool evidence if the real navigation later stops.
+3. Does an existing framework already provide what this unit added? Gemini
+   provides structured output and function calling; LongMemEval provides the
+   benchmark and official judge. This unit adds only the repository-specific
+   compatibility gate, immutable accounting, and evidence binding around
+   Palari's existing journal tools.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly required one reducer call, one exploration call, and
+   one answer call below one cent before another run, then directed the
+   one-question rerun.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? The chatbot would not immediately change, but the next paid
+   experiment could replay all 243 interactions before discovering another
+   wire defect, or lose the model's exact partial tool sequence on failure.
+   This is one founder-requested preparation unit paired with its gated live
+   execution; it stops before the required exact cap decision.
