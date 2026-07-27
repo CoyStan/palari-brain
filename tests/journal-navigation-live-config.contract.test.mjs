@@ -52,6 +52,7 @@ test('terminal contract pins its pre-run runtime and sealed predecessor',
       if (current !== artifact.sha256) drift.push(artifact.path)
     }
     assert.deepEqual(drift, [
+      'evals/arms/lean-memory-reducer-contract.mjs',
       'evals/run-journal-navigation-live.mjs',
     ])
 

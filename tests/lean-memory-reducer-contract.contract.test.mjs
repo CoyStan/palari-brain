@@ -111,7 +111,7 @@ test('lean provider schema uses only the documented shallow subset', () => {
   )
 })
 
-test('provider input uses local aliases and exposes no host revision or IDs', () => {
+test('provider input uses aliases and hides host IDs, revisions, and times', () => {
   const input = buildLeanMemoryReducerInput(reductionRequest())
   assert.equal(
     input.contractVersion,
@@ -122,6 +122,11 @@ test('provider input uses local aliases and exposes no host revision or IDs', ()
   assert.equal(JSON.stringify(input).includes('opaque-evidence-user'), false)
   assert.equal(JSON.stringify(input).includes('opaque-memory-oat'), false)
   assert.equal(JSON.stringify(input).includes('baseRevision'), false)
+  assert.equal(JSON.stringify(input).includes('observedAt'), false)
+  assert.equal(
+    JSON.stringify(input).includes('2026-01-02T00:00:00.000Z'),
+    false,
+  )
 
   const body = buildLeanMemoryReducerGeminiBody(reductionRequest())
   assert.equal(body.store, false)

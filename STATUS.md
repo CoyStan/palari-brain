@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-L2-E TERMINAL COMPATIBILITY-SMOKE FAILURE SEALED;
-FOUNDER GATE — AUTONOMOUS SEARCH REMAINS UNMEASURED (2026-07-27).
+Loop state: J4.4K-R2 HOST-TIMESTAMP BOUNDARY REPAIRED;
+FOUNDER GO — FRESH V2 NAVIGATION SUCCESSOR AUTHORIZED (2026-07-27).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -1240,6 +1240,14 @@ session itself).
     skip; the full suite reports 509 pass, 0 fail, and four historical skips.
     Quickstart, dry bake-off, package dry-run, manifest verification, and diff
     checks are green. No result or score is committed or published.
+  - [x] J4.4K-R2 — HOST-TIMESTAMP BOUNDARY REPAIRED 2026-07-27
+    (`this commit`). Removed host-owned `observedAt` values from the lean
+    reducer's provider-facing evidence and prior-memory aliases. Palari still
+    retains those timestamps internally for chronology and still accepts an
+    explicit `timeEvidenceRef`/`timeQuote` only when the quote occurs exactly
+    in dialogue. The sealed v1 contract and private evidence remain
+    unchanged; its expected artifact drift now names this product correction.
+    No credential was read, no provider was called, and spend is unchanged.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1278,21 +1286,14 @@ session itself).
 
 ## Next
 
-**FOUNDER GATE.** Do not resume or alter either terminal identity:
+Do not resume or alter either terminal identity:
 `j4-active-brain-exploration-longmemeval-q1-v1` or
-`j4-journal-navigation-longmemeval-q1-v1`. The new smoke did its job: it found
-a semantic contract mismatch for `$0.0000814` before dataset parsing.
-Autonomous exact-only journal navigation remains neither validated nor
-disproved.
-
-The smallest successor correction is subtractive: remove host-owned
-`observedAt` timestamps from the provider-facing lean proposal input while
-retaining them inside Palari for chronology. Keep `timeEvidenceRef` and
-`timeQuote` only for explicit time phrases that really occur in dialogue.
-That removes the metadata value Gemini copied without discarding temporal
-quotes the user actually said. A prompt-only prohibition would leave the
-same unnecessary failure surface. This behavioral change and any fresh run
-identity require a new founder GO.
+`j4-journal-navigation-longmemeval-q1-v1`. The subtractive timestamp-boundary
+repair is complete. The founder stated, “okay fix that error and then run it
+again GO,” authorizing one fresh successor with the same models, smoke-first
+scope, ordinal-1-only boundary, `$1.5944676` fresh subcap, and `$8.00`
+cumulative cap. Freeze the v2 identity from this repaired product cut, carry
+all prior spend and immutable v1 evidence, execute it once, seal it, and stop.
 
 Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
 rerolls, publication, and announcement remain closed.
@@ -1617,6 +1618,9 @@ the smoke stopped before dataset parsing with no exploration, answer, tool,
 judge, or score. Fresh measured/accounted spend is `$0.0000814`; the private
 bundle verifies and cumulative accounted spend is `$1.0121192`. Full suite
 509 pass, 0 fail, four historical skips; all standing offline gates green.
+2026-07-27 — J4.4K-R2 — this commit — Removed host-only event timestamps from
+the model-facing lean reducer input while retaining internal chronology and
+exact dialogue time-quote validation. No live call or spend occurred.
 
 ## Product stop-rule record
 
@@ -2774,3 +2778,19 @@ the live founder gate.
    failed identity could be rerun and the provider's metadata-as-quote error
    could be mistaken for a failure of journal search. The terminal record
    proves that autonomous search was never exercised.
+
+### J4.4K-R2 host-timestamp boundary repair
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? Yes. A reducer can no
+   longer mistake Palari's internal event timestamp for user-authored
+   evidence and lose an otherwise valid memory transaction.
+3. Does an existing framework already provide what this unit added? Provider
+   frameworks transport structured JSON, but this is Palari's own boundary
+   between host chronology and exact dialogue provenance.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly directed the error to be fixed before one fresh run.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? The model would again see a timestamp it is forbidden to quote and
+   could turn a valid remembered statement into a rejected reduction.

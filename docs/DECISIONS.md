@@ -1800,3 +1800,13 @@ dates. Agents record; the founder decides.
   open-run skip; the full suite reports 509 pass, 0 fail, and four historical
   skips. Quickstart, dry bake-off, package dry-run, manifest verification, and
   diff checks are green.
+- 2026-07-27 (FOUNDER GO — J4.4K-R2 repair and fresh successor) The founder
+  stated: `okay fix that error and then run it again GO`. The narrow product
+  correction removes host-owned `observedAt` timestamps from the lean
+  reducer's provider-facing input while preserving internal chronology and
+  exact dialogue time-quote validation. “Run it again” authorizes one fresh
+  v2 identity with the prior smoke-first ordinal-1 scope, models, no-retry
+  law, `$1.5944676` fresh subcap, and `$8.00` cumulative cap. It does not
+  reopen v1 or authorize question 2, prompt/tool tuning, semantic fallback,
+  Mem0, S-490, rerolls, publication, or announcement. V1's `$0.0000814`
+  measured spend remains in the cumulative opening balance.

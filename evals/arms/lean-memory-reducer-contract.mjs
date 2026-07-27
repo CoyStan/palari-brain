@@ -217,14 +217,12 @@ export function buildLeanMemoryReducerInput(request) {
     },
     contractVersion: LEAN_MEMORY_REDUCER_CONTRACT_VERSION,
     evidence: [...evidence].map(([ref, entry]) => ({
-      observedAt: String(entry.observedAt),
       ref,
       speaker: String(entry.speaker),
       text: String(entry.text),
     })),
     prior: [...prior].map(([ref, entry]) => ({
       epistemic: String(entry.epistemic),
-      observedAt: String(entry.observedAt),
       ref,
       speaker: String(entry.speaker),
       statement: String(entry.statement),
