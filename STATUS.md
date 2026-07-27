@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-L4-P FRESH V3 SUCCESSOR FROZEN;
-FOUNDER GATE — EXACT CAP CONFIRMATION AND ANY LIVE DISPATCH REMAIN CLOSED
+Loop state: J4.4K-P1-G ONE DEVELOPMENT PROBE AUTHORIZED;
+NEXT — EXECUTE EXACTLY ONE `$0.05` PROBE, WHILE V3 DISPATCH REMAINS CLOSED
 (2026-07-27).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
@@ -1351,6 +1351,17 @@ session itself).
     Focused contracts report 30 pass, 0 fail; the full suite reports 540 pass,
     0 fail, and three skips; quickstart is green. No credential, provider
     call, result, score, or new spend occurred.
+  - [x] J4.4K-P1-G — ONE DEVELOPMENT PROBE AUTHORIZED 2026-07-27
+    (`this commit`). After the prepared-v3 handoff recommended the
+    identity-free provider probe, the founder replied “yes do it, go.” This
+    authorizes exactly one `npm run probe` attempt with `maxRepairs: 1` and
+    the frozen default `$0.05` hard cap. It does not authorize a second
+    attempt, a higher cap, v3 activation or dispatch, dataset access, a score,
+    publication, or any change to v3's frozen bytes. The probe directory was
+    absent before dispatch and is gitignored; a Gemini credential variable is
+    available from the founder-designated secrets file, and its value was not
+    printed or committed. No provider call or spend occurred at this pushed
+    authority cut.
   - [x] J4.3K-R3 — DIGEST DENSITY REPAIR 2026-07-26 (`this commit`). Answer
     records are now lean: statement, speaker, time, topic, epistemic, optional
     time anchor, and the single most recent exact quote. Opaque IDs and
@@ -1395,19 +1406,18 @@ identities:
 `j4-journal-navigation-longmemeval-q1-v1` or
 `j4-journal-navigation-longmemeval-q1-v2`.
 
-Fresh `j4-journal-navigation-longmemeval-q1-v3` is prepared but not
-authorized to dispatch. Its exact required fresh subcap is `$1.7001252`
-against the unchanged `$8.00` cumulative cap. Dispatch requires a new founder
-message confirming that exact subcap and identity; activating authority is a
-separate pushed cut point.
+Execute exactly one identity-free development probe from the pushed
+J4.4K-P1-G cut: one attempt, `maxRepairs: 1`,
+`PALARI_PROBE_CONFIRM_SPEND=1`, and `PALARI_PROBE_CAP_USD=0.05`. Report its
+exact accepted/repaired/rejected outcome, operation count, host objection if
+any, and accounted spend. The probe creates no score, reads no dataset, and
+writes nothing under `evals/results/`. Do not run a second attempt without
+another founder GO.
 
-Recommendation before activating v3: run `npm run probe` first. Every live
-failure so far has occurred at the provider boundary, and the probe can test
-the same writer/repair/continuation wire without consuming or terminating the
-v3 identity. It is still a live provider call and therefore still requires
-explicit founder GO, `PALARI_PROBE_CONFIRM_SPEND=1`, and its own cap no higher
-than `$1`. If the founder instead chooses direct v3 activation, no prompt,
-model, artifact, prediction, or cap arithmetic should change.
+Fresh `j4-journal-navigation-longmemeval-q1-v3` remains prepared but not
+authorized to dispatch. Its exact required fresh subcap is `$1.7001252`
+against the unchanged `$8.00` cumulative cap. Activating it still requires a
+new founder message confirming that exact subcap and identity.
 
 Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
 rerolls, publication, and announcement remain closed.
@@ -1748,6 +1758,9 @@ before dataset parsing; fresh measured/accounted spend is
 successor with one separately metered reducer repair, terminal empty-response
 classification, exact `$1.7001252` fresh envelope, sealed v1+v2 accounting,
 and authority closed pending exact founder confirmation. Nothing dispatched.
+2026-07-27 — J4.4K-P1-G — this commit — Recorded the founder's GO for exactly
+one identity-free provider probe attempt with one repair and the default
+`$0.05` cap. V3 remains closed; nothing dispatched at this authority cut.
 
 ## Product stop-rule record
 

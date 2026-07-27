@@ -1964,3 +1964,20 @@ dates. Agents record; the founder decides.
   is the identity-free development probe, because it can shake out provider
   wire deviations without consuming v3, but the probe is itself founder-gated
   spend and was not run here.
+
+- 2026-07-27 (FOUNDER GO — J4.4K-P1-G one development provider probe) After
+  the v3 preparation handoff recommended running the identity-free development
+  probe before activating v3, the founder replied “yes do it, go.” This GO is
+  interpreted minimally as exactly one default probe attempt:
+  `attempts: 1`, `maxRepairs: 1`, `PALARI_PROBE_CONFIRM_SPEND=1`, and the
+  frozen default `PALARI_PROBE_CAP_USD=0.05`. The probe may call Gemini only;
+  it has no run identity, score, benchmark dataset, judge, publication path,
+  or output under `evals/results/`.
+
+  This GO does not authorize a second probe attempt, a higher probe cap,
+  activation or dispatch of
+  `j4-journal-navigation-longmemeval-q1-v3`, any question, Mem0, S-490,
+  publication, or a behavioral change after observing the probe. V3's config,
+  authority, predictions, and 41 runtime artifacts remain frozen exactly as
+  pushed at `6ea34e0`. The probe result is a provider-compatibility
+  observation, not a benchmark finding.
