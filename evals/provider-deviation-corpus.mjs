@@ -171,6 +171,23 @@ export const PROVIDER_DEVIATIONS = Object.freeze([
     unit: 'J4.4K-P2-E',
   }),
   Object.freeze({
+    // Anticipated sibling of the two J4.4K-P2-E entries above: the same
+    // vocabulary confusion, but reaching for an evidence ref instead of a
+    // topic. Not observed — kept because `targets` accepts any string and the
+    // host must refuse every wrong kind of token, not just the two seen.
+    expectedFragment: 'actions[0].targets[0]',
+    id: 'supersede-target-is-evidence-ref',
+    observed: false,
+    payload: payload(action({
+      op: 'supersede',
+      targets: ['e0'],
+    })),
+    repairable: true,
+    summary:
+      'A supersede aimed at an evidence ref instead of a prior-memory alias.',
+    unit: 'anticipated',
+  }),
+  Object.freeze({
     expectedFragment: 'Lean memory proposal',
     id: 'markdown-fenced-json',
     observed: false,

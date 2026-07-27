@@ -98,11 +98,12 @@ export const LEAN_MEMORY_REDUCER_REPAIR_INSTRUCTION = [
 // module is therefore adoptable by a successor identity without editing the
 // hash-pinned transport, which is the whole point.
 export function buildLeanMemoryReducerRepairBody({
+  buildBody = buildLeanMemoryReducerGeminiBody,
   rejectedText,
   rejection,
   request,
 }) {
-  const body = buildLeanMemoryReducerGeminiBody(request)
+  const body = buildBody(request)
   const input = JSON.parse(body.contents[0].parts[0].text)
   return {
     ...body,
@@ -123,12 +124,21 @@ export function buildLeanMemoryReducerRepairBody({
 }
 
 export function createRepairingLeanMemoryReducer({
+  // The system instruction is the one part of the request a caller may need
+  // to correct without touching the host's rules. Defaults to the frozen v1
+  // contract so an existing caller is byte-identical; a caller that has
+  // learned something about the model — see
+  // `lean-memory-reducer-instructions.mjs` — supplies its own.
+  buildBody = buildLeanMemoryReducerGeminiBody,
   invoke,
   maxRepairs = DEFAULT_LEAN_MEMORY_REDUCER_REPAIRS,
   onRepair,
 } = {}) {
   if (typeof invoke !== 'function') {
     throw new TypeError('createRepairingLeanMemoryReducer requires invoke.')
+  }
+  if (typeof buildBody !== 'function') {
+    throw new TypeError('buildBody must be a function.')
   }
   if (!Number.isSafeInteger(maxRepairs) || maxRepairs < 0) {
     throw new TypeError('maxRepairs must be a non-negative safe integer.')
@@ -161,7 +171,7 @@ export function createRepairingLeanMemoryReducer({
       return responseText(response)
     }
 
-    let body = buildLeanMemoryReducerGeminiBody(request)
+    let body = buildBody(request)
     let attempt = 0
     for (;;) {
       const text = await dispatch(body, attempt)
@@ -175,6 +185,7 @@ export function createRepairingLeanMemoryReducer({
           unit,
         })
         body = buildLeanMemoryReducerRepairBody({
+          buildBody,
           rejectedText: text,
           rejection: error.message,
           request,

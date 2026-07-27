@@ -837,15 +837,26 @@ test('the four-call repair smoke composes through the real hard-cap wire',
   })
 
 test('open v3 path proves smoke gates replay, navigation, and judge',
-  async () => {
+  async (t) => {
     const root = await mkdtemp(
       join(tmpdir(), 'palari-navigation-main-composition-'),
     )
     await mkdir(join(root, 'data'), { recursive: true })
-    await copyFile(
-      join(SOURCE_ROOT, 'data/longmemeval_s_cleaned.json'),
-      join(root, 'data/longmemeval_s_cleaned.json'),
-    )
+    // `data/` is gitignored by charter, so a clean clone has no dataset to
+    // copy. Skip instead of failing — the same guard the sibling dataset
+    // tests use. Third occurrence of this defect class; see STATUS J4.4K-A2.
+    try {
+      await copyFile(
+        join(SOURCE_ROOT, 'data/longmemeval_s_cleaned.json'),
+        join(root, 'data/longmemeval_s_cleaned.json'),
+      )
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        t.skip('gitignored canonical dataset is not installed')
+        return
+      }
+      throw error
+    }
     const sourceContract =
       await loadJournalNavigationLiveContract({
         repoRoot: SOURCE_ROOT,

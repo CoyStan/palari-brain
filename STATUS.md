@@ -3200,3 +3200,82 @@ single live probe and closeout.
 
 This is a live measurement closeout. It changes no runtime behavior and stops
 at the founder gate before any prompt or repair-policy correction.
+### J4.4K-A2 reference vocabulary and probe scenario repair
+
+The first live probe (J4.4K-P2-E) was rejected twice with
+`actions[0].targets[0] is unknown`. That is not a model failure and not a bug
+in the repair loop. It is two defects, one of them in the probe itself.
+
+**What the transcript shows.** The model did not misidentify a prior fact.
+It put SEMANTIC DIMENSION NAMES in `targets` — first
+`['residence', 'workplace', 'shift_type']`, then, after the objection said
+only that exactly one target was required, `['residence']`. It read `targets`
+as "which fields am I changing", not "which prior memory am I replacing".
+Recorded as corpus entries `supersede-with-multiple-targets` and
+`supersede-target-is-topic-not-prior-ref` by J4.4K-P2-E from the private
+transcript.
+
+**Defect 1 — the model was never told the vocabulary.** The system
+instruction never states that evidence refs are `e0, e1, ...`, that prior refs
+are `m0, m1, ...`, or that `targets` resolves only against prior. The provider
+schema types `targets` as a bare array of strings with no constraint.
+`evals/arms/lean-memory-reducer-instructions.mjs` adds five reference rules to
+the system instruction, naming the alias vocabulary and stating that `targets`
+takes exactly one prior-memory alias and never a topic, a field name, or an
+evidence ref. It changes no rule the host enforces; it states the rules the
+host was already going to apply.
+
+This also answers the sharper finding in J4.4K-P2-E — that a field-naming
+objection was not enough for the model to recover. It was not enough because
+the objection named the field while the missing knowledge was the VOCABULARY.
+A repair turn can only correct what the model has the words to express.
+
+**Defect 2 — the scenario could not express an intra-batch correction.** The
+probe supplied one prior fact and a batch in which `e2` corrects `e0`. Since
+`targets` resolves only against `prior`, that correction had no legal
+encoding at all. The transcript shows the model never attempted it, so this
+did not cause the rejection — but it would have blocked a fully correct
+answer. The scenario now supplies `m1` (workplace, Porto), which `e2`
+genuinely supersedes. The semantic resolution needs no grammar change: a fact
+corrected inside the same batch was never written to memory, so the model adds
+only the final version and leaves `targets` empty.
+
+**Why this is larger than one probe.** Batched reduction sends up to twenty
+interactions per call, so both cases — naming a prior memory and correcting
+inside the batch — arrive constantly. On LongMemEval that is the common case.
+Any run that dispatches without these rules will meet this rejection on real
+sessions, including the frozen v3.
+
+Also in this unit:
+
+- `createRepairingLeanMemoryReducer` accepts an optional `buildBody`,
+  defaulting to the frozen v1 contract so existing callers are byte-identical.
+  Both the first dispatch and the repair turn use it, since a repair that
+  re-asks the original question is not a repair.
+- The probe deviation is now corpus entry `unresolvable-supersede-target`,
+  the fourth observed entry.
+- `tests/journal-navigation-live-runner.contract.test.mjs:839` copied the
+  gitignored dataset unguarded and failed on any clean clone. Third occurrence
+  of this defect class in this engagement. Guarded.
+
+**Consequence for v3.** `evals/arms/lean-memory-reducer-repair.mjs` is pinned
+by `j4-journal-navigation-longmemeval-q1-v3`, so its manifest now drifts by
+exactly that one file. V3 is `dispatchAuthorized: false` and has never run, so
+there is no evidence to protect: re-freeze the pre-run cut to pick up the
+reference rules before any GO. Sealed v1/v2 are untouched and their drift list
+is still exactly `evals/run-journal-navigation-live.mjs`.
+
+Suite 536/536 with 14 skips; quickstart green. Nothing dispatched.
+
+1. Can a new user run the basic memory journey now? Yes.
+2. Did this unit make that journey measurably better? Yes, and for the first
+   time in this sequence the evidence came from a live dispatch that cost
+   pennies rather than a sealed identity. A batched reducer can now express an
+   intra-batch correction instead of failing on it.
+3. Does an existing framework already provide what this unit added? No. The
+   gap is between Palari's own reference vocabulary and its own prompt.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder authorized the probe and asked why errors were still happening.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Every self-correction inside a single reduction batch would fail the
+   reduction, which on LongMemEval sessions is most of them.

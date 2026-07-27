@@ -51,6 +51,9 @@ import {
   LEAN_MEMORY_REDUCER_GENERATION,
 } from './arms/lean-memory-reducer-contract.mjs'
 import {
+  buildClarifiedLeanMemoryReducerGeminiBody,
+} from './arms/lean-memory-reducer-instructions.mjs'
+import {
   createRepairingLeanMemoryReducer,
 } from './arms/lean-memory-reducer-repair.mjs'
 
@@ -68,10 +71,20 @@ export class DevProviderProbeError extends Error {
   }
 }
 
-// A synthetic exchange, not benchmark data. It contains the two things the
-// reducer must get right — a new fact and a later correction of an earlier
-// one — plus an explicit spoken time anchor, which is what J4.4K-L2-E turned
-// out to be about.
+// A synthetic exchange, not benchmark data.
+//
+// The first version of this scenario contained a correction whose antecedent
+// was in the SAME batch (`night shifts` -> `days`) and no prior memory that
+// the batch legally superseded. That is unrepresentable in the lean grammar,
+// so the probe asked the model for something it could not express and both
+// dispatches were rejected. Useful finding, bad scenario.
+//
+// This version keeps the intra-batch correction, because a batched reducer
+// meets that case constantly and the model must learn to handle it by adding
+// only the final version. It also supplies `m1`, which the batch genuinely
+// does supersede, so a correct response exercises both paths: one legal
+// supersede against prior, one add-the-final-version, and one prior fact
+// (`m0`) left untouched to confirm that omission is not deletion.
 export const DEV_PROBE_SCENARIO = Object.freeze({
   evidence: Object.freeze([
     Object.freeze({
@@ -101,6 +114,14 @@ export const DEV_PROBE_SCENARIO = Object.freeze({
       speaker: 'user',
       statement: 'The user is a nurse.',
       topic: 'occupation',
+    }),
+    Object.freeze({
+      epistemic: 'asserted',
+      id: 'probe-mem-2',
+      observedAt: '2025-09-14T11:00:00.000Z',
+      speaker: 'user',
+      statement: 'The user works at the hospital in Porto.',
+      topic: 'workplace',
     }),
   ]),
 })
@@ -189,6 +210,7 @@ export async function runDevProviderProbe({
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
       const repairs = []
       const reduce = createRepairingLeanMemoryReducer({
+        buildBody: buildClarifiedLeanMemoryReducerGeminiBody,
         invoke: async ({ attempt: repairAttempt, body }) => {
           operationInvocations += 1
           // A repair is a distinct logical operation, so it gets a distinct

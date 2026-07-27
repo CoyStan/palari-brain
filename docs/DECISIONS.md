@@ -2067,3 +2067,47 @@ dates. Agents record; the founder decides.
   later activated from `$2.9482959` to `$2.9485951`, still below the unchanged
   `$8.00` cap. V3 remains closed. Any target-contract correction, successor
   probe, or v3 dispatch requires a fresh founder GO.
+- 2026-07-27 (J4.4K-A2 — probe finding: reference vocabulary was never stated)
+  The first live probe dispatch and its repair were both rejected with
+  `actions[0].targets[0] is unknown`. Root cause is two defects, neither in
+  the memory logic.
+
+  The transcript shows the model put semantic dimension names in `targets` —
+  `['residence', 'workplace', 'shift_type']`, then `['residence']` after the
+  objection. It read `targets` as "which fields am I changing" rather than
+  "which prior memory am I replacing".
+
+  First, the system instruction never stated that evidence refs are `e0, e1,
+  ...`, that prior refs are `m0, m1, ...`, or that `targets` resolves only
+  against prior, and the provider schema types `targets` as an unconstrained
+  string array. `evals/arms/lean-memory-reducer-instructions.mjs` adds five
+  reference rules naming the alias vocabulary and stating that `targets` takes
+  exactly one prior-memory alias and never a topic, a field name, or an
+  evidence ref. It relaxes nothing the host enforces.
+
+  This also explains J4.4K-P2-E's sharper finding, that a field-naming
+  objection did not let the model recover: the objection named the field while
+  the missing knowledge was the vocabulary. A repair turn can only correct what
+  the model has the words to express.
+
+  Second, the probe scenario could not express an intra-batch correction. It
+  offered one prior fact and a batch in which `e2` corrects `e0`, which
+  `targets` cannot encode at all. The transcript shows the model never
+  attempted it, so this did not cause the rejection, but it would have blocked
+  a fully correct answer. The scenario now includes a prior `workplace` fact
+  the batch legally supersedes. The resolution needs no grammar change: a fact
+  corrected inside the same batch was never stored, so the model adds only the
+  final version and leaves `targets` empty. This matters well beyond the probe
+  — batched reduction sends up to twenty interactions per call, so both cases
+  arrive constantly on LongMemEval.
+
+  `createRepairingLeanMemoryReducer` now accepts an optional `buildBody`
+  defaulting to the frozen v1 contract, so existing callers are byte-identical
+  and both the first dispatch and the repair turn carry the same instruction.
+
+  Consequence for v3: the repair module is pinned by
+  `j4-journal-navigation-longmemeval-q1-v3`, whose manifest now drifts by
+  exactly that file. V3 is `dispatchAuthorized: false` and has never run, so
+  no evidence is at risk; re-freeze the pre-run cut before any GO. Sealed
+  v1/v2 artifacts are untouched. Suite 536/536 with 14 skips; quickstart
+  green; nothing dispatched.

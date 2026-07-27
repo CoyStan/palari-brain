@@ -92,7 +92,10 @@ test('the probe cap is small by default and cannot be raised past a dollar',
 test('the probe scenario carries a correction and a spoken time anchor', () => {
   const request = devProbeRequest()
   assert.equal(request.input.evidence.length, 3)
-  assert.equal(request.input.prior.length, 1)
+  // Two prior facts: one the batch legally supersedes, one it must leave
+  // alone. See tests/lean-memory-reducer-instructions.contract.test.mjs for
+  // why a single prior fact made the scenario unanswerable.
+  assert.equal(request.input.prior.length, 2)
   assert.deepEqual(
     request.input.evidence.map((entry) => entry.speaker),
     ['user', 'Palari', 'user'],
