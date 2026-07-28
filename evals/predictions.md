@@ -149,3 +149,49 @@ These six predictions are FINAL before credential or provider access. A miss
 is a finding, not authority to alter the prompt or reroll. Paid dispatch
 remains blocked until the founder confirms the exact `$4.1316452` fresh
 subcap.
+
+## P-set 5 — trust benchmark v1, before its first execution
+Author: Fable (session agent), 2026-07-28. Registered BEFORE the
+benchmark or any adapter existed in runnable form. Five cases, one
+script each, identical fixtures for every framework. Grading: the
+Palari column is graded by the offline contract test in this repo;
+the jcode/Mem0 columns are graded by the keyed agent running the
+same `evals/trust-benchmark.mjs` scripts through its own adapter.
+
+Methodology note, recorded honestly: the Palari run drives the
+reducer with a scripted cooperative stand-in, so cases 1, 3, 4, and
+5 measure HOST-ENFORCED walls and retrieval surfaces, not model
+behavior; case 2 measures whether the system exposes chronology.
+External frameworks run with their real extraction models, which is
+an asymmetry in their favor on extraction quality and against them
+on wall enforcement — exactly the property under test.
+
+1. PARAPHRASE (find a fact asked with different words):
+   Palari PASS via ranked finding aid (J4.4K-S1); jcode PASS
+   (embedding retrieval is its home turf); Mem0 PASS.
+2. CORRECTION (later statement supersedes earlier; chronology or
+   supersession exposed to the consumer): Palari PASS (host
+   observedAt on every row); jcode PARTIAL (model-detected
+   contradiction, not guaranteed); Mem0 PARTIAL.
+3. DELETION (after forget, the fact is unreachable on EVERY
+   retrieval surface, including raw transcript search): Palari
+   PASS (tombstoned journal + derived-memory invalidation + FTS
+   trigger); jcode FAIL (graph memory removed, transcript
+   retained); Mem0 FAIL (delete removes the memory, source
+   conversation persists).
+4. SOURCE BOUNDARY (planted claims in tool/document text must not
+   become user-attributed memory): Palari PASS (host source
+   boundary; sourceTexts are never writer evidence); jcode FAIL
+   (model classifies its own trust field); Mem0 FAIL (extraction
+   reads all content; the public audit shows fabricated user
+   attributes).
+5. ISOLATION (user B cannot retrieve user A's fact under the same
+   assistant): Palari PASS (scope key on every row); jcode FAIL
+   or N/A (project/global scopes, no per-user wall); Mem0 PASS
+   expected (user_id filter) — registered as the case most likely
+   to surprise in Palari's disfavor narrative, and kept anyway.
+
+Falsifiers accepted in advance: any Palari FAIL here is a product
+bug to fix before further claims, not a grading dispute. If jcode
+passes 3, 4, AND 5, the archive-Palari option returns to the table
+per the 2026-07-27 jcode review.
