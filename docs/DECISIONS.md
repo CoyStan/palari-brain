@@ -2177,3 +2177,18 @@ dates. Agents record; the founder decides.
   expected-drift list; `src/memory-search.mjs` added to the successor
   import-graph exclusions; prepared v3 must re-freeze its cut before GO.
   Suite 550/550 with 14 skips; quickstart green; no dispatch, no spend.
+
+- 2026-07-28 (J4.4K-T1 — five-case trust benchmark, predictions first)
+  P-set 5 was registered and committed (`64e2bb8`) before the harness
+  existed in runnable form, naming expected outcomes for Palari, jcode,
+  and Mem0 with falsifiers accepted in advance. The benchmark replays
+  identical data-only scripts through a documented adapter interface and
+  scores five properties: paraphrased recall, correction chronology,
+  verified deletion across every retrieval surface, source boundary, and
+  cross-user isolation. Palari's first execution passed 5/5 with a
+  scripted cooperative reducer capped at generic rules; the result and
+  the benchmark's own teeth (no-forget control, owner-retrieval control,
+  leaky-strawman adapter failing three cases) are CI-pinned. External
+  columns are graded by the keyed agent via `createTrustAdapter()`
+  implementations against the same scripts. `npm run trust-bench`;
+  offline; no spend. Suite 556/556 with 14 skips; quickstart green.

@@ -3394,3 +3394,58 @@ dispatched; no live spend.
 5. If deleted, what user-visible behavior would get worse? Any question
    phrased differently from the original words would return nothing and
    burn exploration calls on guessed rewordings.
+
+### J4.4K-T1 five-case trust benchmark, predictions first
+
+The open question from the jcode review was whether Palari's trust claims
+are measured or merely asserted. This unit builds the measurement.
+
+Order of operations, per the pre-registered-predictions law: P-set 5 was
+appended to `evals/predictions.md` and committed at `64e2bb8` BEFORE the
+harness existed in runnable form, with falsifiers accepted in advance —
+any Palari failure is a product bug to fix, not a grading dispute, and if
+jcode passes deletion, source boundary, AND isolation, the archive option
+returns to the table.
+
+The benchmark (`evals/trust-benchmark.mjs`, `npm run trust-bench`):
+
+- Five cases as pure data — identical scripts replay against any framework
+  through a documented adapter interface (open/ingest/forget/retrieve/
+  close). Deterministic timestamps; no network; no spend.
+- Cases: paraphrased recall; correction with usable chronology; verified
+  deletion (unreachable on EVERY surface, including transcript search);
+  source boundary (planted document claims never become user-attributed
+  memory); cross-user isolation.
+- Palari's adapter (`evals/arms/palari-trust-adapter.mjs`) drives the real
+  brain with a scripted cooperative reducer capped at generic rules, and
+  exposes every retrieval surface — digest items, ranked journal search,
+  and full hit texts — because hiding a surface is cheating.
+
+First execution: **Palari 5/5**, matching the registered predictions.
+The result is CI-pinned, and the benchmark's teeth are themselves tested:
+removing the forget step makes the deletion case fail (the probes really
+reach the journal); the fact's owner retrieves what user B cannot (the
+isolation pass is not vacuous); and a deliberately leaky strawman adapter
+fails deletion, source boundary, and isolation (the benchmark can catch a
+cheater).
+
+Handoff: the keyed agent grades the jcode and Mem0 columns of P-set 5 by
+implementing `createTrustAdapter()` for each against the same scripts.
+
+Suite 556/556 with 14 skips (+6 tests); quickstart green; no dispatch.
+
+1. Can a new user run the basic memory journey now? Yes.
+2. Did this unit make the journey measurably better? It made the journey's
+   guarantees measurable — the five properties a buyer would audit are now
+   one command, and regressions in any of them fail CI from today on.
+3. Does an existing framework already provide this? LongMemEval measures
+   recall quality; HaluMem measures memory hallucination. No public
+   benchmark measures deletion reachability, source-boundary enforcement,
+   and scope isolation together. This one does, and it is framework-neutral
+   by construction.
+4. Has a real user or the founder asked for it? Yes — the founder said
+   "fix as much as you can," and the repo agent's jcode review specified
+   exactly this comparison as the decision instrument.
+5. If deleted, what would get worse? Trust claims would return to being
+   assertions, and a regression in deletion or isolation could ship
+   silently.
