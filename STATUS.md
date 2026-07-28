@@ -3339,3 +3339,58 @@ Suite 536/536 with 14 skips; quickstart green. Nothing dispatched.
 This is one infrastructure correction following a live measurement. It stops
 at the founder gate; the next unit must be the authorized provider
 measurement or a product unit, not another harness refinement.
+
+### J4.4K-S1 ranked recall as a finding aid
+
+The system's biggest honest weakness against Mem0/Zep/jcode was that
+`memory_find` required the asker to guess words the speaker actually used.
+The founder's beta transcript shows the real shape of the problem: users ask
+"where is the spare key hidden" about a message that says "I keep the spare
+key inside the blue ceramic pot." Exact matching is right to return nothing,
+and the user is right to expect a hit.
+
+This unit adds ranked lexical recall under one rule: **an index may locate
+evidence; it may never be evidence.**
+
+- `src/memory-search.mjs` (new): FTS5 index over `dialogue_evidence` using
+  the same tokenizer and trigger idiom as the existing `memory_fts` in
+  `memory-store.mjs`. Insert/update/delete triggers keep it synchronous with
+  the journal; deletion drops the row from the index, and the
+  visible-statements join excludes it independently — two walls. Query terms
+  are stopworded and double-quoted so user text cannot inject FTS syntax.
+- `src/memory-exploration.mjs`: `memory_find` gains an optional `ranked`
+  flag. Default behavior is byte-identical exact matching. Ranked mode
+  orders visible journal rows by BM25 with chronology as tie-break, so the
+  same query on the same journal returns the same rows in the same order —
+  a ranked consultation is still reproducible and auditable. All-stopword
+  phrases fall back to exact matching. The result carries `mode` and the
+  audit log records it. The tool description and exploration instructions
+  now tell the model: exact first, retry with `ranked: true` on a miss.
+- Every ranked hit is a canonical row — host speaker, host time, byte-exact
+  text — reachable by `memory_read` for the full message. Nothing
+  model-written is indexed or returned. The provenance guarantee is
+  untouched, which is the entire point.
+
+Expected-drift consequences, all recorded in their governing tests:
+`src/memory-exploration.mjs` joins the sealed v2 expected-drift list (the
+sealed runner refuses on it by design), and `src/memory-search.mjs` joins
+the successor-import-graph exclusion lists for the canonical smoke and
+first-five identities. The prepared v3 navigation identity must re-freeze
+its pre-run cut before any GO, as it did for the repair and target modules.
+
+Suite 550/550 with 14 skips (+8 tests); quickstart green; nothing
+dispatched; no live spend.
+
+1. Can a new user run the basic memory journey now? Yes — quickstart green.
+2. Did this unit make that journey measurably better? Yes. A paraphrased
+   question that previously dead-ended now recovers the canonical row in one
+   tool call (`tests/memory-search.contract.test.mjs` holds the case).
+3. Does an existing framework already provide what this unit added? Ranked
+   recall, yes — but over model-written summaries. Ranked recall whose every
+   hit is host-verified canonical evidence is Palari's combination.
+4. Has a real user or the founder asked for it? Yes — the founder approved
+   the convergent plan (Grok/Codex review, repo-agent jcode review, this
+   agent), and the beta transcript demonstrates the need unprompted.
+5. If deleted, what user-visible behavior would get worse? Any question
+   phrased differently from the original words would return nothing and
+   burn exploration calls on guessed rewordings.

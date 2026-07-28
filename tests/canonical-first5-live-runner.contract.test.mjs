@@ -376,6 +376,9 @@ test('frozen first-five identity rejects the successor digest graph',
         'src/memory-digest-store.mjs',
         'src/memory-exploration.mjs',
         'src/memory-reducer.mjs',
+        // Ranked-search finding aid imported by exploration; a successor
+        // module by design, so it is expected outside the sealed pin set.
+        'src/memory-search.mjs',
       ],
     )
     await assert.rejects(

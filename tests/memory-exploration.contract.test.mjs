@@ -340,11 +340,13 @@ test('the published tool definitions are provider-neutral and complete', () => {
     assert.equal(tool.parameters.type, 'object')
     assert.ok(Object.isFrozen(tool))
   }
-  // The model must be told this is exact matching, or it will assume
-  // semantic search and give up after one miss.
+  // The model must be told this is exact matching by default, or it will
+  // assume semantic search and give up after one miss — and it must be told
+  // the ranked fallback exists, or a paraphrased question dead-ends.
   const find = MEMORY_EXPLORATION_TOOLS
     .find((tool) => tool.name === 'memory_find')
-  assert.match(find.description, /exact substring matching, not semantic/)
+  assert.match(find.description, /exact substring matching by default/)
+  assert.match(find.description, /retry with ranked true/)
   assert.deepEqual(find.parameters.required, ['phrase'])
   assert.equal(find.parameters.properties.phrase.minLength, 1)
   assert.equal(find.parameters.properties.phrase.maxLength, 200)

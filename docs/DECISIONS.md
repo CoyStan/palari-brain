@@ -2160,3 +2160,20 @@ dates. Agents record; the founder decides.
   one `$0.2359296` reservation, or `$0.7642176`. A guaranteed ten-attempt
   two-call study would require a separate increase to the probe ceiling and
   is not authorized by this GO. V3 remains frozen and closed.
+
+- 2026-07-28 (J4.4K-S1 — ranked recall as a finding aid) Following the
+  three-way convergent review (external model review, repo-agent jcode
+  comparison, session agent), the founder directed continued shipping. This
+  unit closes the paraphrased-recall gap without weakening any guarantee,
+  under the rule that an index may locate evidence but may never be
+  evidence. New `src/memory-search.mjs` builds an FTS5 index over the
+  canonical journal (same tokenizer/trigger idiom as `memory_fts`);
+  `memory_find` gains an optional `ranked` flag (BM25 order, chronology
+  tie-break, stopworded and quoted terms, exact fallback, audited `mode`).
+  Every ranked hit remains a canonical journal row within the caller's
+  visible scope; deletion removes rows from the index by trigger and from
+  results by the visibility join. Default exact behavior is byte-identical.
+  Recorded drift: `src/memory-exploration.mjs` added to the sealed v2
+  expected-drift list; `src/memory-search.mjs` added to the successor
+  import-graph exclusions; prepared v3 must re-freeze its cut before GO.
+  Suite 550/550 with 14 skips; quickstart green; no dispatch, no spend.

@@ -56,6 +56,10 @@ test('terminal v2 contract pins its pre-run runtime and v1 predecessor',
     }
     assert.deepEqual(drift, [
       'evals/run-journal-navigation-live.mjs',
+      // Ranked-search fallback added to memory_find after v2 sealed. The
+      // sealed runner refuses on this drift by design; any successor
+      // identity re-freezes against the current bytes.
+      'src/memory-exploration.mjs',
     ])
 
     // The sealed v1 evidence lives under gitignored `evals/results/`, so a
