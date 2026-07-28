@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-R3 TARGET CONTRACT CORRECTED OFFLINE;
-FOUNDER GATE — NO SUCCESSOR PROBE OR V3 DISPATCH AUTHORIZED (2026-07-27).
+Loop state: J4.4K-T2 EXTERNAL TRUST EXECUTIONS RECORDED;
+MEM0 COLUMN INVALID — NO RERUN AUTHORIZED (2026-07-28).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -1510,7 +1510,8 @@ reservation require at most `$0.7642176`. Ten fully guaranteed two-call
 attempts would require a separate cap/code decision and are not authorized.
 
 Fresh `j4-journal-navigation-longmemeval-q1-v3` remains prepared but not
-authorized to dispatch. Its exact required fresh subcap is `$1.7001252`
+authorized to dispatch, and its pre-run cut still requires the already
+requested re-freeze before any later GO. Its exact required fresh subcap is `$1.7001252`
 against the unchanged `$8.00` cumulative cap. Activating it still requires a
 new founder message confirming that exact subcap and identity. Its frozen
 opening does not include the identity-free probe; for operator accounting, the
@@ -1520,6 +1521,14 @@ below `$8.00`.
 
 Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
 rerolls, publication, and announcement remain closed.
+
+The P-set 5 external one-shot authority is consumed. jcode's physical 0/5 is
+graded. Mem0's physical 2/5 output is retained but is not a valid clean
+framework grade because its adapter did not create a fresh vector store per
+case and did not meter its internal OpenAI embedding transport. Do not rerun
+either column without a new founder GO. The next autonomous work is limited
+to correcting those adapter defects offline and re-freezing the still-closed
+v3 pre-run cut; neither action authorizes provider access.
 
 ## Log
 
@@ -1877,6 +1886,11 @@ the probe was not rerun, and v3 remains closed.
 target contract, all-action repair feedback, and fresh per-invocation probe
 meter namespaces while preserving all 41 frozen v3 artifacts. Suite 547 pass,
 0 fail, three skips; quickstart green; nothing dispatched.
+2026-07-28 — J4.4K-T2 — this commit — Ran each external trust adapter once:
+jcode physically scored 0/5 at `$0.00109272`; Mem0 physically printed 2/5
+but its column is invalid because the adapter reused a persistent vector store
+and missed embedding spend. The Mem0-created rows were backed up and removed;
+neither adapter was rerun.
 
 ## Product stop-rule record
 
@@ -3449,3 +3463,44 @@ Suite 556/556 with 14 skips (+6 tests); quickstart green; no dispatch.
 5. If deleted, what would get worse? Trust claims would return to being
    assertions, and a regression in deletion or isolation could ship
    silently.
+
+### J4.4K-T2 external trust columns, one-shot execution
+
+The founder authorized one fixture-free smoke and one physical scored
+execution for each external adapter, with no retries or re-rolls and a
+`$1.00` per-adapter cap. The exact scripts and grading are appended to P-set
+5 in `evals/predictions.md`, failing categories first.
+
+**jcode did not pass verified deletion, source boundary, or scope isolation,
+so the pre-registered archive trigger is not met.** The pinned
+`c7f487309ad693c61a6b3268132ff2cb2813fced` adapter physically scored 0/5.
+It also failed paraphrased recall and chronology. Smoke plus score cost
+exactly `$0.00109272`; all 41 provider operations completed, no retry
+occurred, and uncertainty was zero.
+
+Mem0 OSS 3.1.1 physically printed 2/5: passes on paraphrase and isolation,
+failures on chronology, deletion, and source boundary. The column is invalid
+as a clean framework comparison. Post-run inspection proved that Mem0's
+default `memory` vector store persisted to `~/.mem0/vector_store.db`; the
+adapter's fixed `collectionName` did not make `open()` fresh. Nineteen rows
+created by the run were selected only by their unique `benchmarkTurnId`,
+copied to an ignored recovery database, and removed. Unrelated rows were
+untouched. Mem0's internal OpenAI embedding client also bypassed the fetch
+meter. Gemini spend is exactly `$0.0110893`, but exact embedding spend and
+ledger proof of the combined cap are unavailable. The run was not rerolled.
+
+Raw provider transcripts, meters, and the contamination recovery database
+remain private under gitignored
+`evals/results/trust-bench/pset5-external-v1/`. No score was published.
+
+1. Can a new user run the basic memory journey now? Yes — the full suite
+   reports 569 pass, 0 fail, and 3 skips; quickstart is green.
+2. Did this unit make the journey measurably better? It measured the
+   external columns once; it did not alter product behavior.
+3. Does an existing framework already provide this? jcode and Mem0 are the
+   external frameworks being measured.
+4. Has a real user or the founder asked for it? Yes — this exact one-shot
+   grading was founder-authorized.
+5. If deleted, what would get worse? The external trust claims would again
+   be predictions rather than observed results, and the invalid Mem0
+   comparison could be mistaken for a clean score.

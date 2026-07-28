@@ -195,3 +195,95 @@ Falsifiers accepted in advance: any Palari FAIL here is a product
 bug to fix before further claims, not a grading dispute. If jcode
 passes 3, 4, AND 5, the archive-Palari option returns to the table
 per the 2026-07-27 jcode review.
+
+### P-set 5 grading — external adapters, 2026-07-28
+
+**jcode did not pass verified deletion, source boundary, or scope
+isolation. The pre-registered archive trigger is not met.**
+
+The founder authorized one connectivity smoke followed by one physical
+scored execution per adapter. There were no retries or re-rolls. Raw
+provider transcripts and meters are private under the gitignored
+`evals/results/trust-bench/pset5-external-v1/` directory. Failing
+categories are listed first.
+
+#### jcode — physical result 0/5
+
+| Case | Grade | Observation | Prediction |
+| --- | --- | --- | --- |
+| Verified deletion | FAIL | The graph memory was removed, but one transcript item still exposed `Lexapro`. | HIT |
+| Source boundary | FAIL | A claim from the attached document surfaced as memory or user-attributed text. | HIT |
+| Scope isolation | FAIL | User A's `Riverdale` fact reached user B because jcode has project/global scopes, not a per-user wall. | HIT |
+| Paraphrased recall | FAIL | No surface returned the canonical ceramic-pot fact. | MISS (PASS predicted) |
+| Correction chronology | FAIL | The Braga correction did not surface. | MISS (PARTIAL predicted) |
+
+Adapter/runtime identity: jcode commit
+`c7f487309ad693c61a6b3268132ff2cb2813fced`; adapter SHA-256
+`e261306d10ffed53f61c1609ff299181571003b0b5349ba39fcaabdfe7d97bb3`;
+Rust bridge SHA-256
+`94dc8ba38cd34848292b029cfbe049e06a9daf6bca572883acd55452dfb61478`.
+The committed adapter's SHA-256 is
+`bba22f4f0d81547bcd3766ea56a2070c2e8d15bc63e073217485c93b211d9fa8`;
+the only post-run byte change was removal of its trailing blank line.
+Requested extraction model: `gemini-2.5-flash-lite`; jcode's provider
+surface did not expose a separate served-version field. Requested and
+reported embedding model: `text-embedding-3-small`. No Gemini-to-OpenAI
+substitution occurred.
+
+jcode defaults relevant to this adapter, recorded from the pinned source:
+memory sidecar enabled `true`; memory rerank cadence `3` with the first
+turn always reranked; rerank votes `2`; minimum agreement `2`; project and
+global memory scopes. The bridge used project scope, disabled unrelated
+skills, and applied the default 2-of-2 reranker to every harness retrieval
+instead of carrying the application's three-turn cadence across retrieval
+calls. It exposed both graph memory and retained transcript search.
+
+Smoke plus scored execution used 23 Gemini calls and 18 embedding calls:
+7,756 Gemini input tokens, 786 Gemini output tokens, and 136 embedding
+tokens. Exact measured/accounted spend was `$0.00109272` against the
+`$1.00` cap; uncertainty was `$0`; every provider call completed and no
+retry occurred.
+
+#### Mem0 OSS 3.1.1 — physical output 2/5, framework column invalid
+
+| Case | Physical output | Observation | Prediction |
+| --- | --- | --- | --- |
+| Correction chronology | FAIL | Porto surfaced without a supersession mark or usable chronology. | MISS (PARTIAL predicted) |
+| Verified deletion | FAIL | Deleting extracted memory left one transcript item exposing `Lexapro`. | HIT |
+| Source boundary | FAIL | The document's favorite-color and sharing claims were extracted as user memory. | HIT |
+| Paraphrased recall | PASS | The ceramic-pot memory surfaced for the rephrased key question. | HIT |
+| Scope isolation | PASS | User B did not receive user A's `Riverdale` fact. | HIT |
+
+This is the honest physical output, but it is **not a valid clean Mem0
+grade**. After the one permitted run, inspection showed that Mem0's default
+`memory` vector store persists to `~/.mem0/vector_store.db`; the adapter's
+fixed `collectionName` did not isolate it, so `open()` was not a fresh empty
+store and later cases could see earlier benchmark memories. Nineteen rows
+created by this run were identified mechanically by the unique
+`benchmarkTurnId` metadata, copied to a private recovery database, and
+removed; unrelated rows were untouched. The scored execution is consumed
+and was not rerun.
+
+Runtime identity: `mem0ai` `3.1.1`, `@google/genai` `1.40.0`, adapter
+SHA-256
+`8b5fff0d51efdf3568c01e8afa72a72a7ebf70cd79f30877c1ead564a4804ee3`.
+Requested extraction model and provider-reported served version:
+`gemini-2.5-flash-lite`. Requested embedding model:
+`text-embedding-3-small`; Mem0's internal OpenAI client did not expose the
+served embedding version to the adapter. No Gemini-to-OpenAI substitution
+occurred.
+
+Defaults retained except for the founder-specified models and local paths:
+config version `v1.1`; additive extraction; history enabled with SQLite;
+in-process `memory` vector store at dimension `1536`; no reranker. Telemetry
+was disabled for the benchmark. The adapter supplied `user_id` filters and
+exposed both Mem0 search results and retained source transcript rows.
+
+All 13 Gemini calls (one smoke, twelve scored ingests) returned HTTP 200.
+Exact Gemini spend was `$0.0110893`, with model-reported usage and zero
+uncertainty. The OpenAI SDK used by Mem0 bypassed the fetch meter, so the
+embedding component was not measured and an exact all-provider total cannot
+honestly be claimed; consequently the adapter also cannot prove the hard cap
+from its own ledger after the fact. The observed embedding workload was small,
+but that is not a substitute for metering. This defect and the fresh-store
+defect are adapter findings; neither authorizes a rerun.

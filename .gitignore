@@ -6,3 +6,4 @@ node_modules/
 .DS_Store
 evals/results/
 .palari-probe/
+evals/adapters/jcode-bridge/target/

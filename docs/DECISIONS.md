@@ -2192,3 +2192,29 @@ dates. Agents record; the founder decides.
   columns are graded by the keyed agent via `createTrustAdapter()`
   implementations against the same scripts. `npm run trust-bench`;
   offline; no spend. Suite 556/556 with 14 skips; quickstart green.
+
+- 2026-07-28 (FOUNDER GO / J4.4K-T2 — external trust columns, one shot)
+  The founder authorized one fixture-free connectivity smoke and one
+  physical scored execution each for jcode and Mem0, with a `$1.00`
+  per-adapter cap, no re-rolls, private raw transcripts, and
+  `gemini-2.5-flash-lite` plus `text-embedding-3-small`. jcode at pinned
+  commit `c7f487309ad693c61a6b3268132ff2cb2813fced` completed once and
+  physically scored 0/5: it failed paraphrase, chronology, verified
+  deletion, source boundary, and isolation. Exact smoke-plus-score spend was
+  `$0.00109272`; no retries or uncertain charges occurred. In particular,
+  jcode failed all three pre-registered archive-trigger guarantees, so the
+  archive question stays closed.
+
+  Mem0 OSS 3.1.1 completed once and physically printed 2/5, passing
+  paraphrase and isolation while failing chronology, deletion, and source
+  boundary. That column is recorded but invalid as a clean framework grade:
+  post-run inspection found that Mem0's nominal `memory` vector store used
+  its default persistent `~/.mem0/vector_store.db`; the adapter's
+  `collectionName` did not create fresh per-case stores. Nineteen rows
+  introduced by the run were selected solely by their unique
+  `benchmarkTurnId`, backed up privately, and removed; no unrelated row was
+  touched. The execution was not rerun. Gemini spend was exactly
+  `$0.0110893`; Mem0's internal OpenAI client bypassed the fetch meter, so
+  exact embedding spend and ledger proof of the all-provider cap are
+  unavailable. Both adapter defects are findings, not authority for another
+  execution.

@@ -38,6 +38,7 @@
     "trust-bench": "node evals/run-trust-benchmark.mjs"
   },
   "devDependencies": {
+    "@google/genai": "1.40.0",
     "mem0ai": "3.1.1"
   }
 }
