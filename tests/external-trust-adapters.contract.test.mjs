@@ -91,8 +91,19 @@ test('Mem0 external adapter preserves framework scope and transcript surfaces', 
       memory: 'The spare key is in the ceramic pot.',
       metadata: { observedAt: '2026-01-01T00:00:00.000Z' },
     }]
+    const factoryOptions = []
+    const proxyCloses = []
     const adapter = createTrustAdapter({
-      async memoryFactory() {
+      async embeddingProxyFactory() {
+        return {
+          baseURL: 'http://127.0.0.1:12345/v1',
+          async close() {
+            proxyCloses.push(true)
+          },
+        }
+      },
+      async memoryFactory(options) {
+        factoryOptions.push(options)
         return {
           memory: {
             async add(messages, options) {
@@ -138,9 +149,66 @@ test('Mem0 external adapter preserves framework scope and transcript surfaces', 
     } finally {
       await adapter.close(session)
     }
+    const secondSession = await adapter.open()
+    await adapter.close(secondSession)
     assert.deepEqual(calls[0][1].map(({ role }) => role), ['tool', 'user'])
     assert.equal(calls[0][2].userId, 'A')
     assert.deepEqual(calls[1][1], { filters: { user_id: 'A' }, topK: 100 })
     assert.deepEqual(calls[3][2].filters, { user_id: 'A' })
+    assert.equal(factoryOptions[0].embeddingBaseURL,
+      'http://127.0.0.1:12345/v1')
+    assert.match(factoryOptions[0].historyDbPath, /history\.sqlite$/u)
+    assert.match(factoryOptions[0].vectorDbPath, /vectors\.sqlite$/u)
+    assert.notEqual(
+      factoryOptions[0].historyDbPath,
+      factoryOptions[0].vectorDbPath,
+    )
+    assert.notEqual(
+      factoryOptions[0].vectorDbPath,
+      factoryOptions[1].vectorDbPath,
+    )
+    assert.equal(proxyCloses.length, 2)
+  })
+})
+
+test('Mem0 embedding proxy meters the native OpenAI SDK path', async () => {
+  await withEnvironment(async () => {
+    const { startOpenAIEmbeddingProxy } = await import(
+      '../evals/arms/mem0-trust-adapter.mjs'
+    )
+    const upstream = []
+    const proxy = await startOpenAIEmbeddingProxy({
+      async meteredFetch(url, init) {
+        upstream.push({ body: JSON.parse(init.body), url })
+        return new Response(JSON.stringify({
+          data: [{ embedding: [0, 1], index: 0 }],
+          model: 'text-embedding-3-small',
+          usage: { prompt_tokens: 4, total_tokens: 4 },
+        }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+        })
+      },
+      openaiApiKey: 'not-a-real-key',
+    })
+    try {
+      const response = await fetch(`${proxy.baseURL}/embeddings`, {
+        body: JSON.stringify({
+          input: ['small test'],
+          model: 'text-embedding-3-small',
+        }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      })
+      assert.equal(response.status, 200)
+      assert.equal((await response.json()).usage.total_tokens, 4)
+    } finally {
+      await proxy.close()
+    }
+    assert.equal(
+      upstream[0].url,
+      'https://api.openai.com/v1/embeddings',
+    )
+    assert.deepEqual(upstream[0].body.input, ['small test'])
   })
 })

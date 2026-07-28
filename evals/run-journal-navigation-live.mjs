@@ -448,6 +448,7 @@ export async function auditJournalNavigationTrackedArtifacts({
     'src/index.mjs',
     'src/memory-exploration.mjs',
     'src/memory-reducer.mjs',
+    'src/memory-search.mjs',
   ]
   if (required.some((path) => !seen.has(path))) {
     throw new JournalNavigationLiveError(

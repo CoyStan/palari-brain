@@ -1,4 +1,5 @@
 import { appendFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 
@@ -114,14 +115,16 @@ class Mem0ProviderMeter {
     return null
   }
 
-  reservation(kind, requestBytes) {
+  reservation(kind, requestText) {
     if (kind === 'gemini') {
-      return requestBytes / 1_000_000 *
+      return Buffer.byteLength(requestText) / 1_000_000 *
         GEMINI_INPUT_USD_PER_MILLION +
         GEMINI_MAX_OUTPUT_TOKENS / 1_000_000 *
         GEMINI_OUTPUT_USD_PER_MILLION
     }
-    return requestBytes / 1_000_000 * EMBEDDING_USD_PER_MILLION
+    const body = parsedRequest(requestText)
+    const inputs = Array.isArray(body?.input) ? body.input.length : 1
+    return inputs * 8_192 / 1_000_000 * EMBEDDING_USD_PER_MILLION
   }
 
   measured(kind, responseBody, requestBytes) {
@@ -164,7 +167,7 @@ class Mem0ProviderMeter {
         ? await input.clone().text()
         : ''
     const requestBytes = Buffer.byteLength(requestText)
-    const reservation = this.reservation(provider.kind, requestBytes)
+    const reservation = this.reservation(provider.kind, requestText)
     if (this.state.accountedUsd + reservation >
       SPEND_CAP_USD + 1e-12) {
       throw new Error(
@@ -247,6 +250,83 @@ class Mem0ProviderMeter {
   }
 }
 
+async function readBoundedRequest(request, limit = 2 * 1024 * 1024) {
+  const chunks = []
+  let bytes = 0
+  for await (const chunk of request) {
+    bytes += chunk.length
+    if (bytes > limit) {
+      throw new Error('Embedding proxy request exceeded its byte limit.')
+    }
+    chunks.push(chunk)
+  }
+  return Buffer.concat(chunks).toString('utf8')
+}
+
+export async function startOpenAIEmbeddingProxy({
+  meteredFetch,
+  openaiApiKey,
+}) {
+  if (typeof meteredFetch !== 'function' || !openaiApiKey) {
+    throw new TypeError(
+      'Embedding proxy requires a metered fetch and OpenAI key.',
+    )
+  }
+  const server = createServer(async (request, response) => {
+    try {
+      if (request.method !== 'POST' ||
+        request.url !== '/v1/embeddings') {
+        response.writeHead(404).end()
+        return
+      }
+      const body = await readBoundedRequest(request)
+      const upstream = await meteredFetch(
+        'https://api.openai.com/v1/embeddings',
+        {
+          body,
+          headers: {
+            Authorization: `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+        },
+      )
+      const responseBytes = Buffer.from(await upstream.arrayBuffer())
+      response.writeHead(upstream.status, {
+        'Content-Type':
+          upstream.headers.get('content-type') ?? 'application/json',
+      })
+      response.end(responseBytes)
+    } catch {
+      response.writeHead(502, { 'Content-Type': 'application/json' })
+      response.end(JSON.stringify({
+        error: { message: 'Metered embedding transport failed.' },
+      }))
+    }
+  })
+  await new Promise((resolvePromise, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', resolvePromise)
+  })
+  const address = server.address()
+  if (!address || typeof address === 'string') {
+    server.close()
+    throw new Error('Embedding proxy did not bind a TCP port.')
+  }
+  return {
+    baseURL: `http://127.0.0.1:${address.port}/v1`,
+    async close() {
+      if (!server.listening) return
+      await new Promise((resolvePromise, reject) => {
+        server.close((error) => {
+          if (error) reject(error)
+          else resolvePromise()
+        })
+      })
+    },
+  }
+}
+
 function transcriptTerms(question) {
   const stop = new Set([
     'a', 'an', 'and', 'does', 'has', 'is', 'of', 'the', 'to', 'user',
@@ -321,10 +401,12 @@ function appendTranscriptRows(session, eventAt, scope, turn) {
 }
 
 async function defaultMemoryFactory({
+  embeddingBaseURL,
   fetch: meteredFetch,
   geminiApiKey,
   historyDbPath,
   openaiApiKey,
+  vectorDbPath,
 }) {
   process.env.MEM0_TELEMETRY = 'false'
   const originalFetch = globalThis.fetch
@@ -337,6 +419,7 @@ async function defaultMemoryFactory({
           provider: 'openai',
           config: {
             apiKey: openaiApiKey,
+            baseURL: embeddingBaseURL,
             model: MEM0_TRUST_EMBEDDING_MODEL,
           },
         },
@@ -355,6 +438,7 @@ async function defaultMemoryFactory({
           provider: 'memory',
           config: {
             collectionName: 'palari_trust_benchmark',
+            dbPath: vectorDbPath,
             dimension: 1536,
           },
         },
@@ -370,6 +454,7 @@ async function defaultMemoryFactory({
 }
 
 export function createTrustAdapter({
+  embeddingProxyFactory = startOpenAIEmbeddingProxy,
   memoryFactory = defaultMemoryFactory,
 } = {}) {
   const environment = requiredEnvironment()
@@ -384,18 +469,31 @@ export function createTrustAdapter({
         artifactDir: environment.artifactDir,
       })
       await meter.initialize()
-      const created = await memoryFactory({
-        fetch: meter.fetch.bind(meter),
-        geminiApiKey: environment.geminiApiKey,
-        historyDbPath: resolve(root, 'history.sqlite'),
+      const embeddingProxy = await embeddingProxyFactory({
+        meteredFetch: meter.fetch.bind(meter),
         openaiApiKey: environment.openaiApiKey,
       })
-      return {
-        closed: false,
-        memory: created.memory,
-        restoreFetch: created.restoreFetch ?? (() => {}),
-        root,
-        transcriptRows: [],
+      try {
+        const created = await memoryFactory({
+          embeddingBaseURL: embeddingProxy.baseURL,
+          fetch: meter.fetch.bind(meter),
+          geminiApiKey: environment.geminiApiKey,
+          historyDbPath: resolve(root, 'history.sqlite'),
+          openaiApiKey: environment.openaiApiKey,
+          vectorDbPath: resolve(root, 'vectors.sqlite'),
+        })
+        return {
+          closed: false,
+          embeddingProxy,
+          memory: created.memory,
+          restoreFetch: created.restoreFetch ?? (() => {}),
+          root,
+          transcriptRows: [],
+        }
+      } catch (error) {
+        await embeddingProxy.close()
+        await rm(root, { force: true, recursive: true })
+        throw error
       }
     },
 
@@ -449,6 +547,7 @@ export function createTrustAdapter({
       if (session.closed) return
       session.closed = true
       session.restoreFetch()
+      await session.embeddingProxy.close()
       await rm(session.root, { force: true, recursive: true })
     },
   }

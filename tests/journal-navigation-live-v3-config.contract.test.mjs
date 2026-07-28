@@ -20,7 +20,7 @@ test('fresh v3 freezes one repair and remains founder-gated', async () => {
     'j4-journal-navigation-longmemeval-q1-v3',
   )
   assert.equal(loaded.config.runId, JOURNAL_NAVIGATION_LIVE_RUN_ID)
-  assert.equal(loaded.config.artifacts.length, 41)
+  assert.equal(loaded.config.artifacts.length, 42)
   assert.equal(loaded.predictions.status, 'FINAL')
   assert.equal(loaded.predictions.predictions.length, 12)
   assert.equal(loaded.authority.dispatchAuthorized, false)

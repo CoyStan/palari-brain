@@ -2218,3 +2218,32 @@ dates. Agents record; the founder decides.
   exact embedding spend and ledger proof of the all-provider cap are
   unavailable. Both adapter defects are findings, not authority for another
   execution.
+
+- 2026-07-28 (J4.4K-T2R — external adapter repair and closed-v3 re-freeze)
+  The run-producing external adapter bytes remain preserved in `ff4ab96`.
+  Without reading a credential or dispatching a provider call, the Mem0
+  successor now gives each harness `open()` its own temporary SQLite vector
+  database and routes the framework's native OpenAI embedding client through
+  a loopback meter. Offline tests prove distinct per-session paths, exact
+  proxy forwarding, cleanup, and the existing benchmark mappings. This does
+  not repair, rerun, or regrade the invalid one-shot Mem0 result; another
+  scored execution requires a new founder GO.
+
+  The still-closed
+  `j4-journal-navigation-longmemeval-q1-v3` pre-run cut was separately
+  re-frozen onto product commit
+  `f1e587a9476d0c35c1437a12384b7f67844db52a`, as requested after
+  `ccbe8c0` and `f1e587a` moved bytes. The unchanged twelve FINAL outcome
+  rows now bind that product commit. `src/memory-exploration.mjs` has its
+  current hash and its new import `src/memory-search.mjs` is included in the
+  complete 42-file runtime closure; the runner requires that file
+  mechanically. Config, authority, predictions, and artifact set hash to
+  `b19141a54922711152ff85c1591311468e5fc82936cf3fcc72eb3460584aca79`,
+  `62ba61ed7311d26da8749cd629b9277d883dec6e5a02e356055faaae55107079`,
+  `9529fe52309a8e87d671045de2f94925e9f0e12ff62adf6f4cc4652abad4339b`,
+  and
+  `de5c97fecf0d8e46395c3882e7bb0e15463338cc46712545bfccb5e94486d1c8`.
+  Drift is zero, focused contracts pass 19/19, the full suite reports 570
+  pass, 0 fail, and 3 skips, and quickstart is green. V3 authority remains
+  closed; its `$1.7001252` fresh cap still requires a new exact founder
+  confirmation before any credential or dispatch.

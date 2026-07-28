@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-T2 EXTERNAL TRUST EXECUTIONS RECORDED;
-MEM0 COLUMN INVALID — NO RERUN AUTHORIZED (2026-07-28).
+Loop state: J4.4K-T2R ADAPTER REPAIRED OFFLINE AND V3 RE-FROZEN;
+FOUNDER GATE — NO EXTERNAL RERUN OR V3 DISPATCH AUTHORIZED (2026-07-28).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -1510,8 +1510,9 @@ reservation require at most `$0.7642176`. Ten fully guaranteed two-call
 attempts would require a separate cap/code decision and are not authorized.
 
 Fresh `j4-journal-navigation-longmemeval-q1-v3` remains prepared but not
-authorized to dispatch, and its pre-run cut still requires the already
-requested re-freeze before any later GO. Its exact required fresh subcap is `$1.7001252`
+authorized to dispatch. Its pre-run cut is re-frozen onto `f1e587a` with a
+complete 42-file runtime closure and zero drift. Its exact required fresh
+subcap is `$1.7001252`
 against the unchanged `$8.00` cumulative cap. Activating it still requires a
 new founder message confirming that exact subcap and identity. Its frozen
 opening does not include the identity-free probe; for operator accounting, the
@@ -1524,11 +1525,11 @@ rerolls, publication, and announcement remain closed.
 
 The P-set 5 external one-shot authority is consumed. jcode's physical 0/5 is
 graded. Mem0's physical 2/5 output is retained but is not a valid clean
-framework grade because its adapter did not create a fresh vector store per
-case and did not meter its internal OpenAI embedding transport. Do not rerun
-either column without a new founder GO. The next autonomous work is limited
-to correcting those adapter defects offline and re-freezing the still-closed
-v3 pre-run cut; neither action authorizes provider access.
+framework grade because its run-producing adapter did not create a fresh
+vector store per case and did not meter its internal OpenAI embedding
+transport. Both defects are corrected in the offline successor adapter, but
+the column was not rerun. Any new external score or v3 dispatch requires a
+fresh founder GO.
 
 ## Log
 
@@ -1891,6 +1892,10 @@ jcode physically scored 0/5 at `$0.00109272`; Mem0 physically printed 2/5
 but its column is invalid because the adapter reused a persistent vector store
 and missed embedding spend. The Mem0-created rows were backed up and removed;
 neither adapter was rerun.
+2026-07-28 — J4.4K-T2R — this commit — Repaired Mem0's fresh-store and
+embedding-meter seams offline, then re-froze closed navigation v3 onto
+`f1e587a` with 42 artifacts and zero drift. No credential, call, score, or
+spend.
 
 ## Product stop-rule record
 
@@ -3504,3 +3509,44 @@ remain private under gitignored
 5. If deleted, what would get worse? The external trust claims would again
    be predictions rather than observed results, and the invalid Mem0
    comparison could be mistaken for a clean score.
+
+### J4.4K-T2R external adapter repair and navigation-v3 re-freeze
+
+This unit makes no second external observation. It preserves the exact
+run-producing adapter in `ff4ab96`, then repairs its two diagnosed host seams
+offline: every Mem0 session gets a distinct temporary `vectors.sqlite`, and
+the native OpenAI embedding SDK reaches the existing spend meter through a
+loopback-only proxy. Tests prove both the per-session path boundary and the
+metered forwarding path. The invalid Mem0 column remains invalid and
+unchanged.
+
+The independent v3 pre-run contract now binds product commit `f1e587a`.
+Its twelve FINAL outcomes are unchanged. The 42-file closure includes the
+current `src/memory-exploration.mjs`, its `src/memory-search.mjs` import, and
+a runner check that requires the new file. Frozen hashes are:
+
+- config:
+  `b19141a54922711152ff85c1591311468e5fc82936cf3fcc72eb3460584aca79`
+- authority:
+  `62ba61ed7311d26da8749cd629b9277d883dec6e5a02e356055faaae55107079`
+- FINAL predictions:
+  `9529fe52309a8e87d671045de2f94925e9f0e12ff62adf6f4cc4652abad4339b`
+- artifact set:
+  `de5c97fecf0d8e46395c3882e7bb0e15463338cc46712545bfccb5e94486d1c8`
+
+Direct hashing reports zero artifact drift. Focused adapter/v3/runner
+contracts report 19 pass, 0 fail. Authority remains closed and no credential,
+dataset, provider, or result path was accessed.
+
+1. Can a new user run the basic memory journey now? Yes — the full suite
+   reports 570 pass, 0 fail, and 3 skips; quickstart is green.
+2. Did this unit make that journey measurably better? No product behavior
+   changed; it made future comparison and the prepared live cut trustworthy.
+3. Does an existing framework already provide this? Per-session local stores
+   and metered provider transports are ordinary harness requirements.
+4. Has a real user or the founder asked for it? Yes — the founder required a
+   hard per-adapter cap and explicitly requested the v3 re-freeze.
+5. If deleted, what would get worse? A later Mem0 run could contaminate user
+   state and evade its cap ledger, while v3 would omit a runtime import from
+   its frozen closure. This is one infrastructure unit; another consecutive
+   infrastructure unit would trigger the charter's drift stop.

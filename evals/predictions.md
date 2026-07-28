@@ -287,3 +287,13 @@ honestly be claimed; consequently the adapter also cannot prove the hard cap
 from its own ledger after the fact. The observed embedding workload was small,
 but that is not a substitute for metering. This defect and the fresh-store
 defect are adapter findings; neither authorizes a rerun.
+
+Post-run offline repair (not part of the score): commit history preserves the
+run-producing adapter at SHA-256
+`8b5fff0d51efdf3568c01e8afa72a72a7ebf70cd79f30877c1ead564a4804ee3`.
+The successor adapter at SHA-256
+`ee35cbcd9b89c2a021ddd1a40540ba98f6f27e822a1e81100fb42002d35d5b30`
+now supplies a fresh temporary SQLite vector path on every `open()` and
+routes Mem0's native OpenAI embedding client through a loopback meter. Offline
+tests prove distinct paths and metered proxy forwarding. No credential was
+read, no provider was called, and the invalid column was not rerun or changed.
