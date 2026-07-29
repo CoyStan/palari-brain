@@ -19,6 +19,7 @@ export {
   dialogueRetentions,
   dialogueSourceKinds,
   forgetMemories,
+  memoryFreshness,
   ingestChatTurn,
   ingestLongMemEvalInstance,
   markReducerFailureTerminal,

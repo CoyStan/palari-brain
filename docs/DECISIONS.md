@@ -2247,3 +2247,19 @@ dates. Agents record; the founder decides.
   pass, 0 fail, and 3 skips, and quickstart is green. V3 authority remains
   closed; its `$1.7001252` fresh cap still requires a new exact founder
   confirmation before any credential or dispatch.
+- 2026-07-28 (J4.4K-G1 — quote-context guard and memory freshness) Founder
+  directive: fix the flagged errors, no ceremony. Two mechanical guards
+  and one instrument, offline and deterministic. (1) `src/quote-context.mjs`
+  analyzes a verified quote's surrounding context — negation or a
+  conditional earlier in the sentence, enclosing quotation marks, or
+  third-party spans (forwarded blocks, email-header clusters, quoted-reply
+  runs) — and the digest store's `actionMaterial` now refuses `asserted`
+  memories resting on flagged quotes (`REDUCER_QUOTE_CONTEXT`); remedies
+  are widening the quote or downgrading epistemic status. This closes both
+  provenance laundering and the observed paste-through hole with one
+  mechanism. (2) `memoryFreshness(brain, scope)` exposes currentThrough /
+  pending / blocked / stale so products surface memory lag instead of
+  degrading silently. Sealed bookkeeping: v2 expected-drift list grows by
+  the four touched product files; import-graph exclusions gain the new
+  module; v3 re-freeze required before GO. Suite 566/566 with 14 skips;
+  quickstart green; trust bench 5/5; no spend.

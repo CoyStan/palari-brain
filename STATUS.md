@@ -3550,3 +3550,61 @@ dataset, provider, or result path was accessed.
    state and evade its cap ledger, while v3 would omit a runtime import from
    its frozen closure. This is one infrastructure unit; another consecutive
    infrastructure unit would trigger the charter's drift stop.
+### J4.4K-G1 quote-context guard and memory freshness
+
+The adversarial review named the two most dangerous open holes and one
+visibility gap; this unit closes them mechanically — no model, no network,
+no ceremony.
+
+**Provenance laundering closed.** The gate verified that a quote was an
+exact substring; it did not verify that the quote MEANT what the reducer
+claimed. `src/quote-context.mjs` (new) makes three distortions detectable
+with plain string analysis, and `actionMaterial` in the digest store now
+enforces one rule: an `asserted` memory may not rest on a quote in
+negated, conditional, quoted-speech, or third-party-text context
+(`REDUCER_QUOTE_CONTEXT`). The reducer's remedies are honest ones — widen
+the quote to include the qualifying words, or downgrade to
+`uncertain`/`unknown`. "If the board approves, then I authorize the
+payment" can no longer become the asserted memory "I authorize the
+payment"; "my boss said 'the project is cancelled'" can no longer become
+the user's own claim. Deliberately conservative: a false positive costs
+one epistemic downgrade; a false negative mints a confident distortion
+with a verified citation.
+
+**Paste-through closed at the same gate.** Beta usage shows users pasting
+third-party emails into chat, arriving stamped as user speech.
+`detectThirdPartySpans` recognizes forwarded blocks, email-header
+clusters, and quoted-reply runs; quotes overlapping those spans cannot
+back an asserted user memory. The user's own framing words stay fully
+quotable.
+
+**Staleness made visible.** Fail-closed reduction parks quietly; products
+degraded silently. New `memoryFreshness(brain, scope)` (store → gate →
+brain → index) reports `currentThrough`, `latestEvidenceAt`, `pending`,
+`blocked`, and `stale`, so a product can render "memory current through
+Tuesday" instead of pretending. Verified in tests: a failing reducer
+leaves `stale: true` with `currentThrough` pinned at the last applied
+turn.
+
+Sealed-identity bookkeeping: the v2 expected-drift list now records
+`src/brain.mjs`, `src/dialogue-evidence.mjs`, `src/index.mjs`, and
+`src/memory-digest-store.mjs` alongside the earlier entries; the
+successor-import-graph exclusions gain `src/quote-context.mjs`. The
+prepared v3 identity must re-freeze its pre-run cut before any GO.
+
+Suite 566/566 with 14 skips (+10 tests); quickstart green; trust bench
+5/5; no dispatch, no spend.
+
+1. Can a new user run the basic memory journey now? Yes.
+2. Did this unit make that journey measurably better? Yes: two exploit
+   classes that survived every prior defense are now mechanically
+   impossible, and memory lag is now a queryable fact instead of a silent
+   failure.
+3. Does an existing framework already provide this? No known memory
+   system distinguishes quoted-speech or pasted third-party text from the
+   speaker's own assertion at admission time.
+4. Has a real user or the founder asked for it? Yes — founder directive
+   to fix the flagged errors; the paste-through case is live in beta.
+5. If deleted, what would get worse? A hedged, borrowed, or pasted
+   sentence could again become a confident "the user said" memory with a
+   verified citation — the exact failure the product exists to prevent.

@@ -189,6 +189,7 @@ export async function createPalariBrain(options = {}) {
       close: () => store.close(),
       enabled: Boolean(store.enabled),
       forgetById: gate.forgetById,
+      digestFreshness: gate.digestFreshness,
       digestStatus: gate.digestStatus,
       exploreFind: gate.exploreFind,
       exploreRead: gate.exploreRead,
@@ -1133,6 +1134,16 @@ export async function answerWithExploration(brain, {
     providerCalled: true,
     reductionBlocked: briefing.reductionBlocked,
   }
+}
+
+// How far behind the dialogue this scope's memory is. A product renders
+// this as "memory current through <date>" instead of degrading silently
+// when a reduction is stuck.
+export function memoryFreshness(brain, scope) {
+  if (typeof brain?.digestFreshness !== 'function') {
+    throw new TypeError('A Palari Brain instance is required.')
+  }
+  return brain.digestFreshness(scope)
 }
 
 export function forgetMemories(brain, ids, scope) {

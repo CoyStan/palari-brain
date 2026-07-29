@@ -7,6 +7,8 @@
 
 import { createHash } from 'node:crypto'
 
+import { analyzeQuoteContext } from './quote-context.mjs'
+
 import {
   buildMemoryReductionRequest,
   ACTIVE_MEMORY_MAX_BASIS,
@@ -656,6 +658,30 @@ function actionMaterial(db, scope, action, currentEvidenceIds) {
     supports.push(timeBasis)
   }
   const unique = uniqueSupports(supports)
+  // An asserted memory may not rest on a quote whose surrounding context
+  // mechanically undercuts it: negation or a conditional earlier in the
+  // same sentence, reported speech, or third-party text pasted into the
+  // message. The reducer's remedies are to quote a span that includes the
+  // qualifying words, or to downgrade to 'uncertain'/'unknown' — never to
+  // launder a hedged or borrowed sentence into a confident fact.
+  if (action.epistemic === 'asserted') {
+    for (const support of unique) {
+      const context = analyzeQuoteContext(
+        String(support.evidence.content),
+        support.quote,
+      )
+      if (!context.clean) {
+        const error = new Error(
+          `An asserted memory cannot rest on a quote in ` +
+          `${context.reasons.join(' and ')} context ` +
+          `(evidence ${support.evidenceId}); widen the quote or use ` +
+          `epistemic 'uncertain' or 'unknown'.`,
+        )
+        error.code = 'REDUCER_QUOTE_CONTEXT'
+        throw error
+      }
+    }
+  }
   const speakers = new Set(
     unique.map((support) =>
       evidenceSpeaker(support.evidence.source_kind)),
@@ -771,6 +797,61 @@ export function createMemoryDigestStore(store, {
       }
     }
     return stateStatus(store.db, normalizedScope(scopeInput))
+  }
+
+  // How far behind the dialogue the digest is. Fail-closed reduction means a
+  // stuck batch parks silently; this is the instrument that makes that state
+  // visible so a product can say "memory current through Tuesday" instead of
+  // quietly degrading. `currentThrough` is the event time the digest has
+  // consolidated up to; `stale` is true whenever dialogue exists that no
+  // applied reduction covers.
+  function freshness(scopeInput) {
+    if (!store?.enabled) {
+      return {
+        blocked: 0,
+        currentThrough: null,
+        latestEvidenceAt: null,
+        pending: 0,
+        stale: false,
+      }
+    }
+    const scope = normalizedScope(scopeInput)
+    const latestEvidenceAt = store.db.prepare(`
+      SELECT MAX(event_at) AS latest
+      FROM dialogue_evidence
+      WHERE palari_id = ? AND user_id = ?
+    `).get(scope.palariId, scope.userId)?.latest ?? null
+    const units = store.db.prepare(`
+      SELECT
+        u.status,
+        u.blocked_at,
+        COALESCE(t.event_at, e.event_at) AS unit_event_at
+      FROM dialogue_reduction_units u
+      LEFT JOIN dialogue_turns t ON t.id = u.turn_id
+      LEFT JOIN dialogue_evidence e ON e.id = u.legacy_evidence_id
+      WHERE u.palari_id = ? AND u.user_id = ?
+    `).all(scope.palariId, scope.userId)
+    let appliedThrough = null
+    let pending = 0
+    let blocked = 0
+    for (const unit of units) {
+      if (unit.status === 'applied') {
+        if (!appliedThrough ||
+          String(unit.unit_event_at ?? '') > appliedThrough) {
+          appliedThrough = String(unit.unit_event_at ?? '') || appliedThrough
+        }
+      } else {
+        pending += 1
+        if (unit.blocked_at) blocked += 1
+      }
+    }
+    return {
+      blocked,
+      currentThrough: pending === 0 ? latestEvidenceAt : appliedThrough,
+      latestEvidenceAt,
+      pending,
+      stale: pending > 0,
+    }
   }
 
   function readReadyDigest(scopeInput) {
@@ -1563,6 +1644,7 @@ export function createMemoryDigestStore(store, {
 
   return Object.freeze({
     applyReduction,
+    freshness,
     invalidateAfterDeletion,
     listBlocked,
     listMemories,

@@ -178,9 +178,10 @@ test('frozen artifacts exclude the successor digest import graph',
         'src/memory-digest-store.mjs',
         'src/memory-exploration.mjs',
         'src/memory-reducer.mjs',
-        // Ranked-search finding aid imported by exploration; a successor
-        // module by design, so it is expected outside the sealed pin set.
+        // Ranked-search finding aid and quote-context guard: successor
+        // modules by design, expected outside the sealed pin set.
         'src/memory-search.mjs',
+        'src/quote-context.mjs',
       ],
     )
   })

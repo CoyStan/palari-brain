@@ -56,9 +56,15 @@ test('terminal v2 contract pins its pre-run runtime and v1 predecessor',
     }
     assert.deepEqual(drift, [
       'evals/run-journal-navigation-live.mjs',
-      // Ranked-search fallback added to memory_find after v2 sealed. The
+      // Product changes after v2 sealed: brain/index gained the freshness
+      // API, dialogue-evidence and the digest store gained the
+      // quote-context guard, and memory_find gained ranked mode. The
       // sealed runner refuses on this drift by design; any successor
       // identity re-freezes against the current bytes.
+      'src/brain.mjs',
+      'src/dialogue-evidence.mjs',
+      'src/index.mjs',
+      'src/memory-digest-store.mjs',
       'src/memory-exploration.mjs',
     ])
 

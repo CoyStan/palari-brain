@@ -1201,6 +1201,7 @@ export function createDialogueGate(store, {
     appendCandidates,
     appendEvidence,
     applyReduction: digest.applyReduction,
+    digestFreshness: digest.freshness,
     digestStatus: digest.status,
     forgetById,
     listActiveMemories: digest.listMemories,
