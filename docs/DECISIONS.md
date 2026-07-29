@@ -2277,3 +2277,19 @@ dates. Agents record; the founder decides.
   network, no pretending). Pre-porter indexes rebuild in place. Suite
   576/576 with 14 skips; quickstart green; trust bench 5/5; no spend. V3
   re-freeze required before GO.
+
+- 2026-07-28 (J4.4K-K1 — derived temporal graph) Founder directive: code
+  and integrate a Graphiti-style layer. Implemented as a derived,
+  rebuildable view over the journal under the standing law. Extractor
+  proposes (subject, predicate, object, quote); host admission verifies
+  the quote exactly against the cited row, applies the quote-context
+  guard, stamps speaker/time from the row, and refuses the rest
+  (`GRAPH_ASSERTION_INVALID`). Validity is computed at query time from
+  chronology (`latestForPredicate`), never stored as model opinion —
+  deleting a correction resurrects the prior observation. `indexGraph`
+  requires the pluggable graphExtractor and is incremental; `exploreGraph`
+  is model-free SQL BFS (≤3 hops) with audit logging. Multi-hop
+  sister→doctor→hospital resolves in tests with full provenance. Not yet
+  in the answer tool list (v3 pins the tool surface). Suite 584/584 with
+  14 skips; quickstart green; trust bench 5/5; no spend; v3 re-freeze
+  required.

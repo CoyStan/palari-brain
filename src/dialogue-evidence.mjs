@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto'
 import { createMemoryDigestStore } from './memory-digest-store.mjs'
 import { createMemoryExplorer } from './memory-exploration.mjs'
 import { semanticFindEvidence } from './memory-semantic.mjs'
+import { extractGraph, graphFind } from './memory-graph.mjs'
 import { statementQuoteOrigins } from './statement-extraction.mjs'
 
 export const dialogueSourceKinds = Object.freeze([
@@ -471,6 +472,7 @@ export function createDialogueGate(store, {
   auditLog,
   clock = () => new Date(),
   embedder = null,
+  graphExtractor = null,
 } = {}) {
   ensureActiveSchema(store, clock)
   const digest = createMemoryDigestStore(store, { clock })
@@ -1214,6 +1216,36 @@ export function createDialogueGate(store, {
       explorer.read(normalizedScope(scope), options),
     exploreTimeline: (scope, options) =>
       explorer.timeline(normalizedScope(scope), options),
+    // Derived temporal graph over the journal. Extraction needs the
+    // pluggable extractor; querying is pure SQL and always available.
+    // Every edge carries a host-verified quote and evidence ID, and
+    // validity is computed from chronology, never stored as opinion.
+    indexGraph: async (scope, options = {}) => {
+      if (typeof graphExtractor !== 'function') {
+        throw new TypeError(
+          'Graph extraction requires the brain to be created with a ' +
+          'graphExtractor option.',
+        )
+      }
+      return extractGraph(store.db, normalizedScope(scope), {
+        batchSize: options.batchSize,
+        extractor: graphExtractor,
+        maxBatches: options.maxBatches,
+        visibleStatementsSql,
+      })
+    },
+    exploreGraph: (scope, options = {}) => {
+      const scoped = normalizedScope(scope)
+      const result = graphFind(store.db, scoped, options)
+      auditLog?.({
+        consulted: result.edges.map((edge) => edge.evidenceId),
+        operation: 'memory_graph',
+        palariId: scoped.palariId,
+        query: { entity: String(options.entity ?? '') },
+        userId: scoped.userId,
+      })
+      return result
+    },
     // Meaning-based lookup, available only when the product supplies an
     // embedder. Same law as ranked search: the index locates canonical
     // rows; it never testifies. Async because embedding is.

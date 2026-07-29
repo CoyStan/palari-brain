@@ -3656,3 +3656,51 @@ Suite 576/576 with 14 skips (+10 tests); quickstart green; trust bench
 4. Founder asked? Yes, verbatim.
 5. If deleted? Zero-overlap questions would stay unanswerable at scale,
    and the system's scale behavior would again be unmeasured.
+
+### J4.4K-K1 the derived temporal graph
+
+A Graphiti-style temporal knowledge graph, rebuilt on Palari's law. What is
+borrowed from that school: relations as first-class rows, chronology on
+every edge, provenance to source episodes, incremental extraction, and
+multi-hop lookup. What is corrected: Graphiti asks a model to decide when
+an old fact is invalidated — that is testimony. Here, edges are immutable
+observations and validity is COMPUTED at query time: the newest edge per
+(speaker, subject, predicate) is flagged `latestForPredicate`, chronology
+is exposed on everything, and truth is left to the consumer — the same
+philosophy the trust benchmark's correction case scores.
+
+`src/memory-graph.mjs` (new): host admission verifies every proposed
+(subject, predicate, object) triple against an exact quote from one
+journal row, refuses fabricated quotes and context-laundered quotes (same
+guard as the digest), stamps speaker and time from the row, and stores
+nothing mutable. Deleting a journal row deletes its edges by trigger — and
+because validity is computed, deleting a correction resurrects the prior
+observation automatically; the graph is always a pure function of the
+surviving journal, rebuildable from scratch.
+
+`brain.indexGraph` (async, requires the pluggable `graphExtractor` option;
+refuses loudly without one; incremental — steady state is one SELECT) and
+`brain.exploreGraph` (sync, pure SQL BFS up to 3 hops, no model, audited).
+The multi-hop case works end to end in tests: "which hospital does my
+sister's doctor work at" resolves Ana → Dr. Peixoto → Lisbon hospital,
+every edge carrying its verified quote and evidence ID.
+
+Not yet wired into the answer loop's tool list — that is a product
+decision for after the live LongMemEval answer, and the tool surface is
+pinned by the prepared v3 identity.
+
+Suite 584/584 with 14 skips (+8 tests); quickstart green; trust bench
+5/5; no dispatch, no spend. V3 re-freeze still required before GO
+(memory-graph joins the successor import graph).
+
+1. Basic journey still green? Yes.
+2. Measurably better? Multi-hop questions over stored dialogue — formerly
+   unanswerable by any Palari surface — now resolve offline in tests with
+   full provenance.
+3. Existing framework? Graphiti provides temporal graphs with provenance
+   pointers nobody checks; a graph whose every edge is admission-verified
+   against the record and whose validity cannot rot is Palari's version.
+4. Founder asked? Yes — "can you code and integrate a Graphiti-style?"
+5. If deleted? Relational questions would require the answer model to
+   orchestrate multi-step searches inside its call budget, and usually
+   fail.

@@ -185,6 +185,7 @@ export async function createPalariBrain(options = {}) {
       auditLog: options.memoryAuditLog,
       clock: options.clock,
       embedder: options.embedder ?? null,
+      graphExtractor: options.graphExtractor ?? null,
     })
     return Object.freeze({
       close: () => store.close(),
@@ -194,7 +195,9 @@ export async function createPalariBrain(options = {}) {
       digestStatus: gate.digestStatus,
       exploreFind: gate.exploreFind,
       exploreRead: gate.exploreRead,
+      exploreGraph: gate.exploreGraph,
       exploreSemantic: gate.exploreSemantic,
+      indexGraph: gate.indexGraph,
       exploreTimeline: gate.exploreTimeline,
       listActiveMemories: gate.listActiveMemories,
       listEvidence: gate.listStatements,
