@@ -539,3 +539,80 @@ old index.
 The legacy SQLite memories/FTS store remains for frozen comparator
 reproducibility. Frozen live identities remain terminal: product changes do
 not authorize running, rerolling, or modifying them.
+
+## Retrieval surfaces added 2026-07-28
+
+One law binds every surface below: an index may locate evidence; it may
+never be evidence. Whatever a surface ranks or traverses, the value
+returned is a canonical journal row (or a verified quote of one) with
+host-recorded speaker, time, and scope. Deleting evidence removes it from
+every surface by trigger plus the visibility join.
+
+### `memory_find` extensions (exact + ranked + time bounds)
+
+`brain.exploreFind(scope, { phrase, ranked, after, before, limit, ... })`
+
+- Default is byte-exact, case-insensitive substring matching (unchanged).
+- `ranked: true` switches to stemmed BM25 word matching over the journal
+  (porter tokenizer; FTS5 index in `src/memory-search.mjs`; built and
+  migrated lazily; deterministic — same journal, same order, chronology
+  breaks ties). All-stopword phrases fall back to exact. The result carries
+  `mode: 'exact' | 'ranked'`.
+- `after` / `before` (ISO-8601 UTC strings) bound results by host
+  `event_at` in both modes. Callers resolve relative periods ("last
+  spring") into bounds themselves; the host only compares its own recorded
+  times.
+
+### `memoryFreshness(brain, scope)`
+
+How far behind the dialogue this scope's digest is:
+`{ currentThrough, latestEvidenceAt, pending, blocked, stale }`.
+Render as "memory current through <date>" instead of degrading silently
+when a reduction is stuck.
+
+### Quote-context guard (admission-time)
+
+`src/quote-context.mjs`. An `asserted` digest item or graph edge may not
+rest on a quote whose same-sentence prefix negates or conditions it, that
+sits inside quotation marks (reported speech), or that overlaps a detected
+third-party span (pasted email headers, forwarded blocks, quoted replies).
+Rejection code `REDUCER_QUOTE_CONTEXT` / `GRAPH_ASSERTION_INVALID`; the
+honest remedies are widening the quote or downgrading epistemic status.
+
+### Semantic search (optional; `embedder` option)
+
+`createPalariBrain({ embedder })` where
+`embedder(texts: string[]) -> number[][]` (any provider or local model).
+
+`await brain.exploreSemantic(scope, { phrase, limit })` → canonical rows
+plus `similarity`. Vectors are derived data in the same SQLite file
+(`dialogue_evidence_vectors`), indexed incrementally, removed by trigger on
+deletion. Without an embedder the surface throws — nothing dials out and
+nothing pretends.
+
+### Derived temporal graph (optional; `graphExtractor` option)
+
+`createPalariBrain({ graphExtractor })` where
+`graphExtractor({ evidence: [{ ref, speaker, text }] }) ->
+{ assertions: [{ evidenceRef, subject, predicate, object, quote,
+timeQuote? }] }`.
+
+- `await brain.indexGraph(scope)` — incremental extraction; every proposed
+  triple is admitted only if its `quote` (and optional `timeQuote`) is an
+  exact contiguous substring of the cited row and passes the quote-context
+  guard. Speaker and time are stamped from the row.
+- `brain.exploreGraph(scope, { entity, hops ≤ 3, now })` — model-free SQL
+  BFS. Fuzzy trigram resolution applies to the caller's entry point only
+  (stored entities are never merged). Returns `edges` (each with verified
+  `quote`, `evidenceId`, `observedAt`, optional `timeAnchor`, and
+  `latestForPredicate` — validity is computed from chronology, never
+  stored) and `trends` (per fact group: `new / strengthening / weakening /
+  stable / stale`, a pure function of host timestamps —
+  `src/memory-trend.mjs`).
+
+### Measurement commands
+
+`npm run trust-bench` (five trust cases, CI-pinned 5/5),
+`npm run scale-probe` (5,000-message behavior), `npm run memory-bench`
+(digest structure), `npm run probe` (live wire-format check; the only
+spend-capable command; founder-gated). See `evals/README.md`.

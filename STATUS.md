@@ -1,7 +1,12 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-T2R ADAPTER REPAIRED OFFLINE AND V3 RE-FROZEN;
-FOUNDER GATE — NO EXTERNAL RERUN OR V3 DISPATCH AUTHORIZED (2026-07-28).
+Loop state: J4.4K-K3 OFFLINE CAPABILITY SPRINT COMPLETE (S1 ranked recall,
+G1 quote-context guard + freshness, T1 trust benchmark 5/5, R5 stemming +
+scale probe + semantic seam, K1 derived temporal graph, K2/K3 competitor
+source reviews with lawful adoptions). Suite 590/590; quickstart green.
+V3 PRE-RUN CUT IS STALE AGAIN (product bytes moved past `f1e587a`; re-freeze
+before any GO). FOUNDER GATE unchanged — no external rerun, no V3 dispatch,
+no publication of trust-bench columns (2026-07-28).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -3793,3 +3798,38 @@ store it?"), not adopted here.
 Suite 590/590 with 14 skips (+4 tests); quickstart green; trust bench
 5/5; no dispatch, no spend; clone read-only in scratchpad. V3 re-freeze
 note unchanged.
+
+### J4.4K-D1 documentation truth pass
+
+An engineering-lead audit before further work: is the repo understandable
+by a fresh human or agent, and is what it says true?
+
+Found and fixed:
+
+- **README was factually false.** It still claimed the system "does not
+  use FTS, BM25, vector search, or fuzzy text matching" and that
+  exploration is exact-only — four units out of date. Rewritten around the
+  actual law (an index may locate evidence; it may never be evidence), the
+  four retrieval surfaces, the admission guards, a module map, and a
+  "measure it, don't trust it" command section.
+- **`docs/BRAIN-API.md` documented none of the week's surfaces.** Appended
+  a dated section covering ranked/after/before on `memory_find`,
+  `memoryFreshness`, the quote-context guard, `exploreSemantic`,
+  `indexGraph`/`exploreGraph` with trends and computed validity, and the
+  measurement commands.
+- **`evals/README.md` did not exist.** The 76k-line evals tree now has a
+  map, a which-command-answers-which-question table, and the one rule that
+  protects the audit chain: paths are hash-pinned by sealed identities —
+  add files, never move them.
+- **STATUS.md's loop-state header was stale** (still showed the other
+  agent's T2R as current). Refreshed to name the offline capability
+  sprint, the suite state, and the standing V3-re-freeze requirement.
+
+Judged fine and left alone: per-module header comments (every new module
+carries its law and rationale); test naming (uniformly
+`*.contract.test.mjs`, one file per module); root historical documents
+(WE-MESSED-UP.md, TRIM-CONTRACT.md, BAKEOFF-CONTRACT.md are charter-
+referenced evidence, not clutter); `docs/` planning history (append-only
+by design).
+
+No code changed. Suite 590/590 with 14 skips; quickstart green.

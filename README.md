@@ -12,12 +12,17 @@ Memory for a chat assistant, reduced to the part that matters:
    read the journal itself when that is not enough, while forgetting still
    deletes exact canonical evidence IDs.
 
-The active package does not parse English with regular expressions, does not
-rank memories by relevance, and does not use FTS, BM25, vector search, or
-fuzzy text matching. It does not require an embedding service. Exploration is
-exact substring matching and exact reads, so every consultation is
-deterministic, reproducible, and auditable. Canonical dialogue is the lossless,
-deletable journal; the recurrent digest is the small working memory. The
+One law governs every part of the system: **an index may locate evidence; it
+may never be evidence.** Retrieval has four surfaces — exact substring
+matching, stemmed BM25 ranking, optional semantic search (pluggable
+embedder; nothing dials out without one), and an optional derived temporal
+graph for multi-hop questions (pluggable extractor) — and whatever any of
+them surfaces, the thing returned is a canonical journal row with
+host-recorded speaker and time. Ranking may be fuzzy; evidence never is.
+Canonical dialogue is the lossless, deletable journal; the recurrent digest
+is the small working memory. An `asserted` memory additionally may not rest
+on a quote in negated, conditional, quoted-speech, or pasted third-party
+context (`src/quote-context.mjs`). The
 reducer cannot erase prior items by omission: it must explicitly add or
 replace memory, and a replacement is accepted only when its provenance,
 speaker, chronology, revision, and size all validate.
@@ -61,10 +66,46 @@ The digest is bounded working memory. The canonical journal holds everything
 that was actually said. `answerWithExploration` lets the answer model search
 and read that journal when the digest comes up short, using three primitives
 behind the same gate: `memory_timeline` (`ls`), `memory_read` (`cat`), and
-`memory_find` (`grep`, exact substring, never fuzzy).
+`memory_find` (`grep`: exact substring by default; `ranked: true` for
+stemmed BM25 word matching; `after`/`before` ISO bounds filter on host
+chronology). Beyond the tool loop, the brain also exposes
+`exploreSemantic` (embedding search, only when created with an `embedder`)
+and `indexGraph`/`exploreGraph` (a derived temporal graph with verified
+quotes on every edge, computed validity, and per-fact-group trends, only
+when created with a `graphExtractor`).
 
 Every consultation is deterministic and recorded, so an explored answer
 carries a replayable list of exactly which stored messages informed it.
+
+## Measure it, don't trust it
+
+Every guarantee above is one command, offline, deterministic, spend-free:
+
+```bash
+npm run trust-bench    # 5 cases: paraphrase, correction chronology,
+                       # verified deletion on every surface, source
+                       # boundary, cross-user isolation. CI-pinned 5/5.
+npm run scale-probe    # 5,000-message conversation: ingest ms/turn,
+                       # find latency, planted-fact recall rates.
+npm run memory-bench   # structural digest behavior over a long replay.
+```
+
+`npm run probe` additionally exists for live provider wire-format checks;
+it is the only command here that can spend money and it refuses without an
+explicit `PALARI_PROBE_CONFIRM_SPEND=1`.
+
+## Module map
+
+| Area | Files |
+| --- | --- |
+| Entry point | `src/index.mjs` (public API), `src/brain.mjs` (orchestration) |
+| Canonical journal + gate | `src/dialogue-evidence.mjs`, `src/gate.mjs`, `src/store.mjs` |
+| Digest (verified working memory) | `src/memory-digest-store.mjs`, `src/memory-reducer.mjs`, `src/memory-briefing.mjs` |
+| Admission guards | `src/quote-context.mjs` (negation/conditional/quoted-speech/pasted-text) |
+| Retrieval surfaces | `src/memory-exploration.mjs` (exact + ranked tools), `src/memory-search.mjs` (FTS5), `src/memory-semantic.mjs` (pluggable embeddings), `src/memory-graph.mjs` (derived temporal graph), `src/memory-trend.mjs` (computed trends) |
+| Historical comparator | `src/memory-store.mjs`, `src/v05-memory-extraction.mjs`, `src/recall.mjs` |
+| Measurement | `evals/` (see `evals/README.md` — paths in there are hash-pinned by sealed run identities; never move files) |
+| Governance | `AGENTS.md` (charter), `STATUS.md` (ledger), `docs/DECISIONS.md` (log), `docs/BRAIN-API.md` (API reference) |
 
 ## Running the memory bench
 
