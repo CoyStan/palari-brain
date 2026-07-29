@@ -8,6 +8,10 @@ import { createHash } from 'node:crypto'
 
 import { createMemoryDigestStore } from './memory-digest-store.mjs'
 import { createMemoryExplorer } from './memory-exploration.mjs'
+import {
+  collectForgetCandidates,
+  residualMentions,
+} from './memory-forget.mjs'
 import { semanticFindEvidence } from './memory-semantic.mjs'
 import { extractGraph, graphFind } from './memory-graph.mjs'
 import { statementQuoteOrigins } from './statement-extraction.mjs'
@@ -1201,6 +1205,62 @@ export function createDialogueGate(store, {
     }
   }
 
+  // A deletion request in language: locate what the phrase can reach,
+  // delete whole turns through `forgetById` (tombstones, digest
+  // invalidation, and index cleanup included), then re-probe the survivors
+  // and report residual mentions instead of claiming success. See
+  // memory-forget.mjs for what the re-probe can and cannot see.
+  function forgetRequest(scopeInput, { limit, phrase } = {}) {
+    if (!store?.enabled) {
+      return {
+        candidates: 0,
+        deleted: [],
+        deletedCount: 0,
+        deletedIndexIds: [],
+        operation: 'memory_forget_request',
+        phrase: String(phrase ?? '').trim(),
+        residual: [],
+        residualCount: 0,
+        skippedCount: 0,
+      }
+    }
+    const scope = normalizedScope(scopeInput)
+    const collected = collectForgetCandidates(store.db, scope, {
+      limit,
+      phrase,
+      visibleStatementsSql,
+    })
+    const outcome = collected.evidenceIds.length
+      ? forgetById(collected.evidenceIds, scope)
+      : {
+          deleted: [],
+          deletedCount: 0,
+          deletedIndexIds: [],
+          skippedCount: 0,
+        }
+    const residual = residualMentions(store.db, scope, {
+      deletedContents: collected.contents,
+      phrase: collected.phrase,
+      visibleStatementsSql,
+    })
+    auditLog?.({
+      consulted: residual.map((row) => row.evidenceId),
+      operation: 'memory_forget_request',
+      palariId: scope.palariId,
+      query: { phrase: collected.phrase },
+      userId: scope.userId,
+    })
+    return {
+      ...outcome,
+      candidates: collected.evidenceIds.length,
+      operation: 'memory_forget_request',
+      phrase: collected.phrase,
+      residual,
+      residualCount: residual.length,
+      terms: collected.terms,
+    }
+  }
+
   return Object.freeze({
     appendCandidates,
     appendEvidence,
@@ -1208,6 +1268,7 @@ export function createDialogueGate(store, {
     digestFreshness: digest.freshness,
     digestStatus: digest.status,
     forgetById,
+    forgetRequest,
     listActiveMemories: digest.listMemories,
     listIndexEntries,
     exploreFind: (scope, options) =>

@@ -60,6 +60,13 @@ export function sessionOf(sourceMessageId) {
 function messageRow(row) {
   return {
     evidenceId: String(row.id),
+    // Two timestamps, two authorities. `observedAt` is the CALLER'S claimed
+    // event time — the chronology basis, by design, so multi-device backfill
+    // works. `ingestedAt` is the HOST'S own clock at the moment the row was
+    // written and cannot be supplied by any caller. When the two disagree
+    // wildly, that disagreement is itself evidence — a backdated ingestion
+    // cannot hide, because the receipt time travels with every row.
+    ingestedAt: String(row.created_at),
     observedAt: String(row.event_at),
     order: Number(row.dialogue_order),
     session: sessionOf(row.source_message_id),

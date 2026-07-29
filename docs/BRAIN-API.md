@@ -616,3 +616,66 @@ timeQuote? }] }`.
 `npm run scale-probe` (5,000-message behavior), `npm run memory-bench`
 (digest structure), `npm run probe` (live wire-format check; the only
 spend-capable command; founder-gated). See `evals/README.md`.
+
+## Deletion honesty and receipts — added 2026-07-29
+
+### `forgetWithReport(brain, scope, { phrase, limit? })`
+
+Deletion by language, answered honestly. `forgetMemories` deletes exactly
+the IDs the caller names; real deletion requests arrive as words ("forget
+what I told you about Lexapro"). `forgetWithReport`:
+
+1. locates every visible row the phrase can reach (exact substring +
+   ranked BM25, `src/memory-forget.mjs`),
+2. widens each hit to its whole turn — the assistant's echo of a user
+   statement goes too, because a deletion that leaves the echo standing
+   has not deleted,
+3. runs the existing `forgetById` path (tombstones, digest invalidation,
+   FTS/vector/graph cleanup by trigger), and
+4. **re-probes the survivors** and returns `residual`: rows that still
+   appear to mention the subject, each with `evidenceId`, `speaker`,
+   `observedAt`, `snippet`, and `matchedVia`
+   (`exact` / `request_terms` / `deleted_content_terms`).
+
+The `deleted_content_terms` probe searches with vocabulary taken from the
+deleted text itself, so a paraphrase that never used the requested word
+("the little white pill") is surfaced whenever it shares any content term
+with what was deleted. The report never claims "clean": an empty
+`residual` means the lexical probes found nothing, not that nothing
+remains — a zero-overlap paraphrase is exactly the boundary the semantic
+seam exists for.
+
+### `ingestedAt` on every explored row
+
+`memory_find` / `memory_read` / `memory_timeline` rows now carry two
+timestamps with two authorities: `observedAt` is the caller's claimed
+event time (the chronology basis, so multi-device backfill works);
+`ingestedAt` is the host's own clock at the moment the row was written
+and cannot be supplied by any caller. When the two disagree wildly, the
+disagreement is itself evidence — a backdated ingestion cannot hide.
+
+### Offline Gemini adapters (evals/arms/, dispatch-ready)
+
+- `evals/arms/graph-extractor-gemini.mjs` —
+  `createGeminiGraphExtractor({ invoke })` satisfies the
+  `graphExtractor` option: shallow provider schema, strict fail-closed
+  host normalization (exact-quote and ref checks before admission), one
+  single-turn repair with the host's objection riding inside the request
+  document, empty responses classified (`GRAPH_EXTRACTOR_EMPTY_RESPONSE`)
+  and never repaired.
+- `evals/arms/embedder-gemini.mjs` — `createGeminiEmbedder({ invoke })`
+  satisfies the `embedder` option: `batchEmbedContents` bodies capped at
+  100 texts, symmetric `SEMANTIC_SIMILARITY` task type (one function
+  embeds both rows and queries), strict order/dimension/finiteness
+  normalization.
+
+Both are offline-tested with fake transports and own no credentials,
+network access, retries, or meter — live dispatch stays founder-gated in
+the keyed session.
+
+### Runnable walkthroughs
+
+`node examples/walkthrough-storage.mjs` traces one turn through the
+storage path (host stamps, verified quotes, lying-reducer rejection);
+`node examples/walkthrough-retrieval.mjs` traces retrieval (digest,
+finding aids, canonical reads, honest absence).

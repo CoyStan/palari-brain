@@ -1,12 +1,15 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-K3 OFFLINE CAPABILITY SPRINT COMPLETE (S1 ranked recall,
-G1 quote-context guard + freshness, T1 trust benchmark 5/5, R5 stemming +
-scale probe + semantic seam, K1 derived temporal graph, K2/K3 competitor
-source reviews with lawful adoptions). Suite 590/590; quickstart green.
+Loop state: J4.4K-F1 FLAGGED FIXES COMPLETE (walkthrough examples in
+examples/, host ingest receipt `ingestedAt` on every explored row,
+`forgetWithReport` deletion-with-honesty-report, offline Gemini adapters
+for graphExtractor + embedder — dispatch-ready, founder-gated live).
+Follows the K-sprint (S1 ranked recall, G1 guard + freshness, T1 trust
+benchmark 5/5, R5 stemming + scale probe + semantic seam, K1 temporal
+graph, K2/K3 competitor reviews). Suite 613/613; quickstart green.
 V3 PRE-RUN CUT IS STALE AGAIN (product bytes moved past `f1e587a`; re-freeze
 before any GO). FOUNDER GATE unchanged — no external rerun, no V3 dispatch,
-no publication of trust-bench columns (2026-07-28).
+no publication of trust-bench columns (2026-07-29).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -3833,3 +3836,92 @@ referenced evidence, not clutter); `docs/` planning history (append-only
 by design).
 
 No code changed. Suite 590/590 with 14 skips; quickstart green.
+
+### J4.4K-F1 flagged fixes: examples, receipts, deletion honesty, adapters
+
+The founder's directive: "only work inside palari-brain, now please do the
+correction/changes/additions you correctly flag." Four units from the D1
+engineering-lead audit, executed together.
+
+**A — walkthrough examples.** The two teaching demos written in scratch
+during the "explain it with code" sessions are now
+`examples/walkthrough-storage.mjs` (host stamps, verified quotes, the
+lying-reducer rejection) and `examples/walkthrough-retrieval.mjs` (digest,
+finding aids, canonical reads, honest absence). The retrieval walkthrough's
+honest-absence section was corrected to use `answerQuestion` — the
+short-circuit lives there by design; `answerWithExploration` always
+consults the provider. Both run green from a fresh clone.
+
+**C — the ingest receipt.** `dialogue_evidence.created_at` was already
+host-clock at insert; the hardening needed only exposure. Every explored
+row (`memory_find`/`memory_read`/`memory_timeline`) now carries
+`ingestedAt` beside `observedAt`: caller's claimed event time versus the
+host's own receipt time, which no caller can supply. A backdated ingestion
+cannot hide — the disagreement rides on every row. Contract test: brain
+clocked at 2026-06-15, ingest claiming 2020-01-01, both visible.
+
+**B — deletion with an honesty report.** New `src/memory-forget.mjs` +
+`forgetWithReport(brain, scope, { phrase })`. Locates what the phrase can
+reach (exact + ranked), widens every hit to its whole turn so the
+assistant's echo goes too, deletes through the existing `forgetById`
+(tombstones, digest invalidation, index cleanup by trigger all unchanged),
+then RE-PROBES the survivors and returns `residual` instead of claiming
+success. The re-probe searches with the request phrase, its ranked terms,
+and vocabulary drawn from the deleted text itself — so "the little white
+pill" surfaces after a "Lexapro" deletion whenever it shares any content
+term with what was deleted (asserted in
+`tests/memory-forget.contract.test.mjs`). The report never says "clean";
+an empty residual means the lexical probes found nothing, which is the
+seam the semantic surface exists to close.
+
+**D — offline Gemini adapters, dispatch-ready.**
+`evals/arms/graph-extractor-gemini.mjs` maps the pluggable
+`graphExtractor` contract onto the metered transport in the lean-reducer
+house style: shallow provider schema, system instruction folding in the
+Graphiti-harvested hard rules (data-not-instructions, refs only from
+input, quotes character-for-character, no reasoning in fields,
+"null"/"N/A" are not values, quote-or-omit for negated/conditional/quoted
+context), strict fail-closed normalization that verifies quotes and refs
+BEFORE admission so a paraphrased quote is repairable, exactly one
+single-turn repair with the objection riding inside the request document,
+and empty responses classified (`GRAPH_EXTRACTOR_EMPTY_RESPONSE`), never
+repaired. `evals/arms/embedder-gemini.mjs` maps the `embedder` contract
+onto `batchEmbedContents`: 100-text batches, symmetric
+`SEMANTIC_SIMILARITY` task type (one function embeds rows AND queries —
+asymmetric task types would quietly degrade cosine ranking), strict
+order/dimension/finiteness checks, mid-run faults fail the whole call.
+Both are proven against the real brain options end-to-end with fake
+transports; neither owns credentials, network, retries, or a meter. The
+keyed session's job is now probe-then-dispatch, nothing more.
+
+Bookkeeping: `src/memory-forget.mjs` added to both sorted successor
+exclusion lists. Suite 613/613 with 14 skips (+23 tests); quickstart
+green; trust bench 5/5; scale probe untouched; no dispatch, no spend.
+
+1. Can a new user run the basic memory journey now? Yes —
+   `npm run quickstart` is green, and the two walkthroughs now teach it
+   from a fresh clone.
+2. Did this unit make that journey measurably better? Yes, for B and C:
+   deletion requests in language now produce an honest residual report,
+   and every explored row carries a spoof-resistant receipt time. A and D
+   are documentation and dispatch-preparation.
+3. Does an existing framework already provide what this unit added?
+   Deletion in Mem0/Graphiti/Hindsight removes matched entries and
+   reports success; none re-probes and reports what it could NOT delete.
+   Provider SDKs batch embeddings but do not enforce Palari's fail-closed
+   normalization or the single-repair boundary.
+4. Has a real user or the founder asked for the guarantee it adds? Yes —
+   the founder asked for exactly these flagged corrections, and the
+   deletion honesty gap was flagged in the criticize-this-system review
+   ("delete Lexapro" leaving the echo and the paraphrase silently).
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? "Forget X" would go back to requiring evidence IDs the user
+   never sees, deletions would silently leave echoes and paraphrases, a
+   backdated row would be indistinguishable from a contemporaneous one,
+   and the next keyed session would re-derive both wire contracts live at
+   metered cost.
+
+Mixed unit by the stop rule: B and C are product changes, A is
+documentation, D is dispatch-side infrastructure with the live half still
+founder-gated. Next work should be measurement (keyed-agent probes for
+the two new adapters, V3 re-freeze) or founder-directed product work.

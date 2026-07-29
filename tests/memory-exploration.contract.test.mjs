@@ -78,6 +78,38 @@ const CONVERSATION = [
   { id: 'sess-c:0', user: 'The sourdough starter needs feeding weekly.' },
 ]
 
+test('a backdated ingestion cannot hide: host receipt time rides every row',
+  async (t) => {
+    // The caller controls observedAt (the chronology basis, so backfill
+    // works). The host stamps ingestedAt from its own clock at write time.
+    // A client claiming an event happened last year still leaves a
+    // same-moment receipt, so spoofed chronology is detectable forever.
+    const root = await mkdtemp(join(tmpdir(), 'palari-receipt-'))
+    const brain = await createPalariBrain({
+      clock: () => new Date('2026-06-15T12:00:00.000Z'),
+      memoryEnabled: true,
+      statePath: join(root, 'workspace-state.json'),
+      workspaceId: 'receipt',
+    })
+    t.after(async () => {
+      brain.close()
+      await rm(root, { force: true, recursive: true })
+    })
+    await ingestChatTurn(brain, {
+      assistantMessage: 'Noted.',
+      eventAt: '2020-01-01T00:00:00.000Z',
+      palariId: SCOPE.palariId,
+      retention: 'durable',
+      sourceMessageId: 'backdated:0',
+      userId: SCOPE.userId,
+      userMessage: 'I approved the payment.',
+    })
+    const row = brain.exploreRead(SCOPE, { session: 'backdated' })
+      .messages[0]
+    assert.equal(row.observedAt, '2020-01-01T00:00:00.000Z')
+    assert.equal(row.ingestedAt, '2026-06-15T12:00:00.000Z')
+  })
+
 test('find locates an exact phrase and read returns the whole message',
   async (t) => {
     const brain = await openBrain(t)

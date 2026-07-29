@@ -2323,3 +2323,32 @@ dates. Agents record; the founder decides.
   Hindsight's regex memory-defense noted as a product-layer consent
   feature, not a kernel adoption (the journal stays lossless). Suite
   590/590 with 14 skips; quickstart green; trust bench 5/5; no spend.
+
+- 2026-07-29 (J4.4K-F1 — flagged fixes: examples, receipts, deletion
+  honesty, offline Gemini adapters)
+  Executed the four corrections flagged by the D1 engineering-lead audit,
+  per founder directive. (A) The scratch teaching demos became
+  `examples/walkthrough-storage.mjs` and
+  `examples/walkthrough-retrieval.mjs`; the honest-absence section was
+  corrected to `answerQuestion` (`answerWithExploration` consults the
+  provider by design). (C) Every explored row now exposes `ingestedAt` —
+  the host's receipt clock, which no caller can supply — beside the
+  caller's `observedAt`; a backdated ingestion is visible on every row.
+  (B) `src/memory-forget.mjs` + `forgetWithReport`: deletion by phrase
+  that widens hits to whole turns (the assistant echo goes too), deletes
+  through the unchanged `forgetById`, then re-probes survivors and
+  returns `residual` mentions — probing with the request phrase, its
+  ranked terms, and the DELETED text's own vocabulary, so a paraphrase
+  sharing any content term with the deletion surfaces instead of
+  surviving silently. The report never claims "clean". (D)
+  `evals/arms/graph-extractor-gemini.mjs` and
+  `evals/arms/embedder-gemini.mjs`: dispatch-ready adapters for the
+  pluggable graphExtractor/embedder options in the lean-reducer house
+  style — shallow provider schemas, fail-closed host normalization, one
+  single-turn repair (objection inside the request document), empty
+  responses classified and never repaired, symmetric SEMANTIC_SIMILARITY
+  task type for the embedder. Offline-proven end-to-end against the real
+  brain options with fake transports; live dispatch remains founder-gated
+  in the keyed session. `src/memory-forget.mjs` added to both sorted
+  successor exclusion lists. Suite 613/613 with 14 skips; quickstart
+  green; trust bench 5/5; no spend.

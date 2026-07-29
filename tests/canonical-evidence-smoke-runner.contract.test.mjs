@@ -179,6 +179,7 @@ test('frozen artifacts exclude the successor digest import graph',
         'src/memory-exploration.mjs',
         // Finding aids, the derived graph, and the quote-context guard:
         // successor modules by design, outside the sealed pin set.
+        'src/memory-forget.mjs',
         'src/memory-graph.mjs',
         'src/memory-reducer.mjs',
         'src/memory-search.mjs',

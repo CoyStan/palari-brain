@@ -20,6 +20,7 @@ evidence. Add new files; never relocate old ones.
 | `dev-provider-probe.mjs`, `run-dev-provider-probe.mjs` | The ONLY spend-capable tool (`npm run probe`); founder-gated, no run identity, no score. |
 | `provider-deviation-corpus.mjs` | Every observed live model deviation, replayed offline forever. |
 | `arms/lean-memory-reducer-*.mjs` | The live reducer wire contract: grammar, clarified instructions, repair turn, mechanical targets. |
+| `arms/graph-extractor-gemini.mjs`, `arms/embedder-gemini.mjs` | Offline-tested Gemini adapters for the pluggable `graphExtractor` and `embedder` brain options; dispatch-ready, founder-gated live. |
 | `run-*-live.mjs`, `live-runs/`, `predictions/` | Sealed and prepared live identities. Terminal ones refuse execution by design. |
 | `predictions.md`, `predictions-bakeoff.md` | Pre-registered predictions (append-only, by charter law). |
 | `journeys.json`, `run-bakeoff.mjs`, `arms/*arm*.mjs` | The 17-journey offline bake-off across memory arms. |

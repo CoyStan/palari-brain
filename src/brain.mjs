@@ -191,6 +191,7 @@ export async function createPalariBrain(options = {}) {
       close: () => store.close(),
       enabled: Boolean(store.enabled),
       forgetById: gate.forgetById,
+      forgetRequest: gate.forgetRequest,
       digestFreshness: gate.digestFreshness,
       digestStatus: gate.digestStatus,
       exploreFind: gate.exploreFind,
@@ -1156,6 +1157,17 @@ export function forgetMemories(brain, ids, scope) {
     throw new TypeError('A Palari Brain instance is required.')
   }
   return brain.forgetById(ids, scope)
+}
+
+// Deletion by phrase, answered honestly: deletes every turn the finding
+// aids can reach and returns `residual` — surviving rows that still appear
+// to mention the subject — instead of a bare success. An empty residual
+// list means the probes found nothing, not that nothing remains.
+export function forgetWithReport(brain, scope, request) {
+  if (typeof brain?.forgetRequest !== 'function') {
+    throw new TypeError('A Palari Brain instance is required.')
+  }
+  return brain.forgetRequest(scope, request)
 }
 
 export async function ingestLongMemEvalInstance(brain, instance, {
