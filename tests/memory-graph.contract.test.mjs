@@ -281,6 +281,30 @@ test('a verified timeQuote rides on the edge; a fabricated one is refused',
     )
   })
 
+test('trends ride on graph results, computed from host chronology',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [...STORY, 'Ana switched to Dr. Ramos.'])
+    await brain.indexGraph(SCOPE)
+    const found = brain.exploreGraph(SCOPE, {
+      entity: 'Ana',
+      now: new Date('2025-01-20T00:00:00.000Z'),
+    })
+    const doctorTrend = found.trends.find((entry) =>
+      entry.predicate === 'has doctor')
+    // Two observations, all within the recent window of the reference time.
+    assert.equal(doctorTrend.observations, 2)
+    assert.equal(doctorTrend.trend, 'new')
+    // Determinism: an explicit reference time pins the answer.
+    assert.deepEqual(
+      found.trends,
+      brain.exploreGraph(SCOPE, {
+        entity: 'Ana',
+        now: new Date('2025-01-20T00:00:00.000Z'),
+      }).trends,
+    )
+  })
+
 test('without an extractor, indexing refuses and querying still works',
   async (t) => {
     const brain = await openBrain(t, null)

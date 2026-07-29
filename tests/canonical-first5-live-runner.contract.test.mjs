@@ -381,6 +381,7 @@ test('frozen first-five identity rejects the successor digest graph',
         'src/memory-reducer.mjs',
         'src/memory-search.mjs',
         'src/memory-semantic.mjs',
+        'src/memory-trend.mjs',
         'src/quote-context.mjs',
       ],
     )

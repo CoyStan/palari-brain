@@ -3748,3 +3748,48 @@ prompt; RRF fusion across retrieval surfaces is a lawful future unit.
 Suite 586/586 with 14 skips (+2 tests); quickstart green; trust bench
 5/5; no dispatch, no spend; clone read-only in scratchpad, nothing
 copied. V3 re-freeze note unchanged.
+
+### J4.4K-K3 reading Hindsight's source, adopting two ideas lawfully
+
+Same exercise as K2, applied to vectorize-io/hindsight (MIT, the current
+self-reported LongMemEval state of the art). Shallow clone, read
+`hindsight-api-slim/hindsight_api` directly.
+
+**Confirmed from source.** Hindsight's reflect subsystem produces
+"observations" whose supporting evidence declares `quote: str =
+Field(description="Exact quote from the memory ...")` — the exactness is
+requested in a schema description and never verified by code, and the
+"memory" being quoted is itself a model-written fact. Two layers of
+testimony wearing Palari's vocabulary. Its "opinions" are model-formed by
+design (disposition traits) and were not considered for adoption. Its
+mental-model documents are scheduled model summaries — the digest done
+without a gate.
+
+**Adopted, made lawful:**
+
+1. **Computed trends** (`src/memory-trend.mjs`, from Hindsight's one
+   genuinely algorithmic reflect component). `computeTrend(timestamps)`
+   classifies a recurring fact group as new / strengthening / weakening /
+   stable / stale as a pure function of host chronology — rate-compared
+   windows, no model consulted. Wired into `exploreGraph` results: every
+   (speaker, subject, predicate) group now carries `trend` and
+   observation count, deterministic under an explicit reference time. "The
+   user mentions deadline stress: strengthening" without anyone forming an
+   opinion.
+2. **Temporal bounds on search** (from Hindsight's query-time temporal
+   extraction, minus its dateparser dependency). `memory_find` accepts
+   `after`/`before` ISO bounds filtering on host `event_at` in both exact
+   and ranked modes; the tool description instructs the calling model to
+   resolve "last spring" into bounds itself. The host only ever compares
+   its own recorded times — resolution stays with the consumer, exactly
+   like the graph's timeQuote.
+
+Also worth recording: Hindsight ships a regex Memory-Defense extension
+(secret/PII redaction at retention). Palari's journal is deliberately
+lossless, so redaction belongs at the product consent layer, not the
+kernel — noted as a Maeve-level feature ("this looks like an API key —
+store it?"), not adopted here.
+
+Suite 590/590 with 14 skips (+4 tests); quickstart green; trust bench
+5/5; no dispatch, no spend; clone read-only in scratchpad. V3 re-freeze
+note unchanged.

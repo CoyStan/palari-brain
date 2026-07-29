@@ -2308,3 +2308,18 @@ dates. Agents record; the founder decides.
   prompt: their extract_attributes hard-rules block and REFERENCE_TIME
   pattern; RRF surface fusion as a possible unit. Suite 586/586 with 14
   skips; quickstart green; trust bench 5/5; no spend.
+
+- 2026-07-28 (J4.4K-K3 — Hindsight source review and two lawful adoptions)
+  Read vectorize-io/hindsight (hindsight-api-slim) directly. Confirmed:
+  reflect observations request exact quotes via a Pydantic field
+  description with no verifying code, quoting model-written memories —
+  testimony squared; opinions are model-formed by design. Adopted
+  lawfully: (1) `src/memory-trend.mjs` — computed trend classification
+  (new/strengthening/weakening/stable/stale) as a pure function of host
+  chronology with rate-compared windows, attached per fact group to
+  `exploreGraph` results; (2) `after`/`before` ISO bounds on
+  `memory_find` filtering host event_at in exact and ranked modes, with
+  the calling model instructed to resolve relative periods itself.
+  Hindsight's regex memory-defense noted as a product-layer consent
+  feature, not a kernel adoption (the journal stays lossless). Suite
+  590/590 with 14 skips; quickstart green; trust bench 5/5; no spend.

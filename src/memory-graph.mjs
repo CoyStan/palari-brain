@@ -38,6 +38,7 @@
 import { createHash } from 'node:crypto'
 
 import { analyzeQuoteContext } from './quote-context.mjs'
+import { computeTrend } from './memory-trend.mjs'
 
 export const GRAPH_MAX_ASSERTIONS_PER_BATCH = 16
 export const GRAPH_MAX_ENTITY_CHARS = 120
@@ -299,6 +300,7 @@ export function graphFind(db, scope, {
   entity,
   hops = 1,
   limit = 50,
+  now = new Date(),
 } = {}) {
   ensureGraphSchema(db)
   let startKey = graphKey(entity)
@@ -344,11 +346,37 @@ export function graphFind(db, scope, {
   }
   const edges = ordered.slice(0, cap).map((row) =>
     edgeShape(row, latestKeys))
+
+  // Computed trends per recurring fact group — a pure function of host
+  // chronology (see memory-trend.mjs). "user mentions deadline stress:
+  // strengthening" without any model forming an opinion.
+  const groups = new Map()
+  for (const row of ordered) {
+    const key = `${row.speaker} ${row.subject_key} ${row.predicate_key}`
+    if (!groups.has(key)) {
+      groups.set(key, {
+        observations: [],
+        predicate: row.predicate,
+        speaker: row.speaker,
+        subject: row.subject,
+      })
+    }
+    groups.get(key).observations.push(row.observed_at)
+  }
+  const trends = [...groups.values()].map((group) => ({
+    observations: group.observations.length,
+    predicate: group.predicate,
+    speaker: group.speaker,
+    subject: group.subject,
+    trend: computeTrend(group.observations, { now }),
+  }))
+
   return {
     edges,
     entity: String(entity),
     hops: depth,
     operation: 'memory_graph',
+    trends,
     truncated: ordered.length > cap,
   }
 }

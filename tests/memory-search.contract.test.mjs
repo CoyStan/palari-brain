@@ -228,6 +228,28 @@ test('a pre-porter index is rebuilt in place from the journal', async () => {
   db.close()
 })
 
+test('after/before bound results by host chronology', async (t) => {
+  // "What did I say about the pot in the first days of January?" — the
+  // caller resolves the period into ISO bounds; the host filters on its own
+  // event_at. Works identically in exact and ranked modes.
+  const brain = await openBrain(t)
+  await seed(brain, EXCHANGES)
+  const bounded = brain.exploreFind(SCOPE, {
+    before: '2025-01-02T00:00:00.000Z',
+    phrase: 'ceramic pot',
+    ranked: true,
+  })
+  assert.equal(bounded.matches.length, 1)
+  assert.match(bounded.matches[0].snippet, /spare key/)
+
+  const exactBounded = brain.exploreFind(SCOPE, {
+    after: '2025-01-03T00:00:00.000Z',
+    phrase: 'ceramic pot',
+  })
+  assert.equal(exactBounded.matches.length, 1)
+  assert.match(exactBounded.matches[0].snippet, /indoors for the winter/)
+})
+
 test('fts query terms are quoted so user text cannot inject syntax', () => {
   const terms = rankedDialogueQueryTerms(
     'NEAR("a" OR pot) AND ceramic -balcony',
