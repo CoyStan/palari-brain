@@ -2263,3 +2263,17 @@ dates. Agents record; the founder decides.
   the four touched product files; import-graph exclusions gain the new
   module; v3 re-freeze required before GO. Suite 566/566 with 14 skips;
   quickstart green; trust bench 5/5; no spend.
+
+- 2026-07-28 (J4.4K-R5 — recall at scale) Founder question: does Mem0 win
+  recall at 5,000 messages? Measured answer, offline: ranked BM25 with new
+  porter stemming recovers 25/25 planted facts under shared-vocabulary
+  paraphrase at 4 ms median across 5,000 messages, and 0/25 under
+  zero-overlap wording — the lexical boundary, printed honestly by the new
+  `npm run scale-probe`. The boundary is closed by `src/memory-semantic.mjs`
+  + `brain.exploreSemantic`: pluggable-embedder cosine search where vectors
+  are derived data, every hit is a canonical journal row inside the
+  caller's scope, deletion clears vectors by trigger, and the surface
+  refuses to run without an explicitly configured embedder (no key, no
+  network, no pretending). Pre-porter indexes rebuild in place. Suite
+  576/576 with 14 skips; quickstart green; trust bench 5/5; no spend. V3
+  re-freeze required before GO.

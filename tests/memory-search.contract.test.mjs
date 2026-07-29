@@ -174,6 +174,60 @@ test('the tool contract documents ranked mode as the fallback', () => {
   assert.match(find.description, /retry with ranked true/)
 })
 
+test('stemming bridges word forms at index and query time', async (t) => {
+  const brain = await openBrain(t)
+  await seed(brain, [
+    { id: 'stem:0', user: 'My sister visits on weekends.' },
+    { id: 'stem:1', user: 'I moved the ceramic pots indoors before winter.' },
+  ])
+  // "visiting" -> visit matches "visits"; "pot" matches "pots";
+  // "move" matches "moved" — none of these are substrings of the originals.
+  for (const phrase of [
+    'when is my sister visiting',
+    'where did the pot move',
+  ]) {
+    const found = brain.exploreFind(SCOPE, { phrase, ranked: true })
+    assert.equal(found.mode, 'ranked')
+    assert.ok(found.matches.length >= 1, phrase)
+  }
+})
+
+test('a pre-porter index is rebuilt in place from the journal', async () => {
+  // Installed databases may carry the v1 unicode61-only index. The ensure
+  // path must detect it, drop it, and rebuild with stemming — the index is
+  // derived data, so the rebuild loses nothing canonical.
+  const { DatabaseSync } = await import('node:sqlite')
+  const { ensureDialogueSearchIndex } = await import('../src/memory-search.mjs')
+  const db = new DatabaseSync(':memory:')
+  db.exec(`
+    CREATE TABLE dialogue_evidence (
+      id TEXT PRIMARY KEY,
+      content TEXT NOT NULL
+    );
+    INSERT INTO dialogue_evidence VALUES ('e1', 'I moved the ceramic pots.');
+    CREATE VIRTUAL TABLE dialogue_evidence_fts USING fts5(
+      evidence_id UNINDEXED,
+      content,
+      tokenize = 'unicode61 remove_diacritics 2'
+    );
+    INSERT INTO dialogue_evidence_fts(rowid, evidence_id, content)
+    SELECT rowid, id, content FROM dialogue_evidence;
+  `)
+  ensureDialogueSearchIndex(db)
+  const schema = db.prepare(`
+    SELECT sql FROM sqlite_master
+    WHERE type = 'table' AND name = 'dialogue_evidence_fts'
+  `).get()
+  assert.match(String(schema.sql), /porter/)
+  // The rebuilt index is backfilled and stems: "pot" finds "pots".
+  const hit = db.prepare(`
+    SELECT evidence_id FROM dialogue_evidence_fts
+    WHERE dialogue_evidence_fts MATCH '"pot"'
+  `).get()
+  assert.equal(hit?.evidence_id, 'e1')
+  db.close()
+})
+
 test('fts query terms are quoted so user text cannot inject syntax', () => {
   const terms = rankedDialogueQueryTerms(
     'NEAR("a" OR pot) AND ceramic -balcony',

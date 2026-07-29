@@ -3608,3 +3608,51 @@ Suite 566/566 with 14 skips (+10 tests); quickstart green; trust bench
 5. If deleted, what would get worse? A hedged, borrowed, or pasted
    sentence could again become a confident "the user said" memory with a
    verified citation — the exact failure the product exists to prevent.
+
+### J4.4K-R5 recall at scale: stemming, a 5,000-message probe, and the
+### semantic finding aid
+
+The founder asked the decisive competitive question: at a 5,000-message
+back-and-forth, would Mem0's embedding recall beat Palari? This unit
+answers it with measurements and closes most of the gap.
+
+**Porter stemming** (`DIALOGUE_SEARCH_TOKENIZER`): the ranked journal
+index now stems at index and query time, so "visiting" finds "visits" and
+"pot" finds "pots". Installed pre-porter indexes are detected and rebuilt
+in place — the index is derived data; nothing canonical is touched.
+
+**The scale probe** (`npm run scale-probe`, offline, deterministic): 5,000
+messages with 25 planted facts, digest deliberately kept empty so the
+measurement is the exploration floor, worst case. Results: ingest 15.8
+ms/turn; ranked find median 4 ms at full scale; paraphrase recall with
+shared vocabulary **25/25**; paraphrase recall with zero-overlap wording
+**0/25**. That last number is the honest lexical boundary, printed by the
+probe itself.
+
+**The semantic finding aid** (`src/memory-semantic.mjs`,
+`brain.exploreSemantic`): closes the zero-overlap boundary under the same
+law as ranked search — an index may locate evidence; it may never be
+evidence. Vectors are derived data over journal rows; every hit returns
+the canonical row with host speaker and time; deletion removes vectors by
+trigger; scope is enforced in the same visible-statements join. The
+embedder is pluggable and optional (`embed(texts) -> number[][]`): with
+none configured, nothing dials out and the surface refuses loudly instead
+of pretending. Products plug Gemini/OpenAI/local embeddings with one
+function; contract tests drive a deterministic fake and prove
+zero-overlap bridging, incremental indexing, isolation, and deletion.
+
+Suite 576/576 with 14 skips (+10 tests); quickstart green; trust bench
+5/5; no dispatch, no spend. The prepared v3 identity must re-freeze
+(memory-search bytes changed; memory-semantic joins the successor graph).
+
+1. Can a new user run the basic memory journey now? Yes.
+2. Measurably better? Yes — stemming widens ranked recall now, and the
+   scale probe converts "how does it behave at 5,000 messages" from a fear
+   into four numbers.
+3. Existing framework? Embedding recall exists everywhere; embedding
+   recall that can only locate host-verified canonical rows — and refuses
+   to run without an explicitly configured embedder — is Palari's
+   combination.
+4. Founder asked? Yes, verbatim.
+5. If deleted? Zero-overlap questions would stay unanswerable at scale,
+   and the system's scale behavior would again be unmeasured.

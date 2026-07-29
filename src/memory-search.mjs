@@ -23,10 +23,17 @@
 
 import {
   extractMemoryQueryKeywords,
-  memoryFtsTokenizer,
 } from './memory-store.mjs'
 
 export const DIALOGUE_SEARCH_MAX_TERMS = 8
+
+// Porter stemming on top of the same unicode folding the memory FTS uses.
+// The asker says "hiding", the journal says "hid the spare key": stemming
+// folds both to one term at index AND query time, which is the cheapest
+// real recall win available without any model. Stemming never changes what
+// a hit IS — still a canonical row — only how it is found.
+export const DIALOGUE_SEARCH_TOKENIZER =
+  'porter unicode61 remove_diacritics 2'
 
 function ftsTerm(value) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`
@@ -47,13 +54,27 @@ export function rankedDialogueQuery(terms) {
 
 // Idempotent: creates the index, the keep-in-sync triggers, and backfills any
 // journal rows written before the index existed. Safe to call before every
-// ranked search; SQLite makes the steady-state calls cheap no-ops.
+// ranked search; SQLite makes the steady-state calls cheap no-ops. The index
+// is derived data, so a tokenizer upgrade simply drops and rebuilds it from
+// the journal — nothing canonical is touched.
 export function ensureDialogueSearchIndex(db) {
+  const existing = db.prepare(`
+    SELECT sql FROM sqlite_master
+    WHERE type = 'table' AND name = 'dialogue_evidence_fts'
+  `).get()
+  if (existing && !String(existing.sql).includes('porter')) {
+    db.exec(`
+      DROP TRIGGER IF EXISTS dialogue_evidence_fts_ai;
+      DROP TRIGGER IF EXISTS dialogue_evidence_fts_ad;
+      DROP TRIGGER IF EXISTS dialogue_evidence_fts_au;
+      DROP TABLE dialogue_evidence_fts;
+    `)
+  }
   db.exec(`
     CREATE VIRTUAL TABLE IF NOT EXISTS dialogue_evidence_fts USING fts5(
       evidence_id UNINDEXED,
       content,
-      tokenize = '${memoryFtsTokenizer}'
+      tokenize = '${DIALOGUE_SEARCH_TOKENIZER}'
     );
     CREATE TRIGGER IF NOT EXISTS dialogue_evidence_fts_ai
     AFTER INSERT ON dialogue_evidence BEGIN

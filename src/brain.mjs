@@ -184,6 +184,7 @@ export async function createPalariBrain(options = {}) {
     const gate = createDialogueGate(store, {
       auditLog: options.memoryAuditLog,
       clock: options.clock,
+      embedder: options.embedder ?? null,
     })
     return Object.freeze({
       close: () => store.close(),
@@ -193,6 +194,7 @@ export async function createPalariBrain(options = {}) {
       digestStatus: gate.digestStatus,
       exploreFind: gate.exploreFind,
       exploreRead: gate.exploreRead,
+      exploreSemantic: gate.exploreSemantic,
       exploreTimeline: gate.exploreTimeline,
       listActiveMemories: gate.listActiveMemories,
       listEvidence: gate.listStatements,

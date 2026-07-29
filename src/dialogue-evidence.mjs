@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto'
 
 import { createMemoryDigestStore } from './memory-digest-store.mjs'
 import { createMemoryExplorer } from './memory-exploration.mjs'
+import { semanticFindEvidence } from './memory-semantic.mjs'
 import { statementQuoteOrigins } from './statement-extraction.mjs'
 
 export const dialogueSourceKinds = Object.freeze([
@@ -469,6 +470,7 @@ function ensureActiveSchema(store, clock) {
 export function createDialogueGate(store, {
   auditLog,
   clock = () => new Date(),
+  embedder = null,
 } = {}) {
   ensureActiveSchema(store, clock)
   const digest = createMemoryDigestStore(store, { clock })
@@ -1212,6 +1214,40 @@ export function createDialogueGate(store, {
       explorer.read(normalizedScope(scope), options),
     exploreTimeline: (scope, options) =>
       explorer.timeline(normalizedScope(scope), options),
+    // Meaning-based lookup, available only when the product supplies an
+    // embedder. Same law as ranked search: the index locates canonical
+    // rows; it never testifies. Async because embedding is.
+    exploreSemantic: async (scope, options = {}) => {
+      if (typeof embedder !== 'function') {
+        throw new TypeError(
+          'Semantic exploration requires the brain to be created with an ' +
+          'embedder option.',
+        )
+      }
+      const scoped = normalizedScope(scope)
+      const rows = await semanticFindEvidence(store.db, {
+        embed: embedder,
+        limit: options.limit,
+        phrase: options.phrase,
+        scope: scoped,
+        visibleStatementsSql,
+      })
+      auditLog?.({
+        consulted: rows.map((row) => String(row.id)),
+        operation: 'memory_semantic',
+        palariId: scoped.palariId,
+        query: { phrase: String(options.phrase ?? '') },
+        userId: scoped.userId,
+      })
+      return rows.map((row) => ({
+        evidenceId: String(row.id),
+        observedAt: String(row.event_at),
+        session: String(row.source_message_id).split(':')[0],
+        similarity: row.similarity,
+        speaker: row.source_kind === 'user_message' ? 'user' : 'Palari',
+        text: String(row.content),
+      }))
+    },
     listBlockedReductions: digest.listBlocked,
     listPendingReductions: digest.listPending,
     readReadyDigest: digest.readReadyDigest,

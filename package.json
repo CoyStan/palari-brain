@@ -35,7 +35,8 @@
     "bakeoff": "node evals/run-bakeoff.mjs",
     "memory-bench": "node evals/run-offline-memory-bench.mjs",
     "probe": "node evals/run-dev-provider-probe.mjs",
-    "trust-bench": "node evals/run-trust-benchmark.mjs"
+    "trust-bench": "node evals/run-trust-benchmark.mjs",
+    "scale-probe": "node evals/run-scale-probe.mjs"
   },
   "devDependencies": {
     "@google/genai": "1.40.0",
