@@ -15,7 +15,7 @@ evidence. Add new files; never relocate old ones.
 | Zone | What it is |
 | --- | --- |
 | `trust-benchmark.mjs`, `run-trust-benchmark.mjs`, `arms/palari-trust-adapter.mjs` | The five-case trust benchmark (`npm run trust-bench`). Framework-neutral scripts; predictions pre-registered in `predictions.md` P-set 5. |
-| `run-scale-probe.mjs` | 5,000-message offline scale measurement (`npm run scale-probe`). |
+| `run-scale-probe.mjs` | 5,000-message offline scale measurement (`npm run scale-probe`). Optional `-- --embedder <module>` re-measures both paraphrase columns through the semantic surface (the module wires `createGeminiEmbedder` to a metered transport; spends, so founder-gated like every live dispatch). |
 | `offline-memory-bench.mjs`, `run-offline-memory-bench.mjs` | Structural digest bench (`npm run memory-bench`). |
 | `dev-provider-probe.mjs`, `run-dev-provider-probe.mjs` | The ONLY spend-capable tool (`npm run probe`); founder-gated, no run identity, no score. |
 | `provider-deviation-corpus.mjs` | Every observed live model deviation, replayed offline forever. |

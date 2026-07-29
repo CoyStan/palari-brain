@@ -17,10 +17,19 @@
 //
 //   npm run scale-probe            # 2,500 turns
 //   npm run scale-probe -- --turns 500
+//   npm run scale-probe -- --embedder ./my-embedder.mjs
+//
+// `--embedder <path>` re-measures BOTH paraphrase columns through the
+// semantic surface as well. The module must export `createEmbedder()`
+// (or default-export it) returning an `embed(texts) -> number[][]`
+// function — e.g. a few lines wiring `createGeminiEmbedder` from
+// `evals/arms/embedder-gemini.mjs` to a metered transport. Without the
+// flag the probe stays exactly what it always was: offline, no spend.
 
 import { mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { isAbsolute, join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 import {
   createPalariBrain,
@@ -113,6 +122,11 @@ function parseArgs(argv) {
       index += 1
       continue
     }
+    if (argv[index] === '--embedder') {
+      options.embedderPath = String(argv[index + 1] ?? '')
+      index += 1
+      continue
+    }
     throw new TypeError(`Unknown scale-probe flag: ${argv[index]}`)
   }
   if (!Number.isSafeInteger(options.turns) || options.turns < 50) {
@@ -121,10 +135,34 @@ function parseArgs(argv) {
   return options
 }
 
-export async function runScaleProbe({ log = console.log, turns = 2_500 } = {}) {
+async function loadEmbedder(embedderPath) {
+  const path = String(embedderPath ?? '').trim()
+  if (!path) throw new TypeError('--embedder requires a module path.')
+  const absolute = isAbsolute(path) ? path : resolve(process.cwd(), path)
+  const module = await import(pathToFileURL(absolute).href)
+  const factory = module.createEmbedder ?? module.default
+  if (typeof factory !== 'function') {
+    throw new TypeError(
+      'The embedder module must export createEmbedder() ' +
+      '(or default-export it) returning embed(texts) -> number[][].',
+    )
+  }
+  const embed = await factory()
+  if (typeof embed !== 'function') {
+    throw new TypeError('createEmbedder() must return an embed function.')
+  }
+  return embed
+}
+
+export async function runScaleProbe({
+  embedder = null,
+  log = console.log,
+  turns = 2_500,
+} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'palari-scale-'))
   const statePath = join(root, 'state.json')
   const brain = await createPalariBrain({
+    embedder,
     memoryEnabled: true,
     statePath,
     workspaceId: 'scale',
@@ -183,6 +221,51 @@ export async function runScaleProbe({ log = console.log, turns = 2_500 } = {}) {
 
   const shared = recallRate(1)
   const zero = recallRate(2)
+
+  // With an embedder, measure the same two columns through the semantic
+  // surface. Same hit criterion as the lexical columns: the planted
+  // canonical row appears among the returned rows (top-20 parity), and
+  // the hit is verified by reading the byte-exact text back — the index
+  // locates; the journal testifies.
+  let semantic = null
+  if (embedder) {
+    const indexStart = performance.now()
+    // The first semantic call pays for embedding every journal row
+    // (batched, incremental); time it apart from query latency.
+    await brain.exploreSemantic(SCOPE, { phrase: 'warmup' })
+    const vectorIndexMs = performance.now() - indexStart
+
+    async function semanticRecall(column) {
+      let hits = 0
+      const latencies = []
+      for (const row of PLANTED) {
+        const started = performance.now()
+        const found = await brain.exploreSemantic(SCOPE, {
+          phrase: row[column],
+        })
+        latencies.push(performance.now() - started)
+        if (found.some((match) => {
+          const read = brain.exploreRead(SCOPE, {
+            evidenceIds: [match.evidenceId],
+          })
+          return read.messages[0]?.text === row[0]
+        })) hits += 1
+      }
+      latencies.sort((left, right) => left - right)
+      return {
+        hits,
+        medianMs: latencies[Math.floor(latencies.length / 2)],
+        total: PLANTED.length,
+      }
+    }
+
+    semantic = {
+      shared: await semanticRecall(1),
+      vectorIndexMs,
+      zero: await semanticRecall(2),
+    }
+  }
+
   const files = (await import('node:fs')).readdirSync(root)
   let dbBytes = 0
   for (const name of files) {
@@ -206,6 +289,19 @@ export async function runScaleProbe({ log = console.log, turns = 2_500 } = {}) {
   log(`  zero-overlap paraphrase recall: ${summary.zeroOverlapRecall} ` +
     `(median find ${summary.zeroMedianMs} ms) — the lexical boundary; ` +
     `the semantic finding aid exists to close this`)
+  if (semantic) {
+    summary.semanticSharedRecall =
+      `${semantic.shared.hits}/${semantic.shared.total}`
+    summary.semanticZeroRecall =
+      `${semantic.zero.hits}/${semantic.zero.total}`
+    summary.vectorIndexMs = Number(semantic.vectorIndexMs.toFixed(0))
+    log(`  semantic surface (embedder supplied): vector indexing ` +
+      `${summary.vectorIndexMs} ms`)
+    log(`    shared-token via semantic: ${summary.semanticSharedRecall} ` +
+      `(median ${semantic.shared.medianMs.toFixed(1)} ms)`)
+    log(`    zero-overlap via semantic: ${summary.semanticZeroRecall} ` +
+      `(median ${semantic.zero.medianMs.toFixed(1)} ms)`)
+  }
 
   brain.close()
   await rm(root, { force: true, recursive: true })
@@ -214,7 +310,13 @@ export async function runScaleProbe({ log = console.log, turns = 2_500 } = {}) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   try {
-    await runScaleProbe(parseArgs(process.argv.slice(2)))
+    const options = parseArgs(process.argv.slice(2))
+    await runScaleProbe({
+      embedder: options.embedderPath
+        ? await loadEmbedder(options.embedderPath)
+        : null,
+      turns: options.turns,
+    })
   } catch (error) {
     console.error(`SCALE_PROBE_FAILED: ${error?.message ?? error}`)
     process.exitCode = 1
