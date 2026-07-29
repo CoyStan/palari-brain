@@ -213,6 +213,74 @@ test('extraction is incremental and the view is rebuild-safe', async (t) => {
   assert.equal(total, STORY.length * 2)
 })
 
+test('fuzzy entry: "Doctor Peixoto" resolves to the stored entity',
+  async (t) => {
+    // Learned from Graphiti's shingle dedup, applied at LOOKUP time only:
+    // the caller's entry point is fuzzily resolved against stored entity
+    // keys, but stored entities are never merged — deciding that two names
+    // denote one entity would be testimony.
+    const brain = await openBrain(t)
+    await seed(brain, STORY)
+    await brain.indexGraph(SCOPE)
+    const found = brain.exploreGraph(SCOPE, {
+      entity: 'Doctor Peixoto',
+      hops: 1,
+    })
+    assert.ok(found.edges.some((edge) =>
+      edge.object === 'Lisbon hospital'))
+    // Nonsense stays unresolved rather than matching something random.
+    assert.deepEqual(
+      brain.exploreGraph(SCOPE, { entity: 'zzqx' }).edges,
+      [],
+    )
+  })
+
+test('a verified timeQuote rides on the edge; a fabricated one is refused',
+  async (t) => {
+    const timeExtractor = async ({ evidence }) => {
+      const item = evidence.find((entry) =>
+        entry.text.includes('moved to Braga'))
+      if (!item) return { assertions: [] }
+      return {
+        assertions: [{
+          evidenceRef: item.ref,
+          object: 'Braga',
+          predicate: 'moved to',
+          quote: 'I moved to Braga last month',
+          subject: 'user',
+          timeQuote: 'last month',
+        }],
+      }
+    }
+    const brain = await openBrain(t, timeExtractor)
+    await seed(brain, ['I moved to Braga last month, finally.'])
+    await brain.indexGraph(SCOPE)
+    const found = brain.exploreGraph(SCOPE, { entity: 'Braga' })
+    assert.equal(found.edges.length, 1)
+    // The spoken time phrase is carried verbatim; resolving it against the
+    // host observedAt stays the consumer's job — the graph never converts
+    // "last month" into a date it would then have to defend.
+    assert.equal(found.edges[0].timeAnchor, 'last month')
+    assert.equal(found.edges[0].observedAt, '2025-01-01T00:00:00.000Z')
+
+    const lyingTime = async ({ evidence }) => ({
+      assertions: [{
+        evidenceRef: evidence[0].ref,
+        object: 'Braga',
+        predicate: 'moved to',
+        quote: 'I moved to Braga last month',
+        subject: 'user',
+        timeQuote: 'in 2019',
+      }],
+    })
+    const brain2 = await openBrain(t, lyingTime)
+    await seed(brain2, ['I moved to Braga last month, finally.'])
+    await assert.rejects(
+      brain2.indexGraph(SCOPE),
+      /timeQuote is not an exact contiguous quote/,
+    )
+  })
+
 test('without an extractor, indexing refuses and querying still works',
   async (t) => {
     const brain = await openBrain(t, null)

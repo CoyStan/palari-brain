@@ -83,6 +83,7 @@ export function ensureGraphSchema(db) {
       speaker TEXT NOT NULL,
       evidence_id TEXT NOT NULL,
       quote TEXT NOT NULL,
+      time_anchor_quote TEXT,
       observed_at TEXT NOT NULL,
       dialogue_order INTEGER NOT NULL
     );
@@ -119,8 +120,9 @@ export function admitGraphAssertions(db, scope, proposals, evidenceRows) {
     INSERT OR IGNORE INTO dialogue_graph_edges (
       id, palari_id, user_id,
       subject, subject_key, predicate, predicate_key, object, object_key,
-      speaker, evidence_id, quote, observed_at, dialogue_order
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      speaker, evidence_id, quote, time_anchor_quote,
+      observed_at, dialogue_order
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   let admitted = 0
   for (const [index, proposal] of proposals.entries()) {
@@ -139,6 +141,21 @@ export function admitGraphAssertions(db, scope, proposals, evidenceRows) {
       invalid(`${label}.quote is not an exact contiguous quote ` +
         `from its evidence.`)
     }
+    // Bi-temporality, learned from Graphiti and made lawful: Graphiti has a
+    // model RESOLVE "last month" into a date and stores the resolved claim.
+    // Here the extractor may cite the spoken time phrase itself — verified
+    // as an exact quote like everything else — and resolution stays with
+    // the consumer, who also has the host observedAt to resolve against.
+    let timeAnchorQuote = null
+    if (proposal.timeQuote !== undefined && proposal.timeQuote !== null &&
+      String(proposal.timeQuote).trim() !== '') {
+      timeAnchorQuote = boundedText(
+        proposal.timeQuote, `${label}.timeQuote`, GRAPH_MAX_QUOTE_CHARS)
+      if (!String(evidence.content).includes(timeAnchorQuote)) {
+        invalid(`${label}.timeQuote is not an exact contiguous quote ` +
+          `from its evidence.`)
+      }
+    }
     const context = analyzeQuoteContext(String(evidence.content), quote)
     if (!context.clean) {
       invalid(`${label}.quote sits in ${context.reasons.join(' and ')} ` +
@@ -150,14 +167,14 @@ export function admitGraphAssertions(db, scope, proposals, evidenceRows) {
     const id = `edge_${createHash('sha256').update(JSON.stringify([
       scope.palariId, scope.userId,
       graphKey(subject), graphKey(predicate), graphKey(object),
-      evidence.id, quote,
+      evidence.id, quote, timeAnchorQuote,
     ])).digest('hex')}`
     insert.run(
       id, scope.palariId, scope.userId,
       subject, graphKey(subject),
       predicate, graphKey(predicate),
       object, graphKey(object),
-      speaker, String(evidence.id), quote,
+      speaker, String(evidence.id), quote, timeAnchorQuote,
       String(evidence.event_at), Number(evidence.dialogue_order),
     )
     admitted += 1
@@ -206,6 +223,58 @@ export async function extractGraph(db, scope, {
   return admitted
 }
 
+// Lookup-time fuzzy entity resolution, adapted from Graphiti's shingle
+// dedup — but applied ONLY to resolve the caller's entry point. "Doctor
+// Peixoto" finds the edges stored under "dr. peixoto". Stored entities are
+// never merged: deciding that two names denote one entity is testimony,
+// and this never writes anything.
+function trigrams(value) {
+  const padded = `  ${value.replace(/[^\p{L}\p{N}']+/gu, ' ').trim()} `
+  const set = new Set()
+  for (let index = 0; index <= padded.length - 3; index += 1) {
+    set.add(padded.slice(index, index + 3))
+  }
+  return set
+}
+
+function trigramSimilarity(left, right) {
+  const a = trigrams(left)
+  const b = trigrams(right)
+  if (!a.size || !b.size) return 0
+  let shared = 0
+  for (const gram of a) if (b.has(gram)) shared += 1
+  return shared / (a.size + b.size - shared)
+}
+
+const ENTITY_RESOLVE_THRESHOLD = 0.5
+
+function resolveEntityKey(db, scope, startKey) {
+  const exact = db.prepare(`
+    SELECT 1 FROM dialogue_graph_edges
+    WHERE palari_id = ? AND user_id = ?
+      AND (subject_key = ? OR object_key = ?)
+    LIMIT 1
+  `).get(scope.palariId, scope.userId, startKey, startKey)
+  if (exact) return startKey
+  const keys = db.prepare(`
+    SELECT subject_key AS key FROM dialogue_graph_edges
+    WHERE palari_id = ? AND user_id = ?
+    UNION
+    SELECT object_key AS key FROM dialogue_graph_edges
+    WHERE palari_id = ? AND user_id = ?
+  `).all(scope.palariId, scope.userId, scope.palariId, scope.userId)
+  let best = null
+  for (const { key } of keys) {
+    const similarity = trigramSimilarity(startKey, key)
+    if (similarity >= ENTITY_RESOLVE_THRESHOLD &&
+      (!best || similarity > best.similarity ||
+        (similarity === best.similarity && key < best.key))) {
+      best = { key, similarity }
+    }
+  }
+  return best?.key ?? startKey
+}
+
 function edgeShape(row, latestKeys) {
   const key = `${row.speaker} ${row.subject_key} ${row.predicate_key}`
   return {
@@ -217,6 +286,7 @@ function edgeShape(row, latestKeys) {
     quote: row.quote,
     speaker: row.speaker,
     subject: row.subject,
+    timeAnchor: row.time_anchor_quote ?? null,
   }
 }
 
@@ -231,8 +301,9 @@ export function graphFind(db, scope, {
   limit = 50,
 } = {}) {
   ensureGraphSchema(db)
-  const startKey = graphKey(entity)
+  let startKey = graphKey(entity)
   if (!startKey) invalid('graphFind requires an entity.')
+  startKey = resolveEntityKey(db, scope, startKey)
   const depth = Math.max(1, Math.min(Number(hops) || 1, GRAPH_MAX_HOPS))
   const cap = Math.max(1, Math.min(Number(limit) || 50, 200))
 

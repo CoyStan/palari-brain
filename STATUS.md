@@ -3704,3 +3704,47 @@ Suite 584/584 with 14 skips (+8 tests); quickstart green; trust bench
 5. If deleted? Relational questions would require the answer model to
    orchestrate multi-step searches inside its call budget, and usually
    fail.
+
+### J4.4K-K2 reading Graphiti's source, adopting two ideas lawfully
+
+The founder asked whether reading Graphiti's actual implementation
+(getzep/graphiti, shallow clone, `graphiti_core`) would teach anything.
+It did — in both directions.
+
+**Confirmed from source, validating K1's corrections:** an EntityEdge's
+`fact` field is a model-written sentence and its provenance is
+`episodes: list[str]` — bare UUID pointers no code re-verifies.
+Invalidation is model testimony operationalized: the `dedupe_edges`
+prompt returns `contradicted_facts` indices and
+`resolve_edge_contradictions` then MUTATES old edges' `invalid_at` /
+`expired_at` in place. Mutable history, decided by a model. Palari's
+computed-validity design is not a simplification of Graphiti; it is a
+correction.
+
+**Adopted, made lawful:**
+
+1. **Bi-temporality** (their four-timestamp model is genuinely right —
+   when a fact was true vs when it was learned). Graphiti has a model
+   RESOLVE "last month" into a date and stores the resolved claim. Palari
+   edges now carry an optional `timeQuote` — the spoken time phrase
+   itself, verified as an exact quote like everything else — exposed as
+   `timeAnchor` beside the host `observedAt`. Resolution stays with the
+   consumer, mirroring the digest's timeBasis. A fabricated timeQuote is
+   refused at admission.
+2. **Fuzzy entity entry** (their MinHash/shingle dedup is mostly
+   mechanical — good idea, wrong application). Applied at LOOKUP time
+   only: `exploreGraph({entity: 'Doctor Peixoto'})` resolves by trigram
+   similarity to the stored `dr. peixoto` key. Stored entities are never
+   merged — deciding two names denote one entity is testimony; resolving
+   a caller's entry point is a finding aid.
+
+**Recorded for later, not built:** their `extract_attributes` prompt's
+hard-rules block (never write reasoning into fields; "null"-like strings
+are not values; schema descriptions are never values) is battle-tested
+anti-slop material for our live graph-extractor prompt; their
+REFERENCE_TIME pattern for relative-time resolution belongs in that same
+prompt; RRF fusion across retrieval surfaces is a lawful future unit.
+
+Suite 586/586 with 14 skips (+2 tests); quickstart green; trust bench
+5/5; no dispatch, no spend; clone read-only in scratchpad, nothing
+copied. V3 re-freeze note unchanged.

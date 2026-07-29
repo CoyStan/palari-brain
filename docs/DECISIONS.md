@@ -2293,3 +2293,18 @@ dates. Agents record; the founder decides.
   in the answer tool list (v3 pins the tool surface). Suite 584/584 with
   14 skips; quickstart green; trust bench 5/5; no spend; v3 re-freeze
   required.
+
+- 2026-07-28 (J4.4K-K2 — Graphiti source review and two lawful adoptions)
+  Read getzep/graphiti's graphiti_core directly. Confirmed: edge facts are
+  model-written sentences, provenance is unverified episode UUIDs, and
+  invalidation mutates old edges' invalid_at/expired_at based on an LLM's
+  contradicted_facts vote — validating K1's computed-validity correction.
+  Adopted lawfully: (1) optional verified `timeQuote` per edge (spoken
+  time phrase as exact quote, exposed as timeAnchor beside host
+  observedAt; resolution left to the consumer; fabricated timeQuote
+  refused), mirroring the digest's timeBasis; (2) lookup-time fuzzy entity
+  resolution by trigram similarity — entry points resolve, stored
+  entities are never merged. Recorded for the future live extractor
+  prompt: their extract_attributes hard-rules block and REFERENCE_TIME
+  pattern; RRF surface fusion as a possible unit. Suite 586/586 with 14
+  skips; quickstart green; trust bench 5/5; no spend.
