@@ -80,6 +80,7 @@ const J4_TERMINAL_RUN_IDS = new Set([
   'j4-longmemeval-s60-v3',
   'j4-longmemeval-s60-v4',
   'j4-longmemeval-s60-v5',
+  'j4-longmemeval-s60-v6',
 ])
 
 function sha256(value) {

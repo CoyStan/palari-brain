@@ -24,6 +24,7 @@ import {
   buildJ4WriterBody,
   j4ExecutionQuestionIds,
   j4Sha256,
+  j4V6DerivedContract,
   loadJ4LiveAuthority,
   loadJ4LiveConfig,
 } from '../evals/longmemeval-live-config.mjs'
@@ -561,15 +562,27 @@ test('J4 v5 frozen bytes survive terminal sealing and fail closed as runnable', 
 })
 
 test('J4 v6 freezes five predecessors, one repair, and the $5 fresh cap', async () => {
-  const loaded = await loadJ4LiveConfig({ repoRoot: REPO_ROOT })
-  assert.equal(loaded.config.runId, J4_LIVE_RUN_ID)
-  assert.equal(loaded.configSha256, J4_V6_CONFIG_SHA256)
-  assert.equal(loaded.predictionsSha256, J4_V6_PREDICTIONS_SHA256)
-  assert.equal(loaded.config.artifacts.length, 20)
-  assert.equal(loaded.config.generation.writerMaxRepairs, 1)
-  assert.equal(loaded.config.predecessorChain.runs.length, 5)
+  const [configText, predictionsText] = await Promise.all([
+    readFile(new URL(
+      '../evals/live-runs/j4-longmemeval-s60-v6.json',
+      import.meta.url,
+    )),
+    readFile(new URL(
+      '../evals/predictions/j4-longmemeval-s60-v6.json',
+      import.meta.url,
+    )),
+  ])
+  const config = JSON.parse(configText)
+  const predictions = JSON.parse(predictionsText)
+  const derived = j4V6DerivedContract()
+  assert.equal(config.runId, J4_LIVE_RUN_ID)
+  assert.equal(j4Sha256(configText), J4_V6_CONFIG_SHA256)
+  assert.equal(j4Sha256(predictionsText), J4_V6_PREDICTIONS_SHA256)
+  assert.equal(config.artifacts.length, 20)
+  assert.equal(derived.generation.writerMaxRepairs, 1)
+  assert.equal(derived.predecessorChain.runs.length, 5)
   assert.deepEqual(
-    loaded.config.predecessorChain.runs.map((run) => run.runId),
+    derived.predecessorChain.runs.map((run) => run.runId),
     [
       'j4-longmemeval-s60-v1',
       'j4-longmemeval-s60-v2',
@@ -579,14 +592,13 @@ test('J4 v6 freezes five predecessors, one repair, and the $5 fresh cap', async 
     ],
   )
   assert.deepEqual(
-    loaded.config.costEstimate,
+    derived.costEstimate,
     J4_V6_CUMULATIVE_COST_ESTIMATE,
   )
-  assert.equal(loaded.config.costEstimate.freshMeterCapUsd, 5)
-  assert.equal(loaded.config.costEstimate.expected.freshUsd, 10.0725399)
-  assert.equal(loaded.config.costEstimate.projectionExceedsCap, true)
-  assert.equal(loaded.predictions.predictions.length, 60)
-  assert.deepEqual(loaded.predictions.executionPredictions, {
+  assert.equal(derived.costEstimate.freshMeterCapUsd, 5)
+  assert.equal(derived.costEstimate.expected.freshUsd, 10.0725399)
+  assert.equal(derived.costEstimate.projectionExceedsCap, true)
+  assert.deepEqual(predictions.executionPredictions, {
     capStopIsTerminal: true,
     completedQuestionsMaximum: 55,
     completedQuestionsMinimum: 35,
@@ -596,4 +608,10 @@ test('J4 v6 freezes five predecessors, one repair, and the $5 fresh cap', async 
     smokeAnswerPasses: true,
     smokeWriterPassesWithinOneRepair: true,
   })
+  await assert.rejects(
+    loadJ4LiveConfig({ repoRoot: REPO_ROOT }),
+    (error) =>
+      error.code === 'ARTIFACT_HASH' &&
+      error.message.includes('evals/run-longmemeval-live.mjs'),
+  )
 })

@@ -1,22 +1,23 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.5K-S60-P FRESH S-60 V6 IDENTITY FROZEN; ONE LIVE INVOCATION
-AUTHORIZED NEXT. Latest `main` was synchronized at `5e84876` before the
-freeze. `j4-longmemeval-s60-v6` starts from question zero, verifies all five
-terminal v1-v5 bundles, and carries their exact `$0.7721877` accounted
-opening (`$0.7696867` measured plus `$0.0025010` uncertain). The founder
-authorized a `$5.00` fresh hard cap, so the cumulative meter boundary is
-`$5.7721877`.
+Loop state: J4.5K-S60-E FRESH S-60 V6 TERMINAL AFTER QUESTION-7 ANSWER
+TRUNCATION. The pre-run freeze was pushed at `775ec27`, then invoked exactly
+once. Both mandatory smokes passed on their first calls. Six questions
+completed and were independently judged; the partial official result is 1/6.
+During question 7, all 242 writer operations completed, but its answer
+completion returned HTTP 200 with `MAX_TOKENS`. The transport classified it
+`GEMINI_TRUNCATED`; no judge ran for question 7 and questions 8-60 never
+started.
 
-P-set 9 and the machine-readable FINAL contract are registered before any v6
-provider call. Every structured writer operation has at most one separately
-metered host-guided proposal repair; the standard writer smoke and answer
-smoke remain mandatory and fail closed before question 1. The all-60 planning
-projection is `$10.0725399` fresh, so the prediction expects the cap to stop
-the single invocation after 35-55 completed questions. A smoke failure,
-cap stop, or other fail-closed boundary is terminal: no resume, reroll, or
-regrade. Full suite and quickstart are green at this pre-run cut. No v6
-credential was read, provider called, result created, or spend incurred.
+The invocation made 1,687 physical calls: 1,673 writer, 8 answer, and 6
+judge. There were zero host-guided repairs, zero transport retries, 1,686
+successful calls, and one invalid response. Fresh measured/accounted spend
+was `$0.8163290`, with zero new uncertainty. Cumulative J4 S-60 lineage spend
+is now `$1.5885167` accounted (`$1.5860157` measured plus `$0.0025010`
+uncertain), below the authorized `$5.7721877` cumulative cap. The predicted
+35-55-question cap stop is refuted by the earlier answer truncation. The
+ignored 1,704-file bundle and exact-secret audit verify; v6 is terminal in
+code and cannot be resumed, rerolled, or regraded.
 
 Loop state: J4.4K-T3 CLEAN MEM0 REMEASUREMENT TERMINAL WITHOUT A SCORE.
 The first and only physical invocation from P-set 8 cut `0e50531` stopped
@@ -4225,3 +4226,87 @@ run from this pushed freeze and recorded exactly once.
 
 This is one allowed infrastructure unit immediately before its authorized
 measurement, not a second consecutive infrastructure unit.
+
+### J4.5K-S60-E one-shot repair-enabled S-60 execution
+
+The pushed pre-run cut `775ec27` was invoked exactly once. The writer
+compatibility smoke and answer compatibility smoke both passed on their first
+physical calls using served `gemini-3.5-flash-lite`; the writer smoke needed
+no repair. The runner then started the frozen 60-question order from zero.
+
+Six questions completed and received one official judge call each. The
+partial reached-prefix result was 1/6:
+
+| Reached type | Correct / reached |
+| --- | ---: |
+| Knowledge update | 0/2 |
+| Single-session preference | 0/1 |
+| Single-session assistant | 0/1 |
+| Temporal reasoning | 0/1 |
+| Multi-session | 1/1 |
+
+Five incorrect answers failed at retrieval; the multi-session answer was
+correct. Of the six reached FINAL outcome rows, four predicted the binary
+official outcome correctly and three predicted the exact failure stage.
+Those rows were not changed or regraded.
+
+Question 7 (`0a34ad58`) completed all 242 writer operations without a repair.
+Its answer request then returned HTTP 200 with provider finish reason
+`MAX_TOKENS` after 604 input and 252 output tokens. The frozen transport
+classified that response `GEMINI_TRUNCATED`; it was not a transport fault,
+writer-proposal rejection, or eligible repair. No question-7 judge call
+occurred. The runner marked ordinal 7 failed and left ordinals 8-60 pending.
+
+The invocation ledger is exact:
+
+| Measurement | Result |
+| --- | ---: |
+| Physical provider attempts | 1,687 |
+| Writer / answer / judge | 1,673 / 8 / 6 |
+| Successful / invalid response | 1,686 / 1 |
+| Host-guided repairs | 0 |
+| Transport retries | 0 |
+| Gemini input / output tokens | 1,419,155 / 154,945 |
+| OpenAI judge input / output tokens | 1,248 / 10 |
+| Fresh measured/accounted spend | `$0.8163290` / `$0.8163290` |
+| New uncertainty | `$0` |
+| Cumulative measured/uncertain/accounted | `$1.5860157` / `$0.0025010` / `$1.5885167` |
+
+P-set 9's two smoke predictions are confirmed. Its predicted cap stop before
+question 60 and 35-55 completed range are refuted: a distinct fail-closed
+answer boundary stopped the run after six completions, well below the cap.
+The terminal/no-reroll/no-regrade predictions are confirmed. This is not a
+six-question estimate of S-60 accuracy; it is the exact partial result of the
+only authorized invocation.
+
+The ignored bundle contains 1,704 mode-0600 artifacts and passes manifest and
+exact-secret verification. Artifact-manifest SHA-256 is
+`96dc19840fa118d22db59b2e397f51201bd3de50a5f33fea72a390332ded1a4c`;
+checkpoint SHA-256 is
+`8214ecaa535b768cd3dea50a346eb69b499c4578e2866d48fe858e55ceceb22a`;
+meter SHA-256 is
+`e2e4188ae141d463852fb6404277880bbd1740dc770b96047cf5c42d0b929de3`;
+report SHA-256 is
+`5df547c72a0a70a5943659649c6bc3cfdddfecfe82b800daad690fbeb2bd67e9`.
+V6 is sealed in the terminal-ID guard. No private transcript, credential, or
+benchmark answer enters git, and no public score is authorized.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It produced six new
+   live, independently judged observations and proved the repair-enabled
+   writer path across 1,673 calls, but it did not produce an S-60 score.
+3. Does an existing framework already provide what this unit added? Gemini
+   and LongMemEval provide generation and evaluation; they do not provide the
+   immutable one-shot identity, exact predecessor accounting, host admission,
+   or fail-closed evidence bundle.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly authorized this exact one-shot S-60 ritual and required
+   the observed result to be recorded whatever it was.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? The system could again imply that one proposal repair solved the
+   live completion boundary, hide the 1/6 reached-prefix result, or rerun a
+   consumed identity without an auditable terminal record.
+
+This is a terminal product measurement with a concrete answer-output finding,
+not an infrastructure unit and not authority for a repair or successor run.

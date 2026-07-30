@@ -787,7 +787,7 @@ function fakeArmResult(instance, { memoryRows = 1 } = {}) {
   }
 }
 
-test('runner import is inert, v1-v5 are terminal, and v6 is open', () => {
+test('runner import is inert and v1-v6 are terminal', () => {
   assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v6')
   for (const runId of [
     'j4-longmemeval-s60-v1',
@@ -795,6 +795,7 @@ test('runner import is inert, v1-v5 are terminal, and v6 is open', () => {
     'j4-longmemeval-s60-v3',
     'j4-longmemeval-s60-v4',
     'j4-longmemeval-s60-v5',
+    J4_LIVE_RUN_ID,
   ]) {
     assert.equal(parseJ4LiveArgs(['--run', runId]), runId)
     assert.throws(
@@ -802,7 +803,6 @@ test('runner import is inert, v1-v5 are terminal, and v6 is open', () => {
       (error) => error.code === 'J4_RUN_TERMINAL',
     )
   }
-  assert.equal(assertJ4LiveRunOpen(J4_LIVE_RUN_ID), J4_LIVE_RUN_ID)
   assert.throws(
     () => parseJ4LiveArgs([]),
     (error) => error.code === 'RUN_ID_REQUIRED',
@@ -1501,7 +1501,7 @@ test('tracked-file audit rejects captured credentials and credential-shaped valu
   }
 })
 
-test('main and CLI refuse all terminal v1-v5 identities before dependencies or credentials', async () => {
+test('main and CLI refuse all terminal v1-v6 identities before dependencies or credentials', async () => {
   let dependencyReads = 0
   let secretReads = 0
   const dependencies = new Proxy({}, {
@@ -1534,6 +1534,7 @@ test('main and CLI refuse all terminal v1-v5 identities before dependencies or c
     'j4-longmemeval-s60-v3',
     'j4-longmemeval-s60-v4',
     'j4-longmemeval-s60-v5',
+    J4_LIVE_RUN_ID,
   ]) {
     await assert.rejects(
       main({
@@ -1555,7 +1556,7 @@ test('main and CLI refuse all terminal v1-v5 identities before dependencies or c
         new URL('../evals/run-longmemeval-live.mjs', import.meta.url),
       ),
       '--run',
-      'j4-longmemeval-s60-v5',
+      J4_LIVE_RUN_ID,
     ],
     {
       encoding: 'utf8',
