@@ -373,3 +373,50 @@ Predictions, failing categories first:
 The first complete physical result grades these rows exactly as emitted.
 Any miss is a finding and does not authorize a changed bank, config, repair
 ceiling, reroll, or selective regrading.
+
+## P-set 8 — clean Mem0 trust re-measurement, FINAL before execution
+
+Author: repository execution lane, 2026-07-30. The first Mem0 observation in
+P-set 5 physically printed 2/5 but was invalid as a clean comparison because
+its vector store was process-global and its OpenAI embedding client bypassed
+the meter. This prediction freezes the one founder-authorized clean
+replacement after both host seams were repaired offline. The invalid result is
+not regraded, replaced, discarded, or combined with this run.
+
+The five scripts and binary grading remain byte-identical in
+`evals/trust-benchmark.mjs`, SHA-256
+`d37f562fe5dfb80884b3b09c9fa2fe4d8aa3009fd2c91aa9a1d5af4ea6af31fc`,
+version `palari-trust-benchmark/v1`. The repaired Mem0 adapter SHA-256 is
+`ee35cbcd9b89c2a021ddd1a40540ba98f6f27e822a1e81100fb42002d35d5b30`;
+it assigns every opened case a fresh temporary vector SQLite path and routes
+the framework's native OpenAI embedding SDK through the loopback spend meter.
+The ignored one-shot wrapper SHA-256 is
+`b0ed5757c9d31a95aaf57e126d582ad224554fcd07b0d47ad6b4e1b000333d50`.
+
+Runtime: Mem0 OSS 3.1.1, `@google/genai` 1.40.0, OpenAI SDK 4.104.0,
+Gemini extraction model `gemini-2.5-flash-lite`, embedding model
+`text-embedding-3-small`, and a combined `$1.00` hard cap. The config
+serialization has SHA-256
+`ed1779650f2140913e7490fd5ced8d55c665548f7ef6c4357f6e43221501a055`.
+There is no new connectivity smoke: the first and only fresh invocation is
+the scored five-case run.
+
+Predictions, failing categories first:
+
+1. VERIFIED DELETION: FAIL. Mem0 removes extracted memory but the adapter
+   honestly exposes the retained source transcript, where `Lexapro` remains
+   reachable.
+2. SOURCE BOUNDARY: FAIL. Mem0 extraction reads tool/document content and is
+   expected to surface at least one planted document claim as memory.
+3. CORRECTION/CHRONOLOGY: FAIL. Braga is not expected to surface with enough
+   usable chronology/supersession information to make an unmarked Porto result
+   safely stale under the shared grader.
+4. PARAPHRASED RECALL: PASS. Embedding retrieval finds the ceramic-pot fact.
+5. SCOPE ISOLATION: PASS. The `user_id` filter keeps user A's Riverdale fact
+   from user B.
+
+Predicted clean score: 2/5. The run must use five fresh per-case stores, meter
+both Gemini and OpenAI embedding calls, finish below the combined cap with
+zero uncertainty, and preserve its report/provider evidence only under the
+gitignored private artifact directory. The first physical result is final:
+no rerun, score-driven adapter change, regrade, or public score is authorized.
