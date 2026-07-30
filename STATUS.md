@@ -1,13 +1,13 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-F3 GEMINI SEMANTIC SCALE PROBE COMPLETE; P-SET 6
-CONFIRMED 4/4 ON THE FIRST PHYSICAL RUN FROM PREDICTION CUT `43e7187`.
-At 5,000 canonical messages, lexical recall remained 25/25 shared-token
-and 0/25 zero-overlap; Gemini semantic recall was 25/25 on both columns.
-All 131 embedding requests returned HTTP 200 with no retry, but Gemini
-reported no usage metadata: exact tokens/spend are unavailable and the
-honest accounted upper bound is `$0.02088285`. Suite: 624 pass, 0 fail,
-3 skipped; quickstart green.
+Loop state: J4.4K-F4 GEMINI TEMPORAL-GRAPH PROBE COMPLETE; P-SET 7
+CONFIRMED 4/5 ON THE FIRST PHYSICAL RUN FROM PREDICTION CUT `7e93a29`.
+The graph admitted 26 exact-quote edges covering 25/25 planted relational
+facts, with zero fabricated quotes and zero speaker mismatches. Only 5 edges
+carried time anchors versus the preregistered minimum of 8 — a retained
+temporal finding, not a rerun trigger. Graph scoring used five HTTP-200 calls,
+1,924 input + 2,021 output tokens, `$0.0010008`, no repair/retry, and zero
+uncertainty. Suite: 624 pass, 0 fail, 3 skipped; quickstart green.
 V3 PRE-RUN CUT IS STALE AGAIN (product bytes moved past `f1e587a`; re-freeze
 before any GO). FOUNDER GATE unchanged — no external rerun, no V3 dispatch,
 and no publication of trust-bench columns. P-set 6 is recorded only here as
@@ -4001,3 +4001,70 @@ Verification after the run: `npm test` reported 624 pass, 0 fail, 3 skipped
 This is a product measurement following the F1 adapter infrastructure, not a
 second consecutive infrastructure unit. No further embedding probe or scale
 rerun is authorized.
+
+### J4.4K-F4 Gemini temporal-graph measurement
+
+The founder authorized the last unmeasured retrieval surface: one graph
+compatibility call, predictions, then one 25-fact run. A keyed transport and
+harness remained under gitignored `.palari-probe/`; the scoring bank reused
+the 25 tracked statements from the scale probe. Five batches of five kept each
+request below the graph contract's 16-assertion ceiling. The transport used
+`gemini-2.5-flash-lite`, provider-enforced JSON, thinking budget zero, one
+permitted host-guided proposal repair per batch, no transport retry, exact
+provider usage, and a `$0.02` hard cap.
+
+The one-call compatibility phase succeeded without repair: HTTP 200 / `STOP`,
+one normalized assertion, served model `gemini-2.5-flash-lite`, 280 input
+tokens, 79 output tokens, `$0.0000596`, and zero uncertainty. It was not
+repeated.
+
+P-set 7 was committed and pushed at `7e93a29` before scoring. The first and
+only full invocation then produced:
+
+| Measurement | Result |
+| --- | ---: |
+| Planted relational facts covered by an admitted edge | 25/25 |
+| Total host-admitted edges | 26 |
+| Edges with fabricated/paraphrased admitted quotes | 0 |
+| Edges with host-speaker mismatch | 0 |
+| Edges carrying an exact spoken time anchor | 5 |
+
+Predictions 1, 3, 4, and 5 are confirmed. Prediction 2 is refuted: only 5
+edges carried a `timeQuote`, below the preregistered minimum of 8. The
+positive relation coverage is therefore complete, while time-phrase
+extraction is not yet as consistent as predicted. No prompt/config change,
+regrade, or rerun followed the miss.
+
+The full graph run made exactly five physical requests, all HTTP 200 / `STOP`,
+with zero repair calls and zero transport retries. Provider-reported usage was
+1,924 input and 2,021 output tokens; measured/accounted spend was `$0.0010008`
+with `$0` uncertainty. Compatibility plus scoring used six requests, 2,204
+input and 2,100 output tokens, and `$0.0010604` total measured spend under the
+`$0.02` cap. The served model was `gemini-2.5-flash-lite` throughout. Ignored
+evidence remains in `.palari-probe/graph-scale-v1/`; no credential or raw
+provider body entered git.
+
+All four retrieval surfaces now have a measured result on the shared planted
+bank: exact/ranked lexical, semantic, and graph. Verification after graph
+scoring: `npm test` reported 624 pass, 0 fail, 3 skipped (627 total);
+`npm run quickstart` completed the six-step journey.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? Yes. A real provider
+   produced host-admitted, exact-quote graph edges for all 25 planted facts;
+   before this unit graph behavior had only fake-transport evidence.
+3. Does an existing framework already provide what this unit added? Temporal
+   graphs exist, but not this measured combination of derived edges, canonical
+   evidence quotes, host-stamped speaker/time, scoped lookup, and deletion
+   cascade.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly named the graph as the last surface needing a live
+   number and specified the one-shot ritual.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Relational and multi-hop questions would lose a provider-validated
+   way to locate canonical evidence, leaving only flat lexical/semantic rows.
+
+This is a product measurement, not harness drift. No graph compatibility or
+scoring rerun is authorized; the 5/8 time-anchor miss remains the next honest
+product finding.
