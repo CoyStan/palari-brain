@@ -1,13 +1,18 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-F4 GEMINI TEMPORAL-GRAPH PROBE COMPLETE; P-SET 7
-CONFIRMED 4/5 ON THE FIRST PHYSICAL RUN FROM PREDICTION CUT `7e93a29`.
-The graph admitted 26 exact-quote edges covering 25/25 planted relational
-facts, with zero fabricated quotes and zero speaker mismatches. Only 5 edges
-carried time anchors versus the preregistered minimum of 8 — a retained
-temporal finding, not a rerun trigger. Graph scoring used five HTTP-200 calls,
-1,924 input + 2,021 output tokens, `$0.0010008`, no repair/retry, and zero
-uncertainty. Suite: 624 pass, 0 fail, 3 skipped; quickstart green.
+Loop state: J4.4K-T3 CLEAN MEM0 REMEASUREMENT TERMINAL WITHOUT A SCORE.
+The first and only physical invocation from P-set 8 cut `0e50531` stopped
+fail-closed in the verified-deletion case: the adapter selected a memory ID
+from Mem0 `getAll()`, then Mem0's immediate `delete()` lookup reported that
+same ID missing. No benchmark report or complete grade was produced, and the
+source-boundary and isolation cases never ran. Forty provider calls all
+returned HTTP 200: 31 OpenAI embedding calls used 289 input tokens, and 9
+Gemini extraction calls used 74,338 input + 419 output tokens. Measured and
+accounted spend was `$0.00760718`, with zero uncertainty. The ignored evidence
+is retained; the attempt was not rerun and P-set 8 remains ungraded.
+J4.4K-F4 remains closed: graph coverage was 25/25, with 5 time anchors versus
+the preregistered minimum of 8. Suite at that close was 624 pass, 0 fail,
+3 skipped; quickstart green.
 V3 PRE-RUN CUT IS STALE AGAIN (product bytes moved past `f1e587a`; re-freeze
 before any GO). FOUNDER GATE unchanged — no external rerun, no V3 dispatch,
 and no publication of trust-bench columns. P-set 6 is recorded only here as
@@ -1530,16 +1535,15 @@ probe adds `$0.0002992`, making total J4-related accounted spend
 `$1.2484699` and projected cumulative maximum with v3 `$2.9485951`, still
 below `$8.00`.
 
-Question 2, prompt/tool-description tuning, semantic fallback, Mem0, S-490,
-rerolls, publication, and announcement remain closed.
+Question 2, prompt/tool-description tuning, semantic fallback, Mem0 reruns,
+S-490, publication, and announcement remain closed.
 
-The P-set 5 external one-shot authority is consumed. jcode's physical 0/5 is
-graded. Mem0's physical 2/5 output is retained but is not a valid clean
-framework grade because its run-producing adapter did not create a fresh
-vector store per case and did not meter its internal OpenAI embedding
-transport. Both defects are corrected in the offline successor adapter, but
-the column was not rerun. Any new external score or v3 dispatch requires a
-fresh founder GO.
+The P-set 8 clean Mem0 authority is also consumed. Its one physical invocation
+used the repaired fresh-store and embedding-meter boundaries, but stopped
+inside Mem0's `getAll()`-to-`delete()` seam before a complete report or grade
+existed. The original P-set 5 physical 2/5 remains an invalid comparison
+column; P-set 8 does not replace or validate it. Any adapter repair, external
+rerun, new score, or v3 dispatch requires a fresh founder GO.
 
 ## Log
 
@@ -1906,6 +1910,11 @@ neither adapter was rerun.
 embedding-meter seams offline, then re-froze closed navigation v3 onto
 `f1e587a` with 42 artifacts and zero drift. No credential, call, score, or
 spend.
+2026-07-30 — J4.4K-T3 — this commit — Invoked the pushed P-set 8 clean Mem0
+wrapper exactly once. It stopped during verified deletion when an ID returned
+by `getAll()` was missing to Mem0's immediate `delete()` lookup. No report or
+grade exists; all 40 provider calls were HTTP 200 and spent `$0.00760718`
+measured with zero uncertainty. The run was not repeated.
 
 ## Product stop-rule record
 
@@ -4068,3 +4077,73 @@ scoring: `npm test` reported 624 pass, 0 fail, 3 skipped (627 total);
 This is a product measurement, not harness drift. No graph compatibility or
 scoring rerun is authorized; the 5/8 time-anchor miss remains the next honest
 product finding.
+
+### J4.4K-T3 clean Mem0 remeasurement — terminal without score
+
+The founder authorized one clean rerun of Mem0 OSS 3.1.1 on the unchanged
+five-case trust benchmark. P-set 8 was committed and pushed at `0e50531`
+before execution. The ignored one-shot wrapper refused an existing artifact
+directory, loaded the already present provider credentials from `.env`, and
+used the repaired adapter's fresh temporary vector SQLite path per opened
+case plus its loopback-metered OpenAI embedding client. No separate
+connectivity smoke or retry was authorized.
+
+The wrapper was invoked exactly once. Paraphrased recall and
+correction/chronology completed their provider work, then the first two
+ingests of verified deletion completed. During that case's explicit forget,
+the adapter called Mem0 `getAll()` for scope A, selected the returned memory
+whose text contained `Lexapro`, and passed its ID to Mem0 `delete()`. Mem0's
+immediate vector-store lookup returned no row and threw:
+
+`Memory with ID e8cc08b4-b415-4de9-a295-2168538e5224 not found`
+
+The installed Mem0 implementation confirms the failed consistency boundary:
+`getAll()` maps IDs from `vectorStore.list()`, while `delete()` immediately
+requires the same ID to resolve through `vectorStore.get()` before deletion.
+The retained evidence establishes the seam but not why the row disappeared,
+so no narrower root cause is claimed. The adapter closed the case and removed
+its temporary directory. The source-boundary and scope-isolation cases never
+opened.
+
+The benchmark report is written only after all five cases return, so no
+`result.json`, complete score, or valid partial grade exists. P-set 8's 2/5
+prediction is therefore ungraded. It does not repair the comparison table:
+Palari remains 5/5, jcode remains 0/5, and Mem0 remains invalid/incomplete.
+No public score was created.
+
+Before the local failure, the attempt made 40 physical provider calls, all
+HTTP 200:
+
+| Provider work | Calls | Input tokens | Output tokens | Measured spend |
+| --- | ---: | ---: | ---: | ---: |
+| OpenAI `text-embedding-3-small` | 31 | 289 | 0 | `$0.00000578` |
+| Gemini `gemini-2.5-flash-lite` | 9 | 74,338 | 419 | `$0.0076014` |
+| **Total** | **40** | **74,627** | **419** | **`$0.00760718`** |
+
+Accounted spend equals measured spend, uncertainty is `$0`, and the attempt
+stayed below its combined `$1.00` cap. Ignored private evidence remains under
+`.palari-probe/mem0-trust-clean-v2/` with mode `0600`; no credential, provider
+body, or incomplete score entered git. There are no surviving
+`/tmp/palari-mem0-trust-*` directories. The attempt was not rerun.
+Verification after the stop: `npm test` reported 624 pass, 0 fail, 3 skipped
+(627 total); `npm run quickstart` completed the six-step journey.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No complete comparison
+   number was produced, but the live attempt exposed a real deletion
+   consistency defect before an invalid score could be recorded.
+3. Does an existing framework already provide what this unit added? Mem0 is
+   the framework under measurement; it does not supply this repository's
+   shared five-case contract, preregistration, or combined provider meter.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly requested the clean Mem0 remeasurement after the
+   contamination repair.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? Product behavior would not change, but the incomplete Mem0 column
+   could be misrepresented as clean and the live deletion defect would be
+   lost.
+
+This was an unsuccessful product measurement, not a completed benchmark and
+not a rerun trigger. Any Mem0 adapter change or another physical invocation
+requires fresh founder direction.
