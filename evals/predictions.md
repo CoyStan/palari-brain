@@ -420,3 +420,40 @@ both Gemini and OpenAI embedding calls, finish below the combined cap with
 zero uncertainty, and preserve its report/provider evidence only under the
 gitignored private artifact directory. The first physical result is final:
 no rerun, score-driven adapter change, regrade, or public score is authorized.
+
+## P-set 9 — J4 LongMemEval S-60 v6, FINAL before execution
+
+Author: repository execution lane, 2026-07-30. Registered before any v6
+provider request. The immutable machine-readable contract is
+`evals/predictions/j4-longmemeval-s60-v6.json`; its 60 question-outcome rows
+are inherited byte-for-byte from the hash-pinned v5 FINAL contract. No
+outcome row was revised from the five-question v5 observation.
+
+Identity `j4-longmemeval-s60-v6` starts from question zero on current `main`.
+It verifies the five sealed v1-v5 S-60 bundles and carries their exact
+`$0.7721877` accounted spend (`$0.7696867` measured plus `$0.0025010`
+uncertain). The authorized fresh hard cap is `$5.00`, making the cumulative
+meter boundary `$5.7721877`. The full-population planning projection is
+`$10.0725399` fresh / `$10.8447276` cumulative, so a cap stop before question
+60 is predicted and is terminal.
+
+Predictions, failing and terminal categories first:
+
+1. CAP: the fresh `$5.00` meter stops the invocation before question 60;
+   between 35 and 55 questions complete.
+2. WRITER SMOKE: the structured writer compatibility smoke passes on its
+   first proposal or its one permitted host-guided proposal repair.
+3. ANSWER SMOKE: the answer compatibility smoke passes.
+4. FULL-POPULATION COUNTERFACTUAL: if all 60 rows were reachable, 36 are
+   predicted correct and 24 incorrect: knowledge-update 9/10, multi-session
+   6/10, single-session-assistant 0/10, single-session-preference 4/10,
+   single-session-user 10/10, and temporal-reasoning 7/10.
+5. EXECUTION INTEGRITY: one physical invocation only. A transport-valid
+   writer proposal rejected by the frozen host contract may receive exactly
+   one separately metered repair proposal. There is no second invocation,
+   reroll, selective regrade, or post-result prediction change.
+
+If either mandatory smoke fails, the runner stops before question 1 and that
+failure is the final v6 result. If the meter or another fail-closed boundary
+stops a question, the reached prefix is recorded exactly as observed; it is
+not authority to resume or replace the run.

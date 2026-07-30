@@ -55,7 +55,10 @@ test('terminal v2 contract pins its pre-run runtime and v1 predecessor',
       if (current !== artifact.sha256) drift.push(artifact.path)
     }
     assert.deepEqual(drift, [
+      'evals/arms/kernel-longmemeval-live-arm.mjs',
+      'evals/longmemeval-live-config.mjs',
       'evals/run-journal-navigation-live.mjs',
+      'evals/run-longmemeval-live.mjs',
       // Product changes after v2 sealed: brain/index gained the freshness
       // API, dialogue-evidence and the digest store gained the
       // quote-context guard, and memory_find gained ranked mode. The

@@ -187,6 +187,109 @@ export function assertExactExtractionEnvelope(value) {
   return parsed
 }
 
+export function buildJ4WriterRepairBody({
+  error,
+  invalidText,
+  originalBody,
+} = {}) {
+  if (!originalBody ||
+    !Array.isArray(originalBody.contents) ||
+    originalBody.contents.length !== 1 ||
+    typeof invalidText !== 'string' ||
+    !invalidText.trim()) {
+    throw new J4LiveError(
+      'WRITER_REPAIR_INPUT_INVALID',
+      'J4 writer repair requires one original request and one non-empty rejected proposal.',
+    )
+  }
+  const objection = String(
+    error?.message ?? 'The proposal failed the frozen extraction contract.',
+  ).slice(0, 1_000)
+  return {
+    ...structuredClone(originalBody),
+    contents: [
+      structuredClone(originalBody.contents[0]),
+      {
+        parts: [{ text: invalidText }],
+        role: 'model',
+      },
+      {
+        parts: [{
+          text: JSON.stringify({
+            instruction:
+              'Repair the rejected proposal once. Return only a replacement JSON object that satisfies the original schema and objection. Do not explain the repair.',
+            objection,
+          }),
+        }],
+        role: 'user',
+      },
+    ],
+  }
+}
+
+export async function callJ4RepairingWriter({
+  callGemini,
+  cellId,
+  operationId,
+  turn,
+  validate = assertExactExtractionEnvelope,
+} = {}) {
+  if (typeof callGemini !== 'function' ||
+    typeof validate !== 'function' ||
+    !cellId ||
+    !operationId) {
+    throw new TypeError(
+      'J4 repairing writer requires callGemini, validation, cellId, and operationId.',
+    )
+  }
+  const originalBody = buildJ4WriterBody(turn)
+  const first = assertValidatedJ4GeminiResponse(
+    await callGemini({
+      body: originalBody,
+      cellId,
+      operationId,
+      purpose: 'writer',
+    }),
+    'writer',
+  )
+  try {
+    return {
+      envelope: validate(first.text),
+      modelVersion: first.modelVersion,
+      proposalCalls: 1,
+      repaired: false,
+      text: first.text,
+    }
+  } catch (error) {
+    const repair = assertValidatedJ4GeminiResponse(
+      await callGemini({
+        body: buildJ4WriterRepairBody({
+          error,
+          invalidText: first.text,
+          originalBody,
+        }),
+        cellId,
+        operationId: `${operationId}:repair:1`,
+        purpose: 'writer',
+      }),
+      'writer repair',
+    )
+    if (repair.modelVersion !== first.modelVersion) {
+      throw new J4LiveError(
+        'WRITER_REPAIR_MODEL_VERSION',
+        'J4 writer repair modelVersion differs from its rejected proposal.',
+      )
+    }
+    return {
+      envelope: validate(repair.text),
+      modelVersion: repair.modelVersion,
+      proposalCalls: 2,
+      repaired: true,
+      text: repair.text,
+    }
+  }
+}
+
 function recallCoverage(sourceSessionIds, answerSessionIds, limit) {
   const expected = new Set(answerSessionIds)
   const observed = sourceSessionIds
@@ -248,9 +351,11 @@ export async function runKernelLongMemEvalQuestion({
     droppedUnsafeSourceMemories: 0,
     memoriesWritten: 0,
     outcomes: {},
+    repairedTurns: 0,
     sessions: 0,
     turns: 0,
     turnResults: [],
+    writerProposalCalls: 0,
   }
 
   try {
@@ -278,21 +383,16 @@ export async function runKernelLongMemEvalQuestion({
         }, {
           extractor: async ({ turn }) => {
             try {
-              const response = assertValidatedJ4GeminiResponse(
-                await callGemini({
-                  body: buildJ4WriterBody(turn),
-                  cellId: instance.questionId,
-                  operationId:
-                    `question:${instance.questionId}:writer:${sourceMessageId}`,
-                  purpose: 'writer',
-                }),
-                'writer',
-              )
-              // The product extractor deliberately turns malformed payloads
-              // into observations. J4 prevalidates so a bad first response
-              // cannot silently continue through hundreds of turns.
-              assertExactExtractionEnvelope(response.text)
-              return response.text
+              const writer = await callJ4RepairingWriter({
+                callGemini,
+                cellId: instance.questionId,
+                operationId:
+                  `question:${instance.questionId}:writer:${sourceMessageId}`,
+                turn,
+              })
+              ingest.writerProposalCalls += writer.proposalCalls
+              ingest.repairedTurns += Number(writer.repaired)
+              return writer.text
             } catch (error) {
               providerError = error
               throw error

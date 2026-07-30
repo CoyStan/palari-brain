@@ -475,8 +475,11 @@ test('frozen config, FINAL predictions, authority, and tracked artifacts reconci
     // utilization, quarantine, and normalized supersession.
     assert.deepEqual(successorDrift.sort(), [
       'evals/arms/incremental-memory-live-smoke.mjs',
+      'evals/arms/kernel-longmemeval-live-arm.mjs',
       'evals/live-transcript.mjs',
+      'evals/longmemeval-live-config.mjs',
       'evals/run-incremental-memory-smoke.mjs',
+      'evals/run-longmemeval-live.mjs',
       'src/brain.mjs',
       'src/dialogue-evidence.mjs',
       'src/index.mjs',

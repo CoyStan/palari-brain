@@ -7,6 +7,8 @@ import test from 'node:test'
 import {
   assertExactExtractionEnvelope,
   assertValidatedJ4GeminiResponse,
+  buildJ4WriterRepairBody,
+  callJ4RepairingWriter,
   chronologicalJ4Sessions,
   runKernelLongMemEvalQuestion,
 } from '../evals/arms/kernel-longmemeval-live-arm.mjs'
@@ -229,7 +231,45 @@ test('J4 arm uses one gated workspace, exact source IDs, and the official answer
   }
 })
 
-test('J4 arm stops on the first malformed writer success and never answers', async () => {
+test('J4 writer repair preserves the frozen request and uses one distinct operation', async () => {
+  const calls = []
+  const turn = {
+    assistantMessage: 'Understood.',
+    sourceMessageId: 'repair-test',
+    userMessage: 'I prefer tea.',
+  }
+  const result = await callJ4RepairingWriter({
+    async callGemini(request) {
+      calls.push(request)
+      return validatedGemini(
+        calls.length === 1 ? '{}' : extraction('User prefers tea.', 'tea'),
+      )
+    },
+    cellId: 'repair-cell',
+    operationId: 'writer:repair-test',
+    turn,
+  })
+  assert.equal(result.repaired, true)
+  assert.equal(result.proposalCalls, 2)
+  assert.equal(calls[0].operationId, 'writer:repair-test')
+  assert.equal(calls[1].operationId, 'writer:repair-test:repair:1')
+  assert.deepEqual(
+    calls[1].body.generationConfig,
+    calls[0].body.generationConfig,
+  )
+  assert.equal(calls[1].body.store, false)
+  assert.deepEqual(calls[1].body.contents.slice(0, 1), calls[0].body.contents)
+  assert.equal(calls[1].body.contents[1].role, 'model')
+  assert.equal(calls[1].body.contents[1].parts[0].text, '{}')
+  assert.equal(calls[1].body.contents[2].role, 'user')
+  assert.doesNotThrow(() => buildJ4WriterRepairBody({
+    error: new Error('rejected'),
+    invalidText: '{}',
+    originalBody: calls[0].body,
+  }))
+})
+
+test('J4 arm stops after one malformed repair and never answers', async () => {
   const root = await mkdtemp(join(tmpdir(), 'palari-j4-arm-stop-'))
   let calls = 0
   try {
@@ -244,7 +284,7 @@ test('J4 arm stops on the first malformed writer success and never answers', asy
       }),
       /memories array/,
     )
-    assert.equal(calls, 1)
+    assert.equal(calls, 2)
   } finally {
     await rm(root, { recursive: true, force: true })
   }

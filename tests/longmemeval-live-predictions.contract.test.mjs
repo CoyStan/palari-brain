@@ -30,6 +30,10 @@ const V5_PREDICTIONS_URL = new URL(
   '../evals/predictions/j4-longmemeval-s60-v5.json',
   import.meta.url,
 )
+const V6_PREDICTIONS_URL = new URL(
+  '../evals/predictions/j4-longmemeval-s60-v6.json',
+  import.meta.url,
+)
 const V1_PREDICTIONS_SHA256 =
   '07a262c01efa13697266c4e5d52829b518e9e16076e7b6046c78122ae0011028'
 const V2_PREDICTIONS_SHA256 =
@@ -40,6 +44,8 @@ const V4_PREDICTIONS_SHA256 =
   '1df076076c82e7c250e94c22e471b36cc9bf3cfa85ea90df9bd19c57a021f436'
 const V5_PREDICTIONS_SHA256 =
   '9adbc808c93fda63397ac7b304af7347443ca2940adf722d231c60165f08e7d6'
+const V6_PREDICTIONS_SHA256 =
+  '332d2ba7b7c4edfb6807ac933c8c04cc6a7ba187f6793c407874c7294d91a107'
 const ROW_ARRAY_SHA256 =
   '12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351'
 
@@ -254,4 +260,30 @@ test('J4 S-60 v5 prediction row serialization is hash-pinned', async () => {
 
   assert.equal(document.rowArraySha256, ROW_ARRAY_SHA256)
   assert.equal(observed, ROW_ARRAY_SHA256)
+})
+
+test('J4 S-60 v6 inherits the exact v5 rows and freezes terminal execution predictions', async () => {
+  const text = await readFile(V6_PREDICTIONS_URL, 'utf8')
+  const document = JSON.parse(text)
+  assert.equal(sha256(text), V6_PREDICTIONS_SHA256)
+  assert.equal(document.status, 'FINAL')
+  assert.equal(document.runId, 'j4-longmemeval-s60-v6')
+  assert.equal(document.rowArraySha256, ROW_ARRAY_SHA256)
+  assert.equal('predictions' in document, false)
+  assert.equal('basisDefinitions' in document, false)
+  assert.deepEqual(document.rowSource, {
+    path: 'evals/predictions/j4-longmemeval-s60-v5.json',
+    runId: 'j4-longmemeval-s60-v5',
+    sha256: V5_PREDICTIONS_SHA256,
+  })
+  assert.deepEqual(document.executionPredictions, {
+    smokeWriterPassesWithinOneRepair: true,
+    smokeAnswerPasses: true,
+    predictedCapStopBeforeQuestion60: true,
+    completedQuestionsMinimum: 35,
+    completedQuestionsMaximum: 55,
+    capStopIsTerminal: true,
+    noReroll: true,
+    noRegrade: true,
+  })
 })

@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "status": "FINAL",
+  "frozenAt": "2026-07-30",
+  "runId": "j4-longmemeval-s60-v6",
+  "models": {
+    "writer": "gemini-3.5-flash-lite",
+    "answer": "gemini-3.5-flash-lite",
+    "judge": "gpt-4o-2024-08-06"
+  },
+  "promptConfig": {
+    "writer": {
+      "maxOutputTokens": 2000,
+      "maxRepairs": 1,
+      "repairIsTransportRetry": false,
+      "thinkingLevel": "MINIMAL",
+      "responseFormat": "APPLICATION_JSON+json-schema",
+      "schemaSha256": "7040c879709509de9022135588403f9d9563e53f63f8560fe2445188a7b20173",
+      "sourceKindVocabulary": [
+        "user_message",
+        "source_document",
+        "tool_output",
+        "web_result"
+      ],
+      "store": false,
+      "typeVocabulary": [
+        "preference",
+        "relationship",
+        "opinion",
+        "entity",
+        "life_event",
+        "working",
+        "project",
+        "recent_life",
+        "session_summary"
+      ]
+    },
+    "answer": {
+      "maxOutputTokens": 256,
+      "thinkingLevel": "MINIMAL",
+      "template": "official-longmemeval-fact-memory",
+      "chainOfThought": false,
+      "store": false
+    },
+    "judge": {
+      "parser": "official-response-contains-yes",
+      "unchanged": true
+    }
+  },
+  "decisionReference": {
+    "date": "2026-07-30",
+    "document": "docs/DECISIONS.md",
+    "entry": "FOUNDER GO — J4 v6 one-shot S-60 repair run",
+    "questions": 60,
+    "freshHardCapUsd": 5,
+    "cumulativeHardCapUsd": 5.7721877
+  },
+  "method": {
+    "finalizedBeforeProviderCalls": true,
+    "note": "All 60 outcome rows remain byte-identical to v5. V6 adds one bounded host-guided repair for a rejected writer proposal, carries five terminal predecessors, and starts from zero completed questions. The prior five-question result was not used to revise any outcome row. Historical spend projects the $5 fresh cap may stop the run before question 60; such a cap stop is the preregistered execution finding, not authority to rerun.",
+    "hypotheses": [
+      "direct-user write boundary",
+      "lexical FTS recall with a five-term query limit and no stemming"
+    ]
+  },
+  "population": {
+    "selectedQuestionIdsSha256": "c720306125284ae03813ed131a044cd6b22d5301ad817da2907a6043768baa3a",
+    "executionOrderSha256": "be3309ba3fdb742b258b47affa801066bd5e02c45d4d71ba41724f85f6870b48",
+    "questions": 60
+  },
+  "rowSource": {
+    "path": "evals/predictions/j4-longmemeval-s60-v5.json",
+    "runId": "j4-longmemeval-s60-v5",
+    "sha256": "9adbc808c93fda63397ac7b304af7347443ca2940adf722d231c60165f08e7d6"
+  },
+  "rowArraySha256": "12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351",
+  "summary": {
+    "predictedCorrect": 36,
+    "predictedIncorrect": 24,
+    "failureStages": {
+      "write": 8,
+      "retrieval": 16,
+      "answer": 0
+    },
+    "byType": {
+      "knowledge-update": "9/10",
+      "multi-session": "6/10",
+      "single-session-assistant": "0/10",
+      "single-session-preference": "4/10",
+      "single-session-user": "10/10",
+      "temporal-reasoning": "7/10"
+    }
+  },
+  "executionPredictions": {
+    "smokeWriterPassesWithinOneRepair": true,
+    "smokeAnswerPasses": true,
+    "predictedCapStopBeforeQuestion60": true,
+    "completedQuestionsMinimum": 35,
+    "completedQuestionsMaximum": 55,
+    "capStopIsTerminal": true,
+    "noReroll": true,
+    "noRegrade": true
+  }
+}

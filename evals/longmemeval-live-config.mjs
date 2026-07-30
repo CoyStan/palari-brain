@@ -23,6 +23,7 @@ import {
 import {
   J4_FIRST_TRANCHE_QUESTION_IDS,
   J4_PUBLIC_SAMPLE_QUESTION_IDS,
+  J4_S60_STATS,
   J4_S_DATASET_CONTRACT,
   J4_STAGED_EXECUTION_ORDER_SHA256,
   J4_STAGED_TRANCHE_MANIFEST_SHA256,
@@ -34,9 +35,10 @@ import {
   J4_V5_GEMINI_GENERATION_LIMITS,
   J4_V5_TRANCHE_GATES,
   SEALED_U8_QUESTION_IDS,
+  estimatePalariLongMemEvalCost,
 } from './longmemeval-plan.mjs'
 
-export const J4_LIVE_RUN_ID = 'j4-longmemeval-s60-v5'
+export const J4_LIVE_RUN_ID = 'j4-longmemeval-s60-v6'
 export const J4_LIVE_CONFIG_PATH =
   `evals/live-runs/${J4_LIVE_RUN_ID}.json`
 export const J4_LIVE_AUTHORITY_PATH =
@@ -49,6 +51,16 @@ export const J4_CARRIED_ACCOUNTED_USD = 0.1952121
 export const J4_CARRIED_MEASURED_USD = 0.1927111
 export const J4_CARRIED_UNCERTAIN_USD = 0.002501
 export const J4_FRESH_METER_CAP_USD = 6.8047879
+export const J4_CUMULATIVE_CAP_USD = Number((
+  J4_CARRIED_ACCOUNTED_USD + J4_FRESH_METER_CAP_USD
+).toFixed(12))
+export const J4_V6_CARRIED_ACCOUNTED_USD = 0.7721877
+export const J4_V6_CARRIED_MEASURED_USD = 0.7696867
+export const J4_V6_CARRIED_UNCERTAIN_USD = 0.002501
+export const J4_V6_FRESH_METER_CAP_USD = 5
+export const J4_V6_CUMULATIVE_CAP_USD = Number((
+  J4_V6_CARRIED_ACCOUNTED_USD + J4_V6_FRESH_METER_CAP_USD
+).toFixed(12))
 export const J4_PREDECESSOR_CHAIN = deepFreeze({
   openingAccountedUsd: J4_CARRIED_ACCOUNTED_USD,
   runs: [
@@ -203,6 +215,52 @@ export const J4_PREDECESSOR_CHAIN = deepFreeze({
     },
   ],
 })
+
+// Keep the v1-v4 export byte-for-byte compatible with the historical active
+// runner. V6 extends that sealed chain without changing its consumers.
+export const J4_V6_PREDECESSOR_CHAIN = deepFreeze({
+  openingAccountedUsd: J4_V6_CARRIED_ACCOUNTED_USD,
+  runs: [
+    ...J4_PREDECESSOR_CHAIN.runs,
+    {
+      attempts: 1_203,
+      completedQuestions: 5,
+      currentRunAccountedUsd: 0.5769756,
+      failedQuestionOrdinal: null,
+      logicalRequests: { answer: 6, judge: 5, writer: 1_192 },
+      openingAccountedUsd: 0.1952121,
+      private: {
+        artifactManifestPath:
+          'evals/results/j4-longmemeval-s60-v5/artifact-manifest.json',
+        artifactManifestSha256:
+          '22250ab01b8202319dd54d739561ef54d1b3685efb8e5fae8aed92d3d9dba1d6',
+        checkpointPath:
+          'evals/results/j4-longmemeval-s60-v5/checkpoint.json',
+        checkpointSha256:
+          'bc46d9272f1d788fb06b826a6219c8448b19b0f361aaa0c9d9b68bd53fca8805',
+        meterPath: 'evals/results/j4-longmemeval-s60-v5/meter.jsonl',
+        meterSha256:
+          '22d8d51dd9844409ed6f4640c81903f6916b5cff325ee4561b4e4d94cdb0abe8',
+      },
+      runId: 'j4-longmemeval-s60-v5',
+      smokeLogicalOperations: 2,
+      smokeStatus: 'completed',
+      status: 'paused',
+      tracked: {
+        authorityPath:
+          'evals/live-runs/j4-longmemeval-s60-v5.authority.json',
+        authoritySha256:
+          '0f0ce76625a2e9e16bd3fbd171bb08568e88111811ad4d2fadd5f5889e1f45ba',
+        configPath: 'evals/live-runs/j4-longmemeval-s60-v5.json',
+        configSha256:
+          '7319f3ae754eaca9935f70c8a2e8a66ccfde949a02729e7662d1d71f89bc4f3f',
+        predictionsPath: 'evals/predictions/j4-longmemeval-s60-v5.json',
+        predictionsSha256:
+          '9adbc808c93fda63397ac7b304af7347443ca2940adf722d231c60165f08e7d6',
+      },
+    },
+  ],
+})
 export const J4_PREDICTION_ROWS_SHA256 =
   '12eabc841b63aac5164e828d64bd0e118750337192e3b5984f7d7a3924272351'
 export const J4_REQUIRED_ARTIFACT_PATHS = Object.freeze([
@@ -273,13 +331,13 @@ export const J4_V4_CUMULATIVE_COST_ESTIMATE = deepFreeze({
 
 export const J4_V5_CUMULATIVE_COST_ESTIMATE = deepFreeze({
   capUsd: 7,
-  carriedAccountedUsd: J4_CARRIED_ACCOUNTED_USD,
-  carriedMeasuredUsd: J4_CARRIED_MEASURED_USD,
-  carriedUncertainUsd: J4_CARRIED_UNCERTAIN_USD,
+  carriedAccountedUsd: 0.1952121,
+  carriedMeasuredUsd: 0.1927111,
+  carriedUncertainUsd: 0.002501,
   compatibilitySmoke: J4_V3_COMPATIBILITY_SMOKE_STATS,
   conservative: {
     cumulativeUsd: roundedUsd(
-      J4_CARRIED_ACCOUNTED_USD +
+      0.1952121 +
       J4_V5_FIRST_TRANCHE_COST_ESTIMATE.conservative.freshUsd,
     ),
     freshUsd: roundedUsd(
@@ -289,7 +347,7 @@ export const J4_V5_CUMULATIVE_COST_ESTIMATE = deepFreeze({
   },
   expected: {
     cumulativeUsd: roundedUsd(
-      J4_CARRIED_ACCOUNTED_USD +
+      0.1952121 +
       J4_V5_FIRST_TRANCHE_COST_ESTIMATE.expected.freshUsd,
     ),
     freshUsd: roundedUsd(
@@ -297,9 +355,45 @@ export const J4_V5_CUMULATIVE_COST_ESTIMATE = deepFreeze({
     ),
     tokens: J4_V5_FIRST_TRANCHE_COST_ESTIMATE.expected.tokens,
   },
-  freshMeterCapUsd: J4_FRESH_METER_CAP_USD,
+  freshMeterCapUsd: 6.8047879,
   methodVersion: 'j4-v5-fixed-2000-four-predecessors-v1',
   requestStats: J4_V3_FIRST_TRANCHE_REQUEST_STATS,
+  schema: J4_V3_EXTRACTION_SCHEMA_CONTRACT,
+})
+
+const j4V6S60Estimate = estimatePalariLongMemEvalCost(J4_S60_STATS)
+
+export const J4_V6_TRANCHE_GATES = Object.freeze([
+  Object.freeze({
+    cumulativeCapUsd: J4_V6_CUMULATIVE_CAP_USD,
+    cumulativeQuestions: 60,
+    questions: 60,
+  }),
+])
+
+export const J4_V6_CUMULATIVE_COST_ESTIMATE = deepFreeze({
+  capUsd: J4_V6_CUMULATIVE_CAP_USD,
+  carriedAccountedUsd: J4_V6_CARRIED_ACCOUNTED_USD,
+  carriedMeasuredUsd: J4_V6_CARRIED_MEASURED_USD,
+  carriedUncertainUsd: J4_V6_CARRIED_UNCERTAIN_USD,
+  compatibilitySmoke: {
+    ...J4_V3_COMPATIBILITY_SMOKE_STATS,
+    writerCalls: 2,
+  },
+  expected: {
+    cumulativeUsd: roundedUsd(
+      J4_V6_CARRIED_ACCOUNTED_USD + j4V6S60Estimate.totalUsd,
+    ),
+    freshUsd: roundedUsd(j4V6S60Estimate.totalUsd),
+    tokens: j4V6S60Estimate.tokens,
+  },
+  freshMeterCapUsd: J4_V6_FRESH_METER_CAP_USD,
+  methodVersion: 'j4-v6-s60-one-repair-five-predecessors-v1',
+  projectionExceedsCap: j4V6S60Estimate.totalUsd >
+    J4_V6_FRESH_METER_CAP_USD,
+  repairEnvelope:
+    'Every writer has at most one host-guided proposal repair. The $5.00 meter, not this uncapped projection, is the billing boundary.',
+  requestStats: J4_S60_STATS,
   schema: J4_V3_EXTRACTION_SCHEMA_CONTRACT,
 })
 
@@ -332,65 +426,17 @@ function cumulativeLimits({
   })
 }
 
-// The compatibility suite makes one Gemini writer request and one Gemini
-// answer request. These rows keep every future cumulative request/token
-// ceiling finite; v5 may use only the separately authorized first row.
+// One invocation may attempt every S-60 question. Each logical writer
+// operation has at most one separately metered host-guided proposal repair.
+// The meter can still stop before question 60 when the $5 fresh cap binds.
 export const J4_CUMULATIVE_LIMITS = Object.freeze([
   cumulativeLimits({
-    answer: 6,
-    cumulativeCapUsd: 7,
-    cumulativeQuestions: 5,
-    judge: 5,
-    maxAttempts: 4_812,
-    writer: 1_192,
-  }),
-  cumulativeLimits({
-    answer: 16,
-    cumulativeCapUsd: 7.5,
-    cumulativeQuestions: 15,
-    judge: 15,
-    maxAttempts: 14_476,
-    writer: 3_588,
-  }),
-  cumulativeLimits({
-    answer: 26,
-    cumulativeCapUsd: 12.5,
-    cumulativeQuestions: 25,
-    judge: 25,
-    maxAttempts: 24_632,
-    writer: 6_107,
-  }),
-  cumulativeLimits({
-    answer: 36,
-    cumulativeCapUsd: 17.5,
-    cumulativeQuestions: 35,
-    judge: 35,
-    maxAttempts: 34_520,
-    writer: 8_559,
-  }),
-  cumulativeLimits({
-    answer: 46,
-    cumulativeCapUsd: 22.5,
-    cumulativeQuestions: 45,
-    judge: 45,
-    maxAttempts: 44_420,
-    writer: 11_014,
-  }),
-  cumulativeLimits({
-    answer: 56,
-    cumulativeCapUsd: 27.5,
-    cumulativeQuestions: 55,
-    judge: 55,
-    maxAttempts: 54_140,
-    writer: 13_424,
-  }),
-  cumulativeLimits({
     answer: 61,
-    cumulativeCapUsd: 30,
+    cumulativeCapUsd: J4_V6_CUMULATIVE_CAP_USD,
     cumulativeQuestions: 60,
     judge: 60,
-    maxAttempts: 59_092,
-    writer: 14_652,
+    maxAttempts: 117_700,
+    writer: 29_304,
   }),
 ])
 
@@ -611,6 +657,7 @@ function validatePredictions(value) {
   assertExactKeys(value, [
     'basisDefinitions',
     'decisionReference',
+    'executionPredictions',
     'frozenAt',
     'method',
     'models',
@@ -618,6 +665,7 @@ function validatePredictions(value) {
     'predictions',
     'promptConfig',
     'rowArraySha256',
+    'rowSource',
     'runId',
     'schemaVersion',
     'status',
@@ -645,6 +693,8 @@ function validatePredictions(value) {
     },
     writer: {
       maxOutputTokens: J4_V5_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
+      maxRepairs: 1,
+      repairIsTransportRetry: false,
       responseFormat: 'APPLICATION_JSON+json-schema',
       schemaSha256: J4_V3_EXTRACTION_SCHEMA_CONTRACT.sha256,
       sourceKindVocabulary: MEMORY_EXTRACTION_SOURCE_KINDS,
@@ -654,11 +704,12 @@ function validatePredictions(value) {
     },
   }, 'prediction prompt config')
   assertEqual(value.decisionReference, {
-    cumulativeHardCapUsd: 7,
-    date: '2026-07-25',
+    cumulativeHardCapUsd: J4_V6_CUMULATIVE_CAP_USD,
+    date: '2026-07-30',
     document: 'docs/DECISIONS.md',
-    entry: 'FOUNDER GO — J4 v5 fixed-2000 replacement run',
-    questions: 5,
+    entry: 'FOUNDER GO — J4 v6 one-shot S-60 repair run',
+    freshHardCapUsd: J4_V6_FRESH_METER_CAP_USD,
+    questions: 60,
   }, 'prediction founder decision reference')
   if (value.method?.finalizedBeforeProviderCalls !== true) {
     throw new J4ConfigError(
@@ -741,6 +792,22 @@ function validatePredictions(value) {
     J4_PREDICTION_ROWS_SHA256,
     'declared prediction row-array hash',
   )
+  assertEqual(value.rowSource, {
+    path: 'evals/predictions/j4-longmemeval-s60-v5.json',
+    runId: 'j4-longmemeval-s60-v5',
+    sha256:
+      '9adbc808c93fda63397ac7b304af7347443ca2940adf722d231c60165f08e7d6',
+  }, 'prediction row source')
+  assertEqual(value.executionPredictions, {
+    capStopIsTerminal: true,
+    completedQuestionsMaximum: 55,
+    completedQuestionsMinimum: 35,
+    noRegrade: true,
+    noReroll: true,
+    predictedCapStopBeforeQuestion60: true,
+    smokeAnswerPasses: true,
+    smokeWriterPassesWithinOneRepair: true,
+  }, 'execution predictions')
   assertPlainObject(value.decisionReference, 'prediction decision reference')
   assertPlainObject(value.method, 'prediction method')
   assertPlainObject(value.promptConfig, 'prediction prompt config')
@@ -769,71 +836,97 @@ function validatePredictions(value) {
       'lexical FTS recall with a five-term query limit and no stemming',
     ],
     note:
-      'All 60 outcome rows are byte-identical to v4 and retain their pre-v4 predictions. The observed v4 question-1 result was not used to revise them; v5 changes only the writer output allowance, four-predecessor accounting, and immutable-run metadata.',
+      'All 60 outcome rows remain byte-identical to v5. V6 adds one bounded host-guided repair for a rejected writer proposal, carries five terminal predecessors, and starts from zero completed questions. The prior five-question result was not used to revise any outcome row. Historical spend projects the $5 fresh cap may stop the run before question 60; such a cap stop is the preregistered execution finding, not authority to rerun.',
   }, 'prediction method')
   return value
+}
+
+export function j4V6DerivedContract() {
+  return deepFreeze({
+    costEstimate: J4_V6_CUMULATIVE_COST_ESTIMATE,
+    dataset: {
+      path: 'data/longmemeval_s_cleaned.json',
+      sha256: J4_S_DATASET_CONTRACT.sha256,
+    },
+    generation: {
+      answerMaxOutputTokens:
+        J4_V5_GEMINI_GENERATION_LIMITS.answerMaxOutputTokens,
+      judgeMaxTokens: LONGMEMEVAL_JUDGE_REQUEST.maxTokens,
+      judgeN: LONGMEMEVAL_JUDGE_REQUEST.n,
+      judgeTemperature: LONGMEMEVAL_JUDGE_REQUEST.temperature,
+      thinkingLevel: J4_V5_GEMINI_GENERATION_LIMITS.thinkingLevel,
+      writerMaxOutputTokens:
+        J4_V5_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
+      writerMaxRepairs: 1,
+    },
+    limits: J4_CUMULATIVE_LIMITS,
+    models: {
+      answer: J4_GEMINI_MODEL,
+      judge: LONGMEMEVAL_JUDGE_MODEL,
+      writer: J4_GEMINI_MODEL,
+    },
+    population: {
+      executionOrderSha256: J4_STAGED_EXECUTION_ORDER_SHA256,
+      questions: 60,
+      sealedQuestionIds: SEALED_U8_QUESTION_IDS,
+      trancheManifestSha256: J4_STAGED_TRANCHE_MANIFEST_SHA256,
+    },
+    predecessorChain: J4_V6_PREDECESSOR_CHAIN,
+    pricesUsdPerToken: J4_PRICES_USD_PER_TOKEN,
+    prompts: {
+      answerTemplateSha256: j4Sha256(J4_OFFICIAL_FACT_TEMPLATE),
+      extractionPromptSha256: j4ExtractionPromptSha256(),
+      judgeSourceSha256: longMemEvalJudgeProvenance.sourceSha256,
+    },
+    tranches: J4_V6_TRANCHE_GATES,
+  })
 }
 
 function validateConfig(config) {
   assertExactKeys(config, [
     'artifacts',
-    'costEstimate',
-    'dataset',
-    'generation',
-    'limits',
-    'models',
-    'population',
-    'predecessorChain',
+    'contractSha256',
     'predictions',
-    'pricesUsdPerToken',
-    'prompts',
     'runDate',
     'runId',
     'schemaVersion',
-    'tranches',
   ], 'J4 live config')
   assertEqual(config.schemaVersion, 1, 'config schema version')
   assertEqual(config.runId, J4_LIVE_RUN_ID, 'config run ID')
-  assertEqual(config.runDate, '2026-07-25', 'config run date')
-  assertEqual(config.dataset, {
+  assertEqual(config.runDate, '2026-07-30', 'config run date')
+  const derived = j4V6DerivedContract()
+  assertEqual(config.contractSha256, j4Sha256(
+    stableStringify(derived),
+  ), 'derived contract hash')
+  assertEqual(derived.dataset, {
     path: 'data/longmemeval_s_cleaned.json',
     sha256: J4_S_DATASET_CONTRACT.sha256,
   }, 'dataset identity')
-  assertEqual(config.models, {
+  assertEqual(derived.models, {
     answer: J4_GEMINI_MODEL,
     judge: LONGMEMEVAL_JUDGE_MODEL,
     writer: J4_GEMINI_MODEL,
   }, 'provider models')
-  assertEqual(config.generation, {
-    answerMaxOutputTokens:
-      J4_V5_GEMINI_GENERATION_LIMITS.answerMaxOutputTokens,
-    judgeMaxTokens: LONGMEMEVAL_JUDGE_REQUEST.maxTokens,
-    judgeN: LONGMEMEVAL_JUDGE_REQUEST.n,
-    judgeTemperature: LONGMEMEVAL_JUDGE_REQUEST.temperature,
-    thinkingLevel: J4_V5_GEMINI_GENERATION_LIMITS.thinkingLevel,
-    writerMaxOutputTokens:
-      J4_V5_GEMINI_GENERATION_LIMITS.writerMaxOutputTokens,
-  }, 'generation settings')
-  assertEqual(config.limits, J4_CUMULATIVE_LIMITS, 'cumulative hard limits')
+  assertEqual(derived.limits, J4_CUMULATIVE_LIMITS, 'cumulative hard limits')
   assertEqual(
-    config.pricesUsdPerToken,
+    derived.pricesUsdPerToken,
     J4_PRICES_USD_PER_TOKEN,
     'provider prices',
   )
-  assertEqual(config.population, {
+  assertEqual(derived.population, {
     executionOrderSha256: J4_STAGED_EXECUTION_ORDER_SHA256,
     questions: 60,
     sealedQuestionIds: SEALED_U8_QUESTION_IDS,
     trancheManifestSha256: J4_STAGED_TRANCHE_MANIFEST_SHA256,
   }, 'population contract')
-  assertEqual(config.costEstimate, J4_V5_CUMULATIVE_COST_ESTIMATE, 'cost estimate')
+  assertEqual(derived.costEstimate, J4_V6_CUMULATIVE_COST_ESTIMATE, 'cost estimate')
   assertEqual(
-    config.predecessorChain,
-    J4_PREDECESSOR_CHAIN,
+    derived.predecessorChain,
+    J4_V6_PREDECESSOR_CHAIN,
     'replacement predecessor chain and carried spend',
   )
-  assertEqual(config.tranches, J4_V5_TRANCHE_GATES, 'tranche gates')
-  assertEqual(config.prompts, {
+  assertEqual(derived.tranches, J4_V6_TRANCHE_GATES, 'tranche gates')
+  assertEqual(derived.prompts, {
     answerTemplateSha256: j4Sha256(J4_OFFICIAL_FACT_TEMPLATE),
     extractionPromptSha256: j4ExtractionPromptSha256(),
     judgeSourceSha256: longMemEvalJudgeProvenance.sourceSha256,
@@ -877,7 +970,10 @@ function validateConfig(config) {
     [...J4_REQUIRED_ARTIFACT_PATHS].sort(),
     'tracked evaluation artifact paths',
   )
-  return config
+  return deepFreeze({
+    ...config,
+    ...derived,
+  })
 }
 
 export async function loadJ4LiveConfig({
@@ -913,17 +1009,62 @@ export async function loadJ4LiveConfig({
       'J4 FINAL predictions differ from their frozen hash.',
     )
   }
-  let predictions
+  let predictionContract
   try {
-    predictions = validatePredictions(JSON.parse(predictionsText))
+    predictionContract = JSON.parse(predictionsText)
   } catch (error) {
-    if (error instanceof J4ConfigError) throw error
     throw new J4ConfigError(
       'PREDICTIONS_JSON',
       'J4 FINAL predictions are not valid JSON.',
       { cause: error },
     )
   }
+  assertExactKeys(predictionContract, [
+    'decisionReference',
+    'executionPredictions',
+    'frozenAt',
+    'method',
+    'models',
+    'population',
+    'promptConfig',
+    'rowArraySha256',
+    'rowSource',
+    'runId',
+    'schemaVersion',
+    'status',
+    'summary',
+  ], 'J4 prediction contract')
+  assertEqual(predictionContract.rowSource, {
+    path: 'evals/predictions/j4-longmemeval-s60-v5.json',
+    runId: 'j4-longmemeval-s60-v5',
+    sha256:
+      '9adbc808c93fda63397ac7b304af7347443ca2940adf722d231c60165f08e7d6',
+  }, 'prediction row source')
+  const rowSourceText = await readFile(
+    resolve(root, predictionContract.rowSource.path),
+    'utf8',
+  )
+  if (j4Sha256(rowSourceText) !== predictionContract.rowSource.sha256) {
+    throw new J4ConfigError(
+      'PREDICTION_ROW_SOURCE_CHANGED',
+      'J4 inherited outcome rows differ from their frozen terminal source.',
+    )
+  }
+  let rowSource
+  try {
+    rowSource = JSON.parse(rowSourceText)
+  } catch (cause) {
+    throw new J4ConfigError(
+      'PREDICTION_ROW_SOURCE_INVALID',
+      'J4 inherited outcome rows are not valid JSON.',
+      { cause },
+    )
+  }
+  const predictions = validatePredictions({
+    ...predictionContract,
+    basisDefinitions: rowSource.basisDefinitions,
+    predictions: rowSource.predictions,
+  })
   for (const artifact of config.artifacts) {
     const text = await readFile(resolve(root, artifact.path))
     if (j4Sha256(text) !== artifact.sha256) {
@@ -975,7 +1116,7 @@ export async function loadJ4LiveAuthority({
   ], 'J4 live authority')
   assertEqual(authority.schemaVersion, 1, 'authority schema version')
   assertEqual(authority.runId, J4_LIVE_RUN_ID, 'authority run ID')
-  const gateIndex = J4_V5_TRANCHE_GATES.findIndex((entry) =>
+  const gateIndex = J4_V6_TRANCHE_GATES.findIndex((entry) =>
     entry.cumulativeQuestions === authority.cumulativeQuestions &&
     entry.cumulativeCapUsd === authority.cumulativeCapUsd)
   if (gateIndex < 0) {
@@ -986,7 +1127,7 @@ export async function loadJ4LiveAuthority({
   }
   const expectedFrom = gateIndex === 0
     ? 0
-    : J4_V5_TRANCHE_GATES[gateIndex - 1].cumulativeQuestions
+    : J4_V6_TRANCHE_GATES[gateIndex - 1].cumulativeQuestions
   if (authority.fromCumulativeQuestions !== expectedFrom ||
     (expectedFrom === 0 && authority.previousCheckpointSha256 !== null) ||
     (expectedFrom > 0 &&

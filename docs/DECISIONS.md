@@ -2352,3 +2352,26 @@ dates. Agents record; the founder decides.
   in the keyed session. `src/memory-forget.mjs` added to both sorted
   successor exclusion lists. Suite 613/613 with 14 skips; quickstart
   green; trust bench 5/5; no spend.
+
+- 2026-07-30 (FOUNDER GO — J4 v6 one-shot S-60 repair run)
+  The founder directed a fresh LongMemEval S-60 identity on latest `main`,
+  with every prior terminal S-60 bundle verified, exact cumulative spend
+  carried forward, predictions committed before execution, and one physical
+  invocation only. The authorized fresh hard cap is `$5.00` (the suggested
+  historical value), added to the exact v1-v5 accounted opening of
+  `$0.7721877` for a `$5.7721877` cumulative meter boundary.
+
+  Identity `j4-longmemeval-s60-v6` starts from question zero. Its standard
+  order is writer compatibility smoke, answer compatibility smoke, then the
+  frozen 60-question order only if both pass. Every structured writer
+  operation may make one host-guided repair proposal after a
+  transport-valid first proposal fails the frozen host validator; the repair
+  has its own metered operation ID and is not a transport retry. Either smoke
+  failure, a meter stop, or another fail-closed boundary is terminal. No
+  resume, replacement invocation, reroll, regrade, or public score is
+  authorized.
+
+  The uncapped historical projection exceeds the fresh authorization, so the
+  pre-run prediction expects a cap stop before question 60. The cap is the
+  billing boundary; the instruction to proceed through 60 is authority to
+  attempt the frozen order within that boundary, not authority to exceed it.

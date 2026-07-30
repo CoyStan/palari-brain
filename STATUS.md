@@ -1,5 +1,23 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-S60-P FRESH S-60 V6 IDENTITY FROZEN; ONE LIVE INVOCATION
+AUTHORIZED NEXT. Latest `main` was synchronized at `5e84876` before the
+freeze. `j4-longmemeval-s60-v6` starts from question zero, verifies all five
+terminal v1-v5 bundles, and carries their exact `$0.7721877` accounted
+opening (`$0.7696867` measured plus `$0.0025010` uncertain). The founder
+authorized a `$5.00` fresh hard cap, so the cumulative meter boundary is
+`$5.7721877`.
+
+P-set 9 and the machine-readable FINAL contract are registered before any v6
+provider call. Every structured writer operation has at most one separately
+metered host-guided proposal repair; the standard writer smoke and answer
+smoke remain mandatory and fail closed before question 1. The all-60 planning
+projection is `$10.0725399` fresh, so the prediction expects the cap to stop
+the single invocation after 35-55 completed questions. A smoke failure,
+cap stop, or other fail-closed boundary is terminal: no resume, reroll, or
+regrade. Full suite and quickstart are green at this pre-run cut. No v6
+credential was read, provider called, result created, or spend incurred.
+
 Loop state: J4.4K-T3 CLEAN MEM0 REMEASUREMENT TERMINAL WITHOUT A SCORE.
 The first and only physical invocation from P-set 8 cut `0e50531` stopped
 fail-closed in the verified-deletion case: the adapter selected a memory ID
@@ -4147,3 +4165,63 @@ Verification after the stop: `npm test` reported 624 pass, 0 fail, 3 skipped
 This was an unsuccessful product measurement, not a completed benchmark and
 not a rerun trigger. Any Mem0 adapter change or another physical invocation
 requires fresh founder direction.
+
+### J4.5K-S60-P fresh repair-enabled S-60 freeze
+
+The founder authorized a fresh LongMemEval S-60 identity on latest `main`
+and accepted the suggested `$5.00` fresh cap. The repository was already
+synchronized at `5e84876`. The exact v1-v5 tracked inputs and ignored terminal
+bundles all verify. Their ledger reconciliation is:
+
+| Run | Terminal state | Completed | Accounted spend |
+| --- | --- | ---: | ---: |
+| `j4-longmemeval-s60-v1` | failed | 0 | `$0.0004494` |
+| `j4-longmemeval-s60-v2` | failed | 0 | `$0.0146198` |
+| `j4-longmemeval-s60-v3` | failed | 0 | `$0.0025010` uncertain |
+| `j4-longmemeval-s60-v4` | failed | 1 | `$0.1776419` |
+| `j4-longmemeval-s60-v5` | paused/terminal | 5 | `$0.5769756` |
+| **Opening v6** |  |  | **`$0.7721877`** |
+
+The opening splits exactly into `$0.7696867` measured and `$0.0025010`
+uncertain. V6's fresh and cumulative hard caps are `$5.00` and `$5.7721877`.
+The planning projection for all 60 is `$10.0725399` fresh, so P-set 9 predicts
+a terminal meter stop after 35-55 completed questions rather than promising
+the cap can cover the full population. The inherited 60 outcome rows remain
+byte-identical to v5: 36/60 predicted correct if every row were reachable.
+
+The only provider-behavior change is one bounded repair for a
+transport-valid writer proposal that the frozen host validator rejects. The
+repair preserves the exact original model, schema, generation settings, and
+request evidence; appends the rejected proposal plus the host objection; uses
+a distinct `:repair:1` operation ID; and passes through the same validator.
+There is no repair for an invalid transport result and no second repair. The
+writer compatibility smoke uses the same path, followed by the unchanged
+answer smoke.
+
+Authority, compact config, inherited-row prediction contract, 20-file runtime
+closure, exact five-run predecessor chain, repair behavior, terminal guards,
+dataset order/U8 seal, spend arithmetic, tamper failures, historical active
+runner compatibility, and secret boundaries verify offline. Full suite and
+`npm run quickstart` are green. No v6 provider request or spend occurred at
+this cut. Next is the one founder-authorized physical invocation; it must be
+run from this pushed freeze and recorded exactly once.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? Not yet. It makes the
+   next external measurement capable of surviving one host-diagnosed writer
+   proposal defect without silently accepting it.
+3. Does an existing framework already provide what this unit added? Provider
+   SDKs retry transport faults, but they do not apply Palari's frozen host
+   objection and revalidate one corrected memory proposal while preserving a
+   one-shot evaluation identity.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly requested the fresh S-60 identity, repair-enabled
+   reducer, exact predecessor/spend carry, preregistration, and one invocation.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? The live run would again terminate on the first repairable
+   structured writer proposal, leaving the product's measured memory journey
+   shorter and the requested S-60 evidence unavailable.
+
+This is one allowed infrastructure unit immediately before its authorized
+measurement, not a second consecutive infrastructure unit.

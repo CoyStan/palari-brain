@@ -17,11 +17,10 @@ import {
   buildJ4AnswerBody,
   buildJ4AnswerPrompt,
   buildJ4WriterBody,
-  J4_CARRIED_ACCOUNTED_USD,
   J4_GEMINI_MODEL,
   J4_LIVE_RUN_ID,
-  J4_PREDECESSOR_CHAIN,
-  J4_TRANCHE_1_LIMITS,
+  J4_V6_CARRIED_ACCOUNTED_USD,
+  J4_V6_PREDECESSOR_CHAIN,
   j4ExecutionQuestionIds,
 } from '../evals/longmemeval-live-config.mjs'
 import {
@@ -55,8 +54,8 @@ const TYPES = [
   'single-session-user',
   'temporal-reasoning',
 ]
-const OPENING_ACCOUNTED_USD = J4_CARRIED_ACCOUNTED_USD
-const OPENING_MEASURED_USD = 0.1927111
+const OPENING_ACCOUNTED_USD = J4_V6_CARRIED_ACCOUNTED_USD
+const OPENING_MEASURED_USD = 0.7696867
 const OPENING_UNCERTAIN_USD = 0.002501
 const FIRST_GATE = J4_V5_TRANCHE_GATES[0]
 const SMOKE_WRITER_TURN = {
@@ -102,7 +101,7 @@ function providerTextChars(body = {}) {
 }
 
 function syntheticPredecessorChain() {
-  return structuredClone(J4_PREDECESSOR_CHAIN)
+  return structuredClone(J4_V6_PREDECESSOR_CHAIN)
 }
 
 function syntheticPopulation() {
@@ -333,6 +332,17 @@ async function makePredecessorChainBundle(root) {
       smokeLogicalOperations: 2,
       smokeStatus: 'completed',
     },
+    {
+      completedQuestions: 5,
+      currentRunAccountedUsd: 0.5769756,
+      failedQuestionOrdinal: null,
+      geminiInputTokens: 1_010_452,
+      geminiOutputTokens: 109_536,
+      runId: 'j4-longmemeval-s60-v5',
+      smokeLogicalOperations: 2,
+      smokeStatus: 'completed',
+      status: 'paused',
+    },
   ]
   const zero = {
     geminiInputTokens: 0,
@@ -495,7 +505,7 @@ async function makePredecessorChainBundle(root) {
         })),
         completedAt: '2026-07-24T00:00:00.000Z',
       }
-    } else if (index === 3) {
+    } else if (index >= 3) {
       identity.openingAccountedUsd = openingAccountedUsd
       identity.predecessorChain = {
         openingAccountedUsd,
@@ -542,7 +552,7 @@ async function makePredecessorChainBundle(root) {
         logicalOperations: spec.smokeLogicalOperations,
         status: spec.smokeStatus,
       },
-      status: 'failed',
+      status: spec.status ?? 'failed',
     }
     if (predecessorAudit) checkpoint.predecessorAudit = predecessorAudit
     const checkpointText = `${JSON.stringify(checkpoint, null, 2)}\n`
@@ -589,7 +599,7 @@ async function makePredecessorChainBundle(root) {
       runId: spec.runId,
       smokeLogicalOperations: spec.smokeLogicalOperations,
       smokeStatus: spec.smokeStatus,
-      status: 'failed',
+      status: spec.status ?? 'failed',
       tracked,
     }
     if (spec.currentRunUncertainUsd) {
@@ -619,7 +629,7 @@ async function makePredecessorChainBundle(root) {
         : spec.currentRunAccountedUsd,
       meterSha256: descriptor.private.meterSha256,
       runId: spec.runId,
-      status: 'failed',
+      status: spec.status ?? 'failed',
       uncertainUsd: spec.currentRunUncertainUsd ?? 0,
     })
     paths.push({ checkpointPath, manifestPath, meterPath, runDir })
@@ -777,14 +787,14 @@ function fakeArmResult(instance, { memoryRows = 1 } = {}) {
   }
 }
 
-test('runner import is inert and all v1-v5 identities are terminal', () => {
-  assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v5')
+test('runner import is inert, v1-v5 are terminal, and v6 is open', () => {
+  assert.equal(J4_LIVE_RUN_ID, 'j4-longmemeval-s60-v6')
   for (const runId of [
     'j4-longmemeval-s60-v1',
     'j4-longmemeval-s60-v2',
     'j4-longmemeval-s60-v3',
     'j4-longmemeval-s60-v4',
-    J4_LIVE_RUN_ID,
+    'j4-longmemeval-s60-v5',
   ]) {
     assert.equal(parseJ4LiveArgs(['--run', runId]), runId)
     assert.throws(
@@ -792,6 +802,7 @@ test('runner import is inert and all v1-v5 identities are terminal', () => {
       (error) => error.code === 'J4_RUN_TERMINAL',
     )
   }
+  assert.equal(assertJ4LiveRunOpen(J4_LIVE_RUN_ID), J4_LIVE_RUN_ID)
   assert.throws(
     () => parseJ4LiveArgs([]),
     (error) => error.code === 'RUN_ID_REQUIRED',
@@ -991,8 +1002,10 @@ test('compatibility smoke uses exact production writer and answer bodies', async
     JSON.stringify(calls[1].body).length,
     J4_V3_COMPATIBILITY_SMOKE_STATS.answerRequestBodyChars,
   )
-  assert.equal(result.geminiModelVersion, J4_GEMINI_MODEL)
-  assert.equal(result.logicalOperations, 2)
+    assert.equal(result.geminiModelVersion, J4_GEMINI_MODEL)
+    assert.equal(result.logicalOperations, 2)
+    assert.equal(result.writerProposalCalls, 1)
+    assert.equal(result.writerRepaired, false)
 })
 
 test('compatibility smoke rejects empty, unrelated, health-typed, and bad-source memories', async () => {
@@ -1025,8 +1038,34 @@ test('compatibility smoke rejects empty, unrelated, health-typed, and bad-source
         'SMOKE_WRITER_SEMANTICS',
       ].includes(error.code),
     )
-    assert.equal(calls, 1, 'bad writer output must stop before answer smoke')
+    assert.equal(calls, 2, 'one repair must stop before answer smoke')
   }
+})
+
+test('compatibility smoke permits one host-guided writer repair', async () => {
+  const calls = []
+  const result = await runJ4SmokeSuite({
+    async callGemini(request) {
+      calls.push(request)
+      if (calls.length === 1) return validGeminiResponse('{"memories":[]}')
+      return validGeminiResponse(
+        request.purpose === 'writer'
+          ? VALID_MEMORY_JSON
+          : 'You were diagnosed with asthma.',
+      )
+    },
+  })
+  assert.deepEqual(
+    calls.map(({ operationId }) => operationId),
+    [
+      'smoke:gemini-writer',
+      'smoke:gemini-writer:repair:1',
+      'smoke:gemini-answer',
+    ],
+  )
+  assert.equal(result.logicalOperations, 2)
+  assert.equal(result.writerProposalCalls, 2)
+  assert.equal(result.writerRepaired, true)
 })
 
 test('compatibility smoke does not require one particular canonical memory type', async () => {
@@ -1213,8 +1252,8 @@ test('authorized first tranche executes five wrong answers, checkpoints each, an
       result.meter.sequence === 6))
     const counts = transport.counts()
     assert.deepEqual(counts, {
-      answerCalls: J4_TRANCHE_1_LIMITS.maxLogicalRequests.answer,
-      judgeCalls: J4_TRANCHE_1_LIMITS.maxLogicalRequests.judge,
+      answerCalls: 6,
+      judgeCalls: 5,
       writerCalls: 6,
     })
     await verifyJ4ArtifactManifest(paths.runDir)
@@ -1298,7 +1337,7 @@ test('exclusive lock and private artifact audit enforce modes and reject secrets
   }
 })
 
-test('replacement preflight verifies all four terminal predecessors and exact spend classes', async () => {
+test('replacement preflight verifies all five terminal predecessors and exact spend classes', async () => {
   const root = await mkdtemp(join(tmpdir(), 'palari-j4-predecessor-'))
   try {
     const fixture = await makePredecessorChainBundle(root)
@@ -1341,12 +1380,20 @@ test('replacement preflight verifies all four terminal predecessors and exact sp
           runId: 'j4-longmemeval-s60-v4',
           status: 'failed',
         },
+        {
+          completedQuestions: 5,
+          currentRunAccountedUsd: 0.5769756,
+          runId: 'j4-longmemeval-s60-v5',
+          status: 'paused',
+        },
       ],
     )
     assert.equal(evidence.runs[2].measuredUsd, 0)
     assert.equal(evidence.runs[2].uncertainUsd, 0.002501)
     assert.equal(evidence.runs[3].measuredUsd, 0.1776419)
     assert.equal(evidence.runs[3].uncertainUsd, 0)
+    assert.equal(evidence.runs[4].measuredUsd, 0.5769756)
+    assert.equal(evidence.runs[4].uncertainUsd, 0)
 
     await atomicWriteJ4(
       fixture.paths[3].checkpointPath,
@@ -1454,7 +1501,7 @@ test('tracked-file audit rejects captured credentials and credential-shaped valu
   }
 })
 
-test('main and CLI refuse all v1-v5 identities before dependencies or credentials', async () => {
+test('main and CLI refuse all terminal v1-v5 identities before dependencies or credentials', async () => {
   let dependencyReads = 0
   let secretReads = 0
   const dependencies = new Proxy({}, {
@@ -1486,7 +1533,7 @@ test('main and CLI refuse all v1-v5 identities before dependencies or credential
     'j4-longmemeval-s60-v2',
     'j4-longmemeval-s60-v3',
     'j4-longmemeval-s60-v4',
-    J4_LIVE_RUN_ID,
+    'j4-longmemeval-s60-v5',
   ]) {
     await assert.rejects(
       main({
@@ -1508,7 +1555,7 @@ test('main and CLI refuse all v1-v5 identities before dependencies or credential
         new URL('../evals/run-longmemeval-live.mjs', import.meta.url),
       ),
       '--run',
-      J4_LIVE_RUN_ID,
+      'j4-longmemeval-s60-v5',
     ],
     {
       encoding: 'utf8',

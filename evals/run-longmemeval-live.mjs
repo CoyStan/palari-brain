@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url'
 import {
   assertExactExtractionEnvelope,
   assertValidatedJ4GeminiResponse,
+  callJ4RepairingWriter,
   runKernelLongMemEvalQuestion,
 } from './arms/kernel-longmemeval-live-arm.mjs'
 import * as j4Config from './longmemeval-live-config.mjs'
@@ -849,7 +850,10 @@ function assertPredecessorRunDescriptor(run, index) {
     typeof run !== 'object' ||
     Array.isArray(run) ||
     run.runId !== `j4-longmemeval-s60-v${index + 1}` ||
-    run.status !== 'failed' ||
+    !['failed', 'paused'].includes(run.status) ||
+    (run.status === 'paused' &&
+      (run.completedQuestions < 1 ||
+        failedQuestionOrdinal !== null)) ||
     !['completed', 'failed'].includes(run.smokeStatus) ||
     !Number.isInteger(run.completedQuestions) ||
     run.completedQuestions < 0 ||
@@ -1033,6 +1037,44 @@ function assertPriorRunLink({
       throw new J4LiveError(
         'PREDECESSOR_CHAIN_MISMATCH',
         'J4 v4 aggregate predecessor evidence does not match the exact v1-v3 chain.',
+      )
+    }
+    return
+  }
+  if (run.runId === 'j4-longmemeval-s60-v5') {
+    const expectedChain = {
+      openingAccountedUsd: priorAudit.cumulativeAccountedUsd,
+      runs: priorRuns,
+    }
+    const audited = checkpoint.predecessorAudit
+    if (!sameUsd(run.openingAccountedUsd, priorAudit.cumulativeAccountedUsd) ||
+      !sameUsd(
+        checkpoint.identity?.openingAccountedUsd,
+        priorAudit.cumulativeAccountedUsd,
+      ) ||
+      Object.hasOwn(checkpoint.identity ?? {}, 'predecessor') ||
+      JSON.stringify(checkpoint.identity?.predecessorChain) !==
+        JSON.stringify(expectedChain) ||
+      !audited ||
+      JSON.stringify(Object.keys(audited).sort()) !== JSON.stringify([
+        'accountedUsd',
+        'completedAt',
+        'measuredUsd',
+        'runs',
+        'uncertainUsd',
+      ]) ||
+      !sameUsd(audited.accountedUsd, priorAudit.cumulativeAccountedUsd) ||
+      !sameUsd(audited.measuredUsd, priorAudit.cumulativeMeasuredUsd) ||
+      !sameUsd(audited.uncertainUsd, priorAudit.cumulativeUncertainUsd) ||
+      !sameUsd(
+        Number(audited.measuredUsd) + Number(audited.uncertainUsd),
+        audited.accountedUsd,
+      ) ||
+      Number.isNaN(Date.parse(String(audited.completedAt ?? ''))) ||
+      JSON.stringify(audited.runs) !== JSON.stringify(priorAudits)) {
+      throw new J4LiveError(
+        'PREDECESSOR_CHAIN_MISMATCH',
+        'J4 v5 aggregate predecessor evidence does not match the exact v1-v4 chain.',
       )
     }
     return
@@ -1265,12 +1307,12 @@ export async function verifyJ4PredecessorBundle({
     typeof predecessorChain !== 'object' ||
     Array.isArray(predecessorChain) ||
     !Array.isArray(predecessorChain.runs) ||
-    predecessorChain.runs.length !== 4 ||
+    ![4, 5].includes(predecessorChain.runs.length) ||
     !Number.isFinite(predecessorChain.openingAccountedUsd) ||
     predecessorChain.openingAccountedUsd < 0) {
     throw new J4LiveError(
       'PREDECESSOR_SCHEMA',
-      'J4 v5 requires the exact four-run predecessor chain.',
+      'J4 predecessor verification requires the exact v1-v4 or v1-v5 chain.',
     )
   }
   const audits = []
@@ -1341,29 +1383,29 @@ export async function runJ4SmokeSuite({
     userMessage: 'I was diagnosed with asthma in 2014.',
     userName: 'user',
   }
-  const writer = assertValidatedJ4GeminiResponse(
-    await callGemini({
-      body: j4Config.buildJ4WriterBody(writerTurn),
-      cellId: 'j4-compatibility-smoke-writer',
-      operationId: 'smoke:gemini-writer',
-      purpose: 'writer',
-    }),
-    'writer',
-  )
-  const envelope = assertExactExtractionEnvelope(writer.text)
-  if (envelope.memories.length === 0 ||
-    !envelope.memories.some((candidate) =>
-      /\basthma\b/iu.test([
-        candidate.content,
-        ...candidate.keywords,
-      ].join(' '))) ||
-    envelope.memories.some((candidate) =>
-      candidate.sourceKind !== 'user_message')) {
-    throw new J4LiveError(
-      'SMOKE_WRITER_SEMANTICS',
-      'J4 writer smoke requires a relevant asthma memory sourced from the user message.',
-    )
-  }
+  const writer = await callJ4RepairingWriter({
+    callGemini,
+    cellId: 'j4-compatibility-smoke-writer',
+    operationId: 'smoke:gemini-writer',
+    turn: writerTurn,
+    validate(text) {
+      const envelope = assertExactExtractionEnvelope(text)
+      if (envelope.memories.length === 0 ||
+        !envelope.memories.some((candidate) =>
+          /\basthma\b/iu.test([
+            candidate.content,
+            ...candidate.keywords,
+          ].join(' '))) ||
+        envelope.memories.some((candidate) =>
+          candidate.sourceKind !== 'user_message')) {
+        throw new J4LiveError(
+          'SMOKE_WRITER_SEMANTICS',
+          'J4 writer smoke requires a relevant asthma memory sourced from the user message.',
+        )
+      }
+      return envelope
+    },
+  })
   const answerPrompt = j4Config.buildJ4AnswerPrompt({
     facts: '[2014] The user was diagnosed with asthma.',
     question: 'What condition was I diagnosed with in 2014?',
@@ -1393,6 +1435,8 @@ export async function runJ4SmokeSuite({
   return {
     geminiModelVersion: writer.modelVersion,
     logicalOperations: 2,
+    writerProposalCalls: writer.proposalCalls,
+    writerRepaired: writer.repaired,
   }
 }
 
