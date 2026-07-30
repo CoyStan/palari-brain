@@ -329,3 +329,47 @@ Predictions, failing categories first:
 The first complete physical scale-probe output grades these predictions
 exactly as emitted. Any lower semantic result is a finding; it does not
 authorize prompt/config changes, a reroll, or selective regrading.
+
+## P-set 7 — Gemini temporal-graph probe, FINAL before scoring
+
+Author: repository execution lane, 2026-07-30. Registered after exactly one
+non-scoring compatibility request produced one host-normalized assertion on
+its first physical call, and before the first 25-fact graph invocation.
+Compatibility served `gemini-2.5-flash-lite`, returned HTTP 200 / `STOP`,
+reported 280 input and 79 output tokens, and cost `$0.0000596` with zero
+uncertainty.
+
+The scoring bank reuses the 25 planted statements in
+`evals/run-scale-probe.mjs` at file SHA-256
+`17c5d4c851556e135dc1ec859ac76f30512913d00e6e9f73a08107acc32ab9cc`.
+Only the statements are used; the paraphrase columns are irrelevant. The
+Gemini graph adapter SHA-256 is
+`cb56f399eae0cd52784403d3afe10a0b03ec2af44678658aa71162a27eb85c7c`.
+The ignored one-shot harness SHA-256 at freeze is
+`4d560125c0633825c9e31ec2a9a4afdff89f7f37acfbf49fe1ab4975d0be5a23`.
+
+The run uses five chronological extraction batches of five user statements,
+at most one host-guided repair per batch, requested model
+`gemini-2.5-flash-lite`, provider-enforced JSON, thinking budget zero, and no
+transport retry. Its complete config serialization has SHA-256
+`d7ae7b3c978a7d9d5f4a6f488faefb2d9b633ea70b4d98e66704dc294e8b0cab`.
+
+Predictions, failing categories first:
+
+1. FACT COVERAGE: at least 20 of 25 planted relational statements produce
+   one or more host-admitted graph edges.
+2. TEMPORAL ANCHORS: at least 8 admitted edges carry a non-empty time phrase
+   verified as an exact quote from their evidence.
+3. QUOTE INTEGRITY: zero admitted edges carry a fabricated or paraphrased
+   quote; every admitted quote is a contiguous substring of its canonical
+   evidence.
+4. SPEAKER PROVENANCE: zero admitted edges are attributed to anyone other
+   than the user, because the 25-row bank contains user messages only and
+   the host stamps speaker.
+5. EXECUTION/ACCOUNTING: all five batches finish within ten physical Gemini
+   requests, with no transport retry, measured graph-run spend below `$0.01`,
+   and zero uncertainty.
+
+The first complete physical result grades these rows exactly as emitted.
+Any miss is a finding and does not authorize a changed bank, config, repair
+ceiling, reroll, or selective regrading.
