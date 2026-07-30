@@ -1,5 +1,15 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-R2-P ACTIVE RETRIEVAL SEEN-SIX LIVE RE-MEASUREMENT
+FROZEN. At the founder's explicit direction, the same six inspected v6 cases
+are registered as a separate diagnostic identity, not an unbiased benchmark
+and not a regrade of the sealed v6 `1/6`. P-set 11 freezes the IDs, real
+Gemini semantic path, full-text chunk aggregation, native answer tools,
+official judge, one compatibility smoke, one invocation, and the carried
+`$1.5885167` opening spend under a fresh `$5.00` hard cap. The ignored
+one-shot harness verifies offline. No request for this identity has occurred
+at this cut.
+
 Loop state: J4.5K-R1 ACTIVE RETRIEVAL-TO-ANSWER REGRESSION COMPLETE.
 The offline freeze was pushed at `4796800` and invoked exactly once. All six
 judged v6 cases passed the preregistered canonical retrieval contract:
@@ -4475,3 +4485,60 @@ an investor-facing comparison be considered.
 
 This closes the authorized offline product unit. Any live provider smoke,
 unseen-question run, new identity, or spend requires a fresh founder GO.
+
+### J4.5K-R2-P active retrieval seen-six live freeze
+
+The founder disagreed that inspecting the old cases made a diagnostic run
+unhelpful and explicitly directed a live run on those same six. This unit
+implements that direction without changing the active product bytes or any
+sealed v6 answer, judge label, transcript, prediction, or result.
+
+P-set 11 freezes the separate identity
+`j4-active-retrieval-seen6-v1`. Its one ignored, self-sealing harness replays
+each of the six v6 histories into a fresh canonical journal, configures the
+live Gemini semantic surface, maps all five active retrieval tools to Gemini
+native AUTO function calling, requests a concise 512-token answer, and sends
+each completed answer to the unchanged official OpenAI judge once.
+
+Offline preflight found 2,882 canonical messages and 2,927,794 visible bytes.
+The longest message is 13,382 characters, beyond Gemini's frozen
+8,000-character embedding input boundary. The harness therefore freezes a
+generic full-text rule before scoring: consecutive at-most-8,000-character
+chunks are embedded, their vectors are averaged per canonical message, and
+the mean is L2-normalized. Search remains only a locator; credited text comes
+from canonical read-back.
+
+The first physical command must run one combined native-tool/semantic smoke
+and stop before the benchmark if it fails. Otherwise it runs the ordered six
+once, with no writer, reducer, graph extraction, transport retry, reroll, or
+regrade. Shared fresh spend is capped at `$5.00`, carrying the exact
+`$1.5885167` S-60 opening balance to a `$6.5885167` cumulative boundary.
+Provider-window reservations are checked before every external request and
+released only on validated measured usage; missing embedding usage remains
+uncertain and accounted.
+
+The ignored harness SHA-256 is
+`750753ec8492fa005e9c9840c476e0adc92c3fc84943ec4a60cdabc12df547ca`.
+Its inert preflight confirms the dataset SHA-256, exact six IDs, full-window
+answer reservation `$0.4784128`, judge reservation `$0.5441700`, and fresh
+cap without reading a credential or creating a result directory. Next is the
+one founder-authorized physical invocation from the pushed clean freeze,
+followed by recording whatever happens.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   `npm run quickstart` is green; the full suite is 637 pass, 0 fail, and
+   3 skipped.
+2. Did this unit make that journey measurably better? Not yet. It freezes the
+   founder-directed live measurement of the retrieval path already added.
+3. Does an existing framework already provide what this unit added? Provider
+   SDKs supply calls and embeddings; they do not supply the canonical
+   read-back, exact one-shot identity, shared spend boundary, or sealed judge
+   comparison.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly directed the live re-measurement of these six cases.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? The resulting score could be confused with the sealed v6 run,
+   rerolled, or overstated as an unseen benchmark.
+
+This is the allowed measurement freeze immediately before its authorized
+product gate, not a second consecutive infrastructure unit.

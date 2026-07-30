@@ -502,3 +502,73 @@ Predictions, failing categories first:
 Any miss is retained as the result. It does not authorize changing the local
 concept mapping, answer-session expectations, bounds, ranking limit, or
 scoring and rerunning the same regression.
+
+## P-set 11 — active retrieval seen-six live re-measurement, FINAL before execution
+
+Author: repository execution lane, 2026-07-30. The founder explicitly
+directed a live run on the same six previously reached and inspected S-60 v6
+questions. This is a new diagnostic identity,
+`j4-active-retrieval-seen6-v1`; it does not resume, replace, regrade, or alter
+the sealed v6 `1/6`. Because the cases and their answer-bearing sessions have
+been inspected, this result will be labelled a seen-case re-measurement and
+will not be presented as an unbiased estimate of generalization.
+
+The ordered question IDs are exactly `08e075c7`, `09d032c9`, `16c90bf4`,
+`5e1b23de`, `80ec1f4f_abs`, and `0977f2af`. The ignored dataset SHA-256 is
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+The active retrieval implementation SHA-256 is
+`c578c0190ebbe59c2e220b225e1f18af3ddca2a3b47d6669cdb51c62ca006e9b`;
+the canonical Gemini embedder adapter SHA-256 is
+`2f7eb09dcaeafcd4903289023160d19562d9f17a9a312be32ba3a82496a94035`;
+and the ignored one-shot harness SHA-256 is
+`750753ec8492fa005e9c9840c476e0adc92c3fc84943ec4a60cdabc12df547ca`.
+
+The six histories contain 2,882 canonical messages and 2,927,794 visible
+UTF-8 bytes. Some canonical messages exceed the embedder's 8,000-character
+single-input boundary (maximum 13,382 characters). The frozen,
+answer-independent adapter therefore splits every message into consecutive
+at-most-8,000-character chunks, embeds every chunk with
+`gemini-embedding-001` / `SEMANTIC_SIMILARITY`, averages all chunk vectors
+belonging to one canonical message, and L2-normalizes that mean. The semantic
+index remains a finding aid; every credited result is read back from the
+complete canonical journal.
+
+One command is the complete physical invocation. It first runs one combined
+native-tool/semantic compatibility smoke. The smoke must call
+`memory_search`, use real semantic retrieval, and answer the planted
+compatibility token; otherwise it stops before all six benchmark questions.
+If it passes, each question starts from a fresh canonical journal and vector
+index, uses the same `gemini-3.5-flash-lite` answer model as v6 with native
+AUTO tools, at most six memory
+tool calls and seven answer-model dispatches, requests 512 answer tokens, and
+receives exactly one no-retry official `gpt-4o-2024-08-06` judge call.
+There is no writer, reducer, graph extraction, transport retry, reroll, or
+regrade.
+
+Fresh spend has a founder-authorized hard cap of `$5.00`, carrying the exact
+S-60 lineage opening balance of `$1.5885167` to a `$6.5885167` cumulative
+boundary. Before every Gemini generation request the shared meter reserves
+the full `$0.4784128` provider window at the frozen standard prices; before
+every judge request it verifies
+the full `$0.5441700` priority-tier reservation; embedding requests reserve
+one token per UTF-8 text byte at `$0.15` per million. Valid provider-reported
+usage releases a reservation to measured spend. Absent embedding usage
+remains uncertain and fully accounted.
+
+Predictions, failing categories first:
+
+1. COMPATIBILITY: the combined native-tool/semantic smoke passes before any
+   benchmark question.
+2. RETRIEVAL COVERAGE: the five positive questions consult all seven
+   dataset-labelled answer-bearing sessions; the abstention question is
+   reported separately and is not credited with a zero-session success.
+3. OFFICIAL ACCURACY: at least `4/6` answers are marked correct by the frozen
+   official judge.
+4. SEMANTIC USE: at least five of six scored questions issue one or more
+   successful `memory_search` calls with the real Gemini semantic surface.
+5. ANSWER BOUNDARY: all six answer completions finish without truncation,
+   retrieval-budget exhaustion, or a seventh-turn tool request.
+6. EXECUTION/ACCOUNTING: the first command is final, completes below the
+   fresh `$5.00` cap, records measured and uncertain spend separately, and
+   makes at most six official judge calls. Any stop or miss is the result and
+   authorizes no retry, reroll, selective regrade, or prediction change.
