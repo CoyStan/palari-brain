@@ -1,15 +1,17 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.4K-F1 FLAGGED FIXES COMPLETE (walkthrough examples in
-examples/, host ingest receipt `ingestedAt` on every explored row,
-`forgetWithReport` deletion-with-honesty-report, offline Gemini adapters
-for graphExtractor + embedder — dispatch-ready, founder-gated live).
-Follows the K-sprint (S1 ranked recall, G1 guard + freshness, T1 trust
-benchmark 5/5, R5 stemming + scale probe + semantic seam, K1 temporal
-graph, K2/K3 competitor reviews). Suite 613/613; quickstart green.
+Loop state: J4.4K-F3 GEMINI SEMANTIC SCALE PROBE COMPLETE; P-SET 6
+CONFIRMED 4/4 ON THE FIRST PHYSICAL RUN FROM PREDICTION CUT `43e7187`.
+At 5,000 canonical messages, lexical recall remained 25/25 shared-token
+and 0/25 zero-overlap; Gemini semantic recall was 25/25 on both columns.
+All 131 embedding requests returned HTTP 200 with no retry, but Gemini
+reported no usage metadata: exact tokens/spend are unavailable and the
+honest accounted upper bound is `$0.02088285`. Suite: 624 pass, 0 fail,
+3 skipped; quickstart green.
 V3 PRE-RUN CUT IS STALE AGAIN (product bytes moved past `f1e587a`; re-freeze
 before any GO). FOUNDER GATE unchanged — no external rerun, no V3 dispatch,
-no publication of trust-bench columns (2026-07-29).
+and no publication of trust-bench columns. P-set 6 is recorded only here as
+the founder directed; no README promotion is authorized (2026-07-30).
 Baseline source commit (palari-v05 main): 190a4ad2
 Working tree: the U8-cut kernel surface, restored per
 TRIM-CONTRACT.md and made installable (src/index.mjs entry point and
@@ -3925,3 +3927,77 @@ Mixed unit by the stop rule: B and C are product changes, A is
 documentation, D is dispatch-side infrastructure with the live half still
 founder-gated. Next work should be measurement (keyed-agent probes for
 the two new adapters, V3 re-freeze) or founder-directed product work.
+
+### J4.4K-F3 Gemini semantic scale measurement
+
+The founder authorized exactly one tiny Gemini embedding compatibility call
+followed by one full semantic scale-probe invocation, with predictions
+registered between them. Latest `main` was fast-forwarded to `53c2dd3`.
+A small keyed adapter remained under gitignored
+`.palari-probe/scale-gemini-embedder.mjs`; it loaded `GEMINI_API_KEY` from the
+gitignored `.env`, wired `createGeminiEmbedder()` to the synchronous
+`batchEmbedContents` endpoint, made no generation request, retried nothing,
+and durably metered every physical request under a `$0.03` cap.
+
+The one-text compatibility call received HTTP 200, confirming that Gemini
+accepted the adapter's model/body/task wire format. The response omitted
+`usageMetadata.promptTokenCount`; the first strict meter version consequently
+classified the successful HTTP response as `usage_invalid` after dispatch.
+That call was not repeated. The ignored transport was then changed to retain
+the conservative request reservation as uncertain when a successful embedding
+response omits usage, while still refusing malformed reported usage or a cap
+breach.
+
+P-set 6 was committed and pushed at `43e7187` before scoring. The first and
+only full invocation then measured:
+
+| Surface | Shared-token paraphrase | Zero-overlap paraphrase |
+| --- | ---: | ---: |
+| Ranked lexical | 25/25 | 0/25 |
+| Gemini semantic top-20 | 25/25 | 25/25 |
+
+All four FINAL predictions are confirmed: both controls stayed fixed,
+shared-token semantic recall was 25/25, and zero-overlap semantic recall
+exceeded the predicted minimum of 20/25.
+
+Other measured scale output: 2,500 turns / 5,000 messages; 19.08 ms ingest
+per turn; reported temporary DB size 0 MB; lexical median lookup 5.8 ms
+shared and 5.7 ms zero-overlap; vector indexing 137,051 ms; semantic median
+lookup 690.7 ms shared and 710.5 ms zero-overlap.
+
+The full run made 130 physical embedding requests covering 5,051 input texts
+and returned 3,072-dimensional vectors. Together with the compatibility call:
+131/131 requests returned HTTP 200, with zero transport retries. Gemini
+omitted embedding usage metadata on every response. The meter therefore
+records 0 provider-reported/measured tokens and `$0` measured spend; it
+retains 139,219 tokens as a deliberately conservative one-token-per-UTF-8-byte
+reservation, worth `$0.02088285` at the recorded standard
+`gemini-embedding-001` price of `$0.15/M`. Accounted and uncertain spend are
+both `$0.02088285` under the `$0.03` cap. This is an upper bound, not a claim
+that Gemini billed 139,219 tokens. Private evidence is preserved under
+gitignored `.palari-probe/scale-embedding-v1/`; no key or request text entered
+git.
+
+Verification after the run: `npm test` reported 624 pass, 0 fail, 3 skipped
+(627 total); `npm run quickstart` completed the six-step basic journey.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? Yes. The previously
+   measured zero-overlap floor moved from 0/25 lexical to 25/25 semantic
+   while every returned hit remained a canonical journal row.
+3. Does an existing framework already provide what this unit added? Generic
+   embedding retrieval exists, but not this measured combination of semantic
+   location with Palari's canonical evidence, scope, provenance, and deletion
+   walls.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder specified the exact adapter, predictions, one-shot run, and
+   closeout measurements.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Zero-overlap questions such as "how do I get into my flat" would
+   return to the measured 0/25 lexical boundary instead of locating the
+   byte-exact stored statement.
+
+This is a product measurement following the F1 adapter infrastructure, not a
+second consecutive infrastructure unit. No further embedding probe or scale
+rerun is authorized.
