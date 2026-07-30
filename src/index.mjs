@@ -68,6 +68,16 @@ export {
 } from './memory-exploration.mjs'
 
 export {
+  DEFAULT_RETRIEVAL_CALLS,
+  MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
+  MEMORY_HYBRID_RRF_K,
+  MEMORY_RETRIEVAL_INSTRUCTIONS,
+  MEMORY_RETRIEVAL_TOOLS,
+  answerWithRetrieval,
+  reciprocalRankFuse,
+} from './retrieval-answer.mjs'
+
+export {
   loadLongMemEvalInstances,
   longMemEvalQuestionTypes,
   parseLongMemEvalTimestamp,

@@ -1,0 +1,370 @@
+import assert from 'node:assert/strict'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import test from 'node:test'
+
+import {
+  MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
+  MEMORY_RETRIEVAL_INSTRUCTIONS,
+  MEMORY_RETRIEVAL_TOOLS,
+  answerWithRetrieval,
+  createPalariBrain,
+  ingestChatTurn,
+  reciprocalRankFuse,
+} from '../src/index.mjs'
+
+const SCOPE = Object.freeze({
+  palariId: 'palari-retrieval',
+  userId: 'user-retrieval',
+})
+
+const CONCEPTS = [
+  ['key', 'pot', 'balcony', 'get into', 'flat', 'door', 'unlock'],
+  ['battery', 'phone', 'power bank', 'charging', 'charge'],
+  ['tokyo', 'suica', 'tripit', 'train', 'transit', 'navigate'],
+]
+
+async function fakeEmbed(texts) {
+  return texts.map((text) => {
+    const lowered = String(text).toLowerCase()
+    return CONCEPTS.map((bucket) =>
+      bucket.reduce((score, token) =>
+        score + (lowered.includes(token) ? 1 : 0), 0))
+  })
+}
+
+function keepNothing({ request }) {
+  return {
+    actions: [],
+    baseRevision: request.input.baseRevision,
+    dispositions: request.input.evidence.map((item) => ({
+      evidenceId: item.id,
+      outcome: 'no_memory',
+    })),
+  }
+}
+
+async function scriptedGraphExtractor({ evidence }) {
+  const assertions = []
+  for (const item of evidence) {
+    let match = item.text.match(/^My sister is (\w+)\.$/)
+    if (match) {
+      assertions.push({
+        evidenceRef: item.ref,
+        object: match[1],
+        predicate: 'is sister of',
+        quote: match[0],
+        subject: 'user',
+      })
+    }
+    match = item.text.match(/^(\w+)'s doctor is Dr\. (\w+)\.$/)
+    if (match) {
+      assertions.push({
+        evidenceRef: item.ref,
+        object: `Dr. ${match[2]}`,
+        predicate: 'has doctor',
+        quote: match[0],
+        subject: match[1],
+      })
+    }
+    match = item.text.match(/^Dr\. (\w+) works at the (.+)\.$/)
+    if (match) {
+      assertions.push({
+        evidenceRef: item.ref,
+        object: match[2],
+        predicate: 'works at',
+        quote: match[0],
+        subject: `Dr. ${match[1]}`,
+      })
+    }
+  }
+  return { assertions }
+}
+
+async function openBrain(t, options = {}) {
+  const root = await mkdtemp(join(tmpdir(), 'palari-retrieval-answer-'))
+  const brain = await createPalariBrain({
+    memoryEnabled: true,
+    statePath: join(root, 'state.json'),
+    workspaceId: 'retrieval-answer',
+    ...options,
+  })
+  t.after(async () => {
+    brain.close()
+    await rm(root, { force: true, recursive: true })
+  })
+  return brain
+}
+
+async function seed(brain, messages, {
+  reducer = keepNothing,
+  scope = SCOPE,
+} = {}) {
+  for (const [index, message] of messages.entries()) {
+    await ingestChatTurn(brain, {
+      assistantMessage: message.assistant ?? 'Noted.',
+      eventAt: new Date(Date.UTC(2025, 0, 1) + index * 86_400_000)
+        .toISOString(),
+      palariId: scope.palariId,
+      retention: 'durable',
+      sourceMessageId: message.id ?? `session-${index}:0`,
+      userId: scope.userId,
+      userMessage: message.user,
+    }, {
+      reducer,
+      reducerId: reducer ? 'retrieval-answer-test/v1' : undefined,
+    })
+  }
+}
+
+test('hybrid answer retrieval bridges zero-overlap wording to canonical text',
+  async (t) => {
+    const brain = await openBrain(t, { embedder: fakeEmbed })
+    await seed(brain, [
+      { user: 'Please add oat milk to the shopping list.' },
+      {
+        id: 'home-access:0',
+        user:
+          'I keep the spare key inside the blue ceramic pot on the balcony.',
+      },
+      { user: 'My next dentist appointment is Thursday.' },
+    ])
+
+    let returned
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider({
+        briefing,
+        retrievalCapabilities,
+        retrievalTools,
+        retrieve,
+      }) {
+        assert.equal(briefing.included.length, 0)
+        assert.equal(retrievalCapabilities.semantic, true)
+        assert.ok(retrievalTools.some((tool) =>
+          tool.name === 'memory_search'))
+        returned = await retrieve({
+          input: { phrase: 'how do I get into my flat' },
+          tool: 'memory_search',
+        })
+        assert.equal(returned.semanticUsed, true)
+        assert.equal(
+          returned.matches[0].text,
+          'I keep the spare key inside the blue ceramic pot on the balcony.',
+        )
+        assert.ok(returned.matches[0].surfaces.includes('semantic'))
+        return {
+          abstained: false,
+          text: 'Your spare key is in the blue ceramic pot on the balcony.',
+        }
+      },
+      question: 'How do I get into my flat?',
+    })
+
+    assert.equal(
+      result.answer,
+      'Your spare key is in the blue ceramic pot on the balcony.',
+    )
+    assert.equal(result.retrievalCalls, 1)
+    assert.equal(result.retrievalExhausted, false)
+    assert.deepEqual(
+      result.consultedEvidenceIds,
+      returned.matches.map((row) => row.evidenceId),
+    )
+    assert.equal(
+      result.retrievalTranscript[0].result.matches[0].text,
+      returned.matches[0].text,
+    )
+  })
+
+test('reciprocal-rank fusion rewards evidence found by both surfaces', () => {
+  const fused = reciprocalRankFuse([
+    {
+      rows: [
+        { evidenceId: 'ranked-only' },
+        { evidenceId: 'both' },
+      ],
+      surface: 'ranked',
+    },
+    {
+      rows: [
+        { evidenceId: 'both' },
+        { evidenceId: 'semantic-only' },
+      ],
+      surface: 'semantic',
+    },
+  ])
+  assert.equal(fused[0].evidenceId, 'both')
+  assert.deepEqual(fused[0].surfaces, ['ranked', 'semantic'])
+  assert.deepEqual(fused[0].surfaceRanks, {
+    ranked: 2,
+    semantic: 1,
+  })
+})
+
+test('hybrid retrieval falls back honestly to ranked search without embedder',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [{
+      user: 'My portable power bank is fully charged for the trip.',
+    }])
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider({ retrievalCapabilities, retrieve }) {
+        assert.equal(retrievalCapabilities.semantic, false)
+        const found = await retrieve({
+          input: { phrase: 'portable power bank battery' },
+          tool: 'memory_search',
+        })
+        assert.equal(found.semanticUsed, false)
+        assert.equal(found.semanticCandidates, 0)
+        assert.ok(found.matches[0].text.includes('portable power bank'))
+        assert.deepEqual(found.matches[0].surfaces, ['ranked'])
+        return { text: 'Keep your existing power bank fully charged.' }
+      },
+      question: 'Any phone battery tips?',
+    })
+    assert.equal(result.retrievalCapabilities.semantic, false)
+    assert.equal(result.providerCalled, true)
+  })
+
+test('the answer loop exposes admitted graph edges without extracting',
+  async (t) => {
+    const brain = await openBrain(t, {
+      graphExtractor: scriptedGraphExtractor,
+    })
+    await seed(brain, [
+      { user: 'My sister is Ana.' },
+      { user: "Ana's doctor is Dr. Peixoto." },
+      { user: 'Dr. Peixoto works at the Lisbon hospital.' },
+    ], { reducer: null })
+    await brain.indexGraph(SCOPE)
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider({ retrieve }) {
+        const graph = await retrieve({
+          input: { entity: 'Ana', hops: 2 },
+          tool: 'memory_graph',
+        })
+        assert.ok(graph.edges.some((edge) =>
+          edge.subject === 'Dr. Peixoto' &&
+          edge.object === 'Lisbon hospital'))
+        assert.ok(graph.edges.every((edge) =>
+          edge.quote.length > 0 && edge.evidenceId))
+        return { text: 'Ana’s doctor works at the Lisbon hospital.' }
+      },
+      question: 'Which hospital does my sister’s doctor work at?',
+      questionDate: '2025-01-10T00:00:00.000Z',
+    })
+
+    assert.equal(
+      result.answer,
+      'Ana’s doctor works at the Lisbon hospital.',
+    )
+    assert.ok(result.consultedEvidenceIds.length >= 2)
+    assert.equal(result.retrievalTranscript[0].tool, 'memory_graph')
+  })
+
+test('the new answer contract is concise and gives providers safe headroom',
+  async (t) => {
+    const brain = await openBrain(t, { embedder: fakeEmbed })
+    await seed(brain, [{
+      id: 'tokyo:0',
+      user:
+        'I have a Suica card and downloaded TripIt for my Tokyo journey.',
+    }])
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider({
+        answerInstructions,
+        recommendedMaxOutputTokens,
+        retrieve,
+      }) {
+        assert.equal(
+          recommendedMaxOutputTokens,
+          MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
+        )
+        assert.ok(recommendedMaxOutputTokens >= 512)
+        assert.match(answerInstructions, /directly and concisely/)
+        const found = await retrieve({
+          input: {
+            phrase: 'helpful tips for getting around Tokyo',
+          },
+          tool: 'memory_search',
+        })
+        assert.ok(found.matches.some((row) =>
+          row.text.includes('Suica') && row.text.includes('TripIt')))
+        return {
+          text:
+            'Use your Suica card for transit and keep each route in TripIt.',
+        }
+      },
+      question:
+        'I’m a bit anxious about getting around Tokyo. Do you have any helpful tips?',
+    })
+
+    assert.equal(result.answer.split(/\s+/u).length, 12)
+  })
+
+test('retrieval tools are provider-neutral, bounded, and additive', () => {
+  assert.deepEqual(
+    MEMORY_RETRIEVAL_TOOLS.map((tool) => tool.name).sort(),
+    [
+      'memory_find',
+      'memory_graph',
+      'memory_read',
+      'memory_search',
+      'memory_timeline',
+    ],
+  )
+  const search = MEMORY_RETRIEVAL_TOOLS.find((tool) =>
+    tool.name === 'memory_search')
+  assert.deepEqual(search.parameters.required, ['phrase'])
+  assert.equal(search.parameters.properties.phrase.maxLength, 500)
+  const graph = MEMORY_RETRIEVAL_TOOLS.find((tool) =>
+    tool.name === 'memory_graph')
+  assert.equal(graph.parameters.properties.hops.maximum, 3)
+  assert.match(MEMORY_RETRIEVAL_INSTRUCTIONS, /one sentence/)
+  assert.ok(MEMORY_RETRIEVAL_TOOLS.every(Object.isFrozen))
+})
+
+test('retrieval calls are bounded and unknown tools fail closed',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [{ user: 'A retained statement.' }])
+    const bounded = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      maxRetrievalCalls: 1,
+      async provider({ retrieve }) {
+        await retrieve({
+          input: { phrase: 'retained' },
+          tool: 'memory_search',
+        })
+        const refused = await retrieve({
+          input: { phrase: 'statement' },
+          tool: 'memory_search',
+        })
+        assert.equal(refused.reason, 'retrieval_budget_exhausted')
+        return { text: 'Stopped.' }
+      },
+      question: 'What is retained?',
+    })
+    assert.equal(bounded.retrievalCalls, 1)
+    assert.equal(bounded.retrievalExhausted, true)
+
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        async provider({ retrieve }) {
+          await retrieve({ input: {}, tool: 'memory_delete_everything' })
+          return { text: 'unreachable' }
+        },
+        question: 'Anything?',
+      }),
+      /Unknown memory tool/,
+    )
+  })

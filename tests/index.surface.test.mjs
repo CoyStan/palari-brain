@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises'
 
 const EXPECTED_FUNCTIONS = [
   'answerQuestion',
+  'answerWithRetrieval',
   'buildActiveMemoryBriefing',
   'buildAnswerPrompt',
   'buildMemoryBriefing',
@@ -42,6 +43,7 @@ const EXPECTED_VALUES = [
   'MEMORY_STATEMENT_RESPONSE_MIME_TYPE',
   'MEMORY_STATEMENT_RESPONSE_SCHEMA',
   'MEMORY_STATEMENT_TYPES',
+  'MEMORY_RETRIEVAL_TOOLS',
 ]
 
 const REMOVED_LEXICAL_OR_MODEL_AUTHORITY_EXPORTS = [
@@ -90,4 +92,17 @@ test('the package includes every module loaded by its public entry point',
       packageJson.files.includes('src/memory-exploration.mjs'),
       'installed tarballs must include the exploration module exported by index.mjs',
     )
+    for (const path of [
+      'src/memory-graph.mjs',
+      'src/memory-search.mjs',
+      'src/memory-semantic.mjs',
+      'src/memory-trend.mjs',
+      'src/quote-context.mjs',
+      'src/retrieval-answer.mjs',
+    ]) {
+      assert.ok(
+        packageJson.files.includes(path),
+        `installed tarballs must include ${path}`,
+      )
+    }
   })

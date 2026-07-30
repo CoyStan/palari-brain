@@ -384,6 +384,7 @@ test('frozen first-five identity rejects the successor digest graph',
         'src/memory-semantic.mjs',
         'src/memory-trend.mjs',
         'src/quote-context.mjs',
+        'src/retrieval-answer.mjs',
       ],
     )
     await assert.rejects(

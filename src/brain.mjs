@@ -187,6 +187,11 @@ export async function createPalariBrain(options = {}) {
       embedder: options.embedder ?? null,
       graphExtractor: options.graphExtractor ?? null,
     })
+    const retrievalCapabilities = Object.freeze({
+      graphIndex: typeof options.graphExtractor === 'function',
+      graphQuery: true,
+      semantic: typeof options.embedder === 'function',
+    })
     return Object.freeze({
       close: () => store.close(),
       enabled: Boolean(store.enabled),
@@ -206,6 +211,7 @@ export async function createPalariBrain(options = {}) {
       listIndexEntries: gate.listIndexEntries,
       listPendingReductions: gate.listPendingReductions,
       readReadyDigest: gate.readReadyDigest,
+      retrievalCapabilities,
       listStatements: gate.listStatements,
       listStatementsForBriefing: gate.listStatementsForBriefing,
       publicStatus() {

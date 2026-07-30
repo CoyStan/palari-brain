@@ -457,3 +457,48 @@ If either mandatory smoke fails, the runner stops before question 1 and that
 failure is the final v6 result. If the meter or another fail-closed boundary
 stops a question, the reached prefix is recorded exactly as observed; it is
 not authority to resume or replace the run.
+
+## P-set 10 — active retrieval reached-prefix regression, FINAL before scoring
+
+Author: repository execution lane, 2026-07-30. Registered after the new
+provider-neutral retrieval-to-answer implementation and its synthetic
+contract tests were green, and before the first private-data invocation.
+The active implementation is `src/retrieval-answer.mjs`, SHA-256
+`c578c0190ebbe59c2e220b225e1f18af3ddca2a3b47d6669cdb51c62ca006e9b`.
+The offline harness is
+`evals/run-reached-prefix-retrieval-regression.mjs`, SHA-256
+`400be86fbb3ab86b1aee092e64cb728f796682797370a25f79bd2c916a7ea0bc`.
+Its ignored LongMemEval-S input has SHA-256
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+
+This is a structural regression, not an answer-quality score. It replays the
+complete canonical journal for the six judged v6 questions plus truncated
+question 7, then lets a deterministic local concept-vector stand-in drive
+the optional semantic plumbing. The stand-in contains no expected answer or
+answer-session identity. Real embedding quality remains the separate live
+25/25 semantic scale result in P-set 6. No credential, provider SDK, network,
+judge, or answer model is used.
+
+Predictions, failing categories first:
+
+1. POSITIVE RETRIEVAL: each of the five non-abstention reached questions
+   returns canonical messages from every dataset-labelled answer-bearing
+   session through `memory_search` (seven required sessions total).
+2. TEMPORAL ABSTENTION: the December-bounded museum/gallery search for
+   `80ec1f4f_abs` returns zero messages; this proves only the bounded search
+   result, not real-world non-occurrence.
+3. CANONICAL INTEGRITY: every returned message credited to an answer-bearing
+   session is byte-identical to one of that session's canonical dataset
+   messages.
+4. QUESTION-7 RECOVERY: `0a34ad58` returns its one answer-bearing Tokyo
+   session through the same hybrid path.
+5. ANSWER BOUNDARY: the question-7 provider contract requests a direct,
+   concise answer, recommends at least 512 output tokens, and the scripted
+   regression answer is at most 64 words.
+6. EXECUTION: all six reached cases and question 7 complete in the first
+   invocation with exactly zero provider calls, zero network calls, and no
+   answer-quality grade.
+
+Any miss is retained as the result. It does not authorize changing the local
+concept mapping, answer-session expectations, bounds, ranking limit, or
+scoring and rerunning the same regression.

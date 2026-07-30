@@ -63,16 +63,21 @@ The quickstart demonstrates:
 ## When memory is not enough, look
 
 The digest is bounded working memory. The canonical journal holds everything
-that was actually said. `answerWithExploration` lets the answer model search
-and read that journal when the digest comes up short, using three primitives
-behind the same gate: `memory_timeline` (`ls`), `memory_read` (`cat`), and
-`memory_find` (`grep`: exact substring by default; `ranked: true` for
-stemmed BM25 word matching; `after`/`before` ISO bounds filter on host
-chronology). Beyond the tool loop, the brain also exposes
-`exploreSemantic` (embedding search, only when created with an `embedder`)
-and `indexGraph`/`exploreGraph` (a derived temporal graph with verified
-quotes on every edge, computed validity, and per-fact-group trends, only
-when created with a `graphExtractor`).
+that was actually said. `answerWithRetrieval` gives a current product
+integration five bounded tools behind the same gate:
+
+- `memory_timeline` (`ls`), `memory_read` (`cat`), and `memory_find`
+  (`grep`: exact substring by default; `ranked: true` for stemmed BM25);
+- `memory_search`, which reciprocal-rank-fuses ranked and optional semantic
+  location, then reads every result back from the canonical journal;
+- `memory_graph`, which traverses already admitted temporal edges carrying
+  exact verified quotes.
+
+Semantic search runs only when the brain was created with an `embedder`.
+Graph lookup never extracts during answering; the host explicitly runs
+`indexGraph` beforehand when it has configured a `graphExtractor`.
+`answerWithExploration` remains the narrower historical three-tool contract
+used by sealed evaluators.
 
 Every consultation is deterministic and recorded, so an explored answer
 carries a replayable list of exactly which stored messages informed it.
@@ -98,7 +103,7 @@ explicit `PALARI_PROBE_CONFIRM_SPEND=1`.
 
 | Area | Files |
 | --- | --- |
-| Entry point | `src/index.mjs` (public API), `src/brain.mjs` (orchestration) |
+| Entry point | `src/index.mjs` (public API), `src/brain.mjs` (digest orchestration), `src/retrieval-answer.mjs` (bounded retrieval-to-answer loop) |
 | Canonical journal + gate | `src/dialogue-evidence.mjs`, `src/gate.mjs`, `src/store.mjs` |
 | Digest (verified working memory) | `src/memory-digest-store.mjs`, `src/memory-reducer.mjs`, `src/memory-briefing.mjs` |
 | Admission guards | `src/quote-context.mjs` (negation/conditional/quoted-speech/pasted-text) |
@@ -116,6 +121,12 @@ npm run memory-bench -- --dataset          # real LongMemEval-S ordinal 1
 npm run memory-bench -- --question 08e075c7
 npm run memory-bench -- --reduce-every 20   # batch reduction
 ```
+
+`npm run reached-prefix-regression` is a separate private-data diagnostic. It
+requires the gitignored LongMemEval-S file and checks whether the six reached
+S-60 v6 cases deliver their canonical answer-bearing sessions through the
+current retrieval-to-answer API. It uses a deterministic local stand-in,
+makes zero provider calls, and does not grade answer quality.
 
 This replays a long conversation through the real write path with a
 deterministic, provider-free reducer. No credential is read, no provider is

@@ -186,6 +186,7 @@ test('frozen artifacts exclude the successor digest import graph',
         'src/memory-semantic.mjs',
         'src/memory-trend.mjs',
         'src/quote-context.mjs',
+        'src/retrieval-answer.mjs',
       ],
     )
   })

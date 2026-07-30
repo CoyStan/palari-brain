@@ -1,5 +1,17 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-R1-P ACTIVE RETRIEVAL-TO-ANSWER REGRESSION PREPARED
+OFFLINE. The founder authorized the failure-driven product integration with
+no provider calls. The current active path now has an opt-in bounded answer
+loop that supplies the digest first, reciprocal-rank-fuses ranked and
+optional semantic journal lookup with canonical read-back, and exposes the
+already admitted temporal graph without extracting during answer time.
+The historical three-tool evaluator contract remains unchanged.
+P-set 10 freezes a private-data structural regression over the six judged v6
+questions plus question 7; it explicitly does not grade answer quality.
+The harness has not yet been invoked. Suite: 637 pass, 0 fail, 3 skipped;
+quickstart green.
+
 Loop state: J4.5K-S60-E FRESH S-60 V6 TERMINAL AFTER QUESTION-7 ANSWER
 TRUNCATION. The pre-run freeze was pushed at `775ec27`, then invoked exactly
 once. Both mandatory smokes passed on their first calls. Six questions
@@ -4310,3 +4322,77 @@ benchmark answer enters git, and no public score is authorized.
 
 This is a terminal product measurement with a concrete answer-output finding,
 not an infrastructure unit and not authority for a repair or successor run.
+
+### J4.5K-R1-P active retrieval-to-answer integration and regression freeze
+
+The founder accepted the recommendation to stop buying S-60 attempts and
+first connect the already measured retrieval surfaces to the current active
+product answer. This unit is offline-only; it reads no credential and has no
+provider transport.
+
+`src/retrieval-answer.mjs` adds a new opt-in `answerWithRetrieval` path rather
+than changing the three-tool `answerWithExploration` contract consumed by
+sealed evaluators. The new path:
+
+- sends the active digest first;
+- exposes exact/ranked find, canonical read, and timeline unchanged;
+- adds `memory_search`, which fuses ranked BM25 and optional semantic results
+  with reciprocal-rank fusion and then reads each selected ID from the
+  canonical journal;
+- adds `memory_graph`, a read-only traversal over already admitted edges;
+- records every consulted evidence ID and bounded tool request/result;
+- falls back honestly to ranked-only search when no embedder was configured;
+- never invokes graph extraction while answering; and
+- asks providers for a direct concise answer with a recommended 512-token
+  output allowance, closing the 256-token boundary that terminated v6.
+
+Every search result presented as a message is exact canonical dialogue with
+host speaker and time. Scores and graph structure only locate evidence.
+Graph edges retain their already enforced exact quote and evidence ID.
+Package contents now include every transitive retrieval module loaded by the
+public entry point.
+
+The private-data diagnostic
+`npm run reached-prefix-regression` replays the complete active canonical
+journal for the six judged v6 questions and question 7. It uses a
+deterministic local concept-vector stand-in solely to exercise semantic
+plumbing; it contains no answer text or answer-session ID and makes no
+embedding-quality claim. It grades answer-session delivery, byte-exact
+canonical read-back, the bounded December abstention search, and the
+question-7 answer contract. It does not run or grade an answer model.
+
+P-set 10 was written before the first private-data invocation. The frozen
+implementation SHA-256 is
+`c578c0190ebbe59c2e220b225e1f18af3ddca2a3b47d6669cdb51c62ca006e9b`;
+the harness SHA-256 is
+`400be86fbb3ab86b1aee092e64cb728f796682797370a25f79bd2c916a7ea0bc`;
+the ignored dataset SHA-256 is
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+
+Verification before the private invocation: `npm test` reported 637 pass,
+0 fail, and 3 skipped (640 tests total); `npm run quickstart` completed the
+six-step journey. The focused retrieval contract is 7/7 and the inert
+regression-harness contract is 2/2. Next is exactly one offline invocation
+of the preregistered reached-prefix regression, followed by recording the
+result whatever it is. No provider or network call is authorized or present.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? The product path now
+   makes the live-proven semantic and graph surfaces available to an answer
+   while preserving canonical evidence; the private reached-prefix
+   measurement is still pending.
+3. Does an existing framework already provide what this unit added? Retrieval
+   fusion is common; host-verified canonical read-back, optional no-dial
+   semantics, admitted quoted graph edges, deletion scope, and one replayable
+   consulted-evidence trail are Palari's combined guarantee.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly approved the proposed offline retrieval-to-answer
+   integration and six-case regression.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? The answer loop would again be unable to use semantic or graph
+   retrieval, recreating the exact seam behind the five v6 retrieval
+   failures.
+
+This is a product integration followed immediately by its offline
+measurement, not an infrastructure-only unit.

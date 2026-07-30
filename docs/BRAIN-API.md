@@ -463,6 +463,61 @@ The honest limitation: exact matching misses synonyms and typos. The tool
 description tells the model so, and instructs it to try other wordings or
 navigate by session instead of giving up after one miss.
 
+### Current retrieval-to-answer API
+
+`answerWithRetrieval` is the current product path that joins the finding aids
+to answering without changing the narrower tool contract used by sealed
+historical evaluators:
+
+```js
+import {
+  MEMORY_RETRIEVAL_TOOLS,
+  answerWithRetrieval,
+} from 'palari-brain'
+
+const result = await answerWithRetrieval(brain, {
+  palariId,
+  userId,
+  question,
+  questionDate,
+  maxRetrievalCalls: 6,
+  async provider({
+    answerInstructions,
+    memoryText,
+    recommendedMaxOutputTokens,
+    retrievalTools,
+    retrieve,
+  }) {
+    // Map retrievalTools (the same value as MEMORY_RETRIEVAL_TOOLS) to
+    // provider tool declarations. Route each requested call through retrieve.
+    // Honor recommendedMaxOutputTokens (currently 512) while following the
+    // direct/concise answer instruction.
+    return { abstained: false, text: '...' }
+  },
+})
+```
+
+It supplies the digest first and exposes all five tools:
+
+| Tool | Behavior |
+| --- | --- |
+| `memory_timeline` | Chronological session orientation |
+| `memory_read` | Complete canonical messages by identity/session |
+| `memory_find` | Exact or stemmed-ranked journal lookup |
+| `memory_search` | Reciprocal-rank fusion of ranked and optional semantic hits, followed by canonical reads |
+| `memory_graph` | Read-only traversal of previously admitted quoted edges |
+
+`memory_search` reports `semanticUsed`. If no embedder was configured, it
+falls back honestly to ranked-only search instead of dialing out or claiming
+semantic behavior. `memory_graph` never calls the extractor; graph indexing
+is an explicit earlier `brain.indexGraph(scope)` operation.
+
+`result.consultedEvidenceIds` contains every canonical message or graph edge
+returned to the answer callback. `result.retrievalTranscript` records every
+bounded tool request/result. Search ranking and graph structure locate
+evidence; exact journal messages and verified edge quotes remain the only
+testimony.
+
 ### The digest is an index
 
 Each rendered digest record names the sessions its supporting evidence came
@@ -589,6 +644,11 @@ plus `similarity`. Vectors are derived data in the same SQLite file
 (`dialogue_evidence_vectors`), indexed incrementally, removed by trigger on
 deletion. Without an embedder the surface throws — nothing dials out and
 nothing pretends.
+
+`brain.retrievalCapabilities.semantic` tells an answer orchestrator whether
+the optional semantic surface is configured. `answerWithRetrieval` uses that
+host-derived capability to decide whether `memory_search` runs one or two
+ranking surfaces.
 
 ### Derived temporal graph (optional; `graphExtractor` option)
 
