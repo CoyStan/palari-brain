@@ -1,14 +1,16 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.5K-R2-P ACTIVE RETRIEVAL SEEN-SIX LIVE RE-MEASUREMENT
-FROZEN. At the founder's explicit direction, the same six inspected v6 cases
-are registered as a separate diagnostic identity, not an unbiased benchmark
-and not a regrade of the sealed v6 `1/6`. P-set 11 freezes the IDs, real
-Gemini semantic path, full-text chunk aggregation, native answer tools,
-official judge, one compatibility smoke, one invocation, and the carried
-`$1.5885167` opening spend under a fresh `$5.00` hard cap. The ignored
-one-shot harness verifies offline. No request for this identity has occurred
-at this cut.
+Loop state: J4.5K-R2 ACTIVE RETRIEVAL SEEN-SIX LIVE RE-MEASUREMENT
+TERMINAL AT COMPATIBILITY. The pushed `3f94ab3` freeze was invoked exactly
+once. Its first Gemini answer request returned HTTP 400 because Gemini
+rejected `memory_read`'s provider-neutral `anyOf` schema: each branch's
+`required` property was reported as undefined. The mandatory combined
+native-tool/semantic smoke therefore failed before a tool or embedding call.
+Zero benchmark questions, answers, or judges ran, so this identity has no
+accuracy score and the sealed v6 result remains `1/6`. One physical request
+was made. Fresh accounted spend is `$0.4784128`, all uncertain under the
+frozen full-window reservation; cumulative S-60 lineage spend is
+`$2.0669295` accounted (`$1.5860157` measured plus `$0.4809138` uncertain).
 
 Loop state: J4.5K-R1 ACTIVE RETRIEVAL-TO-ANSWER REGRESSION COMPLETE.
 The offline freeze was pushed at `4796800` and invoked exactly once. All six
@@ -4542,3 +4544,77 @@ followed by recording whatever happens.
 
 This is the allowed measurement freeze immediately before its authorized
 product gate, not a second consecutive infrastructure unit.
+
+### J4.5K-R2 terminal seen-six compatibility result
+
+The clean pushed freeze `3f94ab3d949443625bf9814eb192edb297ab1f82`
+was launched once. A separate shell guard typo refused before the harness
+started and created no directory, credential read, or provider request. The
+subsequent guarded command is the one and only physical invocation of
+`j4-active-retrieval-seen6-v1`.
+
+The invocation created its private terminal identity and started the
+preregistered combined compatibility smoke. The first answer-model request
+used served target `gemini-3.5-flash-lite`, the same requested answer model as
+v6, and included all five provider-neutral active retrieval declarations.
+Gemini returned HTTP 400 `INVALID_ARGUMENT` before a model completion:
+
+`GenerateContentRequest.tools[0].function_declarations[1]` rejected both
+`parameters.any_of` branches because each branch's `required` property was
+reported as undefined. Declaration index 1 is `memory_read`. Its schema
+defines root `properties` plus an `anyOf` selecting either `evidenceIds` or
+`session`; that provider-neutral shape is locally valid but is not accepted
+by this Gemini wire surface as serialized.
+
+The compatibility stop behaved as frozen:
+
+| Measurement | Result |
+| --- | ---: |
+| Physical Gemini generation requests | 1 |
+| Successful completions | 0 |
+| Embedding requests | 0 |
+| Benchmark questions started/completed | 0 / 0 |
+| Benchmark answers | 0 |
+| Official judge requests | 0 |
+| Fresh measured spend | `$0` |
+| Fresh uncertain/accounted spend | `$0.4784128` / `$0.4784128` |
+| Cumulative measured spend | `$1.5860157` |
+| Cumulative uncertain/accounted spend | `$0.4809138` / `$2.0669295` |
+
+Against P-set 11, COMPATIBILITY missed. RETRIEVAL COVERAGE, OFFICIAL
+ACCURACY, SEMANTIC USE, and ANSWER BOUNDARY were not reached and receive no
+result. EXECUTION/ACCOUNTING confirmed one terminal invocation, zero retries,
+the stop-before-benchmark rule, and the fresh cap, but retained the complete
+generation-window reservation as uncertainty because no validated usage was
+returned. No prediction, prior answer, or judge label was changed.
+
+The private report SHA-256 is
+`fc43d26427a76677b1ebec775c7b53ad0281399e2a17e0ec87d202077e11b07a`;
+meter SHA-256 is
+`c67f47edac77a4161f012e5e0e89c640eac3637a6d255492ad28b064d4d58c00`;
+provider transcript SHA-256 is
+`46805f2c89cbf6956712300e9da533b9cede45178ff85acf8fcc1422162ef89a`;
+and the post-run private artifact manifest SHA-256 is
+`5749bffc34512b065fdd7c1f999384d4a3c45ee002cd37766b161674ca8caec4`.
+All six private files are mode 0600, the five manifested run-producing
+artifacts rehash exactly, and exact credential values are absent. The ignored
+run directory self-seals the identity and refuses a second invocation.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   the pre-run full suite was 637 pass, 0 fail, and 3 skipped, and quickstart
+   was green.
+2. Did this unit make that journey measurably better? No. It measured and
+   isolated a live provider-schema incompatibility before benchmark spend.
+3. Does an existing framework already provide what this unit added? Gemini
+   provides native tools but does not accept this provider-neutral union
+   schema unchanged; a provider mapping must lower it to Gemini's supported
+   schema subset.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly directed this same-six live re-measurement.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? A future run could silently count a provider wiring failure as an
+   answer failure, retry the consumed identity, or imply the six were scored.
+
+This is a terminal live product finding, not an infrastructure unit. A
+Gemini-specific schema-lowering repair and any successor provider request
+require a fresh founder GO; this identity cannot be retried.
