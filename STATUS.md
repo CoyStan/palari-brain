@@ -1,16 +1,17 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.5K-R1-P ACTIVE RETRIEVAL-TO-ANSWER REGRESSION PREPARED
-OFFLINE. The founder authorized the failure-driven product integration with
-no provider calls. The current active path now has an opt-in bounded answer
-loop that supplies the digest first, reciprocal-rank-fuses ranked and
-optional semantic journal lookup with canonical read-back, and exposes the
-already admitted temporal graph without extracting during answer time.
-The historical three-tool evaluator contract remains unchanged.
-P-set 10 freezes a private-data structural regression over the six judged v6
-questions plus question 7; it explicitly does not grade answer quality.
-The harness has not yet been invoked. Suite: 637 pass, 0 fail, 3 skipped;
-quickstart green.
+Loop state: J4.5K-R1 ACTIVE RETRIEVAL-TO-ANSWER REGRESSION COMPLETE.
+The offline freeze was pushed at `4796800` and invoked exactly once. All six
+judged v6 cases passed the preregistered canonical retrieval contract:
+the five positive cases returned all seven required answer-bearing sessions,
+and the December-bounded abstention returned zero messages. Question 7 also
+returned its one required Tokyo session and passed the concise 512-token
+answer boundary. Every credited row was byte-exact canonical dialogue.
+There were seven local retrieval calls and zero provider/network calls.
+This is not an answer-quality score and does not change the sealed v6 1/6.
+The diagnostic returned a broad 47-50 messages for each positive case, so it
+proves evidence delivery, not economical top-k selection or model use.
+Suite: 637 pass, 0 fail, 3 skipped; quickstart green.
 
 Loop state: J4.5K-S60-E FRESH S-60 V6 TERMINAL AFTER QUESTION-7 ANSWER
 TRUNCATION. The pre-run freeze was pushed at `775ec27`, then invoked exactly
@@ -4396,3 +4397,81 @@ result whatever it is. No provider or network call is authorized or present.
 
 This is a product integration followed immediately by its offline
 measurement, not an infrastructure-only unit.
+
+### J4.5K-R1 active retrieval reached-prefix result
+
+The pushed freeze `4796800` was invoked exactly once with
+`npm run reached-prefix-regression`. It completed normally. The retained
+mode-0600 report is gitignored at
+`.palari-regression/reached-prefix-retrieval-v1/report.json`, SHA-256
+`322caf69fd1e299bd918152ff53346130116c274b43e061e88b50304e0ed8e83`.
+
+The first result against P-set 10 was:
+
+| Question | Required answer sessions | Matched | Returned messages | Result |
+| --- | ---: | ---: | ---: | --- |
+| `08e075c7` | 2 | 2 | 50 | pass |
+| `09d032c9` | 1 | 1 | 50 | pass |
+| `16c90bf4` | 1 | 1 | 50 | pass |
+| `5e1b23de` | 1 | 1 | 47 | pass |
+| `80ec1f4f_abs` | 0 | 0 | 0 | pass |
+| `0977f2af` | 2 | 2 | 50 | pass |
+| `0a34ad58` boundary | 1 | 1 | 50 | pass |
+
+Every positive lookup used one `memory_search` call with the deterministic
+local semantic stand-in. All returned rows credited to an answer-bearing
+session were byte-identical to canonical dataset messages. The five reached
+positive cases therefore recovered 7/7 required sessions; the reached
+temporal abstention returned no museum/gallery messages inside the explicit
+December bounds. Question 7 recovered its one required Tokyo session. Its
+scripted answer was 12 words, the provider contract requested direct concise
+output, and the recommended allowance was 512 tokens.
+
+The complete seven-case run made seven local retrieval calls, zero provider
+calls, zero network calls, and no judge call. No answer quality was graded.
+The prior v6 answers remain immutable and wrong where recorded; this result
+does not relabel them, does not estimate S-60 accuracy, and does not validate
+the deterministic stand-in as an embedding model. Gemini semantic quality
+remains the separately measured 25/25 scale result.
+
+The breadth is a real remaining finding: each positive regression requested
+limit 50 and returned 47-50 complete messages. That is bounded and succeeded
+at evidence delivery, but it is not evidence that a live answer model will
+select the right statement efficiently from a small context. The next live
+gate must therefore use previously unreached questions, record returned
+message count and target-session coverage separately from judge accuracy,
+and must not rerun these inspected six as an unbiased score.
+
+Proposed next founder gate, not built or authorized:
+
+1. a fresh active retrieval identity on S-60 ordinals 8-17 only;
+2. one native-tool/semantic compatibility smoke, stop-and-report on failure;
+3. one invocation, no rerolls or regrades, with an exact offline-derived hard
+   cap rather than a guessed dollar amount;
+4. preregister at least 8/10 target-session retrieval, at least 6/10 official
+   correctness, zero provenance/source/deletion violations, and zero answer
+   truncations; and
+5. record per-question retrieval breadth so a 50-message flood cannot count
+   as an unqualified retrieval success.
+
+Only after that unseen gate passes should a fresh full S-60 measurement or
+an investor-facing comparison be considered.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? Yes. The active answer
+   path can now reach the canonical evidence missed by the v6 lexical
+   briefing, and the private regression recovered all seven required
+   positive sessions while preserving the bounded abstention.
+3. Does an existing framework already provide what this unit added? Hybrid
+   retrieval is common; canonical read-back with host speaker/time,
+   optional no-dial semantics, admitted quoted graph edges, scoped deletion,
+   and one consulted-evidence trail are the combined product guarantee.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder approved exactly this offline integration and failure regression.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Semantic and graph evidence would again be unavailable inside the
+   active answer loop, recreating the measured retrieval seam.
+
+This closes the authorized offline product unit. Any live provider smoke,
+unseen-question run, new identity, or spend requires a fresh founder GO.
