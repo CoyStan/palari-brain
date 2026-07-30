@@ -297,3 +297,35 @@ now supplies a fresh temporary SQLite vector path on every `open()` and
 routes Mem0's native OpenAI embedding client through a loopback meter. Offline
 tests prove distinct paths and metered proxy forwarding. No credential was
 read, no provider was called, and the invalid column was not rerun or changed.
+
+## P-set 6 — Gemini semantic scale probe, FINAL before scoring
+
+Author: repository execution lane, 2026-07-30. Registered after one
+non-scoring compatibility request received HTTP 200 from
+`models/gemini-embedding-001:batchEmbedContents`, and before the first full
+semantic scale-probe invocation.
+
+The scoring bank is the 25 planted rows and two paraphrase columns in
+`evals/run-scale-probe.mjs` at commit
+`53c2dd376343c5cb3e1a6fdfe854427add008237`, file SHA-256
+`17c5d4c851556e135dc1ec859ac76f30512913d00e6e9f73a08107acc32ab9cc`.
+The run uses 2,500 turns (5,000 canonical messages), semantic top-20, requested
+model `gemini-embedding-001`, symmetric task type `SEMANTIC_SIMILARITY`,
+100-request provider batches, and no generation model. The canonical embedder
+adapter SHA-256 is
+`2f7eb09dcaeafcd4903289023160d19562d9f17a9a312be32ba3a82496a94035`.
+The config serialization
+`{"batchLimit":100,"maxTextChars":8000,"model":"gemini-embedding-001","taskType":"SEMANTIC_SIMILARITY","topK":20}`
+has SHA-256
+`193d7f6714f2a14bb8341b05f9ad397145972c45979a90475eed22c99faa10c8`.
+
+Predictions, failing categories first:
+
+1. ZERO-OVERLAP LEXICAL stays `0/25`.
+2. ZERO-OVERLAP SEMANTIC moves to at least `20/25`.
+3. SHARED-TOKEN LEXICAL stays `25/25`.
+4. SHARED-TOKEN SEMANTIC is `25/25`.
+
+The first complete physical scale-probe output grades these predictions
+exactly as emitted. Any lower semantic result is a finding; it does not
+authorize prompt/config changes, a reroll, or selective regrading.
