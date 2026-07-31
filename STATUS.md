@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0001-C OFFLINE ANSWER-INTERPRETATION COMPOSITION IMPLEMENTED;
-REVIEW PENDING. A and B are accepted and integrated into the BRN-0001 parent at
+Loop state: BRN-0001-C OFFLINE ANSWER-INTERPRETATION COMPOSITION IMPLEMENTED AT
+`8e285b2`; REVIEW PENDING. A and B are accepted and integrated into the BRN-0001 parent at
 `fa32ba8`; this child now checks their structural composition with five
 synthetic cases and no provider/network calls. The temporary report is
 `answerQualityGraded: false`; focused C is 2/2, structural cases are 5/5, the
@@ -2274,11 +2274,10 @@ Focused/full/quickstart checks pass; review is required; no live activity.
 2026-07-31 — BRN-0001-B — `3e1f6d8` — Fresh independent review passed with no
 findings. B is accepted by the founder's explicit proceed instruction; parent
 integration is the next action.
-2026-07-31 — BRN-0001-C — implementation commit pending — Added a provider-free
-answer-boundary composition regression with generic advice, chronology, time,
-irrelevant, and empty controls. Focused/full/quickstart checks pass; the
-gitignored LongMemEval input is absent and was not downloaded; review is
-required; no live activity.
+2026-07-31 — BRN-0001-C — `8e285b2` — Added a provider-free answer-boundary
+composition regression with generic advice, chronology, time, irrelevant, and
+empty controls. Focused/full/quickstart checks pass; the gitignored LongMemEval
+input is absent and was not downloaded; review is required; no live activity.
 
 ## Product stop-rule record
 

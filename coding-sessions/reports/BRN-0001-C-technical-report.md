@@ -1,6 +1,6 @@
 # BRN-0001-C Technical Report
 
-Implementation commit: pending at submission time.
+Implementation commit: `8e285b2a16dc17f1d20b89fac5623898b2cd34af`.
 
 ## Files Changed
 
