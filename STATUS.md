@@ -1,5 +1,21 @@
 # STATUS — single source of truth for the loop
 
+Loop state: GOV1 SCOPED TICKET AND FRESH-REVIEW WORKFLOW COMPLETE AT
+`d8b6273`. At the founder's request, Palari Brain now carries a focused,
+dependency-free adaptation of the working `/home/quetza/palari-v05` ticket
+system, pinned to source commit `764cafbb`. Governed work has strict ticket
+metadata, R0-R4 risk rules, explicit allowed/forbidden paths, atomic creation,
+claim and non-acceptance transitions, one branch/worktree per ticket,
+committed-plus-dirty scope enforcement including both sides of renames,
+fresh-context specialist/reviewer/mediator packets, evidence-aware review
+classification, report lint, and a human-only acceptance boundary. The CLI
+cannot accept, merge, push, delete, widen scope, or authorize a founder gate.
+Company OS, deploy, archive, and workstream-board machinery were deliberately
+not imported. Six isolated lifecycle contracts pass; the full suite is 652
+pass, 0 fail, 3 skipped; quickstart, ticket lint, package dry-run, and diff
+checks are green. No credential was read and no provider call, benchmark,
+dataset operation, result, publication, or spend occurred.
+
 Loop state: J4.5K-R6-E CAPTURED-JUDGE ACTIVE-RETRIEVAL SEEN-SIX V5
 COMPLETE AND TERMINAL AT 3/6. The pushed `f24c175` freeze was invoked exactly
 once. Compatibility passed, all six questions completed, and the official
@@ -1684,6 +1700,14 @@ session itself).
 
 ## Next
 
+GOV1 is complete. Future governed work now starts with a committed ticket
+contract and isolated ticket worktree as documented in
+`docs/TICKET-WORKFLOW.md`; do not add more process machinery as the next unit.
+GOV1 is one infrastructure unit, so the next unit must return to measurable
+memory-product behavior. The prior product direction below remains current:
+diagnose answer interpretation and temporal reasoning offline before any new,
+independently frozen live evaluation.
+
 Do not resume or rerun any terminal active-retrieval identity:
 `j4-active-retrieval-seen6-v1`, `j4-active-retrieval-seen6-v2`, or
 `j4-active-retrieval-seen6-v3`, `j4-active-retrieval-seen6-v4`, or
@@ -2163,8 +2187,36 @@ with P-set 18, all terminal predecessors, `$3.10618695` opening spend, and
 answers and judges completed for 3/6; semantic use was 6/6 and transcript
 coverage 7/7 despite the report's invalid 0/7 join. Fresh spend is
 `$0.4692177` accounted; 84 calls succeeded with zero retries; v5 is sealed.
+2026-07-31 — GOV1 — `d8b6273` — Ported the scoped ticket lifecycle from
+palari-v05 commit `764cafbb`: isolated worktrees, allowed/forbidden path
+enforcement, fresh specialist/reviewer packets, evidence-aware review queue,
+report contracts, and an intentionally non-automatable acceptance boundary.
+Full suite 652 pass, 0 fail, 3 skipped; quickstart green; no live activity.
 
 ## Product stop-rule record
+
+### GOV1
+
+1. Can a new user run the basic memory journey right now? Yes — `npm run
+   quickstart` is green after the governance port.
+2. Did this unit make that journey measurably better? No. It changes how
+   governed engineering work is bounded and reviewed, not memory runtime
+   behavior.
+3. Does an existing framework already provide what this unit added? Yes — the
+   founder identified palari-v05's working local system. This unit adapted its
+   proven core instead of importing unrelated machinery or inventing another
+   process.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly requested this ticket system and called out reviewer
+   scope.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Current memory answers would not immediately change, but future
+   reviewed changes would lose mechanically enforced file scope, isolated
+   worktrees, fresh reviewer context, and the non-self-acceptance boundary.
+
+GOV1 is infrastructure. It is the first infrastructure unit in the current
+sequence and is allowed by the charter; a second consecutive infrastructure
+unit would be drift. Return to the offline answer-interpretation product unit.
 
 ### J1.1
 
