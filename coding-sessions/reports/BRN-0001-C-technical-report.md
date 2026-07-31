@@ -39,7 +39,7 @@ Implementation commit: `8e285b2a16dc17f1d20b89fac5623898b2cd34af`.
   charter forbids downloading an unverified dataset; no synthetic substitute
   was fabricated. The existing import-inert contract remains green.
 
-## Claim Boundary / Risks
+## Risks / Follow-Ups
 
 - The report is private and temporary by default (mode 600). It explicitly
   says answer quality was not graded and cannot change the sealed terminal

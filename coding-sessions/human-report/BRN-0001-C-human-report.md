@@ -1,5 +1,10 @@
 # BRN-0001-C Human Report
 
+## Why This Mattered
+
+The A and B repairs needed a single offline proof that their answer-boundary
+contracts compose before any new provider run is considered.
+
 ## What Changed
 
 The first two repairs now have one provider-free composition check. It feeds
@@ -9,13 +14,13 @@ its speaker meaning, two user-owned appliance observations retain chronology,
 and the November-to-February example carries host-computed three-month data.
 Irrelevant and empty controls remain explicit.
 
-## What It Does Not Claim
+## What I Should Know
 
 The callback returns a fixed sentinel and never grades a natural-language
 answer. The report records `answerQualityGraded: false`, with zero provider
 and network calls. It cannot raise or replace the sealed live 3/6 result.
 
-## Verification Note
+## What To Check
 
 The structural runner is deterministic across two executions, the focused and
 full suites pass, and quickstart remains green. The private LongMemEval input
