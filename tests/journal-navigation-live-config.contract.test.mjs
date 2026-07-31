@@ -66,6 +66,7 @@ test('terminal v2 contract pins its pre-run runtime and v1 predecessor',
       // identity re-freezes against the current bytes.
       'src/brain.mjs',
       'src/dialogue-evidence.mjs',
+      'src/gemini.mjs',
       'src/index.mjs',
       'src/memory-digest-store.mjs',
       'src/memory-exploration.mjs',

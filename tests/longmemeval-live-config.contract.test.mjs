@@ -553,6 +553,7 @@ test('J4 v5 frozen bytes survive terminal sealing and fail closed as runnable', 
     'evals/live-transcript.mjs',
     'evals/longmemeval-live-config.mjs',
     'evals/run-longmemeval-live.mjs',
+    'src/gemini.mjs',
   ])
   assert.equal(
     successorDrift.includes('evals/run-longmemeval-live.mjs'),

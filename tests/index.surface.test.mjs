@@ -88,11 +88,17 @@ test('the package includes every module loaded by its public entry point',
       new URL('../package.json', import.meta.url),
       'utf8',
     ))
+    assert.equal(
+      packageJson.exports['./gemini'],
+      './src/gemini.mjs',
+      'the Gemini adapter must use a dedicated provider subpath',
+    )
     assert.ok(
       packageJson.files.includes('src/memory-exploration.mjs'),
       'installed tarballs must include the exploration module exported by index.mjs',
     )
     for (const path of [
+      'src/gemini.mjs',
       'src/memory-graph.mjs',
       'src/memory-search.mjs',
       'src/memory-semantic.mjs',

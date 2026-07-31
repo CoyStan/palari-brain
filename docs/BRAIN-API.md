@@ -474,6 +474,7 @@ import {
   MEMORY_RETRIEVAL_TOOLS,
   answerWithRetrieval,
 } from 'palari-brain'
+import { buildGeminiFunctionTools } from 'palari-brain/gemini'
 
 const result = await answerWithRetrieval(brain, {
   palariId,
@@ -489,13 +490,22 @@ const result = await answerWithRetrieval(brain, {
     retrieve,
   }) {
     // Map retrievalTools (the same value as MEMORY_RETRIEVAL_TOOLS) to
-    // provider tool declarations. Route each requested call through retrieve.
+    // provider tool declarations. For Gemini:
+    const tools = buildGeminiFunctionTools(retrievalTools)
+    // Route each requested call through retrieve.
     // Honor recommendedMaxOutputTokens (currently 512) while following the
     // direct/concise answer instruction.
     return { abstained: false, text: '...' }
   },
 })
 ```
+
+`buildGeminiFunctionTools` is the provider boundary for Gemini native
+function calling. It leaves the provider-neutral tool definitions unchanged,
+supplies an object schema for no-argument tools, and lowers a root-property
+`anyOf` by repeating each required selector's definition inside its branch.
+Palari still validates and executes every returned call through `retrieve`;
+the provider declaration is not the admission gate.
 
 It supplies the digest first and exposes all five tools:
 

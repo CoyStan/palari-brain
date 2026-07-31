@@ -1,5 +1,15 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-R3 GEMINI-LOWERED ACTIVE RETRIEVAL SEEN-SIX SUCCESSOR
+FROZEN; LIVE INVOCATION AUTHORIZED AND PENDING. The provider-neutral five-tool
+contract and host gate are unchanged. A reusable `palari-brain/gemini`
+adapter now repeats each root-declared required selector inside its own
+Gemini `anyOf` branch, preserving the union instead of deleting it. The fresh
+`j4-active-retrieval-seen6-v2` identity carries terminal v1's exact spend,
+retains the original cumulative `$5.00` window, preregisters the same seen-six
+outcomes, and must run once: compatibility smoke first, then the six only if
+the smoke passes. No v2 provider call has occurred at this freeze.
+
 Loop state: J4.5K-R2 ACTIVE RETRIEVAL SEEN-SIX LIVE RE-MEASUREMENT
 TERMINAL AT COMPATIBILITY. The pushed `3f94ab3` freeze was invoked exactly
 once. Its first Gemini answer request returned HTTP 400 because Gemini
@@ -4618,3 +4628,74 @@ run directory self-seals the identity and refuses a second invocation.
 This is a terminal live product finding, not an infrastructure unit. A
 Gemini-specific schema-lowering repair and any successor provider request
 require a fresh founder GO; this identity cannot be retried.
+
+### J4.5K-R3-P reusable Gemini lowering and seen-six successor freeze
+
+The founder supplied the fresh GO after reviewing the provider-adapter
+tradeoff. The active root package contract remains provider-neutral. A new
+dedicated `palari-brain/gemini` package subpath performs the provider-only
+mapping so historical imports of `palari-brain` do not silently gain a new
+runtime dependency.
+
+The adapter leaves ordinary schemas unchanged. For a root-property `anyOf`,
+it fails closed unless every branch has a nonempty `required` list and every
+required name has a property definition. It then copies only each required
+selector's definition into that branch's local `properties`. It does not
+delete the union, mutate the canonical input, authorize a call, execute a
+tool, or replace Palari's bounded host handlers.
+
+P-set 12 freezes `j4-active-retrieval-seen6-v2`. Canonical tools hash
+`743c653b8ae0d29869904de969768fc25ae9ccb165d7ec704148da24eaa0ea3e`;
+Gemini-lowered declarations hash
+`231ae8595fca2ecc1fc7c91e5fd99aa4028d3dcf2fa79e5ff271adacc6f6720a`;
+the reusable adapter hashes
+`7e365f762d47e3482768e0df1c0a3b0b4bf75eda2ab71124141832b5fa4cae3e`;
+the unchanged active retrieval path hashes
+`c578c0190ebbe59c2e220b225e1f18af3ddca2a3b47d6669cdb51c62ca006e9b`;
+the ignored launcher hashes
+`55b69ec3e5368910bd04e5b81343ea07ede677c3317fa6f48afb4b57c154a7e0`;
+and its deterministic runtime hashes
+`549fcb69e2f902f8f5a1e01e71a880b4882d751c1aba2fcd00f1251553362e3c`.
+
+Terminal v1's manifest and all five manifested artifacts rehash exactly,
+including report
+`fc43d26427a76677b1ebec775c7b53ad0281399e2a17e0ec87d202077e11b07a`,
+meter
+`c67f47edac77a4161f012e5e0e89c640eac3637a6d255492ad28b064d4d58c00`,
+and provider transcript
+`46805f2c89cbf6956712300e9da533b9cede45178ff85acf8fcc1422162ef89a`.
+The ignored dataset remains
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+Historical frozen-contract tests continue to identify the new Gemini bytes
+as successor drift rather than accepting them into sealed identities.
+
+The exact opening balance is `$2.0669295` accounted
+(`$1.5860157` measured plus `$0.4809138` uncertain). V2 has only
+`$4.5215872` remaining under the original `$6.5885167` cumulative boundary.
+Its ignored runtime and result paths do not exist. Its first and only command
+must run the combined native-tool/semantic smoke before the same ordered six,
+and any stop or miss is terminal.
+
+Offline verification before the pushed freeze: full suite 640 pass, 0 fail,
+3 skipped; focused provider/retrieval contracts 25/25; `npm run quickstart`
+green; package dry-run includes the dedicated Gemini subpath; diff check
+clean. No credential was read and no provider or network call occurred.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? The package now maps
+   its canonical bounded retrieval tools onto Gemini without weakening the
+   host contract; live provider acceptance is still pending.
+3. Does an existing framework already provide what this unit added? Mem0 and
+   Graphiti maintain their own provider adapters. Palari still needs its own
+   thin mapping because its canonical tool and admission contracts are its
+   product boundary.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly approved finishing the Gemini adapter and successor
+   measurement.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Gemini would again reject active retrieval before the assistant
+   could inspect memory, leaving the five measured v6 misses unresolved.
+
+This is one product adapter correction followed by its already authorized
+measurement, not a second consecutive infrastructure unit.

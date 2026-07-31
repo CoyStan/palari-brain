@@ -572,3 +572,63 @@ Predictions, failing categories first:
    fresh `$5.00` cap, records measured and uncertain spend separately, and
    makes at most six official judge calls. Any stop or miss is the result and
    authorizes no retry, reroll, selective regrade, or prediction change.
+
+## P-set 12 — Gemini-lowered active retrieval seen-six successor, FINAL before execution
+
+Author: repository execution lane, 2026-07-31. The founder authorized the
+narrow provider repair and successor run after reviewing why provider
+frameworks maintain explicit adapters. This is a fresh identity,
+`j4-active-retrieval-seen6-v2`; it does not resume, retry, replace, regrade,
+or alter terminal v1, the sealed v6 `1/6`, or any prior answer or judge label.
+The same six cases remain inspected and this result remains a seen-case
+diagnostic, not an unbiased generalization estimate.
+
+The only intended provider-behavior change is Gemini tool-schema lowering.
+The canonical five-tool contract remains SHA-256
+`743c653b8ae0d29869904de969768fc25ae9ccb165d7ec704148da24eaa0ea3e`.
+The provider adapter repeats `evidenceIds` in the first `memory_read`
+`anyOf` branch's local `properties` and `session` in the second branch's
+local `properties`; it preserves the root properties and both `anyOf`
+branches. The resulting Gemini tool declaration SHA-256 is
+`231ae8595fca2ecc1fc7c91e5fd99aa4028d3dcf2fa79e5ff271adacc6f6720a`.
+Host execution and validation still consume the unchanged canonical request.
+
+The active retrieval implementation remains SHA-256
+`c578c0190ebbe59c2e220b225e1f18af3ddca2a3b47d6669cdb51c62ca006e9b`;
+the reusable Gemini adapter is
+`7e365f762d47e3482768e0df1c0a3b0b4bf75eda2ab71124141832b5fa4cae3e`;
+the sealed v1 base harness remains
+`750753ec8492fa005e9c9840c476e0adc92c3fc84943ec4a60cdabc12df547ca`;
+the ignored successor launcher is
+`55b69ec3e5368910bd04e5b81343ea07ede677c3317fa6f48afb4b57c154a7e0`;
+and its deterministically generated runtime is
+`549fcb69e2f902f8f5a1e01e71a880b4882d751c1aba2fcd00f1251553362e3c`.
+The ignored dataset and ordered six IDs are byte-identical to P-set 11.
+
+Terminal v1's exact `$0.4784128` uncertainty is carried into the opening
+S-60 balance of `$2.0669295`. V2 receives only the remaining `$4.5215872`
+of the original `$5.00` shared window, retaining the same `$6.5885167`
+cumulative boundary. One command is the complete invocation. It first runs
+the same combined native-tool/semantic smoke and stops before scoring on any
+failure. Otherwise it answers and judges the same ordered six once. There is
+no writer, reducer, graph extraction, transport retry, reroll, or regrade.
+
+Predictions, failing categories first:
+
+1. COMPATIBILITY: Gemini accepts all five lowered native tool declarations;
+   the combined smoke calls `memory_search`, uses the real semantic surface,
+   and answers the planted indigo token before any benchmark question.
+2. RETRIEVAL COVERAGE: the five positive questions consult all seven
+   dataset-labelled answer-bearing sessions; the abstention question is
+   reported separately and is not credited with a zero-session success.
+3. OFFICIAL ACCURACY: at least `4/6` answers are marked correct by the
+   unchanged `gpt-4o-2024-08-06` official judge.
+4. SEMANTIC USE: at least five of six scored questions issue one or more
+   successful `memory_search` calls with the real Gemini semantic surface.
+5. ANSWER BOUNDARY: all six answer completions finish without truncation,
+   retrieval-budget exhaustion, or a seventh-turn tool request.
+6. EXECUTION/ACCOUNTING: the first command is final, completes below the
+   remaining `$4.5215872` fresh cap and `$6.5885167` cumulative boundary,
+   records measured and uncertain spend separately, and makes at most six
+   official judge calls. Any stop or miss is the result and authorizes no
+   retry, reroll, selective regrade, or prediction change.

@@ -7,11 +7,13 @@
   "license": "MIT",
   "main": "src/index.mjs",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./gemini": "./src/gemini.mjs"
   },
   "files": [
     "src/brain.mjs",
     "src/dialogue-evidence.mjs",
+    "src/gemini.mjs",
     "src/index.mjs",
     "src/longmemeval.mjs",
     "src/memory-digest-store.mjs",
