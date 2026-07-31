@@ -845,3 +845,75 @@ Predictions and stopping rules:
 3. No fallback cell, benchmark question, embedding, OpenAI judge, retry,
    reroll, regrade, or publication runs. The debugging round closes after
    this one call whatever its result.
+
+## P-set 17 — repaired Gemini active-retrieval seen-six v4, FINAL before execution
+
+Author: repository execution lane, 2026-07-31. After the debugging round
+isolated and live-proved the Gemini 3.5 request repair, the founder explicitly
+authorized running questions 1–6 again. This is one fresh identity,
+`j4-active-retrieval-seen6-v4`; it does not resume, retry, replace, regrade, or
+alter terminal v1–v3, the debugging cells, the sealed v6 `1/6`, or any prior
+answer or judge label. These same six cases have been inspected, so the result
+is a seen-case diagnostic and not an unbiased generalization estimate.
+
+The intended provider-behavior change from terminal v3 is only the
+live-supported product repair: on `gemini-3.5-*`, the request boundary maps
+legacy `thinkingBudget: 0` to `thinkingLevel: MINIMAL`. It preserves explicit
+`store: false`, all five canonical raw JSON Schema declarations, and the
+unchanged host tool contract. The repaired Gemini adapter SHA-256 is
+`95e61649311476ea6198d2f434165b14d5527b3113553d2ef6a4b597a61bd292`;
+the active retrieval path is
+`44be2c15732d59160cf3a839ac02622c63202ffc891bc0df6c1f6cdf49be8998`.
+The canonical five-tool SHA-256 remains
+`743c653b8ae0d29869904de969768fc25ae9ccb165d7ec704148da24eaa0ea3e`,
+and the raw Gemini declaration SHA-256 remains
+`d2d09fa4b32372324ff8ab8b53b2683e2a4580e87eeb409fba3c942ca7912d0f`.
+
+The sealed v1 base harness remains
+`750753ec8492fa005e9c9840c476e0adc92c3fc84943ec4a60cdabc12df547ca`;
+the ignored one-shot v4 launcher is
+`fb83320a86c6c84805a71686c1329d335fd4bc314bb87ef18cee5d5cd23df44d`;
+and its deterministic runtime is
+`9155b4e4dcbd9b96018e546563a3d99d039f4644c21a3cebea8deaa5bfd185e6`.
+The ignored dataset remains
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`,
+and the ordered question IDs remain exactly `08e075c7`, `09d032c9`,
+`16c90bf4`, `5e1b23de`, `80ec1f4f_abs`, and `0977f2af`.
+
+Terminal v1, v2, and v3 plus the completed debugging round are preserved and
+reverified through their exact post-run manifest hashes:
+`5749bffc34512b065fdd7c1f999384d4a3c45ee002cd37766b161674ca8caec4`,
+`16d8137209f1bab8e19cb7feb9428071464daa8e8b02411bb4ec77a8075cf793`,
+`0f1432b6c2027a45ce67590ebf8cd3462f835e8ec5a71901e1aded04ee697a36`,
+and
+`f6432faad00b18d3e2e8221f4016355c33b4a526078c76e359a81b0ae0af9562`.
+Their total J4-related accounted spend is carried forward exactly:
+`$3.0279590` opening, comprising `$1.5869327` measured and `$1.4410263`
+uncertain. V4 receives only the remaining `$3.5605577` under the unchanged
+`$6.5885167` cumulative boundary.
+
+One command is the complete invocation. It first runs the same combined
+native-tool/semantic smoke and stops before question 1 on any failure.
+Otherwise it answers and judges the same ordered six exactly once. There is no
+writer, reducer, graph extraction, transport retry, reroll, selective regrade,
+or second invocation.
+
+Predictions, failing categories first:
+
+1. COMPATIBILITY: Gemini accepts all five raw JSON Schema declarations; the
+   combined smoke calls `memory_search`, uses the real semantic surface, and
+   answers the planted indigo token before any benchmark question.
+2. RETRIEVAL COVERAGE: the five positive questions consult all seven
+   dataset-labelled answer-bearing sessions; the abstention question is
+   reported separately and is not credited with a zero-session success.
+3. OFFICIAL ACCURACY: at least `4/6` answers are marked correct by the
+   unchanged `gpt-4o-2024-08-06` official judge.
+4. SEMANTIC USE: at least five of six scored questions issue one or more
+   successful `memory_search` calls with the real Gemini semantic surface.
+5. ANSWER BOUNDARY: all six answer completions finish without truncation,
+   retrieval-budget exhaustion, or a seventh-turn tool request.
+6. EXECUTION/ACCOUNTING: the first command is final, completes below the
+   remaining `$3.5605577` fresh cap and `$6.5885167` cumulative boundary,
+   records measured and uncertain spend separately, and makes at most six
+   official judge calls. Any stop or miss is the result and authorizes no
+   retry, reroll, selective regrade, or prediction change.

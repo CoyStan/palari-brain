@@ -1,5 +1,18 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-R5-P REPAIRED ACTIVE-RETRIEVAL SEEN-SIX V4 FROZEN,
+FOUNDER-AUTHORIZED, AND NOT YET INVOKED. P-set 17 binds fresh identity
+`j4-active-retrieval-seen6-v4` to the live-proven Gemini 3.5 request repair,
+the same ordered questions 1–6, all three terminal predecessor bundles, and
+the completed debugging bundle. Exact total J4-related opening spend is
+`$3.0279590` accounted (`$1.5869327` measured plus `$1.4410263` uncertain).
+V4 may spend only the remaining `$3.5605577` under the unchanged
+`$6.5885167` cumulative boundary. One pushed invocation must run the combined
+native-tool/semantic compatibility smoke first and stop before question 1 if
+it fails; otherwise each of the six receives one answer and one official
+judge. No v4 credential read, provider call, result, or new spend has occurred
+at this freeze.
+
 Loop state: J4.5K-D3-E GEMINI 3.5 REQUEST DEBUGGING COMPLETE AND PRODUCT
 SMOKE LIVE-PROVEN. The corrected boundary from pushed `63575ef` was invoked
 once on terminal v3's exact full request. It preserved `store: false`, mapped
@@ -1642,10 +1655,12 @@ mandatory gate stopped first.
 
 P-set 14–16 debugging is complete. Do not repeat any D1, D2, or D3 cell. The
 reusable Gemini 3.5 boundary and exact full five-tool wire now have a measured
-live success. Questions 1–6 remain closed: the `$0.50` debugging authority did
-not authorize a benchmark successor. A fresh seen-six identity must carry the
-new product hash, all terminal predecessors, exact cumulative spend, and new
-FINAL predictions before requesting a separate founder GO.
+live success. The founder separately authorized frozen P-set 17 and fresh
+identity `j4-active-retrieval-seen6-v4`. After this pre-run cut is pushed,
+invoke its launcher exactly once. The compatibility smoke remains mandatory;
+after it, questions 1–6 each receive at most one answer and one judge. Any
+failure, cap stop, partial score, or complete score is final: seal it, record
+it, and do not rerun or selectively regrade.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -2085,6 +2100,11 @@ dispatched from D3.
 once. The exact full request returned HTTP 200 and `memory_search`; six total
 debug calls used `$0.0042039` accounted under the `$0.50` cap. Evidence is
 sealed, no benchmark ran, and the debugging round is closed.
+2026-07-31 — J4.5K-R5-P — this commit — Froze founder-authorized seen-six v4
+around the live-proven Gemini 3.5 request repair, reverified all terminal
+predecessors, carried `$3.0279590` exact opening spend, and reserved only the
+remaining `$3.5605577` under the unchanged `$6.5885167` boundary. Nothing
+dispatched.
 
 ## Product stop-rule record
 
@@ -5329,3 +5349,56 @@ is not rewritten or presented as having run benchmark questions.
 
 This is a completed live product repair. The debug authority is consumed and
 closed; any benchmark successor requires its own fresh freeze and founder GO.
+
+### J4.5K-R5-P repaired active-retrieval seen-six v4 freeze
+
+The founder separately authorized questions 1–6 after reviewing the completed
+Gemini debugging round. P-set 17 freezes one fresh seen-case diagnostic,
+`j4-active-retrieval-seen6-v4`; it does not resume or alter terminal v1–v3,
+the debug cells, or the sealed v6 `1/6`.
+
+The repaired product boundary hashes
+`95e61649311476ea6198d2f434165b14d5527b3113553d2ef6a4b597a61bd292`.
+The ignored launcher hashes
+`fb83320a86c6c84805a71686c1329d335fd4bc314bb87ef18cee5d5cd23df44d`
+and deterministically produces runtime
+`9155b4e4dcbd9b96018e546563a3d99d039f4644c21a3cebea8deaa5bfd185e6`.
+It verifies the three terminal seen-six manifests and terminal debugging
+manifest before it can create a runtime. It also verifies the sealed base
+harness, repaired Gemini adapter, and active retrieval path. The compatibility
+request therefore retains all five raw schemas and explicit no-store while
+the product boundary maps only Gemini 3.5's stale zero-budget thinking control
+to `MINIMAL`.
+
+The FINAL prediction file hashes
+`e86998245b33e82e985fa7b3758dacd4d7eb58dfe321a11885d02015133c4971`.
+Predictions require compatibility plus the planted indigo answer, all seven
+answer-bearing sessions across the five positive cases, official accuracy of
+at least `4/6`, semantic use on at least five cases, and six clean answer
+boundaries. The exact opening is `$3.0279590` accounted: `$1.5869327`
+measured plus `$1.4410263` uncertain. V4 receives only `$3.5605577` remaining
+under the unchanged `$6.5885167` cumulative cap. One launcher command is the
+entire invocation, with no writer, reducer, graph extraction, retry, reroll,
+or selective regrade.
+
+Offline verification rehashes every predecessor artifact and the frozen
+product files, reproduces the runtime hash and Gemini control mapping, and
+confirms that neither runtime nor result path exists. No credential was read
+and no provider call, score, result, or new spend occurred at this cut.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart is
+   green at this freeze.
+2. Did this unit make that journey measurably better? Not by itself. It freezes
+   the first benchmark use of the already live-proven request repair.
+3. Does an existing framework already provide what this unit added? Benchmark
+   runners exist, but not this exact immutable predecessor, one-shot, and
+   cumulative-spend evidence chain.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly authorized running these six after the repair.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? An operator could run from unfrozen bytes, omit prior spend, or
+   mistake a repeated seen-case run for an unbiased score.
+
+This is one evaluation freeze following a product repair; it is not a second
+consecutive infrastructure unit. Provider authority starts only from its
+pushed cut and ends after the first launcher invocation whatever the result.
