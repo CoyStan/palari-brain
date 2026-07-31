@@ -1,7 +1,8 @@
 # BRN-0001-A Technical Report
 
 Implementation commit:
-`a8ce9bc1124876b3bb72f429c541cea973efdceb`
+`a8ce9bc1124876b3bb72f429c541cea973efdceb`, with reviewer-gap repair in the
+subsequent correction commit.
 
 Target branch:
 `ticket/BRN-0001-repair-retrieved-answer-reliability`
@@ -19,8 +20,9 @@ Target branch:
   its unchanged 840-character compatibility envelope.
 - `tests/retrieval-answer.contract.test.mjs` — adds provider-free adversarial
   coverage for prior Palari advice, unrelated musical-instrument chronology,
-  non-empty irrelevant noise, and empty retrieval. It verifies exact
-  instruction delivery and canonical text/speaker/time/identity fields.
+  same-speaker trail-snack correction, non-empty irrelevant noise, and empty
+  retrieval. It verifies exact instruction delivery and canonical
+  text/speaker/time/identity fields.
 - `docs/BRAIN-API.md` — documents the strengthened provider contract and its
   explicit non-claim about offline provider compliance.
 - `coding-sessions/tickets/open/BRN-0001-A-*.md` — records claim and lifecycle
@@ -51,9 +53,19 @@ Target branch:
   request-size envelope and prompt-cost floor do not grow. Retrieval-specific
   instructions are intentionally more explicit.
 - The fixtures use travel advice, musical instruments, unrelated running
-  noise, and an absent observatory. They contain no private benchmark question
-  or expected-answer text.
+  noise, an explicit same-speaker trail-snack correction, and an absent
+  observatory. They contain no private benchmark question or expected-answer
+  text.
 - BRN-0001-B remains required for deterministic question-relative time. Do
   not start it until this child receives fresh review and is accepted and
   integrated into the parent.
 - Any live validation remains a separate founder-gated R3 ticket.
+
+## Review Remediation
+
+The first independent review recommended reopening because the original
+chronology fixture covered two different objects rather than a corrected
+same-speaker value. The test now seeds dried mango followed by an explicit
+replacement with roasted almonds, asserts both canonical rows and their
+chronology, and returns the later value through `answerWithRetrieval`. No
+production or provider path changed.

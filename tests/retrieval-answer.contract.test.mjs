@@ -333,6 +333,14 @@ test('evidence-use instructions cover relevant, irrelevant, corrected, and empty
           'I later bought a compact digital piano as another musical instrument.',
       },
       {
+        id: 'snack-correction:0',
+        user: 'My favorite trail snack is dried mango.',
+      },
+      {
+        id: 'snack-correction:1',
+        user: 'I changed my favorite trail snack to roasted almonds.',
+      },
+      {
         id: 'running-noise:0',
         user: 'I completed a rainy neighborhood fun run last spring.',
       },
@@ -418,6 +426,41 @@ test('evidence-use instructions cover relevant, irrelevant, corrected, and empty
     })
     assert.equal(chronology.answer, 'The cedar classical guitar came first.')
 
+    const correction = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider(context) {
+        assertContract(context)
+        const found = await context.retrieve({
+          input: { phrase: 'favorite trail snack' },
+          tool: 'memory_search',
+        })
+        const snackRows = found.matches.filter((entry) =>
+          entry.speaker === 'user' && entry.text.includes('trail snack'))
+        assert.deepEqual(
+          snackRows.map((entry) => entry.text).sort(),
+          [
+            'I changed my favorite trail snack to roasted almonds.',
+            'My favorite trail snack is dried mango.',
+          ].sort(),
+        )
+        assert.ok(snackRows.every((entry) =>
+          entry.evidenceId && entry.sourceMessageId && entry.observedAt))
+        const current = snackRows.find((entry) =>
+          entry.text.includes('roasted almonds'))
+        assert.equal(current.speaker, 'user')
+        assert.ok(snackRows.some((entry) => entry.observedAt < current.observedAt))
+        return {
+          abstained: false,
+          text: 'Your current favorite trail snack is roasted almonds.',
+        }
+      },
+      question: 'What is my current favorite trail snack?',
+    })
+    assert.equal(
+      correction.answer,
+      'Your current favorite trail snack is roasted almonds.',
+    )
+
     const irrelevant = await answerWithRetrieval(brain, {
       ...SCOPE,
       async provider(context) {
@@ -465,8 +508,11 @@ test('evidence-use instructions cover relevant, irrelevant, corrected, and empty
       ...chronology.retrievalTranscript[0].result.matches
         .filter((entry) => entry.text.includes('musical instrument'))
         .map((entry) => [entry.evidenceId, entry.text]),
+      ...correction.retrievalTranscript[0].result.matches
+        .filter((entry) => entry.text.includes('trail snack'))
+        .map((entry) => [entry.evidenceId, entry.text]),
     ])
-    assert.ok(expectedCanonicalText.size >= 3)
+    assert.ok(expectedCanonicalText.size >= 5)
     for (const result of [advice, chronology, irrelevant, empty]) {
       for (const entry of result.retrievalTranscript[0].result.matches) {
         if (expectedCanonicalText.has(entry.evidenceId)) {
