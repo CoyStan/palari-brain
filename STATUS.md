@@ -1,5 +1,19 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-R4-P RAW-SCHEMA ACTIVE RETRIEVAL SEEN-SIX SUCCESSOR
+FROZEN AND FOUNDER-AUTHORIZED; NOT YET INVOKED. P-set 13 freezes the fresh
+identity `j4-active-retrieval-seen6-v3` around the R4 adapter and prompt
+repairs. Its ignored one-shot launcher verifies both terminal predecessor
+manifests and every manifested artifact before it can generate the frozen
+runtime. The same ordered six questions and mandatory combined
+native-tool/semantic smoke are unchanged. Exact opening spend is
+`$2.5453423` accounted (`$1.5860157` measured plus `$0.9593266` uncertain).
+Only the remaining `$4.0431744` is available under the unchanged
+`$6.5885167` cumulative boundary. Full suite: 641 pass, 0 fail, 3 skipped;
+quickstart and private preflight green. No credential was read and no
+provider call, runtime, result directory, benchmark answer, judge, or new
+spend exists at this freeze.
+
 Loop state: J4.5K-R4 GEMINI RAW JSON SCHEMA ADAPTER REPAIR COMPLETE
 OFFLINE. The disproven branch-local lowering has been removed. Gemini
 function declarations now carry Palari's canonical schemas unchanged through
@@ -1588,13 +1602,12 @@ Do not resume or rerun either terminal active-retrieval identity:
 compatibility prediction is refuted; its six-question outcome predictions are
 ungraded because the mandatory gate stopped first.
 
-The offline adapter repair is complete. The next active-retrieval unit is
-J4.5K-R4-P: freeze a fresh successor around the raw
-`parametersJsonSchema` wire contract, preserve and verify both terminal
-bundles, carry the exact `$2.5453423` cumulative spend forward, and
-preregister the compatibility and same-six outcomes before asking for a
-fresh founder GO. Dispatch is still a FOUNDER GATE. No provider call,
-six-question run, reroll, or regrade is authorized by this offline repair.
+The founder authorized the fresh raw-schema successor
+`j4-active-retrieval-seen6-v3`. Its pushed pre-run freeze must be the exact
+cut invoked. Invoke its ignored launcher once. The mandatory compatibility
+smoke runs first and any failure is terminal before question 1; otherwise the
+same ordered questions 1–6 each run once. Stop afterward whatever the
+measured result. Do not retry, reroll, selectively regrade, or alter P-set 13.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -2007,6 +2020,10 @@ branch-local schema lowering with exact canonical JSON Schema sent through
 `parametersJsonSchema`, fixed the retrieval-instruction character spread,
 and added serialized-wire regressions. Suite 641 pass, 0 fail, 3 skipped;
 quickstart and package dry-run green; no provider call or spend.
+2026-07-31 — J4.5K-R4-P — this commit — Froze founder-authorized raw-schema
+successor v3 with P-set 13, exact v1/v2 bundle verification, the same ordered
+six, and `$4.0431744` remaining under the unchanged `$6.5885167` cumulative
+boundary. Suite 641 pass, 0 fail, 3 skipped; nothing dispatched.
 
 ## Product stop-rule record
 
@@ -4866,3 +4883,68 @@ live identity, prediction change, benchmark result, or spend occurred.
 This is a product adapter repair, not a live result. The two consumed
 identities remain terminal, and a fresh freeze plus founder GO is required
 before any compatibility call.
+
+### J4.5K-R4-P raw-schema seen-six successor freeze
+
+The founder supplied the fresh GO to run questions 1–6 again. P-set 13 now
+freezes `j4-active-retrieval-seen6-v3`; it is not a continuation of either
+terminal predecessor and does not replace or alter the sealed v6 `1/6` or any
+prior label. The same cases are acknowledged as inspected and the successor
+remains a diagnostic rather than an unbiased benchmark sample.
+
+The canonical five tools remain
+`743c653b8ae0d29869904de969768fc25ae9ccb165d7ec704148da24eaa0ea3e`.
+Their raw Gemini declarations are
+`d2d09fa4b32372324ff8ab8b53b2683e2a4580e87eeb409fba3c942ca7912d0f`.
+The frozen adapter is
+`32cd1c589f8173ae19d1bd39f544ad4ef6fba682ba2d66df3f8034802144ed5a`,
+the repaired retrieval path is
+`44be2c15732d59160cf3a839ac02622c63202ffc891bc0df6c1f6cdf49be8998`,
+and the sealed base harness remains
+`750753ec8492fa005e9c9840c476e0adc92c3fc84943ec4a60cdabc12df547ca`.
+The ignored launcher hashes
+`3371a9f04fd1a6a04f7e044d3dfd7346aeea74e05a50854e52590d205f85dc53`;
+its deterministic runtime will hash
+`220e53ece04efda939194d630da7b82f6f646d9697e3cd7e74f66cf8617ff8cc`.
+The FINAL prediction file hashes
+`6e78c30faa0ce56e1a5f287385148485ac62dca6a6ae579c51cde1796fcf73e8`.
+
+Terminal v1 and v2 manifest hashes
+`5749bffc34512b065fdd7c1f999384d4a3c45ee002cd37766b161674ca8caec4`
+and
+`16d8137209f1bab8e19cb7feb9428071464daa8e8b02411bb4ec77a8075cf793`
+verify, as does every artifact listed by each manifest. The dataset remains
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`;
+its six selected histories contain 2,882 messages and 2,927,794 visible
+bytes, with a 13,382-character maximum message handled by the already frozen
+chunk-and-average embedder path.
+
+The exact carried opening is `$2.5453423` accounted
+(`$1.5860157` measured plus `$0.9593266` uncertain). The new identity can
+account for at most the remaining `$4.0431744` beneath the original
+`$6.5885167` cumulative boundary. The single launcher invocation must run the
+combined native-tool/semantic smoke before parsing benchmark outcomes and
+must stop on any miss. On success it answers and judges the same six in order
+once each. No writer, reducer, graph extraction, transport retry, reroll, or
+regrade is permitted.
+
+Offline verification: full suite 641 pass, 0 fail, 3 skipped; quickstart
+green; dataset preflight and launcher verification green; diff check clean.
+The runtime and result paths do not exist. No credential was read and no
+provider call, question, answer, judge, result, or new spend occurred.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart
+   is green.
+2. Did this unit make that journey measurably better? Not yet. It freezes the
+   one live measurement that can test whether the R4 product repair works.
+3. Does an existing framework already provide what this unit added? Existing
+   frameworks provide provider adapters, not Palari's immutable predecessor,
+   spend, prediction, and one-shot evidence contract.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly approved rerunning the ordered six after the repair.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? The live result could not be tied defensibly to the corrected bytes,
+   exact prior spend, fixed predictions, or a fresh non-reused identity.
+
+This is one evaluation freeze, not a second infrastructure unit. The pushed
+cut is authorized for exactly one invocation and no automatic successor.

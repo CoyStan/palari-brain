@@ -632,3 +632,73 @@ Predictions, failing categories first:
    records measured and uncertain spend separately, and makes at most six
    official judge calls. Any stop or miss is the result and authorizes no
    retry, reroll, selective regrade, or prediction change.
+
+## P-set 13 — Gemini raw-schema active retrieval seen-six successor, FINAL before execution
+
+Author: repository execution lane, 2026-07-31. The founder explicitly
+authorized running questions 1–6 again after reviewing the offline raw-schema
+repair. This is one fresh identity, `j4-active-retrieval-seen6-v3`; it does
+not resume, retry, replace, regrade, or alter terminal v1 or v2, the sealed v6
+`1/6`, or any prior answer or judge label. These same six cases remain
+inspected, so the result is a seen-case diagnostic and not an unbiased
+generalization estimate.
+
+The only intended provider-behavior changes from terminal v2 are the two
+offline R4 repairs. All five canonical function schemas now travel unchanged
+through Gemini's `parametersJsonSchema` field, with no legacy `parameters`
+member and no branch-local rewriting. The retrieval guidance now contains
+the exploration instruction as one complete string rather than spreading it
+into characters. The canonical five-tool SHA-256 remains
+`743c653b8ae0d29869904de969768fc25ae9ccb165d7ec704148da24eaa0ea3e`;
+the raw Gemini declaration SHA-256 is
+`d2d09fa4b32372324ff8ab8b53b2683e2a4580e87eeb409fba3c942ca7912d0f`.
+Host execution and validation still consume the unchanged canonical request.
+
+The frozen Gemini adapter SHA-256 is
+`32cd1c589f8173ae19d1bd39f544ad4ef6fba682ba2d66df3f8034802144ed5a`;
+the repaired active retrieval path is
+`44be2c15732d59160cf3a839ac02622c63202ffc891bc0df6c1f6cdf49be8998`;
+the sealed v1 base harness remains
+`750753ec8492fa005e9c9840c476e0adc92c3fc84943ec4a60cdabc12df547ca`;
+the ignored one-shot v3 launcher is
+`3371a9f04fd1a6a04f7e044d3dfd7346aeea74e05a50854e52590d205f85dc53`;
+and its deterministic runtime is
+`220e53ece04efda939194d630da7b82f6f646d9697e3cd7e74f66cf8617ff8cc`.
+The ignored dataset remains
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`,
+and the ordered question IDs remain exactly `08e075c7`, `09d032c9`,
+`16c90bf4`, `5e1b23de`, `80ec1f4f_abs`, and `0977f2af`.
+
+Terminal v1 and v2 are preserved and reverified through their exact
+post-run manifest hashes
+`5749bffc34512b065fdd7c1f999384d4a3c45ee002cd37766b161674ca8caec4`
+and
+`16d8137209f1bab8e19cb7feb9428071464daa8e8b02411bb4ec77a8075cf793`.
+Their cumulative accounted spend is carried forward exactly:
+`$2.5453423` opening, comprising `$1.5860157` measured and `$0.9593266`
+uncertain. V3 receives only the remaining `$4.0431744` under the unchanged
+`$6.5885167` cumulative boundary. One command is the complete invocation. It
+first runs the same combined native-tool/semantic smoke and stops before
+question 1 on any failure. Otherwise it answers and judges the same ordered
+six exactly once. There is no writer, reducer, graph extraction, transport
+retry, reroll, or regrade.
+
+Predictions, failing categories first:
+
+1. COMPATIBILITY: Gemini accepts all five raw JSON Schema declarations; the
+   combined smoke calls `memory_search`, uses the real semantic surface, and
+   answers the planted indigo token before any benchmark question.
+2. RETRIEVAL COVERAGE: the five positive questions consult all seven
+   dataset-labelled answer-bearing sessions; the abstention question is
+   reported separately and is not credited with a zero-session success.
+3. OFFICIAL ACCURACY: at least `4/6` answers are marked correct by the
+   unchanged `gpt-4o-2024-08-06` official judge.
+4. SEMANTIC USE: at least five of six scored questions issue one or more
+   successful `memory_search` calls with the real Gemini semantic surface.
+5. ANSWER BOUNDARY: all six answer completions finish without truncation,
+   retrieval-budget exhaustion, or a seventh-turn tool request.
+6. EXECUTION/ACCOUNTING: the first command is final, completes below the
+   remaining `$4.0431744` fresh cap and `$6.5885167` cumulative boundary,
+   records measured and uncertain spend separately, and makes at most six
+   official judge calls. Any stop or miss is the result and authorizes no
+   retry, reroll, selective regrade, or prediction change.
