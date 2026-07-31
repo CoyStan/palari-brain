@@ -1,14 +1,19 @@
 # STATUS — single source of truth for the loop
 
 Loop state: J4.5K-R3 GEMINI-LOWERED ACTIVE RETRIEVAL SEEN-SIX SUCCESSOR
-FROZEN; LIVE INVOCATION AUTHORIZED AND PENDING. The provider-neutral five-tool
-contract and host gate are unchanged. A reusable `palari-brain/gemini`
-adapter now repeats each root-declared required selector inside its own
-Gemini `anyOf` branch, preserving the union instead of deleting it. The fresh
-`j4-active-retrieval-seen6-v2` identity carries terminal v1's exact spend,
-retains the original cumulative `$5.00` window, preregisters the same seen-six
-outcomes, and must run once: compatibility smoke first, then the six only if
-the smoke passes. No v2 provider call has occurred at this freeze.
+TERMINAL AT COMPATIBILITY. The pushed `c2a7142` freeze was invoked exactly
+once. The first Gemini answer request contained the frozen branch-local
+`memory_read` properties, but Gemini again returned HTTP 400, this time with
+only generic `INVALID_ARGUMENT` detail. The mandatory native-tool/semantic
+smoke therefore failed before a tool or embedding call. Zero benchmark
+questions, answers, or judges ran; v2 has no accuracy score and the sealed v6
+result remains `1/6`. One physical request was made. Fresh accounted spend is
+`$0.4784128`, all uncertain under the frozen full-window reservation;
+cumulative S-60 lineage spend is `$2.5453423` accounted
+(`$1.5860157` measured plus `$0.9593266` uncertain). The private transcript
+also exposes an independent instruction-composition defect: retrieval
+guidance is spread into characters before joining. It is recorded, not
+silently repaired or used to explain the provider's schema-level rejection.
 
 Loop state: J4.5K-R2 ACTIVE RETRIEVAL SEEN-SIX LIVE RE-MEASUREMENT
 TERMINAL AT COMPATIBILITY. The pushed `3f94ab3` freeze was invoked exactly
@@ -1562,6 +1567,19 @@ session itself).
     proposed or adopted.
 
 ## Next
+
+Do not resume or rerun either terminal active-retrieval identity:
+`j4-active-retrieval-seen6-v1` or `j4-active-retrieval-seen6-v2`. P-set 12's
+compatibility prediction is refuted; its six-question outcome predictions are
+ungraded because the mandatory gate stopped first.
+
+The next active-retrieval unit is offline only: repair the observed
+character-spread instruction composition with a regression test, then replace
+Gemini's provider-facing `memory_read` union with a genuinely shallow
+provider contract that maps back into the unchanged canonical host
+operation. Do not guess at another `anyOf` variation. Freeze and verify that
+successor before requesting any fresh live authority. No further provider
+call, six-question run, reroll, or regrade is authorized.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -4699,3 +4717,78 @@ clean. No credential was read and no provider or network call occurred.
 
 This is one product adapter correction followed by its already authorized
 measurement, not a second consecutive infrastructure unit.
+
+### J4.5K-R3 terminal Gemini-lowered compatibility finding
+
+The pushed pre-run freeze is
+`c2a71429fcc9ea7499a08aee038c694db08c0759`. Its ignored runtime remained
+`549fcb69e2f902f8f5a1e01e71a880b4882d751c1aba2fcd00f1251553362e3c`.
+The founder-authorized command was invoked exactly once from
+`2026-07-31T00:12:08.645Z` through `2026-07-31T00:12:09.129Z`.
+
+The first and only physical call was the required combined compatibility
+smoke against `gemini-3.5-flash-lite`. Its 8,358-byte request hashes
+`3d758507c394e5b2fe088ab8af66d54c8e4c8c4eb6fa4458c0c2dc6bacfa469f`.
+The captured declaration proves that both `memory_read` branches contained
+their required selector definitions exactly as frozen. Gemini nevertheless
+returned HTTP 400 with only `Request contains an invalid argument` and
+`INVALID_ARGUMENT`; unlike v1, it supplied no field-level violation. The
+branch-local lowering is therefore insufficient, but the response does not
+identify whether the remaining rejection is the root union itself or some
+other request field.
+
+The smoke stopped before Gemini emitted a tool call. There were zero
+embedding calls, zero stored benchmark questions, zero answers, and zero
+judges. No generation usage metadata was returned. The fresh meter therefore
+records `$0.0000000` measured and `$0.4784128` uncertain/accounted from the
+single full-window reservation. Adding that reservation to the exact opening
+`$2.0669295` produces `$2.5453423` cumulative accounted
+(`$1.5860157` measured plus `$0.9593266` uncertain), below the frozen
+`$6.5885167` boundary.
+
+P-set 12 grades as follows: compatibility pass is refuted; all-seven-session
+coverage, at least 4/6 accuracy, semantic use on at least 5/6, and answer
+boundaries are ungraded because no benchmark question ran; the one-command,
+no-reroll contract and spend cap pass. The sealed v6 `1/6` is unchanged.
+
+The private request also makes a separate local defect observable:
+`MEMORY_RETRIEVAL_INSTRUCTIONS` spreads the already joined
+`MEMORY_EXPLORATION_INSTRUCTIONS` string into individual characters before
+joining again. That malformed guidance was physically sent. It needs an
+offline regression repair, but it is not claimed as the cause of Gemini's
+HTTP 400 and was not changed after the terminal invocation.
+
+The six-file ignored bundle is mode 0600 beneath mode-0700 directories.
+Report hash
+`ff2f1d97cf346e519b15fa549aefa311203f1e324c537047465a7895c13a3620`;
+meter hash
+`960002d575b28eb1af9d3f656ecc86a7e6c31e9c40ffa9efedc32ba4de3a0867`;
+start record hash
+`58353276f2b96719332185b7613ee3d7771292cf3e59605f1daf975fbafda3c0`;
+provider transcript hash
+`2bed953318ad10be49d2a9f0ee349569df6021f043c860e760a3e07c8a09cff1`;
+smoke database hash
+`b65ba1bebffdd334aa5f9509d27b9b55aea75bbe774bded59ba7a18a0eb17b94`;
+and post-run manifest hash
+`16d8137209f1bab8e19cb7feb9428071464daa8e8b02411bb4ec77a8075cf793`.
+All five manifested run-producing artifacts rehash exactly. Two exact
+provider credentials were checked across all six private files and all 266
+tracked files; no exact credential value was present.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? No. It disproved the
+   first Gemini lowering and exposed a malformed live retrieval prompt before
+   benchmark spend.
+3. Does an existing framework already provide what this unit added? Other
+   memory frameworks maintain provider-specific adapters, but none supplies
+   Palari's canonical host mapping or this exact provider evidence.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly authorized the adapter and same-six successor run.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? A future operator could retry a consumed identity, claim that the
+   six were measured, or repeat a lowering already shown not to work.
+
+This is a terminal live product finding. The identity cannot be resumed,
+rerolled, or regraded; any successor provider call requires a new freeze and
+fresh founder GO.
