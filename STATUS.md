@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0001-B HOST-COMPUTED QUESTION-RELATIVE TIME IMPLEMENTED;
-REVIEW PENDING. The answer boundary now decorates copied canonical messages
+Loop state: BRN-0001-B HOST-COMPUTED QUESTION-RELATIVE TIME IMPLEMENTED AT
+`7e07559`; REVIEW PENDING. The answer boundary now decorates copied canonical messages
 and admitted graph edges with validated UTC evidence/reference instants,
 past/same/future relation, signed whole days, and signed whole calendar
 months. The measured 2023-11-01-to-2024-02-01 case is 3 months; invalid dates
@@ -2263,10 +2263,9 @@ submitted for fresh review. No production or live activity.
 2026-07-31 — BRN-0001-A — `db72f3d` — Fresh independent review passed with no
 findings after the correction-gap repair. A is accepted by the founder's
 explicit proceed instruction; parent integration is the next action.
-2026-07-31 — BRN-0001-B — implementation commit pending — Added host-computed
-question-relative time to copied answer evidence and documented UTC calendar
-semantics. Focused/full/quickstart checks pass; review is required; no live
-activity.
+2026-07-31 — BRN-0001-B — `7e07559` — Added host-computed question-relative
+time to copied answer evidence and documented UTC calendar semantics.
+Focused/full/quickstart checks pass; review is required; no live activity.
 
 ## Product stop-rule record
 

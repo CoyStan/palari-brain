@@ -1,5 +1,7 @@
 # BRN-0001-B Technical Report
 
+Implementation commit: `7e0755933e735d714322ffeb8c94642a87f5e6d6`.
+
 ## Files Changed
 
 - `src/retrieval-answer.mjs` — adds pure UTC timestamp validation and
