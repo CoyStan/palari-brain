@@ -3,11 +3,12 @@
 Loop state: BRN-0001 A/B/C ACCEPTED AND INTEGRATED; PARENT ACCEPTED AFTER FRESH
 REVIEW AT `b3677a1`. The answer boundary now carries the A evidence-use/speaker contract,
 the B host-computed UTC time block, and the C provider-free composition check.
-Integrated verification is 644 pass, 0 fail, 15 skipped; quickstart is green;
-the C structural regression is 5/5 with answer quality ungraded and external
-provider/network calls 0/0. The private LongMemEval input is absent, so the
-reached-prefix runner is not claimed. No credential, provider, network,
-dataset download, result, score, publication, or spend occurred.
+Integrated verification on final `main` is 656 pass, 0 fail, 3 skipped;
+quickstart is green; the C structural regression is 5/5 with answer quality
+ungraded and external provider/network calls 0/0. The existing approved
+LongMemEval input produced an offline reached-prefix result of 6/6, with the
+question-7 boundary passing and provider/network 0/0. No credential, provider,
+network, dataset download, result, score, publication, or spend occurred.
 
 Loop state: BRN-0001-C OFFLINE ANSWER-INTERPRETATION COMPOSITION ACCEPTED AFTER
 FRESH REVIEW AT `b72be20`; PARENT INTEGRATION PENDING. A and B are accepted and integrated into the BRN-0001 parent at
@@ -2291,6 +2292,10 @@ integration and BRN-0001 closeout are the next actions.
 into the parent branch. Parent-level fresh review passed at `b3677a1` with no
 findings; the parent is accepted by the founder's explicit proceed instruction.
 No live validation or score changed.
+2026-07-31 — main post-merge verification — `2fb2123` — Full suite is 656
+pass, 0 fail, 3 skipped; quickstart is green; offline reached-prefix is 6/6
+and the question-7 boundary passes. Provider/network calls were 0/0; no score
+or terminal artifact changed.
 
 ## Product stop-rule record
 
