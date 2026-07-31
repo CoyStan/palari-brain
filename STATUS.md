@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0001 A/B/C ACCEPTED AND INTEGRATED AT `b9db978`; PARENT REVIEW
-PENDING. The answer boundary now carries the A evidence-use/speaker contract,
+Loop state: BRN-0001 A/B/C ACCEPTED AND INTEGRATED; PARENT ACCEPTED AFTER FRESH
+REVIEW AT `b3677a1`. The answer boundary now carries the A evidence-use/speaker contract,
 the B host-computed UTC time block, and the C provider-free composition check.
 Integrated verification is 644 pass, 0 fail, 15 skipped; quickstart is green;
 the C structural regression is 5/5 with answer quality ungraded and external
@@ -1768,8 +1768,7 @@ session itself).
 
 ## Next
 
-Run the parent-level integrated checks and fresh review for BRN-0001, then
-record the parent closeout. The A/B/C stack is offline-complete; no live
+BRN-0001 is closed with the A/B/C offline repair stack complete. No live
 validation is part of BRN-0001. Any later provider proof needs a separate R3
 ticket,
 preregistration, cap, fresh identity, and founder GO.
@@ -2289,8 +2288,9 @@ input is absent and was not downloaded; review is required; no live activity.
 findings. C is accepted by the founder's explicit proceed instruction; parent
 integration and BRN-0001 closeout are the next actions.
 2026-07-31 — BRN-0001 — `b9db978` — A, B, and C are accepted and integrated
-into the parent branch. Parent-level fresh review and closeout remain; no live
-validation or score changed.
+into the parent branch. Parent-level fresh review passed at `b3677a1` with no
+findings; the parent is accepted by the founder's explicit proceed instruction.
+No live validation or score changed.
 
 ## Product stop-rule record
 
@@ -2387,9 +2387,9 @@ score changed. C is independently accepted; parent integration remains.
    advice as a user fact, miscompute calendar distance, or spend on a live run
    without an offline composition guard.
 
-BRN-0001 is an offline-complete parent repair. Live model compliance and the
-sealed terminal 3/6 score remain unchanged and require a separate founder-
-gated ticket.
+BRN-0001 is an offline-complete parent repair and is accepted after the fresh
+parent review. Live model compliance and the sealed terminal 3/6 score remain
+unchanged and require a separate founder-gated ticket.
 
 ### BRN-0001-P
 
