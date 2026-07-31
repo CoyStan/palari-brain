@@ -3,6 +3,18 @@
 Append-only. Founder decisions and license verdicts land here with
 dates. Agents record; the founder decides.
 
+- 2026-07-31 (FOUNDER — Quetzali, in session) **Adopt the proven palari-v05
+  ticket workflow for Palari Brain.** The founder explicitly asked to inspect
+  `/home/quetza/palari-v05` and implement its ticket system, including reviewer
+  scope. The focused adaptation is pinned to v05 commit `764cafbb` and keeps
+  the useful contract: risk-tiered tickets, explicit allowed/forbidden paths,
+  one branch/worktree per governed ticket, scoped specialist/reviewer packets,
+  evidence-aware review queue, and founder/authorized-reviewer acceptance.
+  Palari Brain omits v05's unrelated Company OS, deploy, archive, and
+  workstream-board machinery. The CLI cannot accept, merge, push, delete, run
+  providers, or override any existing founder gate. This bootstrap change is
+  not retroactively ticketed; the governed rules apply after its commit.
+
 - 2026-07-18 (FOUNDER — Quetzali, in session) Repo license: **MIT**,
   Copyright (c) 2026 CoyStan (matching palari-company-os). LICENSE
   file added.

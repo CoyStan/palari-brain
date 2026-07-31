@@ -45,7 +45,8 @@
     "probe": "node evals/run-dev-provider-probe.mjs",
     "reached-prefix-regression": "node evals/run-reached-prefix-retrieval-regression.mjs",
     "trust-bench": "node evals/run-trust-benchmark.mjs",
-    "scale-probe": "node evals/run-scale-probe.mjs"
+    "scale-probe": "node evals/run-scale-probe.mjs",
+    "ticket": "node scripts/ticket-system.mjs"
   },
   "devDependencies": {
     "@google/genai": "1.40.0",

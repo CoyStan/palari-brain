@@ -32,6 +32,31 @@ for a real user:
    Units marked FOUNDER GATE are never executed by you — you prepare
    them and stop.
 
+## Governed ticket workflow
+
+Use the governed workflow when the founder asks for a ticket, work spans
+multiple sessions or owners, independent review is required, or the real risk
+is R2-R4. Small, clear, reversible R0-R1 work may remain on the loop's fast
+lane. The ticket system itself was founder-requested bootstrap work; its rules
+apply after the bootstrap commit.
+
+1. From clean canonical `main`, create and complete a ticket contract under
+   `coding-sessions/tickets/open/`, then commit and push that contract.
+2. Run `npm run ticket -- ticket-worktree ID`. Governed edits happen only in
+   the printed ticket worktree and branch.
+3. Generate the exact role packet with
+   `npm run ticket -- agent-packet ID specialist|reviewer|mediator`.
+4. Enforce both dirty and committed scope with `scope-check`; a needed path
+   outside `allowed_paths` is a stop, not an invitation to widen scope.
+5. Specialists may move ready work to `in-review`. Reviewers inspect committed
+   work with fresh, read-only context and recommend accept, reopen, or
+   needs-human; they do not implement fixes during that review.
+6. Only the founder or an explicitly authorized reviewer may mark a ticket
+   accepted, move it to `tickets/closed/`, merge it, or authorize cleanup.
+
+The CLI never accepts, merges, pushes, deletes, or grants founder-gated
+authority. Full rules and commands: `docs/TICKET-WORKFLOW.md`.
+
 ## The product stop rule (answer in STATUS.md at every unit close)
 
 1. Can a new user run the basic memory journey right now?

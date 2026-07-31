@@ -110,7 +110,12 @@ explicit `PALARI_PROBE_CONFIRM_SPEND=1`.
 | Retrieval surfaces | `src/memory-exploration.mjs` (exact + ranked tools), `src/memory-search.mjs` (FTS5), `src/memory-semantic.mjs` (pluggable embeddings), `src/memory-graph.mjs` (derived temporal graph), `src/memory-trend.mjs` (computed trends) |
 | Historical comparator | `src/memory-store.mjs`, `src/v05-memory-extraction.mjs`, `src/recall.mjs` |
 | Measurement | `evals/` (see `evals/README.md` — paths in there are hash-pinned by sealed run identities; never move files) |
-| Governance | `AGENTS.md` (charter), `STATUS.md` (ledger), `docs/DECISIONS.md` (log), `docs/BRAIN-API.md` (API reference) |
+| Governance | `AGENTS.md` (charter), `STATUS.md` (ledger), `docs/DECISIONS.md` (log), `docs/TICKET-WORKFLOW.md` (scoped work and review), `docs/BRAIN-API.md` (API reference) |
+
+Governed multi-session, independently reviewed, or R2-R4 work uses the
+path-scoped ticket workflow adapted from palari-v05. Start with
+`npm run ticket -- help`; the tooling is offline and never accepts, merges,
+pushes, deletes, or widens a ticket automatically.
 
 ## Running the memory bench
 
