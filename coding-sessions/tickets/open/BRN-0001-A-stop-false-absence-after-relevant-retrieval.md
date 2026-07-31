@@ -6,12 +6,12 @@ level: 2
 parent_id: BRN-0001
 root_id: BRN-0001
 children: []
-status: claimed
+status: in-review
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-07-31T22:29:07Z
+claimed_by:
+claimed_at:
 target_branch: "ticket/BRN-0001-repair-retrieved-answer-reliability"
 branch: "ticket/BRN-0001-A-stop-false-absence-after-relevant-retrieval"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0001-A-stop-false-absence-after-relevant-retrieval"

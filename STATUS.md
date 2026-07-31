@@ -1,5 +1,20 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0001-A RETRIEVED-EVIDENCE ANSWER CONTRACT IMPLEMENTED AT
+`a8ce9bc1124876b3bb72f429c541cea973efdceb`; IN REVIEW, NOT ACCEPTED OR
+INTEGRATED. The provider-neutral answer boundary now treats the briefing and
+later memory-tool results as one evidence stream: directly answering
+consulted evidence must be used or carry its exact conflict/limitation, an
+empty digest cannot license silent absence, and prior Palari speech may be
+reused only as Palari advice/recommendation/commitment. Non-empty irrelevant
+results still do not force an answer. The base instruction remains exactly
+840 characters, so the existing maximum answer-request body remains 10,840
+bytes. Generalized provider-free fixtures avoid the seen benchmark domains.
+Focused contracts are 30/30; the compatibility group is 46 pass, 0 fail, 1
+skip; the full suite is 641 pass, 0 fail, 15 skipped; quickstart is green. No
+credential, private dataset, provider call, score, result, publication, or
+spend occurred. Live compliance remains unproven and terminal v5 stays 3/6.
+
 Loop state: BRN-0001-P RETRIEVED-ANSWER RELIABILITY TICKET STACK FROZEN;
 IMPLEMENTATION NOT STARTED. Commit
 `e75f68ea4f1a478d712643919b4cee59141f068b` registers one parent and three
@@ -1713,21 +1728,19 @@ session itself).
 
 ## Next
 
-Execute BRN-0001-A first. From clean canonical `main`, create the BRN-0001
-parent worktree/coordination branch, then create and claim BRN-0001-A against
-that parent exactly as documented in `docs/TICKET-WORKFLOW.md`. Its bounded
-product task is to stop false absence after directly relevant returned rows
-while keeping prior Palari speech distinct from user facts and retaining
-honest absence for irrelevant or empty evidence. Review and integrate A
-before starting BRN-0001-B; integrate both before BRN-0001-C. Do not run these
-children concurrently because A and B share the answer boundary.
+Give BRN-0001-A a fresh, read-only review against
+`ticket/BRN-0001-repair-retrieved-answer-reliability`. The reviewer checks the
+general evidence-use rule, speaker truth, irrelevant/empty controls,
+anti-overfit fixtures, exact 840-character compatibility envelope, reports,
+and committed scope, then recommends `accept`, `reopen`, or `needs-human`.
+The implementation owner must not accept, merge, or integrate its own work.
 
-This planning freeze is the second consecutive non-runtime unit after GOV1,
-although it was explicitly founder-requested. Stop the planning sequence here:
-the next unit must change and verify measurable memory-product behavior under
-BRN-0001-A, not add another process or backlog unit. No live validation is
-part of BRN-0001; any later provider proof needs a separate R3 ticket,
-preregistration, cap, fresh identity, and founder GO.
+Do not start BRN-0001-B until A is independently reviewed, founder/authorized-
+reviewer accepted, and integrated into the BRN-0001 parent branch. After that,
+B adds host-computed question-relative time; C follows only after both A and B
+are integrated. No live validation is part of BRN-0001; any later provider
+proof needs a separate R3 ticket, preregistration, cap, fresh identity, and
+founder GO.
 
 Do not resume or rerun any terminal active-retrieval identity:
 `j4-active-retrieval-seen6-v1`, `j4-active-retrieval-seen6-v2`, or
@@ -2218,8 +2231,37 @@ parent and three sequential children: false-absence contract repair,
 host-computed relative time, then an offline structural regression. Ticket
 lint, six ticket contracts, and quickstart are green; no implementation or
 live activity.
+2026-07-31 — BRN-0001-A — `a8ce9bc` — Strengthened the provider-neutral
+answer contract against false absence after directly relevant retrieval while
+preserving speaker truth and irrelevant/empty controls. The 840-character
+base envelope is unchanged; full suite 641 pass, 0 fail, 15 skipped;
+quickstart green; no live activity. Submitted for review, not accepted.
 
 ## Product stop-rule record
+
+### BRN-0001-A
+
+1. Can a new user run the basic memory journey right now? Yes — `npm run
+   quickstart` passes all six stages.
+2. Did this unit make that journey measurably better? Yes at the product-
+   contract boundary: generalized tests now prove relevant later retrieval,
+   prior Palari advice, chronology, irrelevant noise, and empty retrieval all
+   receive the correct symmetric instructions without growing the base prompt.
+   Live model compliance is deliberately not claimed.
+3. Does an existing framework already provide what this unit added? Mem0,
+   Graphiti, Letta, LangMem, and Hindsight organize or retrieve memory, but the
+   consuming application still owns whether its answer model uses returned
+   evidence without corrupting speaker attribution.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder approved implementation after explicitly challenging benchmark and
+   provider overfitting.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? The answer contract would again permit a cheap model to treat an
+   empty digest as absence after tools returned a direct answer, and it would
+   not clearly permit safe recall of Palari's own earlier advice.
+
+This is a product answer-boundary unit, so it ends the prior planning/process
+sequence. It remains unaccepted until fresh review; no live score changed.
 
 ### BRN-0001-P
 
