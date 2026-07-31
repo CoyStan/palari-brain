@@ -558,6 +558,33 @@ to preserve canonical bytes, speaker, time, evidence identity, scope, and the
 bounded retrieval transcript; a separately authorized live measurement is
 required to measure generated-answer behavior.
 
+### Host-computed question-relative time
+
+When `answerWithRetrieval` receives a valid `questionDate`, every answer-facing
+canonical row returned by `memory_find`, `memory_read`, or `memory_search`
+contains a copied `questionRelativeTime` block. Admitted graph edges receive
+the same block because their `observedAt` is also host-recorded:
+
+```json
+{
+  "evidenceAt": "2023-11-01T00:46:00.000Z",
+  "referenceAt": "2024-02-01T18:06:00.000Z",
+  "relation": "past",
+  "wholeDays": 92,
+  "wholeCalendarMonths": 3
+}
+```
+
+`evidenceAt` comes from the row's canonical `observedAt`; `referenceAt` is the
+validated question date. `relation` is `past`, `same`, or `future` from the
+evidence's perspective. Signed whole days and whole calendar months point from
+the evidence to the question: an event after the question has negative values.
+Calendar months use UTC year/month arithmetic and adjust toward zero when the
+later date has not reached the earlier UTC day and time. A month is never
+approximated as 30 days. Missing or invalid evidence/question dates omit the
+block. The canonical row and underlying brain result are never mutated, and no
+date is inferred from message prose.
+
 ### The digest is an index
 
 Each rendered digest record names the sessions its supporting evidence came

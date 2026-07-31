@@ -6,12 +6,12 @@ level: 2
 parent_id: BRN-0001
 root_id: BRN-0001
 children: []
-status: open
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-07-31T22:55:46Z
 target_branch: "ticket/BRN-0001-repair-retrieved-answer-reliability"
 branch: "ticket/BRN-0001-B-add-host-computed-question-relative-time"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0001-B-add-host-computed-question-relative-time"

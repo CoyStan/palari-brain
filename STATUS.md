@@ -1,5 +1,14 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0001-B HOST-COMPUTED QUESTION-RELATIVE TIME IMPLEMENTED;
+REVIEW PENDING. The answer boundary now decorates copied canonical messages
+and admitted graph edges with validated UTC evidence/reference instants,
+past/same/future relation, signed whole days, and signed whole calendar
+months. The measured 2023-11-01-to-2024-02-01 case is 3 months; invalid dates
+omit the block. Focused retrieval contracts are 9/9; full suite is 642 pass,
+0 fail, 15 skipped; quickstart is green. No credential, provider, network,
+dataset, result, score, publication, or spend occurred.
+
 Loop state: BRN-0001-A REVIEW GAP REPAIRED AT
 `c464b8f`; IN REVIEW AGAIN, NOT ACCEPTED OR INTEGRATED. The independent
 review found one bounded P1 evidence gap: the first correction fixture tested
@@ -1740,22 +1749,18 @@ session itself).
 
 ## Next
 
-Integrate the accepted BRN-0001-A branch into
+Review BRN-0001-B against the updated parent branch
 `ticket/BRN-0001-repair-retrieved-answer-reliability`, preserving the fresh
-review evidence. Then create and claim BRN-0001-B against the updated parent.
-The reviewer checked the
+review evidence. The reviewer must check the
 general evidence-use rule, speaker truth, irrelevant/empty controls,
 anti-overfit fixtures, exact 840-character compatibility envelope, reports,
-and committed scope and recommended `accept`; independent acceptance is now
-recorded. The implementation owner may proceed under the founder's explicit
-instruction, but must preserve the review record.
+and committed scope, then recommend `accept`, `reopen`, or `needs-human`.
+The implementation owner must not accept B without an independent pass.
 
-Do not start BRN-0001-B until A is independently reviewed, founder/authorized-
-reviewer accepted, and integrated into the BRN-0001 parent branch. After that,
-B adds host-computed question-relative time; C follows only after both A and B
-are integrated. No live validation is part of BRN-0001; any later provider
-proof needs a separate R3 ticket, preregistration, cap, fresh identity, and
-founder GO.
+After B is independently accepted and integrated, begin BRN-0001-C. C follows
+only after both A and B are integrated. No live validation is part of
+BRN-0001; any later provider proof needs a separate R3 ticket,
+preregistration, cap, fresh identity, and founder GO.
 
 Do not resume or rerun any terminal active-retrieval identity:
 `j4-active-retrieval-seen6-v1`, `j4-active-retrieval-seen6-v2`, or
@@ -2258,6 +2263,10 @@ submitted for fresh review. No production or live activity.
 2026-07-31 — BRN-0001-A — `db72f3d` — Fresh independent review passed with no
 findings after the correction-gap repair. A is accepted by the founder's
 explicit proceed instruction; parent integration is the next action.
+2026-07-31 — BRN-0001-B — implementation commit pending — Added host-computed
+question-relative time to copied answer evidence and documented UTC calendar
+semantics. Focused/full/quickstart checks pass; review is required; no live
+activity.
 
 ## Product stop-rule record
 
@@ -2285,6 +2294,30 @@ explicit proceed instruction; parent integration is the next action.
 This is a product answer-boundary unit, so it ends the prior planning/process
 sequence. A is independently accepted; no live score changed. Parent
 integration and BRN-0001-B remain the next governed actions.
+
+### BRN-0001-B
+
+1. Can a new user run the basic memory journey right now? Yes — `npm run
+   quickstart` passes all six stages, and the full suite is green.
+2. Did this unit make that journey measurably better? Yes — answer-facing
+   evidence now carries deterministic host arithmetic for elapsed days and
+   calendar months, including the measured November-to-February case, instead
+   of asking the generation model to calculate it.
+3. Does an existing framework already provide what this unit added? Memory
+   frameworks can store timestamps and retrieve rows, but none of the reviewed
+   adapters owns this answer-boundary contract or its signed UTC calendar
+   arithmetic for Palari's four retrieval surfaces.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder approved the next-ticket stack after the live run exposed a correct
+   retrieval with an incorrect elapsed-time answer.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? A low-cost answer model could again see the correct host dates and
+   answer the measured three-month interval as zero; graph and search callers
+   would also lose the same authoritative metadata.
+
+BRN-0001-B is an offline product answer-boundary unit. Its review remains
+required; it changes no provider, benchmark, dataset, credential, score, or
+spend.
 
 ### BRN-0001-P
 

@@ -195,6 +195,7 @@ export const MEMORY_RETRIEVAL_INSTRUCTIONS = [
   'After each memory-tool result, inspect the returned canonical messages or admitted edges themselves. If one directly addresses the question, use it or state the exact conflict or limitation that makes it unusable; do not claim no relevant memory merely because the initial briefing or digest was empty.',
   'A non-empty result does not establish relevance. If the returned records do not address the question, do not force an answer from them.',
   'Prior Palari speech may be reported as advice, a recommendation, or a commitment previously made by Palari. It must never be recast as something the user said, did, owned, or preferred.',
+  'For elapsed-time answers, use the host-derived questionRelativeTime metadata on returned rows. It is authoritative arithmetic from observedAt and the question date; do not invent dates from text or approximate a calendar month as 30 days.',
   'Do not treat an empty search as proof that an event never happened. For a time-bounded absence or count, search the relevant concept inside explicit after/before bounds.',
   'Answer directly and concisely from the evidence you actually consulted. Prefer one sentence when one sentence fully answers the question.',
 ].join('\n')
@@ -211,13 +212,78 @@ function normalizedScope({ palariId, userId } = {}) {
   return { palariId, userId }
 }
 
-function questionReferenceTime(questionDate) {
-  if (!questionDate) return null
-  const parsed = new Date(questionDate)
+const DAY_MS = 86_400_000
+
+function validInstant(value) {
+  if (value === undefined || value === null || value === '') return null
+  const parsed = value instanceof Date ? new Date(value.getTime()) : new Date(value)
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-async function hybridSearch(brain, scope, capabilities, input = {}) {
+function compareCalendarPosition(later, earlier) {
+  const fields = [
+    later.getUTCDate() - earlier.getUTCDate(),
+    later.getUTCHours() - earlier.getUTCHours(),
+    later.getUTCMinutes() - earlier.getUTCMinutes(),
+    later.getUTCSeconds() - earlier.getUTCSeconds(),
+    later.getUTCMilliseconds() - earlier.getUTCMilliseconds(),
+  ]
+  return fields.find((value) => value !== 0) ?? 0
+}
+
+function wholeCalendarMonthsBetween(earlier, later) {
+  let months = (later.getUTCFullYear() - earlier.getUTCFullYear()) * 12 +
+    later.getUTCMonth() - earlier.getUTCMonth()
+  if (compareCalendarPosition(later, earlier) < 0) months -= 1
+  return months
+}
+
+export function deriveQuestionRelativeTime(observedAt, questionDate) {
+  const evidence = validInstant(observedAt)
+  const reference = validInstant(questionDate)
+  if (!evidence || !reference) return null
+
+  const signedMilliseconds = reference.getTime() - evidence.getTime()
+  const sign = Math.sign(signedMilliseconds)
+  const earlier = sign < 0 ? reference : evidence
+  const later = sign < 0 ? evidence : reference
+  const wholeDays = Math.trunc(signedMilliseconds / DAY_MS)
+  const wholeCalendarMonths = wholeCalendarMonthsBetween(earlier, later)
+  return Object.freeze({
+    evidenceAt: evidence.toISOString(),
+    referenceAt: reference.toISOString(),
+    relation: sign < 0 ? 'future' : sign > 0 ? 'past' : 'same',
+    wholeCalendarMonths: wholeCalendarMonths === 0
+      ? 0
+      : sign < 0 ? -wholeCalendarMonths : wholeCalendarMonths,
+    wholeDays: wholeDays === 0 ? 0 : wholeDays,
+  })
+}
+
+function questionReferenceTime(questionDate) {
+  return validInstant(questionDate)
+}
+
+function decorateAnswerRow(row, referenceTime) {
+  const copied = { ...row }
+  const relative = referenceTime
+    ? deriveQuestionRelativeTime(row?.observedAt, referenceTime)
+    : null
+  if (relative) copied.questionRelativeTime = relative
+  return copied
+}
+
+function decorateAnswerRows(rows, referenceTime) {
+  return (rows ?? []).map((row) => decorateAnswerRow(row, referenceTime))
+}
+
+async function hybridSearch(
+  brain,
+  scope,
+  capabilities,
+  input = {},
+  referenceTime = null,
+) {
   const phrase = searchPhrase(input.phrase)
   const limit = boundedInteger(
     input.limit,
@@ -274,13 +340,13 @@ async function hybridSearch(brain, scope, capabilities, input = {}) {
     })
     const message = read.messages[0]
     if (!message) continue
-    const candidate = {
-      ...message,
+    const candidate = decorateAnswerRow(message, referenceTime)
+    Object.assign(candidate, {
       rank: matches.length + 1,
       rrfScore: entry.rrfScore,
       surfaceRanks: entry.surfaceRanks,
       surfaces: entry.surfaces,
-    }
+    })
     const cost = JSON.stringify(candidate).length
     if (matches.length && chars + cost > maxChars) break
     matches.push(candidate)
@@ -329,7 +395,10 @@ export async function answerWithRetrieval(brain, {
     memory_find(input) {
       const found = brain.exploreFind(scope, input)
       consulted.push(...found.matches.map((row) => row.evidenceId))
-      return found
+      return {
+        ...found,
+        matches: decorateAnswerRows(found.matches, referenceTime),
+      }
     },
     memory_graph(input) {
       const result = brain.exploreGraph(scope, {
@@ -337,12 +406,18 @@ export async function answerWithRetrieval(brain, {
         ...(referenceTime ? { now: referenceTime } : {}),
       })
       consulted.push(...result.edges.map((edge) => edge.evidenceId))
-      return result
+      return {
+        ...result,
+        edges: decorateAnswerRows(result.edges, referenceTime),
+      }
     },
     memory_read(input) {
       const result = brain.exploreRead(scope, input)
       consulted.push(...result.messages.map((row) => row.evidenceId))
-      return result
+      return {
+        ...result,
+        messages: decorateAnswerRows(result.messages, referenceTime),
+      }
     },
     async memory_search(input) {
       const result = await hybridSearch(
@@ -350,6 +425,7 @@ export async function answerWithRetrieval(brain, {
         scope,
         capabilities,
         input,
+        referenceTime,
       )
       consulted.push(...result.matches.map((row) => row.evidenceId))
       return result

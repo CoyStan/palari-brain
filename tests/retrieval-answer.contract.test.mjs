@@ -15,6 +15,7 @@ import {
   memoryAnswerSystemInstruction,
   reciprocalRankFuse,
 } from '../src/index.mjs'
+import { deriveQuestionRelativeTime } from '../src/retrieval-answer.mjs'
 
 const SCOPE = Object.freeze({
   palariId: 'palari-retrieval',
@@ -256,6 +257,9 @@ test('the answer loop exposes admitted graph edges without extracting',
           edge.object === 'Lisbon hospital'))
         assert.ok(graph.edges.every((edge) =>
           edge.quote.length > 0 && edge.evidenceId))
+        assert.ok(graph.edges.every((edge) =>
+          edge.questionRelativeTime?.relation === 'past' &&
+          edge.questionRelativeTime?.wholeCalendarMonths === 0))
         return { text: 'Ana’s doctor works at the Lisbon hospital.' }
       },
       question: 'Which hospital does my sister’s doctor work at?',
@@ -268,6 +272,170 @@ test('the answer loop exposes admitted graph edges without extracting',
     )
     assert.ok(result.consultedEvidenceIds.length >= 2)
     assert.equal(result.retrievalTranscript[0].tool, 'memory_graph')
+  })
+
+test('host-computed question-relative time is deterministic and non-mutating',
+  async (t) => {
+    const cases = [
+      {
+        observedAt: '2023-11-01T00:46:00.000Z',
+        questionDate: '2024-02-01T18:06:00.000Z',
+        expected: {
+          relation: 'past',
+          wholeCalendarMonths: 3,
+          wholeDays: 92,
+        },
+      },
+      {
+        observedAt: '2024-01-31T00:00:00.000Z',
+        questionDate: '2024-02-28T23:00:00.000Z',
+        expected: {
+          relation: 'past',
+          wholeCalendarMonths: 0,
+          wholeDays: 28,
+        },
+      },
+      {
+        observedAt: '2023-11-30T12:00:00.000Z',
+        questionDate: '2024-01-30T12:00:00.000Z',
+        expected: {
+          relation: 'past',
+          wholeCalendarMonths: 2,
+          wholeDays: 61,
+        },
+      },
+      {
+        observedAt: '2024-02-29T12:00:00.000Z',
+        questionDate: '2025-02-28T11:00:00.000Z',
+        expected: {
+          relation: 'past',
+          wholeCalendarMonths: 11,
+          wholeDays: 364,
+        },
+      },
+      {
+        observedAt: '2025-01-10T12:00:00.000Z',
+        questionDate: '2025-01-10T12:00:00.000Z',
+        expected: {
+          relation: 'same',
+          wholeCalendarMonths: 0,
+          wholeDays: 0,
+        },
+      },
+      {
+        observedAt: '2025-05-02T00:00:00.000Z',
+        questionDate: '2025-02-01T00:00:00.000Z',
+        expected: {
+          relation: 'future',
+          wholeCalendarMonths: -3,
+          wholeDays: -90,
+        },
+      },
+    ]
+    for (const { observedAt, questionDate, expected } of cases) {
+      const result = deriveQuestionRelativeTime(observedAt, questionDate)
+      assert.deepEqual(
+        {
+          relation: result.relation,
+          wholeCalendarMonths: result.wholeCalendarMonths,
+          wholeDays: result.wholeDays,
+        },
+        expected,
+      )
+      assert.equal(result.evidenceAt, observedAt)
+      assert.equal(result.referenceAt, questionDate)
+    }
+    assert.equal(deriveQuestionRelativeTime('', cases[0].questionDate), null)
+    assert.equal(
+      deriveQuestionRelativeTime(cases[0].observedAt, 'not-a-date'),
+      null,
+    )
+
+    const brain = await openBrain(t)
+    const quote = 'The photography workshop happened on November 1.'
+    await ingestChatTurn(brain, {
+      assistantMessage: 'I can help you remember that workshop.',
+      eventAt: '2023-11-01T00:46:00.000Z',
+      palariId: SCOPE.palariId,
+      retention: 'durable',
+      sourceMessageId: 'relative-time:0',
+      userId: SCOPE.userId,
+      userMessage: quote,
+    }, { reducer: keepNothing, reducerId: 'relative-time-test/v1' })
+    const expected = {
+      evidenceAt: '2023-11-01T00:46:00.000Z',
+      referenceAt: '2024-02-01T18:06:00.000Z',
+      relation: 'past',
+      wholeCalendarMonths: 3,
+      wholeDays: 92,
+    }
+    const raw = {}
+    const observedBrain = Object.create(brain)
+    Object.defineProperties(observedBrain, {
+      exploreFind: {
+        value: (...args) => {
+          raw.exploreFind = brain.exploreFind(...args)
+          return raw.exploreFind
+        },
+      },
+      exploreRead: {
+        value: (...args) => {
+          raw.exploreRead = brain.exploreRead(...args)
+          return raw.exploreRead
+        },
+      },
+    })
+    const result = await answerWithRetrieval(observedBrain, {
+      ...SCOPE,
+      question: 'How long ago was the photography workshop?',
+      questionDate: expected.referenceAt,
+      async provider({ retrieve }) {
+        const found = await retrieve({
+          input: { phrase: 'photography workshop' },
+          tool: 'memory_find',
+        })
+        const id = found.matches[0].evidenceId
+        assert.deepEqual(found.matches[0].questionRelativeTime, expected)
+        const read = await retrieve({
+          input: { evidenceIds: [id] },
+          tool: 'memory_read',
+        })
+        assert.deepEqual(read.messages[0].questionRelativeTime, expected)
+        const search = await retrieve({
+          input: { phrase: 'photography workshop' },
+          tool: 'memory_search',
+        })
+        assert.deepEqual(search.matches[0].questionRelativeTime, expected)
+        return { text: 'It was three calendar months ago.' }
+      },
+    })
+    assert.equal(result.answer, 'It was three calendar months ago.')
+    assert.equal(
+      Object.hasOwn(raw.exploreFind.matches[0], 'questionRelativeTime'),
+      false,
+    )
+    assert.equal(
+      Object.hasOwn(raw.exploreRead.messages[0], 'questionRelativeTime'),
+      false,
+    )
+
+    const invalid = await answerWithRetrieval(observedBrain, {
+      ...SCOPE,
+      question: 'When was the workshop?',
+      questionDate: 'not-a-date',
+      async provider({ retrieve }) {
+        const found = await retrieve({
+          input: { phrase: 'photography workshop' },
+          tool: 'memory_find',
+        })
+        assert.equal(
+          Object.hasOwn(found.matches[0], 'questionRelativeTime'),
+          false,
+        )
+        return { text: 'The stored date is November 1.' }
+      },
+    })
+    assert.equal(invalid.answer, 'The stored date is November 1.')
   })
 
 test('the new answer contract is concise and gives providers safe headroom',
