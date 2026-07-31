@@ -508,6 +508,14 @@ schema in the legacy OpenAPI-subset `parameters` field or rewrites a root
 `anyOf`. Palari still validates and executes every returned call through
 `retrieve`; the provider declaration is not the admission gate.
 
+`buildGeminiGenerateRequest` also keeps the generation wire current without
+changing the caller's input. For Gemini 3.5 models it maps the rejected legacy
+`thinkingBudget: 0` control to low-latency `thinkingLevel: 'MINIMAL'`. It
+preserves explicit `store: false`; live isolation proved that no-store is
+accepted and was not the source of the request rejection. Positive thinking
+budgets, current thinking levels, and Gemini 2.5 request controls are left
+unchanged.
+
 It supplies the digest first and exposes all five tools:
 
 | Tool | Behavior |

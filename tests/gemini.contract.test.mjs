@@ -97,3 +97,70 @@ test('Gemini REST wire uses parametersJsonSchema, never legacy parameters',
     assert.equal(read.parametersJsonSchema.type, 'object')
     assert.equal(read.parametersJsonSchema.anyOf.length, 2)
   })
+
+test('Gemini 3.5 upgrades the rejected zero budget without weakening no-store',
+  () => {
+    const body = {
+      contents: [],
+      generationConfig: {
+        thinkingConfig: {
+          includeThoughts: false,
+          thinkingBudget: 0,
+        },
+      },
+      store: false,
+    }
+    const canonical = structuredClone(body)
+    const request = buildGeminiGenerateRequest({
+      apiKey: 'offline-test-key',
+      body,
+      model: 'gemini-3.5-flash-lite',
+    })
+    const wire = JSON.parse(request.init.body)
+
+    assert.deepEqual(body, canonical)
+    assert.equal(wire.store, false)
+    assert.deepEqual(wire.generationConfig.thinkingConfig, {
+      includeThoughts: false,
+      thinkingLevel: 'MINIMAL',
+    })
+  })
+
+test('Gemini generation mapping leaves supported thinking controls unchanged',
+  () => {
+    const current = buildGeminiGenerateRequest({
+      apiKey: 'offline-test-key',
+      body: {
+        generationConfig: {
+          thinkingConfig: { thinkingLevel: 'LOW' },
+        },
+      },
+      model: 'gemini-3.5-flash-lite',
+    })
+    const legacy = buildGeminiGenerateRequest({
+      apiKey: 'offline-test-key',
+      body: {
+        generationConfig: {
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      },
+      model: 'gemini-2.5-flash-lite',
+    })
+
+    assert.deepEqual(
+      JSON.parse(current.init.body).generationConfig.thinkingConfig,
+      { thinkingLevel: 'LOW' },
+    )
+    assert.deepEqual(
+      JSON.parse(legacy.init.body).generationConfig.thinkingConfig,
+      { thinkingBudget: 0 },
+    )
+    assert.throws(
+      () => buildGeminiGenerateRequest({
+        apiKey: 'offline-test-key',
+        body: [],
+        model: 'gemini-3.5-flash-lite',
+      }),
+      /body must be an object/,
+    )
+  })

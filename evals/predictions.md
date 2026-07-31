@@ -802,3 +802,46 @@ Adaptive predictions and stopping rules:
 6. All v1+v2 cells share the original `$0.50` ceiling. Any failure without
    usage remains conservatively accounted at its request-sized reservation;
    the round stops before the next cell could cross the cap.
+
+## P-set 16 — corrected Gemini 3.5 product boundary smoke, FINAL before execution
+
+Author: repository execution lane, 2026-07-31. This is the final product
+verification inside the same founder-authorized `$0.50` debugging round.
+P-set 15's three required cells all returned HTTP 200 on their first calls:
+default generation, `thinkingLevel: MINIMAL`, and the complete five-tool
+request with explicit `store: false`. The complete request emitted
+`memory_search`. Its request SHA-256 is
+`190a7835249659c1690f0394cf76a543a3a360e8624f31ae7ae84a33cd1b6b1b`
+and transcript SHA-256 is
+`abb399f9524e6979d20995142f97377cff9d98676e89b8b856f0ee18944ac55c`.
+This isolates terminal v3's stale `thinkingBudget: 0`; it also proves that
+`store: false` and all five raw schemas are accepted together.
+
+The smallest reusable repair is model-specific. For Gemini 3.5 only,
+`buildGeminiGenerateRequest` maps a legacy zero thinking budget to
+`thinkingLevel: MINIMAL`, preserves every other thinking field and explicit
+no-store, and does not mutate the caller. Current thinking levels and Gemini
+2.5 zero-budget controls remain unchanged. The repaired adapter hashes
+`95e61649311476ea6198d2f434165b14d5527b3113553d2ef6a4b597a61bd292`;
+its focused contract is 6/6 green.
+
+D1+D2 carry exactly `$0.0037519` accounted into the final cell:
+`$0.0004650` measured plus `$0.0032869` uncertain. The ignored one-shot D3
+harness hashes
+`f9cca71385f2facb4fb1f75185b9565f587f9bbd784b39720eb26174b33c0ed1`
+and verifies D2's exact meter
+`62e0b83b56088b840d57bb55fd87cb79659aece9429634fec8526cf716e70280`.
+It serializes terminal v3's exact source body through the repaired product
+boundary. The resulting 6,480-byte body is byte-identical to P-set 15's
+accepted full control: five raw schemas, `store: false`, and
+`thinkingLevel: MINIMAL` with no `thinkingBudget`.
+
+Predictions and stopping rules:
+
+1. The one corrected-product request returns HTTP 200 with `STOP` and emits
+   `memory_search`.
+2. Provider usage reconciles to measured spend; total D1+D2+D3 accounted
+   spend remains below `$0.01` and far below the `$0.50` hard cap.
+3. No fallback cell, benchmark question, embedding, OpenAI judge, retry,
+   reroll, regrade, or publication runs. The debugging round closes after
+   this one call whatever its result.

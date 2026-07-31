@@ -48,14 +48,31 @@ export function buildGeminiFunctionTools(tools) {
   }]
 }
 
+function geminiGenerateBody(body, model) {
+  if (!plainObject(body)) {
+    throw new TypeError('Gemini generateContent body must be an object.')
+  }
+  const wireBody = structuredClone(body)
+  const thinking = wireBody?.generationConfig?.thinkingConfig
+  if (model.startsWith('gemini-3.5-') &&
+    plainObject(thinking) &&
+    thinking.thinkingBudget === 0 &&
+    thinking.thinkingLevel === undefined) {
+    delete thinking.thinkingBudget
+    thinking.thinkingLevel = 'MINIMAL'
+  }
+  return wireBody
+}
+
 export function buildGeminiGenerateRequest({ apiKey, body, model } = {}) {
   const key = String(apiKey ?? '').trim()
   const modelId = String(model ?? '').trim()
   if (!key) throw new Error('Gemini API key is required.')
   if (!modelId) throw new Error('Gemini model is required.')
+  const wireBody = geminiGenerateBody(body, modelId)
   return {
     init: {
-      body: JSON.stringify(body),
+      body: JSON.stringify(wireBody),
       headers: {
         'content-type': 'application/json',
         'x-goog-api-key': key,

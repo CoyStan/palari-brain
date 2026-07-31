@@ -1,5 +1,18 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-D3 CORRECTED GEMINI 3.5 PRODUCT-BOUNDARY SMOKE FROZEN
+INSIDE THE AUTHORIZED `$0.50` ROUND; NOT YET INVOKED. All three D2 controls
+returned HTTP 200 on their first calls: default generation, current
+`thinkingLevel: MINIMAL`, and the complete five-raw-tool request with explicit
+`store: false`, which emitted `memory_search`. This isolates terminal v3's
+stale `thinkingBudget: 0`; store and the raw schemas are accepted together.
+The reusable boundary now translates only Gemini 3.5 zero-budget requests to
+`MINIMAL`, without mutating input or weakening no-store. P-set 16 freezes one
+corrected product smoke. D1+D2 carry `$0.0037519` accounted
+(`$0.0004650` measured plus `$0.0032869` uncertain). Full suite: 643 pass,
+0 fail, 3 skipped; quickstart and D3 preflight green. No D3 call or spend has
+occurred at this cut.
+
 Loop state: J4.5K-D2 GEMINI GENERATION-CONTROL ISOLATION FROZEN INSIDE THE
 AUTHORIZED `$0.50` ROUND; NOT YET INVOKED. D1's exact full request without
 `store` and its minimal no-tool request both returned generic HTTP 400. The
@@ -1626,13 +1639,12 @@ Do not resume or rerun any terminal active-retrieval identity:
 refuted; its six-question outcome predictions are ungraded because the
 mandatory gate stopped first.
 
-P-set 14's `full-without-store` and `minimal` cells are consumed and refuted.
-Follow P-set 15: run `default-generation`, then
-`minimal-thinking-level`. Use the preregistered with-store/no-store full cells
-only as their outcomes require, apply the smallest supported reusable repair,
-and run `corrected-product-smoke` once. Stop when it passes, the cause remains
-unresolved, or the shared meter would reach `$0.50`. Questions 1–6 remain
-closed; this authority does not authorize a benchmark successor.
+P-set 15 is complete: zero-budget thinking is isolated and the reusable
+boundary is repaired. Invoke P-set 16's ignored D3 product smoke exactly once.
+It must preserve `store: false`, serialize `thinkingLevel: MINIMAL` with no
+budget, and use all five raw schemas. Close the debugging round afterward
+whatever the result. Questions 1–6 remain closed; this authority does not
+authorize a benchmark successor.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -2063,6 +2075,11 @@ Nothing dispatched.
 HTTP-400 controls and `$0.0032869` uncertain/accounted spend, refuted the
 store-only hypothesis, and froze generation-control isolation cells under the
 same `$0.50` round. Nothing dispatched from D2.
+2026-07-31 — J4.5K-D3-P — this commit — Recorded three first-call D2 HTTP-200
+controls, isolated stale Gemini 3.5 `thinkingBudget: 0`, repaired the reusable
+boundary to `thinkingLevel: MINIMAL` while preserving no-store, and froze one
+corrected-product smoke. Full suite 643 pass, 0 fail, 3 skipped; nothing
+dispatched from D3.
 
 ## Product stop-rule record
 
@@ -5170,3 +5187,63 @@ and diff check are green. No D2 call or spend occurred at this freeze.
 
 This remains the same bounded debugging unit and cap, not a new benchmark or
 independent spend authority.
+
+### J4.5K-D3-P isolated Gemini 3.5 repair and product-smoke freeze
+
+P-set 15's first cell sent only canonical user content with no generation
+override. It returned HTTP 200 `STOP`, proving the model, key, endpoint, and
+content envelope. The second sent `thinkingLevel: MINIMAL` and also returned
+HTTP 200 `STOP`. The third changed terminal v3's complete request only from
+`thinkingBudget: 0` to `thinkingLevel: MINIMAL`, preserving explicit
+`store: false` and all five raw schemas. It returned HTTP 200 `STOP` with a
+`memory_search` function call.
+
+The accepted complete request hashes
+`190a7835249659c1690f0394cf76a543a3a360e8624f31ae7ae84a33cd1b6b1b`;
+its transcript hashes
+`abb399f9524e6979d20995142f97377cff9d98676e89b8b856f0ee18944ac55c`.
+It used 1,365 input and 17 output tokens for `$0.0004520` measured. Together
+with the two `$0.0000065` minimal successes, D2 measured `$0.0004650` with
+zero uncertainty. D1's two generic failures remain `$0.0032869` uncertain,
+so the exact round opening for D3 is `$0.0037519` accounted. D2's meter hashes
+`62e0b83b56088b840d57bb55fd87cb79659aece9429634fec8526cf716e70280`.
+
+The provider evidence isolates stale zero-budget thinking and proves that
+`store: false` is accepted; the earlier SDK omission was a useful hypothesis,
+not the cause. The smallest reusable repair is model-specific:
+`buildGeminiGenerateRequest` translates Gemini 3.5
+`thinkingBudget: 0` to `thinkingLevel: MINIMAL`, preserves explicit no-store
+and other thinking fields, leaves current levels and Gemini 2.5 controls
+unchanged, and does not mutate caller input. The repaired adapter hashes
+`95e61649311476ea6198d2f434165b14d5527b3113553d2ef6a4b597a61bd292`.
+
+P-set 16 freezes one final product verification. Its ignored D3 harness hashes
+`f9cca71385f2facb4fb1f75185b9565f587f9bbd784b39720eb26174b33c0ed1`
+and verifies D2's exact meter before serializing terminal v3's exact body
+through the repaired product boundary. Offline it produces the same accepted
+6,480-byte request hash, with five raw schemas, `store: false`, and
+`thinkingLevel: MINIMAL`. The FINAL prediction file hashes
+`e567653b6e822512557de4d6d4fe73612928398752ac0324e4735a3b6932b959`.
+
+Offline verification: focused Gemini contracts 6/6; full suite 643 pass,
+0 fail, 3 skipped; quickstart green; D3 predecessor, request hash, corrected
+controls, absent result path, and diff check green. No D3 credential read,
+call, result, or spend occurred.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart
+   is green.
+2. Did this unit make that journey measurably better? Yes at the provider
+   boundary: the exact previously rejected five-tool envelope now has an
+   accepted live control, and the reusable serializer repairs the isolated
+   stale setting. The repaired serializer's own live smoke is still pending.
+3. Does an existing framework already provide what this unit added? The
+   official SDK exposes current thinking levels, but not the model-specific
+   compatibility bridge for Palari's frozen callers and evidence chain.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. This
+   is the requested continuous debugging round under `$0.50`.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Gemini 3.5 active retrieval would return to generic HTTP 400 before
+   the assistant could inspect memory.
+
+This is a product adapter repair plus its frozen final smoke, not a benchmark
+run or infrastructure drift.
