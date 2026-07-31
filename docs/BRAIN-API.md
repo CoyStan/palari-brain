@@ -502,10 +502,11 @@ const result = await answerWithRetrieval(brain, {
 
 `buildGeminiFunctionTools` is the provider boundary for Gemini native
 function calling. It leaves the provider-neutral tool definitions unchanged,
-supplies an object schema for no-argument tools, and lowers a root-property
-`anyOf` by repeating each required selector's definition inside its branch.
-Palari still validates and executes every returned call through `retrieve`;
-the provider declaration is not the admission gate.
+supplies an object schema for no-argument tools, and sends each canonical
+schema through Gemini's `parametersJsonSchema` field. It never places the
+schema in the legacy OpenAPI-subset `parameters` field or rewrites a root
+`anyOf`. Palari still validates and executes every returned call through
+`retrieve`; the provider declaration is not the admission gate.
 
 It supplies the digest first and exposes all five tools:
 

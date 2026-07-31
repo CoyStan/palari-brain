@@ -6,39 +6,36 @@ import {
 } from '../src/index.mjs'
 import {
   buildGeminiFunctionTools,
-  lowerGeminiFunctionParameters,
+  buildGeminiGenerateRequest,
 } from '../src/gemini.mjs'
 
-test('Gemini lowering preserves a root-property anyOf with branch-local selectors',
+test('Gemini mapping preserves root-property anyOf as raw JSON Schema',
   () => {
     const read = MEMORY_RETRIEVAL_TOOLS.find(({ name }) =>
       name === 'memory_read')
     const canonical = structuredClone(read.parameters)
-    const lowered = lowerGeminiFunctionParameters(read.parameters)
+    const mapped = buildGeminiFunctionTools([read])
+    const declaration = mapped[0].functionDeclarations[0]
+    const wireSchema = declaration.parametersJsonSchema
 
     assert.deepEqual(read.parameters, canonical)
-    assert.notEqual(lowered, read.parameters)
-    assert.deepEqual(lowered.properties, canonical.properties)
+    assert.equal(Object.hasOwn(declaration, 'parameters'), false)
+    assert.notEqual(wireSchema, read.parameters)
+    assert.deepEqual(wireSchema, canonical)
+    assert.deepEqual(wireSchema.properties, canonical.properties)
     assert.deepEqual(
-      lowered.anyOf.map(({ required }) => required),
+      wireSchema.anyOf.map(({ required }) => required),
       [['evidenceIds'], ['session']],
     )
     assert.deepEqual(
-      lowered.anyOf.map(({ properties }) => Object.keys(properties)),
-      [['evidenceIds'], ['session']],
+      wireSchema.anyOf.map((branch) =>
+        Object.hasOwn(branch, 'properties')),
+      [false, false],
     )
-    assert.deepEqual(
-      lowered.anyOf[0].properties.evidenceIds,
-      canonical.properties.evidenceIds,
-    )
-    assert.deepEqual(
-      lowered.anyOf[1].properties.session,
-      canonical.properties.session,
-    )
-    assert.equal(Object.hasOwn(lowered, 'anyOf'), true)
+    assert.equal(wireSchema.type, 'object')
   })
 
-test('Gemini tool mapping lowers all retrieval declarations without mutation',
+test('Gemini tool mapping uses raw JSON Schema without mutation',
   () => {
     const canonical = structuredClone(MEMORY_RETRIEVAL_TOOLS)
     const mapped = buildGeminiFunctionTools(MEMORY_RETRIEVAL_TOOLS)
@@ -51,24 +48,52 @@ test('Gemini tool mapping lowers all retrieval declarations without mutation',
     )
     assert.deepEqual(
       declarations.find(({ name }) => name === 'memory_timeline')
-        .parameters,
+        .parametersJsonSchema,
       MEMORY_RETRIEVAL_TOOLS[0].parameters,
     )
     assert.equal(
       declarations.find(({ name }) => name === 'memory_read')
-        .parameters.anyOf.length,
+        .parametersJsonSchema.anyOf.length,
       2,
     )
+    assert.ok(declarations.every((declaration) =>
+      !Object.hasOwn(declaration, 'parameters')))
   })
 
-test('Gemini lowering fails closed on undefined branch requirements', () => {
+test('Gemini tool mapping supplies an object schema and fails closed', () => {
+  const [mapped] = buildGeminiFunctionTools([{ name: 'ping' }])
+  assert.deepEqual(
+    mapped.functionDeclarations[0].parametersJsonSchema,
+    { properties: {}, type: 'object' },
+  )
   assert.throws(
-    () => lowerGeminiFunctionParameters({
-      anyOf: [{ required: ['missing'], type: 'object' }],
-      properties: {},
-      type: 'object',
-    }),
-    /requires undefined property missing/,
+    () => buildGeminiFunctionTools([{
+      name: 'bad',
+      parameters: [],
+    }]),
+    /parametersJsonSchema must be an object schema/,
   )
   assert.throws(() => buildGeminiFunctionTools([]), /non-empty array/)
 })
+
+test('Gemini REST wire uses parametersJsonSchema, never legacy parameters',
+  () => {
+    const tools = buildGeminiFunctionTools(MEMORY_RETRIEVAL_TOOLS)
+    const request = buildGeminiGenerateRequest({
+      apiKey: 'offline-test-key',
+      body: { contents: [], tools },
+      model: 'offline-test-model',
+    })
+    const wire = JSON.parse(request.init.body)
+    const declarations = wire.tools[0].functionDeclarations
+    const read = declarations.find(({ name }) => name === 'memory_read')
+
+    assert.equal(Object.hasOwn(read, 'parameters'), false)
+    assert.deepEqual(
+      read.parametersJsonSchema,
+      MEMORY_RETRIEVAL_TOOLS.find(({ name }) =>
+        name === 'memory_read').parameters,
+    )
+    assert.equal(read.parametersJsonSchema.type, 'object')
+    assert.equal(read.parametersJsonSchema.anyOf.length, 2)
+  })

@@ -6,6 +6,7 @@ import test from 'node:test'
 
 import {
   MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
+  MEMORY_EXPLORATION_INSTRUCTIONS,
   MEMORY_RETRIEVAL_INSTRUCTIONS,
   MEMORY_RETRIEVAL_TOOLS,
   answerWithRetrieval,
@@ -328,6 +329,17 @@ test('retrieval tools are provider-neutral, bounded, and additive', () => {
   const graph = MEMORY_RETRIEVAL_TOOLS.find((tool) =>
     tool.name === 'memory_graph')
   assert.equal(graph.parameters.properties.hops.maximum, 3)
+  assert.ok(
+    MEMORY_RETRIEVAL_INSTRUCTIONS.startsWith(
+      `${MEMORY_EXPLORATION_INSTRUCTIONS}\n`,
+    ),
+  )
+  assert.equal(
+    MEMORY_RETRIEVAL_INSTRUCTIONS.includes(
+      [...MEMORY_EXPLORATION_INSTRUCTIONS].join('\n'),
+    ),
+    false,
+  )
   assert.match(MEMORY_RETRIEVAL_INSTRUCTIONS, /one sentence/)
   assert.ok(MEMORY_RETRIEVAL_TOOLS.every(Object.isFrozen))
 })

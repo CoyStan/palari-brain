@@ -1,5 +1,20 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-R4 GEMINI RAW JSON SCHEMA ADAPTER REPAIR COMPLETE
+OFFLINE. The disproven branch-local lowering has been removed. Gemini
+function declarations now carry Palari's canonical schemas unchanged through
+`parametersJsonSchema`, never the legacy OpenAPI-subset `parameters` field,
+so `memory_read` retains its root object type and root `anyOf` without
+provider-side rewriting. The separately observed retrieval-instruction
+character spread is also fixed and regression-tested. The serialized REST
+request body, all five declarations, input immutability, and package subpath
+are verified offline. Full suite: 641 pass, 0 fail, 3 skipped; quickstart and
+package dry-run green. No credential was read and no provider call, live
+identity, benchmark question, answer, judge, result, or new spend occurred.
+Cumulative S-60 lineage spend remains `$2.5453423` accounted
+(`$1.5860157` measured plus `$0.9593266` uncertain). Live Gemini acceptance
+is not yet proven.
+
 Loop state: J4.5K-R3 GEMINI-LOWERED ACTIVE RETRIEVAL SEEN-SIX SUCCESSOR
 TERMINAL AT COMPATIBILITY. The pushed `c2a7142` freeze was invoked exactly
 once. The first Gemini answer request contained the frozen branch-local
@@ -1573,13 +1588,13 @@ Do not resume or rerun either terminal active-retrieval identity:
 compatibility prediction is refuted; its six-question outcome predictions are
 ungraded because the mandatory gate stopped first.
 
-The next active-retrieval unit is offline only: repair the observed
-character-spread instruction composition with a regression test, then replace
-Gemini's provider-facing `memory_read` union with a genuinely shallow
-provider contract that maps back into the unchanged canonical host
-operation. Do not guess at another `anyOf` variation. Freeze and verify that
-successor before requesting any fresh live authority. No further provider
-call, six-question run, reroll, or regrade is authorized.
+The offline adapter repair is complete. The next active-retrieval unit is
+J4.5K-R4-P: freeze a fresh successor around the raw
+`parametersJsonSchema` wire contract, preserve and verify both terminal
+bundles, carry the exact `$2.5453423` cumulative spend forward, and
+preregister the compatibility and same-six outcomes before asking for a
+fresh founder GO. Dispatch is still a FOUNDER GATE. No provider call,
+six-question run, reroll, or regrade is authorized by this offline repair.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -1987,6 +2002,11 @@ wrapper exactly once. It stopped during verified deletion when an ID returned
 by `getAll()` was missing to Mem0's immediate `delete()` lookup. No report or
 grade exists; all 40 provider calls were HTTP 200 and spent `$0.00760718`
 measured with zero uncertainty. The run was not repeated.
+2026-07-31 — J4.5K-R4 — this commit — Replaced the disproven Gemini
+branch-local schema lowering with exact canonical JSON Schema sent through
+`parametersJsonSchema`, fixed the retrieval-instruction character spread,
+and added serialized-wire regressions. Suite 641 pass, 0 fail, 3 skipped;
+quickstart and package dry-run green; no provider call or spend.
 
 ## Product stop-rule record
 
@@ -4792,3 +4812,57 @@ tracked files; no exact credential value was present.
 This is a terminal live product finding. The identity cannot be resumed,
 rerolled, or regraded; any successor provider call requires a new freeze and
 fresh founder GO.
+
+### J4.5K-R4 raw JSON Schema adapter and retrieval-prompt repair
+
+Repository research changed the planned correction. Current Gemini
+declarations expose a dedicated `parametersJsonSchema` field for full JSON
+Schema, while the legacy `parameters` field accepts a narrower OpenAPI
+subset. The official JavaScript SDK and independent provider adapters route
+raw or union-bearing schemas through that dedicated field. Accordingly,
+Palari does not flatten `memory_read` into a second provider contract and
+does not add branch-local selector definitions. It clones the canonical
+schema into `parametersJsonSchema` exactly and retains the unchanged bounded
+host validator and handlers as the execution boundary.
+
+The canonical five-tool hash remains
+`743c653b8ae0d29869904de969768fc25ae9ccb165d7ec704148da24eaa0ea3e`;
+the new Gemini declaration hash is
+`d2d09fa4b32372324ff8ab8b53b2683e2a4580e87eeb409fba3c942ca7912d0f`.
+The repaired Gemini adapter hashes
+`32cd1c589f8173ae19d1bd39f544ad4ef6fba682ba2d66df3f8034802144ed5a`;
+the repaired retrieval-answer module hashes
+`44be2c15732d59160cf3a839ac02622c63202ffc891bc0df6c1f6cdf49be8998`.
+The regression suite parses the actual serialized REST body and proves that
+`memory_read` has root `type: object`, both canonical `anyOf` branches, and
+no legacy `parameters` member. A separate assertion proves the exploration
+instructions are included once as a complete string instead of one
+newline-separated character at a time.
+
+Offline verification: focused Gemini/retrieval contracts 11/11; full suite
+641 pass, 0 fail, 3 skipped; `npm run quickstart` green; `npm pack --dry-run`
+green with the `palari-brain/gemini` subpath; package self-reference import
+green; diff check clean. No credential was read and no provider API call,
+live identity, prediction change, benchmark result, or spend occurred.
+
+1. Can a new user run the basic memory journey right now? Yes —
+   `npm run quickstart` is green.
+2. Did this unit make that journey measurably better? It removes the known
+   malformed prompt and puts the canonical retrieval contract on Gemini's
+   full-JSON-Schema wire surface. Live provider acceptance remains pending,
+   so the improvement is verified at the package boundary, not yet as an
+   answer score.
+3. Does an existing framework already provide what this unit added? Gemini's
+   SDK and other frameworks provide provider mapping patterns, but they do
+   not provide Palari's canonical tools or bounded host execution contract.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly asked to apply the cross-repository recommendations
+   and modify the code.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Gemini requests would return to a schema encoding already rejected
+   live, and retrieval guidance would again be fragmented character by
+   character before the model saw it.
+
+This is a product adapter repair, not a live result. The two consumed
+identities remain terminal, and a fresh freeze plus founder GO is required
+before any compatibility call.

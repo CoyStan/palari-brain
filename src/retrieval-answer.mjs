@@ -189,7 +189,7 @@ export const MEMORY_RETRIEVAL_TOOLS = deepFreeze([
 ])
 
 export const MEMORY_RETRIEVAL_INSTRUCTIONS = [
-  ...MEMORY_EXPLORATION_INSTRUCTIONS,
+  MEMORY_EXPLORATION_INSTRUCTIONS,
   'Use memory_search when the digest does not answer a paraphrased question. It returns complete canonical messages, fusing ranked and semantic location when semantic retrieval is configured.',
   'Use memory_graph for relationship, correction-history, and multi-hop questions. Its edges are finding aids backed by the exact quote and evidence ID on each edge.',
   'Do not treat an empty search as proof that an event never happened. For a time-bounded absence or count, search the relevant concept inside explicit after/before bounds.',
