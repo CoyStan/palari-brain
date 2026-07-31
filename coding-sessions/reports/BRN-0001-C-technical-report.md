@@ -33,7 +33,8 @@ Implementation commit: `8e285b2a16dc17f1d20b89fac5623898b2cd34af`.
 - `npm run ticket -- ticket-lint-all`: PASS.
 - `npm run ticket -- scope-check --committed-plus-dirty --target
   ticket/BRN-0001-repair-retrieved-answer-reliability BRN-0001-C`: PASS — five
-  committed-plus-dirty paths.
+  committed-plus-dirty paths in the initial implementation check; the final
+  committed-plus-dirty review check covers eight allowed paths.
 - `npm run reached-prefix-regression`: NOT RUN because the required
   gitignored `data/longmemeval_s_cleaned.json` is absent on this machine. The
   charter forbids downloading an unverified dataset; no synthetic substitute
