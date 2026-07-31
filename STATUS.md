@@ -1,5 +1,18 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0001-P RETRIEVED-ANSWER RELIABILITY TICKET STACK FROZEN;
+IMPLEMENTATION NOT STARTED. Commit
+`e75f68ea4f1a478d712643919b4cee59141f068b` registers one parent and three
+sequential reviewed children directly from the terminal v5 3/6 evidence:
+BRN-0001-A stops unsupported absence after directly relevant retrieval,
+BRN-0001-B adds host-computed question-relative calendar time, and BRN-0001-C
+locks both repairs into a provider-free structural regression. The tickets
+preserve honest absence, speaker provenance, canonical evidence, terminal
+v1-v5 immutability, and the founder gate on any future live proof. Ticket
+lint, all six ticket-system contracts, diff checks, and quickstart are green.
+No runtime code, credential, dataset, provider call, prediction, result,
+publication, or spend changed.
+
 Loop state: GOV1 SCOPED TICKET AND FRESH-REVIEW WORKFLOW COMPLETE AT
 `d8b6273`. At the founder's request, Palari Brain now carries a focused,
 dependency-free adaptation of the working `/home/quetza/palari-v05` ticket
@@ -1700,13 +1713,21 @@ session itself).
 
 ## Next
 
-GOV1 is complete. Future governed work now starts with a committed ticket
-contract and isolated ticket worktree as documented in
-`docs/TICKET-WORKFLOW.md`; do not add more process machinery as the next unit.
-GOV1 is one infrastructure unit, so the next unit must return to measurable
-memory-product behavior. The prior product direction below remains current:
-diagnose answer interpretation and temporal reasoning offline before any new,
-independently frozen live evaluation.
+Execute BRN-0001-A first. From clean canonical `main`, create the BRN-0001
+parent worktree/coordination branch, then create and claim BRN-0001-A against
+that parent exactly as documented in `docs/TICKET-WORKFLOW.md`. Its bounded
+product task is to stop false absence after directly relevant returned rows
+while keeping prior Palari speech distinct from user facts and retaining
+honest absence for irrelevant or empty evidence. Review and integrate A
+before starting BRN-0001-B; integrate both before BRN-0001-C. Do not run these
+children concurrently because A and B share the answer boundary.
+
+This planning freeze is the second consecutive non-runtime unit after GOV1,
+although it was explicitly founder-requested. Stop the planning sequence here:
+the next unit must change and verify measurable memory-product behavior under
+BRN-0001-A, not add another process or backlog unit. No live validation is
+part of BRN-0001; any later provider proof needs a separate R3 ticket,
+preregistration, cap, fresh identity, and founder GO.
 
 Do not resume or rerun any terminal active-retrieval identity:
 `j4-active-retrieval-seen6-v1`, `j4-active-retrieval-seen6-v2`, or
@@ -2192,8 +2213,36 @@ palari-v05 commit `764cafbb`: isolated worktrees, allowed/forbidden path
 enforcement, fresh specialist/reviewer packets, evidence-aware review queue,
 report contracts, and an intentionally non-automatable acceptance boundary.
 Full suite 652 pass, 0 fail, 3 skipped; quickstart green; no live activity.
+2026-07-31 — BRN-0001-P — `e75f68e` — Froze the retrieved-answer reliability
+parent and three sequential children: false-absence contract repair,
+host-computed relative time, then an offline structural regression. Ticket
+lint, six ticket contracts, and quickstart are green; no implementation or
+live activity.
 
 ## Product stop-rule record
+
+### BRN-0001-P
+
+1. Can a new user run the basic memory journey right now? Yes — `npm run
+   quickstart` is green and runtime code did not change.
+2. Did this unit make that journey measurably better? No. It translated the
+   measured terminal v5 failures into executable, reviewed product contracts;
+   the first runtime improvement remains BRN-0001-A.
+3. Does an existing framework already provide what this unit added? The local
+   ticket system now provides the lifecycle and scope enforcement. These
+   contracts add only Palari-specific failure evidence and sequencing.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly asked that the first tickets cover what Palari Brain
+   needs to fix next.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? Runtime would not immediately change, but the next repair could
+   conflate evidence use, temporal arithmetic, and live scoring, lose the
+   measured acceptance boundaries, or modify terminal evidence.
+
+BRN-0001-P is a planning unit and therefore the second consecutive
+non-runtime unit after GOV1. The founder explicitly requested it, but the
+charter's drift boundary now applies: stop here and make BRN-0001-A the next
+unit. Do not create a third process/planning unit first.
 
 ### GOV1
 
