@@ -1,5 +1,24 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-R6-E CAPTURED-JUDGE ACTIVE-RETRIEVAL SEEN-SIX V5
+COMPLETE AND TERMINAL AT 3/6. The pushed `f24c175` freeze was invoked exactly
+once. Compatibility passed, all six questions completed, and the official
+`gpt-4o-2024-08-06` judge marked `08e075c7`, `16c90bf4`, and
+`80ec1f4f_abs` correct. Judge wiring passed 6/6; semantic search was used on
+6/6; all answer boundaries completed; and immutable tool transcripts show all
+seven required positive-case answer sessions reached the model. The frozen
+report prints 0/7 because its diagnostic map uses absent `row.evidence_id`
+instead of canonical `row.id`; a zero-provider post-run audit preserves and
+explains that invalid join while proving transcript coverage 7/7. Accuracy
+missed the preregistered `>=4/6` target: the model ignored returned evidence on
+phone-battery preference and the pre-Air-Fryer Instant Pot, and miscomputed
+three months as zero. The invocation made 84 successful physical calls with
+zero retries: 59 Gemini embedding batches, 19 Gemini generations, and six
+OpenAI judges. Fresh spend is `$0.4692177` accounted (`$0.0300114` measured
+plus `$0.4392063` uncertain); total J4-related spend is `$3.57540465`
+accounted (`$1.6204536` measured plus `$1.95495105` uncertain), below
+`$6.5885167`. V5 is sealed and cannot be resumed, rerun, or regraded.
+
 Loop state: J4.5K-R6-P CAPTURED-JUDGE SEEN-SIX V5 REPAIR COMPLETE AND
 FROZEN OFFLINE; NOT FOUNDER-AUTHORIZED TO INVOKE. The new tracked composition
 seam captures one fetch implementation and supplies it to the unchanged
@@ -1667,10 +1686,11 @@ session itself).
 
 Do not resume or rerun any terminal active-retrieval identity:
 `j4-active-retrieval-seen6-v1`, `j4-active-retrieval-seen6-v2`, or
-`j4-active-retrieval-seen6-v3`, or `j4-active-retrieval-seen6-v4`. P-set 13's
-compatibility prediction remains refuted. P-set 17 compatibility passed, but
-its six-question outcome predictions are ungraded because v4 stopped before
-the first official judge dispatch.
+`j4-active-retrieval-seen6-v3`, `j4-active-retrieval-seen6-v4`, or
+`j4-active-retrieval-seen6-v5`. P-set 13's compatibility prediction remains
+refuted. P-set 17 compatibility passed, but its six-question outcome
+predictions remain ungraded because v4 stopped before the first official
+judge dispatch. P-set 18 is graded terminally at 3/6.
 
 P-set 14–16 debugging is complete. Do not repeat any D1, D2, or D3 cell. The
 reusable Gemini 3.5 boundary and exact full five-tool wire now have a measured
@@ -1678,12 +1698,14 @@ live success. V4 independently proves that the real semantic surface and first
 question answer path also work. Its ignored judge caller is defective: it
 constructs `createIncrementalLongMemEvalJudgeTransport` without the required
 explicit `fetchImpl`, so the fail-closed transport refuses before writing a
-meter or contacting OpenAI. That seam is now repaired offline in fresh
-`j4-active-retrieval-seen6-v5`, with a real-transport regression test and
-FINAL P-set 18 carrying `$3.10618695`. V5 is prepared but not authorized:
-do not create its runtime or result and do not read credentials or contact a
-provider until a new founder GO. Do not treat v4's matching unjudged
-question-1 answer as an official score.
+meter or contacting OpenAI. That seam was repaired in v5 and passed six live
+judge calls. V5's transcript-grounded retrieval coverage is 7/7 even though
+its frozen report's broken evidence-key join prints 0/7; do not repeat the run
+to repair a diagnostic that can be corrected offline. The complete 3/6 result
+shows evidence delivery is no longer the primary failing category on these
+seen cases. Future work should diagnose answer interpretation and temporal
+reasoning offline before considering any new, independently frozen eval. Do
+not treat v4's matching unjudged question-1 answer as an official score.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -2137,6 +2159,10 @@ accounted and v4 is sealed.
 composition seam and real-transport fake-HTTP regression, then froze fresh v5
 with P-set 18, all terminal predecessors, `$3.10618695` opening spend, and
 `$3.48232975` remaining. Suite 646 pass, 0 fail, 3 skipped; nothing dispatched.
+2026-07-31 — J4.5K-R6-E — this commit — Invoked pushed `f24c175` once. All six
+answers and judges completed for 3/6; semantic use was 6/6 and transcript
+coverage 7/7 despite the report's invalid 0/7 join. Fresh spend is
+`$0.4692177` accounted; 84 calls succeeded with zero retries; v5 is sealed.
 
 ## Product stop-rule record
 
@@ -5585,3 +5611,101 @@ occurred.
 
 This is an evaluation-harness repair following a live finding, not product
 scope expansion. V5 remains behind a fresh founder gate.
+
+### J4.5K-R6-E terminal captured-judge seen-six v5 result
+
+The pre-run repair and freeze was pushed at
+`f24c1759b70217c43bb8ee9fcf8635e70ff72a36`, then the founder gave a fresh
+GO. The ignored launcher was invoked exactly once. Its runtime hashes the
+preregistered
+`0b820acfb1a81dc702031fa3002ca9b098aeaefdae68de17534f49dd0cfe89d7`.
+The run began at `2026-07-31T18:56:10.908Z` and completed at
+`2026-07-31T18:58:17.549Z`.
+
+Compatibility passed completely. Gemini accepted all five raw JSON Schema
+tools with no-store and the repaired Gemini 3.5 thinking control, called
+`memory_search`, used the real semantic embedder, and answered the planted
+indigo token in two HTTP-200 `STOP` generations. The captured judge seam then
+crossed the unchanged fail-closed transport on every question: six OpenAI
+requests, six validated labels, and no `JUDGE_FETCH_MISSING`.
+
+Official per-question results:
+
+- `08e075c7` PASS — answered nine months; one semantic search returned both
+  required Fitbit sessions.
+- `09d032c9` FAIL — the required portable-power-bank preference session was
+  returned, but the answer claimed no relevant phone-battery memory.
+- `16c90bf4` PASS — answered Pilsner or Lager; the required recipe session was
+  returned.
+- `5e1b23de` FAIL — the required photography-workshop session was returned,
+  but the answer said zero months instead of the reference three.
+- `80ec1f4f_abs` PASS — correctly reported no December museum/gallery visit
+  after five bounded retrieval calls, four semantic.
+- `0977f2af` FAIL — both required correction-chain sessions were returned, but
+  the answer claimed no pre-Air-Fryer gadget instead of Instant Pot.
+
+The official result is therefore 3/6. This refutes P-set 18's `>=4/6`
+prediction. Semantic use passes at 6/6 with ten successful semantic searches.
+All six answers completed without truncation or retrieval exhaustion, so the
+answer-boundary prediction passes. Judge wiring, compatibility, one-shot
+execution, call ceiling, and spend predictions pass.
+
+The frozen report records retrieval coverage as 0/7, but that metric is not a
+valid observation of provider evidence. The private runtime builds its
+evidence-to-session map with `row.evidence_id`; canonical `listStatements`
+rows expose the evidence key as `row.id`. Consequently every lookup misses.
+The immutable cumulative function-response transcripts carry explicit
+`session` and `sourceMessageId` fields. A post-run, zero-provider exact-ID
+audit hashes those source transcripts and finds all seven required sessions
+across the five positive questions: 7/7. The abstention question is separate
+and earns no zero-session coverage credit, exactly as preregistered. P-set
+18's underlying retrieval-coverage prediction therefore passes; the report's
+0/7 diagnostic remains immutable and is recorded as invalid rather than
+rewritten.
+
+The invocation made 84 physical calls, all successful on their first and only
+attempt: 59 `batchEmbedContents` calls carrying 2,897 embedding requests, 19
+Gemini generation calls, and six OpenAI judge calls. Gemini generation plus
+judge usage measured `$0.0300114`. Gemini embedding responses did not report
+token usage, so their conservative reservations remain `$0.4392063`
+uncertain. Fresh accounted spend is `$0.4692177`. Added to the exact
+`$3.10618695` opening, total J4-related spend is `$3.57540465` accounted:
+`$1.6204536` measured plus `$1.95495105` uncertain. This leaves
+`$3.01311205` beneath the unchanged `$6.5885167` cumulative boundary.
+
+P-set 18 grades failing categories first: OFFICIAL ACCURACY fails at 3/6
+against `>=4/6`; JUDGE WIRING passes 6/6; COMPATIBILITY passes; transcript
+RETRIEVAL COVERAGE passes 7/7 while the report join is invalid; SEMANTIC USE
+passes 6/6; ANSWER BOUNDARY passes 6/6; and EXECUTION/ACCOUNTING passes. No
+retry, reroll, selective regrade, second invocation, writer, reducer, graph
+extraction, or publication occurred.
+
+The zero-provider coverage audit hashes
+`6aa5f14dd378a75783f69252f70680075e56b1ac00067feb44ccb59ad201cb3b`.
+The private 42-artifact post-run manifest hashes
+`72d1535dce30b5a992dbddb88854a89afae9ab80ad5a552e6915c1a65e93b20b`;
+its content list hashes
+`174eb35ddb97f6cdd771f9714bbe10ccde1649c0e4b67825c21f98ace390fa65`.
+Every artifact rehashes exactly. Files are mode 0600 and directories mode
+0700. Two exact provider credentials were checked across 45 private files and
+all 268 tracked files; neither exact value appeared.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart is
+   green and product code did not change in this execution unit.
+2. Did this unit make that journey measurably better? It produced the first
+   complete six-question live score through semantic retrieval and the
+   repaired judge seam, exposing answer use—not evidence delivery—as the
+   remaining measured weakness on these cases.
+3. Does an existing framework already provide what this unit added? The
+   providers and judge framework supply inference and grading; they do not
+   provide Palari's exact scoped evidence, one-shot accounting, or immutable
+   cross-surface trace.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly authorized v5 after the offline repair.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? We could mistake the three misses for retrieval failures, lose the
+   first complete official score, or rerun a consumed seen-case identity.
+
+This is a terminal private seen-case diagnostic, not an unbiased public
+benchmark. V5 cannot be resumed, rerolled, selectively regraded, or published
+without separate founder authority.
