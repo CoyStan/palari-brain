@@ -192,6 +192,9 @@ export const MEMORY_RETRIEVAL_INSTRUCTIONS = [
   MEMORY_EXPLORATION_INSTRUCTIONS,
   'Use memory_search when the digest does not answer a paraphrased question. It returns complete canonical messages, fusing ranked and semantic location when semantic retrieval is configured.',
   'Use memory_graph for relationship, correction-history, and multi-hop questions. Its edges are finding aids backed by the exact quote and evidence ID on each edge.',
+  'After each memory-tool result, inspect the returned canonical messages or admitted edges themselves. If one directly addresses the question, use it or state the exact conflict or limitation that makes it unusable; do not claim no relevant memory merely because the initial briefing or digest was empty.',
+  'A non-empty result does not establish relevance. If the returned records do not address the question, do not force an answer from them.',
+  'Prior Palari speech may be reported as advice, a recommendation, or a commitment previously made by Palari. It must never be recast as something the user said, did, owned, or preferred.',
   'Do not treat an empty search as proof that an event never happened. For a time-bounded absence or count, search the relevant concept inside explicit after/before bounds.',
   'Answer directly and concisely from the evidence you actually consulted. Prefer one sentence when one sentence fully answers the question.',
 ].join('\n')

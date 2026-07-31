@@ -12,6 +12,7 @@ import {
   answerWithRetrieval,
   createPalariBrain,
   ingestChatTurn,
+  memoryAnswerSystemInstruction,
   reciprocalRankFuse,
 } from '../src/index.mjs'
 
@@ -311,6 +312,170 @@ test('the new answer contract is concise and gives providers safe headroom',
     assert.equal(result.answer.split(/\s+/u).length, 12)
   })
 
+test('evidence-use instructions cover relevant, irrelevant, corrected, and empty retrieval',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [
+      {
+        assistant:
+          'I recommend keeping a paper checklist beside the travel case.',
+        id: 'packing-advice:0',
+        user: 'I often forget one item when packing for a trip.',
+      },
+      {
+        id: 'instrument-history:0',
+        user:
+          'My first musical instrument was a cedar classical guitar.',
+      },
+      {
+        id: 'instrument-history:1',
+        user:
+          'I later bought a compact digital piano as another musical instrument.',
+      },
+      {
+        id: 'running-noise:0',
+        user: 'I completed a rainy neighborhood fun run last spring.',
+      },
+    ])
+
+    function assertContract(context) {
+      assert.equal(
+        context.answerInstructions,
+        MEMORY_RETRIEVAL_INSTRUCTIONS,
+      )
+      assert.equal(
+        context.systemInstruction,
+        memoryAnswerSystemInstruction,
+      )
+      assert.equal(context.briefing.included.length, 0)
+      assert.match(
+        context.answerInstructions,
+        /do not claim no relevant memory merely because the initial briefing or digest was empty/,
+      )
+      assert.match(
+        context.answerInstructions,
+        /A non-empty result does not establish relevance/,
+      )
+      assert.match(
+        context.answerInstructions,
+        /Prior Palari speech may be reported as advice/,
+      )
+    }
+
+    const advice = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider(context) {
+        assertContract(context)
+        const found = await context.retrieve({
+          input: { phrase: 'paper checklist travel case' },
+          tool: 'memory_search',
+        })
+        const row = found.matches.find((entry) =>
+          entry.text.includes('paper checklist'))
+        assert.equal(
+          row.text,
+          'I recommend keeping a paper checklist beside the travel case.',
+        )
+        assert.equal(row.speaker, 'Palari')
+        return {
+          abstained: false,
+          text:
+            'I previously recommended keeping a paper checklist beside your travel case.',
+        }
+      },
+      question: 'What packing advice did you give me?',
+    })
+    assert.equal(advice.abstained, false)
+    assert.match(advice.answer, /previously recommended/)
+
+    const chronology = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider(context) {
+        assertContract(context)
+        const found = await context.retrieve({
+          input: { phrase: 'musical instrument' },
+          tool: 'memory_search',
+        })
+        const userRows = found.matches.filter((entry) =>
+          entry.speaker === 'user' &&
+          entry.text.includes('musical instrument'))
+        assert.deepEqual(
+          userRows.map((entry) => entry.text),
+          [
+            'My first musical instrument was a cedar classical guitar.',
+            'I later bought a compact digital piano as another musical instrument.',
+          ],
+        )
+        assert.ok(userRows[0].observedAt < userRows[1].observedAt)
+        assert.ok(userRows.every((entry) =>
+          entry.evidenceId && entry.sourceMessageId))
+        return {
+          abstained: false,
+          text: 'The cedar classical guitar came first.',
+        }
+      },
+      question: 'Which musical instrument came first?',
+    })
+    assert.equal(chronology.answer, 'The cedar classical guitar came first.')
+
+    const irrelevant = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider(context) {
+        assertContract(context)
+        const found = await context.retrieve({
+          input: { phrase: 'rainy neighborhood fun run' },
+          tool: 'memory_search',
+        })
+        assert.ok(found.matches.length > 0)
+        assert.ok(found.matches.some((entry) =>
+          entry.text.includes('neighborhood fun run')))
+        return {
+          abstained: true,
+          text: 'I have no stored memory about that allergy.',
+        }
+      },
+      question: 'Which antibiotic am I allergic to?',
+    })
+    assert.equal(irrelevant.abstained, true)
+
+    const empty = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider(context) {
+        assertContract(context)
+        const found = await context.retrieve({
+          input: { phrase: 'telescope observatory constellation' },
+          tool: 'memory_search',
+        })
+        assert.equal(found.matches.length, 0)
+        return {
+          abstained: true,
+          text: 'I have no stored memory about an observatory visit.',
+        }
+      },
+      question: 'Which observatory did I visit?',
+    })
+    assert.equal(empty.abstained, true)
+
+    const expectedCanonicalText = new Map([
+      [
+        advice.retrievalTranscript[0].result.matches.find((entry) =>
+          entry.text.includes('paper checklist')).evidenceId,
+        'I recommend keeping a paper checklist beside the travel case.',
+      ],
+      ...chronology.retrievalTranscript[0].result.matches
+        .filter((entry) => entry.text.includes('musical instrument'))
+        .map((entry) => [entry.evidenceId, entry.text]),
+    ])
+    assert.ok(expectedCanonicalText.size >= 3)
+    for (const result of [advice, chronology, irrelevant, empty]) {
+      for (const entry of result.retrievalTranscript[0].result.matches) {
+        if (expectedCanonicalText.has(entry.evidenceId)) {
+          assert.equal(entry.text, expectedCanonicalText.get(entry.evidenceId))
+        }
+      }
+    }
+  })
+
 test('retrieval tools are provider-neutral, bounded, and additive', () => {
   assert.deepEqual(
     MEMORY_RETRIEVAL_TOOLS.map((tool) => tool.name).sort(),
@@ -341,6 +506,14 @@ test('retrieval tools are provider-neutral, bounded, and additive', () => {
     false,
   )
   assert.match(MEMORY_RETRIEVAL_INSTRUCTIONS, /one sentence/)
+  assert.match(
+    MEMORY_RETRIEVAL_INSTRUCTIONS,
+    /do not claim no relevant memory merely because the initial briefing or digest was empty/,
+  )
+  assert.match(
+    MEMORY_RETRIEVAL_INSTRUCTIONS,
+    /A non-empty result does not establish relevance/,
+  )
   assert.ok(MEMORY_RETRIEVAL_TOOLS.every(Object.isFrozen))
 })
 

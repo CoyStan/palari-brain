@@ -684,9 +684,26 @@ test('briefing labels Palari statements and preserves chronological corrections'
     )
     assert.ok(
       memoryAnswerSystemInstruction.includes(
-        'A Palari record proves only what Palari previously said',
+        'A Palari record proves Palari speech',
       ),
     )
+    assert.match(
+      memoryAnswerSystemInstruction,
+      /reuse it only as Palari's prior advice, recommendation, or commitment/,
+    )
+    assert.match(
+      memoryAnswerSystemInstruction,
+      /an empty briefing cannot justify ignoring it/,
+    )
+    assert.match(
+      memoryAnswerSystemInstruction,
+      /If consulted evidence directly answers, use it or name the exact conflict or limit/,
+    )
+    assert.match(
+      memoryAnswerSystemInstruction,
+      /Non-empty results can be irrelevant and never force an answer/,
+    )
+    assert.equal(memoryAnswerSystemInstruction.length, 840)
   } finally {
     brain.close()
   }

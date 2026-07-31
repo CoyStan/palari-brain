@@ -537,6 +537,27 @@ bounded tool request/result. Search ranking and graph structure locate
 evidence; exact journal messages and verified edge quotes remain the only
 testimony.
 
+The provider-neutral answer contract applies to the initial briefing and all
+later tool results as one evidence stream:
+
+- an empty initial digest does not override relevant canonical evidence found
+  later;
+- when consulted evidence directly addresses the question, the answer uses it
+  or names the exact conflict or limitation that prevents using it;
+- non-empty retrieval is not automatically relevant and never forces an
+  unsupported answer;
+- prior Palari speech may be recalled as Palari's prior advice,
+  recommendation, or commitment, but never as something the user said, did,
+  owned, or preferred; and
+- empty or irrelevant evidence still produces honest absence rather than a
+  fabricated fact.
+
+These are instructions to the caller's answer provider, not a host-side
+lexical answer grader and not proof of provider compliance. The host continues
+to preserve canonical bytes, speaker, time, evidence identity, scope, and the
+bounded retrieval transcript; a separately authorized live measurement is
+required to measure generated-answer behavior.
+
 ### The digest is an index
 
 Each rendered digest record names the sessions its supporting evidence came
