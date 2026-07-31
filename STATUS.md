@@ -1,17 +1,21 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.5K-R5-P REPAIRED ACTIVE-RETRIEVAL SEEN-SIX V4 FROZEN,
-FOUNDER-AUTHORIZED, AND NOT YET INVOKED. P-set 17 binds fresh identity
-`j4-active-retrieval-seen6-v4` to the live-proven Gemini 3.5 request repair,
-the same ordered questions 1–6, all three terminal predecessor bundles, and
-the completed debugging bundle. Exact total J4-related opening spend is
-`$3.0279590` accounted (`$1.5869327` measured plus `$1.4410263` uncertain).
-V4 may spend only the remaining `$3.5605577` under the unchanged
-`$6.5885167` cumulative boundary. One pushed invocation must run the combined
-native-tool/semantic compatibility smoke first and stop before question 1 if
-it fails; otherwise each of the six receives one answer and one official
-judge. No v4 credential read, provider call, result, or new spend has occurred
-at this freeze.
+Loop state: J4.5K-R5-E REPAIRED ACTIVE-RETRIEVAL SEEN-SIX V4 TERMINAL AT
+THE FIRST JUDGE BOUNDARY WITHOUT AN OFFICIAL SCORE. The pushed `658f6f3`
+freeze was invoked exactly once. The combined Gemini native-tool/semantic
+smoke passed: two generation calls, one `memory_search`, real semantic
+embeddings, and the planted indigo answer. Question 1 then completed one
+semantic `memory_search`, consulted both required answer-bearing sessions,
+and returned “You have been using your Fitbit Charge 3 for 9 months,” matching
+the dataset reference. Before any OpenAI dispatch, the frozen harness omitted
+the judge transport's required captured `fetchImpl`; it failed locally with
+`JUDGE_FETCH_MISSING`. No official label exists, the report contains zero
+scored questions, and questions 2–6 never started. V4 made 15 successful
+Gemini calls and zero OpenAI calls. Fresh spend is `$0.07822795` accounted
+(`$0.0035095` measured plus `$0.07471845` uncertain); total J4-related spend
+is `$3.10618695` accounted (`$1.5904422` measured plus `$1.51574475`
+uncertain), below `$6.5885167`. V4 is sealed and cannot be resumed, rerun, or
+selectively regraded.
 
 Loop state: J4.5K-D3-E GEMINI 3.5 REQUEST DEBUGGING COMPLETE AND PRODUCT
 SMOKE LIVE-PROVEN. The corrected boundary from pushed `63575ef` was invoked
@@ -1649,18 +1653,21 @@ session itself).
 
 Do not resume or rerun any terminal active-retrieval identity:
 `j4-active-retrieval-seen6-v1`, `j4-active-retrieval-seen6-v2`, or
-`j4-active-retrieval-seen6-v3`. P-set 13's compatibility prediction is
-refuted; its six-question outcome predictions are ungraded because the
-mandatory gate stopped first.
+`j4-active-retrieval-seen6-v3`, or `j4-active-retrieval-seen6-v4`. P-set 13's
+compatibility prediction remains refuted. P-set 17 compatibility passed, but
+its six-question outcome predictions are ungraded because v4 stopped before
+the first official judge dispatch.
 
 P-set 14–16 debugging is complete. Do not repeat any D1, D2, or D3 cell. The
 reusable Gemini 3.5 boundary and exact full five-tool wire now have a measured
-live success. The founder separately authorized frozen P-set 17 and fresh
-identity `j4-active-retrieval-seen6-v4`. After this pre-run cut is pushed,
-invoke its launcher exactly once. The compatibility smoke remains mandatory;
-after it, questions 1–6 each receive at most one answer and one judge. Any
-failure, cap stop, partial score, or complete score is final: seal it, record
-it, and do not rerun or selectively regrade.
+live success. V4 independently proves that the real semantic surface and first
+question answer path also work. Its ignored judge caller is defective: it
+constructs `createIncrementalLongMemEvalJudgeTransport` without the required
+explicit `fetchImpl`, so the fail-closed transport refuses before writing a
+meter or contacting OpenAI. Any successor requires an offline harness repair,
+a test that crosses this exact caller-to-transport seam, a fresh identity and
+FINAL predictions carrying `$3.10618695`, and a new founder GO. Do not treat
+the matching unjudged question-1 answer as an official score.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -2105,6 +2112,11 @@ around the live-proven Gemini 3.5 request repair, reverified all terminal
 predecessors, carried `$3.0279590` exact opening spend, and reserved only the
 remaining `$3.5605577` under the unchanged `$6.5885167` boundary. Nothing
 dispatched.
+2026-07-31 — J4.5K-R5-E — this commit — Invoked pushed `658f6f3` once. The
+semantic compatibility smoke and first answer passed, but the harness omitted
+the judge transport's required `fetchImpl` and stopped before any OpenAI call.
+No score exists; questions 2–6 were not reached. Fresh spend is `$0.07822795`
+accounted and v4 is sealed.
 
 ## Product stop-rule record
 
@@ -5402,3 +5414,81 @@ and no provider call, score, result, or new spend occurred at this cut.
 This is one evaluation freeze following a product repair; it is not a second
 consecutive infrastructure unit. Provider authority starts only from its
 pushed cut and ends after the first launcher invocation whatever the result.
+
+### J4.5K-R5-E terminal seen-six v4 judge-boundary failure
+
+The pre-run freeze was pushed at
+`658f6f3346f41ab44fac100a32adf8be2e5a5af0`, then its ignored launcher was
+invoked exactly once. The runtime hashes the preregistered
+`9155b4e4dcbd9b96018e546563a3d99d039f4644c21a3cebea8deaa5bfd185e6`.
+The run began at `2026-07-31T13:55:31.713Z` and wrote its terminal report at
+`2026-07-31T13:55:53.820Z`.
+
+Compatibility passed completely. Gemini accepted all five raw
+`parametersJsonSchema` declarations with explicit `store: false` and
+product-mapped `thinkingLevel: MINIMAL`. Its first response called
+`memory_search`; the real embedder completed two batches; its second response
+said the stored color was indigo. Both answer calls returned HTTP 200 `STOP`.
+
+Question `08e075c7` then ingested its local canonical history. Gemini called
+`memory_search` for “Fitbit Charge 3”; the hybrid result used semantic search,
+returned nine messages, and included both required answer sessions
+`answer_cdbe2250_1` and `answer_cdbe2250_2` among three consulted sessions.
+The second Gemini response returned HTTP 200 `STOP` with “You have been using
+your Fitbit Charge 3 for 9 months.” The dataset reference is “9 months.” This
+is a direct reference match, not an official judge label.
+
+Immediately afterward, local code attempted to create the official judge.
+`createIncrementalLongMemEvalJudgeTransport` requires a captured `fetchImpl`
+and refuses otherwise; the frozen private caller omitted that argument. It
+raised `JUDGE_FETCH_MISSING` before a judge meter, transcript, reservation, or
+physical OpenAI request existed. Because a question is appended to the report
+only after its judge succeeds, the terminal report has zero scored question
+rows. Questions 2–6 were never ingested, answered, or judged. This is a private
+harness integration defect, not a Gemini or OpenAI provider rejection.
+
+The invocation made 15 successful physical Gemini calls: four generation and
+eleven `batchEmbedContents` calls covering 489 embedding requests. All four
+generation calls reported usage and measured `$0.0035095`. Embedding calls
+returned HTTP 200 without token usage, so their conservative reservations
+remain `$0.07471845` uncertain. Fresh accounted spend is therefore
+`$0.07822795`, with zero OpenAI spend. Added to the exact `$3.0279590` opening,
+total J4-related spend is `$3.10618695` accounted: `$1.5904422` measured plus
+`$1.51574475` uncertain. This leaves `$3.48232975` beneath the unchanged
+`$6.5885167` cumulative boundary.
+
+P-set 17 grades failing categories first. EXECUTION/ACCOUNTING fails its
+completion prediction, though the command remained final, stayed below both
+caps, separated spend classes, and made zero of the permitted six judge calls.
+OFFICIAL ACCURACY is ungraded because no official judge ran. RETRIEVAL
+COVERAGE, SEMANTIC USE, and ANSWER BOUNDARY are ungraded across six because
+only question 1 reached an answer; locally, that reached prefix was 2/2 answer
+sessions, semantic 1/1, and one clean completion. COMPATIBILITY passes in full.
+There is no v4 score; neither `0/6` nor `1/6` describes this result.
+
+The private post-run manifest covers nine artifacts and hashes
+`e6a63b46c1f1b9a1f8c2163631ac160957fe21cdb2eaa62501b25dc918e7829f`;
+its content list hashes
+`d8905ea70d276d38c7dffd053e8c4b45e7fc9611068457ac9ec234c16fa12dca`.
+All artifacts rehash exactly. Files are mode 0600 and directories mode 0700.
+Two exact provider credentials were checked across twelve private files and
+all 266 tracked files; neither exact value appeared.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart is
+   green and product code did not change in this execution unit.
+2. Did this unit make that journey measurably better? It supplied live evidence
+   that Gemini semantic retrieval and the first answer path work, but exposed
+   a local evaluation-harness break before scoring.
+3. Does an existing framework already provide what this unit added? The judge
+   transport already enforced the correct explicit-network boundary; the
+   ignored caller failed to satisfy it.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly authorized the six-question run and required whatever
+   result occurred to be recorded.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? An operator could misreport the unjudged answer as an official score,
+   repeat a consumed identity, or blame a provider for a local caller defect.
+
+This is a terminal partial live finding. V4 cannot be resumed, rerolled, or
+regraded. A successor needs a tested offline judge-wiring repair, new freeze,
+and fresh founder authority.
