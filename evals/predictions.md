@@ -702,3 +702,58 @@ Predictions, failing categories first:
    records measured and uncertain spend separately, and makes at most six
    official judge calls. Any stop or miss is the result and authorizes no
    retry, reroll, selective regrade, or prediction change.
+
+## P-set 14 — bounded Gemini request debugging round, FINAL before execution
+
+Author: repository execution lane, 2026-07-31. The founder authorized an
+adaptive debugging round with multiple unique provider tests and continuous
+fixes under one hard `$0.50` total cap. This is not a benchmark rerun or a
+score. It cannot resume or alter any terminal seen-six identity, execute a
+LongMemEval question, call a judge, reroll a diagnostic cell, or publish a
+result.
+
+The fixed source is terminal v3's 6,473-byte compatibility request, SHA-256
+`b6d9e86c43911dc648c2ef607ad2ef5738bf399b97b3825fdd4d7119e5d6b96a`,
+from transcript
+`e9934148f3a9e494a051c7ebb8ec41e0e954fa5822210efc367d81ff5637a39c`.
+The installed and lockfile-pinned official `@google/genai` `1.40.0`
+transformer hashes
+`92048d8be8816a3a67fbadd8cef66b87fdb5cc0ebad80883e36462507355ba6e`.
+An offline intercepted SDK request preserves the same five
+`parametersJsonSchema` declarations but serializes only `contents`,
+`systemInstruction`, `tools`, `toolConfig`, and `generationConfig`; it omits
+terminal v3's top-level `store: false`.
+
+The ignored diagnostic harness hashes
+`24ce3c84eef3e42694807a0986706e022b63539707b161a475fa54632bc8042f`.
+It permits only ten named cells, each at most once, and shares one persistent
+`$0.50` meter. Before every request it reserves one input token per serialized
+UTF-8 byte at `$0.30` per million plus the cell's entire output allowance at
+`$2.50` per million. Valid usage reconciles to measured spend; any failure or
+missing usage retains the conservative reservation as uncertain. No retry is
+implemented.
+
+Adaptive predictions and stopping rules:
+
+1. PRIMARY — `full-without-store`: deleting only top-level `store` from the
+   exact terminal request returns HTTP 200 and a `memory_search` function
+   call. Together with terminal v3's immutable HTTP 400 control, this isolates
+   `store` as the rejected field.
+2. BASELINE FALLBACK — only if the primary cell is not HTTP 200, `minimal`
+   returns HTTP 200. `minimal-store` then returns HTTP 400 while the otherwise
+   identical no-store cell remains accepted.
+3. TOOL FALLBACK — only if the store pair does not isolate the failure,
+   `raw-simple` returns HTTP 200. The canonical tools then run at most once
+   each in fixed order: `memory_timeline`, `memory_read`, `memory_find`,
+   `memory_search`, `memory_graph`. The first rejection identifies the
+   unsupported declaration; accepted cells are not repeated.
+4. FIX — apply only the smallest change supported by the observed control
+   pair. Historical sealed request bytes remain untouched.
+5. PRODUCT VERIFICATION — `corrected-product-smoke` serializes the exact
+   terminal request through the repaired reusable product boundary, proves
+   that the rejected field is absent, returns HTTP 200, and emits a
+   `memory_search` function call. It runs exactly once.
+6. ACCOUNTING — the round stops before `$0.50`, records measured and uncertain
+   spend separately, and makes no LongMemEval, embedding, OpenAI, judge,
+   reroll, regrade, or publication call. Any unresolved outcome at the cap is
+   the finding.

@@ -1,5 +1,17 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-D1 BOUNDED GEMINI REQUEST DEBUG ROUND FROZEN AND
+FOUNDER-AUTHORIZED; NOT YET INVOKED. P-set 14 freezes an adaptive, non-scoring
+diagnostic matrix under one `$0.50` hard cap. The installed official
+`@google/genai` `1.40.0` serializer preserves Palari's five raw tool schemas
+but omits terminal v3's top-level `store: false`; removing only that field
+from the exact failed request is the preregistered primary cell. Every fallback
+cell has a unique one-shot name, request-sized reservation, and persistent
+shared meter. No LongMemEval question, judge, retry, reroll, regrade, or
+publication is permitted. The ignored harness and result path verify offline;
+no credential was read and no provider call or new spend occurred at this
+freeze.
+
 Loop state: J4.5K-R4-E RAW-SCHEMA ACTIVE RETRIEVAL SEEN-SIX SUCCESSOR
 TERMINAL AT COMPATIBILITY. The pushed `3cf228b` freeze was invoked exactly
 once. Its first Gemini answer request contained five raw
@@ -1604,12 +1616,13 @@ Do not resume or rerun any terminal active-retrieval identity:
 refuted; its six-question outcome predictions are ungraded because the
 mandatory gate stopped first.
 
-The next active-retrieval unit is offline diagnosis of the exact frozen
-6,473-byte request against the current official SDK/request contract. The
-generic response does not prove that `parametersJsonSchema` itself is the
-remaining problem, so do not guess another schema transformation. Any
-request-minimization provider probe, successor freeze, or six-question run is
-a fresh FOUNDER GATE. No further call, reroll, or regrade is authorized.
+The founder authorized P-set 14's bounded Gemini debugging round. Run the
+unique `full-without-store` cell first. If it fails, follow the preregistered
+minimal/store/raw/canonical decision tree without repeating a cell. Apply only
+the smallest evidence-supported repair, then run `corrected-product-smoke`
+once. Stop when it passes, the cause remains unresolved, or the shared meter
+would reach `$0.50`. Questions 1–6 remain closed; this authority does not
+authorize a benchmark successor.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -2031,6 +2044,11 @@ Gemini returned generic HTTP 400 to the raw-schema compatibility request, so
 no tool, embedding, question, answer, or judge ran. Fresh accounted spend is
 `$0.4784128` uncertain; cumulative accounted spend is `$3.0237551`; v3 is
 sealed and was not rerun.
+2026-07-31 — J4.5K-D1-P — this commit — Froze the founder-authorized adaptive
+Gemini request-debugging matrix under one `$0.50` cap. Official SDK wire
+comparison isolates top-level `store` as the primary hypothesis; ten unique
+one-shot cells and a corrected-product verification are preregistered.
+Nothing dispatched.
 
 ## Product stop-rule record
 
@@ -5027,3 +5045,61 @@ tracked files; no exact credential value was present.
 This is a terminal live product finding. V3 cannot be resumed, rerolled, or
 regraded; any further provider call requires a new freeze and fresh founder
 GO.
+
+### J4.5K-D1-P bounded Gemini request-debugging freeze
+
+The founder authorized multiple diagnostic tests and continuous fixes under
+one hard `$0.50` round cap, explicitly to avoid a new approval loop after
+every failed probe. P-set 14 converts that authority into an adaptive,
+non-scoring contract. It cannot execute a benchmark question, embedding,
+OpenAI judge, reroll, regrade, or publication action and cannot modify any
+terminal identity.
+
+The exact source request remains
+`b6d9e86c43911dc648c2ef607ad2ef5738bf399b97b3825fdd4d7119e5d6b96a`
+from terminal transcript
+`e9934148f3a9e494a051c7ebb8ec41e0e954fa5822210efc367d81ff5637a39c`.
+The lockfile-pinned official `@google/genai` `1.40.0` transformer is
+`92048d8be8816a3a67fbadd8cef66b87fdb5cc0ebad80883e36462507355ba6e`.
+An offline intercepted SDK call serializes the same five
+`parametersJsonSchema` declarations and all product generation/tool controls,
+but does not serialize terminal v3's top-level `store: false`. The first cell
+therefore deletes only that field from the exact 6,473-byte failed body.
+
+The ignored diagnostic harness hashes
+`24ce3c84eef3e42694807a0986706e022b63539707b161a475fa54632bc8042f`.
+It permits only the ten P-set 14 cells and refuses a consumed cell. Every call
+reserves serialized request bytes as a conservative input-token ceiling plus
+the complete configured output allowance at the frozen answer prices. Valid
+usage reconciles to measured spend; provider errors or missing usage retain
+their reservation. All cells share one durable `$0.50` meter.
+
+The FINAL prediction file hashes
+`95865e32b21ab42310165e04d8d0039997aab47c6393009d9e42ebfcbddd663c`.
+The primary prediction is that `full-without-store` returns HTTP 200 and a
+`memory_search` call, isolating the extra field against v3's immutable HTTP
+400 control. If refuted, minimal no-store/store controls and then raw-simple
+and canonical per-tool cells run in fixed order only as needed. The smallest
+supported fix is followed by one `corrected-product-smoke`; no cell can be
+repeated.
+
+Offline verification: official SDK capture, source transcript/hash, harness
+syntax, fixed cell set, absent result path, and diff check are green. No
+credential was read and no provider call, result, or new spend occurred.
+
+1. Can a new user run the basic memory journey right now? Yes — the last
+   committed quickstart remains green.
+2. Did this unit make that journey measurably better? Not yet. It freezes the
+   smallest live experiment that can isolate the request rejection safely.
+3. Does an existing framework already provide what this unit added? The
+   official SDK provides the crucial serialization comparator; it does not
+   provide Palari's one-shot cells, spend meter, or evidence chain.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly authorized continuous debugging within `$0.50`.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? Repeated ad hoc probes could spend without a shared cap, repeat
+   failed cells, or apply a schema fix unsupported by the evidence.
+
+This is one evaluation/debugging freeze. Its provider authority begins only
+after the pushed cut and ends at a corrected product smoke, an unresolved
+finding, or the hard cap.
