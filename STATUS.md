@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0001-B HOST-COMPUTED QUESTION-RELATIVE TIME IMPLEMENTED AT
-`7e07559`; REVIEW PENDING. The answer boundary now decorates copied canonical messages
+Loop state: BRN-0001-B HOST-COMPUTED QUESTION-RELATIVE TIME ACCEPTED AFTER
+FRESH REVIEW AT `3e1f6d8`; PARENT INTEGRATION PENDING. The answer boundary now decorates copied canonical messages
 and admitted graph edges with validated UTC evidence/reference instants,
 past/same/future relation, signed whole days, and signed whole calendar
 months. The measured 2023-11-01-to-2024-02-01 case is 3 months; invalid dates
@@ -1749,16 +1749,10 @@ session itself).
 
 ## Next
 
-Review BRN-0001-B against the updated parent branch
+Integrate accepted BRN-0001-B into
 `ticket/BRN-0001-repair-retrieved-answer-reliability`, preserving the fresh
-review evidence. The reviewer must check the
-general evidence-use rule, speaker truth, irrelevant/empty controls,
-anti-overfit fixtures, exact 840-character compatibility envelope, reports,
-and committed scope, then recommend `accept`, `reopen`, or `needs-human`.
-The implementation owner must not accept B without an independent pass.
-
-After B is independently accepted and integrated, begin BRN-0001-C. C follows
-only after both A and B are integrated. No live validation is part of
+review evidence. Then create and claim BRN-0001-C against the updated parent.
+C follows only after both A and B are integrated. No live validation is part of
 BRN-0001; any later provider proof needs a separate R3 ticket,
 preregistration, cap, fresh identity, and founder GO.
 
@@ -2266,6 +2260,9 @@ explicit proceed instruction; parent integration is the next action.
 2026-07-31 — BRN-0001-B — `7e07559` — Added host-computed question-relative
 time to copied answer evidence and documented UTC calendar semantics.
 Focused/full/quickstart checks pass; review is required; no live activity.
+2026-07-31 — BRN-0001-B — `3e1f6d8` — Fresh independent review passed with no
+findings. B is accepted by the founder's explicit proceed instruction; parent
+integration is the next action.
 
 ## Product stop-rule record
 
@@ -2314,9 +2311,9 @@ integration and BRN-0001-B remain the next governed actions.
    answer the measured three-month interval as zero; graph and search callers
    would also lose the same authoritative metadata.
 
-BRN-0001-B is an offline product answer-boundary unit. Its review remains
-required; it changes no provider, benchmark, dataset, credential, score, or
-spend.
+BRN-0001-B is an offline product answer-boundary unit. It is independently
+accepted; it changes no provider, benchmark, dataset, credential, score, or
+spend. Parent integration and BRN-0001-C are the next governed actions.
 
 ### BRN-0001-P
 
