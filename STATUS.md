@@ -1,5 +1,16 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0001-A REVIEW GAP REPAIRED AT
+`c464b8f`; IN REVIEW AGAIN, NOT ACCEPTED OR INTEGRATED. The independent
+review found one bounded P1 evidence gap: the first correction fixture tested
+chronology between different objects, not same-speaker supersession. The
+reopened child now tests an earlier dried-mango preference followed by a
+roasted-almond replacement through `answerWithRetrieval`, retaining both
+canonical rows and selecting the later value. No production path changed.
+Focused contracts remain 30/30; full suite and quickstart remain green; no
+provider, network, credential, dataset, score, result, or spend occurred.
+A fresh reviewer pass is required before acceptance or BRN-0001-B.
+
 Loop state: BRN-0001-A RETRIEVED-EVIDENCE ANSWER CONTRACT IMPLEMENTED AT
 `a8ce9bc1124876b3bb72f429c541cea973efdceb`; IN REVIEW, NOT ACCEPTED OR
 INTEGRATED. The provider-neutral answer boundary now treats the briefing and
@@ -2236,6 +2247,10 @@ answer contract against false absence after directly relevant retrieval while
 preserving speaker truth and irrelevant/empty controls. The 840-character
 base envelope is unchanged; full suite 641 pass, 0 fail, 15 skipped;
 quickstart green; no live activity. Submitted for review, not accepted.
+2026-07-31 — BRN-0001-A-R1 — `c464b8f` — Reopened after independent review
+identified a missing same-speaker correction outcome, added the unrelated
+trail-snack supersession fixture, reran focused/full/quickstart checks, and
+submitted for fresh review. No production or live activity.
 
 ## Product stop-rule record
 
