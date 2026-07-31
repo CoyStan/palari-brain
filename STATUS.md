@@ -1,18 +1,19 @@
 # STATUS — single source of truth for the loop
 
-Loop state: J4.5K-R4-P RAW-SCHEMA ACTIVE RETRIEVAL SEEN-SIX SUCCESSOR
-FROZEN AND FOUNDER-AUTHORIZED; NOT YET INVOKED. P-set 13 freezes the fresh
-identity `j4-active-retrieval-seen6-v3` around the R4 adapter and prompt
-repairs. Its ignored one-shot launcher verifies both terminal predecessor
-manifests and every manifested artifact before it can generate the frozen
-runtime. The same ordered six questions and mandatory combined
-native-tool/semantic smoke are unchanged. Exact opening spend is
-`$2.5453423` accounted (`$1.5860157` measured plus `$0.9593266` uncertain).
-Only the remaining `$4.0431744` is available under the unchanged
-`$6.5885167` cumulative boundary. Full suite: 641 pass, 0 fail, 3 skipped;
-quickstart and private preflight green. No credential was read and no
-provider call, runtime, result directory, benchmark answer, judge, or new
-spend exists at this freeze.
+Loop state: J4.5K-R4-E RAW-SCHEMA ACTIVE RETRIEVAL SEEN-SIX SUCCESSOR
+TERMINAL AT COMPATIBILITY. The pushed `3cf228b` freeze was invoked exactly
+once. Its first Gemini answer request contained five raw
+`parametersJsonSchema` declarations, no legacy `parameters`, and the
+canonical two-branch root `anyOf` on `memory_read`. Gemini still returned
+HTTP 400 with only generic `INVALID_ARGUMENT` detail. The mandatory combined
+native-tool/semantic smoke therefore stopped before a tool or embedding call.
+Zero benchmark questions, answers, or judges ran; v3 has no accuracy score
+and the sealed v6 result remains `1/6`. One physical request was made. Fresh
+accounted spend is `$0.4784128`, all uncertain under the frozen full-window
+reservation. Cumulative S-60 lineage spend is now `$3.0237551` accounted
+(`$1.5860157` measured plus `$1.4377394` uncertain), below the unchanged
+`$6.5885167` boundary. The response does not identify whether Gemini rejected
+the raw schema or a different request field.
 
 Loop state: J4.5K-R4 GEMINI RAW JSON SCHEMA ADAPTER REPAIR COMPLETE
 OFFLINE. The disproven branch-local lowering has been removed. Gemini
@@ -1597,17 +1598,18 @@ session itself).
 
 ## Next
 
-Do not resume or rerun either terminal active-retrieval identity:
-`j4-active-retrieval-seen6-v1` or `j4-active-retrieval-seen6-v2`. P-set 12's
-compatibility prediction is refuted; its six-question outcome predictions are
-ungraded because the mandatory gate stopped first.
+Do not resume or rerun any terminal active-retrieval identity:
+`j4-active-retrieval-seen6-v1`, `j4-active-retrieval-seen6-v2`, or
+`j4-active-retrieval-seen6-v3`. P-set 13's compatibility prediction is
+refuted; its six-question outcome predictions are ungraded because the
+mandatory gate stopped first.
 
-The founder authorized the fresh raw-schema successor
-`j4-active-retrieval-seen6-v3`. Its pushed pre-run freeze must be the exact
-cut invoked. Invoke its ignored launcher once. The mandatory compatibility
-smoke runs first and any failure is terminal before question 1; otherwise the
-same ordered questions 1–6 each run once. Stop afterward whatever the
-measured result. Do not retry, reroll, selectively regrade, or alter P-set 13.
+The next active-retrieval unit is offline diagnosis of the exact frozen
+6,473-byte request against the current official SDK/request contract. The
+generic response does not prove that `parametersJsonSchema` itself is the
+remaining problem, so do not guess another schema transformation. Any
+request-minimization provider probe, successor freeze, or six-question run is
+a fresh FOUNDER GATE. No further call, reroll, or regrade is authorized.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -2024,6 +2026,11 @@ quickstart and package dry-run green; no provider call or spend.
 successor v3 with P-set 13, exact v1/v2 bundle verification, the same ordered
 six, and `$4.0431744` remaining under the unchanged `$6.5885167` cumulative
 boundary. Suite 641 pass, 0 fail, 3 skipped; nothing dispatched.
+2026-07-31 — J4.5K-R4-E — this commit — Invoked pushed `3cf228b` once.
+Gemini returned generic HTTP 400 to the raw-schema compatibility request, so
+no tool, embedding, question, answer, or judge ran. Fresh accounted spend is
+`$0.4784128` uncertain; cumulative accounted spend is `$3.0237551`; v3 is
+sealed and was not rerun.
 
 ## Product stop-rule record
 
@@ -4948,3 +4955,75 @@ provider call, question, answer, judge, result, or new spend occurred.
 
 This is one evaluation freeze, not a second infrastructure unit. The pushed
 cut is authorized for exactly one invocation and no automatic successor.
+
+### J4.5K-R4-E terminal raw-schema compatibility finding
+
+The pushed pre-run freeze is
+`3cf228bef820aca94db446f8a8c62d8304f24a50`. Its ignored launcher remained
+`3371a9f04fd1a6a04f7e044d3dfd7346aeea74e05a50854e52590d205f85dc53`,
+and the generated runtime exactly matched the frozen
+`220e53ece04efda939194d630da7b82f6f646d9697e3cd7e74f66cf8617ff8cc`.
+The founder-authorized command was invoked once from
+`2026-07-31T11:36:05.859Z` through `2026-07-31T11:36:06.416Z`.
+
+The first and only physical call was the mandatory combined compatibility
+smoke against `gemini-3.5-flash-lite`. Its 6,473-byte request hashes
+`b6d9e86c43911dc648c2ef607ad2ef5738bf399b97b3825fdd4d7119e5d6b96a`.
+The captured wire proves that all five function declarations used
+`parametersJsonSchema`, none used legacy `parameters`, and `memory_read`
+carried root `type: object` plus both canonical `anyOf` branches. Gemini
+returned HTTP 400 with only `Request contains an invalid argument` and
+`INVALID_ARGUMENT`; it supplied no field-level violation. This refutes live
+acceptance of the complete request but does not isolate the raw schema as the
+cause.
+
+The smoke stopped before Gemini emitted a tool call. There were zero
+embedding calls, zero stored benchmark questions, zero answers, and zero
+judges. No generation usage metadata was returned. Fresh spend is therefore
+`$0.0000000` measured and `$0.4784128` uncertain/accounted from the single
+full-window reservation. Adding that reservation to the exact
+`$2.5453423` opening produces `$3.0237551` cumulative accounted
+(`$1.5860157` measured plus `$1.4377394` uncertain), below the unchanged
+`$6.5885167` boundary.
+
+P-set 13 grades failing categories first: compatibility is refuted;
+all-seven-session retrieval coverage, at least `4/6` official accuracy,
+semantic use on at least five questions, and all six answer boundaries are
+ungraded because no benchmark question ran; the one-command, no-reroll, judge
+ceiling, and spend-cap contract pass. The sealed v6 `1/6` is unchanged.
+
+The six-file ignored bundle is mode 0600 beneath mode-0700 directories.
+Report hash
+`497eca84b2f14266cc1402264167973b3cb7d892d6fd5f356ceea760ba007da3`;
+meter hash
+`d4387e183eba639ae5887f861a750590d80ac7f7d5cbd3f51edb061e22ef4320`;
+start record hash
+`2b5f2d9fc3e3200668a8962e7851938d63603d6ad5cba5b8b66e92dbc7df0b6d`;
+provider transcript hash
+`e9934148f3a9e494a051c7ebb8ec41e0e954fa5822210efc367d81ff5637a39c`;
+smoke database hash
+`050953a9662fcc322b105b681ae161906eb8aeca3980e4890eb70757ba92958a`;
+and post-run manifest hash
+`0f1432b6c2027a45ce67590ebf8cd3462f835e8ec5a71901e1aded04ee697a36`.
+All five manifested run-producing artifacts rehash exactly. Two exact
+provider credentials were checked across all six private files and all 266
+tracked files; no exact credential value was present.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart
+   remains green.
+2. Did this unit make that journey measurably better? No. It disproved live
+   acceptance of the full corrected request before benchmark spend.
+3. Does an existing framework already provide what this unit added? Other
+   frameworks and the official SDK can inform the next offline request
+   comparison, but none supplies this exact Palari wire evidence.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly authorized running questions 1–6 again behind the
+   compatibility gate.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? An operator could retry the consumed identity, claim the six were
+   scored, or misattribute a generic whole-request rejection specifically to
+   raw JSON Schema.
+
+This is a terminal live product finding. V3 cannot be resumed, rerolled, or
+regraded; any further provider call requires a new freeze and fresh founder
+GO.
