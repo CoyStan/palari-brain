@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0001-C OFFLINE ANSWER-INTERPRETATION COMPOSITION IMPLEMENTED AT
-`8e285b2`; REVIEW PENDING. A and B are accepted and integrated into the BRN-0001 parent at
+Loop state: BRN-0001-C OFFLINE ANSWER-INTERPRETATION COMPOSITION ACCEPTED AFTER
+FRESH REVIEW AT `b72be20`; PARENT INTEGRATION PENDING. A and B are accepted and integrated into the BRN-0001 parent at
 `fa32ba8`; this child now checks their structural composition with five
 synthetic cases and no provider/network calls. The temporary report is
 `answerQualityGraded: false`; focused C is 2/2, structural cases are 5/5, the
@@ -1759,12 +1759,10 @@ session itself).
 
 ## Next
 
-Review BRN-0001-C against the updated parent, preserving the fresh review
-evidence. The reviewer must check privacy, zero-network truth, generic fixture
-scope, structural-only claims, reports, and committed scope, then recommend
-`accept`, `reopen`, or `needs-human`. After C is independently accepted,
-integrate it into the BRN-0001 parent and record the parent closeout. No live
-validation is part of BRN-0001; any later provider proof needs a separate R3 ticket,
+Integrate accepted BRN-0001-C into the updated parent, preserving the fresh
+review evidence, then record the BRN-0001 parent closeout. The A/B/C stack is
+offline-complete; no live validation is part of BRN-0001. Any later provider
+proof needs a separate R3 ticket,
 preregistration, cap, fresh identity, and founder GO.
 
 Do not resume or rerun any terminal active-retrieval identity:
@@ -2278,6 +2276,9 @@ integration is the next action.
 composition regression with generic advice, chronology, time, irrelevant, and
 empty controls. Focused/full/quickstart checks pass; the gitignored LongMemEval
 input is absent and was not downloaded; review is required; no live activity.
+2026-07-31 — BRN-0001-C — `b72be20` — Fresh independent review passed with no
+findings. C is accepted by the founder's explicit proceed instruction; parent
+integration and BRN-0001 closeout are the next actions.
 
 ## Product stop-rule record
 
@@ -2352,7 +2353,7 @@ spend. Parent integration and BRN-0001-C are the next governed actions.
 
 BRN-0001-C is an offline product-verification unit. Its synthetic callback does
 not grade prose, the private LongMemEval input was not available, and no live
-score changed. Review and parent integration remain required.
+score changed. C is independently accepted; parent integration remains.
 
 ### BRN-0001-P
 
