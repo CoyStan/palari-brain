@@ -11,9 +11,10 @@ Focused contracts remain 30/30; full suite and quickstart remain green; no
 provider, network, credential, dataset, score, result, or spend occurred.
 A fresh reviewer pass is required before acceptance or BRN-0001-B.
 
-Loop state: BRN-0001-A RETRIEVED-EVIDENCE ANSWER CONTRACT IMPLEMENTED AT
-`a8ce9bc1124876b3bb72f429c541cea973efdceb`; IN REVIEW, NOT ACCEPTED OR
-INTEGRATED. The provider-neutral answer boundary now treats the briefing and
+Loop state: BRN-0001-A RETRIEVED-EVIDENCE ANSWER CONTRACT ACCEPTED AFTER
+FRESH REVIEW; PARENT INTEGRATION PENDING. The implementation began at
+`a8ce9bc1124876b3bb72f429c541cea973efdceb`; the provider-neutral answer
+boundary now treats the briefing and
 later memory-tool results as one evidence stream: directly answering
 consulted evidence must be used or carry its exact conflict/limitation, an
 empty digest cannot license silent absence, and prior Palari speech may be
@@ -1739,12 +1740,15 @@ session itself).
 
 ## Next
 
-Give BRN-0001-A a fresh, read-only review against
-`ticket/BRN-0001-repair-retrieved-answer-reliability`. The reviewer checks the
+Integrate the accepted BRN-0001-A branch into
+`ticket/BRN-0001-repair-retrieved-answer-reliability`, preserving the fresh
+review evidence. Then create and claim BRN-0001-B against the updated parent.
+The reviewer checked the
 general evidence-use rule, speaker truth, irrelevant/empty controls,
 anti-overfit fixtures, exact 840-character compatibility envelope, reports,
-and committed scope, then recommends `accept`, `reopen`, or `needs-human`.
-The implementation owner must not accept, merge, or integrate its own work.
+and committed scope and recommended `accept`; independent acceptance is now
+recorded. The implementation owner may proceed under the founder's explicit
+instruction, but must preserve the review record.
 
 Do not start BRN-0001-B until A is independently reviewed, founder/authorized-
 reviewer accepted, and integrated into the BRN-0001 parent branch. After that,
@@ -2251,6 +2255,9 @@ quickstart green; no live activity. Submitted for review, not accepted.
 identified a missing same-speaker correction outcome, added the unrelated
 trail-snack supersession fixture, reran focused/full/quickstart checks, and
 submitted for fresh review. No production or live activity.
+2026-07-31 — BRN-0001-A — `db72f3d` — Fresh independent review passed with no
+findings after the correction-gap repair. A is accepted by the founder's
+explicit proceed instruction; parent integration is the next action.
 
 ## Product stop-rule record
 
@@ -2276,7 +2283,8 @@ submitted for fresh review. No production or live activity.
    not clearly permit safe recall of Palari's own earlier advice.
 
 This is a product answer-boundary unit, so it ends the prior planning/process
-sequence. It remains unaccepted until fresh review; no live score changed.
+sequence. A is independently accepted; no live score changed. Parent
+integration and BRN-0001-B remain the next governed actions.
 
 ### BRN-0001-P
 
