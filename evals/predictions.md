@@ -917,3 +917,88 @@ Predictions, failing categories first:
    records measured and uncertain spend separately, and makes at most six
    official judge calls. Any stop or miss is the result and authorizes no
    retry, reroll, selective regrade, or prediction change.
+
+## P-set 18 — captured-judge active-retrieval seen-six v5, FINAL before execution
+
+Author: repository execution lane, 2026-07-31. The founder authorized fixing
+the local judge-wiring defect exposed by terminal v4, but has not authorized a
+new live invocation. This freeze prepares fresh identity
+`j4-active-retrieval-seen6-v5`; it does not resume, retry, replace, regrade, or
+alter terminal v1–v4, the debugging cells, the sealed v6 `1/6`, or v4's
+unjudged question-1 answer. The same six cases remain inspected, so any future
+result is a seen-case diagnostic rather than an unbiased generalization
+estimate.
+
+The only intended behavior change from terminal v4 is at the local
+answer-to-judge composition seam. New tracked module
+`evals/active-retrieval-seen6-runtime.mjs`, SHA-256
+`1b0397fdb00a7181c681ab2aed0750c7051b1b3a8a8dc19ff29c2feb1a9b7c56`,
+captures one fetch implementation before judge construction, supplies it to
+the unchanged fail-closed transport, and prevents caller options from
+overriding it. Its exact regression test hashes
+`7b1e2e4ee21ca57a4ba4124c418565441faaf2fcda45ca2752e1ee255ac9fe52`
+and crosses the real judge transport once with fake HTTP. The transport itself
+still rejects a missing captured fetch; no default or implicit network path
+was added.
+
+The repaired Gemini adapter remains
+`95e61649311476ea6198d2f434165b14d5527b3113553d2ef6a4b597a61bd292`;
+the active retrieval path remains
+`44be2c15732d59160cf3a839ac02622c63202ffc891bc0df6c1f6cdf49be8998`;
+the canonical five-tool SHA-256 remains
+`743c653b8ae0d29869904de969768fc25ae9ccb165d7ec704148da24eaa0ea3e`;
+and the raw Gemini declaration SHA-256 remains
+`d2d09fa4b32372324ff8ab8b53b2683e2a4580e87eeb409fba3c942ca7912d0f`.
+
+The sealed v1 base harness remains
+`750753ec8492fa005e9c9840c476e0adc92c3fc84943ec4a60cdabc12df547ca`;
+the ignored v5 launcher hashes
+`2aa2d7341529cbc20c8ea6d88ea0b74cd8b157560183a9ed0c3980f306381728`;
+and its deterministic runtime hashes
+`0b820acfb1a81dc702031fa3002ca9b098aeaefdae68de17534f49dd0cfe89d7`.
+The ignored dataset remains
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`,
+and the ordered question IDs remain exactly `08e075c7`, `09d032c9`,
+`16c90bf4`, `5e1b23de`, `80ec1f4f_abs`, and `0977f2af`.
+
+Terminal v1–v4 and the completed debugging round are preserved and reverified
+through their exact post-run manifest hashes:
+`5749bffc34512b065fdd7c1f999384d4a3c45ee002cd37766b161674ca8caec4`,
+`16d8137209f1bab8e19cb7feb9428071464daa8e8b02411bb4ec77a8075cf793`,
+`0f1432b6c2027a45ce67590ebf8cd3462f835e8ec5a71901e1aded04ee697a36`,
+`e6a63b46c1f1b9a1f8c2163631ac160957fe21cdb2eaa62501b25dc918e7829f`,
+and
+`f6432faad00b18d3e2e8221f4016355c33b4a526078c76e359a81b0ae0af9562`.
+V4's launcher and runtime are also reverified directly. Exact total J4-related
+opening spend is `$3.10618695`, comprising `$1.5904422` measured and
+`$1.51574475` uncertain. V5 receives only the remaining `$3.48232975` under
+the unchanged `$6.5885167` cumulative boundary.
+
+If separately authorized, one launcher command is the complete invocation. It
+first runs the same combined native-tool/semantic smoke and stops before
+question 1 on any failure. Otherwise it answers and judges the same ordered
+six exactly once. There is no writer, reducer, graph extraction, transport
+retry, reroll, selective regrade, or second invocation.
+
+Predictions, failing categories first:
+
+1. JUDGE WIRING: after question 1 reaches an answer, the captured fetch crosses
+   the unchanged judge transport and produces one validated official label;
+   `JUDGE_FETCH_MISSING` does not recur.
+2. COMPATIBILITY: Gemini accepts all five raw JSON Schema declarations; the
+   combined smoke calls `memory_search`, uses the real semantic surface, and
+   answers the planted indigo token before any benchmark question.
+3. RETRIEVAL COVERAGE: the five positive questions consult all seven
+   dataset-labelled answer-bearing sessions; the abstention question is
+   reported separately and is not credited with a zero-session success.
+4. OFFICIAL ACCURACY: at least `4/6` answers are marked correct by the
+   unchanged `gpt-4o-2024-08-06` official judge.
+5. SEMANTIC USE: at least five of six scored questions issue one or more
+   successful `memory_search` calls with the real Gemini semantic surface.
+6. ANSWER BOUNDARY: all six answer completions finish without truncation,
+   retrieval-budget exhaustion, or a seventh-turn tool request.
+7. EXECUTION/ACCOUNTING: the first command is final, completes below the
+   remaining `$3.48232975` fresh cap and `$6.5885167` cumulative boundary,
+   records measured and uncertain spend separately, and makes at most six
+   official judge calls. Any stop or miss is the result and authorizes no
+   retry, reroll, selective regrade, or prediction change.

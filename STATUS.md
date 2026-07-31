@@ -1,5 +1,19 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-R6-P CAPTURED-JUDGE SEEN-SIX V5 REPAIR COMPLETE AND
+FROZEN OFFLINE; NOT FOUNDER-AUTHORIZED TO INVOKE. The new tracked composition
+seam captures one fetch implementation and supplies it to the unchanged
+fail-closed judge transport, so the v4 omission cannot recur or be overridden
+by caller options. Its real-transport fake-HTTP regression is 3/3 green. Fresh
+identity `j4-active-retrieval-seen6-v5` rehashes terminal v1–v4, the completed
+debug bundle, the v4 launcher/runtime, the repaired Gemini and retrieval
+paths, and the new judge seam. P-set 18 is FINAL. Exact opening spend is
+`$3.10618695` accounted (`$1.5904422` measured plus `$1.51574475` uncertain),
+leaving `$3.48232975` under the unchanged `$6.5885167` boundary. Full suite:
+646 pass, 0 fail, 3 skipped; quickstart and package dry-run green. No
+credential was read and no v5 runtime, result, provider call, or new spend
+exists.
+
 Loop state: J4.5K-R5-E REPAIRED ACTIVE-RETRIEVAL SEEN-SIX V4 TERMINAL AT
 THE FIRST JUDGE BOUNDARY WITHOUT AN OFFICIAL SCORE. The pushed `658f6f3`
 freeze was invoked exactly once. The combined Gemini native-tool/semantic
@@ -1664,10 +1678,12 @@ live success. V4 independently proves that the real semantic surface and first
 question answer path also work. Its ignored judge caller is defective: it
 constructs `createIncrementalLongMemEvalJudgeTransport` without the required
 explicit `fetchImpl`, so the fail-closed transport refuses before writing a
-meter or contacting OpenAI. Any successor requires an offline harness repair,
-a test that crosses this exact caller-to-transport seam, a fresh identity and
-FINAL predictions carrying `$3.10618695`, and a new founder GO. Do not treat
-the matching unjudged question-1 answer as an official score.
+meter or contacting OpenAI. That seam is now repaired offline in fresh
+`j4-active-retrieval-seen6-v5`, with a real-transport regression test and
+FINAL P-set 18 carrying `$3.10618695`. V5 is prepared but not authorized:
+do not create its runtime or result and do not read credentials or contact a
+provider until a new founder GO. Do not treat v4's matching unjudged
+question-1 answer as an official score.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -2117,6 +2133,10 @@ semantic compatibility smoke and first answer passed, but the harness omitted
 the judge transport's required `fetchImpl` and stopped before any OpenAI call.
 No score exists; questions 2–6 were not reached. Fresh spend is `$0.07822795`
 accounted and v4 is sealed.
+2026-07-31 — J4.5K-R6-P — this commit — Added a captured-fetch judge
+composition seam and real-transport fake-HTTP regression, then froze fresh v5
+with P-set 18, all terminal predecessors, `$3.10618695` opening spend, and
+`$3.48232975` remaining. Suite 646 pass, 0 fail, 3 skipped; nothing dispatched.
 
 ## Product stop-rule record
 
@@ -5492,3 +5512,76 @@ all 266 tracked files; neither exact value appeared.
 This is a terminal partial live finding. V4 cannot be resumed, rerolled, or
 regraded. A successor needs a tested offline judge-wiring repair, new freeze,
 and fresh founder authority.
+
+### J4.5K-R6-P captured-judge repair and seen-six v5 freeze
+
+The founder asked to fix v4's local harness defect, not to perform another
+provider invocation. The unchanged judge transport still requires an explicit
+captured `fetchImpl` and fails closed when it is absent. New tracked module
+`evals/active-retrieval-seen6-runtime.mjs` owns the missing composition seam:
+it captures one fetch function, injects it after caller options so it cannot be
+overridden, validates the judge factory, and remains inert on import. It hashes
+`1b0397fdb00a7181c681ab2aed0750c7051b1b3a8a8dc19ff29c2feb1a9b7c56`.
+
+The focused contract hashes
+`7b1e2e4ee21ca57a4ba4124c418565441faaf2fcda45ca2752e1ee255ac9fe52`.
+It proves inert import, fail-closed missing-fetch behavior, and the complete
+answer-to-judge seam through the real transport with fake HTTP. The captured
+fake is dispatched exactly once, caller replacement is ignored, the no-store
+judge request validates, and terminal meter/transcript evidence verifies.
+
+Fresh ignored launcher
+`retrieval-seen6-live-v5-launcher.mjs` hashes
+`2aa2d7341529cbc20c8ea6d88ea0b74cd8b157560183a9ed0c3980f306381728`.
+It regenerates deterministic runtime
+`0b820acfb1a81dc702031fa3002ca9b098aeaefdae68de17534f49dd0cfe89d7`
+from sealed v1 rather than altering any terminal runtime. The transformation
+retains v4's accepted raw Gemini schemas, no-store request, Gemini 3.5 thinking
+mapping, semantic embedder, ordered six questions, one-shot semantics, and
+result layout. Its only new behavior is construction through the captured
+judge factory; its cap message also names the exact remaining cap.
+
+V5 verifies terminal v1–v4 manifest hashes
+`5749bffc34512b065fdd7c1f999384d4a3c45ee002cd37766b161674ca8caec4`,
+`16d8137209f1bab8e19cb7feb9428071464daa8e8b02411bb4ec77a8075cf793`,
+`0f1432b6c2027a45ce67590ebf8cd3462f835e8ec5a71901e1aded04ee697a36`,
+and
+`e6a63b46c1f1b9a1f8c2163631ac160957fe21cdb2eaa62501b25dc918e7829f`,
+plus debug manifest
+`f6432faad00b18d3e2e8221f4016355c33b4a526078c76e359a81b0ae0af9562`.
+It additionally rehashes v4's exact launcher/runtime and every manifested
+artifact, preserving the terminal finding.
+
+P-set 18 is FINAL and the prediction file hashes
+`11d2457a0435348b85f88c016898c6f2ee7cfefa676d594c7eff22477dce326d`.
+The known failing category is first: question 1 must cross the captured seam
+and receive one validated official label without `JUDGE_FETCH_MISSING`.
+The remaining predictions retain full compatibility, all seven positive-case
+answer sessions, at least `4/6` official accuracy, semantic use on at least
+five questions, clean answer boundaries, and one terminal invocation.
+
+Exact total J4-related opening spend is `$3.10618695` accounted:
+`$1.5904422` measured plus `$1.51574475` uncertain. V5 receives only the
+remaining `$3.48232975` under the unchanged `$6.5885167` cumulative boundary.
+Focused tests are 3/3; the full suite is 646 pass, 0 fail, 3 skipped;
+quickstart, package dry-run, diff check, launcher syntax, deterministic
+runtime, all predecessors, and absent v5 runtime/result are green. No
+credential was read and no provider call, score, result, runtime, or new spend
+occurred.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart is
+   green.
+2. Did this unit make that journey measurably better? It repairs the exact
+   evaluation path that prevented a valid answer from being judged; live
+   scoring remains founder-gated.
+3. Does an existing framework already provide what this unit added? The
+   existing judge transport provided the safety guarantee. This small seam
+   makes the custom seen-six caller satisfy it reliably.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. The
+   founder explicitly asked to fix the observed failure.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? A future seen-six run would again stop after its first valid answer
+   without contacting the official judge.
+
+This is an evaluation-harness repair following a live finding, not product
+scope expansion. V5 remains behind a fresh founder gate.
