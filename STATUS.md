@@ -1,5 +1,15 @@
 # STATUS — single source of truth for the loop
 
+Loop state: J4.5K-D2 GEMINI GENERATION-CONTROL ISOLATION FROZEN INSIDE THE
+AUTHORIZED `$0.50` ROUND; NOT YET INVOKED. D1's exact full request without
+`store` and its minimal no-tool request both returned generic HTTP 400. The
+store-only hypothesis is refuted, and tool schemas are no longer in the
+minimal failure path. Both bodies share the stale
+`thinkingConfig: {thinkingBudget: 0}` setting. P-set 15 carries D1's exact
+`$0.0032869` uncertain/accounted spend into six unique generation-control
+cells. The new ignored harness verifies the D1 meter and shares the original
+cap. No D2 credential read, provider call, or new spend occurred at this cut.
+
 Loop state: J4.5K-D1 BOUNDED GEMINI REQUEST DEBUG ROUND FROZEN AND
 FOUNDER-AUTHORIZED; NOT YET INVOKED. P-set 14 freezes an adaptive, non-scoring
 diagnostic matrix under one `$0.50` hard cap. The installed official
@@ -1616,13 +1626,13 @@ Do not resume or rerun any terminal active-retrieval identity:
 refuted; its six-question outcome predictions are ungraded because the
 mandatory gate stopped first.
 
-The founder authorized P-set 14's bounded Gemini debugging round. Run the
-unique `full-without-store` cell first. If it fails, follow the preregistered
-minimal/store/raw/canonical decision tree without repeating a cell. Apply only
-the smallest evidence-supported repair, then run `corrected-product-smoke`
-once. Stop when it passes, the cause remains unresolved, or the shared meter
-would reach `$0.50`. Questions 1–6 remain closed; this authority does not
-authorize a benchmark successor.
+P-set 14's `full-without-store` and `minimal` cells are consumed and refuted.
+Follow P-set 15: run `default-generation`, then
+`minimal-thinking-level`. Use the preregistered with-store/no-store full cells
+only as their outcomes require, apply the smallest supported reusable repair,
+and run `corrected-product-smoke` once. Stop when it passes, the cause remains
+unresolved, or the shared meter would reach `$0.50`. Questions 1–6 remain
+closed; this authority does not authorize a benchmark successor.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -2049,6 +2059,10 @@ Gemini request-debugging matrix under one `$0.50` cap. Official SDK wire
 comparison isolates top-level `store` as the primary hypothesis; ten unique
 one-shot cells and a corrected-product verification are preregistered.
 Nothing dispatched.
+2026-07-31 — J4.5K-D2-P — this commit — Recorded D1's two unique generic
+HTTP-400 controls and `$0.0032869` uncertain/accounted spend, refuted the
+store-only hypothesis, and froze generation-control isolation cells under the
+same `$0.50` round. Nothing dispatched from D2.
 
 ## Product stop-rule record
 
@@ -5103,3 +5117,56 @@ credential was read and no provider call, result, or new spend occurred.
 This is one evaluation/debugging freeze. Its provider authority begins only
 after the pushed cut and ends at a corrected product smoke, an unresolved
 finding, or the hard cap.
+
+### J4.5K-D2-P generation-control successor freeze
+
+The primary P-set 14 cell removed only top-level `store` from terminal v3's
+exact request. It still returned generic HTTP 400. Its request hashes
+`3936dcb3316ce6a8ebfdf66f9cf3bc2bd4d8883cfd6c17fb634f800140763fd6`
+and its transcript hashes
+`48e5a06d09ff3863c8a19453d6073eff017378ae3d19cc4ad531a96ae31a7bee`.
+The preregistered minimal fallback, with no tools, system instruction, tool
+config, or store field, also returned generic HTTP 400. Its request is
+`fb9e01f8f6f793cc236b6f5ec2c4981f30b510d7a0b4a359b8eedf004929cffc`
+and its transcript is
+`f8fe5964977bf9c68940ac1bd47f2f5399a2314c6db26a3eab36d8cca8568402`.
+
+D1 made exactly two physical calls. Neither returned usage, so their
+request-sized reservations remain `$0.0032869` uncertain/accounted and
+`$0.0000000` measured. No benchmark, embedding, OpenAI, judge, tool execution,
+retry, reroll, regrade, or publication occurred. The D1 meter hashes
+`d28c338b4605969ea43642918fbe466699a4e97804c132082533fccd1c9248f5`.
+
+The store-only prediction is refuted. Because the minimal failure contains no
+tool declaration, tool schemas are also outside that failure path. The common
+nontrivial control is `thinkingConfig: {thinkingBudget: 0}`. P-set 15 freezes
+generation-control isolation before any successor call: default generation,
+current `thinkingLevel: MINIMAL`, full with-store/no-store variants, and a
+no-thinking fallback, followed only after a supported fix by one corrected
+product smoke.
+
+The ignored D2 harness hashes
+`f0accc9d5acb13d0a82113216c37a0c85e27e56cb304a86b97d8502db596fd65`.
+It verifies D1's exact meter, opens at `$0.0032869`, shares the original
+`$0.50` hard cap, and refuses any of its six named cells twice. The FINAL
+prediction file hashes
+`56ef98ba8c1fcd2f448eb7b0d7699ae7537b61c04a1ed49b44e5c888f6e12702`.
+Harness syntax, predecessor verification, cell set, absent D2 result path,
+and diff check are green. No D2 call or spend occurred at this freeze.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart
+   was green at the parent debugging freeze.
+2. Did this unit make that journey measurably better? It narrowed the live
+   rejection below tools to a minimal generation request, but has not repaired
+   product behavior yet.
+3. Does an existing framework already provide what this unit added? The
+   official SDK documents the current thinking-level surface; it does not
+   preserve Palari's adaptive evidence and spend chain.
+4. Has a real user or the founder asked for the guarantee it adds? Yes. This
+   is inside the founder-authorized continuous debugging round.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? We could incorrectly blame raw schemas or `store`, repeat consumed
+   calls, or change generation controls without an isolated live comparison.
+
+This remains the same bounded debugging unit and cap, not a new benchmark or
+independent spend authority.

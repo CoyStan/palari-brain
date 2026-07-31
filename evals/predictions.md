@@ -757,3 +757,48 @@ Adaptive predictions and stopping rules:
    spend separately, and makes no LongMemEval, embedding, OpenAI, judge,
    reroll, regrade, or publication call. Any unresolved outcome at the cap is
    the finding.
+
+## P-set 15 — Gemini generation-control isolation, FINAL before execution
+
+Author: repository execution lane, 2026-07-31. This is the adaptive successor
+inside the founder-authorized P-set 14 debugging round, not new spend
+authority. `full-without-store` and `minimal` were each invoked once and both
+returned generic HTTP 400. Their immutable request hashes are
+`3936dcb3316ce6a8ebfdf66f9cf3bc2bd4d8883cfd6c17fb634f800140763fd6`
+and
+`fb9e01f8f6f793cc236b6f5ec2c4981f30b510d7a0b4a359b8eedf004929cffc`.
+The v1 debugging meter is
+`d28c338b4605969ea43642918fbe466699a4e97804c132082533fccd1c9248f5`
+and carries `$0.0032869` uncertain/accounted into this successor. This
+refutes P-set 14's store-only hypothesis and places the failure below tools;
+both rejected bodies share `thinkingConfig: {thinkingBudget: 0}`.
+
+The ignored v2 diagnostic harness hashes
+`f0accc9d5acb13d0a82113216c37a0c85e27e56cb304a86b97d8502db596fd65`.
+It verifies the exact predecessor meter, preserves the shared `$0.50` cap,
+and permits six new unique cells at most once each. It does not execute a
+benchmark, embedding, judge, retry, reroll, regrade, or publication action.
+
+Adaptive predictions and stopping rules:
+
+1. `default-generation`, with only canonical user content and no generation
+   override, returns HTTP 200. This proves the model, credential, endpoint,
+   and content envelope are valid.
+2. `minimal-thinking-level`, using the current Gemini 3.5 control
+   `thinkingLevel: MINIMAL`, returns HTTP 200. Against the immutable
+   `thinkingBudget: 0` HTTP 400 control, this isolates the stale zero-budget
+   setting.
+3. `full-thinking-level-with-store` returns HTTP 200 and emits
+   `memory_search`. If it does, `store: false` is accepted and no no-store
+   full cell runs. If it fails, `full-thinking-level-no-store` runs once; an
+   HTTP 200 there proves both fields require correction.
+4. `full-no-thinking-no-store` runs only if the thinking-level full cells do
+   not isolate the cause; it distinguishes the remaining generation control
+   from the tool envelope.
+5. Apply the smallest supported reusable boundary repair, preserving all
+   historical sealed bytes. Then `corrected-product-smoke` runs once and must
+   serialize no `store`, serialize `thinkingLevel: MINIMAL` with no
+   `thinkingBudget`, return HTTP 200, and emit `memory_search`.
+6. All v1+v2 cells share the original `$0.50` ceiling. Any failure without
+   usage remains conservatively accounted at its request-sized reservation;
+   the round stops before the next cell could cross the cap.
