@@ -6,12 +6,12 @@ level: 2
 parent_id: BRN-0001
 root_id: BRN-0001
 children: []
-status: open
+status: claimed
 risk: R2
 priority: P1
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-07-31T23:16:13Z
 target_branch: "ticket/BRN-0001-repair-retrieved-answer-reliability"
 branch: "ticket/BRN-0001-C-lock-answer-failure-classes-offline"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0001-C-lock-answer-failure-classes-offline"

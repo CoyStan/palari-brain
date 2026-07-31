@@ -1,5 +1,15 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0001-C OFFLINE ANSWER-INTERPRETATION COMPOSITION IMPLEMENTED;
+REVIEW PENDING. A and B are accepted and integrated into the BRN-0001 parent at
+`fa32ba8`; this child now checks their structural composition with five
+synthetic cases and no provider/network calls. The temporary report is
+`answerQualityGraded: false`; focused C is 2/2, structural cases are 5/5, the
+full suite is 644 pass, 0 fail, 15 skipped, and quickstart is green. The
+gitignored LongMemEval input is absent, so the reached-prefix runner was not
+invoked; its import-inert contracts pass. No credential, provider, network,
+dataset download, result, score, publication, or spend occurred.
+
 Loop state: BRN-0001-B HOST-COMPUTED QUESTION-RELATIVE TIME ACCEPTED AFTER
 FRESH REVIEW AT `3e1f6d8`; PARENT INTEGRATION PENDING. The answer boundary now decorates copied canonical messages
 and admitted graph edges with validated UTC evidence/reference instants,
@@ -1749,11 +1759,12 @@ session itself).
 
 ## Next
 
-Integrate accepted BRN-0001-B into
-`ticket/BRN-0001-repair-retrieved-answer-reliability`, preserving the fresh
-review evidence. Then create and claim BRN-0001-C against the updated parent.
-C follows only after both A and B are integrated. No live validation is part of
-BRN-0001; any later provider proof needs a separate R3 ticket,
+Review BRN-0001-C against the updated parent, preserving the fresh review
+evidence. The reviewer must check privacy, zero-network truth, generic fixture
+scope, structural-only claims, reports, and committed scope, then recommend
+`accept`, `reopen`, or `needs-human`. After C is independently accepted,
+integrate it into the BRN-0001 parent and record the parent closeout. No live
+validation is part of BRN-0001; any later provider proof needs a separate R3 ticket,
 preregistration, cap, fresh identity, and founder GO.
 
 Do not resume or rerun any terminal active-retrieval identity:
@@ -2263,6 +2274,11 @@ Focused/full/quickstart checks pass; review is required; no live activity.
 2026-07-31 — BRN-0001-B — `3e1f6d8` — Fresh independent review passed with no
 findings. B is accepted by the founder's explicit proceed instruction; parent
 integration is the next action.
+2026-07-31 — BRN-0001-C — implementation commit pending — Added a provider-free
+answer-boundary composition regression with generic advice, chronology, time,
+irrelevant, and empty controls. Focused/full/quickstart checks pass; the
+gitignored LongMemEval input is absent and was not downloaded; review is
+required; no live activity.
 
 ## Product stop-rule record
 
@@ -2314,6 +2330,30 @@ integration and BRN-0001-B remain the next governed actions.
 BRN-0001-B is an offline product answer-boundary unit. It is independently
 accepted; it changes no provider, benchmark, dataset, credential, score, or
 spend. Parent integration and BRN-0001-C are the next governed actions.
+
+### BRN-0001-C
+
+1. Can a new user run the basic memory journey right now? Yes — `npm run
+   quickstart` passes all six stages, and the full suite is green.
+2. Did this unit make that journey measurably better? Yes — one deterministic
+   check now proves that the A and B answer-boundary repairs compose across
+   advice provenance, user chronology, host time arithmetic, and honest
+   irrelevant/empty controls before another live run is considered.
+3. Does an existing framework already provide what this unit added? Frameworks
+   can run retrieval tests, but they do not provide this repository's
+   provider-neutral structural contract or its explicit no-answer-quality
+   overclaim boundary.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder approved the sequential A/B/C repair stack after the measured live
+   failures and asked the next tickets to fix what remains.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? The product could regress A or B composition without an offline
+   check that catches missing speaker semantics, chronology, host time, or
+   honest absence before spending on another live evaluation.
+
+BRN-0001-C is an offline product-verification unit. Its synthetic callback does
+not grade prose, the private LongMemEval input was not available, and no live
+score changed. Review and parent integration remain required.
 
 ### BRN-0001-P
 

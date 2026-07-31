@@ -2,6 +2,22 @@
 
 Everything here measures the kernel; nothing here is required to use it.
 
+## Offline answer-interpretation regression
+
+`npm run answer-interpretation-regression` exercises the real
+`answerWithRetrieval` boundary with synthetic, provider-free fixtures. It
+checks that prior Palari advice keeps its speaker meaning, earlier and later
+user-owned appliances arrive with chronology, November-to-February arithmetic
+arrives as host-computed three calendar months, and irrelevant/empty controls
+remain honest. The deterministic callback inspects structural inputs only; it
+does not grade prose. The command writes its `answerQualityGraded: false`,
+`providerCalls: 0`, and `networkCalls: 0` report to a private temporary path by
+default (use `--report` to choose another local path).
+
+This regression does not predict live benchmark accuracy and cannot change the
+sealed terminal result. It carries no private dataset text, credentials,
+provider transport, or expected benchmark answer.
+
 ## ⚠️ The one rule of this directory
 
 **Do not move, rename, or "clean up" files here.** Sealed live-run
