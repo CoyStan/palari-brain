@@ -1,5 +1,14 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0001 A/B/C ACCEPTED AND INTEGRATED AT `b9db978`; PARENT REVIEW
+PENDING. The answer boundary now carries the A evidence-use/speaker contract,
+the B host-computed UTC time block, and the C provider-free composition check.
+Integrated verification is 644 pass, 0 fail, 15 skipped; quickstart is green;
+the C structural regression is 5/5 with answer quality ungraded and external
+provider/network calls 0/0. The private LongMemEval input is absent, so the
+reached-prefix runner is not claimed. No credential, provider, network,
+dataset download, result, score, publication, or spend occurred.
+
 Loop state: BRN-0001-C OFFLINE ANSWER-INTERPRETATION COMPOSITION ACCEPTED AFTER
 FRESH REVIEW AT `b72be20`; PARENT INTEGRATION PENDING. A and B are accepted and integrated into the BRN-0001 parent at
 `fa32ba8`; this child now checks their structural composition with five
@@ -1759,10 +1768,10 @@ session itself).
 
 ## Next
 
-Integrate accepted BRN-0001-C into the updated parent, preserving the fresh
-review evidence, then record the BRN-0001 parent closeout. The A/B/C stack is
-offline-complete; no live validation is part of BRN-0001. Any later provider
-proof needs a separate R3 ticket,
+Run the parent-level integrated checks and fresh review for BRN-0001, then
+record the parent closeout. The A/B/C stack is offline-complete; no live
+validation is part of BRN-0001. Any later provider proof needs a separate R3
+ticket,
 preregistration, cap, fresh identity, and founder GO.
 
 Do not resume or rerun any terminal active-retrieval identity:
@@ -2279,6 +2288,9 @@ input is absent and was not downloaded; review is required; no live activity.
 2026-07-31 — BRN-0001-C — `b72be20` — Fresh independent review passed with no
 findings. C is accepted by the founder's explicit proceed instruction; parent
 integration and BRN-0001 closeout are the next actions.
+2026-07-31 — BRN-0001 — `b9db978` — A, B, and C are accepted and integrated
+into the parent branch. Parent-level fresh review and closeout remain; no live
+validation or score changed.
 
 ## Product stop-rule record
 
@@ -2354,6 +2366,30 @@ spend. Parent integration and BRN-0001-C are the next governed actions.
 BRN-0001-C is an offline product-verification unit. Its synthetic callback does
 not grade prose, the private LongMemEval input was not available, and no live
 score changed. C is independently accepted; parent integration remains.
+
+### BRN-0001
+
+1. Can a new user run the basic memory journey right now? Yes — `npm run
+   quickstart` passes all six stages after the integrated A/B/C stack.
+2. Did this unit make that journey measurably better? Yes — the answer
+   boundary now forbids unsupported absence after relevant retrieval, exposes
+   host-owned elapsed-time arithmetic, and checks their composition offline
+   before any new live spend.
+3. Does an existing framework already provide what this unit added? Existing
+   memory frameworks provide storage and retrieval primitives, but the
+   evidence-use, speaker, time, and structural-only claim boundary remains
+   Palari-specific application behavior.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder approved the measured-failure ticket stack and authorized automatic
+   progression through its reviewed children.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? Palari could again ignore a directly retrieved fact, recast its own
+   advice as a user fact, miscompute calendar distance, or spend on a live run
+   without an offline composition guard.
+
+BRN-0001 is an offline-complete parent repair. Live model compliance and the
+sealed terminal 3/6 score remain unchanged and require a separate founder-
+gated ticket.
 
 ### BRN-0001-P
 

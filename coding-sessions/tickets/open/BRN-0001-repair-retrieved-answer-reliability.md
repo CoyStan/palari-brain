@@ -9,7 +9,7 @@ children:
   - BRN-0001-A
   - BRN-0001-B
   - BRN-0001-C
-status: open
+status: in-review
 risk: R2
 priority: P0
 agents_allowed: 1
