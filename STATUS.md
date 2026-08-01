@@ -1,5 +1,23 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0003 FIRST INDEPENDENT REVIEW GAPS REPAIRED; SECOND FRESH
+REVIEW PENDING. Review commit `88513f8` correctly reopened the ticket on three
+findings. The repair now persists optional user attribution in the additive
+turn manifest, so a different-author replay conflicts even after canonical
+evidence deletion; graph-extractor responses carrying forged `authorId` or
+`author_id` fail with `GRAPH_ASSERTION_INVALID`; and the concurrency promise
+now explicitly refuses multi-process ownership instead of claiming support
+before the busy policy exists. A real independent process holds the write lock
+in the revised contract test: the active connection waits the configured five
+seconds, throws loudly, and commits no partial turn. Same-process handles
+opened sequentially remain supported. Adjacent contracts are 74/74; the full
+suite is 650 pass, 0 fail, 15 skipped across 665 tests; quickstart is green;
+trust bench is 5/5. The Level 1 human report records the narrowed promise and
+founder decision boundary. No provider, network, credential, dataset,
+evaluation result, publication, or spend was involved. Next: commit and push
+these repairs, return the ticket to `in-review`, and obtain a second
+fresh-context recommendation. Only the founder may accept or merge.
+
 Loop state: BRN-0003 SHARED-APP CONSUMER BOUNDARY IMPLEMENTED; FRESH
 INDEPENDENT REVIEW PENDING. The governed R2 ticket now adds optional,
 host-stamped `authorId` provenance to canonical user evidence without changing

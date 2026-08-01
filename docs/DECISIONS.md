@@ -2421,9 +2421,11 @@ dates. Agents record; the founder decides.
   do not receive or author it. Retrieval restores attribution from canonical
   evidence, including graph results, and language-based deletion reports
   residuals across all authors because the caller must authorize the request.
-  Local file-backed stores use SQLite WAL with a 5,000 ms busy timeout:
-  same-host processes may share a local SQLite file, lock failure is loud,
-  and remote/network-filesystem or multi-host sharing is unsupported.
+  Local file-backed stores use SQLite WAL with a 5,000 ms busy timeout for
+  active operations. Multiple handles opened sequentially in one process are
+  supported; multi-process sharing is refused because simultaneous baseline
+  initialization precedes the active wait policy. Lock failure is loud, and
+  remote/network-filesystem or multi-host sharing is also unsupported.
   Canonical schema upgrades remain additive; FTS, vector, and graph state is
   rebuildable. This decision adds no roles, membership table, provider call,
   evaluation, publication, or spend.

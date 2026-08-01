@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
+import { once } from 'node:events'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -109,6 +111,19 @@ test('an existing canonical journal gains nullable attribution additively',
       workspaceId: 'author-migration',
     })
     store.db.exec(`
+      CREATE TABLE dialogue_turns (
+        id TEXT PRIMARY KEY,
+        palari_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        source_message_id TEXT NOT NULL,
+        event_at TEXT NOT NULL,
+        user_present INTEGER NOT NULL,
+        assistant_present INTEGER NOT NULL,
+        user_sha256 TEXT,
+        assistant_sha256 TEXT,
+        created_at TEXT NOT NULL
+      );
+
       CREATE TABLE dialogue_evidence (
         id TEXT PRIMARY KEY,
         turn_id TEXT,
@@ -155,6 +170,9 @@ test('an existing canonical journal gains nullable attribution additively',
 
     assert.ok(store.db.prepare('PRAGMA table_info(dialogue_evidence)').all()
       .some((column) => column.name === 'author_id' && column.notnull === 0))
+    assert.ok(store.db.prepare('PRAGMA table_info(dialogue_turns)').all()
+      .some((column) =>
+        column.name === 'user_author_id' && column.notnull === 0))
     const [row] = brain.listStatements(SHARED_SCOPE)
     assert.equal(row.id, 'pre-attribution-row')
     assert.equal(row.content, 'This row predates author attribution.')
@@ -264,7 +282,18 @@ test('one shared scope preserves two host-stamped authors on every read surface'
 
 test('author attribution is immutable host provenance, not model output',
   async (t) => {
-    const brain = await openBrain(t, 'author-boundary')
+    const brain = await openBrain(t, 'author-boundary', {
+      graphExtractor: async ({ evidence }) => ({
+        assertions: [{
+          authorId: 'forged-member',
+          evidenceRef: evidence[0].ref,
+          object: 'blue conference room',
+          predicate: 'prefers',
+          quote: evidence[0].text,
+          subject: 'user',
+        }],
+      }),
+    })
     const result = await ingestChatTurn(brain, turn({
       authorId: 'trusted-member',
       id: 'boundary:0',
@@ -321,6 +350,14 @@ test('author attribution is immutable host provenance, not model output',
         .messages.map(({ authorId }) => authorId),
       ['trusted-member'],
     )
+    await assert.rejects(
+      brain.indexGraph(SHARED_SCOPE),
+      (error) => error?.code === 'GRAPH_ASSERTION_INVALID',
+    )
+    assert.deepEqual(
+      brain.exploreGraph(SHARED_SCOPE, { entity: 'user' }).edges,
+      [],
+    )
 
     await assert.rejects(
       ingestChatTurn(brain, turn({
@@ -332,6 +369,18 @@ test('author attribution is immutable host provenance, not model output',
     )
     assert.equal(brain.listStatements(SHARED_SCOPE)[0].author_id,
       'trusted-member')
+
+    const evidenceId = brain.listStatements(SHARED_SCOPE)[0].id
+    assert.equal(brain.forgetById([evidenceId], SHARED_SCOPE).deletedCount, 1)
+    await assert.rejects(
+      ingestChatTurn(brain, turn({
+        authorId: 'different-member',
+        id: 'boundary:0',
+        userMessage: 'I prefer the blue conference room.',
+      })),
+      (error) => error?.code === 'SOURCE_MESSAGE_CONFLICT',
+    )
+    assert.deepEqual(brain.listStatements(SHARED_SCOPE), [])
   })
 
 test('shared-scope forget reports surviving authors without applying policy',
@@ -401,6 +450,48 @@ test('WAL plus bounded busy waiting protects concurrent same-scope ingests',
     assert.equal(store.db.prepare('PRAGMA journal_mode').get().journal_mode,
       'wal')
     assert.equal(store.db.prepare('PRAGMA busy_timeout').get().timeout, 5_000)
+
+    const lockerSource = [
+      "const { DatabaseSync } = require('node:sqlite')",
+      'const db = new DatabaseSync(process.argv[1])',
+      "db.exec('BEGIN IMMEDIATE')",
+      "process.stdout.write('LOCKED\\n')",
+      'process.stdin.resume()',
+      "process.stdin.once('end', () => {",
+      "  db.exec('ROLLBACK')",
+      '  db.close()',
+      '})',
+    ].join('\n')
+    const locker = spawn(
+      process.execPath,
+      ['--no-warnings', '-e', lockerSource, store.dbPath],
+      { stdio: ['pipe', 'pipe', 'pipe'] },
+    )
+    let lockedOutput = ''
+    while (!lockedOutput.includes('LOCKED')) {
+      const [chunk] = await once(locker.stdout, 'data')
+      lockedOutput += String(chunk)
+    }
+    const lockStartedAt = Date.now()
+    try {
+      await assert.rejects(
+        ingestChatTurn(first, turn({
+          authorId: 'member-carol',
+          id: 'locked:0',
+          userMessage: 'This turn must not disappear under lock pressure.',
+        })),
+        (error) => error?.errcode === 5 || /locked/i.test(error?.message),
+      )
+      assert.ok(Date.now() - lockStartedAt >= 4_500)
+      assert.deepEqual(
+        first.exploreRead(SHARED_SCOPE, { session: 'locked' }).messages,
+        [],
+      )
+    } finally {
+      const exited = once(locker, 'exit')
+      locker.stdin.end()
+      await exited
+    }
 
     const conflicting = await Promise.allSettled([
       ingestChatTurn(first, turn({

@@ -289,6 +289,7 @@ function ensureActiveSchema(store, clock) {
         ),
         user_sha256 TEXT,
         assistant_sha256 TEXT,
+        user_author_id TEXT,
         created_at TEXT NOT NULL,
         UNIQUE (palari_id, user_id, source_message_id)
       );
@@ -406,6 +407,13 @@ function ensureActiveSchema(store, clock) {
     )
     if (!evidenceColumns.has('author_id')) {
       store.db.exec('ALTER TABLE dialogue_evidence ADD COLUMN author_id TEXT')
+    }
+    const turnColumns = new Set(
+      store.db.prepare('PRAGMA table_info(dialogue_turns)').all()
+        .map((column) => String(column.name)),
+    )
+    if (!turnColumns.has('user_author_id')) {
+      store.db.exec('ALTER TABLE dialogue_turns ADD COLUMN user_author_id TEXT')
     }
 
     // Existing databases seed their watermark once, from the highest ordinal
@@ -813,11 +821,15 @@ export function createDialogueGate(store, {
         ),
         sourceKind: 'assistant_message',
       },
-    ].map((role) => ({
-      ...role,
-      present: Boolean(role.content.trim()),
-      sha256: role.content.trim() ? sha256(role.content) : null,
-    }))
+    ].map((role) => {
+      const present = Boolean(role.content.trim())
+      return {
+        ...role,
+        authorId: present ? role.authorId : null,
+        present,
+        sha256: present ? sha256(role.content) : null,
+      }
+    })
     const user = roles[0]
     const assistant = roles[1]
     const identity = turnId({
@@ -842,7 +854,8 @@ export function createDialogueGate(store, {
           Boolean(manifest.user_present) !== user.present ||
           Boolean(manifest.assistant_present) !== assistant.present ||
           (manifest.user_sha256 ?? null) !== user.sha256 ||
-          (manifest.assistant_sha256 ?? null) !== assistant.sha256
+          (manifest.assistant_sha256 ?? null) !== assistant.sha256 ||
+          (manifest.user_author_id ?? null) !== user.authorId
         ) {
           const error = new Error(
             `Canonical dialogue identity conflict at ${sourceMessageId}.`,
@@ -862,8 +875,9 @@ export function createDialogueGate(store, {
             assistant_present,
             user_sha256,
             assistant_sha256,
+            user_author_id,
             created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           identity,
           scope.palariId,
@@ -874,6 +888,7 @@ export function createDialogueGate(store, {
           assistant.present ? 1 : 0,
           user.sha256,
           assistant.sha256,
+          user.authorId,
           isoNow(clock),
         )
       }
@@ -1345,7 +1360,25 @@ export function createDialogueGate(store, {
       }
       return extractGraph(store.db, normalizedScope(scope), {
         batchSize: options.batchSize,
-        extractor: graphExtractor,
+        extractor: async (input) => {
+          const proposal = await graphExtractor(input)
+          const assertions = Array.isArray(proposal?.assertions)
+            ? proposal.assertions
+            : []
+          const forged = Object.hasOwn(proposal ?? {}, 'authorId') ||
+            Object.hasOwn(proposal ?? {}, 'author_id') ||
+            assertions.some((assertion) =>
+              Object.hasOwn(assertion ?? {}, 'authorId') ||
+              Object.hasOwn(assertion ?? {}, 'author_id'))
+          if (forged) {
+            const error = new TypeError(
+              'Graph extractor payload cannot author evidence attribution.',
+            )
+            error.code = 'GRAPH_ASSERTION_INVALID'
+            throw error
+          }
+          return proposal
+        },
         maxBatches: options.maxBatches,
         visibleStatementsSql,
       })

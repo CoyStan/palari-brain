@@ -102,11 +102,13 @@ request may be made.
 ## SQLite concurrency contract
 
 A file-backed brain configures SQLite WAL journal mode and a 5,000 ms
-`busy_timeout` on every opened connection. Canonical ingestion and deletion
-use explicit transactions. Within one process, concurrent asynchronous
-callers may share one brain or open multiple brain handles for the same local
-file. Reads see a committed SQLite snapshot; writes serialize. No canonical
-turn is silently skipped or partially committed.
+`busy_timeout` on every active brain connection after its baseline schema has
+opened. Canonical ingestion and deletion use explicit transactions. Within
+one process, concurrent asynchronous callers may share one brain or use
+multiple brain handles that were opened sequentially for the same local file.
+`DatabaseSync` operations serialize on the JavaScript thread; reads see a
+committed SQLite snapshot and writes commit atomically. No canonical turn is
+silently skipped or partially committed.
 
 If a writer cannot acquire the SQLite lock within five seconds, SQLite throws
 `SQLITE_BUSY`/`SQLITE_LOCKED` through the public call. That is a failed
@@ -117,12 +119,16 @@ the canonical write transaction commits, so no network wait holds a database
 lock. A later reducer failure does not mean the already-committed journal turn
 was lost.
 
-Multiple processes on one host may open the same database when it resides on
-a local filesystem that implements SQLite locking and WAL correctly. A
-multi-host service, network filesystem, object-store mount, or replicated
-writer topology is explicitly unsupported. Such a deployment must put one
-process/service in front of the local brain or supply a different persistence
-architecture; it must not share the SQLite file remotely.
+Multiple application processes opening or writing the same database are
+explicitly unsupported, even on one host: baseline schema initialization
+occurs before the active connection installs its wait policy, so simultaneous
+first opens may fail immediately with SQLite `database is locked`. A
+multi-process or multi-host application, network filesystem, object-store
+mount, or replicated writer topology must put one owner process/service in
+front of the local brain or supply a different persistence architecture. It
+must not share the SQLite file directly. Lock contention from an accidental
+second process remains loud; after active initialization, the owning
+connection waits up to five seconds and then throws without a partial turn.
 
 ## Schema-upgrade discipline
 

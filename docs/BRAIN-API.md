@@ -61,8 +61,9 @@ manifest fixes the presence, absence, bytes, and event time of both visible
 roles, while the user row fixes its optional author. Replaying the exact
 snapshot is idempotent. Adding, removing, changing, retiming, or re-attributing
 either role under the same source identity throws `SOURCE_MESSAGE_CONFLICT`
-before model use. After exact deletion, replay cannot resurrect the deleted
-message.
+before model use. The turn manifest retains the optional user author after
+exact deletion, so replay by a different author still conflicts and replay by
+the original author still cannot resurrect the deleted message.
 
 The same SQLite transaction that adds canonical evidence also appends one
 monotonic reduction unit. A crash cannot leave accepted dialogue without
