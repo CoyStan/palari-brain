@@ -1,19 +1,18 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0003 FOUNDER-ACCEPTED AFTER SECOND FRESH REVIEW; MERGE
-PENDING. On 2026-08-01 the founder explicitly accepted BRN-0003 and directed
-its merge. Implementation commit `fff1f8c` repairs
+Loop state: BRN-0003 FOUNDER-ACCEPTED AND MERGED INTO `main` AT `d814d7a`
+AFTER SECOND FRESH REVIEW. On 2026-08-01 the founder explicitly accepted
+BRN-0003 and directed its merge. Implementation commit `fff1f8c` repairs
 all three findings preserved in first-review commit `88513f8`. The second
 fresh reviewer independently reproduced post-forget author conflict,
 camel/snake graph-author forgery rejection with zero admitted edges, and a
 real external SQLite lock that failed loudly and atomically after 5,010 ms,
 then verified a successful exact retry after release. It found no blocking
-issues and recommends `accept`. Full verification remains 650 pass, 0 fail,
-15 skipped across 665 tests; the shared-consumer contracts are 6/6; adjacent
-contracts are 74/74; quickstart is green; trust bench is 5/5; scope, ticket,
-and report checks are green. The governed ticket is closed as `accepted`; the
-remaining mechanical step is integration into current `main`, followed by
-integrated verification and push. No provider, network, credential, dataset,
+issues and recommends `accept`. Integrated verification on merged `main` is
+662 pass, 0 fail, 3 skipped across 665 tests; quickstart is green; trust bench
+is 5/5; BRN-0003 scope/report/check and repository-wide ticket lint are green.
+The governed ticket is closed as `accepted`; the merge preserves the complete
+ticket and two-review history. No provider, network, credential, dataset,
 evaluation result, publication, or spend was involved.
 
 Loop state: BRN-0003 FIRST INDEPENDENT REVIEW GAPS REPAIRED; SECOND FRESH
