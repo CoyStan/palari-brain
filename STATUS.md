@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0002 FIRST-TEN REPAIRED-RETRIEVAL LIVE DIAGNOSTIC COMPLETE
-AND TERMINAL AT 5/10. The independently reviewed freeze at `a918c0b` was
+Loop state: BRN-0002 FIRST-TEN REPAIRED-RETRIEVAL LIVE DIAGNOSTIC ACCEPTED
+AFTER FRESH TERMINAL REVIEW AT `a8d5af7`; TERMINAL AT 5/10. The independently
+reviewed freeze at `a918c0b` was
 invoked exactly once. Compatibility passed; all ten questions completed and
 received one validated official label. The repaired first six scored 4/6,
 ordinals 7-10 scored 1/4, and only one of the three measured v5 answer-use
@@ -1800,7 +1801,7 @@ session itself).
 
 ## Next
 
-BRN-0002 is terminal at 5/10 and must be closed after final independent review.
+BRN-0002 is accepted and terminal at 5/10 after final independent review.
 The next product unit should be a separate offline ticket that treats the four
 relevant-evidence answer-use failures and the one true retrieval miss as two
 different classes. Start with provider-free transcript fixtures and a
