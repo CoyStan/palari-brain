@@ -1,6 +1,12 @@
 # J4 simple harness
 
-This is the successor shape for testing Palari memory. It replaces one
+> Historical (July 2026). The two separate arms it prescribes were built
+> and their live checks ran (see `evals/live-runs/`); the "do not run an
+> integrated benchmark" rule in §C was later superseded — the active
+> product path is the integrated one, and integrated identities were
+> separately authorized and run. Kept as the design record of that stage.
+
+This was the successor shape for testing Palari memory. It replaced one
 integrated experiment with two questions that can fail independently.
 Historical live runners remain sealed evidence; new work must not import or
 resume them.

@@ -1,5 +1,12 @@
 # J4 prep — Palari in a public LongMemEval measurement
 
+> Historical (prepared 2026-07-23). The S-60 series this prepared has since
+> run and closed through `j4-longmemeval-s60-v6` — one identity beyond the
+> v5 amendment recorded below — and every stage gate it lists as open is
+> consumed or terminal; `STATUS.md` is the authority on what remains
+> sealed. Kept as the protocol, population, and cost provenance for those
+> runs. Nothing here authorizes new spend or publication.
+
 Prepared 2026-07-23. This is a spend-free cut point. It records the external
 protocol, founder-selected model, deterministic population, and cost gate. It
 does not authorize a provider call, contain a Palari score, or open the

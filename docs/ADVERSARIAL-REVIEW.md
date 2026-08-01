@@ -1,5 +1,11 @@
 # Adversarial Review: The Case Against This Kernel
 
+> Historical record (July 2026). The FTS-only kernel this prosecution
+> targets is now the historical comparator, and the companion
+> RESTRUCTURE-PROPOSAL.md was never ratified. Kept verbatim so sealed
+> results stay graded against the hostile prior that was actually
+> registered. The active system is documented in `docs/BRAIN-API.md`.
+
 Status: commissioned by the founder before the first scored run
 ("criticize it, argue against it, why will it fail"). Recorded in
 full so the first results are graded against a hostile prior, not a

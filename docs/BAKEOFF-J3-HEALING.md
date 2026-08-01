@@ -1,6 +1,11 @@
 # J3 engineering-repair cycles
 
-Status: **FOUNDER GO — THREE FRESH CYCLES AUTHORIZED**.
+> Historical (July 2026). The three-cycle authorization below was fully
+> consumed: `j3-live-v2`, `j3-live-v3`, and `j3-live-v4` all ran and their
+> identities in `evals/live-runs/` are terminal. Nothing in this runbook
+> authorizes any new spend.
+
+Status at the time: **FOUNDER GO — THREE FRESH CYCLES AUTHORIZED** (now consumed).
 
 This runbook covers the separately versioned `j3-live-v2`,
 `j3-live-v3`, and `j3-live-v4` engineering-repair cycles. It does not

@@ -1,5 +1,16 @@
 # BAKEOFF CONTRACT — journey bank + dry bake-off harness (J1/J2)
 
+> Historical record — EXECUTED (July 2026). All J1/J2 tasks landed: the
+> bank grew to 17 journeys / 27 probes / 44 graded checks, the ungoverned
+> and v05-parity contrast arms and the markdown report exist, and J3 prep
+> was written and later consumed. The §6 checklist below was never ticked
+> in-file; treat it as complete. Point-in-time figures (11 journeys, 26/28
+> baseline, 51 tests, "src/ is frozen", the zero-dependency law) describe
+> that date — `mem0ai` and `@google/genai` devDependencies were added
+> later under separately recorded authority, and src/ has since been
+> rewritten. Current pins live in `tests/journeys.contract.test.mjs` and
+> `docs/JOURNEY-BANK.md`. Do not re-execute.
+
 Version: v1. Ratified by the founder in session, 2026-07-22.
 Seeded and verified by the direction-review session: the schema,
 harness, reference arm, 11 journeys, and the pinned 26/28 baseline

@@ -1,6 +1,11 @@
 # J3 live bake-off preparation
 
-Status: **EXECUTED ONCE — TERMINALLY STOPPED; FOUNDER DIRECTION REQUIRED**.
+> Historical (July 2026). The direction this document waited on was given
+> and consumed by the three engineering-repair cycles in
+> `docs/BAKEOFF-J3-HEALING.md`; the J3 series is closed. Kept as the
+> preparation record and license/cost provenance for those runs.
+
+Status at the time: **EXECUTED ONCE — TERMINALLY STOPPED; FOUNDER DIRECTION REQUIRED**.
 The founder authorized J3 on 2026-07-23 for
 `gpt-5-nano-2025-08-07` under a hard total cap of **$0.25**. That
 authorization was consumed by one run, which stopped before completing the

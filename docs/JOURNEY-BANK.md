@@ -1,9 +1,14 @@
 # Journey bank
 
-The journey bank is the product-side test corpus for Palari Brain. Each
-journey describes conversations that may create memories, optional user
-deletion requests, and later questions that grade the resulting behavior.
-Every dry bake-off arm receives the same journey data.
+> The bank and its arms grade the preserved v0.5 lexical kernel and its
+> contrasts — today a historical evaluator, not the active journal + digest
+> product path (see `README.md` § Historical evaluator). The schema and
+> authoring rules below remain the source of truth for these fixtures.
+
+The journey bank is the offline test corpus for the preserved kernel
+comparators. Each journey describes conversations that may create memories,
+optional user deletion requests, and later questions that grade the
+resulting behavior. Every dry bake-off arm receives the same journey data.
 
 The source of truth for validation is `evals/journey-bank.mjs`. The runner
 that interprets valid journeys is `evals/harness.mjs`, and the current bank
@@ -49,6 +54,9 @@ Each turn has:
 - `content`: required non-empty string.
 - `asUserId`: optional user override used by the harness for a user turn.
   The current loader does not validate this field's type or content.
+- `asPalariId`: optional palari-scope override, added for the
+  `palari-scoping-17` journey; like `asUserId`, it is not validated by the
+  loader.
 - `expectMemories`: optional array allowed only on user turns. In dry mode,
   these are scripted extraction candidates, not a claim that they will pass
   the write gate.
@@ -164,25 +172,33 @@ generation are stubbed. Dry mode measures memory-system behavior and protects
 the plumbing. It does not measure whether a model extracts the right fact or
 answers well from a briefing.
 
-A future live mode would replace the scripted extractor and stub answerer
-with real model calls. It would measure provider extraction and answer
-behavior while adding cost and nondeterminism, and it would require a
-pre-registered prediction. No live bake-off arm or runner is currently
-registered. Any live provider run is a founder gate and is not authorized by
-this document.
+A live mode replaces the scripted extractor and stub answerer with real
+model calls, measuring provider extraction and answer behavior at the cost
+of spend and nondeterminism, under a pre-registered prediction. That mode
+exists: `evals/run-bakeoff-live.mjs` with `evals/arms/kernel-live-arm.mjs`
+and `evals/arms/mem0-live-arm.mjs` ran the sealed `j3-live-v1` through
+`j3-live-v4` identities (see `docs/BAKEOFF-J3-PREP.md` and
+`docs/BAKEOFF-J3-HEALING.md`; the series is closed). Any live provider run
+remains a founder gate and is not authorized by this document.
 
 ## Pinned dry baseline
 
-As of 2026-07-23, the bank contains 16 journeys and 25 authored probes. Each
-journey adds one written-count check, for 41 graded checks total. The
-`palari-brain-kernel` reference arm passes 39/41. Its only failures are the
-two annotated known findings:
+The bank contains 17 journeys and 27 authored probes. Each journey adds one
+written-count check, for 44 graded checks total. The `palari-brain-kernel`
+reference arm passes 41/44 (pinned by
+`tests/journeys.contract.test.mjs`). Its failures are the two annotated
+known findings plus one un-annotated authority finding:
 
-- `correction-espresso-04:p2`:
+- `correction-espresso-04:p2` (known finding):
   > superseded values are excluded from briefings; as-of temporal recall is a measured gap that temporal-graph engines target
-- `conflict-cities-05:p2`:
+- `conflict-cities-05:p2` (known finding):
   > plain re-assertions without correction cues are not auto-superseded; both conflicting facts are briefed with event times
+- `shared-standup-08:p1` (authority finding, deliberately not annotated as
+  known): background extraction cannot exercise explicit-user sharing
+  authority, so the shared fact is not briefed.
 
-The baseline is reproduced with `npm run bakeoff`. A changed count or an
-unannotated failure is a behavior change that must be investigated, not
-silently repinned.
+For contrast, the pinned `v05-parity` arm passes 42/44 and the pinned
+`ungoverned` arm 33/44 (their own contract tests). The baseline is
+reproduced with `npm run bakeoff`. A changed count or an unannotated
+failure is a behavior change that must be investigated, not silently
+repinned.

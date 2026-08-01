@@ -1,7 +1,7 @@
 # Decisions
 
-Append-only. Founder decisions and license verdicts land here with
-dates. Agents record; the founder decides.
+Append-only, newest first. Founder decisions and license verdicts land
+here with dates. Agents record; the founder decides.
 
 - 2026-07-31 (FOUNDER — Quetzali, in session) **Adopt the proven palari-v05
   ticket workflow for Palari Brain.** The founder explicitly asked to inspect

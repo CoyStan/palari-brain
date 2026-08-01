@@ -1,9 +1,17 @@
 # Restructure Proposal: Competing With 2026 Memory Frameworks
 
+> Historical proposal (July 2026) — never ratified. The U5a-U5d queue
+> amendment below was never absorbed, and the unit queue it targeted has
+> since been superseded by the governed ticket workflow
+> (`docs/TICKET-WORKFLOW.md`). Some aims later landed by other routes —
+> hybrid ranked+semantic retrieval exists today as reciprocal-rank fusion
+> in `src/retrieval-answer.mjs`, and temporal reasoning as the derived
+> graph in `src/memory-graph.mjs` — but not as these units, and the
+> FTS-only kernel it plans around is now the historical comparator.
+
 Status: PROPOSED by Fable (design lane) after adversarial review
-against current literature. Founder ratification required before the
-STATUS.md queue absorbs these units. The standing agent may read
-this but MUST NOT reorder the queue until the founder rules.
+against current literature. Founder ratification was required before the
+STATUS.md queue could absorb these units; that ratification never came.
 
 ## Verdict this responds to
 

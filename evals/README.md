@@ -1,6 +1,8 @@
 # evals/ — measurement, never product
 
-Everything here measures the kernel; nothing here is required to use it.
+Everything here measures the memory system — today mostly the active
+brain, plus the preserved v0.5 kernel arms it is compared against; nothing
+here is required to use the package.
 
 ## Offline answer-interpretation regression
 
@@ -31,13 +33,18 @@ evidence. Add new files; never relocate old ones.
 | Zone | What it is |
 | --- | --- |
 | `trust-benchmark.mjs`, `run-trust-benchmark.mjs`, `arms/palari-trust-adapter.mjs` | The five-case trust benchmark (`npm run trust-bench`). Framework-neutral scripts; predictions pre-registered in `predictions.md` P-set 5. |
-| `run-scale-probe.mjs` | 5,000-message offline scale measurement (`npm run scale-probe`). Optional `-- --embedder <module>` re-measures both paraphrase columns through the semantic surface (the module wires `createGeminiEmbedder` to a metered transport; spends, so founder-gated like every live dispatch). |
+| `run-scale-probe.mjs` | 5,000-message offline scale measurement (`npm run scale-probe`). Optional `-- --embedder <module>` re-measures both paraphrase columns through the semantic surface; the module must export `createEmbedder()` (write a thin wrapper that wires `arms/embedder-gemini.mjs`'s `createGeminiEmbedder` to a metered transport — see the runner header; spends, so founder-gated like every live dispatch). |
 | `offline-memory-bench.mjs`, `run-offline-memory-bench.mjs` | Structural digest bench (`npm run memory-bench`). |
+| `run-answer-interpretation-regression.mjs` | Offline answer-boundary regression (`npm run answer-interpretation-regression`); see the section above. |
+| `run-reached-prefix-retrieval-regression.mjs` | Private-data diagnostic (`npm run reached-prefix-regression`): checks that the six reached S-60 v6 cases still deliver their answer-bearing sessions through `answerWithRetrieval`; deterministic stand-in, zero provider calls. |
 | `dev-provider-probe.mjs`, `run-dev-provider-probe.mjs` | The ONLY spend-capable tool (`npm run probe`); founder-gated, no run identity, no score. |
 | `provider-deviation-corpus.mjs` | Every observed live model deviation, replayed offline forever. |
 | `arms/lean-memory-reducer-*.mjs` | The live reducer wire contract: grammar, clarified instructions, repair turn, mechanical targets. |
 | `arms/graph-extractor-gemini.mjs`, `arms/embedder-gemini.mjs` | Offline-tested Gemini adapters for the pluggable `graphExtractor` and `embedder` brain options; dispatch-ready, founder-gated live. |
 | `run-*-live.mjs`, `live-runs/`, `predictions/` | Sealed and prepared live identities. Terminal ones refuse execution by design. |
+| `*-live-config.mjs`, `*-prediction-oracle.mjs`, `*-live-meter.mjs`, `live-runtime.mjs`, `longmemeval-*.mjs`, `incremental-longmemeval-runtime.mjs` | The frozen wiring behind those identities: hash-pinned contracts, pre-registered prediction grading, spend meters, transports. |
+| `harness.mjs`, `journey-bank.mjs`, `report-markdown.mjs` | Bake-off plumbing: journey schema/validation, arm runner, report renderer. |
+| `adapters/jcode-bridge/`, `arms/jcode-trust-adapter.mjs` | Rust bridge + arm for running the trust benchmark against an external assistant. |
 | `predictions.md`, `predictions-bakeoff.md` | Pre-registered predictions (append-only, by charter law). |
 | `journeys.json`, `run-bakeoff.mjs`, `arms/*arm*.mjs` | The 17-journey offline bake-off across memory arms. |
 | `results/` (gitignored) | Private run evidence. Never committed, never published without founder GO. |
@@ -47,5 +54,10 @@ evidence. Add new files; never relocate old ones.
 - "Can the memory be trusted?" → `npm run trust-bench`
 - "How does it behave at 5,000 messages?" → `npm run scale-probe`
 - "Does the digest machinery stall or overflow?" → `npm run memory-bench`
+- "Does the answer boundary keep speaker/chronology/time semantics?" →
+  `npm run answer-interpretation-regression`
+- "Do the reached v6 cases still retrieve their evidence?" →
+  `npm run reached-prefix-regression` (needs the gitignored dataset)
+- "How did the historical v0.5 arms compare, offline?" → `npm run bakeoff`
 - "Will the live provider accept our wire format?" → `npm run probe` (spends; gated)
 - "Is the product journey intact?" → `npm run quickstart`

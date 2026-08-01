@@ -1,5 +1,14 @@
 # TRIM CONTRACT — palari-brain, full trim to the product kernel
 
+> Historical record — EXECUTED AND SPENT (July 2026). This one-shot
+> contract was carried out: the v2 machinery is archived at the
+> `v2-proof-archive` tag and the root documents were rewritten. Every
+> repository-state figure below (file counts, tree hash, test counts,
+> export list, zero-dependency law) describes the repo at that cut, not
+> today; the product has since been rewritten onto the journal + digest
+> path and the tree has grown far beyond the 44-file cut. Do not
+> re-execute any phase. Current state lives in README.md and STATUS.md.
+
 Version: v1. Ratified by the founder in session, 2026-07-22.
 Prepared by the direction-review session; every command, expected
 output, and hash in this document was executed and verified against

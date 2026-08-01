@@ -1,8 +1,14 @@
 # J4 incremental successor hard-cap contract
 
+> Historical (checked 2026-07-26). Incremental live identities were later
+> separately authorized and run (`evals/live-runs/j4-active-brain-*`), so
+> the "remaining founder gate" below is consumed. Repository-state figures
+> in §Verification (test and package-file counts) describe that date, not
+> today. Nothing here authorizes new spend.
+
 Date checked: 2026-07-26
 
-Status: **offline contract selected; no live identity or provider authority**
+Status at the time: **offline contract selected; no live identity or provider authority**
 
 This contract replaces the byte-count reservations that the component audit
 found unproved. It applies only to a future incremental LongMemEval successor.

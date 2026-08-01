@@ -5,9 +5,10 @@ two-plane thesis — commodity engines below, a thin governed Palari
 plane above — remains the standing architecture. Its section-7 build
 order (M1-M6) was executed through M2, judged overbuilt relative to
 the product need, and halted; see WE-MESSED-UP.md and the
-`v2-proof-archive` git tag. Engine adoption is now decided by the
-journey-bank comparison in STATUS.md, not by this document's
-milestone ladder.
+`v2-proof-archive` git tag. The engine question was ultimately settled
+by the product rewrite to the journal + digest path (`docs/BRAIN-API.md`),
+not by this document's milestone ladder; the journey-bank comparison it
+deferred to is itself now a historical evaluator.
 
 ---
 

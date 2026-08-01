@@ -1,5 +1,63 @@
 # STATUS — single source of truth for the loop
 
+Loop state: DOCS-REFRESH COMPLETE ON FOUNDER DIRECTION; ON BRANCH
+`claude/memory-system-docs-review-pkdbcz` FOR FOUNDER MERGE. On 2026-08-01
+the founder asked for a repository review and a refresh of the README and
+documentation, naming stale content and references to ideas no longer in
+use. This is fast-lane R0-R1 documentation work. README.md now maps modules
+truthfully: the v0.5-era `src/gate.mjs`, `src/memory-briefing.mjs`, and
+`src/recall.mjs` move to the historical-comparator row (nothing on the
+active path imports them), the active `src/memory-forget.mjs`,
+`src/statement-extraction.mjs`, `src/longmemeval.mjs`, and `src/gemini.mjs`
+are mapped, `authorId` attribution and the `docs/CONSUMER-SEAM.md` boundary
+from BRN-0003 are documented in the integration section, `forgetWithReport`
+is documented beside exact-ID deletion, the two walkthrough examples and
+`memoryFreshness` are named, and "CI-pinned" is corrected to the `npm test`
+pin. evals/README.md no longer claims to measure "the kernel", states the
+`createEmbedder()` wrapper requirement for the scale-probe embedder module,
+and maps the previously unlisted runners. docs/JOURNEY-BANK.md pins are
+corrected to 17 journeys / 27 probes / 44 checks with the kernel arm at
+41/44 including the un-annotated `shared-standup-08:p1` authority finding,
+`asPalariId` is documented, and the closed live bake-off arms are recorded
+as existing. Historical banners were added to RESTRUCTURE-PROPOSAL,
+REFERENCES, ADVERSARIAL-REVIEW, J4-SIMPLE-HARNESS, BAKEOFF-J3-HEALING,
+BAKEOFF-J3-PREP, J4-INCREMENTAL-HARD-CAP-CONTRACT, LONGMEMEVAL-J4-PREP,
+SOURCE-MAP, TRIM-CONTRACT, and BAKEOFF-CONTRACT, and a dated preface to
+WE-MESSED-UP.md; the stale engine-adoption sentence in the
+PALARI-V2-ARCHITECTURE banner is corrected; PROMPT.md now routes governed
+work to the ticket workflow; TICKET-WORKFLOW.md documents the mediator
+packet role; docs/README.md is a new index separating active documents from
+sealed records. package.json `files` gains `src/memory-forget.mjs` — the
+one module in the public import closure a packed tarball would have failed
+to resolve — and ships docs/CONSUMER-SEAM.md. No sealed identity,
+prediction file, evals path, or existing DECISIONS.md entry content was
+altered; DECISIONS.md's header now notes entries are newest-first.
+Verification: 651 pass, 0 fail, 14 skipped across 665 tests offline without
+the gitignored dataset; quickstart is green; trust bench is 5/5; a link
+check over every edited document passes with only gitignored or
+provenance-only paths flagged. No provider, network, credential, dataset,
+evaluation result, publication, or spend was involved.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart
+   is green after the change.
+2. Did this unit make that journey measurably better? For the integrating
+   reader, yes: the README no longer points at dead modules, now documents
+   the real deletion-by-language path, shared-scope attribution, and the
+   application seam, and a packed tarball now resolves.
+3. Does an existing framework already provide what this unit added?
+   No — documentation of this repository cannot come from elsewhere.
+4. Has a real user or the founder asked for the guarantee it adds? Yes —
+   the founder explicitly requested this documentation refresh in session
+   on 2026-08-01.
+5. If this unit's changes were deleted, what user-visible behavior would
+   get worse? A new integrator would follow a module map pointing at dead
+   code, miss `forgetWithReport` and `authorId` entirely, and an installed
+   tarball would fail to import.
+
+This unit is documentation, not product code; under the drift rule it
+counts as the one allowed infrastructure-adjacent unit in a row, and it was
+directly founder-requested.
+
 Loop state: BRN-0003 FOUNDER-ACCEPTED AND MERGED INTO `main` AT `d814d7a`
 AFTER SECOND FRESH REVIEW. On 2026-08-01 the founder explicitly accepted
 BRN-0003 and directed its merge. Implementation commit `fff1f8c` repairs

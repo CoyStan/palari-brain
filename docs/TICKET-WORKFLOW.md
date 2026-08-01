@@ -19,9 +19,11 @@ omits v05's Company OS, deployment, archive, and workstream-board machinery.
   paths, verification, and stop conditions are explicit before work starts.
 - One governed ticket owns one branch and one sibling worktree. Review is
   against a committed diff, not loose changes in canonical `main`.
-- Specialist and reviewer packets carry the ticket's exact scope. Reviewers
-  start fresh, inspect read-only, and recommend `accept`, `reopen`, or
-  `needs-human`; they do not quietly implement their own fixes.
+- Specialist, reviewer, and mediator packets carry the ticket's exact scope.
+  Reviewers start fresh, inspect read-only, and recommend `accept`,
+  `reopen`, or `needs-human`; they do not quietly implement their own
+  fixes. A mediator frames options and implications for a blocked ticket
+  without executing the blocked implementation.
 - An implementation agent may move work to `in-review`, but the tooling cannot
   mark it `accepted`. Only the founder or an explicitly authorized reviewer
   may accept it, move its file to `tickets/closed/`, merge, or push.

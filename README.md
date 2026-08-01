@@ -3,7 +3,8 @@
 Memory for a chat assistant, reduced to the part that matters:
 
 1. the trusted host stores each complete visible user/Palari message and
-   records who actually said it;
+   records who actually said it (in a shared scope, optionally which
+   authenticated member, via `authorId`);
 2. one bounded reducer updates a compact active memory from the previous
    digest plus new interactions, on a cadence you choose;
 3. the host verifies every reducer claim against exact canonical quotes and
@@ -60,6 +61,12 @@ The quickstart demonstrates:
 - exact-ID deletion followed by honest absence;
 - source-document text excluded from canonical and reducer evidence.
 
+Two narrated walkthroughs go deeper than the quickstart's assertions:
+`node examples/walkthrough-storage.mjs` shows what storage, reduction,
+correction, and deletion actually persist, and
+`node examples/walkthrough-retrieval.mjs` shows an answer escalating from a
+digest miss to journal exploration.
+
 ## When memory is not enough, look
 
 The digest is bounded working memory. The canonical journal holds everything
@@ -82,6 +89,10 @@ used by sealed evaluators.
 Every consultation is deterministic and recorded, so an explored answer
 carries a replayable list of exactly which stored messages informed it.
 
+`memoryFreshness(brain, scope)` reports how far behind the dialogue the
+digest currently is, so a product can render "memory current through
+`<date>`" instead of degrading silently when a reduction is stuck.
+
 ## Measure it, don't trust it
 
 Every guarantee above is one command, offline, deterministic, spend-free:
@@ -89,7 +100,8 @@ Every guarantee above is one command, offline, deterministic, spend-free:
 ```bash
 npm run trust-bench    # 5 cases: paraphrase, correction chronology,
                        # verified deletion on every surface, source
-                       # boundary, cross-user isolation. CI-pinned 5/5.
+                       # boundary, cross-user isolation. `npm test`
+                       # pins the result at 5/5.
 npm run scale-probe    # 5,000-message conversation: ingest ms/turn,
                        # find latency, planted-fact recall rates.
 npm run memory-bench   # structural digest behavior over a long replay.
@@ -104,13 +116,15 @@ explicit `PALARI_PROBE_CONFIRM_SPEND=1`.
 | Area | Files |
 | --- | --- |
 | Entry point | `src/index.mjs` (public API), `src/brain.mjs` (digest orchestration), `src/retrieval-answer.mjs` (bounded retrieval-to-answer loop) |
-| Canonical journal + gate | `src/dialogue-evidence.mjs`, `src/gate.mjs`, `src/store.mjs` |
-| Digest (verified working memory) | `src/memory-digest-store.mjs`, `src/memory-reducer.mjs`, `src/memory-briefing.mjs` |
+| Canonical journal + dialogue gate | `src/dialogue-evidence.mjs` (journal, gate, exact-ID deletion), `src/memory-forget.mjs` (language-request deletion + residual report), `src/store.mjs` (store bootstrap over the extracted SQLite substrate in `src/memory-store.mjs`) |
+| Digest (verified working memory) | `src/memory-digest-store.mjs`, `src/memory-reducer.mjs` |
 | Admission guards | `src/quote-context.mjs` (negation/conditional/quoted-speech/pasted-text) |
 | Retrieval surfaces | `src/memory-exploration.mjs` (exact + ranked tools), `src/memory-search.mjs` (FTS5), `src/memory-semantic.mjs` (pluggable embeddings), `src/memory-graph.mjs` (derived temporal graph), `src/memory-trend.mjs` (computed trends) |
-| Historical comparator | `src/memory-store.mjs`, `src/v05-memory-extraction.mjs`, `src/recall.mjs` |
+| Legacy optional exact-quote index | `src/statement-extraction.mjs` (backward-compatible diagnostics only; not consumed by active recall) |
+| Dataset + provider adapters | `src/longmemeval.mjs` (LongMemEval loader), `src/gemini.mjs` (live-eval Gemini transport, exported as `palari-brain/gemini`) |
+| Historical comparator (imported by nothing on the active path) | `src/v05-memory-extraction.mjs`, `src/recall.mjs`, `src/memory-briefing.mjs`, `src/gate.mjs`, `src/adapter.mjs`, `src/memory-extraction.mjs` and their helpers — the preserved v0.5 lexical pipeline and kernel-era gate, kept for sealed evals |
 | Measurement | `evals/` (see `evals/README.md` — paths in there are hash-pinned by sealed run identities; never move files) |
-| Governance | `AGENTS.md` (charter), `STATUS.md` (ledger), `docs/DECISIONS.md` (log), `docs/TICKET-WORKFLOW.md` (scoped work and review), `docs/BRAIN-API.md` (API reference) |
+| Governance | `AGENTS.md` (charter), `STATUS.md` (ledger), `docs/DECISIONS.md` (log), `docs/TICKET-WORKFLOW.md` (scoped work and review), `docs/BRAIN-API.md` (API reference), `docs/CONSUMER-SEAM.md` (stable application seam), `docs/README.md` (docs index: active vs historical) |
 
 Governed multi-session, independently reviewed, or R2-R4 work uses the
 path-scoped ticket workflow adapted from palari-v05. Start with
@@ -177,6 +191,8 @@ await ingestChatTurn(brain, {
   palariId,
   retention: 'durable',
   userId,
+  // Optional: in a shared scope, the authenticated author of userMessage.
+  authorId,
   sourceMessageId,
   sourceTexts,
 }, {
@@ -225,6 +241,15 @@ exchange is eligible for durable local memory. Use `retention: 'ephemeral'`
 to skip both storage and reduction. Omitted retention fails closed before
 either storage or a reducer call.
 
+For a shared Palari — one journal, several authenticated members — the
+application keeps one `palariId`/`userId` scope pair and stamps each human
+message with an opaque `authorId`. Attribution then travels through find,
+read, timeline, search, graph, briefing, and forget-residual results
+without ever entering a model wire; forged author fields in model responses
+fail closed. The supported application boundary — stable imports, the
+versioning promise, the SQLite concurrency contract, and migration
+discipline — is [docs/CONSUMER-SEAM.md](docs/CONSUMER-SEAM.md).
+
 This is intentionally honest about sensitive text: canonical durable dialogue
 is stored byte-for-byte in local plaintext SQLite. A reducer instruction
 cannot protect the canonical copy. A chatbot must mark
@@ -237,7 +262,7 @@ it opens it, including upgrades. It does not change a caller-owned existing
 directory, and filesystem permissions are not encryption at rest.
 
 The reducer receives no current question and no tool, web, source-document,
-scope, or credential fields. It receives at most 64 prior active items plus
+scope, author-attribution, or credential fields. It receives at most 64 prior active items plus
 one current interaction, under a 40,000-character request limit. It can
 propose at most eight `add` or `replace` actions. Each action must cite an
 exact quote from current canonical evidence; replacements also cite the
@@ -267,7 +292,9 @@ for backward-compatible diagnostics and sealed evaluator code. Active answer
 recall does not consume that index. Do not run both provider hooks in a new
 integration.
 
-See [docs/BRAIN-API.md](docs/BRAIN-API.md) for the complete active contract.
+See [docs/BRAIN-API.md](docs/BRAIN-API.md) for the complete active contract
+and [docs/CONSUMER-SEAM.md](docs/CONSUMER-SEAM.md) for the supported
+application seam.
 
 ## Correction and forgetting
 
@@ -278,22 +305,38 @@ the compact working item and carries the old and new exact quote lineage.
 Canonical history is unchanged. User and Palari authority never collapse,
 even if their words are identical.
 
-Deletion is intentionally exact:
+Deletion is exact at the primitive:
 
 ```js
-import { forgetMemories } from 'palari-brain'
+import { forgetMemories, forgetWithReport } from 'palari-brain'
 
 forgetMemories(brain, selectedEvidenceIds, { palariId, userId })
 ```
 
-There is no `topicForget("espresso")`. A chatbot can show or select the
-relevant IDs from `brain.listStatements(...)`, get user confirmation, and
-then delete those IDs. Digest IDs are never destructive selectors. Deleting
-canonical evidence clears generated digest prose in the same transaction,
-increments the scope revision, and queues surviving canonical interactions
-for ordered rebuild. Until that rebuild completes, answer recall uses the
-complete surviving journal or refuses if it cannot fit. Similarity is not
-allowed to make a destructive decision.
+deletes precisely the canonical rows named. A chatbot can show or select
+the relevant IDs from `brain.listStatements(...)`, get user confirmation,
+and then delete those IDs. Digest IDs are never destructive selectors, and
+semantic similarity is never allowed to make a destructive decision.
+
+Real deletion requests arrive as language, not IDs. For those:
+
+```js
+forgetWithReport(brain, { palariId, userId }, { phrase: 'what I said about Lexapro' })
+```
+
+locates every row the phrase can lexically reach (exact substring plus
+ranked BM25), widens each hit to its whole turn so the assistant's echo of
+the user's words goes too, deletes through the same exact-ID path, then
+re-probes the surviving journal and returns `residual` — rows that still
+mention the subject — instead of claiming success. A paraphrase with zero
+lexical overlap can survive silently, which is exactly the boundary the
+optional semantic surface exists to inspect; the report never says
+"clean", it lists what the probes found and lets the caller read the rest.
+
+Deleting canonical evidence clears generated digest prose in the same
+transaction, increments the scope revision, and queues surviving canonical
+interactions for ordered rebuild. Until that rebuild completes, answer
+recall uses the complete surviving journal or refuses if it cannot fit.
 
 The store keeps a content-free source-identity tombstone (and the canonical
 turn manifest hashes) so transport replay cannot restore deleted evidence.
@@ -305,6 +348,9 @@ The repository still contains the extracted palari-v05 lexical kernel and
 its frozen J3/J4 evaluation machinery. They are retained as historical
 comparators and provenance for already completed runs; they are not exported
 from the package entry point and are not used by the active product API.
+Their design documents (`docs/KERNEL-API.md`, `docs/KERNEL-CONTRACT.md`)
+carry historical banners, and [docs/README.md](docs/README.md) indexes which
+documents describe the active system and which are sealed records.
 
 `npm run bakeoff` continues to reproduce that historical offline comparison.
 It is not a score for the active incremental-digest path. No new live provider

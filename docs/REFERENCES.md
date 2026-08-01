@@ -1,5 +1,12 @@
 # References
 
+> Historical reference list from the extraction era (U1-U6, July 2026).
+> The "kernel" it frames as the product is now the historical comparator;
+> the active system is documented in `docs/BRAIN-API.md`. Links are kept
+> for provenance. Open items recorded below have since closed: the
+> LongMemEval license was verified MIT and the repo license was set to MIT,
+> both recorded 2026-07-18 in `docs/DECISIONS.md`.
+
 ## Normative spec (the book)
 
 - The Palari Brain — Unified Specification (LaTeX source + built PDFs):

@@ -4,6 +4,14 @@
 
 **July 22, 2026**
 
+> Kept verbatim as the historical record that redirected this repository.
+> It describes the v2-era repo as of its date; the product has since been
+> rebuilt, and the central complaint — that the supported public path
+> refused to learn an ordinary user fact — no longer holds
+> (`createPalariBrain` + `ingestChatTurn` store it; `npm run quickstart`
+> proves the journey offline). The lessons and the product stop rule it
+> produced remain in force in AGENTS.md.
+
 The short version is painful but simple:
 
 > We wanted an assistant with better memory. We ended up building a

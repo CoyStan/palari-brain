@@ -18,6 +18,7 @@
     "src/longmemeval.mjs",
     "src/memory-digest-store.mjs",
     "src/memory-exploration.mjs",
+    "src/memory-forget.mjs",
     "src/memory-graph.mjs",
     "src/memory-search.mjs",
     "src/memory-semantic.mjs",
@@ -31,6 +32,7 @@
     "src/util.mjs",
     "examples",
     "docs/BRAIN-API.md",
+    "docs/CONSUMER-SEAM.md",
     "docs/KERNEL-API.md",
     "docs/KERNEL-CONTRACT.md"
   ],

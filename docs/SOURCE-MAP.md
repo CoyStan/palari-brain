@@ -1,5 +1,10 @@
 # Source Map — the kernel surface in palari-v05
 
+> Historical provenance record (U1). "The kernel" here is the v0.5
+> extraction baseline, today kept only as the historical comparator; the
+> active product path is documented in `docs/BRAIN-API.md`. This map stays
+> authoritative for where every extracted file came from.
+
 **Unit:** U1. **Author:** Fable 5. **Date:** 2026-07-18.
 
 This file records the exact surface the governed-memory kernel is
