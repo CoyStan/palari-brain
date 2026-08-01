@@ -1,15 +1,17 @@
 # BRN-0002 Terminal Reviewer Note
 
 Reviewer: independent fresh-context terminal-evidence reviewer
-Reviewed commit: `cf7fb0019012728f0451eb8340391ca354f21e94`
+Reviewed commits: terminal closeout
+`cf7fb0019012728f0451eb8340391ca354f21e94`; bounded correction
+`e241de04541834bf44fefe52f0943f16f2948dec`
 Target branch: `main` at `9897a35abe298a7fd5af7a832d9a7f8925d6e712`
 
 ## Review Result
 
-Reopen. The terminal measurement and its private evidence reconcile without a
-product or result defect, but the required offline `report-lint` gate fails.
-The technical report does not carry the workflow's exact required headings,
-so BRN-0002 is not acceptance-ready yet.
+Pass on bounded re-review. The technical report now carries the exact `Files
+Changed`, `Verification`, and `Risks / Follow-Ups` headings, and the previously
+failing `report-lint` gate passes. The terminal measurement and its private
+evidence remain unchanged and fully reconciled.
 
 No provider was invoked, no credential value was read or printed, and no
 prediction, product file, terminal artifact, score, label, or prior identity
@@ -17,21 +19,23 @@ was changed during this review.
 
 ## Findings
 
-- P1 — acceptance-blocking evidence-format defect:
-  `npm run ticket -- report-lint BRN-0002` exits 1 with
-  `BRN-0002: missing technical report`. The report exists, but
-  `coding-sessions/reports/BRN-0002-technical-report.md:3-99` uses `State`,
-  `Frozen execution`, `Verification before review`, `Terminal result`,
-  `Terminal evidence`, and review-request headings instead of the exact
-  `Files Changed`, `Verification`, and `Risks / Follow-Ups` headings required
-  by `scripts/ticket-system.mjs` and the technical-report template. R3 closeout
-  explicitly requires report lint, so this is a reopen condition even though
-  the report's substantive evidence is correct.
+- Resolved P1 — the bounded correction adds `## Files Changed` at line 9,
+  renames the earlier verification section to exact `## Verification` at line
+  48, and adds `## Risks / Follow-Ups` at line 122. `report-lint BRN-0002` now
+  exits 0. The substantive terminal values were preserved.
 - P3 — non-blocking inherited hygiene note: `git diff --check main...HEAD`
   reports trailing spaces on the ticket's empty `claimed_by` and `claimed_at`
   values. Ticket lint and committed scope both pass, and this does not affect
   the terminal result.
-- P0/P2 and product/result correctness findings: none.
+- Open P0-P2 and product/result correctness findings: none.
+
+The net diff from the prior terminal-review commit
+`56630197c030c290258b772f15891812044486ef` to the correction commit changes
+only `coding-sessions/reports/BRN-0002-technical-report.md`: 40 inserted lines
+and one heading rename. Product code, tests, P-set 19, result records, scores,
+official labels, and live-identity configuration have no diff. The private
+bundle independently rehashes to the same content-list, manifest, launcher,
+and runtime hashes recorded below.
 
 The terminal evidence independently reconciles as follows:
 
@@ -98,11 +102,12 @@ WIRING, SEMANTIC USE, ANSWER BOUNDARY, and EXECUTION/ACCOUNTING pass.
   — pass; product, dataset, predecessor, source-runtime, and generated-runtime
   hashes exact; terminal result/runtime presence reported.
 - `npm run ticket -- ticket-lint-all` — pass.
-- `npm run ticket -- report-lint BRN-0002` — **fail** with one issue:
-  `BRN-0002: missing technical report` because the exact required headings are
-  absent.
+- `npm run ticket -- report-lint BRN-0002` — pass on bounded re-review.
 - `npm run ticket -- scope-check --committed-plus-dirty --target main BRN-0002`
   — pass with this note, eight committed-plus-dirty paths.
+- Diff inspection from `5663019` through `e241de0` — pass; only the technical
+  report changes, with no whitespace error in the bounded correction and no
+  diff under `src/`, `tests/`, or `evals/predictions.md`.
 - `npm run answer-interpretation-regression` — pass, 5/5 structural cases;
   answer quality ungraded; provider/network `0/0`.
 - `npm test` — pass, 644 passed, 0 failed, 15 skipped (659 total).
@@ -110,19 +115,14 @@ WIRING, SEMANTIC USE, ANSWER BOUNDARY, and EXECUTION/ACCOUNTING pass.
 
 ## Required Changes
 
-- Rework `coding-sessions/reports/BRN-0002-technical-report.md` so it retains
-  the verified terminal evidence while adding the exact required `Files
-  Changed`, `Verification`, and `Risks / Follow-Ups` sections.
-- Rerun `npm run ticket -- report-lint BRN-0002` and require a clean exit,
-  followed by committed-plus-dirty scope check. The inherited ticket
-  frontmatter whitespace may be normalized in the same documentation-only
-  correction.
-- Do not change product code, P-set 19, official labels, terminal artifacts,
-  or any live identity, and do not invoke a provider.
+None. The inherited ticket-frontmatter whitespace is optional hygiene and is
+not an acceptance blocker; no product, prediction, result, or live-evidence
+change is warranted.
 
 ## Recommendation
 
-Recommend **reopen** for the bounded technical-report structure correction.
-After that correction passes report lint, the terminal evidence supports
-acceptance: no additional live run, regrade, or product change is needed.
+Recommend **accept**. The bounded correction resolves the sole blocking
+finding, every required governance check passes, and the unchanged terminal
+evidence supports the recorded result. No additional live run, regrade, or
+product change is needed.
 This recommendation does not accept, merge, publish, or authorize cleanup.
