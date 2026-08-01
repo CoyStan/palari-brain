@@ -1,5 +1,17 @@
 # STATUS — single source of truth for the loop
 
+Loop state: DOCS-REFRESH AND LONG-CONTENT POLICY MERGED INTO `main` AT
+`5bbd4a7` BY FOUNDER DIRECTION. On 2026-08-01 the founder, in session,
+explicitly directed the merge of branch
+`claude/memory-system-docs-review-pkdbcz` (commits `c833f1b` and
+`5bbd4a7`, the two units recorded below) into `main`. The merge is a
+fast-forward: `main` had not moved since the branch was cut at `82bd779`,
+so the merged tree is byte-identical to the branch tree that was verified
+at each unit close. Post-merge verification on `main`: full suite 651
+pass, 0 fail, 14 skipped across 665 tests without the gitignored dataset;
+quickstart is green; trust bench is 5/5. No provider, credential, dataset,
+evaluation result, publication, or spend was involved.
+
 Loop state: LONG-CONTENT POLICY RECORDED ON FOUNDER DECISION; ON BRANCH
 `claude/memory-system-docs-review-pkdbcz` FOR FOUNDER MERGE. On 2026-08-01
 the founder asked how the extreme paste case is handled, requested a survey
