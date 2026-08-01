@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0002
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by: 
-claimed_at: 
+claimed_by: "quetza"
+claimed_at: 2026-08-01T00:17:45Z
 target_branch: "main"
 branch: "ticket/BRN-0002-measure-repaired-retrieval-on-first-ten"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0002-measure-repaired-retrieval-on-first-ten"

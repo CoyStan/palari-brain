@@ -1,5 +1,21 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0002 FIRST-TEN REPAIRED-RETRIEVAL LIVE DIAGNOSTIC COMPLETE
+AND TERMINAL AT 5/10. The independently reviewed freeze at `a918c0b` was
+invoked exactly once. Compatibility passed; all ten questions completed and
+received one validated official label. The repaired first six scored 4/6,
+ordinals 7-10 scored 1/4, and only one of the three measured v5 answer-use
+misses changed to PASS. Coverage was 11/13 labelled positive answer sessions;
+semantic search was used on 10/10 and all answer boundaries completed. The
+five failures separate cleanly: four answers ignored relevant returned
+evidence, while one question returned no messages. Fresh spend was
+`$0.78886025` accounted (`$0.0530405` measured plus `$0.73581975` uncertain),
+bringing the exact J4 ledger to `$4.3642649` accounted (`$1.6734941` measured
+plus `$2.6907708` uncertain). P-set 19's accuracy, repaired-class, and coverage
+predictions fail; compatibility/judge wiring, semantic use, answer boundary,
+and execution/accounting pass. The identity is sealed; no rerun, regrade, or
+publication is authorized.
+
 Loop state: BRN-0002 FIRST-TEN REPAIRED-RETRIEVAL LIVE CONTRACT FROZEN;
 PROVIDER INVOCATION PENDING INDEPENDENT REVIEW. The founder explicitly
 authorized one fresh run over S60 ordinals 1-10. P-set 19 fixes identity
@@ -1784,10 +1800,19 @@ session itself).
 
 ## Next
 
-BRN-0001 is closed with the A/B/C offline repair stack complete. No live
-validation is part of BRN-0001. Any later provider proof needs a separate R3
-ticket,
-preregistration, cap, fresh identity, and founder GO.
+BRN-0002 is terminal at 5/10 and must be closed after final independent review.
+The next product unit should be a separate offline ticket that treats the four
+relevant-evidence answer-use failures and the one true retrieval miss as two
+different classes. Start with provider-free transcript fixtures and a
+provider-neutral evidence-to-answer contract; do not tune benchmark strings,
+add a benchmark-specific validator, or run another live identity. Any later
+provider proof still requires a separate R3 ticket, preregistration, cap,
+fresh identity, review, and founder GO.
+
+BRN-0001 remains closed with the A/B/C offline repair stack complete. Its
+host-computed time block produced the one newly corrected former v5 miss, but
+the instruction-only evidence-use repair did not stop four relevant-evidence
+failures across the first ten.
 
 Do not resume or rerun any terminal active-retrieval identity:
 `j4-active-retrieval-seen6-v1`, `j4-active-retrieval-seen6-v2`, or
@@ -1808,9 +1833,11 @@ judge calls. V5's transcript-grounded retrieval coverage is 7/7 even though
 its frozen report's broken evidence-key join prints 0/7; do not repeat the run
 to repair a diagnostic that can be corrected offline. The complete 3/6 result
 shows evidence delivery is no longer the primary failing category on these
-seen cases. Future work should diagnose answer interpretation and temporal
-reasoning offline before considering any new, independently frozen eval. Do
-not treat v4's matching unjudged question-1 answer as an official score.
+seen cases. BRN-0002 now proves that temporal metadata fixed the measured
+three-month case while instruction-only evidence use remained unreliable.
+Future work should diagnose answer interpretation offline before considering
+any new, independently frozen eval. Do not treat v4's matching unjudged
+question-1 answer as an official score.
 
 Do not resume, reroll, or alter any of these terminal
 identities:
@@ -5999,4 +6026,100 @@ all 268 tracked files; neither exact value appeared.
 
 This is a terminal private seen-case diagnostic, not an unbiased public
 benchmark. V5 cannot be resumed, rerolled, selectively regraded, or published
+without separate founder authority.
+
+### BRN-0002 terminal repaired-answer first-ten result
+
+P-set 19 and the R3 execution contract were committed and pushed before any
+provider request. A fresh-context reviewer inspected the private launcher and
+deterministic runtime, reproduced every population/product/prompt/dataset and
+predecessor hash, checked the cap and key-read order, reran the offline suite,
+and recommended GO at
+`a918c0b2c755f7e2fb682a52513f26b4b2abb76a`. The founder's first-ten GO then
+activated the launcher exactly once. Runtime
+`29ce9a0c0a59a5bc01b364cb027c29bfdc4f5b6d41e0a384e895ee1d09c87dda`
+began at `2026-08-01T00:12:17.050Z` and completed at
+`2026-08-01T00:15:44.481Z`.
+
+Compatibility passed before question 1. Gemini accepted the unchanged five
+raw schemas and no-store/minimal-thinking request, called `memory_search` over
+the real semantic surface, and returned the planted indigo token. Every
+reached answer crossed the captured fetch and received one validated label
+from the unchanged `gpt-4o-2024-08-06` official judge.
+
+Official per-question results:
+
+- `08e075c7` PASS — both required sessions reached the model; it answered nine
+  months.
+- `09d032c9` FAIL — the required preference/advice session reached the model,
+  but the answer still claimed no relevant phone-battery discussion.
+- `16c90bf4` PASS — the required prior Palari recommendation reached the model
+  and the answer attributed it correctly.
+- `5e1b23de` PASS — the required workshop session reached the model and the new
+  host-computed time block produced the correct three-month answer, reversing
+  v5's temporal failure.
+- `80ec1f4f_abs` PASS — four bounded retrieval calls found no target evidence
+  and the answer abstained correctly.
+- `0977f2af` FAIL — both required chronology sessions reached the model, but
+  the answer still claimed no pre-Air-Fryer gadget memory.
+- `0a34ad58` FAIL — the required session reached the model, but it answered
+  with generic Tokyo transit advice instead of the requested remembered
+  preference.
+- `0edc2aef` FAIL — the required hotel session reached the model, but the
+  answer claimed no relevant hotel recommendation existed.
+- `10d9b85a` FAIL — four bounded retrieval calls returned no messages and
+  missed both required sessions; this is the one measured retrieval failure.
+- `1192316e` PASS — both required sessions reached the model and the aggregate
+  time answer was correct.
+
+The official result is 5/10. P-set 19 is graded failing-first: OFFICIAL
+ACCURACY fails against `>=8/10`; the first-six subprediction fails at 4/6 and
+the new 7-10 subprediction fails at 1/4. REPAIRED FAILURE CLASSES fails because
+only `5e1b23de` changed from FAIL to PASS, 1/3 against `>=2/3`.
+RETRIEVAL COVERAGE fails at 11/13 against `>=12/13`. COMPATIBILITY and JUDGE
+WIRING pass; SEMANTIC USE passes on 10/10 with 16 scored semantic searches;
+ANSWER BOUNDARY passes on 10/10 with no truncation or retrieval exhaustion;
+EXECUTION/ACCOUNTING passes. The corrected `row.id` report join produced the
+valid 11/13 number directly; no post-hoc metric rewrite was needed.
+
+The invocation made 138 physical calls, all successful: 97
+`batchEmbedContents` calls carrying 4,796 embedding requests, 31 Gemini
+generation calls, and ten OpenAI judge calls. Gemini generation consumed
+151,610 input and 1,116 output tokens and measured `$0.0482730`; judge calls
+consumed 1,835 input and 18 output tokens and measured `$0.0047675`. Gemini
+embedding responses again omitted usage, so the 4,905,465-byte conservative
+reservation remains `$0.73581975` uncertain. Fresh spend is therefore
+`$0.78886025` accounted: `$0.0530405` measured plus `$0.73581975` uncertain.
+Added to the exact opening, the J4 ledger is `$4.3642649` accounted:
+`$1.6734941` measured plus `$2.6907708` uncertain. The run stayed
+`$0.71113975` below its `$1.50` fresh boundary and leaves `$2.2242518` below
+the earlier `$6.5885167` cumulative ceiling.
+
+The private 65-artifact content list hashes
+`60709b04c05287d68b4954503edd730ceeae12c8b70da1b328004b72479f6f13`;
+its post-run manifest hashes
+`554efab7c320ae2c2224ddbb9976d4a0b75afe66a5dab02c2ab227bc5b16816c`.
+Every artifact rehashes; files are mode 0600 and directories mode 0700. Both
+configured provider credentials were checked exactly across 674 tracked and
+private files with zero matches outside `.env`.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart is
+   green and the execution changed no product code.
+2. Did this unit make that journey measurably better? No product behavior
+   changed in this measurement unit. It did prove the prior temporal repair
+   works live and that instruction-only evidence use remains insufficient.
+3. Does an existing framework already provide what this unit added? No. The
+   providers and official judge do not provide Palari's scoped transcript,
+   predecessor ledger, one-shot cap, or failure-stage attribution.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly requested all first ten.
+5. If this unit's record were deleted, what user-visible behavior would get
+   worse? We could incorrectly claim the BRN-0001 repair solved answer use,
+   conflate four model-evidence failures with retrieval, or rerun a consumed
+   identity.
+
+This is one measurement/infrastructure unit following a product unit, so it
+does not trigger the two-infrastructure-unit drift stop. The next work is
+offline product repair, not another benchmark invocation. This identity is
+terminal and cannot be resumed, rerolled, selectively regraded, or published
 without separate founder authority.

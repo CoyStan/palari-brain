@@ -2398,3 +2398,16 @@ dates. Agents record; the founder decides.
   it answers and officially judges the ten ordered questions once. No retry,
   reroll, selective regrade, second invocation, publication, or mutation of
   terminal v1-v5 is authorized. P-set 19 is the final pre-run contract.
+
+- 2026-08-01 (BRN-0002 RESULT — first-ten identity terminal at 5/10)
+  The one invocation completed compatibility and all ten official judgments.
+  The result is 5/10, with 11/13 positive answer-session coverage and semantic
+  use on 10/10. Four failures occurred after required evidence reached the
+  answer model; one failure returned no messages. The host-computed temporal
+  repair corrected the prior three-month miss, but instruction-only evidence
+  use did not reliably prevent false absence or generic substitution. Fresh
+  accounted spend is `$0.78886025`, bringing the exact J4 ledger to
+  `$4.3642649`. The result refutes P-set 19's accuracy, repaired-class, and
+  coverage targets. The identity is sealed. The next unit must be offline and
+  provider-neutral; no rerun, regrade, successor identity, or publication is
+  authorized by this record.
