@@ -14,7 +14,7 @@ claimed_by:
 claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0003-prepare-the-brain-for-shared-app-integration"
-worktree: "/home/user/palari-brain-worktrees/BRN-0003-prepare-the-brain-for-shared-app-integration"
+worktree: "/home/quetza/palari-brain-worktrees/BRN-0003-prepare-the-brain-for-shared-app-integration"
 allowed_paths:
   - "src/dialogue-evidence.mjs"
   - "src/brain.mjs"
