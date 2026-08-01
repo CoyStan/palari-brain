@@ -2411,3 +2411,21 @@ dates. Agents record; the founder decides.
   coverage targets. The identity is sealed. The next unit must be offline and
   provider-neutral; no rerun, regrade, successor identity, or publication is
   authorized by this record.
+
+- 2026-08-01 (BRN-0003 shared-app consumer boundary)
+  **Shared identity is host provenance, while membership and authorization
+  remain application policy.** A consumer may use one existing opaque
+  `palariId AND userId` scope as a shared journal and stamp an optional
+  authenticated `authorId` on each human turn. The canonical gate stores it
+  additively on user evidence only; statement, graph, and reducer model wires
+  do not receive or author it. Retrieval restores attribution from canonical
+  evidence, including graph results, and language-based deletion reports
+  residuals across all authors because the caller must authorize the request.
+  Local file-backed stores use SQLite WAL with a 5,000 ms busy timeout for
+  active operations. Multiple handles opened sequentially in one process are
+  supported; multi-process sharing is refused because simultaneous baseline
+  initialization precedes the active wait policy. Lock failure is loud, and
+  remote/network-filesystem or multi-host sharing is also unsupported.
+  Canonical schema upgrades remain additive; FTS, vector, and graph state is
+  rebuildable. This decision adds no roles, membership table, provider call,
+  evaluation, publication, or spend.

@@ -30,6 +30,8 @@ The trusted host supplies:
 - `eventAt`: evidence time;
 - `sourceMessageId`: stable interaction identity;
 - `palariId` and `userId`: required private scope;
+- optional `authorId`: the authenticated host's opaque identity for the
+  human who supplied `userMessage`;
 - `retention`: `durable` or `ephemeral`.
 
 Calling this method is the host's explicit storage decision. Omitted or
@@ -52,11 +54,16 @@ untrimmed canonical row:
 - `assistantMessage` → `assistant_message`.
 
 Each row carries private scope, a role-specific source-message ID, chronology,
-observation time, and a content hash. A turn manifest fixes the presence,
-absence, bytes, and event time of both visible roles. Replaying the exact
-snapshot is idempotent. Adding, removing, changing, or retiming either role
-under the same source identity throws `SOURCE_MESSAGE_CONFLICT` before model
-use. After exact deletion, replay cannot resurrect the deleted message.
+observation time, and a content hash. When `authorId` is present, the gate
+stamps it only on the user evidence row; it is not placed in statement-
+extractor or graph-extractor requests and no model response can set it. A turn
+manifest fixes the presence, absence, bytes, and event time of both visible
+roles, while the user row fixes its optional author. Replaying the exact
+snapshot is idempotent. Adding, removing, changing, retiming, or re-attributing
+either role under the same source identity throws `SOURCE_MESSAGE_CONFLICT`
+before model use. The turn manifest retains the optional user author after
+exact deletion, so replay by a different author still conflicts and replay by
+the original author still cannot resurrect the deleted message.
 
 The same SQLite transaction that adds canonical evidence also appends one
 monotonic reduction unit. A crash cannot leave accepted dialogue without
@@ -450,7 +457,9 @@ messages informed an answer — something a nearest-neighbour retriever cannot
 produce.
 
 Exploration inherits every gate guarantee. Results are canonical records scoped
-to `palariId AND userId`, with host-derived speaker and time. Deleted
+to `palariId AND userId`, with host-derived speaker and time. An attributed
+user row also carries `authorId`; a timeline session containing attributed
+rows adds `participants: [{ speaker, authorId, messages }]`. Deleted
 messages are gone. Source, tool, and web text never entered canonical storage,
 so it has no read path either. `memory_find` returns a bounded excerpt for
 orientation; `memory_read` returns the complete message and never truncates
@@ -727,7 +736,8 @@ timeQuote? }] }`.
 - `await brain.indexGraph(scope)` — incremental extraction; every proposed
   triple is admitted only if its `quote` (and optional `timeQuote`) is an
   exact contiguous substring of the cited row and passes the quote-context
-  guard. Speaker and time are stamped from the row.
+  guard. Speaker and time are stamped from the row. The extractor never sees
+  `authorId`; returned edges recover it host-side from canonical evidence.
 - `brain.exploreGraph(scope, { entity, hops ≤ 3, now })` — model-free SQL
   BFS. Fuzzy trigram resolution applies to the caller's entry point only
   (stored entities are never merged). Returns `edges` (each with verified
@@ -760,8 +770,8 @@ what I told you about Lexapro"). `forgetWithReport`:
 3. runs the existing `forgetById` path (tombstones, digest invalidation,
    FTS/vector/graph cleanup by trigger), and
 4. **re-probes the survivors** and returns `residual`: rows that still
-   appear to mention the subject, each with `evidenceId`, `speaker`,
-   `observedAt`, `snippet`, and `matchedVia`
+  appear to mention the subject, each with `evidenceId`, `speaker`, optional
+  host-stamped `authorId`, `observedAt`, `snippet`, and `matchedVia`
    (`exact` / `request_terms` / `deleted_content_terms`).
 
 The `deleted_content_terms` probe searches with vocabulary taken from the

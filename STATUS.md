@@ -1,5 +1,82 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0003 FOUNDER-ACCEPTED AFTER SECOND FRESH REVIEW; MERGE
+PENDING. On 2026-08-01 the founder explicitly accepted BRN-0003 and directed
+its merge. Implementation commit `fff1f8c` repairs
+all three findings preserved in first-review commit `88513f8`. The second
+fresh reviewer independently reproduced post-forget author conflict,
+camel/snake graph-author forgery rejection with zero admitted edges, and a
+real external SQLite lock that failed loudly and atomically after 5,010 ms,
+then verified a successful exact retry after release. It found no blocking
+issues and recommends `accept`. Full verification remains 650 pass, 0 fail,
+15 skipped across 665 tests; the shared-consumer contracts are 6/6; adjacent
+contracts are 74/74; quickstart is green; trust bench is 5/5; scope, ticket,
+and report checks are green. The governed ticket is closed as `accepted`; the
+remaining mechanical step is integration into current `main`, followed by
+integrated verification and push. No provider, network, credential, dataset,
+evaluation result, publication, or spend was involved.
+
+Loop state: BRN-0003 FIRST INDEPENDENT REVIEW GAPS REPAIRED; SECOND FRESH
+REVIEW PENDING. Review commit `88513f8` correctly reopened the ticket on three
+findings. The repair now persists optional user attribution in the additive
+turn manifest, so a different-author replay conflicts even after canonical
+evidence deletion; graph-extractor responses carrying forged `authorId` or
+`author_id` fail with `GRAPH_ASSERTION_INVALID`; and the concurrency promise
+now explicitly refuses multi-process ownership instead of claiming support
+before the busy policy exists. A real independent process holds the write lock
+in the revised contract test: the active connection waits the configured five
+seconds, throws loudly, and commits no partial turn. Same-process handles
+opened sequentially remain supported. Adjacent contracts are 74/74; the full
+suite is 650 pass, 0 fail, 15 skipped across 665 tests; quickstart is green;
+trust bench is 5/5. The Level 1 human report records the narrowed promise and
+founder decision boundary. No provider, network, credential, dataset,
+evaluation result, publication, or spend was involved. Next: commit and push
+these repairs, return the ticket to `in-review`, and obtain a second
+fresh-context recommendation. Only the founder may accept or merge.
+
+Loop state: BRN-0003 SHARED-APP CONSUMER BOUNDARY IMPLEMENTED; FRESH
+INDEPENDENT REVIEW PENDING. The governed R2 ticket now adds optional,
+host-stamped `authorId` provenance to canonical user evidence without changing
+the output shape for unattributed callers. Attribution survives find, read,
+timeline participant summaries, briefing, semantic and hybrid search, graph
+results, exact-quote records, and forget residuals. It is absent from Palari
+rows and from statement-extractor, graph-extractor, and reducer model wires;
+forged response fields fail closed, and replay under a different author raises
+`SOURCE_MESSAGE_CONFLICT`. One shared scope now has provider-free proofs for
+two distinct authors, cross-scope isolation, cross-author residual reporting,
+and an additive pre-attribution database upgrade. File-backed brains install
+SQLite WAL plus a 5,000 ms busy timeout; concurrent same-scope writes through
+multiple local handles commit atomically, while conflicting writes fail
+loudly. `docs/CONSUMER-SEAM.md` names the stable application API, versioning
+promise, additive-canonical/rebuildable-derived migration discipline,
+same-host concurrency stance, and mechanism/policy boundary. Verification is
+650 pass, 0 fail, 15 skipped across 665 tests; the six new shared-consumer
+contracts pass; quickstart is green; trust bench remains 5/5; ticket scope,
+lint, and report checks are green. No credential, provider, network, dataset,
+evaluation result, publication, or spend was involved. Next: commit and push
+the ticket branch, move BRN-0003 to `in-review`, and obtain the required
+fresh-context reviewer report. Only the founder may accept and merge it.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart is
+   green after the change.
+2. Did this unit make that journey measurably better? Yes — six new contracts
+   prove author attribution, shared-scope isolation, additive migration,
+   deletion residual provenance, and concurrent ingestion.
+3. Does an existing framework already provide what this unit added? SQLite
+   supplies WAL and locking, but it does not provide Palari's host-stamped
+   author boundary, canonical/model separation, or scoped deletion receipts.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder directed the generalizable shared-Palari integration work recorded
+   in BRN-0003.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? A shared Palari could not reliably say which member supplied a
+   remembered message, graph/search/deletion results would lose that
+   provenance, and concurrent local writers would have no bounded lock
+   contract.
+
+This is a product integration unit, not a second consecutive infrastructure
+unit. It does not trigger the drift stop.
+
 Loop state: BRN-0002 FIRST-TEN REPAIRED-RETRIEVAL LIVE DIAGNOSTIC ACCEPTED
 AFTER FRESH TERMINAL REVIEW AT `a8d5af7`; TERMINAL AT 5/10. The independently
 reviewed freeze at `a918c0b` was

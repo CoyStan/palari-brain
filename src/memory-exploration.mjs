@@ -59,6 +59,9 @@ export function sessionOf(sourceMessageId) {
 
 function messageRow(row) {
   return {
+    ...(row.author_id === undefined || row.author_id === null
+      ? {}
+      : { authorId: String(row.author_id) }),
     evidenceId: String(row.id),
     // Two timestamps, two authorities. `observedAt` is the CALLER'S claimed
     // event time — the chronology basis, by design, so multi-device backfill
@@ -137,6 +140,21 @@ export function createMemoryExplorer(store, {
       }
       entry.messages += 1
       entry.lastObservedAt = row.observedAt
+      if (row.authorId !== undefined) {
+        const participant = entry.participants?.find((candidate) =>
+          candidate.authorId === row.authorId &&
+          candidate.speaker === row.speaker)
+        if (participant) {
+          participant.messages += 1
+        } else {
+          entry.participants ??= []
+          entry.participants.push({
+            authorId: row.authorId,
+            messages: 1,
+            speaker: row.speaker,
+          })
+        }
+      }
       sessions.set(row.session, entry)
     }
     const listed = [...sessions.values()]
