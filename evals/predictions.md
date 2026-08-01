@@ -1002,3 +1002,97 @@ Predictions, failing categories first:
    records measured and uncertain spend separately, and makes at most six
    official judge calls. Any stop or miss is the result and authorizes no
    retry, reroll, selective regrade, or prediction change.
+
+## P-set 19 — repaired-answer active retrieval first-ten v1, FINAL before execution
+
+Author: repository execution lane, 2026-07-31. The founder explicitly
+authorized a fresh run over all LongMemEval S60 ordinals 1-10, rather than the
+previous first-six or reached-prefix first-seven checks. Fresh identity
+`j4-active-retrieval-first10-v1` answers and officially judges all ten once.
+It neither resumes nor changes terminal seen-six v1-v5, and it does not grade
+the provider-free question-7 boundary. These cases have been inspected; this
+is a private seen-case diagnostic, not an unbiased generalization estimate.
+
+The exact ordered IDs are `08e075c7`, `09d032c9`, `16c90bf4`, `5e1b23de`,
+`80ec1f4f_abs`, `0977f2af`, `0a34ad58`, `0edc2aef`, `10d9b85a`, and
+`1192316e`; their ordered array hashes
+`d3a9a8c234468e0120d605c7868b418a5ab3313384d0d162e11a30ab6d9fe4cf`.
+The ignored MIT-licensed dataset remains
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+The nine positive cases require 13 labelled answer-bearing sessions in total;
+the ordinal-5 abstention is reported separately and receives no zero-session
+coverage credit.
+
+This run measures the accepted BRN-0001 answer boundary. `src/brain.mjs`
+hashes `01deae1731583442cde12e55a20ef285bd3b08fed7ecb933377839a4b11f53f2`;
+`src/retrieval-answer.mjs` hashes
+`c322357999e35d13b366b72e23d5a1cc6c3f8ae3df4937456426e9d491a45972`;
+the provider-free five-case composition regression hashes
+`b45340023ec39acc147375cb7c36141419d178dbac4c3e4f7203b5dd932d0a3a`.
+The assembled answer system instruction hashes
+`69f6a15608fb8541e5b0df86dae23401c97f0fe1b9d6ef3c594977db3334939e`.
+The unchanged five raw Gemini declarations hash
+`d2d09fa4b32372324ff8ab8b53b2683e2a4580e87eeb409fba3c942ca7912d0f`;
+Gemini answer model remains `gemini-3.5-flash-lite` with explicit no-store and
+`thinkingLevel: MINIMAL`. The official judge remains
+`gpt-4o-2024-08-06`; its request configuration hashes
+`f0fdcc9a6a584c550b8c5ea8d961422b0ab3c2a054ea4ca5ce1cd0fa36e7c048`.
+
+The one-shot private launcher hashes
+`ca214d38dddf57ac727f08033b05e067d621a882cf8fe3f09e51f20023858594`;
+its deterministic runtime hashes
+`29ce9a0c0a59a5bc01b364cb027c29bfdc4f5b6d41e0a384e895ee1d09c87dda`.
+It derives only from terminal v5 runtime
+`0b820acfb1a81dc702031fa3002ca9b098aeaefdae68de17534f49dd0cfe89d7`,
+adds the four ordered IDs, points output outside repository danger zones,
+pins current product hashes, and corrects only the report's already-known
+coverage join from absent `row.evidence_id` to canonical `row.id`. The answer,
+retrieval, provider, and official-judge behavior are otherwise unchanged.
+
+Terminal seen-six v1-v5 and the completed Gemini debug bundle are reverified
+through manifest hashes
+`5749bffc34512b065fdd7c1f999384d4a3c45ee002cd37766b161674ca8caec4`,
+`16d8137209f1bab8e19cb7feb9428071464daa8e8b02411bb4ec77a8075cf793`,
+`0f1432b6c2027a45ce67590ebf8cd3462f835e8ec5a71901e1aded04ee697a36`,
+`e6a63b46c1f1b9a1f8c2163631ac160957fe21cdb2eaa62501b25dc918e7829f`,
+`72d1535dce30b5a992dbddb88854a89afae9ab80ad5a552e6915c1a65e93b20b`,
+and
+`f6432faad00b18d3e2e8221f4016355c33b4a526078c76e359a81b0ae0af9562`.
+Their exact J4 ledger is carried forward: `$3.57540465` accounted,
+`$1.6204536` measured, and `$1.95495105` uncertain. This identity has a
+`$1.50` fresh hard cap and `$5.07540465` cumulative boundary. Linear evidence
+from v5 predicts about `$0.78` fresh accounted spend; the cap also covers the
+largest sequential answer or judge reservation without permitting an
+uncapped run.
+
+One launcher invocation is final. It performs the same combined
+native-tool/semantic compatibility smoke and stops before question 1 if the
+smoke fails. Otherwise it answers and judges all ten in order. There is no
+writer, reducer, graph extraction, transport retry, reroll, selective
+regrade, second invocation, or publication.
+
+Predictions, failing categories first:
+
+1. OFFICIAL ACCURACY: at least `8/10` answers receive a correct label from the
+   unchanged official judge. Within that total, the repaired first six reach
+   at least `5/6`, and new ordinals 7-10 reach at least `3/4`.
+2. REPAIRED FAILURE CLASSES: at least two of the three v5 answer-use misses
+   (`09d032c9`, `5e1b23de`, `0977f2af`) change from FAIL to PASS. The exact
+   per-question labels remain the measurement; this aggregate prediction
+   does not license selective regrading.
+3. COMPATIBILITY/JUDGE WIRING: before question 1, Gemini accepts all five raw
+   schemas, calls `memory_search` over the real semantic surface, and answers
+   the planted indigo token. Every reached answer crosses the captured judge
+   fetch and receives one validated official label.
+4. RETRIEVAL COVERAGE: the ten answers consult at least 12 of the 13 labelled
+   positive-case answer-bearing sessions. Ordinal 5 remains a separate
+   abstention and receives no zero-session credit.
+5. SEMANTIC USE: at least nine of ten scored questions issue one or more
+   successful `memory_search` calls with the real Gemini semantic surface.
+6. ANSWER BOUNDARY: all ten completions finish without truncation,
+   retrieval-budget exhaustion, or a seventh-turn tool request.
+7. EXECUTION/ACCOUNTING: the first command is terminal, remains within the
+   `$1.50` fresh and `$5.07540465` cumulative hard caps, records measured and
+   uncertain spend separately, and makes at most ten official judge calls.
+   Any smoke failure, question error, or miss is the result and authorizes no
+   retry, reroll, selective regrade, prediction edit, or replacement identity.

@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0002
 children: []
-status: open
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -51,7 +51,7 @@ verification:
   - "npm run quickstart"
   - "node /home/quetza/palari-brain-private/retrieval-first10-live-v1-launcher.mjs --verify"
 created: 2026-07-31
-updated: 2026-07-31
+updated: 2026-08-01
 ---
 
 # BRN-0002 Measure Repaired Retrieval on First Ten

@@ -2387,3 +2387,27 @@ dates. Agents record; the founder decides.
   pre-run prediction expects a cap stop before question 60. The cap is the
   billing boundary; the instruction to proceed through 60 is authority to
   attempt the frozen order within that boundary, not authority to exceed it.
+
+- 2026-07-31 (FOUNDER GO — BRN-0002 first-ten repaired retrieval diagnostic)
+  The founder explicitly directed one fresh live test over all LongMemEval S60
+  ordinals 1-10, not only the previous six or offline first-seven boundary.
+  Identity `j4-active-retrieval-first10-v1` receives a `$1.50` fresh hard cap,
+  carrying the exact `$3.57540465` J4 opening to a `$5.07540465` cumulative
+  boundary. The one command first runs the combined Gemini native-tool and
+  semantic compatibility smoke; a failure stops before question 1. Otherwise
+  it answers and officially judges the ten ordered questions once. No retry,
+  reroll, selective regrade, second invocation, publication, or mutation of
+  terminal v1-v5 is authorized. P-set 19 is the final pre-run contract.
+
+- 2026-08-01 (BRN-0002 RESULT — first-ten identity terminal at 5/10)
+  The one invocation completed compatibility and all ten official judgments.
+  The result is 5/10, with 11/13 positive answer-session coverage and semantic
+  use on 10/10. Four failures occurred after required evidence reached the
+  answer model; one failure returned no messages. The host-computed temporal
+  repair corrected the prior three-month miss, but instruction-only evidence
+  use did not reliably prevent false absence or generic substitution. Fresh
+  accounted spend is `$0.78886025`, bringing the exact J4 ledger to
+  `$4.3642649`. The result refutes P-set 19's accuracy, repaired-class, and
+  coverage targets. The identity is sealed. The next unit must be offline and
+  provider-neutral; no rerun, regrade, successor identity, or publication is
+  authorized by this record.
