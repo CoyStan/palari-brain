@@ -58,4 +58,3 @@ Have a second fresh reviewer verify the three repaired gaps and the narrowed
 multi-process promise. If that review recommends acceptance, the founder may
 accept and merge BRN-0003. Do not add application roles or membership policy
 to this repository and do not run a live benchmark from this ticket.
-

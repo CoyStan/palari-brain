@@ -1,5 +1,19 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0003 ACCEPTANCE RECOMMENDED AFTER SECOND FRESH REVIEW;
+FOUNDER GATE, NOT ACCEPTED OR MERGED. Implementation commit `fff1f8c` repairs
+all three findings preserved in first-review commit `88513f8`. The second
+fresh reviewer independently reproduced post-forget author conflict,
+camel/snake graph-author forgery rejection with zero admitted edges, and a
+real external SQLite lock that failed loudly and atomically after 5,010 ms,
+then verified a successful exact retry after release. It found no blocking
+issues and recommends `accept`. Full verification remains 650 pass, 0 fail,
+15 skipped across 665 tests; the shared-consumer contracts are 6/6; adjacent
+contracts are 74/74; quickstart is green; trust bench is 5/5; scope, ticket,
+and report checks are green. The branch is ready for the founder's explicit
+accept/merge decision. No provider, network, credential, dataset, evaluation
+result, publication, or spend was involved.
+
 Loop state: BRN-0003 FIRST INDEPENDENT REVIEW GAPS REPAIRED; SECOND FRESH
 REVIEW PENDING. Review commit `88513f8` correctly reopened the ticket on three
 findings. The repair now persists optional user attribution in the additive
