@@ -1,5 +1,20 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0002 FIRST-TEN REPAIRED-RETRIEVAL LIVE CONTRACT FROZEN;
+PROVIDER INVOCATION PENDING INDEPENDENT REVIEW. The founder explicitly
+authorized one fresh run over S60 ordinals 1-10. P-set 19 fixes identity
+`j4-active-retrieval-first10-v1`, the ten exact IDs, current accepted BRN-0001
+product hashes, terminal v1-v5 predecessor manifests, the corrected
+report-only coverage join, and a single compatibility-then-ten invocation.
+Predictions are `>=8/10` official overall, `>=5/6` on the repaired first-six,
+`>=3/4` on ordinals 7-10, at least two of three measured v5 answer-use misses
+repaired, `>=12/13` positive answer-session coverage, semantic use on `>=9/10`,
+and ten complete answer boundaries. Exact opening spend is `$3.57540465`
+accounted (`$1.6204536` measured plus `$1.95495105` uncertain); the fresh cap
+is `$1.50` and cumulative boundary `$5.07540465`. Offline launcher
+verification rehashes every predecessor/product/dataset input; no credential
+has been read and no provider call, result, score, or new spend has occurred.
+
 Loop state: BRN-0001 A/B/C ACCEPTED AND INTEGRATED; PARENT ACCEPTED AFTER FRESH
 REVIEW AT `b3677a1`. The answer boundary now carries the A evidence-use/speaker contract,
 the B host-computed UTC time block, and the C provider-free composition check.
