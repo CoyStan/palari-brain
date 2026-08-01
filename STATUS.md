@@ -1,5 +1,48 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0003 SHARED-APP CONSUMER BOUNDARY IMPLEMENTED; FRESH
+INDEPENDENT REVIEW PENDING. The governed R2 ticket now adds optional,
+host-stamped `authorId` provenance to canonical user evidence without changing
+the output shape for unattributed callers. Attribution survives find, read,
+timeline participant summaries, briefing, semantic and hybrid search, graph
+results, exact-quote records, and forget residuals. It is absent from Palari
+rows and from statement-extractor, graph-extractor, and reducer model wires;
+forged response fields fail closed, and replay under a different author raises
+`SOURCE_MESSAGE_CONFLICT`. One shared scope now has provider-free proofs for
+two distinct authors, cross-scope isolation, cross-author residual reporting,
+and an additive pre-attribution database upgrade. File-backed brains install
+SQLite WAL plus a 5,000 ms busy timeout; concurrent same-scope writes through
+multiple local handles commit atomically, while conflicting writes fail
+loudly. `docs/CONSUMER-SEAM.md` names the stable application API, versioning
+promise, additive-canonical/rebuildable-derived migration discipline,
+same-host concurrency stance, and mechanism/policy boundary. Verification is
+650 pass, 0 fail, 15 skipped across 665 tests; the six new shared-consumer
+contracts pass; quickstart is green; trust bench remains 5/5; ticket scope,
+lint, and report checks are green. No credential, provider, network, dataset,
+evaluation result, publication, or spend was involved. Next: commit and push
+the ticket branch, move BRN-0003 to `in-review`, and obtain the required
+fresh-context reviewer report. Only the founder may accept and merge it.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart is
+   green after the change.
+2. Did this unit make that journey measurably better? Yes — six new contracts
+   prove author attribution, shared-scope isolation, additive migration,
+   deletion residual provenance, and concurrent ingestion.
+3. Does an existing framework already provide what this unit added? SQLite
+   supplies WAL and locking, but it does not provide Palari's host-stamped
+   author boundary, canonical/model separation, or scoped deletion receipts.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder directed the generalizable shared-Palari integration work recorded
+   in BRN-0003.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? A shared Palari could not reliably say which member supplied a
+   remembered message, graph/search/deletion results would lose that
+   provenance, and concurrent local writers would have no bounded lock
+   contract.
+
+This is a product integration unit, not a second consecutive infrastructure
+unit. It does not trigger the drift stop.
+
 Loop state: BRN-0002 FIRST-TEN REPAIRED-RETRIEVAL LIVE DIAGNOSTIC ACCEPTED
 AFTER FRESH TERMINAL REVIEW AT `a8d5af7`; TERMINAL AT 5/10. The independently
 reviewed freeze at `a918c0b` was

@@ -155,6 +155,9 @@ export function residualMentions(db, scope, {
     const id = String(row.id)
     if (found.has(id)) return
     found.set(id, {
+      ...(row.author_id === undefined || row.author_id === null
+        ? {}
+        : { authorId: String(row.author_id) }),
       evidenceId: id,
       matchedVia,
       observedAt: String(row.event_at),

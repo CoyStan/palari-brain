@@ -94,6 +94,12 @@ function normalizedEventAt(value) {
   return date.toISOString()
 }
 
+function normalizedAuthorId(value) {
+  if (value === undefined || value === null) return null
+  const authorId = roundTrippableDialogueText(value, 'authorId')
+  return authorId.trim() ? authorId : null
+}
+
 function normalizedTurnSnapshot(turn = {}) {
   const scope = normalizedScope(turn)
   const sourceMessageId = roundTrippableDialogueText(
@@ -114,11 +120,13 @@ function normalizedTurnSnapshot(turn = {}) {
       'retention must be either "durable" or "ephemeral".',
     )
   }
+  const authorId = normalizedAuthorId(turn.authorId)
   return Object.freeze({
     assistantMessage: roundTrippableDialogueText(
       turn.assistantMessage,
       'assistantMessage',
     ),
+    ...(authorId === null ? {} : { authorId }),
     eventAt: normalizedEventAt(turn.eventAt),
     externalSourcesIgnored: Array.isArray(turn.sourceTexts)
       ? turn.sourceTexts.length
@@ -630,9 +638,15 @@ export async function ingestChatTurn(brain, turn = {}, {
 
   let payload
   try {
+    const { authorId: _authorId, ...modelVisibleTurn } = normalizedTurn
     payload = await extractor({
       request: buildStatementExtractionRequest({ turn: normalizedTurn }),
-      turn: normalizedTurn,
+      // The gate needs host attribution; the optional model-backed indexer
+      // does not. Keep it out of both the provider request and its callback
+      // convenience snapshot so it cannot become model-authored provenance.
+      turn: normalizedTurn.authorId === undefined
+        ? normalizedTurn
+        : Object.freeze(modelVisibleTurn),
     })
   } catch (error) {
     return noIndex('extractor_error', {
@@ -716,6 +730,9 @@ export function buildMemoryBriefing({
     }
   }
   const included = rows.map((row) => ({
+    ...(row.author_id === undefined || row.author_id === null
+      ? {}
+      : { authorId: String(row.author_id) }),
     content: String(row.content ?? ''),
     evidenceKind: String(
       row.evidence_kind ?? row.record_kind ?? 'legacy_selected_quote',
@@ -732,6 +749,9 @@ export function buildMemoryBriefing({
   const lines = [
     memoryBriefingHeader,
     ...included.map((entry) => JSON.stringify({
+      ...(entry.authorId === undefined
+        ? {}
+        : { authorId: entry.authorId }),
       evidenceId: entry.id,
       evidenceKind: entry.evidenceKind,
       occurredAt: entry.occurredAt,

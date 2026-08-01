@@ -50,6 +50,8 @@ export function roundTrippableDialogueText(value, label = 'text') {
 const canonicalEvidenceKind = 'canonical_message'
 const legacyEvidenceKind = 'legacy_selected_quote'
 const migrationId = 'CDX-M3-CANONICAL-DIALOGUE'
+const sqliteBusyTimeoutMs = 5_000
+const sqliteJournalMode = 'wal'
 
 function sha256(value) {
   return createHash('sha256').update(String(value)).digest('hex')
@@ -144,8 +146,12 @@ function quoteOffset(message, quote) {
 }
 
 function evidenceRow(row) {
+  const { author_id: authorId, ...fields } = row
   return {
-    ...row,
+    ...fields,
+    ...(authorId === undefined || authorId === null
+      ? {}
+      : { author_id: String(authorId) }),
     extractor: row.evidence_kind === legacyEvidenceKind
       ? String(row.legacy_extractor ?? '')
       : '',
@@ -161,8 +167,12 @@ function evidenceRow(row) {
 }
 
 function annotationRow(row) {
+  const { evidence_author_id: authorId, ...fields } = row
   return {
-    ...row,
+    ...fields,
+    ...(authorId === undefined || authorId === null
+      ? {}
+      : { author_id: String(authorId) }),
     content: row.quote,
     dialogue_order: row.evidence_dialogue_order,
     palari_id: row.evidence_palari_id,
@@ -211,6 +221,7 @@ function selectAnnotationById(db, id) {
       e.user_id AS evidence_user_id,
       e.source_message_id AS evidence_source_message_id,
       e.source_kind AS evidence_source_kind,
+      e.author_id AS evidence_author_id,
       e.event_at AS evidence_event_at,
       e.dialogue_order AS evidence_dialogue_order
     FROM dialogue_annotations a
@@ -219,8 +230,33 @@ function selectAnnotationById(db, id) {
   `).get(id)
 }
 
+function configureConcurrency(store) {
+  // Install the wait policy before asking SQLite to switch journal mode: a
+  // second local connection opening during a write gets the same bounded
+  // wait as later application operations.
+  store.db.exec(`PRAGMA busy_timeout = ${sqliteBusyTimeoutMs}`)
+  const journal = store.db.prepare('PRAGMA journal_mode = WAL').get()
+  const actualJournalMode = String(journal?.journal_mode ?? '').toLowerCase()
+  if (actualJournalMode !== sqliteJournalMode) {
+    const error = new Error(
+      `Palari Brain requires SQLite WAL mode; received ${actualJournalMode || 'unknown'}.`,
+    )
+    error.code = 'SQLITE_JOURNAL_MODE_UNAVAILABLE'
+    throw error
+  }
+  const timeout = store.db.prepare('PRAGMA busy_timeout').get()
+  if (Number(timeout?.timeout) !== sqliteBusyTimeoutMs) {
+    const error = new Error(
+      'Palari Brain could not install its SQLite busy timeout.',
+    )
+    error.code = 'SQLITE_BUSY_TIMEOUT_UNAVAILABLE'
+    throw error
+  }
+}
+
 function ensureActiveSchema(store, clock) {
   if (!store?.enabled) return
+  configureConcurrency(store)
   store.db.exec('BEGIN IMMEDIATE')
   try {
     const memoryColumns = new Set(
@@ -266,6 +302,7 @@ function ensureActiveSchema(store, clock) {
         source_kind TEXT NOT NULL CHECK (
           source_kind IN ('user_message', 'assistant_message')
         ),
+        author_id TEXT,
         content TEXT NOT NULL,
         content_sha256 TEXT NOT NULL,
         event_at TEXT NOT NULL,
@@ -362,6 +399,14 @@ function ensureActiveSchema(store, clock) {
         PRIMARY KEY (palari_id, user_id)
       );
     `)
+
+    const evidenceColumns = new Set(
+      store.db.prepare('PRAGMA table_info(dialogue_evidence)').all()
+        .map((column) => String(column.name)),
+    )
+    if (!evidenceColumns.has('author_id')) {
+      store.db.exec('ALTER TABLE dialogue_evidence ADD COLUMN author_id TEXT')
+    }
 
     // Existing databases seed their watermark once, from the highest ordinal
     // ever observed in live evidence.
@@ -660,6 +705,7 @@ export function createDialogueGate(store, {
         e.user_id AS evidence_user_id,
         e.source_message_id AS evidence_source_message_id,
         e.source_kind AS evidence_source_kind,
+        e.author_id AS evidence_author_id,
         e.event_at AS evidence_event_at,
         e.dialogue_order AS evidence_dialogue_order
       FROM dialogue_annotations a
@@ -746,8 +792,13 @@ export function createDialogueGate(store, {
       'sourceMessageId',
     ).trim()
     if (!sourceMessageId) throw new TypeError('sourceMessageId is required.')
+    const authorId = turn.authorId === undefined || turn.authorId === null
+      ? null
+      : roundTrippableDialogueText(turn.authorId, 'authorId')
+    const stampedAuthorId = authorId?.trim() ? authorId : null
     const roles = [
       {
+        authorId: stampedAuthorId,
         content: roundTrippableDialogueText(
           turn.userMessage,
           'userMessage',
@@ -755,6 +806,7 @@ export function createDialogueGate(store, {
         sourceKind: 'user_message',
       },
       {
+        authorId: null,
         content: roundTrippableDialogueText(
           turn.assistantMessage,
           'assistantMessage',
@@ -875,7 +927,8 @@ export function createDialogueGate(store, {
             present.turn_id !== identity ||
             present.content !== role.content ||
             present.content_sha256 !== role.sha256 ||
-            present.event_at !== eventAt
+            present.event_at !== eventAt ||
+            (present.author_id ?? null) !== role.authorId
           ) {
             const error = new Error(
               `Canonical dialogue identity conflict at ${roleMessageId}.`,
@@ -900,13 +953,14 @@ export function createDialogueGate(store, {
             user_id,
             source_message_id,
             source_kind,
+            author_id,
             content,
             content_sha256,
             event_at,
             dialogue_order,
             created_at,
             evidence_kind
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           id,
           identity,
@@ -914,6 +968,7 @@ export function createDialogueGate(store, {
           scope.userId,
           roleMessageId,
           role.sourceKind,
+          role.authorId,
           role.content,
           role.sha256,
           eventAt,
@@ -1298,14 +1353,40 @@ export function createDialogueGate(store, {
     exploreGraph: (scope, options = {}) => {
       const scoped = normalizedScope(scope)
       const result = graphFind(store.db, scoped, options)
+      const evidenceIds = [...new Set(
+        result.edges.map((edge) => String(edge.evidenceId)),
+      )]
+      const authorByEvidenceId = new Map()
+      if (evidenceIds.length) {
+        const placeholders = evidenceIds.map(() => '?').join(', ')
+        const rows = store.db.prepare(`
+          SELECT id, author_id
+          FROM dialogue_evidence
+          WHERE palari_id = ?
+            AND user_id = ?
+            AND id IN (${placeholders})
+        `).all(scoped.palariId, scoped.userId, ...evidenceIds)
+        for (const row of rows) {
+          if (row.author_id !== null) {
+            authorByEvidenceId.set(String(row.id), String(row.author_id))
+          }
+        }
+      }
+      const attributed = {
+        ...result,
+        edges: result.edges.map((edge) => {
+          const authorId = authorByEvidenceId.get(String(edge.evidenceId))
+          return authorId === undefined ? edge : { ...edge, authorId }
+        }),
+      }
       auditLog?.({
-        consulted: result.edges.map((edge) => edge.evidenceId),
+        consulted: attributed.edges.map((edge) => edge.evidenceId),
         operation: 'memory_graph',
         palariId: scoped.palariId,
         query: { entity: String(options.entity ?? '') },
         userId: scoped.userId,
       })
-      return result
+      return attributed
     },
     // Meaning-based lookup, available only when the product supplies an
     // embedder. Same law as ranked search: the index locates canonical
@@ -1333,6 +1414,9 @@ export function createDialogueGate(store, {
         userId: scoped.userId,
       })
       return rows.map((row) => ({
+        ...(row.author_id === undefined || row.author_id === null
+          ? {}
+          : { authorId: String(row.author_id) }),
         evidenceId: String(row.id),
         observedAt: String(row.event_at),
         session: String(row.source_message_id).split(':')[0],
