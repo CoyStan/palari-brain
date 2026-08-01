@@ -1,5 +1,45 @@
 # STATUS — single source of truth for the loop
 
+Loop state: LONG-CONTENT POLICY RECORDED ON FOUNDER DECISION; ON BRANCH
+`claude/memory-system-docs-review-pkdbcz` FOR FOUNDER MERGE. On 2026-08-01
+the founder asked how the extreme paste case is handled, requested a survey
+of at least five recognized memory frameworks before inventing anything,
+and then directed that the resulting decision be recorded. The offline
+behavior was verified against the real write path (repeated ~25 KB pastes
+each stored and reduced; a ~63 KB paste quarantined loudly as
+`REDUCER_INPUT_CAPACITY` while remaining canonical, searchable, readable
+uncut, and deletable by phrase; `sourceTexts` routing stored nothing). The
+survey covered Mem0, Zep/Graphiti, Letta, LangMem/LangGraph, LlamaIndex,
+and shipped product behavior (ChatGPT, Claude, Slack, Discord) from
+primary sources. The decision, recorded newest-first in
+`docs/DECISIONS.md` and in full with sources in the new
+`docs/LONG-CONTENT-POLICY.md` (indexed in `docs/README.md`, pointed to
+from README.md): large pastes are intercepted by the application composer
+at the paste event and routed as `sourceTexts`; the kernel gains no new
+mechanism; a content-hash ingest hint is held in reserve pending pilot
+evidence; post-hoc pasted-text classification is rejected as routing (the
+quote-context guard stays an epistemic backstop); document memory is
+parked as a separate future decision. Verification: full suite 651 pass,
+0 fail, 14 skipped; quickstart green; markdown links in the new/edited
+documents resolve. No provider, credential, dataset, evaluation result,
+publication, or spend was involved; the web survey read public
+documentation only.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart
+   is green after the change.
+2. Did this unit make that journey measurably better? It bounds the
+   worst-case journey (paste storms) with a decided, evidence-backed
+   integration policy instead of an open question.
+3. Does an existing framework already provide what this unit added? The
+   survey of those frameworks is the content; the decision deliberately
+   reuses their pattern instead of building new mechanism.
+4. Has a real user or the founder asked for the guarantee it adds? Yes —
+   the founder explicitly directed recording this decision in session on
+   2026-08-01.
+5. If this unit's changes were deleted, what user-visible behavior would
+   get worse? The next session would re-derive the survey from scratch,
+   and an integrator would have no recorded policy for the paste case.
+
 Loop state: DOCS-REFRESH COMPLETE ON FOUNDER DIRECTION; ON BRANCH
 `claude/memory-system-docs-review-pkdbcz` FOR FOUNDER MERGE. On 2026-08-01
 the founder asked for a repository review and a refresh of the README and

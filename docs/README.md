@@ -14,6 +14,7 @@ sealed run identity pins.
 | [BRAIN-API.md](BRAIN-API.md) | The complete active contract: canonical journal, reducer/digest, retrieval-to-answer, forgetting. Start here. |
 | [CONSUMER-SEAM.md](CONSUMER-SEAM.md) | The supported application boundary: stable imports, versioning promise, shared-scope `authorId` attribution, SQLite concurrency, migration discipline. |
 | [TICKET-WORKFLOW.md](TICKET-WORKFLOW.md) | The governed workflow for founder-requested, multi-session, reviewed, or R2-R4 work. |
+| [LONG-CONTENT-POLICY.md](LONG-CONTENT-POLICY.md) | Founder policy for long/pasted/repeated content: composer-level routing to `sourceTexts`, kernel unchanged; includes the framework survey behind it. |
 | [DECISIONS.md](DECISIONS.md) | Append-only founder decision and license ledger, newest first. |
 
 Also active, outside this directory: the root `README.md` (orientation),

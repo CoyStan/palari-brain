@@ -3,6 +3,26 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-01 (FOUNDER — in session) **Long pastes are an
+  application-composer concern; the kernel gains no new mechanism.** After
+  a survey of Mem0, Zep/Graphiti, Letta, LangMem/LangGraph, LlamaIndex,
+  and shipped product behavior (ChatGPT, Claude, Slack, Discord) — full
+  survey with sources in `docs/LONG-CONTENT-POLICY.md` — the founder
+  decided: (1) the integrating application intercepts large pastes at the
+  composer paste event (threshold on the order of 4,000 characters) and
+  routes them as `sourceTexts` attachments with a per-paste user choice;
+  (2) the kernel's existing seams (`sourceTexts`, `retention:
+  'ephemeral'`, the 40,000-character reducer envelope with loud
+  quarantine, the quote-context third-party-span guard) already implement
+  the receiving side of the industry pattern and change nothing now;
+  (3) a content-hash "seen before" ingest hint is held in reserve as a
+  possible small ticket, opened only if pilot usage proves paste-heavy;
+  (4) post-hoc pasted-text classification is rejected as a routing
+  mechanism — the quote-context guard remains an epistemic backstop only;
+  (5) "remember this document" (a document index beside chat memory) is
+  parked as a separate future founder decision, out of current scope.
+  No provider call, spend, or dataset was involved in the survey.
+
 - 2026-07-31 (FOUNDER — Quetzali, in session) **Adopt the proven palari-v05
   ticket workflow for Palari Brain.** The founder explicitly asked to inspect
   `/home/quetza/palari-v05` and implement its ticket system, including reviewer

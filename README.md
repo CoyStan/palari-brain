@@ -279,7 +279,10 @@ reported as `blocked` rather than hidden. The exact dialogue still exists in
 the canonical journal and remains searchable through exploration.
 Integrations should bound durable interaction size before ingest. Palari does
 not silently truncate or summarize an oversized message outside the reducer
-contract.
+contract. The founder-decided application-side policy for long and pasted
+content — intercept large pastes at the composer and route them as
+`sourceTexts` — is recorded with its supporting survey in
+[docs/LONG-CONTENT-POLICY.md](docs/LONG-CONTENT-POLICY.md).
 
 The resulting active state is capped at 64 items and 24,000 rendered
 characters. Unmentioned prior items remain. A valid `no_memory` disposition
