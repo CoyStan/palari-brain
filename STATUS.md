@@ -1,27 +1,37 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0005 LUNA-LOW FIRST-TEN COMPARISON FROZEN; LIVE INVOCATION
-PENDING INDEPENDENT REVIEW. The founder explicitly authorized one fresh
-private provider comparison over the exact LongMemEval S60 ordinals 1-10
-under a `$1.00` fresh hard cap. P-set 20 freezes identity
-`j4-luna-retrieval-first10-v1`, current accepted product hashes, the exact
-Gemini 5/10 label vector and terminal manifest, seven predecessor bundles,
-the unchanged question order/dataset/answer instructions, and the one-way
-stop rules. Only the answer/tool-decision provider changes to
-`gpt-5.6-luna` at low reasoning; Gemini embeddings and the unchanged
-`gpt-4o-2024-08-06` official judge remain controls. The exact J4 opening
-ledger is `$4.3642649` accounted (`$1.6734941` measured plus `$2.6907708`
-uncertain), so the cumulative boundary is `$5.3642649`. The mode-0600 private
-launcher and its deterministic runtime hash and reverify all frozen inputs,
-meter every dispatch before network, load credentials only after offline
-checks, refuse a pre-existing identity, run one semantic indigo smoke before
-question 1, perform no retry, and exact-value scan terminal artifacts before
-manifesting them. Offline verification passes with runtime/result absent;
-both ignored credentials are configured without their values being printed.
-No provider request has occurred under this identity and fresh spend is
-exactly `$0.00`. Next: commit and push the freeze, obtain fresh independent
-pre-dispatch review, then execute the already-authorized launcher exactly
-once only if that review recommends GO.
+Loop state: BRN-0005 LUNA-LOW FIRST-TEN COMPARISON TERMINAL FAILED; NO RERUN.
+After committed freeze and fresh independent GO at `bc50322`, the founder's
+single authorized invocation created private identity
+`j4-luna-retrieval-first10-v1` on 2026-08-02. The real Gemini semantic + Luna
+Responses compatibility smoke passed in two model dispatches: Luna called
+`memory_search`, used semantic retrieval, and returned the planted indigo
+answer. Questions 1-4 then received unchanged official-judge labels `PASS,
+FAIL, PASS, PASS` (3/4), exactly matching Gemini on those reached cases. On
+ordinal 5, `80ec1f4f_abs`, Luna emitted seven consecutive memory tool calls
+(`memory_search` x4, `memory_timeline` x1, `memory_find` x2) and no answer;
+the frozen seven-dispatch ceiling stopped the run with
+`OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED`. Questions 5-10 therefore have no
+label and the preregistered 7/10/provider-delta claims are not assessable;
+the answer-boundary prediction fails. This is the terminal measured result,
+not authority to rerun, regrade, raise the ceiling, or create another
+identity.
+
+Fresh accounting is `$0.3785834` accounted: `$0.0116498` measured plus
+`$0.3669336` uncertain Gemini-embedding reservation, safely below the `$1.00`
+cap. The cumulative J4 ledger is now `$4.7428483` accounted = `$1.6851439`
+measured + `$3.0577044` uncertain. The terminal manifest hashes
+`574c865ca3755cf794b002de5b12ec3d474ae235b51e894772222dd97b48b5d8`;
+35/35 artifacts rehash with mode 0600 and the exact-value scan reports 0
+matches across both configured credentials. Product stop rule: (1)
+`npm run quickstart` remains green; (2) the unit measurably established Luna
+wire compatibility and exposed a repeated-tool-call termination failure, but
+did not establish an accuracy improvement; (3) this unit added no framework
+mechanism, only provider evidence; (4) the founder explicitly requested the
+comparison; (5) deleting it would erase the only live Luna retrieval-loop,
+failure-stage, and spend evidence. Next: independent post-dispatch review of
+the immutable terminal bundle and recorded result; founder acceptance remains
+required to close or merge BRN-0005.
 
 Loop state: DOCS-REFRESH AND LONG-CONTENT POLICY MERGED INTO `main` AT
 `5bbd4a7` BY FOUNDER DIRECTION. On 2026-08-01 the founder, in session,

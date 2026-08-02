@@ -3,6 +3,19 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-02 (TERMINAL EVIDENCE) **The authorized Luna-low first-ten identity
+  stopped on ordinal 5 and will not be rerun.** Compatibility passed, and the
+  unchanged judge labelled the four completed questions `PASS, FAIL, PASS,
+  PASS` (3/4), matching Gemini on the same cases. On `80ec1f4f_abs`, Luna made
+  seven consecutive memory tool calls without producing an answer; the frozen
+  ceiling terminated the identity with
+  `OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED`. Questions 5-10 are ungraded, so
+  this is not a 3/10 score and supports no Luna-versus-Gemini accuracy claim.
+  Fresh accounting is `$0.3785834` (`$0.0116498` measured + `$0.3669336`
+  uncertain); the 35-artifact terminal bundle rehashes and its exact-value
+  credential scan has zero matches. Any repair, larger dispatch budget, or
+  successor identity requires a new contract and fresh founder authority.
+
 - 2026-08-02 (FOUNDER — Quetzali, in session) **Run one private Luna-low
   provider comparison on the exact LongMemEval first ten under a `$1.00`
   fresh hard cap.** Use fresh identity `j4-luna-retrieval-first10-v1` and

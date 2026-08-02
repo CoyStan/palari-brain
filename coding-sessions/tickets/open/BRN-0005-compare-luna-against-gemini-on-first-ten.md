@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0005
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-02T21:20:53Z
 target_branch: "main"
 branch: "ticket/BRN-0005-compare-luna-against-gemini-on-first-ten"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0005-compare-luna-against-gemini-on-first-ten"
@@ -201,3 +201,21 @@ its generated runtime hashes
 Offline verification rehashes 7/7 predecessor bundles and 8/8 product/eval
 inputs, syntax-checks the runtime, confirms exact 10/10 order, and reports
 runtime/result absent. Provider requests and fresh spend remain 0 / `$0.00`.
+
+## Terminal Record
+
+Fresh independent review recommended GO at `bc50322`; the single founder-
+authorized invocation then ran on 2026-08-02. Compatibility passed. The
+unchanged judge labelled the first four cases `PASS, FAIL, PASS, PASS` (3/4),
+matching Gemini on those reached cases. Ordinal 5, `80ec1f4f_abs`, made seven
+successful Luna memory-tool dispatches without an answer and terminated at
+the frozen ceiling with `OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED`. Questions
+5-10 are ungraded; this is not a 3/10 score and the 7/10/provider-delta
+predictions are not assessable. There was no rerun or regrade.
+
+Fresh accounting is `$0.3785834` = `$0.0116498` measured + `$0.3669336`
+uncertain; cumulative J4 accounting is `$4.7428483`. Terminal manifest
+`574c865ca3755cf794b002de5b12ec3d474ae235b51e894772222dd97b48b5d8`
+rehashes 35/35 mode-0600 artifacts, and exact-value scanning reports 0
+credential matches. Next gate: fresh independent post-dispatch review;
+founder acceptance alone may close and merge this ticket.

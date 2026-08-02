@@ -10,29 +10,34 @@ grading fixed.
 
 ## What Changed
 
-One private identity uses Luna low for answer and memory-tool decisions. It
-keeps Gemini embeddings and the unchanged official judge. A semantic indigo
-compatibility smoke must pass before question 1; otherwise the failed smoke is
-the terminal result. If it passes, the same ten questions run once in the same
-order under a `$1.00` fresh hard cap.
+The one private identity ran exactly once. The real compatibility smoke
+passed: Luna used Gemini semantic retrieval and returned the planted answer.
+The unchanged judge scored the first four questions `PASS, FAIL, PASS, PASS`
+(3/4), the same labels Gemini received. On question 5, Luna kept asking for
+memory seven times and never answered, so the frozen dispatch ceiling stopped
+the run. Questions 5-10 were not graded.
 
 ## What To Check
 
-The preregistered prediction is at least 7/10: retain all five Gemini passes,
-repair at least two of four evidence-use failures, and leave the independent
-0/2-session retrieval miss `10d9b85a` failed. Exact labels override the
-prediction and will be recorded whatever they are.
+Do not present this as 3/10: only four questions have labels. The main 7/10
+and provider-delta predictions cannot be assessed. Compatibility passed and
+all four completed questions used semantic search, but the all-ten answer
+boundary prediction failed on question 5.
 
 ## What I Should Know
 
 This is not a reroll of the Gemini identity and not a public benchmark. The
 questions are already known. No prompt or answer was tuned from their labels.
 The launcher and result are private, one-shot, metered, and independently
-reviewed before execution. At this pre-dispatch point there have been zero
-provider calls and `$0.00` fresh spend.
+reviewed before execution. Fresh accounting is `$0.3785834`: `$0.0116498`
+measured and `$0.3669336` conservatively uncertain because Gemini did not
+report embedding usage. All 35 terminal artifacts rehash and the credential
+scan found zero matches.
 
 ## Recommended Next Move
 
-Quetzali authorized exactly this invocation on 2026-08-02. Independent review
-must still recommend GO. A later result does not authorize another identity,
-rerun, regrade, publication, or automatic production provider switch.
+Preserve this as the terminal finding and obtain independent post-run review.
+The useful next engineering question is how to prevent repeated retrieval
+loops while preserving model independence, but this ticket does not authorize
+that repair, a larger ceiling, another identity, rerun, regrade, publication,
+or automatic production provider switch.

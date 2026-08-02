@@ -2,10 +2,63 @@
 
 ## State
 
-Pre-dispatch freeze. No provider request has occurred under this identity.
-The exact result path and generated runtime path are absent. Founder authority
-for one invocation under a `$1.00` fresh cap is recorded; independent review
-must still recommend GO before credential loading and dispatch.
+Terminal failed identity. After fresh independent GO at `bc50322`, the
+launcher ran exactly once. Compatibility passed and four questions were
+answered and judged. Ordinal 5 exhausted the frozen seven-dispatch answer
+budget without producing output, so the run stopped and questions 5-10 were
+not judged. No rerun or repair occurred.
+
+## Terminal Result
+
+- Compatibility: pass in 2 Luna dispatches, with 1 semantic
+  `memory_search` and the expected indigo answer.
+- Reached labels: `08e075c7` PASS, `09d032c9` FAIL, `16c90bf4` PASS,
+  `5e1b23de` PASS. These 3/4 correct labels exactly match Gemini on the same
+  four cases.
+- Terminal cell: `80ec1f4f_abs` produced no answer after 7 successful Luna
+  responses containing only memory calls: `memory_search` x4,
+  `memory_timeline` x1, and `memory_find` x2.
+- Terminal error: `OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED`.
+- Ungraded: ordinals 5-10. The result is not a 3/10 score and cannot assess
+  the preregistered 7/10 or provider-delta predictions.
+- Luna: 18 successful Responses calls, 89,051 input tokens, 52,570 cached
+  input tokens, 931 output tokens, and 193 reasoning tokens; `$0.0094648`
+  measured.
+- Judge: 4 successful calls; `$0.0021850` measured.
+- Gemini embeddings: 49 successful batches / 2,411 inputs; usage unreported,
+  leaving `$0.3669336` uncertain under the conservative reservation.
+- Fresh ledger: `$0.0116498` measured + `$0.3669336` uncertain =
+  `$0.3785834` accounted, under the `$1.00` cap.
+- Cumulative J4 ledger: `$1.6851439` measured + `$3.0577044` uncertain =
+  `$4.7428483` accounted.
+- Manifest SHA-256:
+  `574c865ca3755cf794b002de5b12ec3d474ae235b51e894772222dd97b48b5d8`.
+  All 35 listed artifacts rehash, all are mode 0600, and exact-value scanning
+  reports 0 matches for 2 configured credentials.
+
+## Prediction Grade
+
+Failing categories first:
+
+1. ANSWER BOUNDARY — fail. Ordinal 5 exhausted all seven dispatches without
+   an answer; only four of ten answer boundaries completed.
+2. SEMANTIC USE — fail as an all-ten claim. Each of the four scored questions
+   used successful semantic search, but the run did not complete all ten.
+3. OFFICIAL ACCURACY — not assessable. Four labels cannot establish the
+   predicted `>=7/10`.
+4. PROVIDER DELTA — not assessable. The three reached Gemini-pass cases stayed
+   PASS and reached evidence-use case `09d032c9` stayed FAIL, but six required
+   comparisons have no Luna label.
+5. RETRIEVAL CONTROL — not assessable. `10d9b85a` was not reached; the four
+   completed positive cases did consult all 5/5 required answer-bearing
+   sessions.
+6. COMPATIBILITY/JUDGE WIRING — pass for its reached boundary. The semantic
+   indigo smoke passed before question 1, and all 4/4 completed answers received
+   one validated label from the unchanged judge.
+7. EXECUTION/ACCOUNTING — pass. The first command is terminal, stayed under
+   both caps, preserved measured versus uncertain usage, made four judge calls,
+   and recorded zero exact credential matches. The frozen contract correctly
+   treats the runtime stop itself as the result rather than rerun authority.
 
 ## Frozen Experiment
 
@@ -59,15 +112,15 @@ zero matches.
 
 - `evals/predictions.md`: frozen P-set 20 contract and predictions.
 - `docs/DECISIONS.md`: founder authority and live-run boundaries.
-- `STATUS.md`: pre-dispatch state, ledger, and next action.
+- `STATUS.md`: freeze, terminal result, ledger, and next action.
 - `coding-sessions/tickets/open/BRN-0005-compare-luna-against-gemini-on-first-ten.md`:
   governed contract, lifecycle, and freeze record.
 - `coding-sessions/reports/BRN-0005-technical-report.md`: this evidence.
 - `coding-sessions/human-report/BRN-0005-human-report.md`: founder-readable
   pre-run summary.
 - `coding-sessions/reports/BRN-0005-reviewer-note.md`: independent review
-  evidence; the first review reopened this ticket solely for these required
-  report headings.
+  evidence; the first review reopened solely for required report headings,
+  and a fresh review subsequently recommended GO before dispatch.
 
 The mode-0600 launcher remains outside git at the frozen private path and is
 not a tracked change.
@@ -80,24 +133,37 @@ not a tracked change.
 - Predecessor bundles: 7/7 rehashed.
 - Product/eval inputs: 8/8 rehashed.
 - Question count/order: exact 10/10.
-- Runtime/result absence: true/true.
+- Pre-dispatch runtime/result absence: true/true.
 - Provider binding: Luna low answer, Gemini embedding, unchanged OpenAI judge.
-- Credential presence: both configured in ignored `.env`; values were not
-  printed or copied. Provider calls: 0. Fresh spend: `$0.00`.
+- Pre-dispatch credential presence: both configured in ignored `.env`; values
+  were not printed or copied. Provider calls: 0. Fresh spend: `$0.00` at that
+  gate.
+- Pre-dispatch fresh review commit `bc50322`: GO.
+- Single live invocation: terminal exit 1 with
+  `OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED`; no retry.
+- Terminal manifest: 35/35 artifacts independently rehashed; mode 0600;
+  credential matches 0/2 configured values.
+- Result boundary: 4 judged questions, 1 ungraded terminal cell, remaining 5
+  not reached; measured and uncertain accounting reconciles exactly.
+- Post-run `npm test`: 664 passed, 0 failed, 15 skipped across 679 tests.
+- Post-run `npm run quickstart`: all 6 journey stages green.
+- Ticket lint, report lint, committed-plus-dirty scope check, and diff check:
+  pass.
 
-## Pre-dispatch Review Request
+## Post-dispatch Review Request
 
-Confirm the launcher/runtime transformation and tracked freeze independently,
+Confirm the immutable terminal bundle and tracked result independently,
 especially:
 
-1. only the answer/tool-decision provider changes;
-2. every Responses dispatch is metered before the request and cannot retry;
-3. continuation preserves encrypted reasoning and host-owned function output;
-4. the `$1.00` fresh boundary includes embeddings, answers, and judges;
-5. credentials load only after offline verification and are absent from
-   bodies, transcripts, errors, and tracked files;
-6. compatibility failure and every later failure are one-way terminal; and
-7. the predictions and exact Gemini baseline were frozen before dispatch.
+1. the report, meter, and manifest agree on the failure stage and four labels;
+2. the 35 listed artifacts rehash and retain mode 0600;
+3. Luna made exactly seven tool-only dispatches on the terminal cell;
+4. measured, uncertain, fresh, and cumulative accounting reconcile under cap;
+5. exact-value credential scanning reports zero matches;
+6. the identity is sealed and no retry, regrade, or second invocation
+   occurred; and
+7. STATUS, decision, reports, and ticket grade the predictions without
+   presenting the partial result as a ten-question score.
 
 ## Risks / Follow-Ups
 
@@ -109,3 +175,6 @@ especially:
   the conservative byte reservation.
 - The terminal result cannot justify prompt tuning or an automatic model
   switch. A product decision requires the exact label/failure-stage evidence.
+- The observed repeated-tool loop could be provider behavior, host tool-result
+  ergonomics, or both. This ticket does not authorize changing the seven-call
+  ceiling or treating a successor run as completion of this identity.
