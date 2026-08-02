@@ -29,9 +29,11 @@ wire compatibility and exposed a repeated-tool-call termination failure, but
 did not establish an accuracy improvement; (3) this unit added no framework
 mechanism, only provider evidence; (4) the founder explicitly requested the
 comparison; (5) deleting it would erase the only live Luna retrieval-loop,
-failure-stage, and spend evidence. Next: independent post-dispatch review of
-the immutable terminal bundle and recorded result; founder acceptance remains
-required to close or merge BRN-0005.
+failure-stage, and spend evidence. Fresh independent post-dispatch review at
+`07e760d` found no issues and recommended `accept`; Quetzali accepted and
+closed BRN-0005 at `31cb519`. Next proposed unit: a separate provider-neutral
+contract for detecting nonproductive repeated retrieval and requiring a
+bounded final answer or honest abstention before any successor live run.
 
 Loop state: DOCS-REFRESH AND LONG-CONTENT POLICY MERGED INTO `main` AT
 `5bbd4a7` BY FOUNDER DIRECTION. On 2026-08-01 the founder, in session,
