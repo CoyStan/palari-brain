@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0004
 children: []
-status: in-review
+status: accepted
 risk: R3
 priority: P1
 agents_allowed: 1
@@ -210,6 +210,12 @@ provider replacement, or change to canonical memory semantics.
 - One fresh-context reviewer recommends `accept`, `reopen`, or `needs-human`.
 - Quetzali alone may accept, move the ticket to closed, merge, push the merged
   result, or authorize a live provider successor.
+
+## Founder Acceptance
+
+Accepted by Quetzali on 2026-08-02 after independent review recommended
+`accept` at review commit `c702ae0`. This acceptance authorizes closing,
+merging, and pushing BRN-0004 only; it does not authorize a live provider call.
 
 ## Verification
 
