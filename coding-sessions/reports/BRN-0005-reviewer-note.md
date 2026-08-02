@@ -18,9 +18,9 @@ fresh spend occurred during this review.
 - P0: none.
 - P1: `coding-sessions/reports/BRN-0005-technical-report.md` is not recognized
   as a technical report by the governed ticket tooling. R3 reports require
-  exact `## Files Changed`, `## Verification`, and `## Risks / Follow-Ups`
-  headings; this report has no `## Files Changed` section and uses
-  `## Offline Verification` instead of `## Verification`. Consequently
+  exact `Files Changed`, `Verification`, and `Risks / Follow-Ups`
+  headings; this report had no `Files Changed` section and used
+  `Offline Verification` instead of `Verification`. Consequently
   `npm run ticket -- report-lint BRN-0005` fails with
   `BRN-0005: missing technical report`, and `npm run ticket -- check BRN-0005`
   cannot be green. The ticket's Evidence Required explicitly includes report
@@ -120,8 +120,8 @@ value.
 ## Required Changes
 
 Amend only `coding-sessions/reports/BRN-0005-technical-report.md` so it contains
-the exact required `## Files Changed`, `## Verification`, and
-`## Risks / Follow-Ups` headings while preserving the frozen experiment and
+the exact required `Files Changed`, `Verification`, and
+`Risks / Follow-Ups` headings while preserving the frozen experiment and
 launcher evidence. Then rerun `report-lint`, the combined ticket check, and a
 fresh pre-dispatch review. Do not change P-set 20, launcher/runtime bytes,
 product files, question order, identities, controls, caps, or predecessor
