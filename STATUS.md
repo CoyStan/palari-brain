@@ -6310,3 +6310,68 @@ does not trigger the two-infrastructure-unit drift stop. The next work is
 offline product repair, not another benchmark invocation. This identity is
 terminal and cannot be resumed, rerolled, selectively regraded, or published
 without separate founder authority.
+
+### BRN-0004 offline OpenAI GPT-5.6 Luna provider adapter
+
+The founder redirected the next unit to OpenAI GPT-5.6 Luna compatibility.
+Official OpenAI documentation confirms the exact `gpt-5.6-luna` model ID,
+describes it as the cost-sensitive high-volume tier, and lists Responses API,
+function calling, and structured output support. BRN-0004 froze an R3 offline
+contract on canonical `main` before implementation. No frozen Gemini identity,
+prediction, result, or provider-neutral product contract changed.
+
+The additive `palari-brain/openai` subpath now contains an inert Responses API
+adapter. Its convenience transport makes one POST to the fixed official
+endpoint, requires `store: false`, places the explicitly supplied key only in
+the Authorization header, streams under a 4 MiB response ceiling, omits
+provider error bodies, and never retries. The default model is
+`gpt-5.6-luna` with low reasoning effort; callers can inject a metered
+`invoke({ body, ... })` instead of using the convenience transport.
+
+The answer provider maps all five canonical retrieval tools without mutation,
+keeps their non-strict optional-field schemas under explicit OpenAI
+`strict: false`, parses only one object per call, executes only known names
+through Palari's bounded `retrieve`, and preserves the complete Responses
+output array—including reasoning items—across function-call continuations.
+It stops on an unknown tool, malformed arguments, refusal, incomplete or empty
+output, or the seven-dispatch ceiling.
+
+Active-memory reduction and temporal-graph extraction use strict root-object
+structured-output schemas, then unchanged host authority. Reducer output
+crosses `normalizeMemoryReductionPayload`, an exact-evidence quote precheck,
+and the existing admission transaction; it permits at most one distinct
+host-guided repair and no identical retry. Graph output must cite an input ref
+and copy exact quote/time bytes before the graph gate independently verifies
+and stamps it. The provider never authors scope, identity, speaker, time,
+provenance, deletion, retrieval results, or admission.
+
+Provider-free focused contracts are 13/13, including real-brain composition
+for canonical ingest/reduction, bounded retrieval answering, and graph
+admission. The full suite is 663 pass, 0 fail, and 15 skipped across 678 tests;
+quickstart completes all six steps; trust remains 5/5; and package dry-run
+includes `src/openai.mjs`. The official OpenAPI schema was read for a final
+wire audit. There were zero credential reads, zero provider requests, zero
+live identities, and exactly $0.00 spend.
+
+1. Can a new user run the basic memory journey right now? Yes — quickstart is
+   green and the existing Gemini path is unchanged.
+2. Did this unit make that journey measurably better? Yes offline — the same
+   journey now composes through OpenAI answer, reducer, and graph boundaries
+   in 13 deterministic contracts. Live Luna behavior remains unmeasured.
+3. Does an existing framework already provide what this unit added? OpenAI
+   supplies the Responses endpoint and SDKs, but not Palari's bounded tools,
+   canonical evidence, exact-quote repair, or admission boundaries.
+4. Has a real user or the founder asked for the guarantee it adds? Yes — the
+   founder explicitly requested GPT-5.6 Luna compatibility.
+5. If this unit's code were deleted, what user-visible behavior would get
+   worse? A consumer could no longer use Luna for the active writer, bounded
+   memory answer loop, or graph extraction through a supported Palari package
+   boundary.
+
+This is a requested product integration, not a second consecutive
+infrastructure unit. It is ready for independent review, not live use. The
+next OpenAI unit, if accepted by the founder, is a separate R3 compatibility
+smoke with preregistered predictions, an explicit cap, immutable recording,
+and fresh founder GO. Luna is not an embedding model; semantic retrieval may
+continue using the existing Gemini embedder, and any OpenAI embedding adapter
+would be a separate ticket with a derived-index rebuild plan.

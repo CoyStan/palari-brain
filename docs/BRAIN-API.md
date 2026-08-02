@@ -525,6 +525,44 @@ accepted and was not the source of the request rejection. Positive thinking
 budgets, current thinking levels, and Gemini 2.5 request controls are left
 unchanged.
 
+OpenAI consumers can use the additive `palari-brain/openai` subpath instead:
+
+```js
+import {
+  createOpenAIRetrievalProvider,
+  createOpenAIResponsesTransport,
+} from 'palari-brain/openai'
+
+const invoke = createOpenAIResponsesTransport({
+  apiKey: process.env.OPENAI_API_KEY,
+})
+const provider = createOpenAIRetrievalProvider({ invoke })
+```
+
+The default is `gpt-5.6-luna` through `POST /v1/responses`, `store: false`,
+low reasoning effort, and at most seven model dispatches (six possible
+retrieval turns plus a final answer). Palari's provider-neutral function
+schemas are preserved under explicit OpenAI `strict: false`, because their
+optional fields and `memory_read` root-property `anyOf` do not meet OpenAI's
+strict-schema subset. The host remains strict: it recognizes the function
+name, parses one argument object, enforces the retrieval budget, executes the
+tool, and records the result. Every Responses output item is replayed with the
+tool result so GPT-5.6 reasoning state is not dropped.
+
+The same subpath exports `createOpenAIMemoryReducer` and
+`createOpenAIGraphExtractor`. Their model-facing outputs use strict root-object
+JSON schemas, but provider schema acceptance is never admission. Reducer
+proposals still cross `normalizeMemoryReductionPayload` and the active-memory
+transaction; graph assertions must cite an input ref and copy exact evidence
+before the graph gate stamps speaker and time. The reducer permits at most one
+host-guided repair and never retries an identical request. Provider,
+transport, refusal, incomplete-output, and empty-output faults fail closed.
+
+Luna produces text, not embeddings. The optional semantic `embedder` remains
+an independent adapter and can coexist with the OpenAI generation path.
+Offline adapter tests do not establish live compatibility, quality, latency,
+or price.
+
 It supplies the digest first and exposes all five tools:
 
 | Tool | Behavior |
