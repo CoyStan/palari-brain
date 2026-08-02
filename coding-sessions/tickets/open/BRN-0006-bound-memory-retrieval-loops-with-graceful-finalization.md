@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0006
 children: []
-status: open
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-02T23:54:27Z
 target_branch: "main"
 branch: "ticket/BRN-0006-bound-memory-retrieval-loops-with-graceful-finalization"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0006-bound-memory-retrieval-loops-with-graceful-finalization"
