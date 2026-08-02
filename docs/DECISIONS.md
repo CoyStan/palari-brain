@@ -3,6 +3,18 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-02 (FOUNDER — Quetzali, in session) **Run one private Luna-low
+  provider comparison on the exact LongMemEval first ten under a `$1.00`
+  fresh hard cap.** Use fresh identity `j4-luna-retrieval-first10-v1` and
+  preserve terminal Gemini 5/10 identity `j4-active-retrieval-first10-v1`
+  unchanged. Only the answer/tool-decision provider changes to
+  `gpt-5.6-luna` at low reasoning; Gemini embeddings, the exact ordered ten,
+  Palari retrieval behavior, and the `gpt-4o-2024-08-06` official judge stay
+  fixed. One compatibility smoke precedes question 1; any smoke/runtime
+  failure or measured result is terminal with no retry, reroll, regrade, or
+  public score. This entry records live authority but does not waive the
+  preregistration, independent review, immutable evidence, or secret rules.
+
 - 2026-08-01 (FOUNDER — in session) **Long pastes are an
   application-composer concern; the kernel gains no new mechanism.** After
   a survey of Mem0, Zep/Graphiti, Letta, LangMem/LangGraph, LlamaIndex,

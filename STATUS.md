@@ -1,5 +1,28 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0005 LUNA-LOW FIRST-TEN COMPARISON FROZEN; LIVE INVOCATION
+PENDING INDEPENDENT REVIEW. The founder explicitly authorized one fresh
+private provider comparison over the exact LongMemEval S60 ordinals 1-10
+under a `$1.00` fresh hard cap. P-set 20 freezes identity
+`j4-luna-retrieval-first10-v1`, current accepted product hashes, the exact
+Gemini 5/10 label vector and terminal manifest, seven predecessor bundles,
+the unchanged question order/dataset/answer instructions, and the one-way
+stop rules. Only the answer/tool-decision provider changes to
+`gpt-5.6-luna` at low reasoning; Gemini embeddings and the unchanged
+`gpt-4o-2024-08-06` official judge remain controls. The exact J4 opening
+ledger is `$4.3642649` accounted (`$1.6734941` measured plus `$2.6907708`
+uncertain), so the cumulative boundary is `$5.3642649`. The mode-0600 private
+launcher and its deterministic runtime hash and reverify all frozen inputs,
+meter every dispatch before network, load credentials only after offline
+checks, refuse a pre-existing identity, run one semantic indigo smoke before
+question 1, perform no retry, and exact-value scan terminal artifacts before
+manifesting them. Offline verification passes with runtime/result absent;
+both ignored credentials are configured without their values being printed.
+No provider request has occurred under this identity and fresh spend is
+exactly `$0.00`. Next: commit and push the freeze, obtain fresh independent
+pre-dispatch review, then execute the already-authorized launcher exactly
+once only if that review recommends GO.
+
 Loop state: DOCS-REFRESH AND LONG-CONTENT POLICY MERGED INTO `main` AT
 `5bbd4a7` BY FOUNDER DIRECTION. On 2026-08-01 the founder, in session,
 explicitly directed the merge of branch

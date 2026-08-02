@@ -190,3 +190,14 @@ embedding model, or claim that Luna is globally better or worse.
   terminal without retry.
 - Stop if the implementation would expose a credential in URLs, bodies,
   transcripts, errors, git, or terminal output.
+
+## Freeze Record
+
+P-set 20, technical report, human report, STATUS pre-run record, and founder
+decision are prepared before dispatch. The private launcher hashes
+`4f2e425e8239b5304157a47745ddeaa025a14960ae120473a1b0a5fe2b097eb4`;
+its generated runtime hashes
+`b9c60472cc3190fb8eb72a947ad5f5937cb7094d2cdefdd1efe1a22d96cafadd`.
+Offline verification rehashes 7/7 predecessor bundles and 8/8 product/eval
+inputs, syntax-checks the runtime, confirms exact 10/10 order, and reports
+runtime/result absent. Provider requests and fresh spend remain 0 / `$0.00`.
