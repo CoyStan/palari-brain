@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0004
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P1
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-02T02:44:07Z
 target_branch: "main"
 branch: "ticket/BRN-0004-add-openai-luna-provider-adapter"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0004-add-openai-luna-provider-adapter"
@@ -91,6 +91,10 @@ and replays encrypted reasoning content for stateless tool continuation; makes
 4 MiB, seven dispatches, and one repair absolute maxima; and adds adversarial
 coverage for raised caps, streamed oversize, malformed arguments, incomplete
 output, empty output, and malformed structured output.
+
+Second review at `20176de` passed every implementation, R3 boundary, scope,
+and regression check and reopened only for one stale human-report count
+(`13` instead of the measured `14`). The successor corrects that record only.
 
 Process record: official OpenAI documentation was read through the configured
 documentation connector after this ticket was frozen. That was external

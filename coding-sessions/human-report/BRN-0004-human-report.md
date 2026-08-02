@@ -28,7 +28,7 @@ lower the admission bar or retry an identical request.
 ## What I Should Know
 
 No live Luna call happened in this ticket. The existing ignored key was not
-read or rewritten, and spend is exactly $0.00. The 13 focused tests use fake
+read or rewritten, and spend is exactly $0.00. The 14 focused tests use fake
 transports and the real Palari host. They prove composition and failure
 behavior, not that this account can call Luna or that the provider accepts
 every wire live.
