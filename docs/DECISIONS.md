@@ -2449,3 +2449,21 @@ here with dates. Agents record; the founder decides.
   Canonical schema upgrades remain additive; FTS, vector, and graph state is
   rebuildable. This decision adds no roles, membership table, provider call,
   evaluation, publication, or spend.
+
+- 2026-08-02 (BRN-0004 OpenAI GPT-5.6 Luna boundary)
+  **Add OpenAI as a provider adapter, not as a second brain.** Official OpenAI
+  documentation names `gpt-5.6-luna` as the cost-sensitive, high-volume
+  GPT-5.6 tier and supports it on the Responses API with function calling and
+  structured output. The package therefore adds an inert
+  `palari-brain/openai` subpath: explicit-key, no-store, one-shot transport;
+  bounded retrieval answering that preserves complete reasoning/tool output;
+  strict structured active-memory reduction with at most one host-guided
+  repair; and exact-quote graph extraction. Palari's host still owns scope,
+  retrieval execution, speaker/time/provenance, reducer admission, quote
+  verification, and graph admission. Existing optional-field retrieval tools
+  stay non-strict at the provider declaration because their canonical schemas
+  are outside OpenAI's strict subset; the host validates every call. Luna is
+  not an embedder, so semantic retrieval remains independently pluggable and
+  existing vectors are not relabeled. This offline unit reads no credential,
+  makes no provider call, and claims no live compatibility, quality, latency,
+  cost, benchmark result, or provider replacement.

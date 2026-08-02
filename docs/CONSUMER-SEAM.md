@@ -37,6 +37,89 @@ Other root exports support internal contracts, historical comparators, or
 evaluation harnesses. Their presence is not an application integration
 promise unless this document names them.
 
+Provider adapters use additive package subpaths. `palari-brain/gemini`
+contains Gemini wire helpers. `palari-brain/openai` contains the OpenAI
+Responses API transport plus ready callbacks for bounded retrieval answers,
+active-memory reduction, and optional graph extraction. Neither subpath reads
+environment variables or sends a request on import.
+
+### OpenAI GPT-5.6 Luna wiring
+
+The OpenAI adapter defaults to the documented `gpt-5.6-luna` model and low
+reasoning effort for latency-sensitive work. The application must pass the key
+explicitly; Palari never loads `.env` itself:
+
+```js
+import {
+  answerWithRetrieval,
+  createPalariBrain,
+  ingestChatTurn,
+} from 'palari-brain'
+import {
+  OPENAI_LUNA_MODEL,
+  createOpenAIGraphExtractor,
+  createOpenAIMemoryReducer,
+  createOpenAIRetrievalProvider,
+  createOpenAIResponsesTransport,
+} from 'palari-brain/openai'
+
+const invoke = createOpenAIResponsesTransport({
+  apiKey: process.env.OPENAI_API_KEY,
+})
+const reducer = createOpenAIMemoryReducer({ invoke })
+const brain = await createPalariBrain({
+  graphExtractor: createOpenAIGraphExtractor({ invoke }),
+  memoryEnabled: true,
+  statePath,
+  workspaceId,
+})
+
+await ingestChatTurn(brain, turn, {
+  reducer,
+  reducerId: `openai:${OPENAI_LUNA_MODEL}:active-memory-reducer/v1`,
+})
+
+const result = await answerWithRetrieval(brain, {
+  palariId,
+  userId,
+  question,
+  provider: createOpenAIRetrievalProvider({ invoke }),
+})
+```
+
+`createOpenAIResponsesTransport` makes exactly one physical POST for each
+invocation and never retries. It places the key only in the Authorization
+header, requires `store: false`, bounds the response body, and omits provider
+error bodies from thrown messages. A production host that needs cost metering
+or immutable transcripts can supply its own `invoke({ body, ... })` function
+to the three adapters instead.
+The 4 MiB response limit, seven answer dispatches, and one reducer repair are
+absolute ceilings; configuration can only lower them.
+
+The answer adapter preserves the complete Responses `output` array—including
+reasoning items—when it continues after a function call. Function arguments
+still cross Palari's bounded `retrieve` callback; OpenAI tool declarations do
+not gain read or write authority. The reducer uses strict structured output,
+then the unchanged host normalizer and admission transaction. One optional
+repair is a distinct request containing the rejected proposal and the host's
+objection; it is not an identical transport retry. The graph adapter checks
+exact quotes before the unchanged graph gate checks them again.
+For stateless reasoning continuation it requests
+`reasoning.encrypted_content`, then replays that encrypted output unchanged
+with the host function result.
+
+GPT-5.6 Luna is not an embedding model. Semantic retrieval still requires the
+independent `embedder(texts)` option and may use Gemini, OpenAI embeddings, or
+a local model, provided stored rows and queries use the same embedding model.
+Changing that model requires rebuilding the derived vector table; canonical
+dialogue is unaffected.
+
+All OpenAI adapter contracts are provider-free until a consumer actually
+invokes the transport. Offline tests establish request construction and host
+behavior, not account access, live wire acceptance, answer quality, latency,
+or cost. Those claims require a separately authorized and preregistered live
+measurement.
+
 ## Versioning promise
 
 The package version follows Semantic Versioning for this seam, including

@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0004
 children: []
-status: open
+status: accepted
 risk: R3
 priority: P1
 agents_allowed: 1
@@ -83,6 +83,26 @@ calling and structured outputs:
 This ticket authorizes offline implementation only. It does not consume the
 founder's live-provider gate or inspect, print, move, or rewrite the existing
 credential.
+
+## First Review Repair Record
+
+Fresh review at `f06988d` recommended reopen. The repaired successor requests
+and replays encrypted reasoning content for stateless tool continuation; makes
+4 MiB, seven dispatches, and one repair absolute maxima; and adds adversarial
+coverage for raised caps, streamed oversize, malformed arguments, incomplete
+output, empty output, and malformed structured output.
+
+Second review at `20176de` passed every implementation, R3 boundary, scope,
+and regression check and reopened only for one stale human-report count
+(`13` instead of the measured `14`). The successor corrects that record only.
+
+Process record: official OpenAI documentation was read through the configured
+documentation connector after this ticket was frozen. That was external
+documentation network access, so it did not satisfy the stop condition's
+overbroad literal phrase “any network call,” even though it was not an OpenAI
+API/provider inference call, used no credential, created no identity, and
+spent $0.00. This deviation is recorded rather than erased. No later step may
+treat it as provider-run authority.
 
 ## Scope
 
@@ -190,6 +210,12 @@ provider replacement, or change to canonical memory semantics.
 - One fresh-context reviewer recommends `accept`, `reopen`, or `needs-human`.
 - Quetzali alone may accept, move the ticket to closed, merge, push the merged
   result, or authorize a live provider successor.
+
+## Founder Acceptance
+
+Accepted by Quetzali on 2026-08-02 after independent review recommended
+`accept` at review commit `c702ae0`. This acceptance authorizes closing,
+merging, and pushing BRN-0004 only; it does not authorize a live provider call.
 
 ## Verification
 
