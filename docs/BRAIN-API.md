@@ -547,7 +547,10 @@ optional fields and `memory_read` root-property `anyOf` do not meet OpenAI's
 strict-schema subset. The host remains strict: it recognizes the function
 name, parses one argument object, enforces the retrieval budget, executes the
 tool, and records the result. Every Responses output item is replayed with the
-tool result so GPT-5.6 reasoning state is not dropped.
+tool result so GPT-5.6 reasoning state is not dropped. Because the adapter is
+stateless (`store: false`), it explicitly requests
+`reasoning.encrypted_content` and replays that encrypted item unchanged.
+Public configuration may lower, but cannot raise, the seven-dispatch ceiling.
 
 The same subpath exports `createOpenAIMemoryReducer` and
 `createOpenAIGraphExtractor`. Their model-facing outputs use strict root-object
@@ -557,6 +560,7 @@ transaction; graph assertions must cite an input ref and copy exact evidence
 before the graph gate stamps speaker and time. The reducer permits at most one
 host-guided repair and never retries an identical request. Provider,
 transport, refusal, incomplete-output, and empty-output faults fail closed.
+The public repair option may lower the one-repair ceiling but cannot raise it.
 
 Luna produces text, not embeddings. The optional semantic `embedder` remains
 an independent adapter and can coexist with the OpenAI generation path.

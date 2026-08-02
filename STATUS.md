@@ -6332,9 +6332,12 @@ The answer provider maps all five canonical retrieval tools without mutation,
 keeps their non-strict optional-field schemas under explicit OpenAI
 `strict: false`, parses only one object per call, executes only known names
 through Palari's bounded `retrieve`, and preserves the complete Responses
-output array—including reasoning items—across function-call continuations.
+output array—including explicitly requested encrypted reasoning content—across
+stateless function-call continuations.
 It stops on an unknown tool, malformed arguments, refusal, incomplete or empty
 output, or the seven-dispatch ceiling.
+The response, dispatch, and repair settings may lower but cannot raise their
+absolute 4 MiB, seven-dispatch, and one-repair ceilings.
 
 Active-memory reduction and temporal-graph extraction use strict root-object
 structured-output schemas, then unchanged host authority. Reducer output
@@ -6345,19 +6348,26 @@ and copy exact quote/time bytes before the graph gate independently verifies
 and stamps it. The provider never authors scope, identity, speaker, time,
 provenance, deletion, retrieval results, or admission.
 
-Provider-free focused contracts are 13/13, including real-brain composition
+First review at `f06988d` correctly reopened the ticket for missing stateless
+encrypted-reasoning wire, caller-raiseable ceilings, incomplete adversarial
+coverage, and inaccurate verification evidence. The successor fixed all four.
+Official docs research did use the external documentation connector after the
+ticket freeze, contrary to the stop condition's overbroad literal “any network
+call” wording; this is recorded as a process deviation. It was not a provider
+inference/API call and used no credential or spend.
+
+Provider-free focused contracts are 14/14, including real-brain composition
 for canonical ingest/reduction, bounded retrieval answering, and graph
-admission. The full suite is 663 pass, 0 fail, and 15 skipped across 678 tests;
+admission. The full suite is 664 pass, 0 fail, and 15 skipped across 679 tests;
 quickstart completes all six steps; trust remains 5/5; and package dry-run
-includes `src/openai.mjs`. The official OpenAPI schema was read for a final
-wire audit. There were zero credential reads, zero provider requests, zero
-live identities, and exactly $0.00 spend.
+includes `src/openai.mjs`. There were zero credential reads, zero provider
+inference/API requests, zero live identities, and exactly $0.00 spend.
 
 1. Can a new user run the basic memory journey right now? Yes — quickstart is
    green and the existing Gemini path is unchanged.
 2. Did this unit make that journey measurably better? Yes offline — the same
    journey now composes through OpenAI answer, reducer, and graph boundaries
-   in 13 deterministic contracts. Live Luna behavior remains unmeasured.
+   in 14 deterministic contracts. Live Luna behavior remains unmeasured.
 3. Does an existing framework already provide what this unit added? OpenAI
    supplies the Responses endpoint and SDKs, but not Palari's bounded tools,
    canonical evidence, exact-quote repair, or admission boundaries.

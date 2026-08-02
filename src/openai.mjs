@@ -227,6 +227,11 @@ export function createOpenAIResponsesTransport({
     throw new TypeError('createOpenAIResponsesTransport requires fetchImpl.')
   }
   const responseLimit = positiveInteger(maxResponseBytes, 'maxResponseBytes')
+  if (responseLimit > OPENAI_MAX_RESPONSE_BYTES) {
+    throw new TypeError(
+      `maxResponseBytes cannot exceed ${OPENAI_MAX_RESPONSE_BYTES}.`,
+    )
+  }
   const timeout = positiveInteger(timeoutMs, 'timeoutMs')
 
   return async function invokeOpenAI({ body } = {}) {
@@ -418,6 +423,12 @@ export function createOpenAIRetrievalProvider({
     maxModelDispatches,
     'maxModelDispatches',
   )
+  if (dispatchLimit > OPENAI_DEFAULT_MAX_MODEL_DISPATCHES) {
+    throw new TypeError(
+      `maxModelDispatches cannot exceed ` +
+        `${OPENAI_DEFAULT_MAX_MODEL_DISPATCHES}.`,
+    )
+  }
   const effort = reasoningEffort(rawEffort)
 
   return async function openAIRetrievalProvider(session = {}) {
@@ -441,6 +452,7 @@ export function createOpenAIRetrievalProvider({
         )
       }
       const body = {
+        include: ['reasoning.encrypted_content'],
         input: clone(input),
         instructions: answerInstructions(session),
         max_output_tokens: maxOutputTokens,
@@ -688,6 +700,9 @@ export function createOpenAIMemoryReducer({
     throw new TypeError('createOpenAIMemoryReducer requires invoke.')
   }
   const repairs = nonNegativeInteger(maxRepairs, 'maxRepairs')
+  if (repairs > 1) {
+    throw new TypeError('maxRepairs cannot exceed 1.')
+  }
   const modelId = nonEmpty(model, 'OpenAI model')
   const effort = reasoningEffort(rawEffort)
 

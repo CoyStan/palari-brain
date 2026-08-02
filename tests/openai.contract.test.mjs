@@ -46,6 +46,7 @@ function completedCall({
   return {
     output: [{
       content: [],
+      encrypted_content: 'encrypted_reasoning_fixture',
       id: 'rs_1',
       summary: [],
       type: 'reasoning',
@@ -210,6 +211,47 @@ test('OpenAI transport is one-shot, bounded, and does not echo credentials',
         return true
       },
     )
+
+    assert.throws(
+      () => createOpenAIResponsesTransport({
+        apiKey,
+        maxResponseBytes: 4 * 1024 * 1024 + 1,
+      }),
+      /maxResponseBytes cannot exceed 4194304/,
+    )
+
+    const oversized = createOpenAIResponsesTransport({
+      apiKey,
+      async fetchImpl() {
+        let read = false
+        return {
+          body: {
+            getReader() {
+              return {
+                async cancel() {},
+                async read() {
+                  if (read) return { done: true }
+                  read = true
+                  return {
+                    done: false,
+                    value: new TextEncoder().encode('12345'),
+                  }
+                },
+              }
+            },
+          },
+          ok: true,
+          status: 200,
+        }
+      },
+      maxResponseBytes: 4,
+    })
+    await assert.rejects(
+      oversized({
+        body: { input: 'hello', model: OPENAI_LUNA_MODEL, store: false },
+      }),
+      (error) => error.code === 'OPENAI_RESPONSE_TOO_LARGE',
+    )
   })
 
 test('retrieval provider preserves reasoning and tool output across Responses',
@@ -246,6 +288,7 @@ test('retrieval provider preserves reasoning and tool output across Responses',
     assert.equal(bodies[0].model, OPENAI_LUNA_MODEL)
     assert.equal(bodies[0].store, false)
     assert.deepEqual(bodies[0].reasoning, { effort: 'low' })
+    assert.deepEqual(bodies[0].include, ['reasoning.encrypted_content'])
     assert.equal(bodies[0].parallel_tool_calls, false)
     assert.equal(bodies[0].tools.length, MEMORY_RETRIEVAL_TOOLS.length)
     assert.deepEqual(bodies[1].input.slice(1, 3),
@@ -253,6 +296,10 @@ test('retrieval provider preserves reasoning and tool output across Responses',
         arguments: '{"limit":2}',
         name: 'memory_timeline',
       }).output)
+    assert.equal(
+      bodies[1].input[1].encrypted_content,
+      'encrypted_reasoning_fixture',
+    )
     assert.deepEqual(bodies[1].input[3], {
       call_id: 'call_1',
       output: JSON.stringify({ sessions: [{ id: 'session-1' }] }),
@@ -349,6 +396,47 @@ test('retrieval provider fails closed on unknown calls, refusals, and caps',
     await assert.rejects(
       capped(answerSession()),
       (error) => error.code === 'OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED',
+    )
+    assert.throws(
+      () => createOpenAIRetrievalProvider({
+        async invoke() {},
+        maxModelDispatches: 8,
+      }),
+      /maxModelDispatches cannot exceed 7/,
+    )
+
+    const malformed = createOpenAIRetrievalProvider({
+      async invoke() {
+        return completedCall({ arguments: '{' })
+      },
+    })
+    await assert.rejects(
+      malformed(answerSession()),
+      (error) => error.code === 'OPENAI_FUNCTION_ARGUMENTS_INVALID',
+    )
+
+    const incomplete = createOpenAIRetrievalProvider({
+      async invoke() {
+        return {
+          incomplete_details: { reason: 'max_output_tokens' },
+          output: [],
+          status: 'incomplete',
+        }
+      },
+    })
+    await assert.rejects(
+      incomplete(answerSession()),
+      (error) => error.code === 'OPENAI_RESPONSE_INCOMPLETE',
+    )
+
+    const empty = createOpenAIRetrievalProvider({
+      async invoke() {
+        return { output: [], status: 'completed' }
+      },
+    })
+    await assert.rejects(
+      empty(answerSession()),
+      (error) => error.code === 'OPENAI_RESPONSE_TEXT_MISSING',
     )
   })
 
@@ -501,6 +589,54 @@ test('OpenAI reducer marks provider failures terminal and never retries',
       (error) => error.code === 'OPENAI_HTTP_ERROR',
     )
     assert.equal(calls, 1)
+    assert.throws(
+      () => createOpenAIMemoryReducer({
+        async invoke() {},
+        maxRepairs: 2,
+      }),
+      /maxRepairs cannot exceed 1/,
+    )
+  })
+
+test('structured adapters reject incomplete, empty, and malformed output',
+  async () => {
+    const reducer = createOpenAIMemoryReducer({
+      async invoke() {
+        return {
+          incomplete_details: { reason: 'max_output_tokens' },
+          output: [],
+          status: 'incomplete',
+        }
+      },
+    })
+    await assert.rejects(
+      reducer({ request: reductionRequest() }),
+      (error) => error.code === 'OPENAI_RESPONSE_INCOMPLETE',
+    )
+
+    const emptyGraph = createOpenAIGraphExtractor({
+      async invoke() {
+        return { output: [], status: 'completed' }
+      },
+    })
+    await assert.rejects(
+      emptyGraph({
+        evidence: [{ ref: 'e0', speaker: 'user', text: 'Evidence.' }],
+      }),
+      (error) => error.code === 'OPENAI_RESPONSE_TEXT_MISSING',
+    )
+
+    const malformedGraph = createOpenAIGraphExtractor({
+      async invoke() {
+        return completedText('{')
+      },
+    })
+    await assert.rejects(
+      malformedGraph({
+        evidence: [{ ref: 'e0', speaker: 'user', text: 'Evidence.' }],
+      }),
+      (error) => error.code === 'OPENAI_GRAPH_PROPOSAL_INVALID',
+    )
   })
 
 test('OpenAI graph extractor admits only exact quoted evidence through host',

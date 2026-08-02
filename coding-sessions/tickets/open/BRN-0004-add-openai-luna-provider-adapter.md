@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0004
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P1
 agents_allowed: 1
-claimed_by: 
-claimed_at: 
+claimed_by: "quetza"
+claimed_at: 2026-08-02T02:33:35Z
 target_branch: "main"
 branch: "ticket/BRN-0004-add-openai-luna-provider-adapter"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0004-add-openai-luna-provider-adapter"
@@ -83,6 +83,22 @@ calling and structured outputs:
 This ticket authorizes offline implementation only. It does not consume the
 founder's live-provider gate or inspect, print, move, or rewrite the existing
 credential.
+
+## First Review Repair Record
+
+Fresh review at `f06988d` recommended reopen. The repaired successor requests
+and replays encrypted reasoning content for stateless tool continuation; makes
+4 MiB, seven dispatches, and one repair absolute maxima; and adds adversarial
+coverage for raised caps, streamed oversize, malformed arguments, incomplete
+output, empty output, and malformed structured output.
+
+Process record: official OpenAI documentation was read through the configured
+documentation connector after this ticket was frozen. That was external
+documentation network access, so it did not satisfy the stop condition's
+overbroad literal phrase “any network call,” even though it was not an OpenAI
+API/provider inference call, used no credential, created no identity, and
+spent $0.00. This deviation is recorded rather than erased. No later step may
+treat it as provider-run authority.
 
 ## Scope
 

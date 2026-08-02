@@ -93,6 +93,8 @@ header, requires `store: false`, bounds the response body, and omits provider
 error bodies from thrown messages. A production host that needs cost metering
 or immutable transcripts can supply its own `invoke({ body, ... })` function
 to the three adapters instead.
+The 4 MiB response limit, seven answer dispatches, and one reducer repair are
+absolute ceilings; configuration can only lower them.
 
 The answer adapter preserves the complete Responses `output` array—including
 reasoning items—when it continues after a function call. Function arguments
@@ -102,6 +104,9 @@ then the unchanged host normalizer and admission transaction. One optional
 repair is a distinct request containing the rejected proposal and the host's
 objection; it is not an identical transport retry. The graph adapter checks
 exact quotes before the unchanged graph gate checks them again.
+For stateless reasoning continuation it requests
+`reasoning.encrypted_content`, then replays that encrypted output unchanged
+with the host function result.
 
 GPT-5.6 Luna is not an embedding model. Semantic retrieval still requires the
 independent `embedder(texts)` option and may use Gemini, OpenAI embeddings, or
