@@ -55,7 +55,24 @@ recorded. Before writing the terminal artifact manifest, the launcher scans
 every result artifact for both exact configured credential values and requires
 zero matches.
 
-## Offline Verification
+## Files Changed
+
+- `evals/predictions.md`: frozen P-set 20 contract and predictions.
+- `docs/DECISIONS.md`: founder authority and live-run boundaries.
+- `STATUS.md`: pre-dispatch state, ledger, and next action.
+- `coding-sessions/tickets/open/BRN-0005-compare-luna-against-gemini-on-first-ten.md`:
+  governed contract, lifecycle, and freeze record.
+- `coding-sessions/reports/BRN-0005-technical-report.md`: this evidence.
+- `coding-sessions/human-report/BRN-0005-human-report.md`: founder-readable
+  pre-run summary.
+- `coding-sessions/reports/BRN-0005-reviewer-note.md`: independent review
+  evidence; the first review reopened this ticket solely for these required
+  report headings.
+
+The mode-0600 launcher remains outside git at the frozen private path and is
+not a tracked change.
+
+## Verification
 
 - `node --check .../luna-first10-live-v1-launcher.mjs`: pass.
 - `node .../luna-first10-live-v1-launcher.mjs --verify`: pass.
