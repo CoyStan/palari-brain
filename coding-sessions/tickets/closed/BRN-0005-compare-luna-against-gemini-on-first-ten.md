@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0005
 children: []
-status: in-review
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -219,3 +219,11 @@ uncertain; cumulative J4 accounting is `$4.7428483`. Terminal manifest
 rehashes 35/35 mode-0600 artifacts, and exact-value scanning reports 0
 credential matches. Next gate: fresh independent post-dispatch review;
 founder acceptance alone may close and merge this ticket.
+
+## Founder Acceptance
+
+Accepted by Quetzali on 2026-08-02 after fresh independent post-dispatch
+review recommended `accept` with no findings at review commit `07e760d`.
+This acceptance authorizes closing, merging, and pushing BRN-0005 as immutable
+terminal evidence. It does not authorize a rerun, regrade, raised dispatch
+ceiling, replacement identity, product repair, or publication.
