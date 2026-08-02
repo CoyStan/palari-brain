@@ -1,5 +1,40 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0005 LUNA-LOW FIRST-TEN COMPARISON TERMINAL FAILED; NO RERUN.
+After committed freeze and fresh independent GO at `bc50322`, the founder's
+single authorized invocation created private identity
+`j4-luna-retrieval-first10-v1` on 2026-08-02. The real Gemini semantic + Luna
+Responses compatibility smoke passed in two model dispatches: Luna called
+`memory_search`, used semantic retrieval, and returned the planted indigo
+answer. Questions 1-4 then received unchanged official-judge labels `PASS,
+FAIL, PASS, PASS` (3/4), exactly matching Gemini on those reached cases. On
+ordinal 5, `80ec1f4f_abs`, Luna emitted seven consecutive memory tool calls
+(`memory_search` x4, `memory_timeline` x1, `memory_find` x2) and no answer;
+the frozen seven-dispatch ceiling stopped the run with
+`OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED`. Questions 5-10 therefore have no
+label and the preregistered 7/10/provider-delta claims are not assessable;
+the answer-boundary prediction fails. This is the terminal measured result,
+not authority to rerun, regrade, raise the ceiling, or create another
+identity.
+
+Fresh accounting is `$0.3785834` accounted: `$0.0116498` measured plus
+`$0.3669336` uncertain Gemini-embedding reservation, safely below the `$1.00`
+cap. The cumulative J4 ledger is now `$4.7428483` accounted = `$1.6851439`
+measured + `$3.0577044` uncertain. The terminal manifest hashes
+`574c865ca3755cf794b002de5b12ec3d474ae235b51e894772222dd97b48b5d8`;
+35/35 artifacts rehash with mode 0600 and the exact-value scan reports 0
+matches across both configured credentials. Product stop rule: (1)
+`npm run quickstart` remains green; (2) the unit measurably established Luna
+wire compatibility and exposed a repeated-tool-call termination failure, but
+did not establish an accuracy improvement; (3) this unit added no framework
+mechanism, only provider evidence; (4) the founder explicitly requested the
+comparison; (5) deleting it would erase the only live Luna retrieval-loop,
+failure-stage, and spend evidence. Fresh independent post-dispatch review at
+`07e760d` found no issues and recommended `accept`; Quetzali accepted and
+closed BRN-0005 at `31cb519`. Next proposed unit: a separate provider-neutral
+contract for detecting nonproductive repeated retrieval and requiring a
+bounded final answer or honest abstention before any successor live run.
+
 Loop state: DOCS-REFRESH AND LONG-CONTENT POLICY MERGED INTO `main` AT
 `5bbd4a7` BY FOUNDER DIRECTION. On 2026-08-01 the founder, in session,
 explicitly directed the merge of branch

@@ -1096,3 +1096,112 @@ Predictions, failing categories first:
    uncertain spend separately, and makes at most ten official judge calls.
    Any smoke failure, question error, or miss is the result and authorizes no
    retry, reroll, selective regrade, prediction edit, or replacement identity.
+
+## P-set 20 — Luna-low provider comparison on first ten, FINAL before execution
+
+Author: repository execution lane, 2026-08-02. After accepting the offline
+OpenAI adapter, the founder explicitly authorized one fresh Luna comparison
+over the exact LongMemEval S60 ordinals 1-10 under a `$1.00` fresh cap. Fresh
+identity `j4-luna-retrieval-first10-v1` is a provider A/B comparator, not a
+resume, reroll, regrade, or replacement of terminal Gemini identity
+`j4-active-retrieval-first10-v1`. The cases and their labels are already
+inspected, so this remains a private seen-case diagnostic rather than an
+unbiased generalization estimate.
+
+The exact ordered IDs remain `08e075c7`, `09d032c9`, `16c90bf4`, `5e1b23de`,
+`80ec1f4f_abs`, `0977f2af`, `0a34ad58`, `0edc2aef`, `10d9b85a`, and
+`1192316e`; their ordered array hashes
+`d3a9a8c234468e0120d605c7868b418a5ab3313384d0d162e11a30ab6d9fe4cf`.
+The ignored MIT-licensed dataset remains
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+The nine positive cases still require 13 labelled answer-bearing sessions;
+ordinal 5 is an abstention and receives no zero-session coverage credit.
+
+Only the answer/tool-decision provider changes. The comparator uses OpenAI
+`gpt-5.6-luna`, standard mode, `reasoning.effort: low`, explicit
+`store:false`, no parallel tool calls, encrypted reasoning-item continuation,
+at most seven dispatches, and the accepted `palari-brain/openai` adapter
+hash `1ccd63e4aa859d30b742b1ceda23e71c1973f5d3fcb0bbb33cb727962336c279`.
+Its five OpenAI function declarations hash
+`3a955ef2069603b9bf0842412feb6600a521d7474a1c7a73d7daf11d4fed8354`.
+The answer instructions remain byte-identical at
+`69f6a15608fb8541e5b0df86dae23401c97f0fe1b9d6ef3c594977db3334939e`.
+Gemini `gemini-embedding-001` remains the semantic embedder, and the unchanged
+official judge remains `gpt-4o-2024-08-06`.
+
+The comparator freezes canonical product files after BRN-0004. The active
+retrieval path remains
+`c322357999e35d13b366b72e23d5a1cc6c3f8ae3df4937456426e9d491a45972`;
+the Gemini wire and embedder hashes remain
+`95e61649311476ea6198d2f434165b14d5527b3113553d2ef6a4b597a61bd292`
+and
+`2f7eb09dcaeafcd4903289023160d19562d9f17a9a312be32ba3a82496a94035`.
+`src/brain.mjs` now hashes
+`89851ccfc43ad409fea678a9f72d7d8d18bbfc692a1e588ea841d57fdfb042b7`;
+relative to BRN-0002, its only relevant diff is optional host author
+provenance, and these unattributed dataset calls omit that field. This means
+the comparison is behavior-controlled but transparently not a byte-identical
+checkout of the older Gemini run.
+
+The one-shot private launcher hashes
+`4f2e425e8239b5304157a47745ddeaa025a14960ae120473a1b0a5fe2b097eb4`;
+its generated runtime hashes
+`b9c60472cc3190fb8eb72a947ad5f5937cb7094d2cdefdd1efe1a22d96cafadd`.
+Offline verification syntax-checks that runtime, rehashes all eight product
+inputs and seven terminal bundles, confirms the exact ten-question order,
+and requires both runtime and result identity to be absent. The launcher
+records request bodies and raw responses privately without headers, meters
+each embedding, Responses dispatch, and official judge request, performs no
+transport retry, and exact-value scans its terminal artifacts before writing
+their manifest.
+
+Terminal Gemini first-ten manifest
+`554efab7c320ae2c2224ddbb9976d4a0b75afe66a5dab02c2ab227bc5b16816c`
+rehashes with its 5/10 label vector: PASS on `08e075c7`, `16c90bf4`,
+`5e1b23de`, `80ec1f4f_abs`, and `1192316e`; FAIL on `09d032c9`,
+`0977f2af`, `0a34ad58`, `0edc2aef`, and `10d9b85a`. All earlier terminal
+seen-six and debug manifests also rehash through the launcher.
+
+The exact J4 ledger carries forward at `$4.3642649` accounted, comprising
+`$1.6734941` measured and `$2.6907708` uncertain. This identity has a
+`$1.00` fresh hard cap and therefore a `$5.3642649` cumulative boundary.
+Luna's current short-context standard rates are frozen at `$0.20` per million
+input, `$0.02` cached input, and `$1.20` output tokens. Each Responses call
+reserves UTF-8 request bytes plus protocol overhead as input tokens and its
+full 512-token output ceiling, then settles only from validated provider
+usage. The unchanged Gemini embedding uncertainty still dominates the
+conservative expected accounting.
+
+One launcher invocation is final. It first stores the planted indigo memory
+locally, performs semantic retrieval with Gemini embeddings, and requires
+Luna to call `memory_search` and answer indigo. Any smoke failure stops before
+question 1 and is terminal. Otherwise all ten answer/judge cells run once in
+order. There is no writer, reducer, graph extraction, prompt tuning, provider
+retry, effort escalation, selective rerun, regrade, publication, or second
+identity.
+
+Predictions, failing categories first:
+
+1. OFFICIAL ACCURACY: Luna low reaches at least `7/10`, improving on Gemini's
+   terminal 5/10 under the unchanged official judge.
+2. PROVIDER DELTA: all five Gemini passes remain PASS, and at least two of the
+   four evidence-use failures `09d032c9`, `0977f2af`, `0a34ad58`, and
+   `0edc2aef` change to PASS. Exact per-question labels remain authoritative.
+3. RETRIEVAL CONTROL: `10d9b85a` remains FAIL because the provider swap does
+   not change the measured 0/2-session retrieval miss. Across all positive
+   cases, at least 11 of 13 labelled answer-bearing sessions are consulted.
+4. COMPATIBILITY/JUDGE WIRING: before question 1, Luna accepts the Responses
+   tool wire, calls `memory_search` over the real Gemini semantic surface, and
+   answers indigo. Every reached answer receives one validated label from the
+   unchanged official judge.
+5. SEMANTIC USE: all ten scored questions issue at least one successful
+   `memory_search` with the unchanged Gemini semantic surface.
+6. ANSWER BOUNDARY: all ten completions finish without refusal, incomplete or
+   empty output, malformed/unknown tool calls, retrieval exhaustion, or the
+   seven-dispatch ceiling.
+7. EXECUTION/ACCOUNTING: the first command is terminal, remains within the
+   `$1.00` fresh and `$5.3642649` cumulative hard caps, records OpenAI input,
+   cached-input, output, and reasoning tokens plus measured/uncertain spend,
+   makes at most ten official judge calls, and writes a zero-match secret
+   scan. Any smoke failure, question error, or miss is the result and
+   authorizes no retry, reroll, regrade, prediction edit, or replacement.

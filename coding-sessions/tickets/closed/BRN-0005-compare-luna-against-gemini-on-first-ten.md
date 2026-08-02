@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0005
 children: []
-status: open
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -190,3 +190,40 @@ embedding model, or claim that Luna is globally better or worse.
   terminal without retry.
 - Stop if the implementation would expose a credential in URLs, bodies,
   transcripts, errors, git, or terminal output.
+
+## Freeze Record
+
+P-set 20, technical report, human report, STATUS pre-run record, and founder
+decision are prepared before dispatch. The private launcher hashes
+`4f2e425e8239b5304157a47745ddeaa025a14960ae120473a1b0a5fe2b097eb4`;
+its generated runtime hashes
+`b9c60472cc3190fb8eb72a947ad5f5937cb7094d2cdefdd1efe1a22d96cafadd`.
+Offline verification rehashes 7/7 predecessor bundles and 8/8 product/eval
+inputs, syntax-checks the runtime, confirms exact 10/10 order, and reports
+runtime/result absent. Provider requests and fresh spend remain 0 / `$0.00`.
+
+## Terminal Record
+
+Fresh independent review recommended GO at `bc50322`; the single founder-
+authorized invocation then ran on 2026-08-02. Compatibility passed. The
+unchanged judge labelled the first four cases `PASS, FAIL, PASS, PASS` (3/4),
+matching Gemini on those reached cases. Ordinal 5, `80ec1f4f_abs`, made seven
+successful Luna memory-tool dispatches without an answer and terminated at
+the frozen ceiling with `OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED`. Questions
+5-10 are ungraded; this is not a 3/10 score and the 7/10/provider-delta
+predictions are not assessable. There was no rerun or regrade.
+
+Fresh accounting is `$0.3785834` = `$0.0116498` measured + `$0.3669336`
+uncertain; cumulative J4 accounting is `$4.7428483`. Terminal manifest
+`574c865ca3755cf794b002de5b12ec3d474ae235b51e894772222dd97b48b5d8`
+rehashes 35/35 mode-0600 artifacts, and exact-value scanning reports 0
+credential matches. Next gate: fresh independent post-dispatch review;
+founder acceptance alone may close and merge this ticket.
+
+## Founder Acceptance
+
+Accepted by Quetzali on 2026-08-02 after fresh independent post-dispatch
+review recommended `accept` with no findings at review commit `07e760d`.
+This acceptance authorizes closing, merging, and pushing BRN-0005 as immutable
+terminal evidence. It does not authorize a rerun, regrade, raised dispatch
+ceiling, replacement identity, product repair, or publication.
