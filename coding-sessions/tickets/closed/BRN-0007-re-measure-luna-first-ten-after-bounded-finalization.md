@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0007
 children: []
-status: in-review
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -248,3 +248,11 @@ compare a new provider, or turn this private diagnostic into a benchmark claim.
   could be repeated.
 - Stop if fresh accounted spend would exceed `$1.00`, cumulative J4 spend
   would exceed `$5.7428483`, or sealed U8 could be selected.
+
+## Founder Acceptance
+
+On 2026-08-03 Quetzali explicitly accepted BRN-0007 and directed its merge.
+Acceptance closes this terminal measurement exactly as recorded: 5/6 of six
+officially graded questions passed, question 7 remains ungraded at the cap,
+and questions 8-10 remain unreached. It does not authorize a v2 rerun,
+regrade, publication, or a higher-cap successor identity.

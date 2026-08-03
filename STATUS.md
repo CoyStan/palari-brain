@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0007 LUNA FIRST-TEN BOUNDED-FINALIZER IDENTITY TERMINAL AT
-CAP; NO RERUN. Fresh independent pre-dispatch review at `d6f5f26` recommended
+Loop state: BRN-0007 FOUNDER-ACCEPTED AND MERGE AUTHORIZED; LUNA FIRST-TEN
+BOUNDED-FINALIZER IDENTITY TERMINAL AT CAP; NO RERUN. Fresh independent
+pre-dispatch review at `d6f5f26` recommended
 GO, and the founder-authorized launcher ran exactly once. Compatibility passed
 in two Luna dispatches with real Gemini semantic search. Six questions then
 received unchanged official labels `PASS, FAIL, PASS, PASS, PASS, PASS` (5/6).
@@ -46,7 +47,8 @@ a new PASS on question 6; (3) other frameworks provide generic tool ceilings
 and exit rules, but not Palari's host-enforced cross-surface contract or this
 live evidence; (4) the founder explicitly requested the first-ten test; (5)
 deleting BRN-0006/7 would restore an unbounded Luna search failure and erase
-the only causal live measurement of its repair. Next: founder acceptance or a
+the only causal live measurement of its repair. On 2026-08-03 Quetzali
+explicitly accepted this terminal result and directed its merge. Next: only a
 separately authorized higher-cap successor—never a v2 rerun.
 
 Loop state: BRN-0006 FOUR-CALL RETRIEVAL + GRACEFUL FINALIZATION PASSED
