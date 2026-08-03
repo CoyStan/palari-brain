@@ -25,6 +25,11 @@ export const TRANSFORMERS_RERANKER_MODELS = Object.freeze({
   }),
 })
 
+// Selected by the preregistered BRN-0008 Pareto rule: eligible at 13/15
+// top-1 and the fastest nondominated model at 44.63 warm ms/case.
+export const DEFAULT_TRANSFORMERS_RERANKER_MODEL =
+  'cross-encoder/ms-marco-MiniLM-L6-v2'
+
 function boundedText(value, label, maximum) {
   if (typeof value !== 'string' || value.length < 1) {
     throw new TypeError(`${label} must be a non-empty string.`)
@@ -69,7 +74,7 @@ function logitsToScores(logits, expected) {
 export function createTransformersReranker({
   cacheDir,
   loadRuntime = defaultRuntimeLoader,
-  modelId,
+  modelId = DEFAULT_TRANSFORMERS_RERANKER_MODEL,
 } = {}) {
   const model = TRANSFORMERS_RERANKER_MODELS[modelId]
   if (!model) {

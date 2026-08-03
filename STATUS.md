@@ -1,5 +1,44 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0008 PROVIDER-NEUTRAL RERANKER IMPLEMENTED AND MEASURED;
+INDEPENDENT REVIEW NEXT. The founder approved adapting the retrieve-then-
+rerank pattern found across Graphiti, Mem0, FastEmbed, Transformers.js,
+Mixedbread, FlagEmbedding, and Sentence Transformers. The generic optional
+stage now receives at most 50 immutable complete canonical message texts after
+ranked/semantic RRF, returns exactly one finite locating score per row, and
+orders before the original `limit`/`maxChars` boundary. It cannot author or
+change text, speaker, time, scope, ID, or provenance. A malformed or failing
+configured reranker is terminal; absence of the option preserves RRF.
+
+P-set 22 and implementation were committed and pushed at `a30ab6b` before any
+score or weight download. The fixed 15-positive synthetic baseline was 0/15
+top-1, 0.2922 MRR, and 15/15 recall@5. Exactly one fp32 pass per exact
+Apache-2.0 revision then measured: MiniLM-L6 13/15, 0.9333, 15/15 at 44.6342
+warm ms/case; MiniLM-L12 14/15, 0.9667, 15/15 at 132.1034 ms/case; and
+mxbai-xsmall 14/15, 0.9667, 15/15 at 88.6820 ms/case. Xsmall dominates L12;
+L6 and xsmall are nondominated. The frozen lowest-latency eligible rule selects
+L6 as the optional default. All six prediction categories pass. The two L6
+misses were temporal latestness comparisons, so trusted host chronology
+remains necessary. This does not claim end-to-end answer improvement.
+
+Private result SHA-256 values are L6
+`6ebc9db72e64fcb7bab0c2beb0c872b614b11365ab01d612582fa8b4604f183e`,
+L12 `7b6100c3d7734ab5a54148f2b16e1fafce032e4ea072506f288884d16c4d72af`,
+and xsmall
+`076656e990cc42791a889136220ec73c5a6752a7830506eb16fb900bc32bedaf`.
+All completed, report zero content mutations, and are mode 0600 outside git.
+No provider, credential, generation model, dataset, LongMemEval identity, or
+paid call participated; spend is `$0.00`. Palari does not ship the optional
+Transformers.js runtime because its 4.2.0 dependency audit exposed five high-
+severity findings. Full fp32 caches measured 88/129/280 MiB; consumers own
+runtime audit and cache. Focused contracts are 27/27; full suite is 686 pass,
+0 fail, 14 skipped across 700; quickstart is 6/6. Product stop rule: the basic
+journey runs; ordering improved measurably; existing frameworks supplied the
+pattern but not Palari's canonical fail-closed boundary; the founder requested
+the guarantee; deleting it removes the only measured low-latency evidence-
+salience stage. Next: commit the measured default and evidence, then fresh
+read-only review. Founder acceptance and merge remain separate gates.
+
 Loop state: BRN-0007 FOUNDER-ACCEPTED AND CLOSED; LUNA FIRST-TEN
 BOUNDED-FINALIZER IDENTITY TERMINAL AT CAP; NO RERUN. Fresh independent
 pre-dispatch review at `d6f5f26` recommended

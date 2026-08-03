@@ -629,9 +629,14 @@ does not depend on `@huggingface/transformers`: its 4.2.0 Node dependency
 tree had five high-severity audit findings when evaluated for BRN-0008.
 Applications that opt in must install and audit a compatible runtime in their
 own boundary or inject `loadRuntime`. Cold model download, weight storage,
-and cache lifecycle are therefore application responsibilities. `modelId` is
-required unless a measured default is later exported; the code does not pick
-an unmeasured model. A missing runtime is terminal and clearly labelled; RRF
+and cache lifecycle are therefore application responsibilities. The measured
+default is MiniLM-L6: on the frozen 15-positive synthetic bank it reached
+13/15 top-1, 0.9333 MRR, and 15/15 recall@5 at 44.63 warm ms/case. MiniLM-L12
+and mxbai-xsmall each reached 14/15 and 0.9667 MRR, but at 132.10 and 88.68
+ms/case respectively; xsmall dominates L12, while L6 remains the fastest
+eligible Pareto-frontier member. The full fp32 caches measured 88 MiB, 129
+MiB, and 280 MiB. These synthetic ordering numbers do not establish generated
+answer accuracy. A missing runtime is terminal and clearly labelled; RRF
 remains the default when no reranker was configured.
 
 `result.consultedEvidenceIds` contains every canonical message or graph edge

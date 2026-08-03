@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  DEFAULT_TRANSFORMERS_RERANKER_MODEL,
   TRANSFORMERS_RERANKER_LIMITS,
   TRANSFORMERS_RERANKER_MODELS,
   createTransformersReranker,
@@ -52,6 +53,10 @@ function fakeRuntime({ logits = [[0.1], [0.9]] } = {}) {
 }
 
 test('model allowlist pins exact licensed revisions', () => {
+  assert.equal(
+    DEFAULT_TRANSFORMERS_RERANKER_MODEL,
+    'cross-encoder/ms-marco-MiniLM-L6-v2',
+  )
   assert.deepEqual(TRANSFORMERS_RERANKER_MODELS, expectedModels)
   assert.deepEqual(TRANSFORMERS_RERANKER_LIMITS, {
     candidates: 50,
@@ -62,6 +67,8 @@ test('model allowlist pins exact licensed revisions', () => {
     () => createTransformersReranker({ modelId: 'latest' }),
     /Unsupported reranker model/,
   )
+  assert.equal(createTransformersReranker().model.id,
+    DEFAULT_TRANSFORMERS_RERANKER_MODEL)
 })
 
 test('adapter is lazy, pinned, pair-batched, and loads exactly once',
