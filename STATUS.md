@@ -27,8 +27,19 @@ cached-input, 1,350 output, and 215 reasoning tokens. Terminal manifest
 `7b190fcfef19847cc30b1d020fdae1e15d09eff59d559819fc4d1158a59f3df6`
 rehashes 44/44 mode-0600 artifacts; exact-value scanning reports 0 matches for
 both configured credentials. Full suite remains 667 pass, 0 fail, 15 skipped;
-quickstart is 6/6. Next: fresh independent terminal review, then founder
-acceptance or a separately authorized higher-cap successor—never a v2 rerun.
+quickstart is 6/6.
+
+P-set 21 grade, failing-first: (1) COMPLETION/FINALIZATION aggregate FAIL at
+the question-7 judge cap, while its ordinal-5 bounded-finalization
+subprediction passes; (2) OFFICIAL ACCURACY not assessable from six labels;
+(3) RETRIEVAL CONTROL not assessable because `10d9b85a` was not reached;
+(4) WIRE aggregate FAIL because question 7 reached an answer without a judge
+label, while normal auto/tools and forced none/no-tools subclauses pass;
+(5) SEMANTIC USE all-ten FAIL, though every graded question used semantic
+search; (6) EXECUTION/ACCOUNTING PASS. Fresh terminal review otherwise
+reconciled all private evidence and reopened only this tracked grade wording.
+Next: corrected terminal re-review, then founder acceptance or a separately
+authorized higher-cap successor—never a v2 rerun.
 
 Loop state: BRN-0006 FOUR-CALL RETRIEVAL + GRACEFUL FINALIZATION PASSED
 INDEPENDENT REVIEW; FOUNDER ACCEPTANCE PENDING. After accepting BRN-0005,

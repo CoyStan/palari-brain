@@ -54,9 +54,11 @@ Failing categories first:
    and `0977f2af` is the first predicted evidence-use FAIL-to-PASS change.
 3. RETRIEVAL CONTROL — not assessable. `10d9b85a` was not reached. Graded
    positive cases consulted 7/7 required answer-bearing sessions.
-4. WIRE — pass for every reached boundary. Normal requests used auto + tools;
-   forced finalization used none + no tools; all six completed answers received
-   one judge label. Question 7's completed answer correctly remains unlabelled.
+4. WIRE — aggregate fail. The tool-wire subclauses passed: normal requests
+   used auto + tools, and forced finalization used none + no tools with intact
+   continuation. But question 7 reached a completed answer and received no
+   judge label, violating the preregistered conjunction that every reached
+   answer is judged.
 5. SEMANTIC USE — fail as an all-ten claim. Every graded question used
    successful semantic search; question 7 also called `memory_search`, but
    questions 8-10 were not reached.

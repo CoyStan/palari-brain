@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0007
 children: []
-status: reopened
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-03T00:55:06Z
 target_branch: "main"
 branch: "ticket/BRN-0007-re-measure-luna-first-ten-after-bounded-finalization"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0007-re-measure-luna-first-ten-after-bounded-finalization"
@@ -219,8 +219,10 @@ compare a new provider, or turn this private diagnostic into a benchmark claim.
   rehashes 44/44 artifacts, all mode 0600; the exact-value scan found 0 matches
   across 2 configured credentials.
 - The all-ten completion prediction failed; accuracy and unreached retrieval
-  predictions are not assessable. The ordinal-5 finalization and reached wire
-  predictions passed. No rerun, regrade, prediction edit, or repair occurred.
+  predictions are not assessable. Ordinal-5 finalization and the reached
+  tool-wire mechanics passed, but aggregate WIRE failed because question 7
+  reached an answer without a judge label. No rerun, regrade, prediction edit,
+  or repair occurred.
 
 ## Verification
 
