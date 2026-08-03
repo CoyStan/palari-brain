@@ -198,6 +198,30 @@ compare a new provider, or turn this private diagnostic into a benchmark claim.
 - Provider calls, credential value reads, fresh result bytes, and fresh spend:
   0 / 0 / 0 / `$0.00`. Independent pre-dispatch review remains pending.
 
+## Terminal Evidence
+
+- Fresh independent review at `d6f5f26` recommended GO with no findings. The
+  founder-authorized launcher then ran exactly once and is permanently sealed.
+- Compatibility passed. Six questions received labels `PASS, FAIL, PASS,
+  PASS, PASS, PASS` (5/6). This must not be reported as 5/10.
+- `80ec1f4f_abs` executed four memory calls, then one request with
+  `tool_choice: "none"` and no tools; it answered and passed. `0977f2af` also
+  passed, improving on the Gemini baseline.
+- `0a34ad58` completed an answer after one search, but its judge reservation
+  was refused before dispatch: `$0.52888556 + $0.54417 = $1.07305556` would
+  exceed the `$1.00` fresh cap. It is ungraded; questions 8-10 were not reached.
+- Fresh spend is `$0.52888556` accounted = `$0.01509206` measured +
+  `$0.5137935` uncertain. Cumulative J4 spend is `$5.27173386` accounted =
+  `$1.70023596` measured + `$3.5714979` uncertain.
+- Physical calls: 66 Gemini embedding batches, 21 Luna Responses calls, and 6
+  official judge calls. Terminal manifest
+  `7b190fcfef19847cc30b1d020fdae1e15d09eff59d559819fc4d1158a59f3df6`
+  rehashes 44/44 artifacts, all mode 0600; the exact-value scan found 0 matches
+  across 2 configured credentials.
+- The all-ten completion prediction failed; accuracy and unreached retrieval
+  predictions are not assessable. The ordinal-5 finalization and reached wire
+  predictions passed. No rerun, regrade, prediction edit, or repair occurred.
+
 ## Verification
 
 - `node /home/quetza/palari-brain-private/luna-first10-live-v2-launcher.mjs --verify`

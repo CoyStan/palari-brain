@@ -9,31 +9,32 @@ that specific repair lets the same ten-question diagnostic finish.
 
 ## What Changed
 
-Only the accepted answer-loop behavior changes versus terminal v1. Luna may
-use up to four memory calls. If it uses all four, it gets one final response
-with memory tools unavailable and must answer from accumulated evidence or say
-that stored evidence is insufficient. Embeddings, questions, memory contents,
-retrieval ranking, judge, model effort, and grading stay fixed.
+The fix worked on the exact failure that motivated it. Question 5 stopped at
+four memory calls, Luna received one tool-disabled final turn, produced an
+answer, and passed. Six questions were officially graded `PASS, FAIL, PASS,
+PASS, PASS, PASS`, or 5/6. Question 6 also improved from the Gemini baseline's
+FAIL to PASS.
 
 ## What I Should Know
 
-This is not a rerun of v1: it is a fresh v2 identity measuring a changed
-product candidate. The questions are already known, so the result is useful
-for diagnosis but not a claim about unseen users. The prior accuracy prediction
-is carried forward unchanged to avoid tuning expectations after seeing v1.
+The run did not finish all ten. Question 7 completed its Luna answer, but the
+meter refused before judging it because the next worst-case reservation would
+have crossed `$1.00`. It has no label, and questions 8-10 were not reached.
+Therefore this is not a 5/10 result and cannot establish the predicted 7/10.
 
-The test has a `$1.00` fail-closed fresh cap. Before the run, fresh spend is
-`$0.00`; no credential value has been printed or committed.
+Fresh accounted spend was `$0.52888556`; most of it is conservative Gemini
+embedding uncertainty, not measured charges. All 44 private artifacts verify,
+and neither configured credential appears in them.
 
 ## What To Check
 
-The independent reviewer should confirm the old result remains immutable, the
-only treatment change is BRN-0006, the fifth retrieval cannot execute, forced
-finalization has no tools, all providers share one meter, and the launcher can
-be invoked only once.
+The terminal reviewer should confirm the six labels, question-5 finalization
+wire, question-7 pre-judge cap refusal, exact accounting, manifest, and that
+the v2 identity cannot run again.
 
 ## Recommended Next Move
 
-Run the single authorized invocation only after a clean independent GO review.
-Whatever happens—success, wrong answers, provider failure, or cap stop—is the
-terminal result and must be recorded without reroll or regrade.
+Accept the structural result after independent terminal review. If completing
+questions 7-10 is still valuable, authorize a separate higher-cap identity;
+never rerun v2. The next cap should cover accumulated embedding uncertainty
+plus one conservative judge reservation at every remaining boundary.

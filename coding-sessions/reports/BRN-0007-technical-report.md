@@ -2,9 +2,67 @@
 
 ## State
 
-Pre-dispatch freeze prepared. Provider calls, credential value reads, result
-identities, and fresh spend are zero. Execution remains blocked until the
-tracked freeze is committed and pushed and a fresh reviewer recommends GO.
+Terminal failed identity. After fresh independent GO at `d6f5f26`, the
+launcher ran exactly once. Compatibility and questions 1-6 completed. Question
+7 produced an answer, but the fail-closed meter refused its judge reservation,
+so that question is ungraded and questions 8-10 were not reached. No rerun,
+repair, or regrade occurred.
+
+## Terminal Result
+
+- Compatibility: pass in 2 Luna dispatches with 1 semantic `memory_search`
+  and the expected indigo answer.
+- Official labels: `08e075c7` PASS, `09d032c9` FAIL, `16c90bf4` PASS,
+  `5e1b23de` PASS, `80ec1f4f_abs` PASS, and `0977f2af` PASS: 5/6 graded.
+- BRN-0006 live treatment: `80ec1f4f_abs` made exactly four retrieval calls.
+  Requests 1-4 offered tools with `tool_choice: "auto"`; request 5 omitted
+  tools, used `tool_choice: "none"`, returned a message, and received PASS.
+- Provider delta among graded cases: the first five match Gemini; `0977f2af`
+  changes from Gemini FAIL to Luna PASS. All 7/7 required answer-bearing
+  sessions across the five graded positive cases were consulted.
+- Ungraded boundary: `0a34ad58` completed a Luna answer after one
+  `memory_search`, but its judge did not dispatch. Fresh accounted
+  `$0.52888556` plus frozen judge reservation `$0.54417` projected
+  `$1.07305556`, so the `$1.00` cap refused. Questions 8-10 were not reached.
+- Terminal error: `FRESH_SPEND_CAP: next judge reservation would exceed
+  $1.00.` This result is not 5/10.
+- Calls: 66 Gemini embedding batches, 21 Luna Responses dispatches, and 6
+  official judge calls; 93 total recorded calls.
+- Luna usage: 85,233 input, 35,928 cached-input, 1,350 output, and 215
+  reasoning tokens; `$0.01219956` measured.
+- Judge usage: 1,117 input and 10 output tokens; `$0.0028925` measured.
+- Gemini embeddings: 66 successful batches with usage unreported;
+  `$0.5137935` remains conservatively uncertain.
+- Fresh ledger: `$0.01509206` measured + `$0.5137935` uncertain =
+  `$0.52888556` accounted. Cumulative ledger: `$1.70023596` measured +
+  `$3.5714979` uncertain = `$5.27173386` accounted.
+- Manifest SHA-256:
+  `7b190fcfef19847cc30b1d020fdae1e15d09eff59d559819fc4d1158a59f3df6`.
+  All 44 artifacts rehash, all are mode 0600, and exact-value scanning reports
+  0 matches for 2 configured credentials.
+
+## Prediction Grade
+
+Failing categories first:
+
+1. COMPLETION/FINALIZATION — mixed, aggregate fail. The predicted all-ten
+   completion failed at the question-7 judge cap. The causal subprediction
+   passed exactly: ordinal 5 used four calls, finalized tool-disabled, answered,
+   and passed without reaching the emergency ceiling.
+2. OFFICIAL ACCURACY — not assessable. Six labels cannot establish `>=7/10` or
+   preservation of all five Gemini passes. Among reached cases, five are PASS
+   and `0977f2af` is the first predicted evidence-use FAIL-to-PASS change.
+3. RETRIEVAL CONTROL — not assessable. `10d9b85a` was not reached. Graded
+   positive cases consulted 7/7 required answer-bearing sessions.
+4. WIRE — pass for every reached boundary. Normal requests used auto + tools;
+   forced finalization used none + no tools; all six completed answers received
+   one judge label. Question 7's completed answer correctly remains unlabelled.
+5. SEMANTIC USE — fail as an all-ten claim. Every graded question used
+   successful semantic search; question 7 also called `memory_search`, but
+   questions 8-10 were not reached.
+6. EXECUTION/ACCOUNTING — pass. One terminal invocation stayed below both
+   caps, retained measured/uncertain accounting, made six judge calls, sealed
+   44 private artifacts, and recorded zero credential matches.
 
 ## Frozen Experiment
 
@@ -65,15 +123,18 @@ The private launcher is intentionally outside git and is not a tracked path.
 - Predecessor bundles: 8/8 rehashed.
 - Product/eval inputs: 8/8 rehashed.
 - Dataset and question order: exact; v2 runtime/result absent.
-- Provider calls / fresh spend: 0 / `$0.00`.
+- Terminal manifest: 44/44 artifacts rehash; all mode 0600; secret scan 0/2.
+- Fresh spend: `$0.52888556` accounted under the `$1.00` cap.
 - Full suite: 667 pass, 0 fail, 15 skipped across 682 tests.
 - Quickstart: 6/6.
 - Ticket/report/scope checks: pass before freeze commit.
-- Independent pre-dispatch review: pending.
+- Independent pre-dispatch review: GO at `d6f5f26` with no findings.
+- Independent terminal review: pending.
 
 ## Risks / Follow-Ups
 
 - These ten cases are known and cannot establish unseen-data performance.
-- A live provider or cap failure is terminal, not repair authority.
+- The cap failure is terminal and not repair authority. A higher-cap successor
+  requires a separate founder decision, identity, freeze, and review.
 - Gemini embedding usage is not reported, so its conservative reservation may
   dominate accounted spend again.

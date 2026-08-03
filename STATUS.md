@@ -1,28 +1,34 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0007 LUNA FIRST-TEN BOUNDED-FINALIZER FREEZE PREPARED;
-INDEPENDENT PRE-DISPATCH REVIEW PENDING, LIVE CALLS 0. Quetzali accepted and
-merged BRN-0006 at `3f42023`, then directed one fresh questions 1-10 test.
-Identity `j4-luna-retrieval-first10-v2` preserves v1's exact ordered
-population, Gemini semantic embedder, Luna-low Standard answer provider,
-official GPT-4o judge, dataset, prompts, and one-shot discipline. Only the
-accepted product behavior changes: no more than four memory calls and one
-tool-disabled finalization response. P-set 21 carries P-set 20's accuracy
-predictions unchanged and adds the primary structural prediction that all ten
-complete, with ordinal 5 finalizing instead of looping.
+Loop state: BRN-0007 LUNA FIRST-TEN BOUNDED-FINALIZER IDENTITY TERMINAL AT
+CAP; NO RERUN. Fresh independent pre-dispatch review at `d6f5f26` recommended
+GO, and the founder-authorized launcher ran exactly once. Compatibility passed
+in two Luna dispatches with real Gemini semantic search. Six questions then
+received unchanged official labels `PASS, FAIL, PASS, PASS, PASS, PASS` (5/6).
+The previous blocker `80ec1f4f_abs` executed exactly four retrieval calls,
+received a fifth model dispatch with `tool_choice: "none"` and no tools,
+answered, and passed. Thus BRN-0006's intended structural repair worked live.
+`0977f2af` also changed from Gemini/v1's FAIL expectation to PASS.
 
-Offline verification rehashes 8/8 predecessor bundles and 8/8 product/eval
-inputs, validates the exact ten-question order and dataset, syntax-checks
-generated runtime
-`4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`,
-and confirms private runtime/result absence. The mode-0600 wrapper hashes
-`84a55389a824b7bdb7a045446fe994d0b1f9871e2979b9781abe3c61fec0411a`.
-Exact opening J4 spend is `$4.7428483` accounted = `$1.6851439` measured +
-`$3.0577044` uncertain. Fresh/cumulative hard caps are `$1.00` / `$5.7428483`.
-No credential value was printed or committed; provider calls and fresh spend
-remain 0 / `$0.00`. Full suite is green at 667 pass, 0 fail, 15 skipped across
-682 tests; quickstart is 6/6. Next: commit and push the freeze, then obtain
-fresh independent GO review before the one authorized invocation.
+Ordinal 7, `0a34ad58`, completed a Luna answer after one semantic search, but
+the harness refused before its judge request: `$0.52888556` already accounted
+plus the frozen `$0.54417` judge worst-case reservation projected
+`$1.07305556`, above the `$1.00` fresh cap. It therefore has no official label;
+ordinals 8-10 were not reached. This is not 5/10, and P-set 21's all-ten,
+`>=7/10`, and all-ten semantic predictions are not assessable or fail at their
+completion boundary as recorded below.
+
+Fresh accounting is `$0.52888556` = `$0.01509206` measured + `$0.5137935`
+uncertain Gemini embedding reservations. Cumulative J4 accounting is
+`$5.27173386` = `$1.70023596` measured + `$3.5714979` uncertain, below the
+`$5.7428483` boundary. Physical calls: 66 Gemini embedding batches, 21 Luna
+Responses calls, and 6 official judge calls. Luna used 85,233 input, 35,928
+cached-input, 1,350 output, and 215 reasoning tokens. Terminal manifest
+`7b190fcfef19847cc30b1d020fdae1e15d09eff59d559819fc4d1158a59f3df6`
+rehashes 44/44 mode-0600 artifacts; exact-value scanning reports 0 matches for
+both configured credentials. Full suite remains 667 pass, 0 fail, 15 skipped;
+quickstart is 6/6. Next: fresh independent terminal review, then founder
+acceptance or a separately authorized higher-cap successor—never a v2 rerun.
 
 Loop state: BRN-0006 FOUR-CALL RETRIEVAL + GRACEFUL FINALIZATION PASSED
 INDEPENDENT REVIEW; FOUNDER ACCEPTANCE PENDING. After accepting BRN-0005,
