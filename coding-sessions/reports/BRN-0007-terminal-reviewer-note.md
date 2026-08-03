@@ -1,7 +1,7 @@
 # BRN-0007 Terminal Reviewer Note
 
-Reviewer: fresh independent terminal reviewer  
-Reviewed commit: `78946085d44242e59aac869c3ed2bff0fd1d0fde`  
+Reviewer: fresh independent terminal reviewer
+Reviewed commit: `78946085d44242e59aac869c3ed2bff0fd1d0fde`
 Target: `main` at `654157293a9a8b5610f677d00960cc3f620d3685`
 
 ## Recommendation
