@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0006
 children: []
-status: in-review
+status: accepted
 risk: R2
 priority: P0
 agents_allowed: 1
@@ -241,3 +241,10 @@ stopping policy, prompt tuning from answers, or global agent framework.
   the implementation replaces provider output with a fabricated canned answer.
 - Stop if the design would weaken canonical provenance, admission, scope,
   deletion, or the distinction between absent evidence and evidence of absence.
+
+## Founder Acceptance
+
+On 2026-08-03 Quetzali explicitly accepted BRN-0006 and directed that it be
+merged before starting a fresh questions 1-10 evaluation. Acceptance closes
+this implementation ticket only; the live successor requires its own frozen
+identity, preregistration, cap, and review evidence.
