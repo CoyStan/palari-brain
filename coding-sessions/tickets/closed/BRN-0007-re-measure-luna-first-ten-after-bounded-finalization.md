@@ -251,8 +251,8 @@ compare a new provider, or turn this private diagnostic into a benchmark claim.
 
 ## Founder Acceptance
 
-On 2026-08-03 Quetzali explicitly accepted BRN-0007 and directed its merge.
-Acceptance closes this terminal measurement exactly as recorded: 5/6 of six
-officially graded questions passed, question 7 remains ungraded at the cap,
-and questions 8-10 remain unreached. It does not authorize a v2 rerun,
-regrade, publication, or a higher-cap successor identity.
+On 2026-08-03 Quetzali explicitly accepted BRN-0007. Acceptance closes this
+terminal measurement exactly as recorded: 5/6 of six officially graded
+questions passed, question 7 remains ungraded at the cap, and questions 8-10
+remain unreached. It does not itself authorize merge, a v2 rerun, regrade,
+publication, or a higher-cap successor identity.
