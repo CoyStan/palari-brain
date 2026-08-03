@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import {
+  DEFAULT_RETRIEVAL_CALLS,
   MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
   MEMORY_EXPLORATION_INSTRUCTIONS,
   MEMORY_RETRIEVAL_INSTRUCTIONS,
@@ -754,6 +755,56 @@ test('retrieval calls are bounded and unknown tools fail closed',
     })
     assert.equal(bounded.retrievalCalls, 1)
     assert.equal(bounded.retrievalExhausted, true)
+
+    let defaultSession
+    const defaultBounded = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider(session) {
+        defaultSession = session
+        for (let index = 0; index < DEFAULT_RETRIEVAL_CALLS; index += 1) {
+          const result = await session.retrieve({
+            input: { limit: 1 },
+            tool: 'memory_timeline',
+          })
+          assert.notEqual(result.exhausted, true)
+        }
+        const refused = await session.retrieve({
+          input: { phrase: 'retained' },
+          tool: 'memory_find',
+        })
+        assert.deepEqual(refused, {
+          exhausted: true,
+          reason: 'retrieval_budget_exhausted',
+        })
+        return { text: 'No more retrieval is needed.' }
+      },
+      question: 'What is retained?',
+    })
+    assert.equal(DEFAULT_RETRIEVAL_CALLS, 4)
+    assert.equal(defaultSession.maxRetrievalCalls, 4)
+    assert.match(
+      defaultSession.retrievalFinalizationInstructions,
+      /do not have enough stored evidence/i,
+    )
+    assert.match(
+      defaultSession.retrievalFinalizationInstructions,
+      /not proof that an event did not happen/i,
+    )
+    assert.equal(defaultBounded.retrievalCalls, 4)
+    assert.equal(defaultBounded.retrievalTranscript.length, 4)
+    assert.equal(defaultBounded.retrievalExhausted, true)
+
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        maxRetrievalCalls: 5,
+        async provider() {
+          return { text: 'unreachable' }
+        },
+        question: 'Anything?',
+      }),
+      /maxRetrievalCalls must be an integer from 0 to 4/,
+    )
 
     await assert.rejects(
       answerWithRetrieval(brain, {

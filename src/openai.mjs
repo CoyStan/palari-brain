@@ -23,6 +23,10 @@ import {
   GRAPH_MAX_PREDICATE_CHARS,
   GRAPH_MAX_QUOTE_CHARS,
 } from './memory-graph.mjs'
+import {
+  DEFAULT_RETRIEVAL_CALLS,
+  MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
+} from './retrieval-answer.mjs'
 
 export const OPENAI_LUNA_MODEL = 'gpt-5.6-luna'
 export const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses'
@@ -400,6 +404,16 @@ function answerInstructions({ answerInstructions, systemInstruction }) {
     .join('\n\n')
 }
 
+function finalizationInstructions(session) {
+  const configured = String(
+    session.retrievalFinalizationInstructions ?? '',
+  ).trim()
+  return [
+    answerInstructions(session),
+    configured || MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
+  ].filter((value) => value.trim()).join('\n\n')
+}
+
 function answerInput({ memoryText, questionText }) {
   return [{
     content: [String(memoryText ?? ''), nonEmpty(questionText, 'questionText')]
@@ -441,8 +455,19 @@ export function createOpenAIRetrievalProvider({
       session.recommendedMaxOutputTokens,
       'recommendedMaxOutputTokens',
     )
+    const retrievalLimit = nonNegativeInteger(
+      session.maxRetrievalCalls ?? DEFAULT_RETRIEVAL_CALLS,
+      'maxRetrievalCalls',
+    )
+    if (retrievalLimit > DEFAULT_RETRIEVAL_CALLS) {
+      throw new TypeError(
+        `maxRetrievalCalls cannot exceed ${DEFAULT_RETRIEVAL_CALLS}.`,
+      )
+    }
     const input = answerInput(session)
     let dispatch = 0
+    let retrievalCalls = 0
+    let finalizing = retrievalLimit === 0
 
     for (;;) {
       if (dispatch >= dispatchLimit) {
@@ -454,14 +479,16 @@ export function createOpenAIRetrievalProvider({
       const body = {
         include: ['reasoning.encrypted_content'],
         input: clone(input),
-        instructions: answerInstructions(session),
+        instructions: finalizing
+          ? finalizationInstructions(session)
+          : answerInstructions(session),
         max_output_tokens: maxOutputTokens,
         model: modelId,
         parallel_tool_calls: false,
         reasoning: { effort },
         store: false,
-        tool_choice: 'auto',
-        tools: clone(tools),
+        tool_choice: finalizing ? 'none' : 'auto',
+        ...(finalizing ? {} : { tools: clone(tools) }),
       }
       const response = await invoke({
         body,
@@ -483,6 +510,19 @@ export function createOpenAIRetrievalProvider({
         }
         return { abstained: false, text }
       }
+      if (finalizing) {
+        throw adapterError(
+          'OPENAI_FINALIZATION_TOOL_CALL',
+          'OpenAI finalization returned a memory tool call after retrieval closed.',
+        )
+      }
+      const remaining = retrievalLimit - retrievalCalls
+      if (calls.length > remaining) {
+        throw adapterError(
+          'OPENAI_RETRIEVAL_CALL_BUDGET_EXCEEDED',
+          'OpenAI requested more memory tools than remain in the retrieval budget.',
+        )
+      }
 
       // GPT-5 reasoning items must travel with their function calls. Preserve
       // the entire output array in provider order, then append the host-owned
@@ -493,12 +533,14 @@ export function createOpenAIRetrievalProvider({
           input: clone(call.input),
           tool: call.name,
         })
+        retrievalCalls += 1
         input.push({
           call_id: call.callId,
           output: JSON.stringify(result),
           type: 'function_call_output',
         })
       }
+      if (retrievalCalls >= retrievalLimit) finalizing = true
     }
   }
 }

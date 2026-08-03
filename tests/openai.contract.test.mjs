@@ -65,9 +65,12 @@ function answerSession(overrides = {}) {
   return {
     answerInstructions: 'Use only supplied memory.',
     memoryText: 'Digest: user likes tea.',
+    maxRetrievalCalls: 4,
     questionText: 'Question: What does the user like?',
     recommendedMaxOutputTokens: 512,
     retrievalTools: MEMORY_RETRIEVAL_TOOLS,
+    retrievalFinalizationInstructions:
+      'Retrieval is complete. Answer from evidence or say stored evidence is insufficient.',
     async retrieve() {
       return { sessions: [] }
     },
@@ -305,6 +308,174 @@ test('retrieval provider preserves reasoning and tool output across Responses',
       output: JSON.stringify({ sessions: [{ id: 'session-1' }] }),
       type: 'function_call_output',
     })
+  })
+
+test('retrieval provider forces one tool-disabled finalization after four calls',
+  async () => {
+    for (const finalText of [
+      'The stored evidence says the user likes jasmine tea.',
+      'I do not have enough stored evidence to answer that.',
+    ]) {
+      const bodies = []
+      const retrievals = []
+      const provider = createOpenAIRetrievalProvider({
+        async invoke({ body }) {
+          bodies.push(body)
+          const dispatch = bodies.length
+          return dispatch <= 4
+            ? completedCall({
+                arguments: JSON.stringify({ phrase: `query-${dispatch}` }),
+                callId: `call_${dispatch}`,
+                name: 'memory_search',
+              })
+            : completedText(finalText)
+        },
+      })
+
+      const result = await provider(answerSession({
+        async retrieve(request) {
+          retrievals.push(request)
+          return { matches: [], operation: 'memory_search' }
+        },
+      }))
+
+      assert.equal(result.text, finalText)
+      assert.equal(bodies.length, 5)
+      assert.equal(retrievals.length, 4)
+      assert.ok(bodies.slice(0, 4).every((body) =>
+        body.tool_choice === 'auto' &&
+        body.tools.length === MEMORY_RETRIEVAL_TOOLS.length))
+      assert.equal(bodies[4].tool_choice, 'none')
+      assert.equal(Object.hasOwn(bodies[4], 'tools'), false)
+      assert.match(bodies[4].instructions, /Retrieval is complete/)
+      assert.match(bodies[4].instructions, /stored evidence is insufficient/)
+      assert.equal(
+        bodies[4].input.filter((item) =>
+          item.type === 'function_call_output').length,
+        4,
+      )
+      assert.equal(
+        bodies[4].input.filter((item) =>
+          item.type === 'reasoning' &&
+          item.encrypted_content === 'encrypted_reasoning_fixture').length,
+        4,
+      )
+    }
+  })
+
+test('retrieval provider preserves early answers from zero through three calls',
+  async () => {
+    for (let answerAfter = 0; answerAfter <= 3; answerAfter += 1) {
+      const bodies = []
+      let retrievals = 0
+      const provider = createOpenAIRetrievalProvider({
+        async invoke({ body }) {
+          bodies.push(body)
+          return bodies.length <= answerAfter
+            ? completedCall({ callId: `call_${bodies.length}` })
+            : completedText(`answered-after-${answerAfter}`)
+        },
+      })
+      const result = await provider(answerSession({
+        async retrieve() {
+          retrievals += 1
+          return { sessions: [] }
+        },
+      }))
+      assert.equal(result.text, `answered-after-${answerAfter}`)
+      assert.equal(retrievals, answerAfter)
+      assert.equal(bodies.length, answerAfter + 1)
+      assert.ok(bodies.every((body) => body.tool_choice === 'auto'))
+    }
+
+    let zeroBudgetBody
+    const zeroBudget = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        zeroBudgetBody = body
+        return completedText('No retrieval was permitted.')
+      },
+    })
+    const result = await zeroBudget(answerSession({
+      maxRetrievalCalls: 0,
+      retrievalFinalizationInstructions: '',
+    }))
+    assert.equal(result.text, 'No retrieval was permitted.')
+    assert.equal(zeroBudgetBody.tool_choice, 'none')
+    assert.equal(Object.hasOwn(zeroBudgetBody, 'tools'), false)
+    assert.match(zeroBudgetBody.instructions, /not proof that an event did not happen/i)
+  })
+
+test('retrieval finalization cannot call tools or overflow the host budget',
+  async () => {
+    let dispatches = 0
+    let retrievals = 0
+    const toolCallingFinalization = createOpenAIRetrievalProvider({
+      async invoke() {
+        dispatches += 1
+        return completedCall({
+          callId: `call_${dispatches}`,
+          name: 'memory_timeline',
+        })
+      },
+    })
+    await assert.rejects(
+      toolCallingFinalization(answerSession({
+        async retrieve() {
+          retrievals += 1
+          return { sessions: [] }
+        },
+      })),
+      (error) => error.code === 'OPENAI_FINALIZATION_TOOL_CALL',
+    )
+    assert.equal(dispatches, 5)
+    assert.equal(retrievals, 4)
+
+    let overflowRetrievals = 0
+    const overflow = createOpenAIRetrievalProvider({
+      async invoke() {
+        return {
+          output: [
+            ...completedCall({ callId: 'call_a' }).output,
+            completedCall({ callId: 'call_b' }).output[1],
+            completedCall({ callId: 'call_c' }).output[1],
+            completedCall({ callId: 'call_d' }).output[1],
+            completedCall({ callId: 'call_e' }).output[1],
+          ],
+          status: 'completed',
+        }
+      },
+    })
+    await assert.rejects(
+      overflow(answerSession({
+        async retrieve() {
+          overflowRetrievals += 1
+          return { sessions: [] }
+        },
+      })),
+      (error) => error.code === 'OPENAI_RETRIEVAL_CALL_BUDGET_EXCEEDED',
+    )
+    assert.equal(overflowRetrievals, 0)
+
+    let emptyDispatches = 0
+    const emptyFinalization = createOpenAIRetrievalProvider({
+      async invoke() {
+        emptyDispatches += 1
+        return emptyDispatches <= 4
+          ? completedCall({ callId: `call_${emptyDispatches}` })
+          : { output: [], status: 'completed' }
+      },
+    })
+    await assert.rejects(
+      emptyFinalization(answerSession()),
+      (error) => error.code === 'OPENAI_RESPONSE_TEXT_MISSING',
+    )
+    assert.equal(emptyDispatches, 5)
+
+    const raised = createOpenAIRetrievalProvider({ async invoke() {} })
+    await assert.rejects(
+      raised(answerSession({ maxRetrievalCalls: 5 })),
+      /maxRetrievalCalls cannot exceed 4/,
+    )
   })
 
 test('OpenAI retrieval provider composes with the real bounded answer path',

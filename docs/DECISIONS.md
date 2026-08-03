@@ -3,6 +3,19 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-02 (FOUNDER — Quetzali, in session) **Limit one memory-answer turn
+  to four retrieval-tool calls, then require one tool-disabled finalization
+  response.** The fourth call is executed; a fifth never is. The provider may
+  answer from any canonical evidence already consulted or say that stored
+  evidence is insufficient. It must not translate missing memory evidence
+  into a claim that an event did not happen. BRN-0006 applies this as a
+  provider-neutral host ceiling and OpenAI/Luna graceful-finalization wire,
+  while preserving the separate seven-dispatch emergency protocol cap. This
+  implements the bounded-retrieval + explicit-exit pattern documented by
+  Mem0, Zep, LangMem/LangGraph, and Letta without tuning against the private
+  answer to BRN-0005's abstention case. BRN-0006 is offline only; no live run,
+  credential read, spend, rerun, or publication is authorized.
+
 - 2026-08-02 (TERMINAL EVIDENCE) **The authorized Luna-low first-ten identity
   stopped on ordinal 5 and will not be rerun.** Compatibility passed, and the
   unchanged judge labelled the four completed questions `PASS, FAIL, PASS,

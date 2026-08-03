@@ -21,9 +21,16 @@ import {
   MEMORY_EXPLORATION_TOOLS,
 } from './memory-exploration.mjs'
 
-export const DEFAULT_RETRIEVAL_CALLS = 6
+export const DEFAULT_RETRIEVAL_CALLS = 4
 export const MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS = 512
 export const MEMORY_HYBRID_RRF_K = 60
+
+export const MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS = [
+  'Memory retrieval is complete. Do not call another memory tool.',
+  'Answer directly from the canonical evidence already returned.',
+  'If that evidence does not support an answer, say that you do not have enough stored evidence to answer.',
+  'Lack of stored evidence is not proof that an event did not happen.',
+].join(' ')
 
 const DEFAULT_HYBRID_LIMIT = 20
 const MAX_HYBRID_LIMIT = 50
@@ -197,6 +204,7 @@ export const MEMORY_RETRIEVAL_INSTRUCTIONS = [
   'Prior Palari speech may be reported as advice, a recommendation, or a commitment previously made by Palari. It must never be recast as something the user said, did, owned, or preferred.',
   'For elapsed-time answers, use the host-derived questionRelativeTime metadata on returned rows. It is authoritative arithmetic from observedAt and the question date; do not invent dates from text or approximate a calendar month as 30 days.',
   'Do not treat an empty search as proof that an event never happened. For a time-bounded absence or count, search the relevant concept inside explicit after/before bounds.',
+  'Honor the host-provided memory retrieval-call budget. When it is spent, stop searching and make one final answer from consulted evidence or state that stored evidence is insufficient.',
   'Answer directly and concisely from the evidence you actually consulted. Prefer one sentence when one sentence fully answers the question.',
 ].join('\n')
 
@@ -381,8 +389,12 @@ export async function answerWithRetrieval(brain, {
     throw new TypeError('answerWithRetrieval requires a provider function.')
   }
   const budget = Number(maxRetrievalCalls)
-  if (!Number.isSafeInteger(budget) || budget < 0) {
-    throw new TypeError('maxRetrievalCalls must be a non-negative integer.')
+  if (!Number.isSafeInteger(budget) || budget < 0 ||
+    budget > DEFAULT_RETRIEVAL_CALLS) {
+    throw new TypeError(
+      `maxRetrievalCalls must be an integer from 0 to ` +
+        `${DEFAULT_RETRIEVAL_CALLS}.`,
+    )
   }
 
   const scope = normalizedScope({ palariId, userId })
@@ -461,6 +473,7 @@ export async function answerWithRetrieval(brain, {
     answerInstructions: MEMORY_RETRIEVAL_INSTRUCTIONS,
     briefing,
     memoryText: briefing.text,
+    maxRetrievalCalls: budget,
     question,
     questionDate,
     questionText: [
@@ -470,6 +483,8 @@ export async function answerWithRetrieval(brain, {
     recommendedMaxOutputTokens:
       MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
     retrievalCapabilities: capabilities,
+    retrievalFinalizationInstructions:
+      MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
     retrievalTools: MEMORY_RETRIEVAL_TOOLS,
     retrieve,
     systemInstruction: memoryAnswerSystemInstruction,

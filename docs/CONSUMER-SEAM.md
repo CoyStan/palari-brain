@@ -87,6 +87,15 @@ const result = await answerWithRetrieval(brain, {
 })
 ```
 
+Memory answering is bounded independently of the provider. One answer turn
+may execute at most four calls across all Palari memory tools. A provider may
+answer earlier. If it consumes the fourth call, it receives exactly one final
+tool-disabled turn: answer from the canonical evidence already consulted, or
+state that stored evidence is insufficient. This is not a canned “no”; an
+empty search is not proof that an event did not happen. The OpenAI adapter
+enforces this graceful finalization while retaining seven model dispatches as
+an unreachable-in-normal-operation protocol safety ceiling.
+
 `createOpenAIResponsesTransport` makes exactly one physical POST for each
 invocation and never retries. It places the key only in the Authorization
 header, requires `store: false`, bounds the response body, and omits provider

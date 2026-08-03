@@ -205,6 +205,23 @@ stopping policy, prompt tuning from answers, or global agent framework.
   committed diff and provider-free evidence.
 - Quetzali alone may accept, close, merge, or authorize any live successor.
 
+## Implementation Evidence
+
+- The host contract publishes and enforces a maximum of four calls across all
+  memory tools; a fifth attempt returns `retrieval_budget_exhausted` without
+  executing the requested operation.
+- The OpenAI adapter counts successful memory calls, preserves complete
+  Responses reasoning and function-output history, and after call four sends
+  one request with no tool declarations and `tool_choice: "none"`.
+- Provider-free contracts cover early answers after zero through three calls,
+  evidence-present and evidence-insufficient finalization, zero budget,
+  malicious overflow, tool-calling finalization, and empty finalization.
+- Focused contracts: 26 pass, 0 fail. Full suite: 667 pass, 0 fail, 15
+  skipped across 682 tests. Quickstart: 6/6. Ticket lint, report lint,
+  committed-plus-dirty scope check, and diff checks pass.
+- Provider calls, credential reads, dataset access, benchmark identities, and
+  spend: 0 / `$0.00`.
+
 ## Verification
 
 - `node --test tests/retrieval-answer.contract.test.mjs tests/openai.contract.test.mjs`

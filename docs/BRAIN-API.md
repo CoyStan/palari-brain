@@ -490,18 +490,24 @@ const result = await answerWithRetrieval(brain, {
   userId,
   question,
   questionDate,
-  maxRetrievalCalls: 6,
+  maxRetrievalCalls: 4,
   async provider({
     answerInstructions,
     memoryText,
+    maxRetrievalCalls,
     recommendedMaxOutputTokens,
+    retrievalFinalizationInstructions,
     retrievalTools,
     retrieve,
   }) {
     // Map retrievalTools (the same value as MEMORY_RETRIEVAL_TOOLS) to
     // provider tool declarations. For Gemini:
     const tools = buildGeminiFunctionTools(retrievalTools)
-    // Route each requested call through retrieve.
+    // Route each requested call through retrieve. Palari executes at most
+    // maxRetrievalCalls (never more than 4) across all memory tools.
+    // If the budget is spent, perform one tool-disabled response using
+    // retrievalFinalizationInstructions: answer from consulted evidence or
+    // say stored evidence is insufficient.
     // Honor recommendedMaxOutputTokens (currently 512) while following the
     // direct/concise answer instruction.
     return { abstained: false, text: '...' }
@@ -540,8 +546,10 @@ const provider = createOpenAIRetrievalProvider({ invoke })
 ```
 
 The default is `gpt-5.6-luna` through `POST /v1/responses`, `store: false`,
-low reasoning effort, and at most seven model dispatches (six possible
-retrieval turns plus a final answer). Palari's provider-neutral function
+low reasoning effort, and at most seven model dispatches as an emergency
+protocol ceiling. The normal answer path permits at most four memory-tool
+calls, followed by exactly one tool-disabled finalization response if the
+fourth call did not already produce an answer. Palari's provider-neutral function
 schemas are preserved under explicit OpenAI `strict: false`, because their
 optional fields and `memory_read` root-property `anyOf` do not meet OpenAI's
 strict-schema subset. The host remains strict: it recognizes the function
@@ -551,6 +559,13 @@ tool result so GPT-5.6 reasoning state is not dropped. Because the adapter is
 stateless (`store: false`), it explicitly requests
 `reasoning.encrypted_content` and replays that encrypted item unchanged.
 Public configuration may lower, but cannot raise, the seven-dispatch ceiling.
+It also cannot raise the four-call memory budget. On finalization the adapter
+sets `tool_choice: "none"`, removes tool declarations, preserves all prior
+reasoning and host-owned tool outputs, and asks Luna to answer from consulted
+canonical evidence. If that evidence is insufficient, the answer must say so;
+absence of stored evidence is never converted into proof that an event did not
+happen. Answers produced after zero to three retrieval calls return normally
+without an extra dispatch.
 
 The same subpath exports `createOpenAIMemoryReducer` and
 `createOpenAIGraphExtractor`. Their model-facing outputs use strict root-object
