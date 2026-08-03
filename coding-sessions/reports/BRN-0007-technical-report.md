@@ -131,7 +131,8 @@ The private launcher is intentionally outside git and is not a tracked path.
 - Quickstart: 6/6.
 - Ticket/report/scope checks: pass before freeze commit.
 - Independent pre-dispatch review: GO at `d6f5f26` with no findings.
-- Independent terminal review: pending.
+- Independent terminal review: prior grade and diff-hygiene findings corrected;
+  fresh final review at `4382b72` recommends accept with no findings.
 
 ## Risks / Follow-Ups
 

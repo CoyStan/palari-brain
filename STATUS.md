@@ -38,8 +38,16 @@ label, while normal auto/tools and forced none/no-tools subclauses pass;
 (5) SEMANTIC USE all-ten FAIL, though every graded question used semantic
 search; (6) EXECUTION/ACCOUNTING PASS. Fresh terminal review otherwise
 reconciled all private evidence and reopened only this tracked grade wording.
-Next: corrected terminal re-review, then founder acceptance or a separately
-authorized higher-cap successor—never a v2 rerun.
+The correction and diff gate then passed fresh final review at `4382b72` with
+no findings and a recommendation to accept. Product stop rule: (1) quickstart
+is green 6/6; (2) this unit measurably improved the live journey by converting
+the exact question-5 loop into a bounded answer and PASS, while also producing
+a new PASS on question 6; (3) other frameworks provide generic tool ceilings
+and exit rules, but not Palari's host-enforced cross-surface contract or this
+live evidence; (4) the founder explicitly requested the first-ten test; (5)
+deleting BRN-0006/7 would restore an unbounded Luna search failure and erase
+the only causal live measurement of its repair. Next: founder acceptance or a
+separately authorized higher-cap successor—never a v2 rerun.
 
 Loop state: BRN-0006 FOUR-CALL RETRIEVAL + GRACEFUL FINALIZATION PASSED
 INDEPENDENT REVIEW; FOUNDER ACCEPTANCE PENDING. After accepting BRN-0005,
