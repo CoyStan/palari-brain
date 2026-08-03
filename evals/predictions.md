@@ -1205,3 +1205,113 @@ Predictions, failing categories first:
    makes at most ten official judge calls, and writes a zero-match secret
    scan. Any smoke failure, question error, or miss is the result and
    authorizes no retry, reroll, regrade, prediction edit, or replacement.
+
+## P-set 21 — Luna-low bounded-finalizer first-ten remeasurement, FINAL before execution
+
+Author: repository execution lane, 2026-08-03. After the independent review
+of BRN-0006, the founder explicitly accepted and merged its four-call retrieval
+ceiling and directed one new questions 1-10 test. Fresh identity
+`j4-luna-retrieval-first10-v2` measures that accepted product behavior. It is
+not a rerun, continuation, regrade, or repair of terminal v1. These cases and
+their labels are already inspected, so this is a private causal diagnostic,
+not an unseen-data generalization estimate.
+
+The product cut point is accepted BRN-0006 at `3f42023`; administrative main
+at freeze is `6541572`. The exact ordered IDs remain `08e075c7`, `09d032c9`,
+`16c90bf4`, `5e1b23de`, `80ec1f4f_abs`, `0977f2af`, `0a34ad58`, `0edc2aef`,
+`10d9b85a`, and `1192316e`; their ordered array hashes
+`d3a9a8c234468e0120d605c7868b418a5ab3313384d0d162e11a30ab6d9fe4cf`.
+The ignored MIT-licensed dataset remains
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+Nine positive cases still require 13 labelled answer-bearing sessions; ordinal
+5 is the abstention and receives no zero-session coverage credit. Sealed U8
+`1568498a` is absent and unreachable.
+
+Every experimental factor from P-set 20 remains fixed: OpenAI
+`gpt-5.6-luna`, Standard service, `reasoning.effort: low`, `store:false`, no
+parallel tool calls, encrypted reasoning-item continuation, Gemini
+`gemini-embedding-001`, and the unchanged official
+`gpt-4o-2024-08-06` judge. The five mapped OpenAI functions still hash
+`3a955ef2069603b9bf0842412feb6600a521d7474a1c7a73d7daf11d4fed8354`.
+
+Only the accepted answer-loop behavior differs. `src/retrieval-answer.mjs`
+hashes `4664516f2f1e9cd39fdf8464242b416ee22ae7bf0a06ae6aaee0f0ca63affa34`;
+its normal instructions hash
+`ae1117fead1e7d83a35dc7530015bba2f81f19dff36ec8856fc69a2c7e8568bc`
+and its separate finalization instructions hash
+`bd88676aff8af88a57b24bf60bc0befc3f50db78a58191fec28bcd261c43f8ff`.
+`src/openai.mjs` hashes
+`2b46a772b02f595b29ff4026f5b5a06124d184a3850fc40baa30cbf9cc882fea`.
+The host executes at most four calls across all memory tools. After call four,
+Luna receives exactly one request with no tool declarations and
+`tool_choice: "none"`; the separate seven-dispatch emergency cap remains.
+
+All other frozen product hashes remain: `src/brain.mjs`
+`89851ccfc43ad409fea678a9f72d7d8d18bbfc692a1e588ea841d57fdfb042b7`;
+`src/gemini.mjs`
+`95e61649311476ea6198d2f434165b14d5527b3113553d2ef6a4b597a61bd292`;
+Gemini embedder
+`2f7eb09dcaeafcd4903289023160d19562d9f17a9a312be32ba3a82496a94035`;
+source runtime
+`0b820acfb1a81dc702031fa3002ca9b098aeaefdae68de17534f49dd0cfe89d7`;
+active runtime
+`1b0397fdb00a7181c681ab2aed0750c7051b1b3a8a8dc19ff29c2feb1a9b7c56`;
+incremental judge
+`dff39ba6d4753d373a1f79b78ff16e64f9fd391f473e932a9bb27232b5aafbb2`;
+and official judge
+`5f953cd6f56cfcbb5de8246a7b79a5c7f63199dcd07861c5d8d0fe0bb4cff3ee`.
+
+The private mode-0600 v2 launcher hashes
+`84a55389a824b7bdb7a045446fe994d0b1f9871e2979b9781abe3c61fec0411a`.
+It verifies the frozen v1 launcher template at
+`4f2e425e8239b5304157a47745ddeaa025a14960ae120473a1b0a5fe2b097eb4`,
+generates delegate
+`25506fbbffac2fb6bf2ffcdcd662fb503c9b946629b2a006f43c59f4fa4ed2ee`,
+and generates runtime
+`4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`.
+Offline verification rehashes all eight terminal predecessors, including Luna
+v1 manifest
+`574c865ca3755cf794b002de5b12ec3d474ae235b51e894772222dd97b48b5d8`,
+and confirms both v2 runtime and result are absent.
+
+The exact J4 ledger carries forward at `$4.7428483` accounted, comprising
+`$1.6851439` measured and `$3.0577044` uncertain. This identity has a `$1.00`
+fresh hard cap and `$5.7428483` cumulative boundary. Official current Luna
+short-context Standard prices are frozen at `$0.20` per million input,
+`$0.02` cached input, and `$1.20` output tokens. Each request reserves its
+bounded worst case before dispatch and settles only from validated provider
+usage; Gemini embedding uncertainty remains conservatively accounted.
+Pricing source checked 2026-08-03:
+https://developers.openai.com/api/docs/pricing
+
+One launcher invocation is final. It first runs the planted-indigo semantic
+compatibility smoke. Failure stops before question 1. Otherwise all ten cells
+answer and receive the unchanged judge once, in order. No provider retry,
+effort escalation, selective rerun, prompt tuning, regrade, publication, or
+replacement identity is authorized.
+
+Predictions, failing categories first:
+
+1. COMPLETION/FINALIZATION: the compatibility smoke passes; all ten questions
+   reach non-empty answers and validated judge labels. No question executes
+   more than four memory calls or hits the seven-dispatch emergency ceiling.
+   Ordinal 5 reaches graceful tool-disabled finalization rather than repeating
+   BRN-0005's terminal retrieval loop.
+2. OFFICIAL ACCURACY: preserve P-set 20 unchanged—Luna low reaches at least
+   `7/10`, all five Gemini passes remain PASS, and at least two of
+   `09d032c9`, `0977f2af`, `0a34ad58`, and `0edc2aef` change from FAIL to PASS.
+   Exact per-question labels remain authoritative.
+3. RETRIEVAL CONTROL: `10d9b85a` remains FAIL because BRN-0006 changes loop
+   control, not the measured 0/2-session retrieval miss. Across positive cases,
+   at least 11 of 13 labelled answer-bearing sessions are consulted.
+4. WIRE: every non-final model request offers the same five functions with
+   `tool_choice: "auto"`; every forced finalization omits tools and sends
+   `tool_choice: "none"`. Complete reasoning and host tool outputs remain in
+   stateless continuation, and every reached answer receives one judge label.
+5. SEMANTIC USE: all ten scored questions issue at least one successful
+   `memory_search` using the unchanged real Gemini semantic surface.
+6. EXECUTION/ACCOUNTING: the first command is terminal, remains within the
+   `$1.00` fresh and `$5.7428483` cumulative caps, records exact model usage
+   plus measured/uncertain spend, makes at most ten judge calls, and writes a
+   zero-match exact-value secret scan. Any failure or miss is the result and
+   authorizes no retry, reroll, regrade, edit, or replacement.

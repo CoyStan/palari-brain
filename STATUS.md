@@ -1,5 +1,29 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0007 LUNA FIRST-TEN BOUNDED-FINALIZER FREEZE PREPARED;
+INDEPENDENT PRE-DISPATCH REVIEW PENDING, LIVE CALLS 0. Quetzali accepted and
+merged BRN-0006 at `3f42023`, then directed one fresh questions 1-10 test.
+Identity `j4-luna-retrieval-first10-v2` preserves v1's exact ordered
+population, Gemini semantic embedder, Luna-low Standard answer provider,
+official GPT-4o judge, dataset, prompts, and one-shot discipline. Only the
+accepted product behavior changes: no more than four memory calls and one
+tool-disabled finalization response. P-set 21 carries P-set 20's accuracy
+predictions unchanged and adds the primary structural prediction that all ten
+complete, with ordinal 5 finalizing instead of looping.
+
+Offline verification rehashes 8/8 predecessor bundles and 8/8 product/eval
+inputs, validates the exact ten-question order and dataset, syntax-checks
+generated runtime
+`4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`,
+and confirms private runtime/result absence. The mode-0600 wrapper hashes
+`84a55389a824b7bdb7a045446fe994d0b1f9871e2979b9781abe3c61fec0411a`.
+Exact opening J4 spend is `$4.7428483` accounted = `$1.6851439` measured +
+`$3.0577044` uncertain. Fresh/cumulative hard caps are `$1.00` / `$5.7428483`.
+No credential value was printed or committed; provider calls and fresh spend
+remain 0 / `$0.00`. Full suite is green at 667 pass, 0 fail, 15 skipped across
+682 tests; quickstart is 6/6. Next: commit and push the freeze, then obtain
+fresh independent GO review before the one authorized invocation.
+
 Loop state: BRN-0006 FOUR-CALL RETRIEVAL + GRACEFUL FINALIZATION PASSED
 INDEPENDENT REVIEW; FOUNDER ACCEPTANCE PENDING. After accepting BRN-0005,
 Quetzali selected four

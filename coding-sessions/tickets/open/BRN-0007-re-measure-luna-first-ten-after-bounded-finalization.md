@@ -182,6 +182,22 @@ compare a new provider, or turn this private diagnostic into a benchmark claim.
   `needs-human` after terminal evidence.
 - Only Quetzali may accept, close, merge, publish, or authorize cleanup.
 
+## Pre-Dispatch Freeze Evidence
+
+- Product cut point: accepted BRN-0006 `3f42023`; administrative contract
+  head `6541572` changes no evaluated product byte.
+- Private wrapper / generated delegate / generated runtime SHA-256:
+  `84a55389a824b7bdb7a045446fe994d0b1f9871e2979b9781abe3c61fec0411a`,
+  `25506fbbffac2fb6bf2ffcdcd662fb503c9b946629b2a006f43c59f4fa4ed2ee`,
+  and `4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`.
+- Offline launcher verification: 8/8 predecessor bundles and 8/8
+  product/eval inputs rehashed; dataset/order exact; runtime/result absent;
+  generated runtime syntax valid; wrapper mode 0600.
+- Full suite: 667 pass, 0 fail, 15 skipped across 682 tests. Quickstart: 6/6.
+  Ticket, report, scope, and diff checks pass before freeze commit.
+- Provider calls, credential value reads, fresh result bytes, and fresh spend:
+  0 / 0 / 0 / `$0.00`. Independent pre-dispatch review remains pending.
+
 ## Verification
 
 - `node /home/quetza/palari-brain-private/luna-first10-live-v2-launcher.mjs --verify`

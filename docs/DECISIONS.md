@@ -3,6 +3,16 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-03 (FOUNDER — Quetzali, in session) **Accept and merge BRN-0006,
+  then start one fresh Luna test on LongMemEval S60 questions 1-10.** BRN-0006
+  is accepted and merged at `3f42023`. Successor BRN-0007 uses a fresh private
+  identity, the same ordered questions and experimental controls as BRN-0005,
+  and changes only the accepted four-call + tool-disabled-finalization product
+  behavior. The engineer selected the same `$1.00` fail-closed fresh cap used
+  by v1; exact J4 opening spend is `$4.7428483` accounted. One invocation is
+  terminal whatever happens. There is no reroll, regrade, publication, U8
+  access, or repair authority.
+
 - 2026-08-02 (FOUNDER — Quetzali, in session) **Limit one memory-answer turn
   to four retrieval-tool calls, then require one tool-disabled finalization
   response.** The fourth call is executed; a fifth never is. The provider may
