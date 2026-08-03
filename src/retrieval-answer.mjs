@@ -212,6 +212,8 @@ function capabilitiesOf(brain) {
   const provided = brain?.retrievalCapabilities
   return Object.freeze({
     graphQuery: typeof brain?.exploreGraph === 'function',
+    reranking: provided?.reranking === true &&
+      typeof brain?.rerankEvidence === 'function',
     semantic: provided?.semantic === true,
   })
 }
@@ -337,9 +339,12 @@ async function hybridSearch(
     rankings.push({ rows: semantic, surface: 'semantic' })
   }
 
-  const fused = reciprocalRankFuse(rankings, { limit })
-  const matches = []
-  let chars = 0
+  const fused = reciprocalRankFuse(rankings, {
+    limit: capabilities.reranking
+      ? Math.min(candidateLimit, MAX_HYBRID_LIMIT)
+      : limit,
+  })
+  const candidates = []
   for (const entry of fused) {
     const read = brain.exploreRead(scope, {
       evidenceIds: [entry.evidenceId],
@@ -350,14 +355,44 @@ async function hybridSearch(
     if (!message) continue
     const candidate = decorateAnswerRow(message, referenceTime)
     Object.assign(candidate, {
-      rank: matches.length + 1,
       rrfScore: entry.rrfScore,
       surfaceRanks: entry.surfaceRanks,
       surfaces: entry.surfaces,
     })
-    const cost = JSON.stringify(candidate).length
+    candidates.push(candidate)
+  }
+
+  let ordered = candidates
+  if (capabilities.reranking && candidates.length > 0) {
+    const texts = Object.freeze(candidates.map((candidate) => candidate.text))
+    const scores = await brain.rerankEvidence(phrase, texts)
+    if (!Array.isArray(scores) || scores.length !== candidates.length) {
+      throw new TypeError(
+        'reranker must return one numeric score per canonical candidate.',
+      )
+    }
+    const scored = candidates.map((candidate, index) => {
+      const score = scores[index]
+      if (typeof score !== 'number' || !Number.isFinite(score)) {
+        throw new TypeError(
+          'reranker must return one finite numeric score per canonical candidate.',
+        )
+      }
+      return { ...candidate, rerankScore: score }
+    })
+    ordered = scored.sort((left, right) =>
+      right.rerankScore - left.rerankScore ||
+      right.rrfScore - left.rrfScore ||
+      left.evidenceId.localeCompare(right.evidenceId))
+  }
+
+  const matches = []
+  let chars = 0
+  for (const candidate of ordered.slice(0, limit)) {
+    const ranked = { ...candidate, rank: matches.length + 1 }
+    const cost = JSON.stringify(ranked).length
     if (matches.length && chars + cost > maxChars) break
-    matches.push(candidate)
+    matches.push(ranked)
     chars += cost
   }
 
@@ -367,9 +402,11 @@ async function hybridSearch(
     operation: 'memory_search',
     phrase,
     rankedCandidates: ranked.matches.length,
+    rerankCandidates: capabilities.reranking ? candidates.length : 0,
+    reranked: capabilities.reranking,
     semanticCandidates: semantic.length,
     semanticUsed: capabilities.semantic,
-    truncated: matches.length < fused.length,
+    truncated: matches.length < ordered.length,
   }
 }
 

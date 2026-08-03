@@ -9,7 +9,8 @@
   "exports": {
     ".": "./src/index.mjs",
     "./gemini": "./src/gemini.mjs",
-    "./openai": "./src/openai.mjs"
+    "./openai": "./src/openai.mjs",
+    "./reranker-transformers": "./src/reranker-transformers.mjs"
   },
   "files": [
     "src/brain.mjs",
@@ -28,6 +29,7 @@
     "src/memory-store.mjs",
     "src/openai.mjs",
     "src/quote-context.mjs",
+    "src/reranker-transformers.mjs",
     "src/retrieval-answer.mjs",
     "src/statement-extraction.mjs",
     "src/store.mjs",
@@ -51,6 +53,7 @@
     "reached-prefix-regression": "node evals/run-reached-prefix-retrieval-regression.mjs",
     "trust-bench": "node evals/run-trust-benchmark.mjs",
     "scale-probe": "node evals/run-scale-probe.mjs",
+    "reranker-bakeoff": "node evals/run-reranker-bakeoff.mjs --verify",
     "ticket": "node scripts/ticket-system.mjs"
   },
   "devDependencies": {

@@ -184,6 +184,10 @@ async function hardenStoreFiles(prepared) {
 }
 
 export async function createPalariBrain(options = {}) {
+  const reranker = options.reranker ?? null
+  if (reranker !== null && typeof reranker !== 'function') {
+    throw new TypeError('reranker must be a function when provided.')
+  }
   const prepared = await prepareStoreLocation(options)
   let store
   try {
@@ -198,6 +202,7 @@ export async function createPalariBrain(options = {}) {
     const retrievalCapabilities = Object.freeze({
       graphIndex: typeof options.graphExtractor === 'function',
       graphQuery: true,
+      reranking: reranker !== null,
       semantic: typeof options.embedder === 'function',
     })
     return Object.freeze({
@@ -219,6 +224,7 @@ export async function createPalariBrain(options = {}) {
       listIndexEntries: gate.listIndexEntries,
       listPendingReductions: gate.listPendingReductions,
       readReadyDigest: gate.readReadyDigest,
+      ...(reranker === null ? {} : { rerankEvidence: reranker }),
       retrievalCapabilities,
       listStatements: gate.listStatements,
       listStatementsForBriefing: gate.listStatementsForBriefing,

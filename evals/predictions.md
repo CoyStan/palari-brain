@@ -1315,3 +1315,70 @@ Predictions, failing categories first:
    plus measured/uncertain spend, makes at most ten judge calls, and writes a
    zero-match exact-value secret scan. Any failure or miss is the result and
    authorizes no retry, reroll, regrade, edit, or replacement.
+
+## P-set 22 — provider-neutral local reranker bakeoff, FINAL before execution
+
+Author: repository implementation lane, 2026-08-03. This is an offline,
+synthetic retrieval-order measurement, not a LongMemEval execution or an
+end-to-end answer score. No provider credential, paid request, generation
+model, dataset row, known benchmark answer, or sealed identity participates.
+
+The exact 16-case bank is `brn-0008/v1`; its canonical JSON SHA-256 is
+`a89f5179874313d60e4bf46b7af8aad74ad31398873f55f1f4796dbaf96784f1`
+and source SHA-256 is
+`ad57b64b8f6c2e6e953fdf1795215febce46b4ea3ba76d6b9dc95a1f2d279343`.
+It has 15 positive cases and one honest-absence case across possessions,
+preferences, corrections, prior-Palari advice, temporal distinctions,
+conflicts, and lexical distractors. The frozen RRF-order baseline is top-1
+`0/15`, MRR `0.29222222222222227`, and recall@5 `15/15`.
+
+The runner SHA-256 is
+`7be1dd1c85c2b59a5cb83bb465fd932fe7e3dbff63f7c62a91283dafa9f9d0c8`;
+the adapter SHA-256 is
+`ab2776abab2177ee84cd8887a1b3b5550a5c553db965ac1acb9edcf8b1afcc2b`.
+The isolated runtime is exactly `@huggingface/transformers@4.2.0`. Its install,
+model cache, and mode-0600 result files are outside every repository. Its five
+high-severity audit findings are retained as a packaging finding: Palari does
+not declare or transitively ship this optional runtime.
+
+The exact Apache-2.0 model identities and fp32 ONNX execution are:
+
+- `cross-encoder/ms-marco-MiniLM-L6-v2` at
+  `c5ee24cb16019beea0893ab7796b1df96625c6b8`;
+- `cross-encoder/ms-marco-MiniLM-L12-v2` at
+  `7b0235231ca2674cb8ca8f022859a6eba2b1c968`;
+- `mixedbread-ai/mxbai-rerank-xsmall-v1` at
+  `b5c6e9da73abc3711f593f705371cdbe9e0fe422`.
+
+Each model gets one ordered pass over the bank after its model/tokenizer load.
+The first scored invocation, failure included, is terminal and written to its
+exclusive result path. There is no model/revision/dtype swap, retry, timing
+rerun, threshold sweep, prompt change, selective case rerun, or replacement
+identity after a score is visible. Latency is total warm wall time divided by
+16 cases on this machine. Top-1 and MRR use only the 15 labelled positives;
+recall uses the frozen return cutoff 5. The absence case reports raw ordering
+without inventing a relevant label.
+
+Selection is frozen before outcomes. Eligibility requires top-1 `>=12/15`,
+MRR `>=0.85`, and recall@5 `=15/15`. A model dominates another only when its
+top-1, MRR, and recall@5 are all no worse, its milliseconds/case is no higher,
+and one comparison is strict. The lowest-latency nondominated eligible model
+is the default. If none qualifies, no default ships.
+
+Predictions, failing categories first:
+
+1. EXECUTION: all three exact revisions load and complete their single bank
+   pass under Transformers.js 4.2.0; no terminal model result is `failed`.
+2. QUALITY: MiniLM-L6 and MiniLM-L12 each reach at least `12/15` top-1;
+   mxbai-xsmall reaches at least `13/15`. Every model reaches MRR `>=0.85`
+   and preserves recall@5 `15/15`.
+3. LATENCY: every model remains below 500 warm milliseconds/case. MiniLM-L6
+   is faster than MiniLM-L12 and mxbai-xsmall on this CPU.
+4. SELECTION: MiniLM-L6 is eligible, nondominated, and becomes the optional
+   measured default because it is the lowest-latency frontier member.
+5. SAFETY: all three results report zero canonical content mutations; the
+   reranker returns only locating scores, and no quote, speaker, time, ID,
+   scope, provenance, or relevance label is model-authored.
+6. ACCOUNTING: provider spend is exactly `$0.00`; no credential is read, no
+   generation or live provider call occurs, and no model/cache/result byte is
+   present in the committed diff.

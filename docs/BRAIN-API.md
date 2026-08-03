@@ -597,6 +597,43 @@ falls back honestly to ranked-only search instead of dialing out or claiming
 semantic behavior. `memory_graph` never calls the extractor; graph indexing
 is an explicit earlier `brain.indexGraph(scope)` operation.
 
+An optional provider-neutral second stage can rerank the bounded RRF pool:
+
+```js
+import { createPalariBrain } from 'palari-brain'
+import { createTransformersReranker } from 'palari-brain/reranker-transformers'
+
+const reranker = createTransformersReranker({
+  cacheDir: '/an/application-owned/cache/outside-the-repository',
+  modelId: 'cross-encoder/ms-marco-MiniLM-L6-v2',
+})
+const brain = await createPalariBrain({ embedder, reranker, ...storage })
+```
+
+`reranker(query, canonicalTexts) -> number[]` receives an immutable ordered
+array of complete canonical message text after ranked/semantic RRF. It must
+return exactly one finite number per candidate. Palari sorts descending by
+that locating score, with RRF score and evidence ID as deterministic ties,
+and only then applies the caller's existing `limit` and `maxChars`. It cannot
+author or change text, speaker, time, scope, IDs, or provenance. A configured
+reranker that throws or returns a malformed batch fails the search loudly;
+there is no silent partial-ranking fallback. Without one, RRF behavior is
+unchanged. `reranked`, `rerankCandidates`, and `rerankScore` are additive
+response metadata.
+
+The Transformers adapter pins its small Apache-2.0 cross-encoders by exact
+repository revision, lazily loads at most one tokenizer/model pair, caps the
+query at 500 characters, the pool at 50 messages, and each complete message
+at 100,000 characters. It makes no generation or credential request. Palari
+does not depend on `@huggingface/transformers`: its 4.2.0 Node dependency
+tree had five high-severity audit findings when evaluated for BRN-0008.
+Applications that opt in must install and audit a compatible runtime in their
+own boundary or inject `loadRuntime`. Cold model download, weight storage,
+and cache lifecycle are therefore application responsibilities. `modelId` is
+required unless a measured default is later exported; the code does not pick
+an unmeasured model. A missing runtime is terminal and clearly labelled; RRF
+remains the default when no reranker was configured.
+
 `result.consultedEvidenceIds` contains every canonical message or graph edge
 returned to the answer callback. `result.retrievalTranscript` records every
 bounded tool request/result. Search ranking and graph structure locate
@@ -782,6 +819,11 @@ nothing pretends.
 the optional semantic surface is configured. `answerWithRetrieval` uses that
 host-derived capability to decide whether `memory_search` runs one or two
 ranking surfaces.
+
+`brain.retrievalCapabilities.reranking` independently reports whether the
+optional cross-encoder stage is configured. Embedding and reranking are
+separate: the former widens semantic recall, while the latter reorders only
+the already bounded, canonical candidate pool.
 
 ### Derived temporal graph (optional; `graphExtractor` option)
 

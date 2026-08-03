@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0008
 children: []
-status: open
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-03T19:40:02Z
 target_branch: "main"
 branch: "ticket/BRN-0008-add-provider-neutral-memory-reranking"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0008-add-provider-neutral-memory-reranking"
@@ -120,7 +120,8 @@ download, and no model or benchmark result bytes may enter git.
   score. Without a reranker, behavior and response shape remain compatible.
 - Add a local Transformers.js adapter with exact model/revision allowlisting,
   lazy loading, bounded query/document sizes, batch limits, and dependency
-  injection for provider-free tests. Model cache lives outside git.
+  injection for provider-free tests. The audited runtime remains an optional
+  consumer-owned dependency; model cache lives outside git.
 - Before any comparative score is produced, freeze an exact synthetic bank,
   metrics, model revisions, latency method, selection rule, and predictions in
   `evals/predictions.md`. Cases must span possessions, preferences,
@@ -151,6 +152,11 @@ download, and no model or benchmark result bytes may enter git.
 - No model fine-tuning, prompt tuning against known benchmark answers,
   threshold sweep, repeated timing run selected for presentation, or claim
   that a synthetic reranking bank establishes end-to-end answer accuracy.
+- No addition of `@huggingface/transformers` to Palari's dependency graph.
+  An install audit of 4.2.0 exposed five high-severity direct/transitive
+  findings (including ONNX archive and Sharp/libvips paths), so the recorded
+  bakeoff runs in an isolated untracked runtime and ships no vulnerable
+  package transitively.
 - No vendored model weights or cache files in git. No BGE model download in
   this ticket: the inspected community ONNX conversion does not carry a clear
   license field, and the upstream 0.6B model is outside the low-latency trial.
@@ -175,8 +181,10 @@ download, and no model or benchmark result bytes may enter git.
    latency, model/revision/runtime identity, and raw per-case ranks. Each model
    gets one recorded scored pass; a bad result is retained, not rerun.
 6. Selection follows the frozen Pareto rule instead of choosing the model that
-   happens to repair one known case. Product code, adapter defaults, and tests
-   contain no LongMemEval ID or known battery/power-bank wording.
+  happens to repair one known case. Product code, adapter defaults, newly
+  added tests, and the bakeoff bank contain no LongMemEval ID or known
+  battery/power-bank wording. Pre-existing retrieval compatibility fixtures
+  are not treated as tuning data and remain unchanged.
 7. `docs/DECISIONS.md`, `docs/BRAIN-API.md`, the technical report, human
    report, and `STATUS.md` record upstream/model provenance, exact results,
    costs (`$0.00` provider spend), limitations, and the product stop rule.

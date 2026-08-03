@@ -182,6 +182,103 @@ test('hybrid answer retrieval bridges zero-overlap wording to canonical text',
     )
   })
 
+test('optional reranker sees immutable canonical candidates and reorders the bounded pool',
+  async (t) => {
+    let received
+    const reranker = async (query, texts) => {
+      assert.equal(query, 'Which material is my travel mug made from?')
+      assert.ok(Object.isFrozen(texts))
+      received = texts
+      return texts.map((text) => text.includes('titanium') ? 10 : 0)
+    }
+    const brain = await openBrain(t, { reranker })
+    await seed(brain, [
+      { user: 'The ceramic mug in the office kitchen has a chipped rim.' },
+      { user: 'My travel mug is titanium and has a dark green lid.' },
+      { user: 'A travel article recommended packing a reusable cup.' },
+      { user: 'The glass mug belongs to the upstairs meeting room.' },
+    ])
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider({ retrievalCapabilities, retrieve }) {
+        assert.equal(retrievalCapabilities.reranking, true)
+        const found = await retrieve({
+          input: {
+            limit: 1,
+            phrase: 'Which material is my travel mug made from?',
+          },
+          tool: 'memory_search',
+        })
+        assert.equal(found.reranked, true)
+        assert.ok(found.rerankCandidates > found.matches.length)
+        assert.equal(found.matches.length, 1)
+        assert.equal(
+          found.matches[0].text,
+          'My travel mug is titanium and has a dark green lid.',
+        )
+        assert.equal(found.matches[0].rerankScore, 10)
+        assert.equal(found.matches[0].rank, 1)
+        assert.ok(found.matches[0].evidenceId)
+        assert.ok(found.matches[0].observedAt)
+        return { text: 'It is titanium.' }
+      },
+      question: 'Which material is my travel mug made from?',
+    })
+    assert.equal(result.answer, 'It is titanium.')
+    assert.ok(received.length > 1)
+    assert.ok(received.every((text) => typeof text === 'string'))
+  })
+
+test('configured reranker failures are terminal and never become partial evidence',
+  async (t) => {
+    const failures = [
+      async () => undefined,
+      async () => [],
+      async () => [1, 2],
+      async () => ['1'],
+      async () => [NaN],
+      async () => [Infinity],
+      async () => { throw new Error('runtime stopped') },
+      async (_query, texts) => { texts[0] = 'changed'; return [1] },
+    ]
+    for (const [index, reranker] of failures.entries()) {
+      await t.test(`failure ${index + 1}`, async (subtest) => {
+        const brain = await openBrain(subtest, { reranker })
+        await seed(brain, [{ user: 'My desk lamp has a brass base.' }])
+        await assert.rejects(() => answerWithRetrieval(brain, {
+          ...SCOPE,
+          async provider({ retrieve }) {
+            await retrieve({
+              input: { phrase: 'desk lamp base' },
+              tool: 'memory_search',
+            })
+            return { text: 'This line must not be reached.' }
+          },
+          question: 'What is the lamp base made from?',
+        }))
+      })
+    }
+  })
+
+test('invalid reranker configuration fails before creating store state',
+  async (t) => {
+    const root = await mkdtemp(join(tmpdir(), 'palari-invalid-reranker-'))
+    t.after(() => rm(root, { force: true, recursive: true }))
+    const statePath = join(root, 'nested', 'state.json')
+    await assert.rejects(
+      () => createPalariBrain({
+        memoryEnabled: true,
+        reranker: {},
+        statePath,
+        workspaceId: 'invalid-reranker',
+      }),
+      /reranker must be a function/,
+    )
+    await assert.rejects(() => import('node:fs/promises').then(({ stat }) =>
+      stat(join(root, 'nested'))), { code: 'ENOENT' })
+  })
+
 test('reciprocal-rank fusion rewards evidence found by both surfaces', () => {
   const fused = reciprocalRankFuse([
     {

@@ -3,6 +3,24 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-03 (FOUNDER — Quetzali, in session) **Add and honestly measure a
+  provider-neutral local memory reranker.** After reviewing Graphiti, Mem0,
+  FastEmbed, FlagEmbedding, Mixedbread, and Sentence Transformers, the
+  founder approved retrieve-then-rerank rather than replacing Gemini
+  embeddings or tuning the answer prompt against a known benchmark case.
+  BRN-0008 freezes a heterogeneous synthetic bank and one pass each for exact
+  Apache-2.0 revisions of MiniLM-L6, MiniLM-L12, and mxbai-rerank-xsmall.
+  Only a preregistered quality/latency Pareto winner may become the optional
+  default; no winner means the generic seam ships without one. The community
+  BGE ONNX conversion was excluded before download because its repository did
+  not state a clear license and the upstream 0.6B model was outside this
+  low-latency trial. An attempted `@huggingface/transformers@4.2.0` install
+  exposed five high-severity direct/transitive audit findings, so Palari will
+  not declare or transitively ship that runtime. The offline `$0.00` bakeoff
+  uses an isolated untracked runtime/cache; consumers own installation,
+  audit, weights, and cache if they opt in. No provider key, live request,
+  generation call, LongMemEval identity, or benchmark answer is authorized.
+
 - 2026-08-03 (FOUNDER — Quetzali, in session) **Accept and merge BRN-0006,
   then start one fresh Luna test on LongMemEval S60 questions 1-10.** BRN-0006
   is accepted and merged at `3f42023`. Successor BRN-0007 uses a fresh private
