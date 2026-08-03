@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0006 FOUR-CALL RETRIEVAL + GRACEFUL FINALIZATION IMPLEMENTED;
-INDEPENDENT REVIEW PENDING. After accepting BRN-0005, Quetzali selected four
+Loop state: BRN-0006 FOUR-CALL RETRIEVAL + GRACEFUL FINALIZATION PASSED
+INDEPENDENT REVIEW; FOUNDER ACCEPTANCE PENDING. After accepting BRN-0005,
+Quetzali selected four
 memory searches as the safe per-answer bound. The governed R2 contract at
 `7ef42f1` records the cross-framework pattern: retrieval engines bound each
 result set, while agent orchestrators separately cap tool calls and route to a
@@ -19,7 +20,8 @@ malformed/tool-calling finalization, complete reasoning continuation, and
 unchanged secret/no-store/no-retry boundaries. Provider calls, credential
 reads, new identities, dataset access, and spend are all 0 / `$0.00`. Full
 suite is green at 667 pass, 0 fail, 15 skipped across 682 tests; quickstart is
-6/6. Next: fresh independent review, then founder acceptance or reopening.
+6/6. Fresh independent review found no issues and recommends `accept`. Next:
+founder acceptance or reopening; any live successor remains a separate gate.
 
 Loop state: BRN-0005 LUNA-LOW FIRST-TEN COMPARISON TERMINAL FAILED; NO RERUN.
 After committed freeze and fresh independent GO at `bc50322`, the founder's
