@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0015 CITED LUNA + ETTIN FIRST-TEN IDENTITY FROZEN OFFLINE;
-FOUNDER CAP NOT YET AUTHORIZED. Accepted BRN-0014 is merged/pushed at
+EXACT FOUNDER CAP AUTHORIZED; ONE INVOCATION NEXT. Accepted BRN-0014 is merged/pushed at
 `c6e29c0`; canonical administrative head `4081ada` adds only this successor
 contract. Fresh identity `j4-luna-ettin-cited-first10-v1` preserves terminal
 BRN-0013's exact ten non-U8 questions, sessions, Gemini embedder, native Ettin,
@@ -30,13 +30,15 @@ Full suite passes 705 / fails 0 / skips 15 across 720 tests; quickstart passes
 6/6; the 32-file package dry-run is clean.
 
 Opening cumulative spend remains `$6.03072623` = `$1.72334288` measured +
-`$4.30738335` uncertain. Proposed boundaries are `$1.50` fresh and
-`$7.53072623` cumulative, but the BRN-0013 cap was consumed and cannot be
-reused. Fresh independent review at exact
+`$4.30738335` uncertain. On 2026-08-04 the founder explicitly authorized
+identity `j4-luna-ettin-cited-first10-v1` for exactly one invocation under
+`$1.50` fresh / `$7.53072623` cumulative accounted caps; this is new authority
+and does not reuse BRN-0013. Fresh independent review at exact
 `38800533af260861945b204e829383159f78eb1f` found no P0-P3 issue and
-recommends GO only after explicit cap confirmation. Next: commit/push this
-clean review record, then remain stopped for founder authority over exactly
-`$1.50` fresh / `$7.53072623` cumulative.
+recommends GO after exact cap confirmation. Next: commit/push this founder GO,
+repeat inert verification, set only the two frozen confirmation variables,
+and invoke the one-shot launcher once. Any smoke failure, cap stop, provider
+failure, score, or seal outcome is terminal.
 
 Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
 SIX REVIEW P1S AND ONE P3 REPAIRED, CLEANLY REREVIEWED, AND ACCEPTED. The terminal BRN-0013 score remains immutable at

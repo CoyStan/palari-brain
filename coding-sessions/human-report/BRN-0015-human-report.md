@@ -36,6 +36,7 @@ U8 is unreachable, and the one-shot identity cannot execute twice.
 
 ## Recommended Next Move
 
-Fresh independent pre-dispatch review is clean. Confirm exactly a `$1.50`
-fresh cap to authorize the one frozen invocation, taking cumulative accounted
-spend from `$6.03072623` to at most `$7.53072623`; otherwise remain stopped.
+Fresh independent pre-dispatch review is clean, and the founder has confirmed
+exactly the `$1.50` fresh / `$7.53072623` cumulative caps for one invocation.
+Commit this GO, verify once more without credentials, then run the frozen
+launcher exactly once and record its terminal result.

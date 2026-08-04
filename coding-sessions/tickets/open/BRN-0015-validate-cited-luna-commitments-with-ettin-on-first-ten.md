@@ -196,6 +196,10 @@ founder cap. Opening cumulative accounted spend is `$6.03072623`:
   `38800533af260861945b204e829383159f78eb1f` found no P0-P3 issue,
   independently repeated the freeze/meter/seal/suite checks, and recommends GO
   only after explicit founder confirmation of the exact cap.
+- On 2026-08-04 Quetzali authorized verbatim: `I authorize BRN-0015
+  j4-luna-ettin-cited-first10-v1 for one invocation under the $1.50 fresh /
+  $7.53072623 cumulative accounted cap.` This satisfies the sole remaining
+  founder gate for exactly one invocation and grants nothing beyond it.
 
 ## Verification
 

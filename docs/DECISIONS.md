@@ -3,6 +3,19 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (FOUNDER GO — BRN-0015 cited Luna + Ettin first ten)
+  **Authorize exactly one invocation of frozen identity
+  `j4-luna-ettin-cited-first10-v1` under a `$1.50` fresh /
+  `$7.53072623` cumulative accounted cap.** Quetzali confirmed the exact run
+  ID and both boundaries verbatim after P-set 27, the complete private freeze,
+  and clean independent GO review were pushed. The launcher may set only its
+  two frozen non-secret confirmation variables, reserve/consume the identity,
+  run the local Ettin and live cited-answer smokes, and proceed through the ten
+  ordered non-U8 answer/judge cells only if both pass. The first invocation is
+  terminal whatever happens. This authority does not permit retry, resume,
+  reroll, regrade, result-driven patching, replacement identity, publication,
+  U8 access, or spend above either cap.
+
 - 2026-08-04 (BRN-0015 — clean pre-dispatch review) **The frozen cited Luna +
   Ettin identity is structurally ready, but no provider dispatch is authorized
   yet.** Fresh read-only review at

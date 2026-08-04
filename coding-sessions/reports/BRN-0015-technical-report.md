@@ -3,9 +3,9 @@
 ## State
 
 Fresh cited-answer Luna + Ettin first-ten identity is frozen offline,
-independently reviewed with no P0-P3 finding, and blocked only on a new exact
-founder spend cap. No credential, model inference, provider transport, result
-identity, or spend has occurred.
+independently reviewed with no P0-P3 finding, and authorized for exactly one
+invocation under the preregistered caps. No credential, model inference,
+provider transport, result identity, or spend has occurred yet.
 
 ## Causal Treatment
 
@@ -49,9 +49,9 @@ live cited-answer smoke and ordered questions. Every provider request reserves
 against both caps before transport, and there is no transport retry.
 
 Opening cumulative spend is `$6.03072623` = `$1.72334288` measured +
-`$4.30738335` uncertain. Proposed caps are `$1.50` fresh and `$7.53072623`
-cumulative. Those numbers are preregistered but not authorized; runtime
-confirmation must not be set until the founder explicitly confirms the cap.
+`$4.30738335` uncertain. Caps are `$1.50` fresh and `$7.53072623` cumulative.
+Those numbers were preregistered and the founder confirmed them verbatim on
+2026-08-04 for exactly one invocation. No broader authority exists.
 
 ## Files Changed
 
