@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER IMPLEMENTED AND MEASURED;
-FINAL INDEPENDENT REVIEW CLEAN; FOUNDER ACCEPTANCE NEXT. After accepting and merging BRN-0008, Quetzali explicitly directed a
+FOUNDER-ACCEPTED AND MERGE AUTHORIZED. After accepting and merging BRN-0008, Quetzali explicitly directed a
 new governed ticket for working local Ettin support. Metadata-only recon of
 exact Apache-2.0 revision
 `9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6` corrected the head definition to
@@ -84,8 +84,9 @@ focused 9/9, full suite 694 pass / 0 fail / 15 skipped across 709, quickstart
 diff checks.
 The final fresh read-only review at `ee4ec12` independently reproduced the
 command/excerpt/runtime/result/artifact evidence, found no P0-P3 issue, and
-recommends `accept`. BRN-0009 remains in review and unmerged pending explicit
-founder acceptance.
+recommends `accept`. On 2026-08-04 Quetzali explicitly accepted BRN-0009 and
+directed a fresh governed end-to-end Ettin validation. Next: merge BRN-0009,
+then freeze the successor without rerunning or regrading P-set 24.
 
 Loop state: BRN-0008 FOUNDER-ACCEPTED AND MERGE AUTHORIZED; ETTIN-17M
 COMPATIBILITY TERMINAL FAILED; BANK NOT RUN.
