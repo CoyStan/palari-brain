@@ -1551,3 +1551,100 @@ separately recorded exact hashes and `4.2.0`. This audit binds the preserved
 terminal commands to the preserved full runtime closure; it does not alter a
 result byte, rerun a score, or claim that the local transcript is a signed
 third-party attestation.
+
+## P-set 26 — repaired cached Ettin + Luna first-ten, FINAL before execution
+
+Status: **FINAL before any BRN-0013 Ettin model inference, credential read,
+provider dispatch, or LongMemEval score.** Fresh identity
+`j4-luna-ettin-first10-v2` is a successor to terminal BRN-0010, never a
+resume, retry, rerun, or regrade. These ten cases are already inspected; this
+is a private causal integration diagnostic, not unseen-user accuracy.
+
+The exact S60 question order is `08e075c7`, `09d032c9`, `16c90bf4`,
+`5e1b23de`, `80ec1f4f_abs`, `0977f2af`, `0a34ad58`, `0edc2aef`, `10d9b85a`,
+and `1192316e`; ordered-array SHA-256
+`d3a9a8c234468e0120d605c7868b418a5ab3313384d0d162e11a30ab6d9fe4cf`.
+Dataset SHA-256 is
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+Sealed U8 `1568498a` is absent and unreachable.
+
+The scored control remains terminal BRN-0007: Luna `gpt-5.6-luna`, Standard,
+low reasoning, `store:false`; Gemini `gemini-embedding-001`; official
+`gpt-4o-2024-08-06` judge; exact sessions, prompts, schemas, serial order,
+semantic behavior, four aggregate memory-call ceiling, tool-disabled
+finalization, and grading. Its six labels were
+`PASS, FAIL, PASS, PASS, PASS, PASS`; later rows were not completely graded.
+Terminal BRN-0010 held those factors and added accepted native Ettin, but
+stopped before a score in cached tokenizer discovery. The sole causal change
+from BRN-0010 is accepted BRN-0012's absolute cached-directory loader repair.
+
+Product cut point is merged BRN-0012 `90e1837`; canonical administrative head
+is clean `784de723daf5be9824b5ef2f18b274eff94e1313`. Exact reranker source
+SHA-256 is
+`b616a75f0833d2b553da320ced3b1e68f8877829ebb9d3aa3cdb917147235e27`.
+The model remains Apache-2.0
+`cross-encoder/ettin-reranker-17m-v1` revision
+`9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6`, fp32 ONNX, with accepted native
+CLS -> Dense/GELU -> LayerNorm -> Dense head. Seven cached model/head files
+are pinned by size/hash in the launcher. The isolated
+`@huggingface/transformers@4.2.0` closure remains 3,208 files,
+706,843,605 bytes, one contained symlink, SHA-256
+`a0aca4625ff6793abaf7fb0db2b01328dee50eb7488e3c5a869dfe2d5ae93d96`.
+
+Private mode-0600 launcher
+`/home/quetza/palari-brain-private/luna-ettin-first10-live-v2-launcher.mjs`
+has SHA-256
+`d9242b407b7477168a9c746bf5350659222f7e6ad3a329ad2ed79e186de57a63`.
+It generates mode-0600 runtime SHA-256
+`df2b746bbc422e88bbf773eeab68292ea1ad85d026988e4ab7ff765a4349a50a`
+from terminal template SHA-256
+`4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`.
+Offline verification rehashes 218 artifacts across ten predecessor manifests,
+including terminal BRN-0010, ten product/eval files, all seven Ettin files,
+the complete runtime closure, dataset/order, and absent result identity without
+reading credentials.
+
+Opening cumulative spend is unchanged at `$5.27173386`: `$1.70023596`
+measured plus `$3.5714979` uncertain. This identity has a `$1.50` fresh
+accounted cap and `$6.77173386` cumulative boundary. Every provider request
+reserves before dispatch; all three transports are metered; no transport
+retries. The one invocation first reserves and consumes the exclusive
+identity, runs one provider-free real-brain Ettin smoke before `.env`, then one
+live Gemini-semantic + Ettin + Luna compatibility smoke. Any failure is
+terminal before question 1; otherwise all ten answer and are judged once in
+order.
+
+Predictions, failing categories first:
+
+1. COMPATIBILITY: the pinned runtime/model/head closure loads once through the
+   validated absolute revision directory. The local real-brain smoke returns
+   the direct travel-mug statement first with finite one-for-one scores, zero
+   input mutation, and `reranked: true`. The live smoke performs Gemini
+   semantic search, reports Ettin reranking, and Luna answers the planted
+   indigo fact.
+2. COMPLETION: both smokes pass and all ten ordered questions receive one
+   non-empty Luna answer plus one validated official label under the cap. No
+   answer makes more than four aggregate memory calls; forced finalization, if
+   reached, answers on its single tool-disabled dispatch.
+3. OFFICIAL ACCURACY: objective `10/10`; expected floor at least `7/10`. The
+   five BRN-0007 PASS labels among ordinals 1-6 remain PASS; `09d032c9`
+   changes FAIL to PASS because Ettin elevates already-returned answer-bearing
+   preference evidence; and at least one of ordinals 7, 8, or 10 passes.
+   `10d9b85a` is expected to remain FAIL because reranking cannot recover
+   previously absent candidate sessions. The objective is not permission to
+   tune, reroll, or selectively rescore.
+4. RETRIEVAL/RERANK: at least 11 of 13 required answer-bearing sessions are
+   consulted. Every successful non-empty scored `memory_search` reports
+   semantic use and `reranked: true`; every Ettin call receives at most 50
+   immutable complete candidates, returns exactly one finite score per
+   candidate, and records zero canonical-content mutation.
+5. WIRE: non-final Luna requests preserve all five tools and
+   `tool_choice: "auto"`; forced finalization omits tools and uses
+   `tool_choice: "none"`. Complete reasoning and function outputs remain in
+   stateless continuation, and every reached answer is judged exactly once.
+6. EXECUTION/ACCOUNTING: one terminal invocation remains within `$1.50` fresh
+   and `$6.77173386` cumulative accounted caps, records measured/uncertain
+   usage and local reranker telemetry, seals every private artifact with
+   hashes/modes, and reports zero exact credential matches with no sealing
+   error. Any failed prediction or stop is the result and authorizes no retry,
+   reroll, regrade, repair-in-place, or replacement identity.

@@ -185,6 +185,25 @@ reached.
   or selective retry requires fresh explicit founder authority and a new
   preregistration. Routine review/merge authority does not waive that gate.
 
+## Pre-Dispatch Freeze Evidence
+
+- Product cut point: merged BRN-0012 `90e1837`; clean canonical administrative
+  head `784de723daf5be9824b5ef2f18b274eff94e1313` adds only this ticket contract.
+- Private launcher / generated runtime SHA-256:
+  `d9242b407b7477168a9c746bf5350659222f7e6ad3a329ad2ed79e186de57a63` /
+  `df2b746bbc422e88bbf773eeab68292ea1ad85d026988e4ab7ff765a4349a50a`.
+  Terminal runtime-template SHA-256 is
+  `4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`.
+- Offline launcher verification: 10/10 predecessor bundles and 218/218
+  predecessor artifacts rehashed; 10/10 product/eval inputs, 7/7 Ettin files,
+  dataset/order, and the 3,208-file runtime closure rehashed; result absent;
+  launcher/runtime mode 0600; syntax and generated runtime verification pass.
+- Focused contracts: 10/10. Full suite: 695 pass, 0 fail, 15 skipped across
+  710. Quickstart: 6/6.
+- Provider calls, credential reads, local model inference, fresh result bytes,
+  and fresh spend: 0 / 0 / 0 / 0 / `$0.00`. Independent pre-dispatch review
+  remains mandatory before the one invocation.
+
 ## Verification
 
 - `node /home/quetza/palari-brain-private/luna-ettin-first10-live-v2-launcher.mjs --verify`

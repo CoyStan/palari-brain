@@ -3,6 +3,19 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (FOUNDER GO — BRN-0013 repaired Ettin + Luna first ten)
+  **Authorize exactly one fresh `j4-luna-ettin-first10-v2` invocation under a
+  `$1.50` fresh / `$6.77173386` cumulative accounted cap after committed
+  preregistration and independent GO review.** Quetzali accepted BRN-0011,
+  directed correct Ettin integration and rerun/fix work, and delegated routine
+  governed engineering/review/merge until a CEO-level blocker. BRN-0012 is
+  merged at `90e1837`; BRN-0013 carries the unchanged `$5.27173386` opening
+  ledger and exact BRN-0010 treatment except for that accepted loader repair.
+  One provider-free local smoke and one live compatibility smoke precede the
+  ten ordered questions. Any failure or score is terminal. Ten of ten is the
+  objective, never authority for reroll, regrade, answer-specific tuning, or a
+  second identity. Sealed U8 remains unreachable.
+
 - 2026-08-04 (BRN-0012 — delegated acceptance) **Accept and merge the
   cached-only Ettin loader repair after a clean independent review.** The
   reviewer inspected exact commit

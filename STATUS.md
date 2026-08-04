@@ -1,5 +1,30 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0013 REPAIRED ETTIN + LUNA FIRST-TEN FROZEN; INDEPENDENT
+PRE-DISPATCH REVIEW NEXT. BRN-0012 was independently accepted, merged, and
+pushed at `90e1837`; canonical administrative head `784de72` adds only this
+evaluation contract. Fresh identity `j4-luna-ettin-first10-v2` preserves the
+exact BRN-0010 treatment and changes only the accepted absolute cached-model
+directory repair. It selects the ten fixed non-U8 S60 questions, Luna
+`gpt-5.6-luna` Standard/low/no-store, Gemini `gemini-embedding-001`, official
+`gpt-4o-2024-08-06` judge, four memory calls plus tool-disabled finalization,
+and one serial answer/judge per question. Opening cumulative spend remains
+`$5.27173386` = `$1.70023596` measured + `$3.5714979` uncertain; hard caps are
+`$1.50` fresh / `$6.77173386` cumulative.
+
+Private launcher SHA-256 is
+`d9242b407b7477168a9c746bf5350659222f7e6ad3a329ad2ed79e186de57a63`;
+generated runtime SHA-256 is
+`df2b746bbc422e88bbf773eeab68292ea1ad85d026988e4ab7ff765a4349a50a`.
+Offline verification rehashed 218 artifacts in ten terminal predecessors,
+ten product/eval inputs, seven Ettin model/head files, the 3,208-file runtime
+closure, dataset/order, clean canonical checkout, caps, and absent result.
+Focused contracts pass 10/10; full suite passes 695 / fails 0 / skips 15;
+quickstart is green 6/6. P-set 26 is FINAL. No model inference, credential
+read, provider call, result identity, question execution, or fresh spend has
+occurred. Next: commit and push this freeze, obtain a fresh independent GO
+recommendation, then invoke the launcher once if and only if review is clean.
+
 Loop state: BRN-0012 ETTIN CACHED-ONLY MODEL RESOLUTION INDEPENDENTLY REVIEWED
 AND ACCEPTED; MERGE NEXT. Quetzali explicitly accepted
 BRN-0011, which is
