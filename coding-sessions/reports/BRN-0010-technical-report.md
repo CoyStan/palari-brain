@@ -83,7 +83,8 @@ terminal accounted spend under both caps. It specifically predicts
 - Full suite: 694 pass / 0 fail / 15 skipped across 709 tests.
 - Quickstart: 6/6.
 - Ticket/report/scope/diff checks: pending final freeze diff.
-- Independent pre-dispatch review: pending.
+- Independent pre-dispatch review: initial reopen at `4c1ae1f`; fresh clean GO
+  at `cfc3849` with no P0-P3 finding.
 
 ## Files Changed
 
