@@ -3,6 +3,17 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0014 — delegated acceptance) **Accept and merge the cited
+  answer-commit boundary after clean adversarial rereview.** Fresh review at
+  `c40046c60cfb523998e6eb206ad48d4cf5a86f86` found no P0-P3 issue after four
+  prior review rounds exposed and closed six P1s and one P3. It independently
+  repeated focused, full-suite, quickstart, package, and governance checks.
+  The founder's recorded autonomy directive authorizes this routine clean-
+  review acceptance and merge. This accepts an offline structural guarantee,
+  not a new quality score or proof of semantic entailment. It does not publish,
+  access credentials, authorize provider spend, rerun known questions, regrade
+  the immutable 6/10, or weaken the sealed-U8 prohibition.
+
 - 2026-08-04 (BRN-0013 — delegated acceptance) **Accept and merge the honest
   terminal official 6/10 record after clean corrected rereview.** Fresh review
   at `e48ac2bde3d5ea8c4d3d1184c9de3e25bd3259b6` found no P0-P3 issue, directly

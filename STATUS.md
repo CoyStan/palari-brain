@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
-SIX REVIEW P1S AND ONE P3 REPAIRED, FRESH REREVIEW NEXT. The terminal BRN-0013 score remains immutable at
+SIX REVIEW P1S AND ONE P3 REPAIRED, CLEANLY REREVIEWED, AND ACCEPTED. The terminal BRN-0013 score remains immutable at
 official 6/10. Its three genuine answer-use/personalization failures all
 occurred after required evidence reached Luna, so this unit adds the smallest
 provider-neutral structural boundary: `answerWithRetrieval()` registers every
@@ -65,8 +65,10 @@ and all outcomes reconcile before acceptance. Captured promise species,
 captured index coercion, and explicit failure booleans also close prototype and
 falsy-throw variants. The reviewer reproductions and adjacent cases are
 permanent real-brain tests.
-Next: rerun closeout checks, resubmit the repaired exact commit, and obtain a
-fresh independent rereview. A new live score remains a founder gate.
+Exact acceptance review head
+`c40046c60cfb523998e6eb206ad48d4cf5a86f86` has no P0-P3 finding and
+recommends acceptance. BRN-0014 is accepted under the founder's delegated
+routine authority; next is merge/push. A new live score remains a founder gate.
 
 Loop state: BRN-0013 REPAIRED ETTIN + LUNA FIRST-TEN TERMINAL AT OFFICIAL
 6/10; CORRECTED, CLEANLY REREVIEWED, AND ACCEPTED. BRN-0012 was independently accepted, merged, and

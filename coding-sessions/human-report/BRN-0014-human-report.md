@@ -36,6 +36,5 @@ touched.
 
 ## Recommended Next Move
 
-Run the required independent review. If it is clean, accept and merge this
-offline repair under the founder's delegated routine authority. A new live
-ten-question invocation is still a CEO/founder spending gate.
+Accept and merge this offline repair; fresh independent review is clean. A new
+live ten-question invocation is still a CEO/founder spending gate.

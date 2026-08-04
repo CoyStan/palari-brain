@@ -2,10 +2,11 @@
 
 ## State
 
-The cited answer-commit boundary is implemented and offline-verified. Four
-independent review passes found six provider-neutral P1s and one P3; the
-bounded repairs and permanent regressions are implemented, and fresh rereview
-of the exact repaired snapshot is required.
+The cited answer-commit boundary is implemented, offline-verified,
+independently accepted, and ready to merge. Four independent review passes
+found six provider-neutral P1s and one P3; the bounded repairs and permanent
+regressions are implemented. Fresh acceptance rereview of the exact repaired
+snapshot found no P0-P3 issue.
 The unit has not performed model inference, read a credential, called a
 provider, changed a terminal result, or spent money.
 
@@ -94,6 +95,10 @@ same-realm prototype mutation. Falsy provider and retrieval throws remain
 terminal, and pre-clone index coercion uses the captured string intrinsic.
 Permanent regressions cover the two reviewer reproductions and these adjacent
 fail-closed variants.
+
+Fresh acceptance rereview at exact `c40046c60cfb523998e6eb206ad48d4cf5a86f86`
+found no P0-P3 issue, independently repeated focused/full/quickstart/package
+and governance checks, and recommends acceptance.
 
 ## Structural Regression
 
