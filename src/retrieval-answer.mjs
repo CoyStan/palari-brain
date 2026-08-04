@@ -51,6 +51,7 @@ const arrayPrototype = Array.prototype
 const arrayPush = Function.call.bind(Array.prototype.push)
 const mapGet = Function.call.bind(Map.prototype.get)
 const mapSet = Function.call.bind(Map.prototype.set)
+const objectDefineProperty = Object.defineProperty
 const objectFreeze = Object.freeze
 const objectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
 const objectGetPrototypeOf = Object.getPrototypeOf
@@ -58,18 +59,24 @@ const objectHasOwn = Object.hasOwn
 const objectIsFrozen = Object.isFrozen
 const objectKeys = Object.keys
 const objectValues = Object.values
-const promiseAllSettled = Promise.allSettled.bind(Promise)
+const promiseConstructor = Promise
 const promiseReject = Promise.reject.bind(Promise)
 const promiseThen = Function.call.bind(Promise.prototype.then)
 const reflectOwnKeys = Reflect.ownKeys
 const setAdd = Function.call.bind(Set.prototype.add)
 const setHas = Function.call.bind(Set.prototype.has)
+const setConstructor = Set
 const stringFrom = String
 const stringIncludes = Function.call.bind(String.prototype.includes)
 const stringTrim = Function.call.bind(String.prototype.trim)
 const structuredCloneValue = globalThis.structuredClone
 const weakSetAdd = Function.call.bind(WeakSet.prototype.add)
 const weakSetHas = Function.call.bind(WeakSet.prototype.has)
+const promiseSpeciesCarrier = objectFreeze(objectDefineProperty(
+  {},
+  Symbol.species,
+  { value: promiseConstructor },
+))
 
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || objectIsFrozen(value)) {
@@ -151,7 +158,7 @@ function assertCommitmentDataShape(proposal) {
     )
   }
   for (let index = 0; index < bases.length; index += 1) {
-    const descriptor = objectGetOwnPropertyDescriptor(bases, String(index))
+    const descriptor = objectGetOwnPropertyDescriptor(bases, stringFrom(index))
     if (!descriptor || !objectHasOwn(descriptor, 'value') ||
       descriptor.enumerable !== true) {
       throw answerCommitmentError(
@@ -780,18 +787,35 @@ export async function answerWithRetrieval(brain, {
       arrayPush(transcript, { input, result, tool: name })
       return result
     })()
-    const record = { operation, settled: false }
-    arrayPush(retrievalOperations, record)
-    promiseThen(
+    // Attach a host-private completion before the provider receives the
+    // operation. Pin the operation's species so same-realm prototype
+    // poisoning cannot replace the private promise created by native `then`.
+    objectDefineProperty(operation, 'constructor', {
+      value: promiseSpeciesCarrier,
+    })
+    const record = { completion: null, outcome: null }
+    const completion = promiseThen(
       operation,
-      () => { record.settled = true },
-      () => { record.settled = true },
+      () => {
+        record.outcome = { status: 'fulfilled' }
+      },
+      (reason) => {
+        record.outcome = { reason, status: 'rejected' }
+      },
     )
+    // `await` can now recognize this unexposed native promise without reading
+    // a provider-mutated Promise.prototype.constructor.
+    objectDefineProperty(completion, 'constructor', {
+      value: promiseConstructor,
+    })
+    record.completion = completion
+    arrayPush(retrievalOperations, record)
     return operation
   }
 
   let response
   let providerError = null
+  let providerFailed = false
   try {
     response = await provider({
       answerEvidenceCount: () => evidenceCount,
@@ -816,28 +840,24 @@ export async function answerWithRetrieval(brain, {
       systemInstruction: memoryAnswerSystemInstruction,
     })
   } catch (error) {
+    providerFailed = true
     providerError = error
   } finally {
     retrievalOpen = false
   }
 
-  const pendingRetrievals = []
+  let retrievalError = null
+  let retrievalFailed = false
   for (let index = 0; index < retrievalOperations.length; index += 1) {
-    if (!retrievalOperations[index].settled) {
-      arrayPush(pendingRetrievals, retrievalOperations[index].operation)
+    const record = retrievalOperations[index]
+    await record.completion
+    if (record.outcome.status === 'rejected' && !retrievalFailed) {
+      retrievalFailed = true
+      retrievalError = record.outcome.reason
     }
   }
-  let pendingError = null
-  if (pendingRetrievals.length) {
-    const outcomes = await promiseAllSettled(pendingRetrievals)
-    for (let index = 0; index < outcomes.length; index += 1) {
-      if (outcomes[index].status === 'rejected' && !pendingError) {
-        pendingError = outcomes[index].reason
-      }
-    }
-  }
-  if (providerError) throw providerError
-  if (pendingError) throw pendingError
+  if (providerFailed) throw providerError
+  if (retrievalFailed) throw retrievalError
 
   const answerCommitted = weakSetHas(committedResponses, response)
   if (requiresEvidenceCommitment &&
@@ -855,7 +875,7 @@ export async function answerWithRetrieval(brain, {
   }
   deepFreeze(answerEvidence)
   const uniqueConsulted = []
-  const consultedSet = new Set()
+  const consultedSet = new setConstructor()
   for (let index = 0; index < consulted.length; index += 1) {
     if (setHas(consultedSet, consulted[index])) continue
     setAdd(consultedSet, consulted[index])
@@ -866,7 +886,9 @@ export async function answerWithRetrieval(brain, {
     abstained: typeof response?.abstained === 'boolean'
       ? response.abstained
       : null,
-    answer: String(response?.text ?? response ?? ''),
+    answer: answerCommitted
+      ? response.text
+      : stringFrom(response?.text ?? response ?? ''),
     answerCommitted,
     answerEvidence,
     briefingMode: briefing.briefingMode,

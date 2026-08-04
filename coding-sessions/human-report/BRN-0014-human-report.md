@@ -28,7 +28,7 @@ unchanged.
 
 ## What To Check
 
-All 45 focused contracts and the full 701-pass suite are green. Seven
+All 49 focused contracts and the full 705-pass suite are green. Seven
 provider-free scenarios cover owned resources, Palari advice, multi-row
 history, corrections, time, irrelevant results, and empty results. Quickstart
 remains 6/6. No provider, model, credential, terminal result, or spend was

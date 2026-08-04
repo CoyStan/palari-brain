@@ -532,6 +532,143 @@ test('required commitment drains outstanding retrieval before accepting raw outp
       'The brass compass is stored in the cedar drawer.')
   })
 
+test('settled retrieval failures remain terminal even when a provider catches them',
+  async (t) => {
+    const brain = await openBrain(t)
+    for (const retrievalFailure of [
+      new Error('canonical retrieval failed'),
+      null,
+    ]) {
+      const failingBrain = Object.create(brain)
+      Object.defineProperty(failingBrain, 'exploreFind', {
+        value() {
+          throw retrievalFailure
+        },
+      })
+      const provider = requireEvidenceCommitment(async ({ retrieve }) => {
+        await retrieve({
+          input: { phrase: 'settled failure' },
+          tool: 'memory_find',
+        }).catch(() => {})
+        return { text: 'Raw answer after swallowing retrieval failure.' }
+      })
+      let rejected = false
+      try {
+        await answerWithRetrieval(failingBrain, {
+          ...SCOPE,
+          provider,
+          question: 'What did memory say?',
+        })
+      } catch (error) {
+        rejected = true
+        assert.equal(error, retrievalFailure)
+      }
+      assert.equal(rejected, true)
+    }
+
+    let providerRejected = false
+    try {
+      await answerWithRetrieval(brain, {
+        ...SCOPE,
+        async provider() {
+          throw null
+        },
+        question: 'What did memory say?',
+      })
+    } catch (error) {
+      providerRejected = true
+      assert.equal(error, null)
+    }
+    assert.equal(providerRejected, true)
+  })
+
+test('committed prose cannot be replaced through a poisoned global String',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [{
+      id: 'committed-text:0',
+      user: 'The brass compass is stored in the cedar drawer.',
+    }])
+    const committedText = 'The brass compass is in the cedar drawer.'
+    const originalString = globalThis.String
+    try {
+      const result = await answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: requireEvidenceCommitment(async ({
+          commitAnswer,
+          retrieve,
+        }) => {
+          const found = await retrieve({
+            input: { phrase: 'brass compass' },
+            tool: 'memory_find',
+          })
+          const committed = commitAnswer({
+            abstained: false,
+            bases: [{
+              evidenceId: found.matches[0].evidenceId,
+              quote: 'cedar drawer',
+            }],
+            text: committedText,
+          })
+          globalThis.String = () => 'FABRICATED AFTER COMMITMENT'
+          return committed
+        }),
+        question: 'Where is the brass compass?',
+      })
+      assert.equal(result.answerCommitted, true)
+      assert.equal(result.answer, committedText)
+    } finally {
+      globalThis.String = originalString
+    }
+  })
+
+test('commitment shape checks use captured coercion before private cloning',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [
+      { user: 'The brass compass is stored in the cedar drawer.' },
+      { user: 'The canvas map is stored in the blue folio.' },
+    ])
+    const originalString = globalThis.String
+    try {
+      await assert.rejects(
+        answerWithRetrieval(brain, {
+          ...SCOPE,
+          provider: requireEvidenceCommitment(async ({
+            commitAnswer,
+            retrieve,
+          }) => {
+            const found = await retrieve({
+              input: { phrase: 'stored' },
+              tool: 'memory_find',
+            })
+            const secondBasis = {
+              evidenceId: found.matches[1].evidenceId,
+              quote: 'blue folio',
+            }
+            Object.defineProperty(secondBasis, 'providerOrigin', {
+              value: 'hidden provenance',
+            })
+            globalThis.String = () => '0'
+            return commitAnswer({
+              abstained: false,
+              bases: [{
+                evidenceId: found.matches[0].evidenceId,
+                quote: 'cedar drawer',
+              }, secondBasis],
+              text: 'Both objects are stored.',
+            })
+          }),
+          question: 'Where are both stored objects?',
+        }),
+        (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+          /unsupported or missing fields/.test(error.message),
+      )
+    } finally {
+      globalThis.String = originalString
+    }
+  })
+
 test('optional reranker sees immutable canonical candidates and reorders the bounded pool',
   async (t) => {
     let received

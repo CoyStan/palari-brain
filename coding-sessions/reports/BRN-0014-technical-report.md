@@ -2,8 +2,8 @@
 
 ## State
 
-The cited answer-commit boundary is implemented and offline-verified. Three
-independent review passes found four provider-neutral P1s and one P3; the
+The cited answer-commit boundary is implemented and offline-verified. Four
+independent review passes found six provider-neutral P1s and one P3; the
 bounded repairs and permanent regressions are implemented, and fresh rereview
 of the exact repaired snapshot is required.
 The unit has not performed model inference, read a credential, called a
@@ -83,6 +83,18 @@ enforcement. Delayed calls cannot mutate host state. Real-brain regressions
 cover forged prototype iteration/includes, hidden metadata, accessor fields,
 and a reranker-gated unawaited search.
 
+Fresh rereview at `9f3e947` found two final P1s. Result shaping called the
+mutable global `String`, so a provider could return the authentic committed
+object while replacing its accepted text after validation. Retrieval draining
+also discarded failures that had already settled and been caught by provider
+code. The host now returns committed text without coercion and reconciles the
+recorded outcome of every started retrieval, pending or settled, before answer
+acceptance. Private completion promises pin their species/constructor against
+same-realm prototype mutation. Falsy provider and retrieval throws remain
+terminal, and pre-clone index coercion uses the captured string intrinsic.
+Permanent regressions cover the two reviewer reproductions and these adjacent
+fail-closed variants.
+
 ## Structural Regression
 
 The provider-free regression now crosses the real commitment callback for
@@ -105,10 +117,10 @@ regression explicitly does not grade generated answer quality.
 
 ## Verification
 
-- Focused retrieval/OpenAI/regression contracts: 46 pass, 0 fail.
-- Full suite: 702 pass, 0 fail, 15 skip across 717 tests.
+- Focused retrieval/OpenAI/regression contracts: 49 pass, 0 fail.
+- Full suite: 705 pass, 0 fail, 15 skip across 720 tests.
 - Quickstart: 6/6 journey steps pass.
-- Package dry-run: 32 files, 133.7 kB tarball / 481.7 kB unpacked; no private
+- Package dry-run: 32 files, 133.9 kB tarball / 482.5 kB unpacked; no private
   model, cache, result, runtime, or credential content.
 - `git diff --check`: pass.
 - Provider calls / network calls / model loads / credential reads / spend:

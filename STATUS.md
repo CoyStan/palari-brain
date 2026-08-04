@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
-FOUR REVIEW P1S AND ONE P3 REPAIRED, FRESH REREVIEW NEXT. The terminal BRN-0013 score remains immutable at
+SIX REVIEW P1S AND ONE P3 REPAIRED, FRESH REREVIEW NEXT. The terminal BRN-0013 score remains immutable at
 official 6/10. Its three genuine answer-use/personalization failures all
 occurred after required evidence reached Luna, so this unit adds the smallest
 provider-neutral structural boundary: `answerWithRetrieval()` registers every
@@ -25,11 +25,11 @@ commit-only. Digest-only and genuinely empty retrieval answers preserve the
 plain-text path. Official OpenAI documentation was checked for the Responses
 strict-function and forced-function wire before implementation.
 
-Provider-free focused contracts pass 46/46. The strengthened seven-case
+Provider-free focused contracts pass 49/49. The strengthened seven-case
 synthetic regression covers prior resources, prior Palari advice, multi-row
 chronology, correction conflict, host-derived time, irrelevant non-empty
 evidence, and honest empty retrieval; it grades structural commitments only,
-never prose. Full suite passes 702 / fails 0 / skips 15 across 717 tests;
+never prose. Full suite passes 705 / fails 0 / skips 15 across 720 tests;
 quickstart passes 6/6; the 32-file package dry-run is clean. No credential was
 read, no local model was loaded, no inference/provider/network call occurred,
 no terminal result changed, and spend was `$0.00`; cumulative accounted spend
@@ -56,6 +56,15 @@ and a closed-and-drained retrieval operation set before commitment evaluation.
 Permanent real-brain tests reproduce prototype poisoning, hidden fields, and a
 reranker-gated leaked retrieval; each now fails closed without late transcript
 mutation.
+The fourth independent pass found two more generic-provider P1s: mutable
+global `String` could replace the accepted prose after an authentic commitment,
+and a provider-caught retrieval failure that had already settled could be
+discarded by a pending-only drain. Committed text now crosses result shaping
+unchanged; every started retrieval retains a private outcome and completion,
+and all outcomes reconcile before acceptance. Captured promise species,
+captured index coercion, and explicit failure booleans also close prototype and
+falsy-throw variants. The reviewer reproductions and adjacent cases are
+permanent real-brain tests.
 Next: rerun closeout checks, resubmit the repaired exact commit, and obtain a
 fresh independent rereview. A new live score remains a founder gate.
 
