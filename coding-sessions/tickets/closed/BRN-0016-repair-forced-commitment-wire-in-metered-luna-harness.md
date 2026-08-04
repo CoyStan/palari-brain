@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0016
 children: []
-status: open
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -123,6 +123,65 @@ rerun the consumed BRN-0015 identity.
 - `npm run quickstart`
 - `npm run ticket -- check BRN-0016`
 - `git diff --check`
+
+## Implementation Evidence
+
+- `evals/openai-responses-answer-wire.mjs` snapshots and validates exact plain
+  own-data requests before exposing them to reservation or dispatch. Validator
+  SHA-256:
+  `b29387dc286f7f2ab164a9f7d25d81dbbca0a7bf264ea6867f7ba7046ee5cfe2`.
+- Exact normal-auto, plain-none, and forced `palari_answer_commit` fixtures pass.
+  Real accepted product construction supplies the fixtures. Full normal/forced
+  tool arrays are pinned at `46d925c9...` / `0b006512...`. Nineteen malformed
+  fixtures fail before fake reservation/dispatch, plus prototype-poison tests.
+- Fresh private offline template
+  `/home/quetza/palari-brain-private/luna-ettin-cited-successor-meter-template.mjs`
+  is mode 0600, SHA-256
+  `6b5ba32ccbee2960f53a47621d3a2bd40c92e5875c648e06181c176161532d5a`,
+  and pins/imports the exact tracked validator. `--verify` recorded one fake
+  forced reservation followed by one fake dispatch, with zero credential
+  reads, provider/model calls, or spend.
+- Consumed BRN-0015 launcher/runtime/manifest SHA-256 remain
+  `6ccc091b521cd3c9874805278ab7959e9fdb5523326fe775df01a37dd992f29b`,
+  `d123525ec5e1c9bc1664fc9c323e9fa567831e9118d4e5cc273cfb29344c6ea2`,
+  and `d48030533c6a344ea1c180bb7c99c7edb20dc48a0c7403f65a04837c0697448f`.
+  No live identity, result, credential access, inference, network call, score,
+  or spend occurred.
+
+## First Review Findings
+
+Fresh read-only review at exact `25fc0a4` found two P1 boundary defects and
+recommended reopen. Name/order/type/strict validation did not freeze the full
+tool descriptions and parameter schemas or reject null input/instructions.
+Mutable array methods/prototypes could also admit an unknown tool surface or
+alter dispatch serialization after validation; own `__proto__` data changed
+the clone prototype. The private template additionally used 4096 output tokens
+instead of the product's exact 512. No provider path ran. Repair must close all
+three mismatches and receive fresh rereview before acceptance.
+
+## P1 Repair Evidence
+
+- Complete serialized tool arrays, including descriptions and parameter
+  schemas, must match frozen SHA-256 pins. Input/instructions must be non-empty;
+  accepted bodies come directly from real provider construction in
+  `src/openai.mjs`.
+- Snapshots use null-prototype objects/arrays, captured intrinsics, own data
+  descriptors, and precomputed serialization. Poisoned `map` cannot change the
+  surface; adding `Array.prototype.toJSON` during reservation cannot change the
+  dispatched body; own `__proto__` is rejected without clone pollution.
+- The private template pins the repaired validator, both surface hashes, actual
+  tool order, and exact 512-token output limit. Fake forced validation,
+  reservation, and dispatch pass with zero credential/provider/model/spend.
+
+## Fresh Rereview And Acceptance
+
+Fresh independent read-only rereview at exact `a86e663` found no P0-P3 issue.
+It repeated both prior P1 attacks, independently verified exact product bodies,
+512/order and tool hashes, immutable null-prototype dispatch bytes, private
+template pins, unchanged BRN-0015 hashes, 5/5 focused, 710/0/15 full suite,
+quickstart 6/6, and governance. It recommends acceptance. Under the founder's
+standing delegation for clean independently reviewed tickets, BRN-0016 is
+accepted. This creates no live identity or spend authority.
 
 ## Stop Conditions
 

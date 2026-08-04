@@ -3,6 +3,34 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0016 — delegated acceptance) **Accept the exact hardened
+  meter-wire repair after clean fresh rereview.** Read-only rereview at exact
+  `a86e663` repeated both prior attacks, confirmed full tool-hash and null-
+  prototype snapshot closure plus exact 512/order, found no P0-P3 issue, and
+  recommends acceptance. The founder's standing autonomy directive authorizes
+  routine clean-review acceptance. This accepts an offline measurement guard,
+  not a live score, successor identity, provider call, or spend authority.
+
+- 2026-08-04 (BRN-0016 — first-review P1 repairs) **Pin complete tool arrays
+  and remove mutable prototype authority before rereview.** The first reviewer
+  proved that name/type/strict checks still admitted altered descriptions and
+  schemas, while mutable array methods/prototypes could widen or change a
+  validated request. The repaired gate hashes every serialized tool-definition
+  byte and dispatches only a deeply frozen null-prototype snapshot whose
+  serialization was computed before reservation. Product-generated normal,
+  none, and forced fixtures replace hand-authored approximations. The private
+  template also corrects its answer limit to 512 and actual six-tool order.
+  This remains provider-free and authorizes no live successor.
+
+- 2026-08-04 (BRN-0016 — forced-wire repair implemented offline) **Use one
+  tracked validator snapshot as the future meter's answer-wire boundary.** The
+  validator admits the exact normal, plain-terminal, and forced commitment
+  forms emitted by accepted product code, while rejecting changed envelopes
+  before reservation or transport. A fresh private mode-0600 template pins and
+  imports that validator and passes only fake/local compatibility. The
+  BRN-0015 launcher/runtime/result remain byte-identical. This decision spends
+  `$0.00` and does not authorize or create a live successor identity.
+
 - 2026-08-04 (BRN-0016 — offline meter-repair contract) **Repair the general
   forced commitment request validator without touching or rerunning BRN-0015.**
   The smallest successor is one import-inert tracked validator for Luna's exact
