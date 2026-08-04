@@ -284,3 +284,14 @@ test('ownership stays with the user: reads, deletion, and topic-forget remain on
   assert.equal(forgotten.count, 1)
   assert.equal(gated.getMemoryById(note.memory.id), null)
 })
+
+test('gated search: a caller phrase reaches FTS as terms, not as query syntax', async () => {
+  const { gated } = await openGated()
+  const note = gated.propose(userProposal())
+  const found = gated.searchMemories('estimate', { palariId: SCOPE.palari_id, userId: SCOPE.user_id })
+  assert.deepEqual(found.map((row) => row.id), [note.memory.id])
+  // Unbalanced quotes and column filters used to raise a raw SQLite error.
+  assert.deepEqual(gated.searchMemories('"estimate', { palariId: SCOPE.palari_id, userId: SCOPE.user_id }).map((row) => row.id), [note.memory.id])
+  assert.deepEqual(gated.searchMemories('NEAR(', { palariId: SCOPE.palari_id, userId: SCOPE.user_id }), [])
+  assert.deepEqual(gated.searchMemories('content: estimate', { palariId: SCOPE.palari_id, userId: SCOPE.user_id }), [])
+})
