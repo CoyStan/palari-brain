@@ -106,6 +106,19 @@ reranking without content mutation, tool/finalization wire remains exact, and
 accounting/evidence sealing stays within both caps. Any miss is recorded and
 does not authorize a retry.
 
+## Files Changed
+
+- `evals/predictions.md`: FINAL P-set 26 and failing-first terminal grade.
+- `docs/DECISIONS.md`: founder authority, frozen boundary, and result decision.
+- `STATUS.md`: exact freeze, terminal result, accounting, and next gate.
+- `coding-sessions/tickets/open/BRN-0013-*.md`: governed lifecycle and evidence.
+- `coding-sessions/reports/BRN-0013-*.md`: technical and independent review
+  records.
+- `coding-sessions/human-report/BRN-0013-*.md`: founder-readable interpretation.
+
+The launcher, runtime, model, cache, dataset, transcripts, and result evidence
+are private external artifacts and never enter git.
+
 ## Verification
 
 - Launcher offline verify: pass; no credentials or inference.
