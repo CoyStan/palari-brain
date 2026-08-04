@@ -108,7 +108,8 @@ never reached.
 - Independent pre-dispatch review: initial reopen at `4c1ae1f`; fresh clean GO
   at `cfc3849` with no P0-P3 finding.
 - Terminal bundle: 5/5 artifacts rehashed; manifest and mode audit pass.
-- Fresh terminal review: pending.
+- Fresh terminal review at `a612ff8`: no P0-P3 issue; recommends accept as an
+  honest terminal compatibility failure.
 
 ## Files Changed
 

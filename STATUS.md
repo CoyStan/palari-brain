@@ -33,6 +33,12 @@ a proven cause, and this consumed identity authorizes no confirming inference,
 repair, or rerun. Next: fresh independent terminal review, then founder
 acceptance of this honest failed result or a separately governed successor.
 
+Fresh terminal review at `a612ff8` rehashed all evidence, found no P0-P3
+issue, and recommends accepting BRN-0010 specifically as an honest terminal
+compatibility failure. It confirms that acceptance makes no working Ettin or
+end-to-end accuracy claim. Founder acceptance remains the gate; any repair or
+new measurement needs a separate governed identity.
+
 Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER IMPLEMENTED AND MEASURED;
 FOUNDER-ACCEPTED AND MERGE AUTHORIZED. After accepting and merging BRN-0008, Quetzali explicitly directed a
 new governed ticket for working local Ettin support. Metadata-only recon of
