@@ -1,5 +1,17 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0016 FORCED COMMITMENT METER REPAIR CONTRACT OPEN OFFLINE.
+BRN-0015 is accepted, merged, and pushed at `7491684`; its sealed failed
+measurement and `$6.40824561` cumulative accounted spend remain immutable.
+The next unit adds one tracked import-inert validator for the exact Luna
+Responses answer modes, including the forced `palari_answer_commit` form the
+private BRN-0015 meter omitted, plus adversarial provider-free tests and a
+fresh private offline template. The consumed identity and bundle are excluded.
+No credential, model, dataset, provider, new result identity, or spend is in
+scope. Any successor live run remains founder-gated behind a new exact cap.
+Next: commit/push this complete contract, create its governed worktree, and
+implement only the named validator/test/template unit.
+
 Loop state: BRN-0015 TERMINAL FAILED MEASUREMENT SEALED; 4/10 QUESTIONS
 REACHED, OFFICIAL PREFIX 3/4, NO RERUN. Founder-authorized identity
 `j4-luna-ettin-cited-first10-v1` was invoked exactly once on 2026-08-04 under
@@ -49,9 +61,9 @@ scope, report, and diff checks pass. Next: commit/push this immutable result
 record. Fresh terminal review at exact `d5d65303bb531c87073b318d512074c35330f31d`
 found no P0-P3 issue after independently rehashing all artifacts and
 reconciling all calls/accounting. Under the founder's standing delegation for
-clean independently reviewed tickets, BRN-0015 is accepted. Next: close,
-commit, push, and merge this honest record, then open a separate offline meter-
-repair ticket. Any successor live identity requires a new exact founder cap.
+clean independently reviewed tickets, BRN-0015 is accepted, closed, merged,
+and pushed at `7491684`. Any successor live identity requires a new exact
+founder cap.
 
 Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
 SIX REVIEW P1S AND ONE P3 REPAIRED, CLEANLY REREVIEWED, AND ACCEPTED. The terminal BRN-0013 score remains immutable at

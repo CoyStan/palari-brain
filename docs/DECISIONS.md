@@ -3,6 +3,15 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0016 — offline meter-repair contract) **Repair the general
+  forced commitment request validator without touching or rerunning BRN-0015.**
+  The smallest successor is one import-inert tracked validator for Luna's exact
+  normal, plain-terminal, and forced-commit Responses wires, adversarial fake-
+  transport contracts, and a fresh private offline template that consumes that
+  validator. This unit permits no credential, provider, model, benchmark,
+  result identity, spend, or score. Any live successor remains a separate
+  founder gate requiring a new exact cap.
+
 - 2026-08-04 (BRN-0015 — delegated acceptance) **Accept the immutable failed
   measurement after clean independent terminal review.** Fresh read-only
   review at exact `d5d65303bb531c87073b318d512074c35330f31d` found no P0-P3
