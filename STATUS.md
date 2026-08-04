@@ -1,9 +1,10 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0011 ETTIN UPSTREAM-INTEGRATION RESEARCH COMPLETE; COMMIT AND
-IN-REVIEW TRANSITION NEXT. Twelve primary upstream artifacts and every substantive
-exact-ID public integration found were inspected. The official and dominant
-path is Python Sentence Transformers `CrossEncoder`; its ONNX backend keeps
+Loop state: BRN-0011 ETTIN UPSTREAM-INTEGRATION RESEARCH COMPLETE AND
+IN-REVIEW; FOUNDER ACCEPTANCE NEXT. Twelve primary upstream artifacts and
+every substantive exact-ID public integration found were inspected. The
+official and dominant path is Python Sentence Transformers `CrossEncoder`;
+its ONNX backend keeps
 the modular Python chain, and no official self-contained Ettin logits graph or
 turnkey JavaScript integration exists. The two public non-Python paths found
 manually preserve the same Dense/LayerNorm/Dense head as Palari, via a custom
@@ -27,9 +28,9 @@ private result mutation, or spend occurred; cumulative accounted spend remains
 `$5.27173386`. BRN-0010 remains unmerged, unrereun, and ungraded by this work.
 Closeout is green: all 22 unique cited URLs resolved; quickstart passed 6/6;
 ticket lint, report lint, committed-plus-dirty scope, and diff checks passed.
-Next: commit, push, and move BRN-0011 to in-review for founder acceptance.
-This is one infrastructure unit; surface drift before another infrastructure
-unit.
+Research commit `1d6162c` is pushed; the ticket is in-review. Next: founder
+acceptance or reopening. This is one infrastructure unit; surface drift before
+another infrastructure unit.
 
 Loop state: BRN-0010 ETTIN + LUNA FIRST-TEN VALIDATION CONTRACT OPEN; FREEZE
 NEXT. Quetzali explicitly accepted and merged BRN-0009, then directed a fresh

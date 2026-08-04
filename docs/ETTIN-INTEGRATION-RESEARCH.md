@@ -1,8 +1,11 @@
 # Ettin Local Integration Research
 
-Date: 2026-08-04  
-Ticket: BRN-0011  
-Model: `cross-encoder/ettin-reranker-17m-v1`  
+Date: 2026-08-04
+
+Ticket: BRN-0011
+
+Model: `cross-encoder/ettin-reranker-17m-v1`
+
 Pinned revision: `9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6`
 
 ## Decision
