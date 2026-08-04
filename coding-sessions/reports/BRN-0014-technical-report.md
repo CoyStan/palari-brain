@@ -2,9 +2,10 @@
 
 ## State
 
-The cited answer-commit boundary is implemented and offline-verified. Initial
-independent review found one provider-neutral capability-snapshot P1; the
-bounded repair and regression are implemented, and fresh rereview is required.
+The cited answer-commit boundary is implemented and offline-verified. Three
+independent review passes found four provider-neutral P1s and one P3; the
+bounded repairs and permanent regressions are implemented, and fresh rereview
+of the exact repaired snapshot is required.
 The unit has not performed model inference, read a credential, called a
 provider, changed a terminal result, or spent money.
 
@@ -59,8 +60,28 @@ changing accessor could also present different arrays across reads. The host
 now structured-clones the proposal once before inspecting it and validates
 that private snapshot with an indexed host loop. Uncloneable methods fail
 closed, later provider mutation cannot affect the snapshot, and a changing
-accessor is read once. Both reviewer reproductions are permanent real-brain
-regressions.
+accessor is rejected before cloning. Both reviewer reproductions are permanent
+real-brain regressions.
+
+The next fresh rereview at `7ae4f98` found two more P1s and one P3. First,
+quote validation spread a host `Set` and called string `.includes()`, letting a
+same-realm custom provider temporarily poison mutable prototypes and admit a
+fabricated quote. Second, a provider could start asynchronous retrieval
+without awaiting it, return raw text while the evidence registry was empty,
+and let the retrieval populate evidence and transcript only after answer
+acceptance. Third, cloning before the exact-field check sanitized hidden,
+inherited, symbol, accessor, or named-array fields instead of rejecting them.
+
+The repaired boundary captures the small authority-bearing intrinsic methods
+at module initialization, stores source strings in host-private arrays, and
+uses only indexed host iteration for exact quote checks and telemetry. It
+checks own data-property descriptors and dense standard arrays before making
+the private structured clone. Every started retrieval is tracked; after the
+provider resolves or throws, retrieval is closed, all outstanding operations
+are drained, and their evidence or failure is incorporated before commitment
+enforcement. Delayed calls cannot mutate host state. Real-brain regressions
+cover forged prototype iteration/includes, hidden metadata, accessor fields,
+and a reranker-gated unawaited search.
 
 ## Structural Regression
 
@@ -84,10 +105,10 @@ regression explicitly does not grade generated answer quality.
 
 ## Verification
 
-- Focused retrieval/OpenAI/regression contracts: 45 pass, 0 fail.
-- Full suite: 701 pass, 0 fail, 15 skipped across 716 tests.
+- Focused retrieval/OpenAI/regression contracts: 46 pass, 0 fail.
+- Full suite: 702 pass, 0 fail, 15 skip across 717 tests.
 - Quickstart: 6/6 journey steps pass.
-- Package dry-run: 32 files, 132.3 kB tarball / 476.0 kB unpacked; no private
+- Package dry-run: 32 files, 133.7 kB tarball / 481.7 kB unpacked; no private
   model, cache, result, runtime, or credential content.
 - `git diff --check`: pass.
 - Provider calls / network calls / model loads / credential reads / spend:

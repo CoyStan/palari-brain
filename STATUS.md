@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
-TWO REVIEW P1S REPAIRED, FRESH REREVIEW NEXT. The terminal BRN-0013 score remains immutable at
+FOUR REVIEW P1S AND ONE P3 REPAIRED, FRESH REREVIEW NEXT. The terminal BRN-0013 score remains immutable at
 official 6/10. Its three genuine answer-use/personalization failures all
 occurred after required evidence reached Luna, so this unit adds the smallest
 provider-neutral structural boundary: `answerWithRetrieval()` registers every
@@ -25,11 +25,11 @@ commit-only. Digest-only and genuinely empty retrieval answers preserve the
 plain-text path. Official OpenAI documentation was checked for the Responses
 strict-function and forced-function wire before implementation.
 
-Provider-free focused contracts pass 45/45. The strengthened seven-case
+Provider-free focused contracts pass 46/46. The strengthened seven-case
 synthetic regression covers prior resources, prior Palari advice, multi-row
 chronology, correction conflict, host-derived time, irrelevant non-empty
 evidence, and honest empty retrieval; it grades structural commitments only,
-never prose. Full suite passes 701 / fails 0 / skips 15 across 716 tests;
+never prose. Full suite passes 702 / fails 0 / skips 15 across 717 tests;
 quickstart passes 6/6; the 32-file package dry-run is clean. No credential was
 read, no local model was loaded, no inference/provider/network call occurred,
 no terminal result changed, and spend was `$0.00`; cumulative accounted spend
@@ -45,7 +45,17 @@ the validator called the provider-owned basis array's `.map()`, allowing an
 overridden method or changing accessor to skip validation and mint fabricated
 or empty bases. `commitAnswer()` now takes one private structured snapshot of
 the proposal and validates it with host-owned iteration; malicious methods are
-rejected and changing accessors are read exactly once into the snapshot.
+rejected and changing accessors are rejected as non-data fields.
+The next fresh rereview found two further P1s and one P3 in the generic custom
+adapter boundary: mutable built-in prototypes could forge exact-quote checks;
+an unawaited asynchronous retrieval could finish only after raw-answer
+acceptance; and clone-sanitized hidden/inherited/symbol fields were accepted
+rather than rejected. The authority path now uses module-captured map/set/
+weak-set/string/promise/object intrinsics, exact pre-clone data descriptors,
+and a closed-and-drained retrieval operation set before commitment evaluation.
+Permanent real-brain tests reproduce prototype poisoning, hidden fields, and a
+reranker-gated leaked retrieval; each now fails closed without late transcript
+mutation.
 Next: rerun closeout checks, resubmit the repaired exact commit, and obtain a
 fresh independent rereview. A new live score remains a founder gate.
 

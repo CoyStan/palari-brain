@@ -382,7 +382,7 @@ test('answer commitment rejects forged identity, unsupported provenance, and bad
         question: 'Where is the field notebook?',
       }),
       (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
-        /cloneable structured data/.test(error.message),
+        /dense indexed items/.test(error.message),
     )
 
     let basisReads = 0
@@ -411,17 +411,125 @@ test('answer commitment rejects forged identity, unsupported provenance, and bad
       })
       return commitAnswer(proposal)
     })
-    const snapshotted = await answerWithRetrieval(brain, {
-      ...SCOPE,
-      provider: changingAccessor,
-      question: 'Where is the field notebook?',
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: changingAccessor,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+        /bases must be a data property/.test(error.message),
+    )
+    assert.equal(basisReads, 0)
+
+    const hiddenMetadata = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      const proposal = {
+        abstained: false,
+        bases: [{
+          evidenceId: found.matches[0].evidenceId,
+          quote: 'orange canvas satchel',
+        }],
+        text: 'It is in the orange canvas satchel.',
+      }
+      Object.defineProperty(proposal, 'providerOrigin', {
+        value: 'hidden provenance',
+      })
+      return commitAnswer(proposal)
     })
-    assert.equal(basisReads, 1)
-    assert.equal(snapshotted.answerCommitted, true)
-    assert.deepEqual(snapshotted.answerEvidence, [{
-      evidenceId: snapshotted.consultedEvidenceIds[0],
-      quote: 'orange canvas satchel',
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: hiddenMetadata,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+        /unsupported or missing fields/.test(error.message),
+    )
+
+    const poisonedPrototype = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      const originalIterator = Set.prototype[Symbol.iterator]
+      const originalIncludes = String.prototype.includes
+      try {
+        Set.prototype[Symbol.iterator] = function * forgedIterator() {
+          yield 'fabricated blue vault claim'
+        }
+        String.prototype.includes = () => true
+        return commitAnswer({
+          abstained: false,
+          bases: [{
+            evidenceId: found.matches[0].evidenceId,
+            quote: 'fabricated blue vault claim',
+          }],
+          text: 'Unsupported answer.',
+        })
+      } finally {
+        Set.prototype[Symbol.iterator] = originalIterator
+        String.prototype.includes = originalIncludes
+      }
+    })
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: poisonedPrototype,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+        /quote is not exact contiguous/.test(error.message),
+    )
+  })
+
+test('required commitment drains outstanding retrieval before accepting raw output',
+  async (t) => {
+    let releaseReranker
+    const rerankerGate = new Promise((resolve) => {
+      releaseReranker = resolve
+    })
+    const brain = await openBrain(t, {
+      async reranker(_query, texts) {
+        await rerankerGate
+        return texts.map(() => 1)
+      },
+    })
+    await seed(brain, [{
+      id: 'compass:0',
+      user: 'The brass compass is stored in the cedar drawer.',
     }])
+    let leakedRetrieval
+    const provider = requireEvidenceCommitment(async ({ retrieve }) => {
+      leakedRetrieval = retrieve({
+        input: { phrase: 'brass compass cedar drawer' },
+        tool: 'memory_search',
+      })
+      setTimeout(releaseReranker, 0)
+      return { text: 'Raw answer returned before retrieval settled.' }
+    })
+
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider,
+        question: 'Where is the brass compass?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID',
+    )
+    const found = await leakedRetrieval
+    assert.equal(found.matches.length, 1)
+    assert.equal(found.matches[0].text,
+      'The brass compass is stored in the cedar drawer.')
   })
 
 test('optional reranker sees immutable canonical candidates and reorders the bounded pool',
