@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0012
 children: []
-status: claimed
+status: in-review
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-08-04T03:18:55Z
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0012-repair-ettin-cached-only-model-resolution"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0012-repair-ettin-cached-only-model-resolution"

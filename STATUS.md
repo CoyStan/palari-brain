@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0012 ETTIN CACHED-ONLY MODEL RESOLUTION IMPLEMENTED;
-COMMIT/PUSH THEN INDEPENDENT REVIEW NEXT. Quetzali explicitly accepted
+Loop state: BRN-0012 ETTIN CACHED-ONLY MODEL RESOLUTION IMPLEMENTED AND
+IN-REVIEW; INDEPENDENT REVIEW NEXT. Quetzali explicitly accepted
 BRN-0011, which is
 merged at `29bab2f`, and directed autonomous governed implementation, review,
 and fresh validation of Ettin with Luna until a CEO-level blocker. BRN-0012 is
@@ -28,7 +28,8 @@ call, question, result mutation, download/install, or spend occurred.
 Cumulative accounted spend remains `$5.27173386`. Quickstart is green 6/6;
 package dry-run contains 32 expected files and no runtime/model/cache/result;
 ticket lint, report lint, committed-plus-dirty scope, and diff checks pass.
-Next: commit/push, then fresh independent review.
+Implementation commit `e455a07` is pushed and BRN-0012 is in-review. Next:
+fresh independent review.
 
 Loop state: BRN-0011 ETTIN UPSTREAM-INTEGRATION RESEARCH COMPLETE;
 FOUNDER-ACCEPTED AND MERGE AUTHORIZED. Twelve primary upstream artifacts and
