@@ -27,9 +27,9 @@ single terminal invocation.
   `d3a9a8c234468e0120d605c7868b418a5ab3313384d0d162e11a30ab6d9fe4cf`.
 - Sealed U8 `1568498a`: absent and unreachable.
 - Launcher SHA-256:
-  `418e0bebd9844f7291c29e0df3fffcc8c7891a280d7143d1b571068cace518ef`.
+  `3295584366a6abd79e0410d1036c45e4dc397586ef79b0248daffa0bd5a41d05`.
 - Generated runtime SHA-256:
-  `877365443162cbbe7dd190642c08bbfb9c6d26ed24dabcd7483f94e4fcf4c0d9`.
+  `be7d95440b7739beb7ff0331076f5d08cd130e6924df1953e4235ce87a0890f4`.
 - Terminal BRN-0007 template SHA-256:
   `4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`.
 - Ettin runtime closure: 3,208 files, 706,843,605 bytes, one contained
@@ -39,16 +39,27 @@ single terminal invocation.
   `$3.5714979` uncertain. Hard limits: `$1.50` fresh / `$6.77173386`
   cumulative.
 
-The mode-0600 launcher rehashes nine complete predecessor bundles, ten
+The replacement mode-0600 launcher requires exact clean canonical commit
+`b010d73ad167ff7ff3435607019ed758f9cb79bc`, thereby pinning every tracked
+execution byte, and also rehashes nine complete predecessor bundles, ten
 current product/eval files, the exact dataset/order, seven exact model/head
 artifacts, and the complete isolated Transformers.js closure. `--verify` is
 credential-inert, checks generated syntax and runtime preflight, and refuses an
 existing result. The one `--run` creates the durable exclusive identity before
 credentials, runs local Ettin composition before `.env`, meters every Gemini,
 Luna, and judge dispatch without retries, and seals any created result—even a
-failure—with an artifact manifest. If credentials were lawfully read, it scans
-the result, launcher, runtime, and pinned product files for exact key values;
-otherwise it truthfully records that the scan was not performed.
+failure—with an artifact manifest. It reserves the durable identity before
+re-verification and child preflight; the child consumes the marker before its
+own preflight. Credential intent is durable before `.env` loading and loaded
+state durable afterward. If reading may have occurred, sealing scans the
+result, launcher, runtime, and every frozen tracked file for exact key values;
+otherwise it truthfully records no read intent. Scan/hash/parse failures become
+sanitized manifest errors rather than preventing terminal evidence.
+
+The first independent review at `4c1ae1f` correctly reopened the ticket for
+the incomplete tracked closure, false no-report/no-credential inference,
+preflight/spawn rerun window, and missing failure manifest. No inference or
+provider activity preceded these repairs. Fresh rereview is required.
 
 ## Predictions
 

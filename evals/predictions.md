@@ -1587,15 +1587,27 @@ with one contained symlink and SHA-256
 `a0aca4625ff6793abaf7fb0db2b01328dee50eb7488e3c5a869dfe2d5ae93d96`.
 
 The private mode-0600 launcher SHA-256 is
-`418e0bebd9844f7291c29e0df3fffcc8c7891a280d7143d1b571068cace518ef`.
+`3295584366a6abd79e0410d1036c45e4dc397586ef79b0248daffa0bd5a41d05`.
 It deterministically verifies terminal BRN-0007 runtime template SHA-256
 `4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`
 and generates mode-0600 runtime SHA-256
-`877365443162cbbe7dd190642c08bbfb9c6d26ed24dabcd7483f94e4fcf4c0d9`.
+`be7d95440b7739beb7ff0331076f5d08cd130e6924df1953e4235ce87a0890f4`.
 It rehashes all artifacts in nine terminal predecessor manifests, ten current
 product/eval files, the dataset/order, seven Ettin artifacts, and the complete
 isolated runtime closure; refuses an existing result identity; and reads no
 credential during `--verify`.
+
+Fresh pre-dispatch review rejected the first private freeze before inference
+or credential access. This replacement additionally requires canonical repo
+commit `b010d73ad167ff7ff3435607019ed758f9cb79bc` with zero tracked changes,
+cryptographically pinning the full tracked execution tree rather than only ten
+entry modules. On the first `--run`, it reserves the exclusive result identity
+before re-verification or child preflight. The child consumes that attempt
+before its own preflight. After the local smoke, a durable intent marker is
+written before `.env` loading and a stage marker after successful loading.
+Terminal sealing uses those markers, scans all frozen tracked files plus
+private runtime/result bytes when reading may have occurred, and writes a
+sanitized failure manifest rather than disappearing on scan/hash/parse errors.
 
 Exact opening cumulative spend is `$5.27173386`: `$1.70023596` measured plus
 `$3.5714979` uncertain. This identity has a `$1.50` fresh accounted hard cap
@@ -1635,5 +1647,5 @@ Predictions, failing categories first:
    and `$6.77173386` cumulative accounted caps, records exact measured versus
    uncertain usage plus local reranker latency/candidate telemetry, seals all
    private artifacts with hashes/modes, and reports zero exact credential
-   matches. Any failed prediction or terminal stop is the result and authorizes
+   matches with no sealing error. Any failed prediction or terminal stop is the result and authorizes
    no retry, reroll, regrade, repair, or replacement identity.

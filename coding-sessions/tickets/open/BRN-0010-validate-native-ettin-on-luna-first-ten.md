@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0010
 children: []
-status: reopened
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-04T02:30:46Z
 target_branch: "main"
 branch: "ticket/BRN-0010-validate-native-ettin-on-luna-first-ten"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0010-validate-native-ettin-on-luna-first-ten"

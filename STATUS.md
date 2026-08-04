@@ -13,14 +13,21 @@ candidate path. Fresh identity `j4-luna-ettin-first10-v1` carries the exact
 diagnostic, not an unseen benchmark. P-set 25 freezes the exact ten IDs,
 dataset/order, nine predecessor bundles, ten product/eval hashes, seven Ettin
 artifacts, full 3,208-file runtime closure, provider controls, caps, predictions,
-and one-way execution ritual. The private mode-0600 launcher hashes
-`418e0bebd9844f7291c29e0df3fffcc8c7891a280d7143d1b571068cace518ef` and
+and one-way execution ritual. Fresh independent review rejected the initial
+private freeze before any inference or credential read: it found incomplete
+tracked-closure pinning, an ambiguous credential-read failure state, and two
+early-terminalization gaps. All four are repaired. The launcher now requires
+exact clean canonical commit `b010d73ad167ff7ff3435607019ed758f9cb79bc`,
+reserves/consumes the identity before re-verification and child preflight,
+uses durable credential intent/stage markers, and always attempts a sanitized
+terminal manifest. The replacement private mode-0600 launcher hashes
+`3295584366a6abd79e0410d1036c45e4dc397586ef79b0248daffa0bd5a41d05` and
 generates mode-0600 runtime
-`877365443162cbbe7dd190642c08bbfb9c6d26ed24dabcd7483f94e4fcf4c0d9`.
+`be7d95440b7739beb7ff0331076f5d08cd130e6924df1953e4235ce87a0890f4`.
 Its inert verification is green and confirms the result identity is absent;
 it reads no credential. No BRN-0010 model inference, provider call, credential
 read, result, or spend exists yet. Next: complete provider-free suite and
-ticket checks, commit/push this exact freeze, obtain fresh independent GO, then
+ticket checks, commit/push this replacement freeze, obtain fresh independent GO, then
 execute the launcher once under the founder-authorized caps.
 
 Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER IMPLEMENTED AND MEASURED;
