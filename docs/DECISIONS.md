@@ -3,6 +3,18 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0015 — cited Luna + Ettin pre-dispatch freeze) **Freeze one
+  causal successor to terminal BRN-0013, but do not dispatch without a new
+  exact founder cap.** The ten questions, providers, native Ettin, prompts,
+  limits, order, official judge, and accounting remain fixed; accepted
+  BRN-0014 is the sole product treatment. Fresh identity
+  `j4-luna-ettin-cited-first10-v1` and P-set 27 are one-shot and exclude sealed
+  U8. Offline verification rehashed current source, eleven terminal bundles,
+  exact dataset/order, model/head/runtime, and absent result without credential
+  or inference access. Proposed boundaries are `$1.50` fresh and
+  `$7.53072623` cumulative from the exact `$6.03072623` opening. These are a
+  request, not authority; the consumed BRN-0013 cap is not reused.
+
 - 2026-08-04 (BRN-0014 — delegated acceptance) **Accept and merge the cited
   answer-commit boundary after clean adversarial rereview.** Fresh review at
   `c40046c60cfb523998e6eb206ad48d4cf5a86f86` found no P0-P3 issue after four

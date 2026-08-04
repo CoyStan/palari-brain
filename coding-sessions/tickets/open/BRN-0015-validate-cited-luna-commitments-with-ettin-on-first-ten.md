@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0015
 children: []
-status: open
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-04T05:30:52Z
 target_branch: "main"
 branch: "ticket/BRN-0015-validate-cited-luna-commitments-with-ettin-on-first-ten"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0015-validate-cited-luna-commitments-with-ettin-on-first-ten"
@@ -105,8 +105,8 @@ founder cap. Opening cumulative accounted spend is `$6.03072623`:
   early credential access, unmetered transport, absent exact founder cap, or
   repeat invocation.
 - Within the one invocation, run the existing provider-free real-brain Ettin
-  smoke, one live writer compatibility smoke, and one live cited-answer smoke
-  that must return `answerCommitted: true` with an exact registered basis.
+  smoke and one live Gemini-semantic + Ettin + Luna cited-answer smoke that
+  must return `answerCommitted: true` with an exact registered basis.
   Stop terminally before question 1 if any smoke fails. If all pass, answer
   and officially judge questions 1-10 once in order with repair-enabled
   reduction and the accepted cited-answer path.
@@ -152,7 +152,7 @@ founder cap. Opening cumulative accounted spend is `$6.03072623`:
    suffix. Every answer after non-empty retrieval must be authentically
    committed or fail terminally; no uncited fallback may be presented.
 4. Pre-register before dispatch: compatibility and structural commitments
-   pass; all ten questions complete; official score is at least 7/10 with
+   pass; all ten questions complete; official score is at least 8/10 with
    10/10 the objective; at least two of the three BRN-0013 genuine answer-use
    failure rows reverse; no prior PASS regresses; the prior clear judge-false-
    negative row is reported separately without regrading; all accounting and
@@ -161,6 +161,37 @@ founder cap. Opening cumulative accounted spend is `$6.03072623`:
    exact results and cumulative spend whatever they are. Full tests,
    quickstart, launcher/ticket/report/scope/diff checks, and fresh terminal
    review pass before delegated acceptance or a successor decision.
+
+## Pre-Dispatch Freeze Evidence
+
+- Product cut point: accepted BRN-0014 merge
+  `c6e29c01e8862872508db6f681b6a21b1a434459`; clean canonical
+  administrative head `4081adaa9f579361422988eecf5f2673adabf797` adds only this
+  ticket contract.
+- Private launcher/runtime SHA-256:
+  `6ccc091b521cd3c9874805278ab7959e9fdb5523326fe775df01a37dd992f29b` /
+  `d123525ec5e1c9bc1664fc9c323e9fa567831e9118d4e5cc273cfb29344c6ea2`;
+  both are mode 0600. Terminal runtime-template SHA-256 remains
+  `4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`.
+- Offline verification rehashed eleven predecessor manifests and all 291
+  predecessor artifacts, ten product/eval files, seven Ettin model/head
+  files, the 3,208-file / 706,843,605-byte runtime closure, exact dataset and
+  ordered population, and absent result identity. Sealed U8 is absent.
+- The launcher requires exact runtime confirmations
+  `PALARI_BRN0015_RUN_ID=j4-luna-ettin-cited-first10-v1` and
+  `PALARI_BRN0015_FRESH_CAP_USD=1.50`. A denied `--run` without them stopped
+  before result creation. Their presence is a mechanical gate only; this
+  ticket still requires the founder's explicit cap confirmation in context.
+- P-set 27 is FINAL before inference, credential read, provider dispatch, or
+  score; full prediction-file SHA-256 is
+  `844972a51ed4106dcb95c5f96666115f08710c1de5c38d9d76b1c5c9b4c26360`.
+  Opening spend is `$6.03072623`; proposed boundaries are `$1.50` fresh
+  and `$7.53072623` cumulative. No fresh cap is authorized yet.
+- Provider calls, credential reads, local model inference, result bytes, and
+  fresh spend: `0 / 0 / 0 / 0 / $0.00`.
+- Full suite: 705 pass, 0 fail, 15 skip across 720 tests. Quickstart: 6/6.
+  Package dry-run: 32 files, 133.9 kB packed / 482.5 kB unpacked, with no
+  private model/runtime/result/credential content.
 
 ## Verification
 

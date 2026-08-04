@@ -1688,3 +1688,93 @@ batches carrying 4,794 requests / 4,905,903 conservatively reserved tokens.
 Terminal manifest SHA-256 is
 `eb7dcb01c7a60cbade9a25d179cffde783e1f46c5c79644422eae819da7c3b71`.
 This identity cannot be rerun, resumed, selectively rescored, or repaired.
+
+## P-set 27 — cited-answer Ettin + Luna first-ten, FINAL before execution
+
+Author: repository execution lane, 2026-08-04. Grading run:
+`j4-luna-ettin-cited-first10-v1` only.
+
+Status: **FINAL before any BRN-0015 model inference, credential read,
+provider dispatch, or LongMemEval score.** Fresh identity
+`j4-luna-ettin-cited-first10-v1` is a successor to terminal BRN-0013, never a
+resume, retry, rerun, selective rescore, or regrade. The ten cases are already
+inspected and remain a private causal integration diagnostic, not an estimate
+of unseen-user accuracy.
+
+The exact ordered S60 IDs, question/session bytes, dataset, providers, prompts,
+serial execution, semantic retrieval, native Ettin model/head/runtime,
+candidate limits, four-memory-call ceiling, and official grading are unchanged
+from BRN-0013. Ordered-array SHA-256 remains
+`d3a9a8c234468e0120d605c7868b418a5ab3313384d0d162e11a30ab6d9fe4cf`;
+dataset SHA-256 remains
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+Sealed U8 `1568498a` is absent and unreachable. The sole product treatment is
+accepted BRN-0014 at product cut
+`c6e29c01e8862872508db6f681b6a21b1a434459`: after non-empty canonical
+retrieval, Luna must return the exact host-created commitment with returned
+evidence IDs and exact contiguous quotes. That structural citation is not
+assumed to prove semantic entailment.
+
+Terminal BRN-0013's immutable official labels were
+`PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS` (6/10). Three
+FAIL rows were genuine answer-use/personalization failures after all required
+answer-bearing sessions reached Luna. On the fourth, reference and answer both
+said `3 days`, while the official judge returned `No`; its official FAIL is
+preserved and no private regrade enters this run. All ten known answers, prior
+generated answers, and labels are absent from runtime logic.
+
+Private mode-0600 launcher
+`/home/quetza/palari-brain-private/luna-ettin-cited-first10-live-launcher.mjs`
+has SHA-256
+`6ccc091b521cd3c9874805278ab7959e9fdb5523326fe775df01a37dd992f29b`.
+It generates mode-0600 runtime SHA-256
+`d123525ec5e1c9bc1664fc9c323e9fa567831e9118d4e5cc273cfb29344c6ea2`
+from unchanged terminal template SHA-256
+`4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`.
+Offline verification rehashed 291 artifacts across all eleven predecessor
+manifests including terminal BRN-0013, ten product/eval files, all seven Ettin
+files, the 3,208-file runtime closure, dataset/order, and absent result. It
+performed no inference, credential read, or provider call. A denied `--run`
+without exact identity/cap confirmation failed before result creation.
+
+Opening cumulative spend is `$6.03072623`: `$1.72334288` measured plus
+`$4.30738335` uncertain. The proposed `$1.50` fresh cap would create a
+`$7.53072623` cumulative boundary, but is not authorized by this
+preregistration. Dispatch remains founder-gated. After exact cap authority,
+the one launcher invocation reserves and consumes the identity before a
+provider-free Ettin smoke, one live Gemini-semantic + Ettin + Luna cited-answer
+smoke, and at most ten ordered answer/judge cells. Any failure is terminal.
+
+Predictions, failing categories first:
+
+1. OFFICIAL ACCURACY: objective `10/10`; expected floor at least `8/10`. No
+   BRN-0013 PASS regresses, and at least two of its three genuine answer-use
+   failure rows reverse because unsupported raw/false-absence prose must cross
+   one forced commit-only repair or fail terminally. The prior clear judge
+   false negative is reported separately whatever its new official label; no
+   regrade or answer-specific rule is allowed.
+2. COMPLETION: the local and live compatibility smokes pass; all ten ordered
+   questions receive one non-empty Luna answer and one validated official
+   label under the cap. Every answer uses at most four aggregate memory calls
+   and the host never accepts an uncited raw fallback after non-empty evidence.
+3. CITED COMMITMENT: the live smoke returns `answerCommitted: true`, at least
+   one registered basis, and the planted indigo fact. On every scored row with
+   returned canonical evidence, `answerCommitted` is true and every recorded
+   basis contains a returned evidence ID plus an exact contiguous quote.
+4. RETRIEVAL/RERANK: at least 12/13 required answer-bearing sessions are
+   consulted. Every non-empty measured `memory_search` uses semantic retrieval
+   and `reranked: true`; every Ettin call receives at most 50 immutable complete
+   candidates and returns exactly one finite score per candidate with zero
+   canonical-content mutation.
+5. WIRE: normal Luna turns preserve the five memory tools plus private strict
+   `palari_answer_commit` and `tool_choice: "auto"`. A valid commitment ends
+   without another generation. Raw/invalid post-retrieval output gets at most
+   one request exposing only the forced commitment function. Fourth-call
+   non-empty finalization is commit-only; no path exceeds seven model
+   dispatches or four memory calls.
+6. EXECUTION/ACCOUNTING: the one terminal invocation remains within the exact
+   founder-confirmed fresh and cumulative caps, records measured/uncertain
+   usage and reranker/commitment telemetry, seals every private artifact with
+   hashes and mode 0600, reports zero exact credential matches, and has no
+   sealing error. Any miss or stop is the result and authorizes no retry,
+   reroll, regrade, repair-in-place, or replacement identity.

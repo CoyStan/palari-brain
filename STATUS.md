@@ -1,5 +1,40 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0015 CITED LUNA + ETTIN FIRST-TEN IDENTITY FROZEN OFFLINE;
+FOUNDER CAP NOT YET AUTHORIZED. Accepted BRN-0014 is merged/pushed at
+`c6e29c0`; canonical administrative head `4081ada` adds only this successor
+contract. Fresh identity `j4-luna-ettin-cited-first10-v1` preserves terminal
+BRN-0013's exact ten non-U8 questions, sessions, Gemini embedder, native Ettin,
+Luna low/Standard/no-store model, official judge, prompts, limits, serial
+order, and accounting. The sole product treatment is BRN-0014's exact cited
+answer commitment after non-empty canonical retrieval.
+
+P-set 27 is FINAL before inference, credential read, provider call, or score;
+full prediction-file SHA-256 is
+`844972a51ed4106dcb95c5f96666115f08710c1de5c38d9d76b1c5c9b4c26360`.
+It predicts at least 8/10 with 10/10 the objective, no prior PASS regression,
+at least two of three genuine BRN-0013 answer-use failures reversing, complete
+10/10 execution, a cited live smoke, exact commitments on every evidence-backed
+answer, unchanged Ettin/retrieval mechanics, and exact cap/seal behavior. The
+prior judge false negative stays separately classified and is never regraded.
+
+Private launcher/runtime SHA-256 are
+`6ccc091b521cd3c9874805278ab7959e9fdb5523326fe775df01a37dd992f29b` /
+`d123525ec5e1c9bc1664fc9c323e9fa567831e9118d4e5cc273cfb29344c6ea2`,
+both mode 0600. Offline verification rehashed eleven predecessor manifests /
+291 artifacts, ten product/eval files, seven Ettin files, the exact 3,208-file
+runtime closure, dataset/order, and absent result. A denied `--run` without
+exact run-ID/cap confirmation stopped before result creation. No credential,
+model inference, provider/network call, result byte, or spend occurred.
+Full suite passes 705 / fails 0 / skips 15 across 720 tests; quickstart passes
+6/6; the 32-file package dry-run is clean.
+
+Opening cumulative spend remains `$6.03072623` = `$1.72334288` measured +
+`$4.30738335` uncertain. Proposed boundaries are `$1.50` fresh and
+`$7.53072623` cumulative, but the BRN-0013 cap was consumed and cannot be
+reused. Next: finish offline closeout, commit/push the freeze, obtain fresh
+independent pre-dispatch review, then stop for explicit founder cap authority.
+
 Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
 SIX REVIEW P1S AND ONE P3 REPAIRED, CLEANLY REREVIEWED, AND ACCEPTED. The terminal BRN-0013 score remains immutable at
 official 6/10. Its three genuine answer-use/personalization failures all
