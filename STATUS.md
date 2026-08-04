@@ -1,5 +1,17 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0011 ETTIN UPSTREAM-INTEGRATION RESEARCH CONTRACT OPEN;
+CONTRACT COMMIT/WORKTREE NEXT. BRN-0010's terminal private compatibility
+failure remains on its ticket branch pending explicit founder acceptance and
+is not merged, rerun, or regraded by this work. Quetzali directed an online
+primary-source survey before Palari invents another Ettin boundary. BRN-0011
+will inspect at least eight upstream artifacts and real public integrations,
+reconstruct the supported tokenizer/model/head/offline path, compare official
+Sentence Transformers, supported self-contained ONNX export, and Palari's
+native JavaScript composition, then recommend one smallest offline successor.
+No code, download, install, inference, credential, provider call, or spend is
+authorized.
+
 Loop state: BRN-0010 ETTIN + LUNA FIRST-TEN VALIDATION CONTRACT OPEN; FREEZE
 NEXT. Quetzali explicitly accepted and merged BRN-0009, then directed a fresh
 governed run validating Ettin end to end. BRN-0010 holds Luna, Gemini semantic

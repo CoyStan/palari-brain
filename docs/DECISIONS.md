@@ -3,6 +3,17 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (FOUNDER — BRN-0011 Ettin upstream-integration research) After
+  BRN-0010 stopped in its provider-free cached tokenizer smoke, Quetzali
+  directed online research into how others use Ettin effectively and proposed
+  a research ticket so Palari does not reinvent an existing supported path.
+  BRN-0011 is read-only: primary upstream repositories/docs/issues only, at
+  least eight artifacts, comparison of official Sentence Transformers,
+  supported self-contained ONNX export, and the current native-JavaScript
+  modular head. It authorizes no acceptance/merge/rerun of BRN-0010, code,
+  dependency, download, install, inference, credential, provider call, spend,
+  or successor identity.
+
 - 2026-08-04 (FOUNDER — BRN-0010 Ettin end-to-end validation) **Accept and
   merge BRN-0009, then run a fresh governed validation of Ettin on the Luna
   first ten.** BRN-0010 uses identity `j4-luna-ettin-first10-v1` on the exact
