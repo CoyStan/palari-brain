@@ -5,9 +5,15 @@
 // work in the canonical write transaction, then applies a model proposal in
 // a separate compare-and-swap transaction.
 
-import { createHash } from 'node:crypto'
-
 import { analyzeQuoteContext } from './quote-context.mjs'
+
+import {
+  canonicalSpeaker,
+  isoNowFromClock as isoNow,
+  normalizedScope,
+  roundTrippableText,
+  sha256Fields,
+} from './shared-util.mjs'
 
 import {
   buildMemoryReductionRequest,
@@ -32,43 +38,6 @@ export const DETERMINISTIC_REDUCTION_FAILURES = Object.freeze([
   'REDUCER_INPUT_CAPACITY',
 ])
 const deterministicFailures = new Set(DETERMINISTIC_REDUCTION_FAILURES)
-
-function sha256Fields(values) {
-  return createHash('sha256')
-    .update(JSON.stringify(values.map((value) => String(value))))
-    .digest('hex')
-}
-
-function isoNow(clock) {
-  const value = clock()
-  const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    throw new TypeError('clock must return a valid timestamp.')
-  }
-  return date.toISOString()
-}
-
-function roundTrippableText(value, label) {
-  const text = String(value ?? '')
-  if (text.includes('\u0000') || !text.isWellFormed()) {
-    const error = new TypeError(
-      `${label} must be well-formed Unicode without U+0000.`,
-    )
-    error.code = 'TEXT_NOT_ROUND_TRIPPABLE'
-    throw error
-  }
-  return text
-}
-
-function normalizedScope({ palariId, userId } = {}) {
-  const scope = {
-    palariId: roundTrippableText(palariId, 'palariId').trim(),
-    userId: roundTrippableText(userId, 'userId').trim(),
-  }
-  if (!scope.palariId) throw new TypeError('palariId is required.')
-  if (!scope.userId) throw new TypeError('userId is required.')
-  return scope
-}
 
 function ensureState(db, scope, now) {
   db.prepare(`
@@ -368,9 +337,10 @@ export function ensureMemoryDigestSchema(store, {
 }
 
 function evidenceSpeaker(sourceKind) {
-  if (sourceKind === 'user_message') return 'user'
-  if (sourceKind === 'assistant_message') return 'Palari'
-  throw new TypeError('Digest evidence has an invalid source kind.')
+  return canonicalSpeaker(
+    sourceKind,
+    'Digest evidence has an invalid source kind.',
+  )
 }
 
 function selectEvidence(db, evidenceId, scope) {

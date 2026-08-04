@@ -5,6 +5,8 @@
 // assigns provenance after checking which visible message contains the quote.
 // External source/tool/web text is deliberately absent from this request.
 
+import { deepFreeze, hasExactKeys } from './shared-util.mjs'
+
 const statementTypes = [
   'preference',
   'relationship',
@@ -16,14 +18,6 @@ const statementTypes = [
   'recent_life',
   'session_summary',
 ]
-
-function deepFreeze(value) {
-  if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
-    return value
-  }
-  for (const child of Object.values(value)) deepFreeze(child)
-  return Object.freeze(value)
-}
 
 export const MEMORY_STATEMENT_TYPES = Object.freeze(statementTypes)
 
@@ -113,10 +107,7 @@ export function buildStatementExtractionRequest({ turn = {} } = {}) {
 }
 
 function assertExactKeys(value, expected, label) {
-  const actual = Object.keys(value).sort()
-  const wanted = [...expected].sort()
-  if (actual.length !== wanted.length ||
-      actual.some((key, index) => key !== wanted[index])) {
+  if (!hasExactKeys(value, expected)) {
     throw new TypeError(`${label} has unsupported fields.`)
   }
 }

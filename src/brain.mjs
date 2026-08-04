@@ -21,6 +21,7 @@ import {
   dialogueSourceKinds,
   roundTrippableDialogueText,
 } from './dialogue-evidence.mjs'
+import { normalizedScope } from './shared-util.mjs'
 import {
   resolvePalariMemoryConfig,
   workspaceMemoryDbPath,
@@ -74,16 +75,6 @@ function normalizedMaxChars(value = defaultMemoryContextChars) {
     throw new TypeError('maxChars must be a positive number.')
   }
   return limit
-}
-
-function normalizedScope({ palariId, userId } = {}) {
-  const scope = {
-    palariId: roundTrippableDialogueText(palariId, 'palariId').trim(),
-    userId: roundTrippableDialogueText(userId, 'userId').trim(),
-  }
-  if (!scope.palariId) throw new TypeError('palariId is required.')
-  if (!scope.userId) throw new TypeError('userId is required.')
-  return scope
 }
 
 function normalizedEventAt(value) {

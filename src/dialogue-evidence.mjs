@@ -4,8 +4,6 @@
 // cannot decide which evidence survives. New derived annotations also stay
 // outside the extracted v0.5 memories/FTS tables.
 
-import { createHash } from 'node:crypto'
-
 import { createMemoryDigestStore } from './memory-digest-store.mjs'
 import { createMemoryExplorer } from './memory-exploration.mjs'
 import {
@@ -15,70 +13,26 @@ import {
 import { semanticFindEvidence } from './memory-semantic.mjs'
 import { extractGraph, graphFind } from './memory-graph.mjs'
 import { statementQuoteOrigins } from './statement-extraction.mjs'
+import {
+  isoNowFromClock as isoNow,
+  normalizedScope,
+  roundTrippableText as roundTrippableDialogueText,
+  sha256Fields,
+  sha256Hex as sha256,
+} from './shared-util.mjs'
 
 export const dialogueSourceKinds = Object.freeze([
   'user_message',
   'assistant_message',
 ])
 
-function isWellFormedText(value) {
-  for (let index = 0; index < value.length; index += 1) {
-    const codeUnit = value.charCodeAt(index)
-    if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
-      const next = value.charCodeAt(index + 1)
-      if (!(next >= 0xdc00 && next <= 0xdfff)) return false
-      index += 1
-    } else if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
-      return false
-    }
-  }
-  return true
-}
-
-export function roundTrippableDialogueText(value, label = 'text') {
-  const text = String(value ?? '')
-  if (text.includes('\u0000') || !isWellFormedText(text)) {
-    const error = new TypeError(
-      `${label} must be well-formed Unicode without U+0000.`,
-    )
-    error.code = 'TEXT_NOT_ROUND_TRIPPABLE'
-    throw error
-  }
-  return text
-}
+export { roundTrippableDialogueText }
 
 const canonicalEvidenceKind = 'canonical_message'
 const legacyEvidenceKind = 'legacy_selected_quote'
 const migrationId = 'CDX-M3-CANONICAL-DIALOGUE'
 const sqliteBusyTimeoutMs = 5_000
 const sqliteJournalMode = 'wal'
-
-function sha256(value) {
-  return createHash('sha256').update(String(value)).digest('hex')
-}
-
-function sha256Fields(values) {
-  return sha256(JSON.stringify(values.map((value) => String(value))))
-}
-
-function isoNow(clock) {
-  const value = clock()
-  const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    throw new TypeError('clock must return a valid timestamp.')
-  }
-  return date.toISOString()
-}
-
-function normalizedScope({ palariId, userId } = {}) {
-  const scope = {
-    palariId: roundTrippableDialogueText(palariId, 'palariId').trim(),
-    userId: roundTrippableDialogueText(userId, 'userId').trim(),
-  }
-  if (!scope.palariId) throw new TypeError('palariId is required.')
-  if (!scope.userId) throw new TypeError('userId is required.')
-  return scope
-}
 
 function normalizedEventAt(value) {
   const date = value instanceof Date ? value : new Date(value)

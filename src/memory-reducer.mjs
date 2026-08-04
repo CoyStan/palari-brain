@@ -6,14 +6,11 @@
 // revision control, and the resulting-state limits.
 
 import { sessionOf } from './memory-exploration.mjs'
-
-function deepFreeze(value) {
-  if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
-    return value
-  }
-  for (const child of Object.values(value)) deepFreeze(child)
-  return Object.freeze(value)
-}
+import {
+  deepFreeze,
+  hasExactKeys,
+  isWellFormedText,
+} from './shared-util.mjs'
 
 export const ACTIVE_MEMORY_REDUCER_VERSION = 'active-memory-reducer/v1'
 export const ACTIVE_MEMORY_MAX_ITEMS = 64
@@ -201,29 +198,9 @@ function assertRecord(value, label) {
 }
 
 function assertExactKeys(value, expected, label) {
-  const actual = Object.keys(value).sort()
-  const wanted = [...expected].sort()
-  if (
-    actual.length !== wanted.length ||
-    actual.some((key, index) => key !== wanted[index])
-  ) {
+  if (!hasExactKeys(value, expected)) {
     throw new TypeError(`${label} has unsupported or missing fields.`)
   }
-}
-
-function isWellFormed(value) {
-  if (typeof value.isWellFormed === 'function') return value.isWellFormed()
-  for (let index = 0; index < value.length; index += 1) {
-    const code = value.charCodeAt(index)
-    if (code >= 0xd800 && code <= 0xdbff) {
-      const next = value.charCodeAt(index + 1)
-      if (next < 0xdc00 || next > 0xdfff) return false
-      index += 1
-    } else if (code >= 0xdc00 && code <= 0xdfff) {
-      return false
-    }
-  }
-  return true
 }
 
 function text(value, label, {
@@ -233,7 +210,7 @@ function text(value, label, {
   if (typeof value !== 'string') {
     throw new TypeError(`${label} must be a string.`)
   }
-  if (!isWellFormed(value) || value.includes('\u0000')) {
+  if (!isWellFormedText(value) || value.includes('\u0000')) {
     throw new TypeError(`${label} must be well-formed and NUL-free.`)
   }
   if (!allowEmpty && !value.trim()) {
