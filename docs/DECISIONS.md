@@ -3,6 +3,21 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (FOUNDER — BRN-0010 Ettin end-to-end validation) **Accept and
+  merge BRN-0009, then run a fresh governed validation of Ettin on the Luna
+  first ten.** BRN-0010 uses identity `j4-luna-ettin-first10-v1` on the exact
+  private S60 ordinals 1-10. It preserves the BRN-0007 Luna-low, Gemini
+  semantic, official-judge, prompt, four-call, finalization, question-order,
+  memory, and grading controls; the only intended treatment is injecting the
+  accepted native Ettin-17M reranker into the bounded canonical candidate
+  path. The experiment carries `$5.27173386` cumulative accounted spend
+  forward and uses a `$1.50` fresh / `$6.77173386` cumulative hard cap. One
+  fresh compatibility-plus-first-ten invocation is authorized only after a
+  committed/pushed FINAL freeze, green offline verification, and fresh
+  independent GO review. Any failure or cap stop is terminal; no retry,
+  reroll, regrade, second identity, sealed-U8 access, or publication is
+  authorized.
+
 - 2026-08-04 (FOUNDER — BRN-0009 native Ettin successor) **Accept and merge
   BRN-0008 as an honest terminal compatibility finding, then implement the
   missing Ettin modular scoring head locally in native JavaScript.** BRN-0009
