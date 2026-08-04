@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN IDENTITY FROZEN OFFLINE;
-INDEPENDENT PRE-DISPATCH REVIEW NEXT. Fresh identity
+Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN IDENTITY FROZEN AND CLEANLY
+REVIEWED; EXACT FOUNDER GATE NEXT. Fresh identity
 `j4-luna-ettin-cited-first10-v2` preserves terminal BRN-0015's exact ten
 non-U8 questions and full product/eval surface; its sole treatment is accepted
 BRN-0016's exact meter-wire validator. P-set 28 is FINAL before any credential,
@@ -18,9 +18,12 @@ Opening cumulative accounted spend is `$6.40824561` = `$1.73394156` measured
 `$7.90824561`, not authority. Prior BRN-0015 authority is consumed. No live
 result identity exists. First independent review found no substantive P0-P2
 issue and one P3: ticket-transition trailing whitespace contradicted the
-target-aware diff-check claim. That metadata-only discrepancy is repaired and
-requires a fresh exact-head rereview. Next: resubmit and rereview, then stop at
-a new exact founder gate; never reuse prior authority.
+target-aware diff-check claim. The repaired exact head `2bdd8ad` was freshly
+rereviewed with no P0-P3 finding and an ACCEPT / GO-to-founder-gate
+recommendation; canonical note commit is `01c4a0a`. Ticket, report, scope,
+target-aware diff, private offline verification, focused 5/5, full 710/0/15,
+and quickstart 6/6 checks pass. Next: stop at the new exact founder gate;
+never reuse prior authority.
 
 Loop state: BRN-0016 FORCED COMMITMENT METER REPAIR REPAIRED AFTER TWO P1S;
 FRESH REREVIEW PENDING.
