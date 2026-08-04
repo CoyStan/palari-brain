@@ -661,6 +661,26 @@ const reranker = createEttinReranker({
 const brain = await createPalariBrain({ embedder, reranker, ...storage })
 ```
 
+The base model must already be materialized locally. By default the adapter
+resolves the exact Transformers.js filesystem-cache directory
+`<cacheDir>/cross-encoder/ettin-reranker-17m-v1/<pinned-revision>/`. A consumer
+with a different materialized layout may pass `modelDir`, but it must be a
+normalized absolute existing directory strictly inside `cacheDir`:
+
+```js
+const reranker = createEttinReranker({
+  cacheDir: '/srv/palari-model-cache',
+  modelDir: '/srv/palari-model-cache/materialized/ettin-17m-v1',
+})
+```
+
+Every component from the cache root through the model directory is checked as
+a non-symlink directory and canonical containment is verified before the
+optional runtime, head loader, or a network-capable callback is reached. Both
+Transformers.js factories receive the absolute local directory with
+`local_files_only: true`; no Hub-ID metadata lookup is used. Missing or unsafe
+model directories fail closed and are not populated by this adapter.
+
 It loads the exact fp32 base transformer, selects its CLS hidden state, and
 applies the official external Dense/GELU -> LayerNorm -> Dense head in native
 JavaScript. The three small head safetensors are revision/path/size/hash pinned,

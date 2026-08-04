@@ -189,6 +189,59 @@ async function assertSafeCachePath(root, target) {
   }
 }
 
+function requestedModelDirectory(cacheDir, modelDir) {
+  if (typeof cacheDir !== 'string' || !isAbsolute(cacheDir)) {
+    throw new TypeError('cacheDir must be an absolute application-owned path.')
+  }
+  const root = resolve(cacheDir)
+  if (modelDir === undefined) {
+    return {
+      root,
+      target: join(
+        root,
+        ...ETTIN_RERANKER_MODEL.id.split('/'),
+        ETTIN_RERANKER_MODEL.revision,
+      ),
+    }
+  }
+  if (typeof modelDir !== 'string' || !isAbsolute(modelDir) ||
+    resolve(modelDir) !== modelDir) {
+    throw new TypeError(
+      'modelDir must be a normalized absolute path inside cacheDir.',
+    )
+  }
+  return { root, target: modelDir }
+}
+
+export async function resolveEttinModelDirectory(cacheDir, modelDir) {
+  const { root, target } = requestedModelDirectory(cacheDir, modelDir)
+  const suffix = relative(root, target)
+  if (suffix === '' || suffix === '..' || suffix.startsWith(`..${sep}`) ||
+    isAbsolute(suffix)) {
+    throw new TypeError('Ettin modelDir must stay strictly inside cacheDir.')
+  }
+  const rootStatus = await existingPathIsSafe(root)
+  if (!rootStatus?.isDirectory()) {
+    throw new TypeError('Ettin cacheDir must be an existing non-symlink directory.')
+  }
+  let current = root
+  for (const component of suffix.split(sep)) {
+    current = join(current, component)
+    const status = await existingPathIsSafe(current)
+    if (!status?.isDirectory()) {
+      throw new TypeError(
+        `Ettin modelDir component must be an existing directory: ${current}`,
+      )
+    }
+  }
+  const canonicalRoot = await realpath(root)
+  const canonicalTarget = await realpath(target)
+  if (!canonicalTarget.startsWith(`${canonicalRoot}${sep}`)) {
+    throw new TypeError('Ettin modelDir escaped canonical cacheDir.')
+  }
+  return canonicalTarget
+}
+
 async function ensurePrivateDirectory(root, directory) {
   await mkdir(root, { recursive: true, mode: 0o700 })
   const rootStatus = await existingPathIsSafe(root)
@@ -398,10 +451,9 @@ export function createEttinReranker({
   loadArtifact = loadEttinArtifact,
   loadHead = loadEttinHead,
   loadRuntime = defaultRuntimeLoader,
+  modelDir,
 } = {}) {
-  if (typeof cacheDir !== 'string' || !isAbsolute(cacheDir)) {
-    throw new TypeError('cacheDir must be an absolute application-owned path.')
-  }
+  requestedModelDirectory(cacheDir, modelDir)
   if (typeof loadArtifact !== 'function' || typeof loadHead !== 'function' ||
     typeof loadRuntime !== 'function') {
     throw new TypeError(
@@ -412,6 +464,10 @@ export function createEttinReranker({
   const load = async () => {
     if (!loading) {
       loading = (async () => {
+        const localModelDir = await resolveEttinModelDirectory(
+          cacheDir,
+          modelDir,
+        )
         const runtime = await loadRuntime()
         if (typeof runtime?.AutoTokenizer?.from_pretrained !== 'function' ||
           typeof runtime?.AutoModel?.from_pretrained !== 'function') {
@@ -420,12 +476,11 @@ export function createEttinReranker({
           )
         }
         const options = {
-          cache_dir: cacheDir,
-          revision: ETTIN_RERANKER_MODEL.revision,
+          local_files_only: true,
         }
         const [tokenizer, transformer, head] = await Promise.all([
-          runtime.AutoTokenizer.from_pretrained(ETTIN_RERANKER_MODEL.id, options),
-          runtime.AutoModel.from_pretrained(ETTIN_RERANKER_MODEL.id, {
+          runtime.AutoTokenizer.from_pretrained(localModelDir, options),
+          runtime.AutoModel.from_pretrained(localModelDir, {
             ...options,
             dtype: ETTIN_RERANKER_MODEL.dtype,
           }),
