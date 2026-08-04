@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0017
 children: []
-status: open
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -123,3 +123,42 @@ publication.
   confirmed for the fully frozen identity.
 - Any smoke, meter, cap, provider, artifact, or seal failure is terminal; record
   it without repair or replacement inside the consumed identity.
+
+## Offline Freeze Evidence
+
+- P-set 28 is FINAL before any credential read, inference, provider dispatch,
+  result creation, or spend.
+- Private launcher/runtime are mode 0600 with SHA-256
+  `a14284952f5004f80dc9dc7cb8e5bcb5e15cf31d88752ec1916c1ea9ca0d7387`
+  and `5c72c1c62612e9f2963e9b664fdf47ee02a941a39ec61b57548afea51c09da32`.
+- Offline verification binds the accepted product cut, clean canonical
+  administrative commit, twelve terminal predecessors / 328 artifacts,
+  dataset and ordered non-U8 population, seven Ettin artifacts, complete local
+  runtime closure, and absent result identity.
+- Product-generated normal, plain-terminal, and forced-commit bodies passed the
+  exact validator before three fake reservations and three fake dispatches.
+  Credential reads, provider calls, inference, and spend were all zero.
+- Opening spend is `$6.40824561`; `$1.50` fresh / `$7.90824561` cumulative are
+  proposed boundaries only. The prior BRN-0015 authorization is consumed and
+  cannot authorize this identity.
+
+## Terminal Result Evidence
+
+- The founder authorized the exact frozen identity and `$1.50` fresh /
+  `$7.90824561` cumulative caps. One invocation completed with exit 0; the
+  launcher attempt is consumed and cannot be reused.
+- Both smokes and all ten questions completed once. Official score is `6/10`,
+  labels `PASS, FAIL, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS, PASS`, with
+  12/13 required answer-bearing sessions consulted.
+- All 34 Luna calls succeeded as 30 normal, one plain-terminal, and three
+  forced-commit wires. Nine evidence-bearing answers were host commitments
+  with 14 exact bases; the sole uncommitted row returned zero messages.
+- Twelve native Ettin calls scored 330/330 finite candidates with zero content
+  mutation. All 139 physical provider calls succeeded.
+- Fresh accounted spend is `$0.76368433`; cumulative is `$7.17192994`, below
+  both caps. The manifest rehashes 74/74 mode-0600 artifacts / 89,786,836 bytes
+  with zero credential matches and zero sealing errors. Manifest SHA-256 is
+  `850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`.
+- P-set 28 accuracy fails below its at-least-8/10 floor. Completion,
+  commitment, retrieval/rerank, wire, and execution/accounting pass. No retry,
+  resume, reroll, regrade, or repair-in-place occurred or is authorized.
