@@ -26,7 +26,7 @@ Static inspection after the terminal failure identified the wire mismatch
 without another inference. The 67,329,240-byte official ONNX graph has inputs
 `input_ids` and `attention_mask` but only output `last_hidden_state`. Its
 `config.json` declares `ModernBertModel`, not a sequence-classification head.
-The separate official `modules.json` defines Transformer -> mean Pooling ->
+The separate official modules define Transformer -> CLS Pooling ->
 Dense -> LayerNorm -> Dense; the generic Transformers.js loader runs only the
 first exported transformer and therefore cannot return Ettin relevance
 logits. The official Python Sentence Transformers loader composes all five

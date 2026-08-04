@@ -1441,7 +1441,7 @@ exact revision and fp32 ONNX transformer loaded, but the adapter received no
 `logits` batch and stopped with `Reranker runtime returned an invalid logits
 batch.` Static post-failure inspection, without another inference, found that
 the published ONNX graph exposes only `last_hidden_state`; the repository's
-`modules.json` defines a separate mean-pooling, Dense, LayerNorm, Dense head
+official modules define a separate CLS-pooling, Dense, LayerNorm, Dense head
 that the generic Transformers.js sequence-classifier loader does not execute.
 (2) QUALITY, (3) LATENCY, (4) SELECTION, and (5) SAFETY are **not assessable**
 because the bank was correctly not run. (6) ACCOUNTING **PASS** at `$0.00`
@@ -1450,3 +1450,8 @@ The exclusive mode-0600 smoke result SHA-256 is
 `b2a802f43eed464ba1e448df602370b9cefd6ab4beea6a9f08e136fc987c1d4a`.
 There was no compatibility retry, bank run, old-model rerun, or runtime/model
 swap.
+
+Factual correction recorded before BRN-0009 implementation: pinned
+`1_Pooling/config.json` specifies `pooling_mode: "cls"`; the initial result
+wording incorrectly said mean pooling. This wording correction changes no
+BRN-0008 score, grade, compatibility diagnosis, artifact, or execution.

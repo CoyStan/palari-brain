@@ -9,7 +9,7 @@ loaded exact Apache-2.0 revision
 `Reranker runtime returned an invalid logits batch.` Static inspection found
 the cause without another inference: the official ONNX graph exposes only
 `last_hidden_state`, while the model's Sentence Transformers definition puts
-mean pooling, Dense, LayerNorm, and final Dense scoring in four separate
+CLS pooling, Dense, LayerNorm, and final Dense scoring in four separate
 modules. The existing generic Transformers.js sequence-classifier adapter
 therefore cannot produce Ettin's relevance score from that export.
 

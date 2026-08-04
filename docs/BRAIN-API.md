@@ -642,7 +642,7 @@ remains the default when no reranker was configured.
 The pinned `cross-encoder/ettin-reranker-17m-v1` identity is recorded in the
 adapter registry, but it is **not a working default through this generic
 sequence-classifier loader**. Its official ONNX graph exposes
-`last_hidden_state`; Sentence Transformers applies a separate mean-pooling,
+`last_hidden_state`; Sentence Transformers applies separate CLS-pooling,
 Dense, LayerNorm, Dense scoring head described by `modules.json`. BRN-0008's
 single compatibility smoke therefore failed closed before the bank ran.
 The shipped registry now rejects that identity up front with
