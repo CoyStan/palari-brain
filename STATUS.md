@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER CONTRACT PREPARED; FREEZE
-PENDING. After accepting and merging BRN-0008, Quetzali explicitly directed a
+Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER IMPLEMENTED; P-SET 24
+FREEZE PENDING. After accepting and merging BRN-0008, Quetzali explicitly directed a
 new governed ticket for working local Ettin support. Metadata-only recon of
 exact Apache-2.0 revision
 `9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6` corrected the head definition to
@@ -11,10 +11,16 @@ SHA-256. BRN-0009 will implement that head in native JavaScript over the
 official ONNX `last_hidden_state`, with no Python sidecar or new Palari runtime
 dependency. It uses a fresh preregistered compatibility identity and may run
 the unchanged synthetic bank exactly once only after compatibility passes.
-No inference, provider, credential, generation model, dataset, LongMemEval
-identity, or paid call has occurred in BRN-0009; spend is `$0.00`. Next:
-commit and push the contract on clean canonical `main`, create its worktree,
-and generate the specialist packet before implementation.
+The new import-inert `createEttinReranker()` uses the base ONNX transformer,
+strictly parses and rehashes the three external safetensors, then applies exact
+CLS, PyTorch-oriented Dense/GELU, affine LayerNorm at epsilon `1e-5`, and final
+Dense scoring in JavaScript. Synthetic math, loader, tensor-layout, corruption,
+bounds, lazy-load, and runner contracts pass 7/7. P-set 24 pins fresh identity
+`brn-0009/ettin-native-v1`, unchanged bank, exact code hashes, one smoke, and
+at most one bank pass. No real inference, provider, credential, generation
+model, dataset, LongMemEval identity, or paid call has occurred in BRN-0009;
+spend is `$0.00`. Next: commit and push the implementation freeze before the
+sole compatibility smoke.
 
 Loop state: BRN-0008 FOUNDER-ACCEPTED AND MERGE AUTHORIZED; ETTIN-17M
 COMPATIBILITY TERMINAL FAILED; BANK NOT RUN.

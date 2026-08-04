@@ -10,6 +10,7 @@
     ".": "./src/index.mjs",
     "./gemini": "./src/gemini.mjs",
     "./openai": "./src/openai.mjs",
+    "./reranker-ettin": "./src/reranker-ettin.mjs",
     "./reranker-transformers": "./src/reranker-transformers.mjs"
   },
   "files": [
@@ -29,6 +30,7 @@
     "src/memory-store.mjs",
     "src/openai.mjs",
     "src/quote-context.mjs",
+    "src/reranker-ettin.mjs",
     "src/reranker-transformers.mjs",
     "src/retrieval-answer.mjs",
     "src/statement-extraction.mjs",
@@ -54,6 +56,7 @@
     "trust-bench": "node evals/run-trust-benchmark.mjs",
     "scale-probe": "node evals/run-scale-probe.mjs",
     "reranker-bakeoff": "node evals/run-reranker-bakeoff.mjs --verify",
+    "ettin-bakeoff": "node evals/run-ettin-native-bakeoff.mjs --verify",
     "ticket": "node scripts/ticket-system.mjs"
   },
   "devDependencies": {

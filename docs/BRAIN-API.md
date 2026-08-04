@@ -650,6 +650,33 @@ The shipped registry now rejects that identity up front with
 known-incompatible download path. A separately reviewed modular-head
 implementation is required before Ettin can be selected.
 
+BRN-0009 provides that implementation through a separate explicit export:
+
+```js
+import { createEttinReranker } from 'palari-brain/reranker-ettin'
+
+const reranker = createEttinReranker({
+  cacheDir: '/an/application-owned/cache/outside-the-repository',
+})
+const brain = await createPalariBrain({ embedder, reranker, ...storage })
+```
+
+It loads the exact fp32 base transformer, selects its CLS hidden state, and
+applies the official external Dense/GELU -> LayerNorm -> Dense head in native
+JavaScript. The three small head safetensors are revision/path/size/hash pinned,
+stored privately below `cacheDir`, and rehashed before every use. Missing files
+may be downloaded only from their exact pinned Hugging Face URLs; corrupt or
+unexpected tensor bytes fail before scoring and are never silently replaced.
+Palari still ships no ONNX runtime or model weights. Consumers own the optional
+runtime, initial model download, cache lifecycle, and dependency audit.
+
+This native export preserves the same 500-character query, 50-candidate,
+100,000-character canonical-message bounds and fail-closed result contract.
+It is English-only and fp32-only. Quantization, alternate Ettin sizes, Python
+sidecars, and runtime substitutions are not implied. Its measured/default
+status is recorded only after the preregistered BRN-0009 compatibility and
+single bank pass complete.
+
 `result.consultedEvidenceIds` contains every canonical message or graph edge
 returned to the answer callback. `result.retrievalTranscript` records every
 bounded tool request/result. Search ranking and graph structure locate

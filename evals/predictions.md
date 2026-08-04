@@ -1455,3 +1455,58 @@ Factual correction recorded before BRN-0009 implementation: pinned
 `1_Pooling/config.json` specifies `pooling_mode: "cls"`; the initial result
 wording incorrectly said mean pooling. This wording correction changes no
 BRN-0008 score, grade, compatibility diagnosis, artifact, or execution.
+
+## P-set 24 — BRN-0009 native Ettin modular head
+
+Status: **FINAL before any BRN-0009 model inference or score.** This is fresh
+identity `brn-0009/ettin-native-v1`; it neither retries nor changes terminal
+BRN-0008 P-set 23. No LongMemEval row, known answer, provider credential,
+generation model, paid request, or sealed identity participates.
+
+The only model is Apache-2.0 English
+`cross-encoder/ettin-reranker-17m-v1` at exact revision
+`9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6`, fp32 through isolated
+`@huggingface/transformers@4.2.0`. The official ONNX transformer output is
+composed locally with exact CLS pooling, 256x256 Dense/GELU, LayerNorm epsilon
+`1e-5`, and 256x1 Dense. The three external head safetensors are pinned by the
+paths, byte sizes, and SHA-256 values recorded in BRN-0009; every cached use
+rehashes them.
+
+The native adapter SHA-256 is
+`0482cedce41b125ba98041293a078130a650ba7bee1a35bee80c93f1e553700d`;
+the runner SHA-256 is
+`6d80c3e033f523ff84b153eaabd7e230ff4e74814565a101ea1432fc1238f774`;
+and unchanged bank source SHA-256 is
+`ad57b64b8f6c2e6e953fdf1795215febce46b4ea3ba76d6b9dc95a1f2d279343`.
+The bank remains `brn-0008/v1`, canonical JSON SHA-256
+`a89f5179874313d60e4bf46b7af8aad74ad31398873f55f1f4796dbaf96784f1`,
+with 15 positive cases, one honest absence, and baseline 0/15 top-1, 0.292222
+MRR, 15/15 recall@5.
+
+After this block and exact implementation are committed and pushed, one
+generic two-document compatibility smoke is permitted. It must produce two
+finite scores and rank the direct Mars statement above an unrelated ocean
+statement. If and only if it passes, exactly one ordered bank pass is
+permitted. The BRN-0008 eligibility floors and Pareto rule remain unchanged.
+A smoke or bank failure is terminal; there is no retry, dtype/runtime/model or
+artifact swap, head edit, timing rerun, threshold sweep, or case rerun after a
+score is visible.
+
+Predictions, failing categories first:
+
+1. COMPATIBILITY: exact transformer and all three integrity-pinned head files
+   load; native composition returns exactly two finite scores in input order
+   and ranks the relevant generic document first.
+2. QUALITY: Ettin reaches at least `13/15` top-1, MRR `>=0.90`, and recall@5
+   `15/15`, meeting the unchanged eligibility floors.
+3. LATENCY: the one warm bank pass measures below MiniLM-L6's terminal
+   `44.6342` milliseconds/case on this machine.
+4. SELECTION: Ettin is eligible and lower-latency than every terminal eligible
+   BRN-0008 model, so it becomes the recommended optional local reranker under
+   the unchanged Pareto rule.
+5. FIDELITY/SAFETY: all artifact hashes and exact tensor layouts pass; CLS and
+   complete head math execute without nonfinite values; content mutations are
+   zero; no canonical text, speaker, time, scope, ID, or provenance changes.
+6. ACCOUNTING: provider spend is exactly `$0.00`; no credential, generation
+   model, dataset, LongMemEval identity, or tracked cache/result/model byte is
+   accessed or produced.

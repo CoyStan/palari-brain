@@ -3,6 +3,18 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (FOUNDER — BRN-0009 native Ettin successor) **Accept and merge
+  BRN-0008 as an honest terminal compatibility finding, then implement the
+  missing Ettin modular scoring head locally in native JavaScript.** BRN-0009
+  uses the same exact Apache-2.0 Ettin-17M revision but a fresh compatibility
+  identity. It composes official ONNX `last_hidden_state` with the repository's
+  exact CLS Pooling -> Dense/GELU -> LayerNorm -> Dense modules. Three external
+  safetensors are pinned by revision/path/size/hash, cached outside git, and
+  rehashed before use. No Python sidecar, new Palari dependency, API provider,
+  generation model, credential, LongMemEval run, or paid spend is authorized.
+  Working/default claims depend on one preregistered compatibility smoke and,
+  only if it passes, one terminal pass over the unchanged synthetic bank.
+
 - 2026-08-03 (FOUNDER — BRN-0008 Ettin reopening) **Use the newer local
   English Ettin-17M reranker instead of accepting MiniLM-L6 as Palari's
   measured default.** Preserve the three terminal P-set 22 results, pin
