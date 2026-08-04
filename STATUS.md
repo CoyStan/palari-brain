@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER IMPLEMENTED AND MEASURED;
-FIRST REVIEW FINDINGS FIXED; REREVIEW NEXT. After accepting and merging BRN-0008, Quetzali explicitly directed a
+SECOND REVIEW FINDINGS FIXED; FINAL REREVIEW NEXT. After accepting and merging BRN-0008, Quetzali explicitly directed a
 new governed ticket for working local Ettin support. Metadata-only recon of
 exact Apache-2.0 revision
 `9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6` corrected the head definition to
@@ -63,6 +63,25 @@ fresh independent rereview before founder acceptance. Post-repair verification
 is green: focused 8/8, full suite 693 pass / 0 fail / 15 skipped across 708,
 quickstart 6/6, inert identity verify, cached artifact rehash with network
 forbidden, package dry-run, ticket lint, scope, and diff checks.
+The first rereviewer at `17f0ef5` confirmed the symlink and direct-test fixes
+but reopened the runtime proof: two entry hashes did not cover transitive code,
+and a present-day directory audit did not bind the original commands to that
+directory. A contemporaneous system-owned Codex transcript was then located.
+Its exact smoke and bank tool calls at `00:26:28.653Z` and `00:26:38.780Z`
+name the same absolute isolated runtime path, and matching outputs close at
+`00:26:32.344Z` and `00:26:40.519Z`; the four JSONL records hash to
+`69a0ff08688ca21359d5500ddf2b8b5edec7752db90d39f7d7a3c20bd6398dad`.
+The complete 3,208-file / 706,843,605-byte runtime closure, including its one
+contained symlink, hashes to
+`a0aca4625ff6793abaf7fb0db2b01328dee50eb7488e3c5a869dfe2d5ae93d96`;
+no closure file is newer than `00:00:46.783690073Z`, 25 minutes before the
+first command. The runner now verifies that complete closure and rejects
+escaping runtime symlinks before any future execution. This is local
+contemporaneous provenance, not a signed third-party attestation. Scores and
+result bytes remain unchanged. Final post-closure verification is green:
+focused 9/9, full suite 694 pass / 0 fail / 15 skipped across 709, quickstart
+6/6, inert identity verify, package dry-run, ticket/report lint, scope, and
+diff checks. Next: a fresh final rereview.
 
 Loop state: BRN-0008 FOUNDER-ACCEPTED AND MERGE AUTHORIZED; ETTIN-17M
 COMPATIBILITY TERMINAL FAILED; BANK NOT RUN.

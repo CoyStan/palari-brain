@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { open, readFile } from 'node:fs/promises'
+import { lstat, open, readFile, readdir, readlink, realpath } from 'node:fs/promises'
 import { performance } from 'node:perf_hooks'
 import { dirname, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -19,11 +19,71 @@ import {
 
 export const ETTIN_NATIVE_IDENTITY = 'brn-0009/ettin-native-v1'
 export const ETTIN_RUNTIME_IDENTITY = Object.freeze({
+  closureBytes: 706_843_605,
+  closureFiles: 3_208,
+  closureSha256: 'a0aca4625ff6793abaf7fb0db2b01328dee50eb7488e3c5a869dfe2d5ae93d96',
+  closureSymlinks: 1,
   entrypointSha256: '268f62dadd7bee2dbdf7f8634d0185603e68a985f91009488b956f3f62da5c23',
   name: '@huggingface/transformers',
   packageJsonSha256: '9cf12901d934e5a0628c6f163484abade392ab2d3b369d458ed3dfdeaa7f9a39',
   version: '4.2.0',
 })
+
+function sortedNames(entries) {
+  return entries.sort((left, right) => left.name < right.name ? -1 :
+    left.name > right.name ? 1 : 0)
+}
+
+export async function hashRuntimeClosure(runtimeRoot) {
+  const root = resolve(runtimeRoot)
+  const rootStatus = await lstat(root)
+  if (!rootStatus.isDirectory() || rootStatus.isSymbolicLink()) {
+    throw new TypeError('Ettin runtime root must be a non-symlink directory.')
+  }
+  const hash = createHash('sha256')
+  hash.update('palari-ettin-runtime-closure-v1\0')
+  let bytes = 0
+  let files = 0
+  let symlinks = 0
+  const walk = async (directory, prefix = '') => {
+    const entries = sortedNames(await readdir(directory, { withFileTypes: true }))
+    for (const entry of entries) {
+      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name
+      const absolutePath = resolve(directory, entry.name)
+      if (entry.isDirectory()) {
+        hash.update(`D\0${relativePath}\0`)
+        await walk(absolutePath, relativePath)
+      } else if (entry.isFile()) {
+        const content = await readFile(absolutePath)
+        hash.update(`F\0${relativePath}\0${content.length}\0`)
+        hash.update(content)
+        hash.update('\0')
+        bytes += content.length
+        files += 1
+      } else if (entry.isSymbolicLink()) {
+        const target = await readlink(absolutePath)
+        const canonicalTarget = await realpath(absolutePath)
+        if (canonicalTarget !== root &&
+          !canonicalTarget.startsWith(`${root}${sep}`)) {
+          throw new TypeError(
+            `Ettin runtime symlink escaped its closure: ${relativePath}`,
+          )
+        }
+        hash.update(`L\0${relativePath}\0${target}\0`)
+        symlinks += 1
+      } else {
+        throw new TypeError(`Unsupported Ettin runtime entry: ${relativePath}`)
+      }
+    }
+  }
+  await walk(root)
+  return Object.freeze({
+    bytes,
+    files,
+    sha256: hash.digest('hex'),
+    symlinks,
+  })
+}
 
 function parseArgs(argv) {
   const options = {}
@@ -89,10 +149,18 @@ export async function verifyEttinRuntime(runtimePath) {
       cause: error,
     })
   }
+  const runtimeRoot = resolve(dirname(runtimePath), '../../../..')
   if (runnerHash(entrypoint) !== ETTIN_RUNTIME_IDENTITY.entrypointSha256 ||
     runnerHash(packageBytes) !== ETTIN_RUNTIME_IDENTITY.packageJsonSha256 ||
     metadata?.name !== ETTIN_RUNTIME_IDENTITY.name ||
     metadata?.version !== ETTIN_RUNTIME_IDENTITY.version) {
+    throw new TypeError('Ettin runtime does not match the frozen identity.')
+  }
+  const closure = await hashRuntimeClosure(runtimeRoot)
+  if (closure.sha256 !== ETTIN_RUNTIME_IDENTITY.closureSha256 ||
+    closure.files !== ETTIN_RUNTIME_IDENTITY.closureFiles ||
+    closure.bytes !== ETTIN_RUNTIME_IDENTITY.closureBytes ||
+    closure.symlinks !== ETTIN_RUNTIME_IDENTITY.closureSymlinks) {
     throw new TypeError('Ettin runtime does not match the frozen identity.')
   }
   const runtime = await import(pathToFileURL(runtimePath).href)

@@ -1531,3 +1531,23 @@ the mode-0600 terminal bank result SHA-256 is
 `4515742db2bbbe3cd4d0da84df20e427039320d3cd8591e3d56a4a19559c64c3`.
 There was exactly one smoke and one bank pass, with no retry, rerun, model,
 runtime, dtype, artifact, head, threshold, or timing substitution.
+
+Post-result runtime-provenance audit, without inference: the system-owned Codex
+execution transcript records the exact smoke tool call at
+`2026-08-04T00:26:28.653Z` (`call_NSQMKxovuSvFq2KYVDxG0u4d`) and bank tool
+call at `2026-08-04T00:26:38.780Z` (`call_RxiiCUEcFW1zWhxDeD1e8nLR`). Both
+commands name the same absolute isolated runtime entrypoint,
+`/home/quetza/.cache/palari-brain/brn-0008-ettin-17m/runtime/node_modules/@huggingface/transformers/src/transformers.js`,
+and their matching tool outputs complete at `00:26:32.344Z` and
+`00:26:40.519Z`. The four exact JSONL records hash to
+`69a0ff08688ca21359d5500ddf2b8b5edec7752db90d39f7d7a3c20bd6398dad`.
+All 3,208 files in that isolated closure have modification times no later than
+`2026-08-04T00:00:46.783690073Z`, before either invocation. A complete
+path/content/symlink manifest over 706,843,605 bytes and one contained symlink
+hashes to
+`a0aca4625ff6793abaf7fb0db2b01328dee50eb7488e3c5a869dfe2d5ae93d96`.
+The package metadata, entrypoint, and exported version also reproduce the
+separately recorded exact hashes and `4.2.0`. This audit binds the preserved
+terminal commands to the preserved full runtime closure; it does not alter a
+result byte, rerun a score, or claim that the local transcript is a signed
+third-party attestation.

@@ -54,6 +54,21 @@ and entrypoint SHA-256
 `268f62dadd7bee2dbdf7f8634d0185603e68a985f91009488b956f3f62da5c23`
 without model inference.
 
+The first rereviewer correctly found that those two files did not bind the
+transitive runtime or prove which path the original commands imported. The
+system-owned Codex transcript contains the contemporaneous exact smoke and
+bank calls at `00:26:28.653Z` and `00:26:38.780Z`, both naming the same
+absolute isolated runtime entrypoint; their matching outputs close at
+`00:26:32.344Z` and `00:26:40.519Z`. The four exact JSONL records hash to
+`69a0ff08688ca21359d5500ddf2b8b5edec7752db90d39f7d7a3c20bd6398dad`.
+Every runtime-closure file predates the first command; the newest is
+`2026-08-04T00:00:46.783690073Z`. A complete deterministic manifest over
+3,208 files, 706,843,605 bytes, paths, and one contained symlink hashes to
+`a0aca4625ff6793abaf7fb0db2b01328dee50eb7488e3c5a869dfe2d5ae93d96`.
+The runner now enforces that closure for any future use and rejects escaping
+runtime symlinks. This locally binds the terminal invocations to the preserved
+runtime; it is explicitly not represented as a signed third-party attestation.
+
 The external model/head cache is 68 MiB; exact head files total 265,604 bytes
 and are mode 0600. Palari ships neither weights nor the optional 686 MiB
 Transformers.js runtime and adds no dependency. Consumers own that runtime's
@@ -104,11 +119,24 @@ fixed without changing P-set 24, the bank, a terminal result byte, score,
 grade, selection, or accounting record. No inference, download, rerun, or
 regrade occurred during repair.
 
-Post-repair verification: focused contracts 8/8; full suite 693 pass, 0 fail,
+The first rereviewer recommended `reopen` at `17f0ef5`: P1 because the first
+audit did not bind the original commands to the audited directory, and P2
+because two top-level hashes omitted transitive runtime code. The
+contemporaneous command transcript and full closure manifest above resolve
+those evidence gaps without inference or result mutation.
+
+First-repair verification: focused contracts 8/8; full suite 693 pass, 0 fail,
 15 skipped across 708; quickstart 6/6; inert identity verification, package
 dry-run, ticket lint, scope, and diff checks pass. All three preserved cached
-head files rehash and load with network explicitly forbidden. The reviewer
-note is recorded; final report lint follows the rereviewer note.
+head files rehash and load with network explicitly forbidden. Reviewer and
+rereviewer notes are recorded; report lint passes.
+
+Final post-closure verification: focused contracts 9/9; full suite 694 pass,
+0 fail, 15 skipped across 709; quickstart 6/6; inert identity verification,
+package dry-run, ticket/report lint, committed-plus-dirty scope, and diff checks
+pass. The added contract proves the manifest changes on transitive-file drift,
+is deterministic, covers symlink text, and rejects a symlink resolving outside
+the isolated runtime root.
 
 ## Risks / Follow-Ups
 

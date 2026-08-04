@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict'
-import { dirname, resolve } from 'node:path'
+import { mkdir, mkdtemp, symlink, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import {
   ETTIN_NATIVE_IDENTITY,
   ETTIN_RUNTIME_IDENTITY,
+  hashRuntimeClosure,
   main,
   verifyEttinRuntime,
 } from '../evals/run-ettin-native-bakeoff.mjs'
@@ -24,6 +27,28 @@ test('native Ettin identity reuses the unchanged frozen bank and rule', async ()
   assert.equal(verified.baseline.recallAtCutoff, 1)
   assert.equal(verified.artifacts.length, 3)
   assert.equal(verified.selectionRule.minimumTop1, 0.8)
+})
+
+test('runtime closure hash covers transitive files, paths, and symlinks', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'ettin-runtime-closure-'))
+  await mkdir(join(root, 'node_modules', 'runtime'), { recursive: true })
+  await writeFile(join(root, 'node_modules', 'runtime', 'index.mjs'), 'export {}\n')
+  await symlink('runtime', join(root, 'node_modules', 'runtime-link'))
+  const first = await hashRuntimeClosure(root)
+  const second = await hashRuntimeClosure(root)
+  assert.deepEqual(first, second)
+  assert.equal(first.files, 1)
+  assert.equal(first.symlinks, 1)
+  await writeFile(
+    join(root, 'node_modules', 'runtime', 'transitive.mjs'),
+    'export const changed = true\n',
+  )
+  const changed = await hashRuntimeClosure(root)
+  assert.notEqual(changed.sha256, first.sha256)
+  assert.equal(changed.files, 2)
+  const outside = await mkdtemp(join(tmpdir(), 'ettin-runtime-outside-'))
+  await symlink(outside, join(root, 'node_modules', 'escape'))
+  await assert.rejects(() => hashRuntimeClosure(root), /symlink escaped/)
 })
 
 test('execution rejects an external runtime that is not the frozen identity', async () => {

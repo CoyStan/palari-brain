@@ -682,7 +682,11 @@ preregistered quality/latency rule and is therefore Palari's recommended
 optional local reranker. This remains an ordering measurement, not generated
 answer accuracy; trusted host chronology is still required for latestness.
 The BRN-0009 measurement runner additionally verifies its exact isolated
-Transformers.js 4.2.0 package metadata and entrypoint hashes before execution;
+Transformers.js 4.2.0 package metadata, entrypoint, and complete transitive
+runtime closure hash before execution; runtime symlinks must resolve inside
+that closure. A contemporaneous execution transcript binds the terminal smoke
+and bank commands to the audited absolute runtime path. This is a reproducible
+local provenance record, not a signed third-party attestation;
 that evaluation pin does not add a package dependency or restrict a consumer's
 separately audited compatible injected runtime.
 
