@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0013 REPAIRED ETTIN + LUNA FIRST-TEN FROZEN; INDEPENDENT
-PRE-DISPATCH REVIEW NEXT. BRN-0012 was independently accepted, merged, and
+Loop state: BRN-0013 REPAIRED ETTIN + LUNA FIRST-TEN FROZEN AND INDEPENDENTLY
+REVIEWED GO; ONE INVOCATION NEXT. BRN-0012 was independently accepted, merged, and
 pushed at `90e1837`; canonical administrative head `784de72` adds only this
 evaluation contract. Fresh identity `j4-luna-ettin-first10-v2` preserves the
 exact BRN-0010 treatment and changes only the accepted absolute cached-model
@@ -22,8 +22,11 @@ closure, dataset/order, clean canonical checkout, caps, and absent result.
 Focused contracts pass 10/10; full suite passes 695 / fails 0 / skips 15;
 quickstart is green 6/6. P-set 26 is FINAL. No model inference, credential
 read, provider call, result identity, question execution, or fresh spend has
-occurred. Next: commit and push this freeze, obtain a fresh independent GO
-recommendation, then invoke the launcher once if and only if review is clean.
+occurred. Fresh independent review at
+`163e7e532cf631239f66155dd179b186959d8032` found no P0-P3 issue, repeated the
+launcher/focused/full/quickstart/governance checks, and recommends GO. Next:
+commit and push the review record, then invoke the frozen launcher exactly
+once and preserve whatever terminal result occurs.
 
 Loop state: BRN-0012 ETTIN CACHED-ONLY MODEL RESOLUTION INDEPENDENTLY REVIEWED
 AND ACCEPTED; MERGE NEXT. Quetzali explicitly accepted
