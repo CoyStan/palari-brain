@@ -37,3 +37,13 @@
 - The ten inspected cases are a causal integration diagnostic, not an estimate
   of unseen-user accuracy. Any terminal stop remains the result and receives no
   retry, reroll, or regrade.
+
+## Review Repair
+
+- Independent review at `ecc8add85d25c0c8055ab975a8be5a520f68e835`
+  found no P0-P2 issue and one P3: lifecycle transition had emitted trailing
+  spaces in the cleared `claimed_by` and `claimed_at` fields, so the committed
+  target-aware diff check failed while the pre-transition dirty check had
+  passed. The metadata whitespace is removed before resubmission. The report's
+  verification statement now refers to the complete committed-plus-dirty
+  target range, not only the earlier dirty patch.

@@ -16,8 +16,11 @@ provider calls, inference, and spend.
 Opening cumulative accounted spend is `$6.40824561` = `$1.73394156` measured
 + `$4.67430405` uncertain. Proposed fresh/cumulative caps are `$1.50` /
 `$7.90824561`, not authority. Prior BRN-0015 authority is consumed. No live
-result identity exists. Next: commit/push the freeze, obtain fresh independent
-review, then stop at a new exact founder gate; never reuse prior authority.
+result identity exists. First independent review found no substantive P0-P2
+issue and one P3: ticket-transition trailing whitespace contradicted the
+target-aware diff-check claim. That metadata-only discrepancy is repaired and
+requires a fresh exact-head rereview. Next: resubmit and rereview, then stop at
+a new exact founder gate; never reuse prior authority.
 
 Loop state: BRN-0016 FORCED COMMITMENT METER REPAIR REPAIRED AFTER TWO P1S;
 FRESH REREVIEW PENDING.
