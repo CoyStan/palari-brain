@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0016
 children: []
-status: open
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-04T06:10:53Z
 target_branch: "main"
 branch: "ticket/BRN-0016-repair-forced-commitment-wire-in-metered-luna-harness"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0016-repair-forced-commitment-wire-in-metered-luna-harness"
@@ -123,6 +123,29 @@ rerun the consumed BRN-0015 identity.
 - `npm run quickstart`
 - `npm run ticket -- check BRN-0016`
 - `git diff --check`
+
+## Implementation Evidence
+
+- `evals/openai-responses-answer-wire.mjs` snapshots and validates exact plain
+  own-data requests before exposing them to reservation or dispatch. Validator
+  SHA-256:
+  `d1c98a9ce81161760a1e200a012e0a35eb237a06e1b083d0404b025c37d89d5d`.
+- Exact normal-auto, plain-none, and forced `palari_answer_commit` fixtures pass.
+  The forced fixture reproduces the request class rejected on BRN-0015. Fourteen
+  malformed/adversarial fixtures fail before fake reservation or dispatch.
+- Fresh private offline template
+  `/home/quetza/palari-brain-private/luna-ettin-cited-successor-meter-template.mjs`
+  is mode 0600, SHA-256
+  `055361961b55d1ff9917c38f4fb261cc620b92a27ec84700a0701d536a21596c`,
+  and pins/imports the exact tracked validator. `--verify` recorded one fake
+  forced reservation followed by one fake dispatch, with zero credential
+  reads, provider/model calls, or spend.
+- Consumed BRN-0015 launcher/runtime/manifest SHA-256 remain
+  `6ccc091b521cd3c9874805278ab7959e9fdb5523326fe775df01a37dd992f29b`,
+  `d123525ec5e1c9bc1664fc9c323e9fa567831e9118d4e5cc273cfb29344c6ea2`,
+  and `d48030533c6a344ea1c180bb7c99c7edb20dc48a0c7403f65a04837c0697448f`.
+  No live identity, result, credential access, inference, network call, score,
+  or spend occurred.
 
 ## Stop Conditions
 

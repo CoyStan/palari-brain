@@ -3,6 +3,15 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0016 — forced-wire repair implemented offline) **Use one
+  tracked validator snapshot as the future meter's answer-wire boundary.** The
+  validator admits the exact normal, plain-terminal, and forced commitment
+  forms emitted by accepted product code, while rejecting changed envelopes
+  before reservation or transport. A fresh private mode-0600 template pins and
+  imports that validator and passes only fake/local compatibility. The
+  BRN-0015 launcher/runtime/result remain byte-identical. This decision spends
+  `$0.00` and does not authorize or create a live successor identity.
+
 - 2026-08-04 (BRN-0016 — offline meter-repair contract) **Repair the general
   forced commitment request validator without touching or rerunning BRN-0015.**
   The smallest successor is one import-inert tracked validator for Luna's exact
