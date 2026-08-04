@@ -12,8 +12,20 @@ import {
   ettinGelu,
   loadEttinArtifact,
   parseEttinSafetensors,
+  resolveEttinModelDirectory,
   scoreEttinHiddenStates,
 } from '../src/reranker-ettin.mjs'
+
+async function modelCacheFixture(prefix = 'ettin-model-cache-') {
+  const cacheDir = await mkdtemp(join(tmpdir(), prefix))
+  const modelDir = join(
+    cacheDir,
+    ...ETTIN_RERANKER_MODEL.id.split('/'),
+    ETTIN_RERANKER_MODEL.revision,
+  )
+  await mkdir(modelDir, { mode: 0o700, recursive: true })
+  return { cacheDir, modelDir }
+}
 
 function syntheticSafetensors(tensors) {
   let offset = 0
@@ -252,6 +264,7 @@ test('native head uses CLS, exact orientation, GELU, LayerNorm, and final bias',
 })
 
 test('adapter is lazy, pair-batched, base-model only, and loads once', async () => {
+  const { cacheDir, modelDir } = await modelCacheFixture()
   const calls = { factories: [], tokenizer: [] }
   const head = identityHead()
   let headLoads = 0
@@ -267,7 +280,7 @@ test('adapter is lazy, pair-batched, base-model only, and loads once', async () 
     return { last_hidden_state: { data, dims: [2, 2, 256] } }
   }
   const rerank = createEttinReranker({
-    cacheDir: '/private/cache',
+    cacheDir,
     loadHead: async () => {
       headLoads += 1
       return head
@@ -298,10 +311,14 @@ test('adapter is lazy, pair-batched, base-model only, and loads once', async () 
   assert.equal(runtimeLoads, 1)
   assert.equal(headLoads, 1)
   assert.equal(calls.factories.length, 2)
-  assert.equal(calls.factories[0][1], ETTIN_RERANKER_MODEL.id)
-  assert.equal(calls.factories[1][1], ETTIN_RERANKER_MODEL.id)
+  assert.equal(calls.factories[0][1], modelDir)
+  assert.equal(calls.factories[1][1], modelDir)
+  assert.deepEqual(calls.factories[0][2], { local_files_only: true })
   assert.equal(calls.factories[0][2].dtype, undefined)
   assert.equal(calls.factories[1][2].dtype, 'fp32')
+  assert.equal(calls.factories[1][2].local_files_only, true)
+  assert.equal(calls.factories[1][2].cache_dir, undefined)
+  assert.equal(calls.factories[1][2].revision, undefined)
   assert.deepEqual(calls.tokenizer[0], [
     ['which?', 'which?'],
     { padding: true, text_pair: ['first', 'second'], truncation: true },
@@ -310,8 +327,9 @@ test('adapter is lazy, pair-batched, base-model only, and loads once', async () 
 
 test('adapter and artifact cache reject bounds, bad shape, and corrupt bytes', async () => {
   assert.throws(() => createEttinReranker({ cacheDir: 'relative' }), /absolute/)
+  const { cacheDir: modelCacheDir } = await modelCacheFixture()
   const rerank = createEttinReranker({
-    cacheDir: '/private/cache',
+    cacheDir: modelCacheDir,
     loadHead: async () => identityHead(),
     loadRuntime: async () => ({
       AutoModel: { async from_pretrained() {
@@ -370,4 +388,76 @@ test('adapter and artifact cache reject bounds, bad shape, and corrupt bytes', a
     () => loadEttinArtifact({ ...ETTIN_HEAD_ARTIFACTS[2] }, { cacheDir }),
     /Only frozen Ettin head artifacts/,
   )
+})
+
+test('cached-only model directory is contained and validated before loading', async () => {
+  const { cacheDir, modelDir } = await modelCacheFixture()
+  assert.equal(await resolveEttinModelDirectory(cacheDir), modelDir)
+
+  const explicit = join(cacheDir, 'materialized', 'ettin')
+  await mkdir(explicit, { mode: 0o700, recursive: true })
+  assert.equal(await resolveEttinModelDirectory(cacheDir, explicit), explicit)
+  await assert.rejects(
+    () => resolveEttinModelDirectory(cacheDir, cacheDir),
+    /strictly inside/,
+  )
+  assert.throws(
+    () => createEttinReranker({ cacheDir, modelDir: 'relative' }),
+    /normalized absolute/,
+  )
+  assert.throws(
+    () => createEttinReranker({
+      cacheDir,
+      modelDir: `${cacheDir}/materialized/../ettin`,
+    }),
+    /normalized absolute/,
+  )
+
+  let headLoads = 0
+  let runtimeLoads = 0
+  const missing = createEttinReranker({
+    cacheDir,
+    modelDir: join(cacheDir, 'missing'),
+    loadHead: async () => { headLoads += 1 },
+    loadRuntime: async () => { runtimeLoads += 1 },
+  })
+  await assert.rejects(() => missing.warm(), /existing directory/)
+  await assert.rejects(() => missing.warm(), /existing directory/)
+  assert.equal(headLoads, 0)
+  assert.equal(runtimeLoads, 0)
+
+  const fileComponent = join(cacheDir, 'not-a-directory')
+  await writeFile(fileComponent, 'not a model directory', { mode: 0o600 })
+  const nonDirectory = createEttinReranker({
+    cacheDir,
+    modelDir: fileComponent,
+    loadHead: async () => { headLoads += 1 },
+    loadRuntime: async () => { runtimeLoads += 1 },
+  })
+  await assert.rejects(() => nonDirectory.warm(), /existing directory/)
+  assert.equal(headLoads, 0)
+  assert.equal(runtimeLoads, 0)
+
+  const outside = await mkdtemp(join(tmpdir(), 'ettin-model-outside-'))
+  const escaped = createEttinReranker({
+    cacheDir,
+    modelDir: outside,
+    loadHead: async () => { headLoads += 1 },
+    loadRuntime: async () => { runtimeLoads += 1 },
+  })
+  await assert.rejects(() => escaped.warm(), /strictly inside/)
+  assert.equal(headLoads, 0)
+  assert.equal(runtimeLoads, 0)
+
+  const symlinkCache = await mkdtemp(join(tmpdir(), 'ettin-model-symlink-'))
+  const symlinkTarget = await mkdtemp(join(tmpdir(), 'ettin-model-target-'))
+  await symlink(symlinkTarget, join(symlinkCache, 'cross-encoder'))
+  const symlinked = createEttinReranker({
+    cacheDir: symlinkCache,
+    loadHead: async () => { headLoads += 1 },
+    loadRuntime: async () => { runtimeLoads += 1 },
+  })
+  await assert.rejects(() => symlinked.warm(), /symlink/)
+  assert.equal(headLoads, 0)
+  assert.equal(runtimeLoads, 0)
 })

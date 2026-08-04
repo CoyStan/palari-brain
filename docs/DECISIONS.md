@@ -3,6 +3,30 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0012 — delegated acceptance) **Accept and merge the
+  cached-only Ettin loader repair after a clean independent review.** The
+  reviewer inspected exact commit
+  `f2e5a74abb17ae4a904c97431ff5358643233a5c`, independently repeated focused,
+  full-suite, quickstart, package, scope, and diff checks, found no P0-P3
+  issue, and recommended acceptance. Quetzali's recorded autonomy directive
+  authorizes this routine clean-review acceptance and merge. A separately
+  frozen successor owns the first real runtime load and must bind every
+  private model artifact before inference.
+
+- 2026-08-04 (BRN-0012 — Ettin cached-only implementation) **Resolve and
+  validate the exact local revision directory before loading, then give that
+  directory to both Transformers.js factories with `local_files_only: true`.**
+  This implements BRN-0011's recommendation and statically removes the 4.2.0
+  metadata path that dropped `cache_dir` during BRN-0010. The default directory
+  matches Transformers.js's pinned filesystem-cache key; an explicit directory
+  must be normalized, existing, non-symlinked, canonical, and strictly inside
+  the application-owned cache root. The frozen model, tokenizer call, fp32
+  transformer, native head math/artifacts, bounds, and measured BRN-0009 result
+  are unchanged. Provider-free focused 6/6 and full 695 pass / 0 fail / 15
+  skipped verification is green. No runtime/model load, inference, download,
+  install, credential/provider activity, result mutation, or spend occurred.
+  Independent review remains mandatory before acceptance or merge.
+
 - 2026-08-04 (FOUNDER — BRN-0012 Ettin cached-only repair and autonomous
   validation chain) **Accept BRN-0011, integrate Ettin correctly, then govern
   implementation, independent review, and one fresh preregistered Luna+Ettin

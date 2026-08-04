@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0012 ETTIN CACHED-ONLY MODEL-RESOLUTION CONTRACT OPEN;
-CONTRACT COMMIT/WORKTREE NEXT. Quetzali explicitly accepted BRN-0011, which is
+Loop state: BRN-0012 ETTIN CACHED-ONLY MODEL RESOLUTION INDEPENDENTLY REVIEWED
+AND ACCEPTED; MERGE NEXT. Quetzali explicitly accepted
+BRN-0011, which is
 merged at `29bab2f`, and directed autonomous governed implementation, review,
 and fresh validation of Ettin with Luna until a CEO-level blocker. BRN-0012 is
 the smallest provider-free repair: derive or accept the exact absolute
@@ -11,12 +12,27 @@ with `local_files_only: true`. It leaves the frozen model, fp32 transformer,
 tokenization, native head math/artifacts, retrieval bounds, and prior metrics
 unchanged. No real runtime/model load, inference, provider/credential call,
 question, result mutation, download/install, or spend is authorized in this
-unit. After implementation and full verification, fresh independent review is
-mandatory; a clean reviewer may accept and merge under the founder's delegated
-autonomy. Only then may a separately frozen/preregistered live successor run
+unit. After implementation and full verification, a fresh independent reviewer
+inspected exact commit `f2e5a74abb17ae4a904c97431ff5358643233a5c`, repeated
+the focused, full, quickstart, package, scope, and diff checks, found no P0-P3
+issue, and recommended acceptance. The ticket is accepted under the founder's
+delegated autonomy. Only after merge may a separately frozen/preregistered live successor run
 once and report its score honestly—10/10 is the objective, not permission to
-reroll or tune on known answers. Cumulative accounted spend remains
-`$5.27173386`.
+reroll or tune on known answers. The adapter now derives the exact
+`<cacheDir>/<model-id>/<revision>` directory or accepts a normalized absolute
+contained override, verifies every existing component is a non-symlink
+directory plus canonical containment, and performs this check before runtime,
+head, or network-capable code. Both factories receive only that absolute path
+and `local_files_only: true`; model fp32 remains model-only. Provider-free
+focused contracts pass 6/6 and the full suite passes 695 / fails 0 / skips 15
+across 710 tests. No real runtime/model load, inference, provider/credential
+call, question, result mutation, download/install, or spend occurred.
+Cumulative accounted spend remains `$5.27173386`. Quickstart is green 6/6;
+package dry-run contains 32 expected files and no runtime/model/cache/result;
+ticket lint, committed-plus-dirty scope, and diff checks pass. Implementation
+commit `e455a07` and review transition `f2e5a74` are pushed. Next: commit the
+review record and accepted lifecycle, merge BRN-0012, then freeze the fresh
+live successor.
 
 Loop state: BRN-0011 ETTIN UPSTREAM-INTEGRATION RESEARCH COMPLETE;
 FOUNDER-ACCEPTED AND MERGE AUTHORIZED. Twelve primary upstream artifacts and
