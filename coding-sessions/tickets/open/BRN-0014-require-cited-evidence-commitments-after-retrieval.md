@@ -10,8 +10,8 @@ status: in-review
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by: 
-claimed_at: 
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0014-require-cited-evidence-commitments-after-retrieval"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0014-require-cited-evidence-commitments-after-retrieval"
