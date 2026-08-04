@@ -38,6 +38,13 @@ async function fakeEmbed(texts) {
   })
 }
 
+function requireEvidenceCommitment(provider) {
+  Object.defineProperty(provider, 'requiresEvidenceCommitment', {
+    value: true,
+  })
+  return provider
+}
+
 function keepNothing({ request }) {
   return {
     actions: [],
@@ -180,6 +187,486 @@ test('hybrid answer retrieval bridges zero-overlap wording to canonical text',
       result.retrievalTranscript[0].result.matches[0].text,
       returned.matches[0].text,
     )
+  })
+
+test('host commits exact returned evidence and exposes immutable basis telemetry',
+  async (t) => {
+    const brain = await openBrain(t)
+    const canonical =
+      'My workshop apron is stored in the cedar cabinet by the window.'
+    await seed(brain, [{ id: 'apron:0', user: canonical }])
+    let committed
+    const provider = requireEvidenceCommitment(async ({
+      answerEvidenceCount,
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'workshop apron' },
+        tool: 'memory_find',
+      })
+      assert.equal(answerEvidenceCount(), found.matches.length)
+      assert.ok(Object.isFrozen(found))
+      assert.ok(Object.isFrozen(found.matches[0]))
+      const [row] = found.matches
+      committed = commitAnswer({
+        abstained: false,
+        bases: [{
+          evidenceId: row.evidenceId,
+          quote: 'cedar cabinet by the window',
+        }],
+        text: 'Your workshop apron is in the cedar cabinet by the window.',
+      })
+      assert.ok(Object.isFrozen(committed))
+      assert.ok(Object.isFrozen(committed.bases))
+      return committed
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      provider,
+      question: 'Where is my workshop apron?',
+    })
+
+    assert.equal(result.answerCommitted, true)
+    assert.equal(result.answer, committed.text)
+    assert.deepEqual(result.answerEvidence, committed.bases)
+    assert.ok(Object.isFrozen(result.answerEvidence))
+    assert.ok(Object.isFrozen(result.answerEvidence[0]))
+    assert.equal(result.retrievalTranscript[0].result.matches[0].snippet,
+      canonical)
+  })
+
+test('answer commitment rejects forged identity, unsupported provenance, and bad bases',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [{
+      id: 'notebook:0',
+      user: 'The field notebook is inside the orange canvas satchel.',
+    }])
+
+    const invalidProposals = [
+      (row) => ({
+        abstained: false,
+        bases: [{ evidenceId: 'not-returned', quote: row.snippet }],
+        text: 'Answer.',
+      }),
+      (row) => ({
+        abstained: false,
+        bases: [{ evidenceId: row.evidenceId, quote: 'blue steel locker' }],
+        text: 'Answer.',
+      }),
+      (row) => ({
+        abstained: false,
+        bases: [
+          { evidenceId: row.evidenceId, quote: 'orange canvas satchel' },
+          { evidenceId: row.evidenceId, quote: 'field notebook' },
+        ],
+        text: 'Answer.',
+      }),
+      (row) => ({
+        abstained: false,
+        bases: [{
+          evidenceId: row.evidenceId,
+          origin: 'provider-authored',
+          quote: 'orange canvas satchel',
+        }],
+        text: 'Answer.',
+      }),
+      (row) => ({
+        abstained: 'false',
+        bases: [{ evidenceId: row.evidenceId, quote: 'field notebook' }],
+        text: 'Answer.',
+      }),
+      (row) => ({
+        abstained: false,
+        bases: [{ evidenceId: row.evidenceId, quote: 'field notebook' }],
+        text: 'x'.repeat(20_001),
+      }),
+    ]
+
+    for (const proposal of invalidProposals) {
+      const provider = requireEvidenceCommitment(async ({
+        commitAnswer,
+        retrieve,
+      }) => {
+        const found = await retrieve({
+          input: { phrase: 'field notebook' },
+          tool: 'memory_find',
+        })
+        return commitAnswer(proposal(found.matches[0]))
+      })
+      await assert.rejects(
+        answerWithRetrieval(brain, {
+          ...SCOPE,
+          provider,
+          question: 'Where is the field notebook?',
+        }),
+        (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID',
+      )
+    }
+
+    const forged = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      const accepted = commitAnswer({
+        abstained: false,
+        bases: [{
+          evidenceId: found.matches[0].evidenceId,
+          quote: 'orange canvas satchel',
+        }],
+        text: 'It is in the orange canvas satchel.',
+      })
+      return structuredClone(accepted)
+    })
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: forged,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID',
+    )
+
+    const mutableDeclaration = async ({ retrieve }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      assert.equal(found.matches.length, 1)
+      mutableDeclaration.requiresEvidenceCommitment = false
+      return { text: 'Raw prose after weakening the declaration.' }
+    }
+    mutableDeclaration.requiresEvidenceCommitment = true
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: mutableDeclaration,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID',
+    )
+    assert.equal(mutableDeclaration.requiresEvidenceCommitment, false)
+
+    const maliciousMap = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      const bases = [{
+        evidenceId: found.matches[0].evidenceId,
+        quote: 'orange canvas satchel',
+      }]
+      bases.map = () => [{
+        evidenceId: 'never-returned',
+        quote: 'fabricated evidence',
+      }]
+      return commitAnswer({
+        abstained: false,
+        bases,
+        text: 'Unsupported answer.',
+      })
+    })
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: maliciousMap,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+        /dense indexed items/.test(error.message),
+    )
+
+    let basisReads = 0
+    const changingAccessor = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      const valid = [{
+        evidenceId: found.matches[0].evidenceId,
+        quote: 'orange canvas satchel',
+      }]
+      const proposal = {
+        abstained: false,
+        text: 'It is in the orange canvas satchel.',
+      }
+      Object.defineProperty(proposal, 'bases', {
+        enumerable: true,
+        get() {
+          basisReads += 1
+          return basisReads === 1 ? valid : []
+        },
+      })
+      return commitAnswer(proposal)
+    })
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: changingAccessor,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+        /bases must be a data property/.test(error.message),
+    )
+    assert.equal(basisReads, 0)
+
+    const hiddenMetadata = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      const proposal = {
+        abstained: false,
+        bases: [{
+          evidenceId: found.matches[0].evidenceId,
+          quote: 'orange canvas satchel',
+        }],
+        text: 'It is in the orange canvas satchel.',
+      }
+      Object.defineProperty(proposal, 'providerOrigin', {
+        value: 'hidden provenance',
+      })
+      return commitAnswer(proposal)
+    })
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: hiddenMetadata,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+        /unsupported or missing fields/.test(error.message),
+    )
+
+    const poisonedPrototype = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      const originalIterator = Set.prototype[Symbol.iterator]
+      const originalIncludes = String.prototype.includes
+      try {
+        Set.prototype[Symbol.iterator] = function * forgedIterator() {
+          yield 'fabricated blue vault claim'
+        }
+        String.prototype.includes = () => true
+        return commitAnswer({
+          abstained: false,
+          bases: [{
+            evidenceId: found.matches[0].evidenceId,
+            quote: 'fabricated blue vault claim',
+          }],
+          text: 'Unsupported answer.',
+        })
+      } finally {
+        Set.prototype[Symbol.iterator] = originalIterator
+        String.prototype.includes = originalIncludes
+      }
+    })
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: poisonedPrototype,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+        /quote is not exact contiguous/.test(error.message),
+    )
+  })
+
+test('required commitment drains outstanding retrieval before accepting raw output',
+  async (t) => {
+    let releaseReranker
+    const rerankerGate = new Promise((resolve) => {
+      releaseReranker = resolve
+    })
+    const brain = await openBrain(t, {
+      async reranker(_query, texts) {
+        await rerankerGate
+        return texts.map(() => 1)
+      },
+    })
+    await seed(brain, [{
+      id: 'compass:0',
+      user: 'The brass compass is stored in the cedar drawer.',
+    }])
+    let leakedRetrieval
+    const provider = requireEvidenceCommitment(async ({ retrieve }) => {
+      leakedRetrieval = retrieve({
+        input: { phrase: 'brass compass cedar drawer' },
+        tool: 'memory_search',
+      })
+      setTimeout(releaseReranker, 0)
+      return { text: 'Raw answer returned before retrieval settled.' }
+    })
+
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider,
+        question: 'Where is the brass compass?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID',
+    )
+    const found = await leakedRetrieval
+    assert.equal(found.matches.length, 1)
+    assert.equal(found.matches[0].text,
+      'The brass compass is stored in the cedar drawer.')
+  })
+
+test('settled retrieval failures remain terminal even when a provider catches them',
+  async (t) => {
+    const brain = await openBrain(t)
+    for (const retrievalFailure of [
+      new Error('canonical retrieval failed'),
+      null,
+    ]) {
+      const failingBrain = Object.create(brain)
+      Object.defineProperty(failingBrain, 'exploreFind', {
+        value() {
+          throw retrievalFailure
+        },
+      })
+      const provider = requireEvidenceCommitment(async ({ retrieve }) => {
+        await retrieve({
+          input: { phrase: 'settled failure' },
+          tool: 'memory_find',
+        }).catch(() => {})
+        return { text: 'Raw answer after swallowing retrieval failure.' }
+      })
+      let rejected = false
+      try {
+        await answerWithRetrieval(failingBrain, {
+          ...SCOPE,
+          provider,
+          question: 'What did memory say?',
+        })
+      } catch (error) {
+        rejected = true
+        assert.equal(error, retrievalFailure)
+      }
+      assert.equal(rejected, true)
+    }
+
+    let providerRejected = false
+    try {
+      await answerWithRetrieval(brain, {
+        ...SCOPE,
+        async provider() {
+          throw null
+        },
+        question: 'What did memory say?',
+      })
+    } catch (error) {
+      providerRejected = true
+      assert.equal(error, null)
+    }
+    assert.equal(providerRejected, true)
+  })
+
+test('committed prose cannot be replaced through a poisoned global String',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [{
+      id: 'committed-text:0',
+      user: 'The brass compass is stored in the cedar drawer.',
+    }])
+    const committedText = 'The brass compass is in the cedar drawer.'
+    const originalString = globalThis.String
+    try {
+      const result = await answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: requireEvidenceCommitment(async ({
+          commitAnswer,
+          retrieve,
+        }) => {
+          const found = await retrieve({
+            input: { phrase: 'brass compass' },
+            tool: 'memory_find',
+          })
+          const committed = commitAnswer({
+            abstained: false,
+            bases: [{
+              evidenceId: found.matches[0].evidenceId,
+              quote: 'cedar drawer',
+            }],
+            text: committedText,
+          })
+          globalThis.String = () => 'FABRICATED AFTER COMMITMENT'
+          return committed
+        }),
+        question: 'Where is the brass compass?',
+      })
+      assert.equal(result.answerCommitted, true)
+      assert.equal(result.answer, committedText)
+    } finally {
+      globalThis.String = originalString
+    }
+  })
+
+test('commitment shape checks use captured coercion before private cloning',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [
+      { user: 'The brass compass is stored in the cedar drawer.' },
+      { user: 'The canvas map is stored in the blue folio.' },
+    ])
+    const originalString = globalThis.String
+    try {
+      await assert.rejects(
+        answerWithRetrieval(brain, {
+          ...SCOPE,
+          provider: requireEvidenceCommitment(async ({
+            commitAnswer,
+            retrieve,
+          }) => {
+            const found = await retrieve({
+              input: { phrase: 'stored' },
+              tool: 'memory_find',
+            })
+            const secondBasis = {
+              evidenceId: found.matches[1].evidenceId,
+              quote: 'blue folio',
+            }
+            Object.defineProperty(secondBasis, 'providerOrigin', {
+              value: 'hidden provenance',
+            })
+            globalThis.String = () => '0'
+            return commitAnswer({
+              abstained: false,
+              bases: [{
+                evidenceId: found.matches[0].evidenceId,
+                quote: 'cedar drawer',
+              }, secondBasis],
+              text: 'Both objects are stored.',
+            })
+          }),
+          question: 'Where are both stored objects?',
+        }),
+        (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+          /unsupported or missing fields/.test(error.message),
+      )
+    } finally {
+      globalThis.String = originalString
+    }
   })
 
 test('optional reranker sees immutable canonical candidates and reorders the bounded pool',
@@ -345,7 +832,7 @@ test('the answer loop exposes admitted graph edges without extracting',
 
     const result = await answerWithRetrieval(brain, {
       ...SCOPE,
-      async provider({ retrieve }) {
+      provider: requireEvidenceCommitment(async ({ commitAnswer, retrieve }) => {
         const graph = await retrieve({
           input: { entity: 'Ana', hops: 2 },
           tool: 'memory_graph',
@@ -358,8 +845,18 @@ test('the answer loop exposes admitted graph edges without extracting',
         assert.ok(graph.edges.every((edge) =>
           edge.questionRelativeTime?.relation === 'past' &&
           edge.questionRelativeTime?.wholeCalendarMonths === 0))
-        return { text: 'Ana’s doctor works at the Lisbon hospital.' }
-      },
+        const basis = graph.edges.find((edge) =>
+          edge.subject === 'Dr. Peixoto' &&
+          edge.object === 'Lisbon hospital')
+        return commitAnswer({
+          abstained: false,
+          bases: [{
+            evidenceId: basis.evidenceId,
+            quote: basis.quote,
+          }],
+          text: 'Ana’s doctor works at the Lisbon hospital.',
+        })
+      }),
       question: 'Which hospital does my sister’s doctor work at?',
       questionDate: '2025-01-10T00:00:00.000Z',
     })
@@ -370,6 +867,8 @@ test('the answer loop exposes admitted graph edges without extracting',
     )
     assert.ok(result.consultedEvidenceIds.length >= 2)
     assert.equal(result.retrievalTranscript[0].tool, 'memory_graph')
+    assert.equal(result.answerCommitted, true)
+    assert.equal(result.answerEvidence.length, 1)
   })
 
 test('host-computed question-relative time is deterministic and non-mutating',
@@ -487,7 +986,7 @@ test('host-computed question-relative time is deterministic and non-mutating',
       ...SCOPE,
       question: 'How long ago was the photography workshop?',
       questionDate: expected.referenceAt,
-      async provider({ retrieve }) {
+      provider: requireEvidenceCommitment(async ({ commitAnswer, retrieve }) => {
         const found = await retrieve({
           input: { phrase: 'photography workshop' },
           tool: 'memory_find',
@@ -504,10 +1003,18 @@ test('host-computed question-relative time is deterministic and non-mutating',
           tool: 'memory_search',
         })
         assert.deepEqual(search.matches[0].questionRelativeTime, expected)
-        return { text: 'It was three calendar months ago.' }
-      },
+        return commitAnswer({
+          abstained: false,
+          bases: [{
+            evidenceId: search.matches[0].evidenceId,
+            quote: search.matches[0].text,
+          }],
+          text: 'It was three calendar months ago.',
+        })
+      }),
     })
     assert.equal(result.answer, 'It was three calendar months ago.')
+    assert.equal(result.answerCommitted, true)
     assert.equal(
       Object.hasOwn(raw.exploreFind.matches[0], 'questionRelativeTime'),
       false,

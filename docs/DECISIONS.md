@@ -3,6 +3,155 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0014 — delegated acceptance) **Accept and merge the cited
+  answer-commit boundary after clean adversarial rereview.** Fresh review at
+  `c40046c60cfb523998e6eb206ad48d4cf5a86f86` found no P0-P3 issue after four
+  prior review rounds exposed and closed six P1s and one P3. It independently
+  repeated focused, full-suite, quickstart, package, and governance checks.
+  The founder's recorded autonomy directive authorizes this routine clean-
+  review acceptance and merge. This accepts an offline structural guarantee,
+  not a new quality score or proof of semantic entailment. It does not publish,
+  access credentials, authorize provider spend, rerun known questions, regrade
+  the immutable 6/10, or weaken the sealed-U8 prohibition.
+
+- 2026-08-04 (BRN-0013 — delegated acceptance) **Accept and merge the honest
+  terminal official 6/10 record after clean corrected rereview.** Fresh review
+  at `e48ac2bde3d5ea8c4d3d1184c9de3e25bd3259b6` found no P0-P3 issue, directly
+  rehashed the complete sealed bundle, and reconciled calls/accounting. The
+  founder's recorded autonomy directive authorizes routine acceptance/merge.
+  This accepts the measurement record and live Ettin/Luna compatibility; it
+  does not publish, regrade, claim 10/10, or authorize another identity.
+
+- 2026-08-04 (BRN-0013 RESULT CLASSIFICATION CORRECTION) **Keep the official
+  6/10 immutable, but classify `10d9b85a` as a clear judge false negative, not
+  an answer-composition failure.** The frozen reference is exactly `3 days`
+  and Luna's response begins `You spent 3 days`; the unchanged official judge
+  nevertheless returned `No`. The terminal reviewer found this P1 reporting
+  error while independently rehashing the clean seal. No answer, label, score,
+  prediction, judge call, or result byte changes. The honest breakdown is four
+  official FAIL labels: three observed answer-use/personalization failures and
+  one judge-label failure. Answer-boundary and judge-robustness work are now
+  separate offline concerns; any new scoring remains founder-gated.
+
+- 2026-08-04 (BRN-0013 RESULT — repaired Ettin + Luna completed at 6/10)
+  **Record the one invocation as terminal, with no rerun or result-driven
+  patch.** Both smokes and all ten answer/judge cells completed. Ettin/Luna
+  integration is live and mechanically correct: 12/13 required sessions were
+  consulted, all measured candidate scores were finite and immutable, and
+  every tool/finalization/provider boundary held. Official labels were
+  `PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS`. The four
+  failures all received every required answer-bearing session, locating the
+  remaining limitation after retrieval/reranking in evidence interpretation
+  and multi-fact composition. Fresh spend was `$0.75899237`; cumulative
+  accounted spend is `$6.03072623`. Any general answer-boundary repair must be
+  provider-neutral, offline, and separately governed; these known answers may
+  not become runtime rules. Another score requires fresh founder authority.
+
+- 2026-08-04 (FOUNDER GO — BRN-0013 repaired Ettin + Luna first ten)
+  **Authorize exactly one fresh `j4-luna-ettin-first10-v2` invocation under a
+  `$1.50` fresh / `$6.77173386` cumulative accounted cap after committed
+  preregistration and independent GO review.** Quetzali accepted BRN-0011,
+  directed correct Ettin integration and rerun/fix work, and delegated routine
+  governed engineering/review/merge until a CEO-level blocker. BRN-0012 is
+  merged at `90e1837`; BRN-0013 carries the unchanged `$5.27173386` opening
+  ledger and exact BRN-0010 treatment except for that accepted loader repair.
+  One provider-free local smoke and one live compatibility smoke precede the
+  ten ordered questions. Any failure or score is terminal. Ten of ten is the
+  objective, never authority for reroll, regrade, answer-specific tuning, or a
+  second identity. Sealed U8 remains unreachable.
+
+- 2026-08-04 (BRN-0012 — delegated acceptance) **Accept and merge the
+  cached-only Ettin loader repair after a clean independent review.** The
+  reviewer inspected exact commit
+  `f2e5a74abb17ae4a904c97431ff5358643233a5c`, independently repeated focused,
+  full-suite, quickstart, package, scope, and diff checks, found no P0-P3
+  issue, and recommended acceptance. Quetzali's recorded autonomy directive
+  authorizes this routine clean-review acceptance and merge. A separately
+  frozen successor owns the first real runtime load and must bind every
+  private model artifact before inference.
+
+- 2026-08-04 (BRN-0012 — Ettin cached-only implementation) **Resolve and
+  validate the exact local revision directory before loading, then give that
+  directory to both Transformers.js factories with `local_files_only: true`.**
+  This implements BRN-0011's recommendation and statically removes the 4.2.0
+  metadata path that dropped `cache_dir` during BRN-0010. The default directory
+  matches Transformers.js's pinned filesystem-cache key; an explicit directory
+  must be normalized, existing, non-symlinked, canonical, and strictly inside
+  the application-owned cache root. The frozen model, tokenizer call, fp32
+  transformer, native head math/artifacts, bounds, and measured BRN-0009 result
+  are unchanged. Provider-free focused 6/6 and full 695 pass / 0 fail / 15
+  skipped verification is green. No runtime/model load, inference, download,
+  install, credential/provider activity, result mutation, or spend occurred.
+  Independent review remains mandatory before acceptance or merge.
+
+- 2026-08-04 (FOUNDER — BRN-0012 Ettin cached-only repair and autonomous
+  validation chain) **Accept BRN-0011, integrate Ettin correctly, then govern
+  implementation, independent review, and one fresh preregistered Luna+Ettin
+  evaluation without returning for routine engineering decisions.** Quetzali
+  directed the agent to continue autonomously until a CEO-level blocker. This
+  delegates routine ticket creation, clean-review acceptance, merge, and
+  successor preparation within the stated Ettin/Luna scope; it does not waive
+  scope checks, independent review, provider spend caps, preregistration,
+  honest terminal results, no-reroll/no-regrade discipline, or the sealed U8
+  prohibition. BRN-0012 repairs only the provider-free offline loader. A live
+  successor must freeze and push its identity/predictions before calls and
+  record the first result whatever it is; 10/10 is an objective, never a basis
+  for tuning or repeated scoring.
+
+- 2026-08-04 (BRN-0011 — supported Ettin integration research) **Keep the
+  measured native JavaScript Ettin head; repair only the offline local-directory
+  boundary in a separately approved ticket.** The official path and the clear
+  majority of substantive public integrations use Sentence Transformers
+  `CrossEncoder`. The published ONNX contains only the transformer output;
+  official ONNX operation still retains the surrounding Python module chain.
+  The two discovered non-Python integrations independently compose the same
+  Ettin head through custom project code, so neither eliminates Palari's small
+  architecture-specific responsibility. Static upstream source traces
+  BRN-0010 to Transformers.js 4.2.0 tokenizer discovery dropping the supplied
+  cache/revision/local-only options before its metadata check. A complete
+  absolute local directory bypasses that defect. No implementation, install,
+  download, model load, inference, credential, provider call, result change,
+  or spend was authorized or performed. See
+  `docs/ETTIN-INTEGRATION-RESEARCH.md`.
+
+- 2026-08-04 (FOUNDER — BRN-0011 Ettin upstream-integration research) After
+  BRN-0010 stopped in its provider-free cached tokenizer smoke, Quetzali
+  directed online research into how others use Ettin effectively and proposed
+  a research ticket so Palari does not reinvent an existing supported path.
+  BRN-0011 is read-only: primary upstream repositories/docs/issues only, at
+  least eight artifacts, comparison of official Sentence Transformers,
+  supported self-contained ONNX export, and the current native-JavaScript
+  modular head. It authorizes no acceptance/merge/rerun of BRN-0010, code,
+  dependency, download, install, inference, credential, provider call, spend,
+  or successor identity.
+
+- 2026-08-04 (FOUNDER — BRN-0010 Ettin end-to-end validation) **Accept and
+  merge BRN-0009, then run a fresh governed validation of Ettin on the Luna
+  first ten.** BRN-0010 uses identity `j4-luna-ettin-first10-v1` on the exact
+  private S60 ordinals 1-10. It preserves the BRN-0007 Luna-low, Gemini
+  semantic, official-judge, prompt, four-call, finalization, question-order,
+  memory, and grading controls; the only intended treatment is injecting the
+  accepted native Ettin-17M reranker into the bounded canonical candidate
+  path. The experiment carries `$5.27173386` cumulative accounted spend
+  forward and uses a `$1.50` fresh / `$6.77173386` cumulative hard cap. One
+  fresh compatibility-plus-first-ten invocation is authorized only after a
+  committed/pushed FINAL freeze, green offline verification, and fresh
+  independent GO review. Any failure or cap stop is terminal; no retry,
+  reroll, regrade, second identity, sealed-U8 access, or publication is
+  authorized.
+
+- 2026-08-04 (FOUNDER — BRN-0009 native Ettin successor) **Accept and merge
+  BRN-0008 as an honest terminal compatibility finding, then implement the
+  missing Ettin modular scoring head locally in native JavaScript.** BRN-0009
+  uses the same exact Apache-2.0 Ettin-17M revision but a fresh compatibility
+  identity. It composes official ONNX `last_hidden_state` with the repository's
+  exact CLS Pooling -> Dense/GELU -> LayerNorm -> Dense modules. Three external
+  safetensors are pinned by revision/path/size/hash, cached outside git, and
+  rehashed before use. No Python sidecar, new Palari dependency, API provider,
+  generation model, credential, LongMemEval run, or paid spend is authorized.
+  Working/default claims depend on one preregistered compatibility smoke and,
+  only if it passes, one terminal pass over the unchanged synthetic bank.
+
 - 2026-08-03 (FOUNDER — BRN-0008 Ettin reopening) **Use the newer local
   English Ettin-17M reranker instead of accepting MiniLM-L6 as Palari's
   measured default.** Preserve the three terminal P-set 22 results, pin
@@ -2547,3 +2696,28 @@ here with dates. Agents record; the founder decides.
   existing vectors are not relabeled. This offline unit reads no credential,
   makes no provider call, and claims no live compatibility, quality, latency,
   cost, benchmark result, or provider replacement.
+
+- 2026-08-04 (BRN-0014 cited answer-commit boundary)
+  **After canonical evidence is returned, declared evidence use becomes a
+  host-validated structural contract.** `answerWithRetrieval` now offers an
+  additive `commitAnswer` callback and registers immutable copies of every
+  returned exact/ranked/semantic/read message and admitted graph quote by
+  evidence ID. A provider that declares the capability must return the exact
+  callback-created object, with bounded answer text, explicit abstention, and
+  unique exact ID/contiguous-quote bases. This prevents a provider from
+  silently replacing a post-retrieval answer with uncited prose or inventing
+  provenance. It does not prove that the prose logically follows from the
+  cited quote and is not a lexical or semantic answer grader.
+
+  The Luna adapter declares this capability through one private strict
+  `palari_answer_commit` Responses function. The function is not a memory
+  tool, has no journal authority, and does not consume the four-call retrieval
+  budget. A valid commitment terminates without another generation. Raw or
+  invalid post-retrieval output receives at most one host-guided repair with
+  only that function exposed and forced; a second failure is terminal. Empty
+  retrieval and direct digest-only answers retain plain-text compatibility.
+  The provider-neutral synthetic regression proves structural behavior over
+  prior resources, Palari advice, multi-row chronology, corrections,
+  irrelevant non-empty results, temporal metadata, and honest empty results;
+  it makes no live-quality claim. This unit made no provider call, read no
+  credential, changed no terminal result, and spent nothing.

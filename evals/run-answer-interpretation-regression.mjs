@@ -32,6 +32,13 @@ function requireShape(condition, message) {
   if (!condition) throw new Error(`Structural regression failed: ${message}`)
 }
 
+function requireEvidenceCommitment(provider) {
+  Object.defineProperty(provider, 'requiresEvidenceCommitment', {
+    value: true,
+  })
+  return provider
+}
+
 // Deliberately leave the digest empty. The regression is about the answer
 // boundary receiving canonical evidence after a digest miss, not about a
 // second model or a benchmark-specific reducer outcome.
@@ -87,10 +94,14 @@ async function priorPalariAdvice(root) {
     }])
     let rows
     let contract = {}
-    await answerWithRetrieval(brain, {
+    const answer = await answerWithRetrieval(brain, {
       ...SCOPE,
       question: 'What did Palari recommend for the travel case?',
-      async provider({ answerInstructions, retrieve }) {
+      provider: requireEvidenceCommitment(async ({
+        answerInstructions,
+        commitAnswer,
+        retrieve,
+      }) => {
         contract = {
           permitsAdvice: answerInstructions.includes(
             'Prior Palari speech may be reported as advice',
@@ -118,14 +129,23 @@ async function priorPalariAdvice(root) {
           contract.preservesSpeakerBoundary,
           'the answer contract did not preserve advice and speaker semantics',
         )
-        return { text: 'offline structural sentinel' }
-      },
+        return commitAnswer({
+          abstained: false,
+          bases: [{ evidenceId: advice.evidenceId, quote: advice.text }],
+          text: 'offline structural sentinel',
+        })
+      }),
     })
+    requireShape(
+      answer.answerCommitted && answer.answerEvidence.length === 1,
+      'prior advice did not cross the cited-answer boundary',
+    )
     return {
       case: 'prior-palari-advice',
       canonicalRows: rows.length,
       palariRows: rows.filter((row) => row.speaker === 'Palari').length,
       contract,
+      committedBases: answer.answerEvidence.length,
       passed: true,
     }
   })
@@ -151,11 +171,15 @@ async function applianceChronology(root) {
     ])
     let rows
     let contract = ''
-    await answerWithRetrieval(brain, {
+    const answer = await answerWithRetrieval(brain, {
       ...SCOPE,
       question: 'Which appliance did I have before the air fryer?',
       questionDate: '2025-03-10T10:00:00.000Z',
-      async provider({ answerInstructions, retrieve }) {
+      provider: requireEvidenceCommitment(async ({
+        answerInstructions,
+        commitAnswer,
+        retrieve,
+      }) => {
         contract = answerInstructions
         const found = await retrieve({
           input: { maxChars: 20_000, phrase: 'appliance' },
@@ -184,12 +208,24 @@ async function applianceChronology(root) {
           contract.includes('do not claim no relevant memory merely because'),
           'the answer contract allowed absence after relevant retrieval',
         )
-        return { text: 'offline structural sentinel' }
-      },
+        return commitAnswer({
+          abstained: false,
+          bases: rows.map((row) => ({
+            evidenceId: row.evidenceId,
+            quote: row.text,
+          })),
+          text: 'offline structural sentinel',
+        })
+      }),
     })
+    requireShape(
+      answer.answerCommitted && answer.answerEvidence.length === 2,
+      'multi-row chronology did not retain both cited bases',
+    )
     return {
       case: 'appliance-chronology',
       canonicalRows: rows.length,
+      committedBases: answer.answerEvidence.length,
       observedAtOrder: rows.map((row) => row.observedAt),
       userRows: rows.filter((row) => row.speaker === 'user').length,
       relativeTimeRows: rows.filter((row) => row.questionRelativeTime).length,
@@ -206,11 +242,11 @@ async function hostComputedTime(root) {
       user: 'The photography workshop happened on November 1.',
     }])
     let relative
-    await answerWithRetrieval(brain, {
+    const answer = await answerWithRetrieval(brain, {
       ...SCOPE,
       question: 'How long ago was the photography workshop?',
       questionDate: '2024-02-01T18:06:00.000Z',
-      async provider({ retrieve }) {
+      provider: requireEvidenceCommitment(async ({ commitAnswer, retrieve }) => {
         const found = await retrieve({
           input: { maxChars: 20_000, phrase: 'photography workshop' },
           tool: 'memory_search',
@@ -228,14 +264,114 @@ async function hostComputedTime(root) {
           relative.referenceAt === '2024-02-01T18:06:00.000Z',
           'temporal metadata did not retain host timestamp authority',
         )
-        return { text: 'offline structural sentinel' }
-      },
+        return commitAnswer({
+          abstained: false,
+          bases: [{
+            evidenceId: found.matches[0].evidenceId,
+            quote: found.matches[0].text,
+          }],
+          text: 'offline structural sentinel',
+        })
+      }),
     })
+    requireShape(answer.answerCommitted, 'temporal answer was not committed')
     return {
       case: 'host-computed-time',
+      committedBases: answer.answerEvidence.length,
       relation: relative.relation,
       wholeDays: relative.wholeDays,
       wholeCalendarMonths: relative.wholeCalendarMonths,
+      passed: true,
+    }
+  })
+}
+
+async function priorResourcePersonalization(root) {
+  return withBrain(root, 'resource', async (brain) => {
+    const resource =
+      'I already own a hand-crank radio with an integrated solar panel.'
+    await seed(brain, [{
+      eventAt: '2025-03-02T08:30:00.000Z',
+      sourceMessageId: 'resource:0',
+      user: resource,
+    }])
+    const answer = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      question: 'What emergency power gear do I already have?',
+      provider: requireEvidenceCommitment(async ({ commitAnswer, retrieve }) => {
+        const found = await retrieve({
+          input: { maxChars: 20_000, phrase: 'emergency power radio' },
+          tool: 'memory_search',
+        })
+        const row = found.matches.find((entry) => entry.text === resource)
+        requireShape(row, 'prior owned resource was not returned canonically')
+        return commitAnswer({
+          abstained: false,
+          bases: [{ evidenceId: row.evidenceId, quote: row.text }],
+          text: 'offline structural sentinel',
+        })
+      }),
+    })
+    requireShape(
+      answer.answerCommitted && answer.answerEvidence.length === 1,
+      'prior resource personalization lacked a cited commitment',
+    )
+    return {
+      case: 'prior-resource-personalization',
+      committedBases: answer.answerEvidence.length,
+      passed: true,
+    }
+  })
+}
+
+async function correctionConflict(root) {
+  return withBrain(root, 'conflict', async (brain) => {
+    const original = 'The archive folder label is amber.'
+    const correction = 'Correction: the archive folder label is teal, not amber.'
+    await seed(brain, [
+      {
+        eventAt: '2025-03-03T08:30:00.000Z',
+        sourceMessageId: 'conflict:0',
+        user: original,
+      },
+      {
+        eventAt: '2025-03-04T08:30:00.000Z',
+        sourceMessageId: 'conflict:1',
+        user: correction,
+      },
+    ])
+    const answer = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      question: 'What is the current archive folder label?',
+      provider: requireEvidenceCommitment(async ({ commitAnswer, retrieve }) => {
+        const found = await retrieve({
+          input: { maxChars: 20_000, phrase: 'archive folder label' },
+          tool: 'memory_search',
+        })
+        const rows = found.matches.filter((row) =>
+          row.text === original || row.text === correction)
+        requireShape(rows.length === 2, 'conflicting rows were not both returned')
+        requireShape(
+          rows[0].observedAt < rows[1].observedAt,
+          'conflicting rows lost chronology',
+        )
+        return commitAnswer({
+          abstained: false,
+          bases: rows.map((row) => ({
+            evidenceId: row.evidenceId,
+            quote: row.text,
+          })),
+          text: 'offline structural sentinel',
+        })
+      }),
+    })
+    requireShape(
+      answer.answerCommitted && answer.answerEvidence.length === 2,
+      'conflict resolution did not preserve both declared bases',
+    )
+    return {
+      case: 'correction-conflict',
+      committedBases: answer.answerEvidence.length,
       passed: true,
     }
   })
@@ -250,10 +386,14 @@ async function irrelevantControl(root) {
     }])
     let rows
     let contract = ''
-    await answerWithRetrieval(brain, {
+    const answer = await answerWithRetrieval(brain, {
       ...SCOPE,
       question: 'Which camera did I buy?',
-      async provider({ answerInstructions, retrieve }) {
+      provider: requireEvidenceCommitment(async ({
+        answerInstructions,
+        commitAnswer,
+        retrieve,
+      }) => {
         contract = answerInstructions
         const found = await retrieve({
           input: { maxChars: 20_000, phrase: 'train trip' },
@@ -269,11 +409,23 @@ async function irrelevantControl(root) {
           contract.includes('A non-empty result does not establish relevance'),
           'the answer contract forced relevance from any non-empty result',
         )
-        return { text: 'offline structural sentinel' }
-      },
+        return commitAnswer({
+          abstained: true,
+          bases: [{
+            evidenceId: rows[0].evidenceId,
+            quote: rows[0].text,
+          }],
+          text: 'offline structural sentinel',
+        })
+      }),
     })
+    requireShape(
+      answer.answerCommitted && answer.abstained === true,
+      'irrelevant non-empty result did not produce an auditable abstention',
+    )
     return {
       case: 'irrelevant-result-control',
+      committedBases: answer.answerEvidence.length,
       returnedRows: rows.length,
       passed: true,
     }
@@ -304,7 +456,7 @@ async function emptyControl(root) {
           contract.includes('Do not treat an empty search as proof that an event never happened'),
           'the empty-result contract was not explicit',
         )
-        return { text: 'offline structural sentinel' }
+        return { abstained: true, text: 'offline structural sentinel' }
       },
     })
     return {
@@ -338,7 +490,9 @@ export async function runAnswerInterpretationRegression({
   try {
     const cases = [
       await priorPalariAdvice(root),
+      await priorResourcePersonalization(root),
       await applianceChronology(root),
+      await correctionConflict(root),
       await hostComputedTime(root),
       await irrelevantControl(root),
       await emptyControl(root),

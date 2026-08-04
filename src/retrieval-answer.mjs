@@ -20,11 +20,13 @@ import {
   MEMORY_EXPLORATION_INSTRUCTIONS,
   MEMORY_EXPLORATION_TOOLS,
 } from './memory-exploration.mjs'
-import { deepFreeze } from './shared-util.mjs'
 
 export const DEFAULT_RETRIEVAL_CALLS = 4
 export const MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS = 512
 export const MEMORY_HYBRID_RRF_K = 60
+export const MEMORY_ANSWER_MAX_BASES = 20
+export const MEMORY_ANSWER_MAX_QUOTE_CHARS = 2_000
+export const MEMORY_ANSWER_MAX_TEXT_CHARS = 20_000
 
 export const MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS = [
   'Memory retrieval is complete. Do not call another memory tool.',
@@ -39,6 +41,175 @@ const DEFAULT_HYBRID_MAX_CHARS = 20_000
 const MAX_HYBRID_MAX_CHARS = 100_000
 const MAX_SEARCH_PHRASE_CHARS = 500
 const MAX_RANKED_PHRASE_CHARS = 200
+
+// Capture the small set of intrinsics used by the answer-commit boundary
+// before provider code can run in this realm. Provider adapters are local
+// code, but their model-originated payloads must not gain authority by
+// temporarily poisoning mutable built-in prototypes.
+const arrayIsArray = Array.isArray
+const arrayPrototype = Array.prototype
+const arrayPush = Function.call.bind(Array.prototype.push)
+const mapGet = Function.call.bind(Map.prototype.get)
+const mapSet = Function.call.bind(Map.prototype.set)
+const objectDefineProperty = Object.defineProperty
+const objectFreeze = Object.freeze
+const objectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+const objectGetPrototypeOf = Object.getPrototypeOf
+const objectHasOwn = Object.hasOwn
+const objectIsFrozen = Object.isFrozen
+const objectKeys = Object.keys
+const objectValues = Object.values
+const promiseConstructor = Promise
+const promiseReject = Promise.reject.bind(Promise)
+const promiseThen = Function.call.bind(Promise.prototype.then)
+const reflectOwnKeys = Reflect.ownKeys
+const setAdd = Function.call.bind(Set.prototype.add)
+const setHas = Function.call.bind(Set.prototype.has)
+const setConstructor = Set
+const stringFrom = String
+const stringIncludes = Function.call.bind(String.prototype.includes)
+const stringTrim = Function.call.bind(String.prototype.trim)
+const structuredCloneValue = globalThis.structuredClone
+const weakSetAdd = Function.call.bind(WeakSet.prototype.add)
+const weakSetHas = Function.call.bind(WeakSet.prototype.has)
+const promiseSpeciesCarrier = objectFreeze(objectDefineProperty(
+  {},
+  Symbol.species,
+  { value: promiseConstructor },
+))
+
+function deepFreeze(value) {
+  if (!value || typeof value !== 'object' || objectIsFrozen(value)) {
+    return value
+  }
+  const children = objectValues(value)
+  for (let index = 0; index < children.length; index += 1) {
+    deepFreeze(children[index])
+  }
+  return objectFreeze(value)
+}
+
+function plainObject(value) {
+  if (!value || typeof value !== 'object' || arrayIsArray(value)) {
+    return false
+  }
+  const prototype = objectGetPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+function hasExactKeys(value, expected) {
+  if (!plainObject(value)) return false
+  const actual = objectKeys(value)
+  if (actual.length !== expected.length) return false
+  for (let index = 0; index < expected.length; index += 1) {
+    if (!objectHasOwn(value, expected[index])) return false
+  }
+  return true
+}
+
+function answerCommitmentError(message) {
+  const error = new TypeError(message)
+  error.code = 'MEMORY_ANSWER_COMMITMENT_INVALID'
+  return error
+}
+
+function snapshotCommitment(value) {
+  try {
+    return structuredCloneValue(value)
+  } catch {
+    throw answerCommitmentError(
+      'Answer commitment must contain only cloneable structured data.',
+    )
+  }
+}
+
+function exactDataProperties(value, expected, label) {
+  if (!plainObject(value)) {
+    throw answerCommitmentError(`${label} must be a plain data object.`)
+  }
+  const keys = reflectOwnKeys(value)
+  if (keys.length !== expected.length) {
+    throw answerCommitmentError(`${label} has unsupported or missing fields.`)
+  }
+  for (let index = 0; index < expected.length; index += 1) {
+    const key = expected[index]
+    const descriptor = objectGetOwnPropertyDescriptor(value, key)
+    if (!descriptor || !objectHasOwn(descriptor, 'value') ||
+      descriptor.enumerable !== true) {
+      throw answerCommitmentError(`${label}.${key} must be a data property.`)
+    }
+  }
+}
+
+function assertCommitmentDataShape(proposal) {
+  exactDataProperties(
+    proposal,
+    ['abstained', 'bases', 'text'],
+    'Answer commitment',
+  )
+  const bases = proposal.bases
+  if (!arrayIsArray(bases) || objectGetPrototypeOf(bases) !== arrayPrototype) {
+    throw answerCommitmentError('Answer commitment bases must be an array.')
+  }
+  const keys = reflectOwnKeys(bases)
+  if (keys.length !== bases.length + 1 || !objectHasOwn(bases, 'length')) {
+    throw answerCommitmentError(
+      'Answer commitment bases must contain only dense indexed items.',
+    )
+  }
+  for (let index = 0; index < bases.length; index += 1) {
+    const descriptor = objectGetOwnPropertyDescriptor(bases, stringFrom(index))
+    if (!descriptor || !objectHasOwn(descriptor, 'value') ||
+      descriptor.enumerable !== true) {
+      throw answerCommitmentError(
+        'Answer commitment bases must contain only dense indexed items.',
+      )
+    }
+    exactDataProperties(
+      descriptor.value,
+      ['evidenceId', 'quote'],
+      `Answer commitment basis ${index}`,
+    )
+  }
+}
+
+function boundedCommitmentText(value, label, maximum, { trim = false } = {}) {
+  if (typeof value !== 'string' || !stringTrim(value) ||
+    stringIncludes(value, '\u0000') ||
+    value.length > maximum) {
+    throw answerCommitmentError(
+      `${label} must be a non-empty string of at most ${maximum} characters.`,
+    )
+  }
+  return trim ? stringTrim(value) : value
+}
+
+function evidenceTexts(result) {
+  const rows = []
+  const rowKeys = ['matches', 'messages', 'edges']
+  for (let keyIndex = 0; keyIndex < rowKeys.length; keyIndex += 1) {
+    const key = rowKeys[keyIndex]
+    const values = result?.[key]
+    if (!arrayIsArray(values)) continue
+    for (let index = 0; index < values.length; index += 1) {
+      arrayPush(rows, values[index])
+    }
+  }
+  const evidence = []
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index]
+    const evidenceId = stringTrim(stringFrom(row?.evidenceId ?? ''))
+    const text = typeof row?.text === 'string'
+      ? row.text
+      : typeof row?.snippet === 'string'
+        ? row.snippet
+        : typeof row?.quote === 'string'
+          ? row.quote
+          : ''
+    if (evidenceId && text) arrayPush(evidence, { evidenceId, text })
+  }
+  return evidence
+}
 
 function boundedInteger(value, fallback, maximum, label) {
   if (value === undefined || value === null) return fallback
@@ -277,7 +448,12 @@ function decorateAnswerRow(row, referenceTime) {
 }
 
 function decorateAnswerRows(rows, referenceTime) {
-  return (rows ?? []).map((row) => decorateAnswerRow(row, referenceTime))
+  const decorated = []
+  const source = rows ?? []
+  for (let index = 0; index < source.length; index += 1) {
+    arrayPush(decorated, decorateAnswerRow(source[index], referenceTime))
+  }
+  return decorated
 }
 
 async function hybridSearch(
@@ -418,6 +594,11 @@ export async function answerWithRetrieval(brain, {
   if (typeof provider !== 'function') {
     throw new TypeError('answerWithRetrieval requires a provider function.')
   }
+  // Capability declarations are part of the call contract. Snapshot before
+  // invoking provider code so a writable custom-provider property cannot be
+  // weakened after canonical evidence has been returned.
+  const requiresEvidenceCommitment =
+    provider.requiresEvidenceCommitment === true
   const budget = Number(maxRetrievalCalls)
   if (!Number.isSafeInteger(budget) || budget < 0 ||
     budget > DEFAULT_RETRIEVAL_CALLS) {
@@ -430,36 +611,138 @@ export async function answerWithRetrieval(brain, {
   const scope = normalizedScope({ palariId, userId })
   const capabilities = capabilitiesOf(brain)
   const consulted = []
+  const committedResponses = new WeakSet()
+  const evidenceRegistry = new Map()
+  let evidenceCount = 0
   const transcript = []
   const referenceTime = questionReferenceTime(questionDate)
+
+  const registerEvidence = (result) => {
+    for (const { evidenceId, text } of evidenceTexts(result)) {
+      const current = mapGet(evidenceRegistry, evidenceId)
+      const texts = current ?? []
+      if (!current) evidenceCount += 1
+      arrayPush(texts, text)
+      mapSet(evidenceRegistry, evidenceId, texts)
+    }
+    return deepFreeze(result)
+  }
+
+  const commitAnswer = (proposal) => {
+    // Provider objects are outside the host trust boundary. Read them once
+    // into a private structured snapshot, then use only host-owned iteration;
+    // never invoke provider-overridable Array methods during validation.
+    assertCommitmentDataShape(proposal)
+    const candidate = snapshotCommitment(proposal)
+    if (!hasExactKeys(candidate, ['abstained', 'bases', 'text'])) {
+      throw answerCommitmentError(
+        'Answer commitment must contain exactly abstained, bases, and text.',
+      )
+    }
+    if (typeof candidate.abstained !== 'boolean') {
+      throw answerCommitmentError('Answer commitment abstained must be boolean.')
+    }
+    const text = boundedCommitmentText(
+      candidate.text,
+      'Answer commitment text',
+      MEMORY_ANSWER_MAX_TEXT_CHARS,
+      { trim: true },
+    )
+    if (!Array.isArray(candidate.bases) || candidate.bases.length < 1 ||
+      candidate.bases.length > MEMORY_ANSWER_MAX_BASES) {
+      throw answerCommitmentError(
+        `Answer commitment bases must contain 1 to ` +
+          `${MEMORY_ANSWER_MAX_BASES} items.`,
+      )
+    }
+    const seen = new Set()
+    const bases = []
+    for (let index = 0; index < candidate.bases.length; index += 1) {
+      const basis = candidate.bases[index]
+      if (!hasExactKeys(basis, ['evidenceId', 'quote'])) {
+        throw answerCommitmentError(
+          `Answer commitment basis ${index} must contain exactly evidenceId and quote.`,
+        )
+      }
+      const evidenceId = boundedCommitmentText(
+        basis.evidenceId,
+        `Answer commitment basis ${index} evidenceId`,
+        500,
+        { trim: true },
+      )
+      if (setHas(seen, evidenceId)) {
+        throw answerCommitmentError(
+          `Answer commitment basis ${index} duplicates an evidence ID.`,
+        )
+      }
+      setAdd(seen, evidenceId)
+      const sources = mapGet(evidenceRegistry, evidenceId)
+      if (!sources) {
+        throw answerCommitmentError(
+          `Answer commitment basis ${index} uses evidence not returned in this answer session.`,
+        )
+      }
+      const quote = boundedCommitmentText(
+        basis.quote,
+        `Answer commitment basis ${index} quote`,
+        MEMORY_ANSWER_MAX_QUOTE_CHARS,
+      )
+      let exact = false
+      for (let sourceIndex = 0; sourceIndex < sources.length; sourceIndex += 1) {
+        if (stringIncludes(sources[sourceIndex], quote)) {
+          exact = true
+          break
+        }
+      }
+      if (!exact) {
+        throw answerCommitmentError(
+          `Answer commitment basis ${index} quote is not exact contiguous returned evidence.`,
+        )
+      }
+      arrayPush(bases, { evidenceId, quote })
+    }
+    const committed = deepFreeze({
+      abstained: candidate.abstained,
+      bases,
+      text,
+    })
+    weakSetAdd(committedResponses, committed)
+    return committed
+  }
+
+  const consultRows = (rows) => {
+    for (let index = 0; index < rows.length; index += 1) {
+      arrayPush(consulted, rows[index].evidenceId)
+    }
+  }
 
   const tools = {
     memory_find(input) {
       const found = brain.exploreFind(scope, input)
-      consulted.push(...found.matches.map((row) => row.evidenceId))
-      return {
+      consultRows(found.matches)
+      return registerEvidence({
         ...found,
         matches: decorateAnswerRows(found.matches, referenceTime),
-      }
+      })
     },
     memory_graph(input) {
       const result = brain.exploreGraph(scope, {
         ...input,
         ...(referenceTime ? { now: referenceTime } : {}),
       })
-      consulted.push(...result.edges.map((edge) => edge.evidenceId))
-      return {
+      consultRows(result.edges)
+      return registerEvidence({
         ...result,
         edges: decorateAnswerRows(result.edges, referenceTime),
-      }
+      })
     },
     memory_read(input) {
       const result = brain.exploreRead(scope, input)
-      consulted.push(...result.messages.map((row) => row.evidenceId))
-      return {
+      consultRows(result.messages)
+      return registerEvidence({
         ...result,
         messages: decorateAnswerRows(result.messages, referenceTime),
-      }
+      })
     },
     async memory_search(input) {
       const result = await hybridSearch(
@@ -469,8 +752,8 @@ export async function answerWithRetrieval(brain, {
         input,
         referenceTime,
       )
-      consulted.push(...result.matches.map((row) => row.evidenceId))
-      return result
+      consultRows(result.matches)
+      return registerEvidence(result)
     },
     memory_timeline(input) {
       return brain.exploreTimeline(scope, input)
@@ -480,54 +763,137 @@ export async function answerWithRetrieval(brain, {
   const briefing = recallMemory(brain, scope, { maxChars })
   let calls = 0
   let exhausted = false
-  const retrieve = async (request) => {
-    const name = String(request?.tool ?? '')
-    if (!Object.hasOwn(tools, name)) {
-      throw new TypeError(`Unknown memory tool: ${name}`)
+  let retrievalOpen = true
+  const retrievalOperations = []
+  const retrieve = (request) => {
+    if (!retrievalOpen) {
+      return promiseReject(new TypeError('Memory retrieval is closed.'))
     }
-    if (calls >= budget) {
-      exhausted = true
-      return {
-        exhausted: true,
-        reason: 'retrieval_budget_exhausted',
+    const operation = (async () => {
+      const name = stringFrom(request?.tool ?? '')
+      if (!objectHasOwn(tools, name)) {
+        throw new TypeError(`Unknown memory tool: ${name}`)
       }
-    }
-    calls += 1
-    const input = request?.input ?? {}
-    const result = await tools[name](input)
-    transcript.push({ input, result, tool: name })
-    return result
+      if (calls >= budget) {
+        exhausted = true
+        return {
+          exhausted: true,
+          reason: 'retrieval_budget_exhausted',
+        }
+      }
+      calls += 1
+      const input = request?.input ?? {}
+      const result = await tools[name](input)
+      arrayPush(transcript, { input, result, tool: name })
+      return result
+    })()
+    // Attach a host-private completion before the provider receives the
+    // operation. Pin the operation's species so same-realm prototype
+    // poisoning cannot replace the private promise created by native `then`.
+    objectDefineProperty(operation, 'constructor', {
+      value: promiseSpeciesCarrier,
+    })
+    const record = { completion: null, outcome: null }
+    const completion = promiseThen(
+      operation,
+      () => {
+        record.outcome = { status: 'fulfilled' }
+      },
+      (reason) => {
+        record.outcome = { reason, status: 'rejected' }
+      },
+    )
+    // `await` can now recognize this unexposed native promise without reading
+    // a provider-mutated Promise.prototype.constructor.
+    objectDefineProperty(completion, 'constructor', {
+      value: promiseConstructor,
+    })
+    record.completion = completion
+    arrayPush(retrievalOperations, record)
+    return operation
   }
 
-  const response = await provider({
-    answerInstructions: MEMORY_RETRIEVAL_INSTRUCTIONS,
-    briefing,
-    memoryText: briefing.text,
-    maxRetrievalCalls: budget,
-    question,
-    questionDate,
-    questionText: [
-      questionDate ? `Question date: ${questionDate}` : '',
-      `Question: ${String(question)}`,
-    ].filter(Boolean).join('\n'),
-    recommendedMaxOutputTokens:
-      MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
-    retrievalCapabilities: capabilities,
-    retrievalFinalizationInstructions:
-      MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
-    retrievalTools: MEMORY_RETRIEVAL_TOOLS,
-    retrieve,
-    systemInstruction: memoryAnswerSystemInstruction,
-  })
+  let response
+  let providerError = null
+  let providerFailed = false
+  try {
+    response = await provider({
+      answerEvidenceCount: () => evidenceCount,
+      answerInstructions: MEMORY_RETRIEVAL_INSTRUCTIONS,
+      briefing,
+      memoryText: briefing.text,
+      maxRetrievalCalls: budget,
+      question,
+      questionDate,
+      questionText: [
+        questionDate ? `Question date: ${questionDate}` : '',
+        `Question: ${stringFrom(question)}`,
+      ].filter(Boolean).join('\n'),
+      recommendedMaxOutputTokens:
+        MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
+      retrievalCapabilities: capabilities,
+      retrievalFinalizationInstructions:
+        MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
+      retrievalTools: MEMORY_RETRIEVAL_TOOLS,
+      commitAnswer,
+      retrieve,
+      systemInstruction: memoryAnswerSystemInstruction,
+    })
+  } catch (error) {
+    providerFailed = true
+    providerError = error
+  } finally {
+    retrievalOpen = false
+  }
+
+  let retrievalError = null
+  let retrievalFailed = false
+  for (let index = 0; index < retrievalOperations.length; index += 1) {
+    const record = retrievalOperations[index]
+    await record.completion
+    if (record.outcome.status === 'rejected' && !retrievalFailed) {
+      retrievalFailed = true
+      retrievalError = record.outcome.reason
+    }
+  }
+  if (providerFailed) throw providerError
+  if (retrievalFailed) throw retrievalError
+
+  const answerCommitted = weakSetHas(committedResponses, response)
+  if (requiresEvidenceCommitment &&
+    evidenceCount > 0 && !answerCommitted) {
+    throw answerCommitmentError(
+      'This provider must return the exact host-committed answer object after evidence retrieval.',
+    )
+  }
+  const answerEvidence = []
+  if (answerCommitted) {
+    for (let index = 0; index < response.bases.length; index += 1) {
+      const { evidenceId, quote } = response.bases[index]
+      arrayPush(answerEvidence, { evidenceId, quote })
+    }
+  }
+  deepFreeze(answerEvidence)
+  const uniqueConsulted = []
+  const consultedSet = new setConstructor()
+  for (let index = 0; index < consulted.length; index += 1) {
+    if (setHas(consultedSet, consulted[index])) continue
+    setAdd(consultedSet, consulted[index])
+    arrayPush(uniqueConsulted, consulted[index])
+  }
 
   return {
     abstained: typeof response?.abstained === 'boolean'
       ? response.abstained
       : null,
-    answer: String(response?.text ?? response ?? ''),
+    answer: answerCommitted
+      ? response.text
+      : stringFrom(response?.text ?? response ?? ''),
+    answerCommitted,
+    answerEvidence,
     briefingMode: briefing.briefingMode,
     briefingStatus: briefing.status,
-    consultedEvidenceIds: [...new Set(consulted)],
+    consultedEvidenceIds: uniqueConsulted,
     digestRevision: briefing.digestRevision,
     providerCalled: true,
     reductionBlocked: briefing.reductionBlocked,

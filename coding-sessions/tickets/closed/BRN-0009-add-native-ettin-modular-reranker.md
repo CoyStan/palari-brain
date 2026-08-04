@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0009
 children: []
-status: open
+status: accepted
 risk: R2
 priority: P0
 agents_allowed: 1
@@ -222,3 +222,13 @@ never enter git.
   before measurement, or if cached artifact integrity is not revalidated.
 - Stop before any credential read, provider/generation call, dataset access,
   LongMemEval run, sealed identity access, publication, or paid spend.
+
+## Founder Acceptance
+
+On 2026-08-04 Quetzali explicitly accepted BRN-0009 and directed the next
+governed unit to validate Ettin end to end. Acceptance closes this ticket
+exactly as reviewed: the optional native JavaScript Ettin-17M reranker, its
+strict artifact/runtime boundaries, and its one terminal synthetic result are
+accepted. It authorizes no rerun or regrade of P-set 24. Any LongMemEval or
+generation-provider validation uses a fresh preregistered identity, explicit
+cap, and separate ticket.

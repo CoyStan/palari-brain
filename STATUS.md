@@ -1,7 +1,214 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER CONTRACT PREPARED; FREEZE
-PENDING. After accepting and merging BRN-0008, Quetzali explicitly directed a
+Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
+SIX REVIEW P1S AND ONE P3 REPAIRED, CLEANLY REREVIEWED, AND ACCEPTED. The terminal BRN-0013 score remains immutable at
+official 6/10. Its three genuine answer-use/personalization failures all
+occurred after required evidence reached Luna, so this unit adds the smallest
+provider-neutral structural boundary: `answerWithRetrieval()` registers every
+canonical row returned during one answer and offers a host-owned
+`commitAnswer()` callback. A provider that declares commitments required must
+return that exact callback-created object after non-empty retrieval, with
+explicit abstention plus unique returned evidence IDs and exact contiguous
+quotes. Unknown/duplicate IDs, fabricated quotes, extra provider provenance,
+malformed or oversized fields, mutation, and forged/copy-returned objects fail
+closed. The result exposes deeply frozen `answerEvidence` telemetry and
+`answerCommitted`; these prove declared basis provenance, not semantic truth.
+
+The accepted Luna adapter now declares this capability. Normal dispatches
+offer the five unchanged memory tools plus private strict
+`palari_answer_commit`. That function has no journal authority and does not
+consume the four-call memory budget. A valid commitment terminates without a
+second generation. Raw text or invalid structure after evidence gets at most
+one host-guided repair with only the commitment function exposed and forced;
+a second miss is terminal. Non-empty fourth-call finalization is likewise
+commit-only. Digest-only and genuinely empty retrieval answers preserve the
+plain-text path. Official OpenAI documentation was checked for the Responses
+strict-function and forced-function wire before implementation.
+
+Provider-free focused contracts pass 49/49. The strengthened seven-case
+synthetic regression covers prior resources, prior Palari advice, multi-row
+chronology, correction conflict, host-derived time, irrelevant non-empty
+evidence, and honest empty retrieval; it grades structural commitments only,
+never prose. Full suite passes 705 / fails 0 / skips 15 across 720 tests;
+quickstart passes 6/6; the 32-file package dry-run is clean. No credential was
+read, no local model was loaded, no inference/provider/network call occurred,
+no terminal result changed, and spend was `$0.00`; cumulative accounted spend
+remains `$6.03072623` = `$1.72334288` measured + `$4.30738335` uncertain.
+The first independent review at exact `75e03cf` found one P1 in the generic
+capability seam: a custom provider could declare a writable required-commit
+flag, flip it off during its own call, and bypass the post-call check. Luna's
+immutable declaration was not affected, but the provider-neutral guarantee
+was. The host now snapshots the declaration before invoking provider code, and
+a real-brain adversarial contract proves mid-call weakening remains rejected.
+The first fresh rereview of that repair found a second generic-provider P1:
+the validator called the provider-owned basis array's `.map()`, allowing an
+overridden method or changing accessor to skip validation and mint fabricated
+or empty bases. `commitAnswer()` now takes one private structured snapshot of
+the proposal and validates it with host-owned iteration; malicious methods are
+rejected and changing accessors are rejected as non-data fields.
+The next fresh rereview found two further P1s and one P3 in the generic custom
+adapter boundary: mutable built-in prototypes could forge exact-quote checks;
+an unawaited asynchronous retrieval could finish only after raw-answer
+acceptance; and clone-sanitized hidden/inherited/symbol fields were accepted
+rather than rejected. The authority path now uses module-captured map/set/
+weak-set/string/promise/object intrinsics, exact pre-clone data descriptors,
+and a closed-and-drained retrieval operation set before commitment evaluation.
+Permanent real-brain tests reproduce prototype poisoning, hidden fields, and a
+reranker-gated leaked retrieval; each now fails closed without late transcript
+mutation.
+The fourth independent pass found two more generic-provider P1s: mutable
+global `String` could replace the accepted prose after an authentic commitment,
+and a provider-caught retrieval failure that had already settled could be
+discarded by a pending-only drain. Committed text now crosses result shaping
+unchanged; every started retrieval retains a private outcome and completion,
+and all outcomes reconcile before acceptance. Captured promise species,
+captured index coercion, and explicit failure booleans also close prototype and
+falsy-throw variants. The reviewer reproductions and adjacent cases are
+permanent real-brain tests.
+Exact acceptance review head
+`c40046c60cfb523998e6eb206ad48d4cf5a86f86` has no P0-P3 finding and
+recommends acceptance. BRN-0014 is accepted under the founder's delegated
+routine authority; next is merge/push. A new live score remains a founder gate.
+
+Loop state: BRN-0013 REPAIRED ETTIN + LUNA FIRST-TEN TERMINAL AT OFFICIAL
+6/10; CORRECTED, CLEANLY REREVIEWED, AND ACCEPTED. BRN-0012 was independently accepted, merged, and
+pushed at `90e1837`; canonical administrative head `784de72` adds only this
+evaluation contract. Fresh identity `j4-luna-ettin-first10-v2` preserves the
+exact BRN-0010 treatment and changes only the accepted absolute cached-model
+directory repair. It selects the ten fixed non-U8 S60 questions, Luna
+`gpt-5.6-luna` Standard/low/no-store, Gemini `gemini-embedding-001`, official
+`gpt-4o-2024-08-06` judge, four memory calls plus tool-disabled finalization,
+and one serial answer/judge per question. Opening cumulative spend remains
+`$5.27173386` = `$1.70023596` measured + `$3.5714979` uncertain; hard caps are
+`$1.50` fresh / `$6.77173386` cumulative.
+
+Private launcher SHA-256 is
+`d9242b407b7477168a9c746bf5350659222f7e6ad3a329ad2ed79e186de57a63`;
+generated runtime SHA-256 is
+`df2b746bbc422e88bbf773eeab68292ea1ad85d026988e4ab7ff765a4349a50a`.
+Offline verification rehashed 218 artifacts in ten terminal predecessors,
+ten product/eval inputs, seven Ettin model/head files, the 3,208-file runtime
+closure, dataset/order, clean canonical checkout, caps, and absent result.
+Focused contracts pass 10/10; full suite passes 695 / fails 0 / skips 15;
+quickstart is green 6/6. P-set 26 was FINAL before execution. Fresh independent
+review at `163e7e532cf631239f66155dd179b186959d8032` found no P0-P3 issue and
+recommended GO. The one invocation then completed both smokes and all ten
+answer/judge cells at `6/10`, with labels
+`PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS` and 12/13 required
+answer sessions consulted. Compatibility, completion, retrieval/rerank, wire,
+and accounting predictions pass; accuracy fails below the `>=7/10` floor.
+All four official FAIL rows received every required session, so no miss is
+attributable to candidate retrieval or Ettin ordering. Fresh terminal review
+found one material diagnostic correction: `10d9b85a` has frozen reference
+`3 days`, Luna answered `3 days`, and the unchanged official judge still said
+`No`. Its official FAIL and the 6/10 score remain immutable, but it is a clear
+judge false negative rather than an answer-composition failure. The observed
+breakdown is therefore three answer-use/personalization failures plus one
+judge-label failure. Ten non-empty Ettin
+calls scored 250 candidates, maximum 50, with exact finite score counts and
+zero content mutation; mean measured rerank latency was 1,290.7 ms per call.
+
+Fresh spend is `$0.75899237` = `$0.02310692` measured + `$0.73588545`
+uncertain. Cumulative spend is `$6.03072623` = `$1.72334288` measured +
+`$4.30738335` uncertain, under the `$6.77173386` boundary. All 138 physical
+calls succeeded: 33 Luna, 10 judges, and 95 Gemini embedding batches carrying
+4,794 requests. Terminal manifest
+`eb7dcb01c7a60cbade9a25d179cffde783e1f46c5c79644422eae819da7c3b71`
+rehashes 73/73 artifacts / 89,106,477 bytes, has no sealing error, and reports
+zero exact credential matches. The identity is consumed and cannot be rerun.
+Fresh rereview at `e48ac2bde3d5ea8c4d3d1184c9de3e25bd3259b6` found no
+P0-P3 issue and recommends acceptance. BRN-0013 is accepted under the
+founder's delegated routine authority. Next: merge/push this record. The
+smallest evidence-led next
+product units are separate offline provider-neutral answer-evidence composition
+and judge-robustness contracts; a second scored identity is a founder gate.
+
+Loop state: BRN-0012 ETTIN CACHED-ONLY MODEL RESOLUTION INDEPENDENTLY REVIEWED
+AND ACCEPTED; MERGE NEXT. Quetzali explicitly accepted
+BRN-0011, which is
+merged at `29bab2f`, and directed autonomous governed implementation, review,
+and fresh validation of Ettin with Luna until a CEO-level blocker. BRN-0012 is
+the smallest provider-free repair: derive or accept the exact absolute
+revision directory inside the application-owned Transformers.js cache, reject
+symlink/canonical escapes, and give that local directory to both factories
+with `local_files_only: true`. It leaves the frozen model, fp32 transformer,
+tokenization, native head math/artifacts, retrieval bounds, and prior metrics
+unchanged. No real runtime/model load, inference, provider/credential call,
+question, result mutation, download/install, or spend is authorized in this
+unit. After implementation and full verification, a fresh independent reviewer
+inspected exact commit `f2e5a74abb17ae4a904c97431ff5358643233a5c`, repeated
+the focused, full, quickstart, package, scope, and diff checks, found no P0-P3
+issue, and recommended acceptance. The ticket is accepted under the founder's
+delegated autonomy. Only after merge may a separately frozen/preregistered live successor run
+once and report its score honestly—10/10 is the objective, not permission to
+reroll or tune on known answers. The adapter now derives the exact
+`<cacheDir>/<model-id>/<revision>` directory or accepts a normalized absolute
+contained override, verifies every existing component is a non-symlink
+directory plus canonical containment, and performs this check before runtime,
+head, or network-capable code. Both factories receive only that absolute path
+and `local_files_only: true`; model fp32 remains model-only. Provider-free
+focused contracts pass 6/6 and the full suite passes 695 / fails 0 / skips 15
+across 710 tests. No real runtime/model load, inference, provider/credential
+call, question, result mutation, download/install, or spend occurred.
+Cumulative accounted spend remains `$5.27173386`. Quickstart is green 6/6;
+package dry-run contains 32 expected files and no runtime/model/cache/result;
+ticket lint, committed-plus-dirty scope, and diff checks pass. Implementation
+commit `e455a07` and review transition `f2e5a74` are pushed. Next: commit the
+review record and accepted lifecycle, merge BRN-0012, then freeze the fresh
+live successor.
+
+Loop state: BRN-0011 ETTIN UPSTREAM-INTEGRATION RESEARCH COMPLETE;
+FOUNDER-ACCEPTED AND MERGE AUTHORIZED. Twelve primary upstream artifacts and
+every substantive exact-ID public integration found were inspected. The
+official and dominant path is Python Sentence Transformers `CrossEncoder`;
+its ONNX backend keeps
+the modular Python chain, and no official self-contained Ettin logits graph or
+turnkey JavaScript integration exists. The two public non-Python paths found
+manually preserve the same Dense/LayerNorm/Dense head as Palari, via a custom
+ONNX export or vendored Rust FastEmbed extension. Therefore keep BRN-0009's
+measured native JavaScript head rather than add Python/IPC, a bespoke export
+pipeline, or a new native runtime.
+
+Static 4.2.0 source traces BRN-0010's pre-inference exception to tokenizer-file
+discovery calling metadata with `{}` and thereby dropping the caller's custom
+`cache_dir`, revision, and local-only options. With remote access disabled the
+probe can return no tokenizer files, producing the exact undefined
+`tokenizerConfig`. Runtime causality is not rerun because BRN-0010 remains
+terminal and pending founder acceptance. The smallest separately governed
+successor is to pass a strictly validated absolute revision directory directly
+to both Transformers.js factories with local-only/network-disabled operation,
+leaving tokenizer, ONNX, head math, bounds, and prior scores unchanged.
+
+Research report: `docs/ETTIN-INTEGRATION-RESEARCH.md`. No implementation,
+dependency, download, model load, inference, credential access, provider call,
+private result mutation, or spend occurred; cumulative accounted spend remains
+`$5.27173386`. BRN-0010 remains unmerged, unrereun, and ungraded by this work.
+Closeout is green: all 22 unique cited URLs resolved; quickstart passed 6/6;
+ticket lint, report lint, committed-plus-dirty scope, and diff checks passed.
+Research commit `1d6162c` and review transition `a46021d` are pushed. On
+2026-08-04 Quetzali explicitly accepted BRN-0011 and directed autonomous
+governed implementation, review, and validation of the recommended Ettin
+offline integration with Luna. Next: merge BRN-0011, then open the smallest
+separate loader-repair ticket from clean canonical main. This is one
+infrastructure unit; surface drift before another infrastructure unit.
+
+Loop state: BRN-0010 ETTIN + LUNA FIRST-TEN VALIDATION CONTRACT OPEN; FREEZE
+NEXT. Quetzali explicitly accepted and merged BRN-0009, then directed a fresh
+governed run validating Ettin end to end. BRN-0010 holds Luna, Gemini semantic
+embeddings, the official judge, questions 1-10, prompts, memory, four-call
+ceiling, finalization, order, and grading fixed; its sole intended treatment is
+injecting the accepted native Ettin reranker into the bounded canonical
+candidate path. Fresh identity `j4-luna-ettin-first10-v1` carries the exact
+`$5.27173386` cumulative accounted ledger forward and uses a `$1.50` fresh /
+`$6.77173386` cumulative hard boundary. This is a known-case private causal
+diagnostic, not an unseen benchmark. No BRN-0010 launcher, prediction, runtime,
+result, provider call, credential read, or spend exists yet. Next: commit and
+push the ticket contract from clean canonical main, create its worktree, then
+freeze the exact private launcher/runtime and FINAL predictions before fresh
+pre-dispatch review.
+
+Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER IMPLEMENTED AND MEASURED;
+FOUNDER-ACCEPTED AND MERGE AUTHORIZED. After accepting and merging BRN-0008, Quetzali explicitly directed a
 new governed ticket for working local Ettin support. Metadata-only recon of
 exact Apache-2.0 revision
 `9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6` corrected the head definition to
@@ -11,10 +218,82 @@ SHA-256. BRN-0009 will implement that head in native JavaScript over the
 official ONNX `last_hidden_state`, with no Python sidecar or new Palari runtime
 dependency. It uses a fresh preregistered compatibility identity and may run
 the unchanged synthetic bank exactly once only after compatibility passes.
-No inference, provider, credential, generation model, dataset, LongMemEval
-identity, or paid call has occurred in BRN-0009; spend is `$0.00`. Next:
-commit and push the contract on clean canonical `main`, create its worktree,
-and generate the specialist packet before implementation.
+The new import-inert `createEttinReranker()` uses the base ONNX transformer,
+strictly parses and rehashes the three external safetensors, then applies exact
+CLS, PyTorch-oriented Dense/GELU, affine LayerNorm at epsilon `1e-5`, and final
+Dense scoring in JavaScript. Synthetic math, loader, tensor-layout, corruption,
+bounds, lazy-load, and runner contracts initially passed 7/7. P-set 24 pins fresh identity
+`brn-0009/ettin-native-v1`, unchanged bank, exact code hashes, one smoke, and
+at most one bank pass. The freeze was committed and pushed at `19b4e4a` before
+inference. The sole compatibility smoke passed, then the sole bank pass
+measured 14/15 top-1, 0.9667 MRR, 15/15 recall@5, and 26.1374 warm ms/case.
+That is higher quality and about 41% lower latency than MiniLM-L6's 13/15,
+0.9333, and 44.6342 ms/case; it also matches mxbai-xsmall quality at far lower
+latency. Ettin therefore dominates every BRN-0008 eligible model and becomes
+the recommended optional local reranker under the frozen rule. The only miss
+was temporal latestness, so host chronology remains mandatory.
+
+Private mode-0600 result SHA-256 values are smoke
+`9fa98aeb94ba8f99eb7b00762b6100b0d7301454d1f17b13da353fa8f0d63b24`
+and bank
+`4515742db2bbbe3cd4d0da84df20e427039320d3cd8591e3d56a4a19559c64c3`.
+The private cache is 68 MiB, including 265,604 exact head-weight bytes; cache
+and result directories are mode 0700 and head/result files mode 0600. P-set 24
+grades 6/6 pass. Provider, credential, generation, dataset, LongMemEval, and
+paid activity remain zero / `$0.00`; no external byte entered git. Product
+stop rule: (1) quickstart remains green; (2) evidence ordering is measurably
+better and faster than the prior default; (3) Sentence Transformers supplies
+the modular design, while Palari adds the strict native/cache boundary; (4)
+the founder explicitly requested Ettin; (5) deleting this unit restores the
+known incompatible wire or the weaker/slower prior default. Pre-review verification
+was green: focused 7/7, full suite 692 pass / 0 fail / 15 skipped across 707,
+quickstart 6/6, package dry-run, ticket lint, scope, and diff checks. An initial
+full-suite closeout caught a sealed package-root import-closure regression; the
+root re-export was removed while retaining the explicit
+`palari-brain/reranker-ettin` package subpath, and no scoring rerun followed.
+The first independent review at `863fa09` found no arithmetic defect but
+recommended reopening for one P1 runtime-provenance gap and two P2 boundary/
+test gaps. The repaired runner now verifies the actually imported 4.2.0
+runtime's exported version, package metadata SHA-256
+`9cf12901d934e5a0628c6f163484abade392ab2d3b369d458ed3dfdeaa7f9a39`,
+and entrypoint SHA-256
+`268f62dadd7bee2dbdf7f8634d0185603e68a985f91009488b956f3f62da5c23`;
+a read-only audit reproduced all four identity fields against the preserved
+runtime without model inference. The artifact loader now rejects symlinks in
+existing cache components and rechecks canonical containment. Expanded 8/8
+contracts directly prove nonsymmetric PyTorch weight orientation, affine
+LayerNorm, repeatability, malformed dtype/shape/offset/overlap/trailing data,
+frozen artifact identity, runtime substitution, and cache-symlink rejection.
+The terminal scores, P-set, bank, results, grades, and `$0.00` spend are
+unchanged; there was no model inference, download, rerun, or regrade. Next:
+fresh independent rereview before founder acceptance. Post-repair verification
+is green: focused 8/8, full suite 693 pass / 0 fail / 15 skipped across 708,
+quickstart 6/6, inert identity verify, cached artifact rehash with network
+forbidden, package dry-run, ticket lint, scope, and diff checks.
+The first rereviewer at `17f0ef5` confirmed the symlink and direct-test fixes
+but reopened the runtime proof: two entry hashes did not cover transitive code,
+and a present-day directory audit did not bind the original commands to that
+directory. A contemporaneous system-owned Codex transcript was then located.
+Its exact smoke and bank tool calls at `00:26:28.653Z` and `00:26:38.780Z`
+name the same absolute isolated runtime path, and matching outputs close at
+`00:26:32.344Z` and `00:26:40.519Z`; the four JSONL records hash to
+`69a0ff08688ca21359d5500ddf2b8b5edec7752db90d39f7d7a3c20bd6398dad`.
+The complete 3,208-file / 706,843,605-byte runtime closure, including its one
+contained symlink, hashes to
+`a0aca4625ff6793abaf7fb0db2b01328dee50eb7488e3c5a869dfe2d5ae93d96`;
+no closure file is newer than `00:00:46.783690073Z`, 25 minutes before the
+first command. The runner now verifies that complete closure and rejects
+escaping runtime symlinks before any future execution. This is local
+contemporaneous provenance, not a signed third-party attestation. Scores and
+result bytes remain unchanged. Final post-closure verification is green:
+focused 9/9, full suite 694 pass / 0 fail / 15 skipped across 709, quickstart
+6/6, inert identity verify, package dry-run, ticket/report lint, scope, and
+diff checks.
+The final fresh read-only review at `ee4ec12` independently reproduced the
+command/excerpt/runtime/result/artifact evidence, found no P0-P3 issue, and
+recommends `accept`. On 2026-08-04 Quetzali explicitly accepted BRN-0009 and
+directed a fresh governed end-to-end Ettin validation. Next: merge BRN-0009,
+then freeze the successor without rerunning or regrading P-set 24.
 
 Loop state: BRN-0008 FOUNDER-ACCEPTED AND MERGE AUTHORIZED; ETTIN-17M
 COMPATIBILITY TERMINAL FAILED; BANK NOT RUN.
