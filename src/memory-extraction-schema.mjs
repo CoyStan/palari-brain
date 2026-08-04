@@ -3,13 +3,7 @@
 // Gemini structured output constrains syntax and field vocabularies. The
 // application still validates semantics before admitting any durable write.
 
-function deepFreeze(value) {
-  if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
-    return value
-  }
-  for (const child of Object.values(value)) deepFreeze(child)
-  return Object.freeze(value)
-}
+import { deepFreeze } from './shared-util.mjs'
 
 export const MEMORY_EXTRACTION_TYPES = Object.freeze([
   'preference',

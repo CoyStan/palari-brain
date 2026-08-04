@@ -485,7 +485,11 @@ test('frozen config, FINAL predictions, authority, and tracked artifacts reconci
       'src/gemini.mjs',
       'src/index.mjs',
       'src/memory-digest-store.mjs',
+      // Extracting shared kernel helpers into src/shared-util.mjs also
+      // touched these sealed product-path bytes.
+      'src/memory-extraction-schema.mjs',
       'src/memory-reducer.mjs',
+      'src/statement-extraction.mjs',
     ])
     assert.equal(
       successorDrift.includes(

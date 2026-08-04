@@ -31,6 +31,7 @@
     "src/quote-context.mjs",
     "src/reranker-transformers.mjs",
     "src/retrieval-answer.mjs",
+    "src/shared-util.mjs",
     "src/statement-extraction.mjs",
     "src/store.mjs",
     "src/util.mjs",

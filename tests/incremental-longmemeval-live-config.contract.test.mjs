@@ -216,7 +216,11 @@ test('sealed identity rejects current successor-only runtime drift',
         'src/gemini.mjs',
         'src/index.mjs',
         'src/memory-digest-store.mjs',
+        // Extracting shared kernel helpers into src/shared-util.mjs also
+        // touched these sealed product-path bytes.
+        'src/memory-extraction-schema.mjs',
         'src/memory-reducer.mjs',
+        'src/statement-extraction.mjs',
       ])
     }
   })

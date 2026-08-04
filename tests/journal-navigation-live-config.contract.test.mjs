@@ -70,6 +70,11 @@ test('terminal v2 contract pins its pre-run runtime and v1 predecessor',
       'src/index.mjs',
       'src/memory-digest-store.mjs',
       'src/memory-exploration.mjs',
+      // Extracting shared kernel helpers into src/shared-util.mjs also
+      // touched these sealed product-path bytes.
+      'src/memory-extraction-schema.mjs',
+      'src/memory-reducer.mjs',
+      'src/statement-extraction.mjs',
     ])
 
     // The sealed v1 evidence lives under gitignored `evals/results/`, so a

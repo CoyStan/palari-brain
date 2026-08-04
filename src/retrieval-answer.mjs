@@ -20,6 +20,7 @@ import {
   MEMORY_EXPLORATION_INSTRUCTIONS,
   MEMORY_EXPLORATION_TOOLS,
 } from './memory-exploration.mjs'
+import { deepFreeze } from './shared-util.mjs'
 
 export const DEFAULT_RETRIEVAL_CALLS = 4
 export const MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS = 512
@@ -38,14 +39,6 @@ const DEFAULT_HYBRID_MAX_CHARS = 20_000
 const MAX_HYBRID_MAX_CHARS = 100_000
 const MAX_SEARCH_PHRASE_CHARS = 500
 const MAX_RANKED_PHRASE_CHARS = 200
-
-function deepFreeze(value) {
-  if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
-    return value
-  }
-  for (const child of Object.values(value)) deepFreeze(child)
-  return Object.freeze(value)
-}
 
 function boundedInteger(value, fallback, maximum, label) {
   if (value === undefined || value === null) return fallback

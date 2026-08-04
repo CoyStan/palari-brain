@@ -385,6 +385,8 @@ test('frozen first-five identity rejects the successor digest graph',
         'src/memory-trend.mjs',
         'src/quote-context.mjs',
         'src/retrieval-answer.mjs',
+        // Kernel-internal shared helpers, added after this run sealed.
+        'src/shared-util.mjs',
       ],
     )
     await assert.rejects(

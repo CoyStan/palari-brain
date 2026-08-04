@@ -554,6 +554,9 @@ test('J4 v5 frozen bytes survive terminal sealing and fail closed as runnable', 
     'evals/longmemeval-live-config.mjs',
     'evals/run-longmemeval-live.mjs',
     'src/gemini.mjs',
+    // Extracting shared kernel helpers into src/shared-util.mjs also
+    // touched this sealed product-path file.
+    'src/memory-extraction-schema.mjs',
   ])
   assert.equal(
     successorDrift.includes('evals/run-longmemeval-live.mjs'),

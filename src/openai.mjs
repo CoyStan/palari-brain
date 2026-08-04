@@ -27,6 +27,7 @@ import {
   DEFAULT_RETRIEVAL_CALLS,
   MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
 } from './retrieval-answer.mjs'
+import { deepFreeze, hasExactKeys } from './shared-util.mjs'
 
 export const OPENAI_LUNA_MODEL = 'gpt-5.6-luna'
 export const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses'
@@ -56,14 +57,6 @@ function plainObject(value) {
 
 function clone(value) {
   return structuredClone(value)
-}
-
-function deepFreeze(value) {
-  if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
-    return value
-  }
-  for (const child of Object.values(value)) deepFreeze(child)
-  return Object.freeze(value)
 }
 
 function nonEmpty(value, label) {
@@ -97,11 +90,7 @@ function reasoningEffort(value) {
 }
 
 function exactKeys(value, expected) {
-  if (!plainObject(value)) return false
-  const actual = Object.keys(value).sort()
-  const wanted = [...expected].sort()
-  return actual.length === wanted.length &&
-    actual.every((key, index) => key === wanted[index])
+  return plainObject(value) && hasExactKeys(value, expected)
 }
 
 function jsonObject(value, label) {

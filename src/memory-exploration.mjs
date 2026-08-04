@@ -16,6 +16,7 @@
 import {
   searchDialogueEvidenceRanked,
 } from './memory-search.mjs'
+import { canonicalSpeaker } from './shared-util.mjs'
 
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 200
@@ -41,9 +42,10 @@ function boundedInteger(value, fallback, maximum, label) {
 }
 
 function speakerOf(sourceKind) {
-  if (sourceKind === 'user_message') return 'user'
-  if (sourceKind === 'assistant_message') return 'Palari'
-  throw new TypeError('Canonical evidence has an invalid source kind.')
+  return canonicalSpeaker(
+    sourceKind,
+    'Canonical evidence has an invalid source kind.',
+  )
 }
 
 // A source message ID is `<sessionId>:<index>:<role>`. The session prefix is
