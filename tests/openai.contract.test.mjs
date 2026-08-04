@@ -13,6 +13,7 @@ import {
 } from '../src/index.mjs'
 import {
   OPENAI_DEFAULT_REASONING_EFFORT,
+  OPENAI_ANSWER_COMMIT_TOOL_NAME,
   OPENAI_GRAPH_RESPONSE_SCHEMA,
   OPENAI_LUNA_MODEL,
   OPENAI_MEMORY_REDUCER_RESPONSE_SCHEMA,
@@ -61,8 +62,19 @@ function completedCall({
   }
 }
 
+function completedCommit(proposal, options = {}) {
+  return completedCall({
+    arguments: JSON.stringify(proposal),
+    name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+    ...options,
+  })
+}
+
 function answerSession(overrides = {}) {
   return {
+    answerEvidenceCount() {
+      return 0
+    },
     answerInstructions: 'Use only supplied memory.',
     memoryText: 'Digest: user likes tea.',
     maxRetrievalCalls: 4,
@@ -71,6 +83,9 @@ function answerSession(overrides = {}) {
     retrievalTools: MEMORY_RETRIEVAL_TOOLS,
     retrievalFinalizationInstructions:
       'Retrieval is complete. Answer from evidence or say stored evidence is insufficient.',
+    commitAnswer(proposal) {
+      return Object.freeze(structuredClone(proposal))
+    },
     async retrieve() {
       return { sessions: [] }
     },
@@ -293,7 +308,11 @@ test('retrieval provider preserves reasoning and tool output across Responses',
     assert.deepEqual(bodies[0].reasoning, { effort: 'low' })
     assert.deepEqual(bodies[0].include, ['reasoning.encrypted_content'])
     assert.equal(bodies[0].parallel_tool_calls, false)
-    assert.equal(bodies[0].tools.length, MEMORY_RETRIEVAL_TOOLS.length)
+    assert.equal(bodies[0].tools.length, MEMORY_RETRIEVAL_TOOLS.length + 1)
+    assert.equal(
+      bodies[0].tools.at(-1).name,
+      OPENAI_ANSWER_COMMIT_TOOL_NAME,
+    )
     assert.deepEqual(bodies[1].input.slice(1, 3),
       completedCall({
         arguments: '{"limit":2}',
@@ -308,6 +327,221 @@ test('retrieval provider preserves reasoning and tool output across Responses',
       output: JSON.stringify({ sessions: [{ id: 'session-1' }] }),
       type: 'function_call_output',
     })
+  })
+
+test('retrieval provider commits cited evidence without another model dispatch',
+  async () => {
+    const bodies = []
+    let evidenceCount = 0
+    let retrievals = 0
+    const proposal = {
+      abstained: false,
+      bases: [{
+        evidenceId: 'evidence-cedar',
+        quote: 'cedar cabinet',
+      }],
+      text: 'The apron is in the cedar cabinet.',
+    }
+    const committed = Object.freeze(structuredClone(proposal))
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        return bodies.length === 1
+          ? completedCall({
+              arguments: '{"phrase":"workshop apron"}',
+              name: 'memory_search',
+            })
+          : completedCommit(proposal)
+      },
+    })
+    const result = await provider(answerSession({
+      answerEvidenceCount() {
+        return evidenceCount
+      },
+      commitAnswer(received) {
+        assert.deepEqual(received, proposal)
+        return committed
+      },
+      async retrieve() {
+        retrievals += 1
+        evidenceCount = 1
+        return {
+          matches: [{
+            evidenceId: 'evidence-cedar',
+            text: 'The workshop apron is in the cedar cabinet.',
+          }],
+        }
+      },
+    }))
+
+    assert.equal(result, committed)
+    assert.equal(retrievals, 1)
+    assert.equal(bodies.length, 2)
+    assert.equal(bodies[1].tool_choice, 'auto')
+    assert.equal(bodies[1].tools.length, MEMORY_RETRIEVAL_TOOLS.length + 1)
+  })
+
+test('raw post-retrieval text gets one forced cited-commit repair',
+  async () => {
+    const bodies = []
+    let evidenceCount = 0
+    const proposal = {
+      abstained: false,
+      bases: [{ evidenceId: 'evidence-1', quote: 'green tool chest' }],
+      text: 'It is in the green tool chest.',
+    }
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) {
+          return completedCall({
+            arguments: '{"phrase":"spare gauge"}',
+            name: 'memory_search',
+          })
+        }
+        if (bodies.length === 2) return completedText('Uncited raw answer.')
+        return completedCommit(proposal)
+      },
+    })
+    const result = await provider(answerSession({
+      answerEvidenceCount: () => evidenceCount,
+      commitAnswer: (received) => Object.freeze(received),
+      async retrieve() {
+        evidenceCount = 1
+        return {
+          matches: [{
+            evidenceId: 'evidence-1',
+            text: 'The spare gauge is in the green tool chest.',
+          }],
+        }
+      },
+    }))
+
+    assert.deepEqual(result, proposal)
+    assert.equal(bodies.length, 3)
+    assert.deepEqual(bodies[2].tool_choice, {
+      name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+      type: 'function',
+    })
+    assert.deepEqual(
+      bodies[2].tools.map(({ name }) => name),
+      [OPENAI_ANSWER_COMMIT_TOOL_NAME],
+    )
+    assert.match(bodies[2].instructions, /No memory tool is available/)
+    assert.ok(bodies[2].input.some((item) =>
+      item.role === 'user' && /raw message cannot be accepted/.test(item.content)))
+  })
+
+test('invalid commitment gets one repair and a second invalid result is terminal',
+  async () => {
+    for (const repaired of [true, false]) {
+      const bodies = []
+      let evidenceCount = 0
+      let commits = 0
+      const invalid = {
+        abstained: false,
+        bases: [{ evidenceId: 'unknown', quote: 'fabricated quote' }],
+        text: 'Unsupported answer.',
+      }
+      const valid = {
+        abstained: true,
+        bases: [{ evidenceId: 'evidence-2', quote: 'yellow raincoat' }],
+        text: 'The returned memory is about a yellow raincoat, not the requested item.',
+      }
+      const provider = createOpenAIRetrievalProvider({
+        async invoke({ body }) {
+          bodies.push(body)
+          if (bodies.length === 1) return completedCall()
+          if (bodies.length === 2) {
+            return completedCommit(invalid, { callId: 'call_invalid' })
+          }
+          return completedCommit(repaired ? valid : invalid, { callId: 'call_3' })
+        },
+      })
+      const operation = provider(answerSession({
+        answerEvidenceCount: () => evidenceCount,
+        commitAnswer(proposal) {
+          commits += 1
+          if (proposal.bases[0].evidenceId !== 'evidence-2') {
+            const error = new TypeError('Basis evidence ID was not returned.')
+            error.code = 'MEMORY_ANSWER_COMMITMENT_INVALID'
+            throw error
+          }
+          return Object.freeze(proposal)
+        },
+        async retrieve() {
+          evidenceCount = 1
+          return {
+            messages: [{
+              evidenceId: 'evidence-2',
+              text: 'I packed a yellow raincoat.',
+            }],
+          }
+        },
+      }))
+      if (repaired) {
+        assert.deepEqual(await operation, valid)
+      } else {
+        await assert.rejects(operation,
+          (error) => error.code === 'OPENAI_ANSWER_COMMIT_REPAIR_FAILED')
+      }
+      assert.equal(bodies.length, 3)
+      assert.equal(commits, 2)
+      assert.deepEqual(bodies[2].tool_choice, {
+        name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+        type: 'function',
+      })
+      const rejection = bodies[2].input.find((item) =>
+        item.type === 'function_call_output' &&
+        item.call_id === 'call_invalid')
+      assert.match(JSON.parse(rejection.output).rejection, /not returned/)
+    }
+  })
+
+test('non-empty fourth retrieval forces only commitment without spending a fifth memory call',
+  async () => {
+    const bodies = []
+    let evidenceCount = 0
+    let retrievals = 0
+    const proposal = {
+      abstained: false,
+      bases: [{ evidenceId: 'evidence-final', quote: 'violet folder' }],
+      text: 'The record points to the violet folder.',
+    }
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        return bodies.length <= 4
+          ? completedCall({ callId: `call_${bodies.length}` })
+          : completedCommit(proposal, { callId: 'call_commit' })
+      },
+    })
+    const result = await provider(answerSession({
+      answerEvidenceCount: () => evidenceCount,
+      commitAnswer: (received) => Object.freeze(received),
+      async retrieve() {
+        retrievals += 1
+        evidenceCount = 1
+        return {
+          messages: [{
+            evidenceId: 'evidence-final',
+            text: 'The warranty record is in the violet folder.',
+          }],
+        }
+      },
+    }))
+
+    assert.deepEqual(result, proposal)
+    assert.equal(retrievals, 4)
+    assert.equal(bodies.length, 5)
+    assert.deepEqual(bodies[4].tool_choice, {
+      name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+      type: 'function',
+    })
+    assert.deepEqual(
+      bodies[4].tools.map(({ name }) => name),
+      [OPENAI_ANSWER_COMMIT_TOOL_NAME],
+    )
   })
 
 test('retrieval provider forces one tool-disabled finalization after four calls',
@@ -344,7 +578,7 @@ test('retrieval provider forces one tool-disabled finalization after four calls'
       assert.equal(retrievals.length, 4)
       assert.ok(bodies.slice(0, 4).every((body) =>
         body.tool_choice === 'auto' &&
-        body.tools.length === MEMORY_RETRIEVAL_TOOLS.length))
+        body.tools.length === MEMORY_RETRIEVAL_TOOLS.length + 1))
       assert.equal(bodies[4].tool_choice, 'none')
       assert.equal(Object.hasOwn(bodies[4], 'tools'), false)
       assert.match(bodies[4].instructions, /Retrieval is complete/)
@@ -501,14 +735,25 @@ test('OpenAI retrieval provider composes with the real bounded answer path',
     })
     let dispatches = 0
     const provider = createOpenAIRetrievalProvider({
-      async invoke() {
+      async invoke({ body }) {
         dispatches += 1
-        return dispatches === 1
-          ? completedCall({
-              arguments: '{"phrase":"jasmine"}',
-              name: 'memory_find',
-            })
-          : completedText('You like jasmine tea.')
+        if (dispatches === 1) {
+          return completedCall({
+            arguments: '{"phrase":"jasmine"}',
+            name: 'memory_find',
+          })
+        }
+        const retrievalOutput = body.input.find((item) =>
+          item.type === 'function_call_output')
+        const found = JSON.parse(retrievalOutput.output)
+        return completedCommit({
+          abstained: false,
+          bases: [{
+            evidenceId: found.matches[0].evidenceId,
+            quote: found.matches[0].snippet,
+          }],
+          text: 'You like jasmine tea.',
+        })
       },
     })
 
@@ -518,6 +763,8 @@ test('OpenAI retrieval provider composes with the real bounded answer path',
       question: 'Which tea do I like?',
     })
     assert.equal(result.answer, 'You like jasmine tea.')
+    assert.equal(result.answerCommitted, true)
+    assert.equal(result.answerEvidence.length, 1)
     assert.equal(result.retrievalCalls, 1)
     assert.equal(result.consultedEvidenceIds.length, 1)
     assert.equal(result.retrievalTranscript[0].tool, 'memory_find')

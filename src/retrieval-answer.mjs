@@ -24,6 +24,9 @@ import {
 export const DEFAULT_RETRIEVAL_CALLS = 4
 export const MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS = 512
 export const MEMORY_HYBRID_RRF_K = 60
+export const MEMORY_ANSWER_MAX_BASES = 20
+export const MEMORY_ANSWER_MAX_QUOTE_CHARS = 2_000
+export const MEMORY_ANSWER_MAX_TEXT_CHARS = 20_000
 
 export const MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS = [
   'Memory retrieval is complete. Do not call another memory tool.',
@@ -45,6 +48,56 @@ function deepFreeze(value) {
   }
   for (const child of Object.values(value)) deepFreeze(child)
   return Object.freeze(value)
+}
+
+function plainObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false
+  }
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+function hasExactKeys(value, expected) {
+  if (!plainObject(value)) return false
+  const actual = Object.keys(value).sort()
+  const wanted = [...expected].sort()
+  return actual.length === wanted.length &&
+    actual.every((key, index) => key === wanted[index])
+}
+
+function answerCommitmentError(message) {
+  const error = new TypeError(message)
+  error.code = 'MEMORY_ANSWER_COMMITMENT_INVALID'
+  return error
+}
+
+function boundedCommitmentText(value, label, maximum, { trim = false } = {}) {
+  if (typeof value !== 'string' || !value.trim() || value.includes('\u0000') ||
+    value.length > maximum) {
+    throw answerCommitmentError(
+      `${label} must be a non-empty string of at most ${maximum} characters.`,
+    )
+  }
+  return trim ? value.trim() : value
+}
+
+function evidenceTexts(result) {
+  const rows = [
+    ...(Array.isArray(result?.matches) ? result.matches : []),
+    ...(Array.isArray(result?.messages) ? result.messages : []),
+    ...(Array.isArray(result?.edges) ? result.edges : []),
+  ]
+  return rows.map((row) => ({
+    evidenceId: String(row?.evidenceId ?? '').trim(),
+    text: typeof row?.text === 'string'
+      ? row.text
+      : typeof row?.snippet === 'string'
+        ? row.snippet
+        : typeof row?.quote === 'string'
+          ? row.quote
+          : '',
+  })).filter(({ evidenceId, text }) => evidenceId && text)
 }
 
 function boundedInteger(value, fallback, maximum, label) {
@@ -437,17 +490,96 @@ export async function answerWithRetrieval(brain, {
   const scope = normalizedScope({ palariId, userId })
   const capabilities = capabilitiesOf(brain)
   const consulted = []
+  const committedResponses = new WeakSet()
+  const evidenceRegistry = new Map()
   const transcript = []
   const referenceTime = questionReferenceTime(questionDate)
+
+  const registerEvidence = (result) => {
+    for (const { evidenceId, text } of evidenceTexts(result)) {
+      const texts = evidenceRegistry.get(evidenceId) ?? new Set()
+      texts.add(text)
+      evidenceRegistry.set(evidenceId, texts)
+    }
+    return deepFreeze(result)
+  }
+
+  const commitAnswer = (proposal) => {
+    if (!hasExactKeys(proposal, ['abstained', 'bases', 'text'])) {
+      throw answerCommitmentError(
+        'Answer commitment must contain exactly abstained, bases, and text.',
+      )
+    }
+    if (typeof proposal.abstained !== 'boolean') {
+      throw answerCommitmentError('Answer commitment abstained must be boolean.')
+    }
+    const text = boundedCommitmentText(
+      proposal.text,
+      'Answer commitment text',
+      MEMORY_ANSWER_MAX_TEXT_CHARS,
+      { trim: true },
+    )
+    if (!Array.isArray(proposal.bases) || proposal.bases.length < 1 ||
+      proposal.bases.length > MEMORY_ANSWER_MAX_BASES) {
+      throw answerCommitmentError(
+        `Answer commitment bases must contain 1 to ` +
+          `${MEMORY_ANSWER_MAX_BASES} items.`,
+      )
+    }
+    const seen = new Set()
+    const bases = proposal.bases.map((basis, index) => {
+      if (!hasExactKeys(basis, ['evidenceId', 'quote'])) {
+        throw answerCommitmentError(
+          `Answer commitment basis ${index} must contain exactly evidenceId and quote.`,
+        )
+      }
+      const evidenceId = boundedCommitmentText(
+        basis.evidenceId,
+        `Answer commitment basis ${index} evidenceId`,
+        500,
+        { trim: true },
+      )
+      if (seen.has(evidenceId)) {
+        throw answerCommitmentError(
+          `Answer commitment basis ${index} duplicates an evidence ID.`,
+        )
+      }
+      seen.add(evidenceId)
+      const sources = evidenceRegistry.get(evidenceId)
+      if (!sources) {
+        throw answerCommitmentError(
+          `Answer commitment basis ${index} uses evidence not returned in this answer session.`,
+        )
+      }
+      const quote = boundedCommitmentText(
+        basis.quote,
+        `Answer commitment basis ${index} quote`,
+        MEMORY_ANSWER_MAX_QUOTE_CHARS,
+      )
+      if (![...sources].some((source) => source.includes(quote))) {
+        throw answerCommitmentError(
+          `Answer commitment basis ${index} quote is not exact contiguous returned evidence.`,
+        )
+      }
+      return { evidenceId, quote }
+    })
+    const committed = deepFreeze({
+      abstained: proposal.abstained,
+      bases,
+      text,
+    })
+    committedResponses.add(committed)
+    return committed
+  }
 
   const tools = {
     memory_find(input) {
       const found = brain.exploreFind(scope, input)
       consulted.push(...found.matches.map((row) => row.evidenceId))
-      return {
+      return registerEvidence({
         ...found,
         matches: decorateAnswerRows(found.matches, referenceTime),
-      }
+      })
     },
     memory_graph(input) {
       const result = brain.exploreGraph(scope, {
@@ -455,18 +587,18 @@ export async function answerWithRetrieval(brain, {
         ...(referenceTime ? { now: referenceTime } : {}),
       })
       consulted.push(...result.edges.map((edge) => edge.evidenceId))
-      return {
+      return registerEvidence({
         ...result,
         edges: decorateAnswerRows(result.edges, referenceTime),
-      }
+      })
     },
     memory_read(input) {
       const result = brain.exploreRead(scope, input)
       consulted.push(...result.messages.map((row) => row.evidenceId))
-      return {
+      return registerEvidence({
         ...result,
         messages: decorateAnswerRows(result.messages, referenceTime),
-      }
+      })
     },
     async memory_search(input) {
       const result = await hybridSearch(
@@ -477,7 +609,7 @@ export async function answerWithRetrieval(brain, {
         referenceTime,
       )
       consulted.push(...result.matches.map((row) => row.evidenceId))
-      return result
+      return registerEvidence(result)
     },
     memory_timeline(input) {
       return brain.exploreTimeline(scope, input)
@@ -507,6 +639,7 @@ export async function answerWithRetrieval(brain, {
   }
 
   const response = await provider({
+    answerEvidenceCount: () => evidenceRegistry.size,
     answerInstructions: MEMORY_RETRIEVAL_INSTRUCTIONS,
     briefing,
     memoryText: briefing.text,
@@ -523,15 +656,29 @@ export async function answerWithRetrieval(brain, {
     retrievalFinalizationInstructions:
       MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
     retrievalTools: MEMORY_RETRIEVAL_TOOLS,
+    commitAnswer,
     retrieve,
     systemInstruction: memoryAnswerSystemInstruction,
   })
+
+  const answerCommitted = committedResponses.has(response)
+  if (provider.requiresEvidenceCommitment === true &&
+    evidenceRegistry.size > 0 && !answerCommitted) {
+    throw answerCommitmentError(
+      'This provider must return the exact host-committed answer object after evidence retrieval.',
+    )
+  }
+  const answerEvidence = deepFreeze(answerCommitted
+    ? response.bases.map(({ evidenceId, quote }) => ({ evidenceId, quote }))
+    : [])
 
   return {
     abstained: typeof response?.abstained === 'boolean'
       ? response.abstained
       : null,
     answer: String(response?.text ?? response ?? ''),
+    answerCommitted,
+    answerEvidence,
     briefingMode: briefing.briefingMode,
     briefingStatus: briefing.status,
     consultedEvidenceIds: [...new Set(consulted)],

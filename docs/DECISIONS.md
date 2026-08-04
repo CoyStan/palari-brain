@@ -2685,3 +2685,28 @@ here with dates. Agents record; the founder decides.
   existing vectors are not relabeled. This offline unit reads no credential,
   makes no provider call, and claims no live compatibility, quality, latency,
   cost, benchmark result, or provider replacement.
+
+- 2026-08-04 (BRN-0014 cited answer-commit boundary)
+  **After canonical evidence is returned, declared evidence use becomes a
+  host-validated structural contract.** `answerWithRetrieval` now offers an
+  additive `commitAnswer` callback and registers immutable copies of every
+  returned exact/ranked/semantic/read message and admitted graph quote by
+  evidence ID. A provider that declares the capability must return the exact
+  callback-created object, with bounded answer text, explicit abstention, and
+  unique exact ID/contiguous-quote bases. This prevents a provider from
+  silently replacing a post-retrieval answer with uncited prose or inventing
+  provenance. It does not prove that the prose logically follows from the
+  cited quote and is not a lexical or semantic answer grader.
+
+  The Luna adapter declares this capability through one private strict
+  `palari_answer_commit` Responses function. The function is not a memory
+  tool, has no journal authority, and does not consume the four-call retrieval
+  budget. A valid commitment terminates without another generation. Raw or
+  invalid post-retrieval output receives at most one host-guided repair with
+  only that function exposed and forced; a second failure is terminal. Empty
+  retrieval and direct digest-only answers retain plain-text compatibility.
+  The provider-neutral synthetic regression proves structural behavior over
+  prior resources, Palari advice, multi-row chronology, corrections,
+  irrelevant non-empty results, temporal metadata, and honest empty results;
+  it makes no live-quality claim. This unit made no provider call, read no
+  credential, changed no terminal result, and spent nothing.

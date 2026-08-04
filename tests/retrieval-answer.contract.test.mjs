@@ -38,6 +38,13 @@ async function fakeEmbed(texts) {
   })
 }
 
+function requireEvidenceCommitment(provider) {
+  Object.defineProperty(provider, 'requiresEvidenceCommitment', {
+    value: true,
+  })
+  return provider
+}
+
 function keepNothing({ request }) {
   return {
     actions: [],
@@ -179,6 +186,151 @@ test('hybrid answer retrieval bridges zero-overlap wording to canonical text',
     assert.equal(
       result.retrievalTranscript[0].result.matches[0].text,
       returned.matches[0].text,
+    )
+  })
+
+test('host commits exact returned evidence and exposes immutable basis telemetry',
+  async (t) => {
+    const brain = await openBrain(t)
+    const canonical =
+      'My workshop apron is stored in the cedar cabinet by the window.'
+    await seed(brain, [{ id: 'apron:0', user: canonical }])
+    let committed
+    const provider = requireEvidenceCommitment(async ({
+      answerEvidenceCount,
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'workshop apron' },
+        tool: 'memory_find',
+      })
+      assert.equal(answerEvidenceCount(), found.matches.length)
+      assert.ok(Object.isFrozen(found))
+      assert.ok(Object.isFrozen(found.matches[0]))
+      const [row] = found.matches
+      committed = commitAnswer({
+        abstained: false,
+        bases: [{
+          evidenceId: row.evidenceId,
+          quote: 'cedar cabinet by the window',
+        }],
+        text: 'Your workshop apron is in the cedar cabinet by the window.',
+      })
+      assert.ok(Object.isFrozen(committed))
+      assert.ok(Object.isFrozen(committed.bases))
+      return committed
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      provider,
+      question: 'Where is my workshop apron?',
+    })
+
+    assert.equal(result.answerCommitted, true)
+    assert.equal(result.answer, committed.text)
+    assert.deepEqual(result.answerEvidence, committed.bases)
+    assert.ok(Object.isFrozen(result.answerEvidence))
+    assert.ok(Object.isFrozen(result.answerEvidence[0]))
+    assert.equal(result.retrievalTranscript[0].result.matches[0].snippet,
+      canonical)
+  })
+
+test('answer commitment rejects forged identity, unsupported provenance, and bad bases',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [{
+      id: 'notebook:0',
+      user: 'The field notebook is inside the orange canvas satchel.',
+    }])
+
+    const invalidProposals = [
+      (row) => ({
+        abstained: false,
+        bases: [{ evidenceId: 'not-returned', quote: row.snippet }],
+        text: 'Answer.',
+      }),
+      (row) => ({
+        abstained: false,
+        bases: [{ evidenceId: row.evidenceId, quote: 'blue steel locker' }],
+        text: 'Answer.',
+      }),
+      (row) => ({
+        abstained: false,
+        bases: [
+          { evidenceId: row.evidenceId, quote: 'orange canvas satchel' },
+          { evidenceId: row.evidenceId, quote: 'field notebook' },
+        ],
+        text: 'Answer.',
+      }),
+      (row) => ({
+        abstained: false,
+        bases: [{
+          evidenceId: row.evidenceId,
+          origin: 'provider-authored',
+          quote: 'orange canvas satchel',
+        }],
+        text: 'Answer.',
+      }),
+      (row) => ({
+        abstained: 'false',
+        bases: [{ evidenceId: row.evidenceId, quote: 'field notebook' }],
+        text: 'Answer.',
+      }),
+      (row) => ({
+        abstained: false,
+        bases: [{ evidenceId: row.evidenceId, quote: 'field notebook' }],
+        text: 'x'.repeat(20_001),
+      }),
+    ]
+
+    for (const proposal of invalidProposals) {
+      const provider = requireEvidenceCommitment(async ({
+        commitAnswer,
+        retrieve,
+      }) => {
+        const found = await retrieve({
+          input: { phrase: 'field notebook' },
+          tool: 'memory_find',
+        })
+        return commitAnswer(proposal(found.matches[0]))
+      })
+      await assert.rejects(
+        answerWithRetrieval(brain, {
+          ...SCOPE,
+          provider,
+          question: 'Where is the field notebook?',
+        }),
+        (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID',
+      )
+    }
+
+    const forged = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      const accepted = commitAnswer({
+        abstained: false,
+        bases: [{
+          evidenceId: found.matches[0].evidenceId,
+          quote: 'orange canvas satchel',
+        }],
+        text: 'It is in the orange canvas satchel.',
+      })
+      return structuredClone(accepted)
+    })
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: forged,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID',
     )
   })
 
@@ -345,7 +497,7 @@ test('the answer loop exposes admitted graph edges without extracting',
 
     const result = await answerWithRetrieval(brain, {
       ...SCOPE,
-      async provider({ retrieve }) {
+      provider: requireEvidenceCommitment(async ({ commitAnswer, retrieve }) => {
         const graph = await retrieve({
           input: { entity: 'Ana', hops: 2 },
           tool: 'memory_graph',
@@ -358,8 +510,18 @@ test('the answer loop exposes admitted graph edges without extracting',
         assert.ok(graph.edges.every((edge) =>
           edge.questionRelativeTime?.relation === 'past' &&
           edge.questionRelativeTime?.wholeCalendarMonths === 0))
-        return { text: 'Ana’s doctor works at the Lisbon hospital.' }
-      },
+        const basis = graph.edges.find((edge) =>
+          edge.subject === 'Dr. Peixoto' &&
+          edge.object === 'Lisbon hospital')
+        return commitAnswer({
+          abstained: false,
+          bases: [{
+            evidenceId: basis.evidenceId,
+            quote: basis.quote,
+          }],
+          text: 'Ana’s doctor works at the Lisbon hospital.',
+        })
+      }),
       question: 'Which hospital does my sister’s doctor work at?',
       questionDate: '2025-01-10T00:00:00.000Z',
     })
@@ -370,6 +532,8 @@ test('the answer loop exposes admitted graph edges without extracting',
     )
     assert.ok(result.consultedEvidenceIds.length >= 2)
     assert.equal(result.retrievalTranscript[0].tool, 'memory_graph')
+    assert.equal(result.answerCommitted, true)
+    assert.equal(result.answerEvidence.length, 1)
   })
 
 test('host-computed question-relative time is deterministic and non-mutating',
@@ -487,7 +651,7 @@ test('host-computed question-relative time is deterministic and non-mutating',
       ...SCOPE,
       question: 'How long ago was the photography workshop?',
       questionDate: expected.referenceAt,
-      async provider({ retrieve }) {
+      provider: requireEvidenceCommitment(async ({ commitAnswer, retrieve }) => {
         const found = await retrieve({
           input: { phrase: 'photography workshop' },
           tool: 'memory_find',
@@ -504,10 +668,18 @@ test('host-computed question-relative time is deterministic and non-mutating',
           tool: 'memory_search',
         })
         assert.deepEqual(search.matches[0].questionRelativeTime, expected)
-        return { text: 'It was three calendar months ago.' }
-      },
+        return commitAnswer({
+          abstained: false,
+          bases: [{
+            evidenceId: search.matches[0].evidenceId,
+            quote: search.matches[0].text,
+          }],
+          text: 'It was three calendar months ago.',
+        })
+      }),
     })
     assert.equal(result.answer, 'It was three calendar months ago.')
+    assert.equal(result.answerCommitted, true)
     assert.equal(
       Object.hasOwn(raw.exploreFind.matches[0], 'questionRelativeTime'),
       false,
