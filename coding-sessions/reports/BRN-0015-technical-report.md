@@ -99,7 +99,9 @@ PARTIAL; retrieval/rerank PARTIAL; wire FAIL; execution/accounting PASS.
 - Terminal bundle: sealed failed, zero credential matches and sealing errors.
 - Reporting head: 705 pass / 0 fail / 15 skip across 720 tests; quickstart 6/6;
   ticket, scope, report, and diff checks pass.
-- Result integrity and exact accounting await fresh read-only terminal review.
+- Fresh terminal review at exact `d5d65303bb531c87073b318d512074c35330f31d`
+  rehashed all 37 artifacts, reconciled all 66 calls and accounting, found no
+  P0-P3 issue, and recommends acceptance.
 
 ## Product Stop Rule
 

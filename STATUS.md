@@ -46,9 +46,12 @@ Fresh accounted spend is `$0.37751938` = `$0.01059868` measured +
 one-shot attempt is consumed and launcher exit status is 1. The reporting head
 passes 705 / fails 0 / skips 15 across 720 tests; quickstart passes 6/6; ticket,
 scope, report, and diff checks pass. Next: commit/push this immutable result
-record, obtain fresh read-only terminal review, then close BRN-0015 honestly
-and open a separate offline meter-repair ticket. Any successor live identity
-requires a new exact founder cap.
+record. Fresh terminal review at exact `d5d65303bb531c87073b318d512074c35330f31d`
+found no P0-P3 issue after independently rehashing all artifacts and
+reconciling all calls/accounting. Under the founder's standing delegation for
+clean independently reviewed tickets, BRN-0015 is accepted. Next: close,
+commit, push, and merge this honest record, then open a separate offline meter-
+repair ticket. Any successor live identity requires a new exact founder cap.
 
 Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
 SIX REVIEW P1S AND ONE P3 REPAIRED, CLEANLY REREVIEWED, AND ACCEPTED. The terminal BRN-0013 score remains immutable at

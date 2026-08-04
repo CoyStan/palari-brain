@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0015
 children: []
-status: in-review
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -241,6 +241,17 @@ founder cap. Opening cumulative accounted spend is `$6.03072623`:
 - P-set 27: accuracy FAIL/not reached; completion FAIL; cited commitment
   PARTIAL; retrieval/rerank PARTIAL; wire FAIL; execution/accounting PASS.
   No retry, resume, reroll, regrade, result mutation, or replacement occurred.
+
+## Terminal Review And Acceptance
+
+Fresh independent read-only review at exact
+`d5d65303bb531c87073b318d512074c35330f31d` found no P0-P3 issue. It rehashed
+all 37 artifacts, reconciled all 66 calls and exact spend classes, confirmed
+the immutable official prefix and commitment telemetry without regrading, and
+proved the rejected fifth request did not reach reservation or transport. It
+recommends acceptance. Under the founder's standing delegation to proceed
+through clean independently reviewed tickets, BRN-0015 is accepted as an
+honest terminal failed measurement. No successor live authority is implied.
 
 ## Stop Conditions
 

@@ -3,6 +3,16 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0015 — delegated acceptance) **Accept the immutable failed
+  measurement after clean independent terminal review.** Fresh read-only
+  review at exact `d5d65303bb531c87073b318d512074c35330f31d` found no P0-P3
+  issue, rehashed all 37 sealed artifacts, reconciled all 66 calls and spend,
+  and confirmed the question-5 stop is the private meter's omission of the
+  forced-function form before reservation or transport. The founder's standing
+  autonomy directive authorizes routine acceptance after clean independent
+  review. This acceptance does not create a ten-question score, repair or rerun
+  the consumed identity, publish a result, or authorize successor spend.
+
 - 2026-08-04 (BRN-0015 TERMINAL RESULT) **Keep the one invocation as a sealed
   failed measurement; do not rerun or regrade it.** Both compatibility smokes
   passed and the first four questions completed at official `PASS, FAIL, PASS,
