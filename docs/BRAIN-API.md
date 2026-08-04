@@ -492,7 +492,9 @@ const result = await answerWithRetrieval(brain, {
   questionDate,
   maxRetrievalCalls: 4,
   async provider({
+    answerEvidenceCount,
     answerInstructions,
+    commitAnswer,
     memoryText,
     maxRetrievalCalls,
     recommendedMaxOutputTokens,
@@ -510,7 +512,19 @@ const result = await answerWithRetrieval(brain, {
     // say stored evidence is insufficient.
     // Honor recommendedMaxOutputTokens (currently 512) while following the
     // direct/concise answer instruction.
-    return { abstained: false, text: '...' }
+    // A provider may opt into the host commitment boundary by setting
+    // provider.requiresEvidenceCommitment = true. After canonical evidence
+    // is returned, pass the final proposal through commitAnswer and return
+    // that exact callback result. Each basis quote must be an exact
+    // contiguous substring of the row returned under that evidenceId.
+    if (answerEvidenceCount() > 0) {
+      return commitAnswer({
+        abstained: false,
+        bases: [{ evidenceId: 'returned-id', quote: 'exact returned quote' }],
+        text: '...',
+      })
+    }
+    return { abstained: true, text: '...' }
   },
 })
 ```
@@ -548,8 +562,7 @@ const provider = createOpenAIRetrievalProvider({ invoke })
 The default is `gpt-5.6-luna` through `POST /v1/responses`, `store: false`,
 low reasoning effort, and at most seven model dispatches as an emergency
 protocol ceiling. The normal answer path permits at most four memory-tool
-calls, followed by exactly one tool-disabled finalization response if the
-fourth call did not already produce an answer. Palari's provider-neutral function
+calls. Palari's provider-neutral function
 schemas are preserved under explicit OpenAI `strict: false`, because their
 optional fields and `memory_read` root-property `anyOf` do not meet OpenAI's
 strict-schema subset. The host remains strict: it recognizes the function
@@ -559,13 +572,29 @@ tool result so GPT-5.6 reasoning state is not dropped. Because the adapter is
 stateless (`store: false`), it explicitly requests
 `reasoning.encrypted_content` and replays that encrypted item unchanged.
 Public configuration may lower, but cannot raise, the seven-dispatch ceiling.
-It also cannot raise the four-call memory budget. On finalization the adapter
-sets `tool_choice: "none"`, removes tool declarations, preserves all prior
-reasoning and host-owned tool outputs, and asks Luna to answer from consulted
-canonical evidence. If that evidence is insufficient, the answer must say so;
-absence of stored evidence is never converted into proof that an event did not
-happen. Answers produced after zero to three retrieval calls return normally
-without an extra dispatch.
+It also cannot raise the four-call memory budget.
+
+The OpenAI adapter declares the additive evidence-commit capability. Its
+normal tool set contains the five memory tools plus the private strict
+`palari_answer_commit` function. The private function cannot read or write the
+journal and does not consume a memory-tool call. Once any canonical row or
+admitted graph quote has been returned, Palari accepts only the exact object
+returned by the host's `commitAnswer()` callback. The proposal must contain a
+boolean `abstained`, bounded non-empty answer text, and one or more unique
+returned evidence IDs with exact contiguous quotes. Unknown IDs, fabricated
+quotes, duplicate bases, extra provider-authored provenance, malformed fields,
+and copied or mutated callback results fail closed.
+
+A valid commitment ends the answer immediately, without another generation.
+Raw text or an invalid commitment after evidence gets at most one host-guided
+repair. That repair exposes only `palari_answer_commit` and forces it with
+Responses `tool_choice: { type: "function", name: "palari_answer_commit" }`;
+no memory tool remains callable. When the fourth memory call returns evidence,
+the same commit-only finalization applies. When retrieval was genuinely empty,
+finalization remains tool-disabled and can return an honest plain-text
+absence. Direct digest-only and zero-through-three-call answers with no
+returned canonical row retain their prior path. The commitment repair can add
+one dispatch, but it cannot exceed the absolute seven-dispatch ceiling.
 
 The same subpath exports `createOpenAIMemoryReducer` and
 `createOpenAIGraphExtractor`. Their model-facing outputs use strict root-object
@@ -716,6 +745,14 @@ bounded tool request/result. Search ranking and graph structure locate
 evidence; exact journal messages and verified edge quotes remain the only
 testimony.
 
+`result.answerCommitted` reports whether the provider returned the exact
+host-created commitment object. `result.answerEvidence` is a deeply frozen
+array of its declared `{ evidenceId, quote }` bases. It is auditable provider
+provenance: the host proves that each ID and exact quote was returned in this
+answer session, not that the answer prose logically follows from the quote.
+This boundary makes ignored evidence visible and prevents uncited
+post-retrieval answers; it is intentionally not a semantic answer grader.
+
 The provider-neutral answer contract applies to the initial briefing and all
 later tool results as one evidence stream:
 
@@ -731,11 +768,14 @@ later tool results as one evidence stream:
 - empty or irrelevant evidence still produces honest absence rather than a
   fabricated fact.
 
-These are instructions to the caller's answer provider, not a host-side
-lexical answer grader and not proof of provider compliance. The host continues
-to preserve canonical bytes, speaker, time, evidence identity, scope, and the
-bounded retrieval transcript; a separately authorized live measurement is
-required to measure generated-answer behavior.
+These remain semantic instructions, not a host-side lexical answer grader.
+Providers that opt into the additive commitment capability also cross the
+structural exact-ID/exact-quote boundary described above. That proves declared
+evidence use, not semantic correctness. The host continues to preserve
+canonical bytes, speaker, time, evidence identity, scope, and the bounded
+retrieval transcript; a separately authorized live measurement is required to
+measure generated-answer behavior. One normal valid commitment adds no model
+dispatch; only the single invalid/raw repair adds latency.
 
 ### Host-computed question-relative time
 

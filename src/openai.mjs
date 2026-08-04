@@ -25,6 +25,9 @@ import {
 } from './memory-graph.mjs'
 import {
   DEFAULT_RETRIEVAL_CALLS,
+  MEMORY_ANSWER_MAX_BASES,
+  MEMORY_ANSWER_MAX_QUOTE_CHARS,
+  MEMORY_ANSWER_MAX_TEXT_CHARS,
   MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
 } from './retrieval-answer.mjs'
 
@@ -36,6 +39,7 @@ export const OPENAI_DEFAULT_TIMEOUT_MS = 60_000
 export const OPENAI_MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 export const OPENAI_REDUCER_MAX_OUTPUT_TOKENS = 2_000
 export const OPENAI_GRAPH_MAX_OUTPUT_TOKENS = 2_000
+export const OPENAI_ANSWER_COMMIT_TOOL_NAME = 'palari_answer_commit'
 
 const REASONING_EFFORTS = new Set([
   'none',
@@ -423,6 +427,91 @@ function answerInput({ memoryText, questionText }) {
   }]
 }
 
+const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
+  description: [
+    'Commit the final answer after memory evidence was returned.',
+    'Every basis must use an evidenceId returned in this answer session and copy an exact contiguous quote from that returned row.',
+    'Use abstained true when the returned evidence does not support an answer, while citing the returned evidence that was inspected.',
+  ].join(' '),
+  name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+  parameters: {
+    additionalProperties: false,
+    properties: {
+      abstained: { type: 'boolean' },
+      bases: {
+        items: {
+          additionalProperties: false,
+          properties: {
+            evidenceId: { maxLength: 500, minLength: 1, type: 'string' },
+            quote: {
+              maxLength: MEMORY_ANSWER_MAX_QUOTE_CHARS,
+              minLength: 1,
+              type: 'string',
+            },
+          },
+          required: ['evidenceId', 'quote'],
+          type: 'object',
+        },
+        maxItems: MEMORY_ANSWER_MAX_BASES,
+        minItems: 1,
+        type: 'array',
+      },
+      text: {
+        maxLength: MEMORY_ANSWER_MAX_TEXT_CHARS,
+        minLength: 1,
+        type: 'string',
+      },
+    },
+    required: ['abstained', 'bases', 'text'],
+    type: 'object',
+  },
+  strict: true,
+  type: 'function',
+})
+
+const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
+  'Return the final answer only by calling palari_answer_commit.',
+  'Use only evidence IDs and exact contiguous quotes from memory results already returned in this answer session.',
+  'No memory tool is available during this repair.',
+].join(' ')
+
+function answerCommitTool() {
+  return clone(OPENAI_ANSWER_COMMIT_TOOL)
+}
+
+function commitmentEvidenceCount(session) {
+  const count = Number(session.answerEvidenceCount())
+  if (!Number.isSafeInteger(count) || count < 0) {
+    throw new TypeError('answerEvidenceCount must return a non-negative integer.')
+  }
+  return count
+}
+
+function commitmentRejection(error) {
+  const message = String(error?.message ?? error ?? '').trim()
+  return (message || 'The answer commitment was invalid.').slice(0, 1_000)
+}
+
+function appendCommitmentRepair(input, output, rejection) {
+  input.push(...clone(output))
+  const calls = output.filter((item) =>
+    item?.type === 'function_call' && String(item.call_id ?? '').trim())
+  if (calls.length) {
+    for (const call of calls) {
+      input.push({
+        call_id: String(call.call_id),
+        output: JSON.stringify({ accepted: false, rejection }),
+        type: 'function_call_output',
+      })
+    }
+    return
+  }
+  input.push({
+    content: `Host rejection: ${rejection}`,
+    role: 'user',
+  })
+}
+
 export function createOpenAIRetrievalProvider({
   invoke,
   maxModelDispatches = OPENAI_DEFAULT_MAX_MODEL_DISPATCHES,
@@ -445,11 +534,21 @@ export function createOpenAIRetrievalProvider({
   }
   const effort = reasoningEffort(rawEffort)
 
-  return async function openAIRetrievalProvider(session = {}) {
+  const provider = async function openAIRetrievalProvider(session = {}) {
     if (typeof session.retrieve !== 'function') {
       throw new TypeError('OpenAI retrieval provider requires retrieve.')
     }
-    const tools = buildOpenAIFunctionTools(session.retrievalTools)
+    if (typeof session.commitAnswer !== 'function') {
+      throw new TypeError('OpenAI retrieval provider requires commitAnswer.')
+    }
+    if (typeof session.answerEvidenceCount !== 'function') {
+      throw new TypeError(
+        'OpenAI retrieval provider requires answerEvidenceCount.',
+      )
+    }
+    const memoryTools = buildOpenAIFunctionTools(session.retrievalTools)
+    const commitTool = answerCommitTool()
+    const tools = [...memoryTools, commitTool]
     const allowedNames = new Set(tools.map(({ name }) => name))
     const maxOutputTokens = positiveInteger(
       session.recommendedMaxOutputTokens,
@@ -468,6 +567,8 @@ export function createOpenAIRetrievalProvider({
     let dispatch = 0
     let retrievalCalls = 0
     let finalizing = retrievalLimit === 0
+    let forcingCommit = false
+    let repairUsed = false
 
     for (;;) {
       if (dispatch >= dispatchLimit) {
@@ -476,19 +577,29 @@ export function createOpenAIRetrievalProvider({
           'OpenAI retrieval provider exhausted its model-dispatch budget.',
         )
       }
+      const evidenceAvailable = commitmentEvidenceCount(session) > 0
+      const commitOnly = forcingCommit || (finalizing && evidenceAvailable)
+      const toolDisabled = finalizing && !evidenceAvailable
       const body = {
         include: ['reasoning.encrypted_content'],
         input: clone(input),
-        instructions: finalizing
-          ? finalizationInstructions(session)
-          : answerInstructions(session),
+        instructions: [
+          finalizing
+            ? finalizationInstructions(session)
+            : answerInstructions(session),
+          commitOnly ? ANSWER_COMMIT_REPAIR_INSTRUCTIONS : '',
+        ].filter(Boolean).join('\n\n'),
         max_output_tokens: maxOutputTokens,
         model: modelId,
         parallel_tool_calls: false,
         reasoning: { effort },
         store: false,
-        tool_choice: finalizing ? 'none' : 'auto',
-        ...(finalizing ? {} : { tools: clone(tools) }),
+        tool_choice: commitOnly
+          ? { name: OPENAI_ANSWER_COMMIT_TOOL_NAME, type: 'function' }
+          : toolDisabled ? 'none' : 'auto',
+        ...(toolDisabled
+          ? {}
+          : { tools: commitOnly ? [answerCommitTool()] : clone(tools) }),
       }
       const response = await invoke({
         body,
@@ -499,7 +610,23 @@ export function createOpenAIRetrievalProvider({
       dispatch += 1
       const output = completedOutput(response)
       assertNoRefusal(output)
-      const calls = functionCalls(output, allowedNames)
+      let calls
+      try {
+        calls = functionCalls(output, allowedNames)
+      } catch (error) {
+        const attemptedCommit = output.some((item) =>
+          item?.type === 'function_call' &&
+          item?.name === OPENAI_ANSWER_COMMIT_TOOL_NAME)
+        if (!attemptedCommit || repairUsed || !evidenceAvailable) throw error
+        repairUsed = true
+        forcingCommit = true
+        appendCommitmentRepair(
+          input,
+          output,
+          commitmentRejection(error),
+        )
+        continue
+      }
       if (!calls.length) {
         const text = responseText(response, output)
         if (!text) {
@@ -508,12 +635,64 @@ export function createOpenAIRetrievalProvider({
             'OpenAI Responses completed without an answer or function call.',
           )
         }
+        if (evidenceAvailable) {
+          if (repairUsed) {
+            throw adapterError(
+              'OPENAI_ANSWER_COMMIT_REPAIR_FAILED',
+              'OpenAI did not return a valid answer commitment after one repair.',
+            )
+          }
+          repairUsed = true
+          forcingCommit = true
+          appendCommitmentRepair(
+            input,
+            output,
+            'A raw message cannot be accepted after memory evidence was returned; use palari_answer_commit.',
+          )
+          continue
+        }
         return { abstained: false, text }
       }
-      if (finalizing) {
+      const commitmentCalls = calls.filter(({ name }) =>
+        name === OPENAI_ANSWER_COMMIT_TOOL_NAME)
+      if (commitmentCalls.length) {
+        if (!evidenceAvailable) {
+          throw adapterError(
+            'OPENAI_ANSWER_COMMIT_BEFORE_EVIDENCE',
+            'OpenAI requested an answer commitment before evidence was returned.',
+          )
+        }
+        let rejection = null
+        let committed
+        if (calls.length !== 1 || commitmentCalls.length !== 1) {
+          rejection = 'An answer commitment must be the only function call in its response.'
+        } else {
+          try {
+            committed = session.commitAnswer(clone(commitmentCalls[0].input))
+          } catch (error) {
+            rejection = commitmentRejection(error)
+          }
+        }
+        if (!rejection) return committed
+        if (repairUsed) {
+          throw adapterError(
+            'OPENAI_ANSWER_COMMIT_REPAIR_FAILED',
+            'OpenAI returned an invalid answer commitment after one repair.',
+          )
+        }
+        repairUsed = true
+        forcingCommit = true
+        appendCommitmentRepair(input, output, rejection)
+        continue
+      }
+      if (finalizing || forcingCommit) {
         throw adapterError(
-          'OPENAI_FINALIZATION_TOOL_CALL',
-          'OpenAI finalization returned a memory tool call after retrieval closed.',
+          forcingCommit
+            ? 'OPENAI_ANSWER_COMMIT_REPAIR_FAILED'
+            : 'OPENAI_FINALIZATION_TOOL_CALL',
+          forcingCommit
+            ? 'OpenAI returned a memory tool call during answer-commit repair.'
+            : 'OpenAI finalization returned a memory tool call after retrieval closed.',
         )
       }
       const remaining = retrievalLimit - retrievalCalls
@@ -543,6 +722,11 @@ export function createOpenAIRetrievalProvider({
       if (retrievalCalls >= retrievalLimit) finalizing = true
     }
   }
+  Object.defineProperty(provider, 'requiresEvidenceCommitment', {
+    enumerable: true,
+    value: true,
+  })
+  return provider
 }
 
 function strictJsonFormat(name, schema) {

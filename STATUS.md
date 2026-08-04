@@ -1,5 +1,75 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
+SIX REVIEW P1S AND ONE P3 REPAIRED, CLEANLY REREVIEWED, AND ACCEPTED. The terminal BRN-0013 score remains immutable at
+official 6/10. Its three genuine answer-use/personalization failures all
+occurred after required evidence reached Luna, so this unit adds the smallest
+provider-neutral structural boundary: `answerWithRetrieval()` registers every
+canonical row returned during one answer and offers a host-owned
+`commitAnswer()` callback. A provider that declares commitments required must
+return that exact callback-created object after non-empty retrieval, with
+explicit abstention plus unique returned evidence IDs and exact contiguous
+quotes. Unknown/duplicate IDs, fabricated quotes, extra provider provenance,
+malformed or oversized fields, mutation, and forged/copy-returned objects fail
+closed. The result exposes deeply frozen `answerEvidence` telemetry and
+`answerCommitted`; these prove declared basis provenance, not semantic truth.
+
+The accepted Luna adapter now declares this capability. Normal dispatches
+offer the five unchanged memory tools plus private strict
+`palari_answer_commit`. That function has no journal authority and does not
+consume the four-call memory budget. A valid commitment terminates without a
+second generation. Raw text or invalid structure after evidence gets at most
+one host-guided repair with only the commitment function exposed and forced;
+a second miss is terminal. Non-empty fourth-call finalization is likewise
+commit-only. Digest-only and genuinely empty retrieval answers preserve the
+plain-text path. Official OpenAI documentation was checked for the Responses
+strict-function and forced-function wire before implementation.
+
+Provider-free focused contracts pass 49/49. The strengthened seven-case
+synthetic regression covers prior resources, prior Palari advice, multi-row
+chronology, correction conflict, host-derived time, irrelevant non-empty
+evidence, and honest empty retrieval; it grades structural commitments only,
+never prose. Full suite passes 705 / fails 0 / skips 15 across 720 tests;
+quickstart passes 6/6; the 32-file package dry-run is clean. No credential was
+read, no local model was loaded, no inference/provider/network call occurred,
+no terminal result changed, and spend was `$0.00`; cumulative accounted spend
+remains `$6.03072623` = `$1.72334288` measured + `$4.30738335` uncertain.
+The first independent review at exact `75e03cf` found one P1 in the generic
+capability seam: a custom provider could declare a writable required-commit
+flag, flip it off during its own call, and bypass the post-call check. Luna's
+immutable declaration was not affected, but the provider-neutral guarantee
+was. The host now snapshots the declaration before invoking provider code, and
+a real-brain adversarial contract proves mid-call weakening remains rejected.
+The first fresh rereview of that repair found a second generic-provider P1:
+the validator called the provider-owned basis array's `.map()`, allowing an
+overridden method or changing accessor to skip validation and mint fabricated
+or empty bases. `commitAnswer()` now takes one private structured snapshot of
+the proposal and validates it with host-owned iteration; malicious methods are
+rejected and changing accessors are rejected as non-data fields.
+The next fresh rereview found two further P1s and one P3 in the generic custom
+adapter boundary: mutable built-in prototypes could forge exact-quote checks;
+an unawaited asynchronous retrieval could finish only after raw-answer
+acceptance; and clone-sanitized hidden/inherited/symbol fields were accepted
+rather than rejected. The authority path now uses module-captured map/set/
+weak-set/string/promise/object intrinsics, exact pre-clone data descriptors,
+and a closed-and-drained retrieval operation set before commitment evaluation.
+Permanent real-brain tests reproduce prototype poisoning, hidden fields, and a
+reranker-gated leaked retrieval; each now fails closed without late transcript
+mutation.
+The fourth independent pass found two more generic-provider P1s: mutable
+global `String` could replace the accepted prose after an authentic commitment,
+and a provider-caught retrieval failure that had already settled could be
+discarded by a pending-only drain. Committed text now crosses result shaping
+unchanged; every started retrieval retains a private outcome and completion,
+and all outcomes reconcile before acceptance. Captured promise species,
+captured index coercion, and explicit failure booleans also close prototype and
+falsy-throw variants. The reviewer reproductions and adjacent cases are
+permanent real-brain tests.
+Exact acceptance review head
+`c40046c60cfb523998e6eb206ad48d4cf5a86f86` has no P0-P3 finding and
+recommends acceptance. BRN-0014 is accepted under the founder's delegated
+routine authority; next is merge/push. A new live score remains a founder gate.
+
 Loop state: BRN-0013 REPAIRED ETTIN + LUNA FIRST-TEN TERMINAL AT OFFICIAL
 6/10; CORRECTED, CLEANLY REREVIEWED, AND ACCEPTED. BRN-0012 was independently accepted, merged, and
 pushed at `90e1837`; canonical administrative head `784de72` adds only this

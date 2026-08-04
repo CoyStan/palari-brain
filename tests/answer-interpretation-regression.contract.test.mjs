@@ -45,13 +45,15 @@ test('answer-interpretation regression proves A+B structural composition',
       assert.equal(first.answerQualityGraded, false)
       assert.equal(first.networkCalls, 0)
       assert.equal(first.providerCalls, 0)
-      assert.equal(first.answerBoundaryCallbacks, 5)
+      assert.equal(first.answerBoundaryCallbacks, 7)
       assert.equal(first.status, 'passed')
       assert.deepEqual(
         first.cases.map((entry) => entry.case),
         [
           'prior-palari-advice',
+          'prior-resource-personalization',
           'appliance-chronology',
+          'correction-conflict',
           'host-computed-time',
           'irrelevant-result-control',
           'empty-result-control',
@@ -65,6 +67,16 @@ test('answer-interpretation regression proves A+B structural composition',
         entry.case === 'appliance-chronology')
       assert.equal(chronology.canonicalRows, 2)
       assert.equal(chronology.relativeTimeRows, 2)
+      assert.equal(chronology.committedBases, 2)
+      const advice = first.cases.find((entry) =>
+        entry.case === 'prior-palari-advice')
+      assert.equal(advice.committedBases, 1)
+      const resource = first.cases.find((entry) =>
+        entry.case === 'prior-resource-personalization')
+      assert.equal(resource.committedBases, 1)
+      const conflict = first.cases.find((entry) =>
+        entry.case === 'correction-conflict')
+      assert.equal(conflict.committedBases, 2)
       const empty = first.cases.find((entry) =>
         entry.case === 'empty-result-control')
       assert.equal(empty.returnedRows, 0)
