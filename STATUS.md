@@ -21,7 +21,7 @@ exact clean canonical commit `b010d73ad167ff7ff3435607019ed758f9cb79bc`,
 reserves/consumes the identity before re-verification and child preflight,
 uses durable credential intent/stage markers, and always attempts a sanitized
 terminal manifest. The replacement private mode-0600 launcher hashes
-`3295584366a6abd79e0410d1036c45e4dc397586ef79b0248daffa0bd5a41d05` and
+`44dbd48b1265775971264f7ad40a6de9e2e9a4a359b0f7d525743608c436dd67` and
 generates mode-0600 runtime
 `be7d95440b7739beb7ff0331076f5d08cd130e6924df1953e4235ce87a0890f4`.
 Its inert verification is green and confirms the result identity is absent;

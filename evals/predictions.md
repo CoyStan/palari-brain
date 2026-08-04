@@ -1587,7 +1587,7 @@ with one contained symlink and SHA-256
 `a0aca4625ff6793abaf7fb0db2b01328dee50eb7488e3c5a869dfe2d5ae93d96`.
 
 The private mode-0600 launcher SHA-256 is
-`3295584366a6abd79e0410d1036c45e4dc397586ef79b0248daffa0bd5a41d05`.
+`44dbd48b1265775971264f7ad40a6de9e2e9a4a359b0f7d525743608c436dd67`.
 It deterministically verifies terminal BRN-0007 runtime template SHA-256
 `4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`
 and generates mode-0600 runtime SHA-256

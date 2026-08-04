@@ -20,7 +20,7 @@ here with dates. Agents record; the founder decides.
 
   The committed freeze uses FINAL P-set 25 and private identity
   `j4-luna-ettin-first10-v1`. Its mode-0600 launcher SHA-256 is
-  `3295584366a6abd79e0410d1036c45e4dc397586ef79b0248daffa0bd5a41d05`;
+  `44dbd48b1265775971264f7ad40a6de9e2e9a4a359b0f7d525743608c436dd67`;
   generated runtime SHA-256 is
   `be7d95440b7739beb7ff0331076f5d08cd130e6924df1953e4235ce87a0890f4`.
   Before loading `.env`, the one-shot execution must pass a provider-free

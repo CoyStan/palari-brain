@@ -27,7 +27,7 @@ single terminal invocation.
   `d3a9a8c234468e0120d605c7868b418a5ab3313384d0d162e11a30ab6d9fe4cf`.
 - Sealed U8 `1568498a`: absent and unreachable.
 - Launcher SHA-256:
-  `3295584366a6abd79e0410d1036c45e4dc397586ef79b0248daffa0bd5a41d05`.
+  `44dbd48b1265775971264f7ad40a6de9e2e9a4a359b0f7d525743608c436dd67`.
 - Generated runtime SHA-256:
   `be7d95440b7739beb7ff0331076f5d08cd130e6924df1953e4235ce87a0890f4`.
 - Terminal BRN-0007 template SHA-256:
@@ -55,6 +55,8 @@ state durable afterward. If reading may have occurred, sealing scans the
 result, launcher, runtime, and every frozen tracked file for exact key values;
 otherwise it truthfully records no read intent. Scan/hash/parse failures become
 sanitized manifest errors rather than preventing terminal evidence.
+Any non-clean seal is durably recorded and forces the launcher to exit
+nonzero, even when the child itself completed successfully.
 
 The first independent review at `4c1ae1f` correctly reopened the ticket for
 the incomplete tracked closure, false no-report/no-credential inference,
