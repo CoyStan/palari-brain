@@ -6,6 +6,9 @@ Terminal completed identity. After independent GO at
 `163e7e532cf631239f66155dd179b186959d8032`, the launcher ran exactly once.
 Both smokes and all ten answer/judge cells completed. Official result is 6/10;
 there was no retry, rerun, regrade, selective score, or result repair.
+After the initial review P1 was corrected without changing sealed evidence;
+fresh rereview at `e48ac2bde3d5ea8c4d3d1184c9de3e25bd3259b6` found no P0-P3 issue and
+recommends acceptance.
 
 ## Terminal Result
 

@@ -36,7 +36,7 @@ matches, and that the exclusive identity cannot execute twice.
 
 ## Recommended Next Move
 
-Accept this terminal record if fresh review is clean. The next engineering
+Accept this terminal record; fresh rereview is clean. The next engineering
 units should be offline and provider-neutral: one for explicit cited-evidence
 selection/composition, and a separate one for judge robustness. Both must use
 general adversarial cases rather than these known answers. A new scored run

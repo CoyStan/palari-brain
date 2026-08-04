@@ -3,6 +3,14 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0013 — delegated acceptance) **Accept and merge the honest
+  terminal official 6/10 record after clean corrected rereview.** Fresh review
+  at `e48ac2bde3d5ea8c4d3d1184c9de3e25bd3259b6` found no P0-P3 issue, directly
+  rehashed the complete sealed bundle, and reconciled calls/accounting. The
+  founder's recorded autonomy directive authorizes routine acceptance/merge.
+  This accepts the measurement record and live Ettin/Luna compatibility; it
+  does not publish, regrade, claim 10/10, or authorize another identity.
+
 - 2026-08-04 (BRN-0013 RESULT CLASSIFICATION CORRECTION) **Keep the official
   6/10 immutable, but classify `10d9b85a` as a clear judge false negative, not
   an answer-composition failure.** The frozen reference is exactly `3 days`

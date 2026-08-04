@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0013
 children: []
-status: in-review
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -248,6 +248,14 @@ reached.
 - BRN-0013 was reopened for reporting correction only. No private artifact,
   label, score, prediction, or execution changes. Fresh terminal rereview is
   mandatory before acceptance.
+
+## Delegated Acceptance
+
+Fresh terminal rereview at `e48ac2bde3d5ea8c4d3d1184c9de3e25bd3259b6`
+found no P0-P3 issue and recommends acceptance. Quetzali's recorded autonomy
+directive authorizes routine clean-review acceptance and merge. This closes
+the official 6/10 terminal record without publication, regrade, rerun, or
+authority for another identity.
 
 ## Verification
 

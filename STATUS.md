@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0013 REPAIRED ETTIN + LUNA FIRST-TEN TERMINAL AT OFFICIAL
-6/10; REOPENED FOR REPORTING CORRECTION ONLY. BRN-0012 was independently accepted, merged, and
+6/10; CORRECTED, CLEANLY REREVIEWED, AND ACCEPTED. BRN-0012 was independently accepted, merged, and
 pushed at `90e1837`; canonical administrative head `784de72` adds only this
 evaluation contract. Fresh identity `j4-luna-ettin-first10-v2` preserves the
 exact BRN-0010 treatment and changes only the accepted absolute cached-model
@@ -46,8 +46,10 @@ calls succeeded: 33 Luna, 10 judges, and 95 Gemini embedding batches carrying
 `eb7dcb01c7a60cbade9a25d179cffde783e1f46c5c79644422eae819da7c3b71`
 rehashes 73/73 artifacts / 89,106,477 bytes, has no sealing error, and reports
 zero exact credential matches. The identity is consumed and cannot be rerun.
-Next: commit/push the reporting-only correction, obtain fresh independent
-terminal rereview, then accept/merge if clean. The smallest evidence-led next
+Fresh rereview at `e48ac2bde3d5ea8c4d3d1184c9de3e25bd3259b6` found no
+P0-P3 issue and recommends acceptance. BRN-0013 is accepted under the
+founder's delegated routine authority. Next: merge/push this record. The
+smallest evidence-led next
 product units are separate offline provider-neutral answer-evidence composition
 and judge-robustness contracts; a second scored identity is a founder gate.
 
