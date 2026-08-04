@@ -3,6 +3,65 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0015 — delegated acceptance) **Accept the immutable failed
+  measurement after clean independent terminal review.** Fresh read-only
+  review at exact `d5d65303bb531c87073b318d512074c35330f31d` found no P0-P3
+  issue, rehashed all 37 sealed artifacts, reconciled all 66 calls and spend,
+  and confirmed the question-5 stop is the private meter's omission of the
+  forced-function form before reservation or transport. The founder's standing
+  autonomy directive authorizes routine acceptance after clean independent
+  review. This acceptance does not create a ten-question score, repair or rerun
+  the consumed identity, publish a result, or authorize successor spend.
+
+- 2026-08-04 (BRN-0015 TERMINAL RESULT) **Keep the one invocation as a sealed
+  failed measurement; do not rerun or regrade it.** Both compatibility smokes
+  passed and the first four questions completed at official `PASS, FAIL, PASS,
+  PASS`, with authentic cited commitments on every reached answer. During
+  question 5 the product correctly requested the accepted forced-function
+  commitment wire after four memory calls, but the private meter's frozen
+  allowlist admitted only auto/none tool choice and stopped before reserving or
+  dispatching that request. The suffix was not reached. Fresh accounted spend
+  is `$0.37751938`; cumulative accounted spend is `$6.40824561`. The sealed
+  manifest hash is
+  `d48030533c6a344ea1c180bb7c99c7edb20dc48a0c7403f65a04837c0697448f`.
+  Fixing the general meter defect belongs to a separate offline ticket; any
+  new live identity requires a new exact founder cap.
+
+- 2026-08-04 (FOUNDER GO — BRN-0015 cited Luna + Ettin first ten)
+  **Authorize exactly one invocation of frozen identity
+  `j4-luna-ettin-cited-first10-v1` under a `$1.50` fresh /
+  `$7.53072623` cumulative accounted cap.** Quetzali confirmed the exact run
+  ID and both boundaries verbatim after P-set 27, the complete private freeze,
+  and clean independent GO review were pushed. The launcher may set only its
+  two frozen non-secret confirmation variables, reserve/consume the identity,
+  run the local Ettin and live cited-answer smokes, and proceed through the ten
+  ordered non-U8 answer/judge cells only if both pass. The first invocation is
+  terminal whatever happens. This authority does not permit retry, resume,
+  reroll, regrade, result-driven patching, replacement identity, publication,
+  U8 access, or spend above either cap.
+
+- 2026-08-04 (BRN-0015 — clean pre-dispatch review) **The frozen cited Luna +
+  Ettin identity is structurally ready, but no provider dispatch is authorized
+  yet.** Fresh read-only review at
+  `38800533af260861945b204e829383159f78eb1f` found no P0-P3 issue and
+  independently verified the sole-treatment diff, exact lineage/model/runtime,
+  cited smoke, meters, cap math, one-shot seal, U8 exclusion, and offline
+  suite. Recommendation is GO only after the founder explicitly confirms the
+  exact `$1.50` fresh / `$7.53072623` cumulative boundary. The result identity
+  remains absent and the `$6.03072623` opening ledger is unchanged.
+
+- 2026-08-04 (BRN-0015 — cited Luna + Ettin pre-dispatch freeze) **Freeze one
+  causal successor to terminal BRN-0013, but do not dispatch without a new
+  exact founder cap.** The ten questions, providers, native Ettin, prompts,
+  limits, order, official judge, and accounting remain fixed; accepted
+  BRN-0014 is the sole product treatment. Fresh identity
+  `j4-luna-ettin-cited-first10-v1` and P-set 27 are one-shot and exclude sealed
+  U8. Offline verification rehashed current source, eleven terminal bundles,
+  exact dataset/order, model/head/runtime, and absent result without credential
+  or inference access. Proposed boundaries are `$1.50` fresh and
+  `$7.53072623` cumulative from the exact `$6.03072623` opening. These are a
+  request, not authority; the consumed BRN-0013 cap is not reused.
+
 - 2026-08-04 (BRN-0014 — delegated acceptance) **Accept and merge the cited
   answer-commit boundary after clean adversarial rereview.** Fresh review at
   `c40046c60cfb523998e6eb206ad48d4cf5a86f86` found no P0-P3 issue after four
