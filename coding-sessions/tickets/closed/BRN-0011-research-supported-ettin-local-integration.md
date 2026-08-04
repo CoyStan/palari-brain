@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0011
 children: []
-status: open
+status: accepted
 risk: R1
 priority: P0
 agents_allowed: 1
@@ -137,3 +137,11 @@ regrade it. Research authority includes public web/repository reads only.
   private result mutation, or implementation.
 - Stop and report uncertainty if primary sources do not establish a supported
   JavaScript/offline path; do not fill the gap by inventing one.
+
+## Founder Acceptance
+
+On 2026-08-04 Quetzali explicitly accepted BRN-0011 and directed autonomous
+governed implementation, review, and validation of the recommended Ettin
+offline integration with Luna. Acceptance closes this research ticket; it does
+not mutate or rerun terminal BRN-0010 and does not waive preregistration,
+honest-result, spend, or sealed-U8 controls for successors.
