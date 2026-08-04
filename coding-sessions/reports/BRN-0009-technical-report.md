@@ -138,6 +138,11 @@ pass. The added contract proves the manifest changes on transitive-file drift,
 is deterministic, covers symlink text, and rejects a symlink resolving outside
 the isolated runtime root.
 
+Final independent review at `ee4ec12` reproduced the transcript excerpt,
+complete closure, runtime, source, result, and artifact hashes; reran the
+provider-free verification; found no P0-P3 issue; and recommends `accept`.
+Founder acceptance and merge remain separate gates.
+
 ## Risks / Follow-Ups
 
 - This is English-only synthetic ordering evidence, not end-to-end answer
