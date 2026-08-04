@@ -31,7 +31,7 @@ cannot be resumed, rerun, selectively rescored, or repaired in place.
 Independent terminal review at exact result head `9589131` rehashed and
 reconciled the complete bundle with no P0-P3 finding; reviewer-note commit is
 `7b46745`. Under the founder's standing delegation for clean independently
-reviewed tickets, BRN-0017 is accepted; merge/push is next.
+reviewed tickets, BRN-0017 is accepted, merged, and pushed at `7ee4857`.
 
 Product stop rule: (1) yes, quickstart remains 6/6; (2) no score improvement
 was measured—the unit made the live measurement reliable, not the user journey
@@ -41,7 +41,9 @@ requested Luna + Ettin first-ten validation; (5) deleting this evaluation
 would not change product behavior, but would erase the only complete live
 cited-Luna measurement and its causal meter evidence. Do not start another
 measurement-only successor. The next product unit must target answer use rather
-than reranking or another score rerun.
+than reranking or another score rerun. Next: open a separate governed offline
+answer-use diagnosis/product contract from the four immutable FAIL rows; no
+new live score is authorized.
 
 Loop state: BRN-0016 FORCED COMMITMENT METER REPAIR REPAIRED AFTER TWO P1S;
 FRESH REREVIEW PENDING.
