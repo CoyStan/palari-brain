@@ -28,6 +28,9 @@ Sentence Transformers already implements the missing modular head in Python;
 cause Palari to repeat a known-incompatible wire. Next: fresh review of this
 terminal result. A custom local modular-head adapter or Python sidecar is a
 separate governed successor, never a retry of this identity.
+Fresh independent read-only review at `0fb01be` found no P0-P3 issues and
+recommends `accept` specifically as an honest terminal compatibility result,
+not as working Ettin support. Founder acceptance remains pending.
 
 Loop state: BRN-0008 PROVIDER-NEUTRAL RERANKER IMPLEMENTED AND MEASURED;
 INDEPENDENT REVIEW NEXT. The founder approved adapting the retrieve-then-
