@@ -1,16 +1,35 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0011 ETTIN UPSTREAM-INTEGRATION RESEARCH CONTRACT OPEN;
-CONTRACT COMMIT/WORKTREE NEXT. BRN-0010's terminal private compatibility
-failure remains on its ticket branch pending explicit founder acceptance and
-is not merged, rerun, or regraded by this work. Quetzali directed an online
-primary-source survey before Palari invents another Ettin boundary. BRN-0011
-will inspect at least eight upstream artifacts and real public integrations,
-reconstruct the supported tokenizer/model/head/offline path, compare official
-Sentence Transformers, supported self-contained ONNX export, and Palari's
-native JavaScript composition, then recommend one smallest offline successor.
-No code, download, install, inference, credential, provider call, or spend is
-authorized.
+Loop state: BRN-0011 ETTIN UPSTREAM-INTEGRATION RESEARCH COMPLETE; COMMIT AND
+IN-REVIEW TRANSITION NEXT. Twelve primary upstream artifacts and every substantive
+exact-ID public integration found were inspected. The official and dominant
+path is Python Sentence Transformers `CrossEncoder`; its ONNX backend keeps
+the modular Python chain, and no official self-contained Ettin logits graph or
+turnkey JavaScript integration exists. The two public non-Python paths found
+manually preserve the same Dense/LayerNorm/Dense head as Palari, via a custom
+ONNX export or vendored Rust FastEmbed extension. Therefore keep BRN-0009's
+measured native JavaScript head rather than add Python/IPC, a bespoke export
+pipeline, or a new native runtime.
+
+Static 4.2.0 source traces BRN-0010's pre-inference exception to tokenizer-file
+discovery calling metadata with `{}` and thereby dropping the caller's custom
+`cache_dir`, revision, and local-only options. With remote access disabled the
+probe can return no tokenizer files, producing the exact undefined
+`tokenizerConfig`. Runtime causality is not rerun because BRN-0010 remains
+terminal and pending founder acceptance. The smallest separately governed
+successor is to pass a strictly validated absolute revision directory directly
+to both Transformers.js factories with local-only/network-disabled operation,
+leaving tokenizer, ONNX, head math, bounds, and prior scores unchanged.
+
+Research report: `docs/ETTIN-INTEGRATION-RESEARCH.md`. No implementation,
+dependency, download, model load, inference, credential access, provider call,
+private result mutation, or spend occurred; cumulative accounted spend remains
+`$5.27173386`. BRN-0010 remains unmerged, unrereun, and ungraded by this work.
+Closeout is green: all 22 unique cited URLs resolved; quickstart passed 6/6;
+ticket lint, report lint, committed-plus-dirty scope, and diff checks passed.
+Next: commit, push, and move BRN-0011 to in-review for founder acceptance.
+This is one infrastructure unit; surface drift before another infrastructure
+unit.
 
 Loop state: BRN-0010 ETTIN + LUNA FIRST-TEN VALIDATION CONTRACT OPEN; FREEZE
 NEXT. Quetzali explicitly accepted and merged BRN-0009, then directed a fresh

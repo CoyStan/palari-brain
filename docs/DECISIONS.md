@@ -3,6 +3,22 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0011 — supported Ettin integration research) **Keep the
+  measured native JavaScript Ettin head; repair only the offline local-directory
+  boundary in a separately approved ticket.** The official path and the clear
+  majority of substantive public integrations use Sentence Transformers
+  `CrossEncoder`. The published ONNX contains only the transformer output;
+  official ONNX operation still retains the surrounding Python module chain.
+  The two discovered non-Python integrations independently compose the same
+  Ettin head through custom project code, so neither eliminates Palari's small
+  architecture-specific responsibility. Static upstream source traces
+  BRN-0010 to Transformers.js 4.2.0 tokenizer discovery dropping the supplied
+  cache/revision/local-only options before its metadata check. A complete
+  absolute local directory bypasses that defect. No implementation, install,
+  download, model load, inference, credential, provider call, result change,
+  or spend was authorized or performed. See
+  `docs/ETTIN-INTEGRATION-RESEARCH.md`.
+
 - 2026-08-04 (FOUNDER — BRN-0011 Ettin upstream-integration research) After
   BRN-0010 stopped in its provider-free cached tokenizer smoke, Quetzali
   directed online research into how others use Ettin effectively and proposed
