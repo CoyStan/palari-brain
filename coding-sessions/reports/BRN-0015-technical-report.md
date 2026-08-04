@@ -2,9 +2,10 @@
 
 ## State
 
-Fresh cited-answer Luna + Ettin first-ten identity is frozen offline and
-blocked only on a new exact founder spend cap. No credential, model inference,
-provider transport, result identity, or spend has occurred.
+Fresh cited-answer Luna + Ettin first-ten identity is frozen offline,
+independently reviewed with no P0-P3 finding, and blocked only on a new exact
+founder spend cap. No credential, model inference, provider transport, result
+identity, or spend has occurred.
 
 ## Causal Treatment
 
@@ -69,6 +70,8 @@ confirmation must not be set until the founder explicitly confirms the cap.
 - Quickstart: 6/6; package dry-run: 32 files, 133.9 kB packed / 482.5 kB
   unpacked, with no private runtime/model/result/credential content.
 - Ticket/report/scope/diff checks: pass at freeze closeout.
+- Fresh review at exact `38800533af260861945b204e829383159f78eb1f`:
+  no P0-P3 finding; GO only after exact founder cap confirmation.
 - Provider calls / network calls / model loads / credential reads / result
   bytes / spend: `0 / 0 / 0 / 0 / 0 / $0.00`.
 - Cumulative accounted spend remains `$6.03072623`.
@@ -93,5 +96,5 @@ Ten inspected questions are not unseen-user generalization. Citation is not
 semantic entailment, and the official judge may repeat its known false
 negative. A low score, smoke failure, or cap stop is terminal evidence, never
 authority to patch, reroll, regrade, or create a replacement identity. The
-next action is independent pre-dispatch review; provider dispatch remains a
-founder gate.
+next action is exact founder cap confirmation; provider dispatch remains
+stopped until then.

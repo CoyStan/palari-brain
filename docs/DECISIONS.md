@@ -3,6 +3,16 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0015 — clean pre-dispatch review) **The frozen cited Luna +
+  Ettin identity is structurally ready, but no provider dispatch is authorized
+  yet.** Fresh read-only review at
+  `38800533af260861945b204e829383159f78eb1f` found no P0-P3 issue and
+  independently verified the sole-treatment diff, exact lineage/model/runtime,
+  cited smoke, meters, cap math, one-shot seal, U8 exclusion, and offline
+  suite. Recommendation is GO only after the founder explicitly confirms the
+  exact `$1.50` fresh / `$7.53072623` cumulative boundary. The result identity
+  remains absent and the `$6.03072623` opening ledger is unchanged.
+
 - 2026-08-04 (BRN-0015 — cited Luna + Ettin pre-dispatch freeze) **Freeze one
   causal successor to terminal BRN-0013, but do not dispatch without a new
   exact founder cap.** The ten questions, providers, native Ettin, prompts,

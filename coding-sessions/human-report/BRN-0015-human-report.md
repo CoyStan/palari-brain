@@ -36,6 +36,6 @@ U8 is unreachable, and the one-shot identity cannot execute twice.
 
 ## Recommended Next Move
 
-Obtain fresh independent pre-dispatch review. If clean, stop for the founder's
-exact fresh-cap confirmation. Proposed boundary: `$1.50` fresh, taking
-cumulative accounted spend from `$6.03072623` to at most `$7.53072623`.
+Fresh independent pre-dispatch review is clean. Confirm exactly a `$1.50`
+fresh cap to authorize the one frozen invocation, taking cumulative accounted
+spend from `$6.03072623` to at most `$7.53072623`; otherwise remain stopped.
