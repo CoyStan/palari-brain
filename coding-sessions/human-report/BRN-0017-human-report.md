@@ -36,6 +36,6 @@ sealed with no credential match or sealing error and cannot be rerun.
 
 ## Recommended Next Move
 
-Complete independent terminal review. If clean, accept and merge the immutable
-result record. The next product ticket should target answer use; do not spend
-on another rerun of the same treatment.
+Accept and merge the clean independently reviewed immutable result record. The
+next product ticket should target answer use; do not spend on another rerun of
+the same treatment.

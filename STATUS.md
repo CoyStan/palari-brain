@@ -28,6 +28,11 @@ sealing errors. All 139 physical calls succeeded: 34 Luna, ten judges, and 95
 Gemini batches carrying 4,794 embedding requests. The identity is consumed and
 cannot be resumed, rerun, selectively rescored, or repaired in place.
 
+Independent terminal review at exact result head `9589131` rehashed and
+reconciled the complete bundle with no P0-P3 finding; reviewer-note commit is
+`7b46745`. Under the founder's standing delegation for clean independently
+reviewed tickets, BRN-0017 is accepted; merge/push is next.
+
 Product stop rule: (1) yes, quickstart remains 6/6; (2) no score improvement
 was measured—the unit made the live measurement reliable, not the user journey
 better; (3) other frameworks offer retrieval/citation patterns but not this
@@ -35,8 +40,7 @@ host-committed, exact-wire measured boundary; (4) yes, the founder explicitly
 requested Luna + Ettin first-ten validation; (5) deleting this evaluation
 would not change product behavior, but would erase the only complete live
 cited-Luna measurement and its causal meter evidence. Do not start another
-measurement-only successor. Next: record, commit, independently terminal-review,
-then accept/merge if clean; the next product unit must target answer use rather
+measurement-only successor. The next product unit must target answer use rather
 than reranking or another score rerun.
 
 Loop state: BRN-0016 FORCED COMMITMENT METER REPAIR REPAIRED AFTER TWO P1S;
