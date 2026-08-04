@@ -48,6 +48,17 @@ The empty control proves plain-text abstention compatibility when no canonical
 row was returned. Fixtures are synthetic and benchmark-independent; the
 regression explicitly does not grade generated answer quality.
 
+## Files Changed
+
+- `src/retrieval-answer.mjs`: answer-local evidence registry, exact commitment
+  validator, identity enforcement, and immutable result telemetry.
+- `src/openai.mjs`: private strict commitment function and bounded repair wire.
+- Focused tests and the synthetic regression: positive, compatibility, and
+  adversarial structural coverage.
+- `docs/BRAIN-API.md`, `docs/DECISIONS.md`, and `STATUS.md`: additive contract,
+  limitation, verification, accounting, and next gate.
+- Governed technical/human reports and ticket lifecycle record.
+
 ## Verification
 
 - Focused retrieval/OpenAI/regression contracts: 45 pass, 0 fail.
@@ -76,7 +87,7 @@ regression explicitly does not grade generated answer quality.
 
 This is a product repair after a measurement unit, not infrastructure drift.
 
-## Residual Boundary
+## Risks / Follow-Ups
 
 Exact citations make ignored or fabricated evidence visible; they do not
 prove semantic entailment. A semantic verifier, benchmark judge change, or
