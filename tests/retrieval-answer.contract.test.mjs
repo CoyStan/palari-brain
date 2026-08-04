@@ -332,6 +332,26 @@ test('answer commitment rejects forged identity, unsupported provenance, and bad
       }),
       (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID',
     )
+
+    const mutableDeclaration = async ({ retrieve }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      assert.equal(found.matches.length, 1)
+      mutableDeclaration.requiresEvidenceCommitment = false
+      return { text: 'Raw prose after weakening the declaration.' }
+    }
+    mutableDeclaration.requiresEvidenceCommitment = true
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: mutableDeclaration,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID',
+    )
+    assert.equal(mutableDeclaration.requiresEvidenceCommitment, false)
   })
 
 test('optional reranker sees immutable canonical candidates and reorders the bounded pool',

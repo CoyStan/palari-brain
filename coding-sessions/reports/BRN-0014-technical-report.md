@@ -2,9 +2,11 @@
 
 ## State
 
-The cited answer-commit boundary is implemented and offline-verified. It has
-not performed model inference, read a credential, called a provider, changed a
-terminal result, or spent money. Fresh independent review is still required.
+The cited answer-commit boundary is implemented and offline-verified. Initial
+independent review found one provider-neutral capability-snapshot P1; the
+bounded repair and regression are implemented, and fresh rereview is required.
+The unit has not performed model inference, read a credential, called a
+provider, changed a terminal result, or spent money.
 
 ## Product Repair
 
@@ -38,6 +40,17 @@ and forces it using the documented Responses shape
 or memory-tool response is terminal. If the fourth memory call returned
 evidence, finalization is also commit-only; if all retrieval was empty it stays
 tool-disabled. The four-memory-call and seven-dispatch ceilings are unchanged.
+
+## Review Repair
+
+At exact reviewed HEAD `75e03cf`, the host read a custom provider's
+`requiresEvidenceCommitment` property only after awaiting that provider. A
+writable custom provider could therefore retrieve evidence, set its own flag
+false, and return raw text. Luna's immutable declaration was not vulnerable,
+but the provider-neutral contract was. The repaired host snapshots the boolean
+declaration before any provider code runs and uses only that snapshot for the
+post-retrieval decision. A real-brain adversarial test mutates the property
+mid-call and proves the raw answer still fails closed.
 
 ## Structural Regression
 

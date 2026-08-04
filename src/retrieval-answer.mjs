@@ -478,6 +478,11 @@ export async function answerWithRetrieval(brain, {
   if (typeof provider !== 'function') {
     throw new TypeError('answerWithRetrieval requires a provider function.')
   }
+  // Capability declarations are part of the call contract. Snapshot before
+  // invoking provider code so a writable custom-provider property cannot be
+  // weakened after canonical evidence has been returned.
+  const requiresEvidenceCommitment =
+    provider.requiresEvidenceCommitment === true
   const budget = Number(maxRetrievalCalls)
   if (!Number.isSafeInteger(budget) || budget < 0 ||
     budget > DEFAULT_RETRIEVAL_CALLS) {
@@ -662,7 +667,7 @@ export async function answerWithRetrieval(brain, {
   })
 
   const answerCommitted = committedResponses.has(response)
-  if (provider.requiresEvidenceCommitment === true &&
+  if (requiresEvidenceCommitment &&
     evidenceRegistry.size > 0 && !answerCommitted) {
     throw answerCommitmentError(
       'This provider must return the exact host-committed answer object after evidence retrieval.',

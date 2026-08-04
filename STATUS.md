@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
-INDEPENDENT REVIEW NEXT. The terminal BRN-0013 score remains immutable at
+FIRST-REVIEW P1 REPAIRED, FRESH REREVIEW NEXT. The terminal BRN-0013 score remains immutable at
 official 6/10. Its three genuine answer-use/personalization failures all
 occurred after required evidence reached Luna, so this unit adds the smallest
 provider-neutral structural boundary: `answerWithRetrieval()` registers every
@@ -34,8 +34,14 @@ quickstart passes 6/6; the 32-file package dry-run is clean. No credential was
 read, no local model was loaded, no inference/provider/network call occurred,
 no terminal result changed, and spend was `$0.00`; cumulative accounted spend
 remains `$6.03072623` = `$1.72334288` measured + `$4.30738335` uncertain.
-Next: commit the implementation/report, transition BRN-0014 to review, and run
-a fresh independent read-only review. A new live score remains a founder gate.
+The first independent review at exact `75e03cf` found one P1 in the generic
+capability seam: a custom provider could declare a writable required-commit
+flag, flip it off during its own call, and bypass the post-call check. Luna's
+immutable declaration was not affected, but the provider-neutral guarantee
+was. The host now snapshots the declaration before invoking provider code, and
+a real-brain adversarial contract proves mid-call weakening remains rejected.
+Next: rerun closeout checks, resubmit the repaired exact commit, and obtain a
+fresh independent rereview. A new live score remains a founder gate.
 
 Loop state: BRN-0013 REPAIRED ETTIN + LUNA FIRST-TEN TERMINAL AT OFFICIAL
 6/10; CORRECTED, CLEANLY REREVIEWED, AND ACCEPTED. BRN-0012 was independently accepted, merged, and
