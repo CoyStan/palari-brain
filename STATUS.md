@@ -1,5 +1,21 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER CONTRACT PREPARED; FREEZE
+PENDING. After accepting and merging BRN-0008, Quetzali explicitly directed a
+new governed ticket for working local Ettin support. Metadata-only recon of
+exact Apache-2.0 revision
+`9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6` corrected the head definition to
+the official CLS Pooling -> 256x256 Dense/GELU -> LayerNorm -> 256x1 Dense
+chain and pinned all three external fp32 safetensors by path, byte size, and
+SHA-256. BRN-0009 will implement that head in native JavaScript over the
+official ONNX `last_hidden_state`, with no Python sidecar or new Palari runtime
+dependency. It uses a fresh preregistered compatibility identity and may run
+the unchanged synthetic bank exactly once only after compatibility passes.
+No inference, provider, credential, generation model, dataset, LongMemEval
+identity, or paid call has occurred in BRN-0009; spend is `$0.00`. Next:
+commit and push the contract on clean canonical `main`, create its worktree,
+and generate the specialist packet before implementation.
+
 Loop state: BRN-0008 FOUNDER-ACCEPTED AND MERGE AUTHORIZED; ETTIN-17M
 COMPATIBILITY TERMINAL FAILED; BANK NOT RUN.
 The founder-directed supplemental freeze was committed and pushed at
