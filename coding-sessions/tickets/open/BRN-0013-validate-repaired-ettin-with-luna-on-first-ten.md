@@ -208,6 +208,33 @@ reached.
   for exactly one invocation. Its review note must be committed and pushed
   before dispatch.
 
+## Terminal Evidence
+
+- Pre-dispatch GO was committed/pushed at `1ceed8b`. The launcher then ran
+  exactly once; attempt state is `consumed`, child/launcher status is 0, and
+  identity `j4-luna-ettin-first10-v2` is permanently sealed.
+- Local Ettin smoke and live Gemini + Ettin + Luna compatibility both passed.
+  All ten questions completed and received one official judgment. Exact labels
+  are `PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS`: 6/10.
+- Required-session coverage is 12/13. Every failed answer consulted every
+  required answer-bearing session; the sole missing session was on a PASS.
+  Ten non-empty Ettin calls scored exactly 250 immutable candidates, maximum
+  50, with one finite score per candidate and mean 1,290.7 ms/call.
+- Compatibility, completion, retrieval/rerank, wire, and accounting
+  predictions pass. Official accuracy fails below the preregistered `>=7/10`
+  floor and 10/10 objective; specifically `09d032c9` did not reverse.
+- All 138 physical calls succeeded: 33 Luna Responses, ten official judges,
+  and 95 Gemini batches / 4,794 embedding requests. Fresh spend is
+  `$0.75899237` = `$0.02310692` measured + `$0.73588545` uncertain. Cumulative
+  spend is `$6.03072623` = `$1.72334288` measured + `$4.30738335` uncertain.
+- Terminal manifest
+  `eb7dcb01c7a60cbade9a25d179cffde783e1f46c5c79644422eae819da7c3b71`
+  rehashes 73/73 artifacts / 89,106,477 bytes. All recorded files match modes;
+  no symlink, sealing error, or exact credential match exists.
+- No retry, rerun, regrade, selective score, prompt/model change, result
+  repair, or second identity occurred. Fresh terminal review remains before
+  delegated acceptance or merge.
+
 ## Verification
 
 - `node /home/quetza/palari-brain-private/luna-ettin-first10-live-v2-launcher.mjs --verify`

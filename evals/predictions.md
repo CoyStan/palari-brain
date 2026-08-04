@@ -1648,3 +1648,38 @@ Predictions, failing categories first:
    hashes/modes, and reports zero exact credential matches with no sealing
    error. Any failed prediction or stop is the result and authorizes no retry,
    reroll, regrade, repair-in-place, or replacement identity.
+
+Result recorded 2026-08-04, failing-first. (3) OFFICIAL ACCURACY **FAIL**:
+`6/10`, below the preregistered `>=7/10` floor and 10/10 objective. Exact
+labels are `PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS`.
+All five prior PASS labels among ordinals 1-6 remained PASS, but `09d032c9`
+remained FAIL despite its required session being consulted; ordinal 10 was the
+predicted later PASS. No answer, label, or prediction was changed.
+
+(1) COMPATIBILITY **PASS**: the repaired absolute local-directory path loaded
+the pinned runtime/model/head once; the provider-free real-brain smoke ranked
+the titanium travel-mug fact first with four finite scores, zero mutation, and
+no provider. Live compatibility used Gemini semantic retrieval, Ettin
+reranking, and Luna answered the planted indigo fact. (2) COMPLETION **PASS**:
+both smokes and all ten answer/judge cells completed; the four-call ceiling and
+three tool-disabled finalizations held. (4) RETRIEVAL/RERANK **PASS**: 12/13
+required answer sessions were consulted against the `>=11/13` prediction.
+Every measured call returned one finite score per immutable candidate; ten
+non-empty reranks scored 250 candidates, maximum 50. The only missing required
+session was one of two on `0977f2af`, which still passed. All four failed
+answers received every required session, so their failure is downstream of
+candidate retrieval/reranking. (5) WIRE **PASS**: all 33 Luna calls, ten
+judges, and 95 Gemini embedding batches succeeded; every answer was judged
+once and finalization wire remained exact. (6) EXECUTION/ACCOUNTING **PASS**:
+one consumed invocation sealed 73/73 artifacts (89,106,477 bytes), no sealing
+error or credential match, and stayed under both caps.
+
+Fresh spend is `$0.75899237` accounted = `$0.02310692` measured +
+`$0.73588545` uncertain. Cumulative J4 spend is `$6.03072623` accounted =
+`$1.72334288` measured + `$4.30738335` uncertain. Calls were 33 Luna Responses
+(129,023 input, 60,036 cached input, 2,199 output, 472 reasoning tokens), ten
+official judges (2,120 input / 17 output tokens), and 95 Gemini embedding
+batches carrying 4,794 requests / 4,905,903 conservatively reserved tokens.
+Terminal manifest SHA-256 is
+`eb7dcb01c7a60cbade9a25d179cffde783e1f46c5c79644422eae819da7c3b71`.
+This identity cannot be rerun, resumed, selectively rescored, or repaired.

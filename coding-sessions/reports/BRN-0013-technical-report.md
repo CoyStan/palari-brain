@@ -2,11 +2,63 @@
 
 ## State
 
-Pre-dispatch freeze and fresh independent GO review are complete. The reviewer
-found no P0-P3 issue at
-`163e7e532cf631239f66155dd179b186959d8032`. No local model inference,
-credential read, provider dispatch, question, result identity, or fresh spend
-has occurred.
+Terminal completed identity. After independent GO at
+`163e7e532cf631239f66155dd179b186959d8032`, the launcher ran exactly once.
+Both smokes and all ten answer/judge cells completed. Official result is 6/10;
+there was no retry, rerun, regrade, selective score, or result repair.
+
+## Terminal Result
+
+- Official labels: `PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL,
+  PASS` for 6/10.
+- Required-session coverage: 12/13. All four failed answers consulted every
+  required answer-bearing session; the sole missing session occurred on the
+  passing sixth question. The remaining measured failure is downstream of
+  candidate retrieval/reranking.
+- Local real-brain smoke: pass, four finite scores, titanium memory first,
+  provider calls zero. Live compatibility: pass, semantic use and reranking
+  true, planted indigo answer correct.
+- Ten non-empty question reranks scored 250 candidates, maximum 50, with exact
+  score counts and zero mutation. Mean measured latency was 1,290.7065 ms/call
+  (751.1525-2,244.8082 ms); cold local smoke was 593.9999 ms and the two-item
+  warm compatibility rerank 23.2936 ms.
+- Three answers used four calls and tool-disabled finalization. Every reached
+  answer was judged exactly once; all 138 physical requests succeeded.
+
+## Prediction Grade
+
+Failing category first:
+
+1. OFFICIAL ACCURACY: fail. `6/10` is below the expected `>=7/10` floor and
+   10/10 objective. The first-six vector stayed
+   `PASS, FAIL, PASS, PASS, PASS, PASS`; `09d032c9` remained FAIL. Ordinal 10
+   supplied the predicted later PASS.
+2. COMPATIBILITY: pass. Repaired cached loading and live three-surface wiring
+   both completed exactly.
+3. COMPLETION: pass. Ten answers and ten validated labels completed under cap.
+4. RETRIEVAL/RERANK: pass at 12/13 required sessions, exact bounded finite
+   score counts, and no candidate mutation.
+5. WIRE: pass. Normal/final tool choices, complete continuation, call ceiling,
+   and one judge per answer all held.
+6. EXECUTION/ACCOUNTING: pass. One terminal invocation, both caps respected,
+   complete evidence seal, and zero credential matches.
+
+## Accounting And Evidence
+
+- Calls: 33 Luna Responses, 10 OpenAI judges, 95 Gemini embedding batches;
+  138 total, all successful.
+- Luna: 129,023 input, 60,036 cached-input, 2,199 output, 472 reasoning tokens;
+  `$0.01763692` measured.
+- Judge: 2,120 input / 17 output tokens; `$0.00547` measured.
+- Gemini: 4,794 embedding requests / 4,905,903 conservatively reserved tokens;
+  `$0.73588545` uncertain because usage remains unreported.
+- Fresh: `$0.02310692` measured + `$0.73588545` uncertain = `$0.75899237`.
+  Cumulative: `$1.72334288` measured + `$4.30738335` uncertain =
+  `$6.03072623` accounted.
+- Manifest
+  `eb7dcb01c7a60cbade9a25d179cffde783e1f46c5c79644422eae819da7c3b71`
+  rehashes 73 artifacts / 89,106,477 bytes; modes match, no symlink/sealing
+  error, and exact-value credential scan is 0/2.
 
 ## Frozen Experiment
 
@@ -61,19 +113,22 @@ does not authorize a retry.
 - Full suite: 695 pass, 0 fail, 15 skip across 710.
 - Quickstart: 6/6.
 - Provider calls / credential reads / model inference / spend: 0 / 0 / 0 /
-  `$0.00`.
+  `$0.00` before dispatch.
 - Independent pre-dispatch review: GO, no P0-P3 finding.
+- Terminal one-shot execution: pass mechanically; 6/10 official accuracy.
+- Private terminal seal: 73/73 artifacts, no error or credential match.
 
 ## Product Stop Rule
 
 1. A new user can run the basic journey: yes, quickstart is 6/6.
-2. This measurement changes no product byte; it will determine whether the
-   accepted loader repair makes the chosen local reranker usable end to end.
+2. This measurement changes no product byte; it proved the accepted loader
+   repair makes the chosen local reranker usable end to end, while answer
+   evidence use remains unreliable.
 3. Existing providers/frameworks do not supply this cross-provider,
    local-reranker, host-gated, one-shot evidence contract.
 4. Quetzali explicitly requested correct Ettin integration and a fresh rerun.
 5. Without this record, Palari could claim Ettin/Luna integration from offline
-   contracts despite never completing a real local smoke or live answer.
+   contracts or blame answer failures on retrieval despite 12/13 coverage.
 
 This is one measurement unit after a product repair. It is not a public or
 unseen-data benchmark.
@@ -82,5 +137,9 @@ unseen-data benchmark.
 
 - The known ten cannot establish generalization and must not drive
   answer-specific tuning.
-- A local/live failure or non-10 score is a finding. Only a general defect,
-  repaired under a separate ticket, can justify requesting a fresh identity.
+- All four failures are evidence-use/composition failures after complete target
+  coverage, not an Ettin loader or retrieval bug. A provider-neutral structural
+  answer repair may be developed offline against general adversarial cases,
+  but known benchmark answers must not become runtime logic.
+- A second score needs fresh founder authority after that separate unit; this
+  identity is permanently consumed.

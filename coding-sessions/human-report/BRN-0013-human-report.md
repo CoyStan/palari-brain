@@ -14,20 +14,27 @@ judge, questions, prompts, search ceiling, and local Ettin model.
 
 ## What I Should Know
 
-The one invocation has not run yet. Its hard budget is `$1.50`, opening from
-the exact `$5.27173386` cumulative ledger. Ten of ten is the objective, while
-the honest preregistered expectation is at least seven. Any lower number or
-failure remains the result; known answers cannot be used to tune and rerun.
+The one invocation completed at 6/10 under its `$1.50` hard budget. Ettin and
+Luna now work together end to end: every question completed, and retrieval
+found 12 of 13 required sessions. The four wrong answers had all of their
+required sessions in front of Luna. This means the remaining issue is not the
+local ranker—it is the answer step ignoring, replacing, or miscombining
+relevant evidence.
+
+Fresh accounted spend was `$0.75899237`; cumulative accounted spend is
+`$6.03072623`. The run is permanently sealed and cannot be retried.
 
 ## What To Check
 
-Independent review should verify that BRN-0012 is the only treatment versus
-the terminal failed identity, every artifact and cap is pinned, local
-inference precedes credentials, every provider is metered, U8 is absent, and
-the exclusive identity cannot execute twice.
+Independent terminal review should verify all ten labels and 12/13 coverage,
+the distinction between ranking and downstream answer failures, the exact
+ledger and 138 successful calls, the 73-artifact seal, zero credential
+matches, and that the exclusive identity cannot execute twice.
 
 ## Recommended Next Move
 
-If fresh review recommends GO, invoke the launcher exactly once. Record and
-independently review the result whatever it is. Open a repair successor only
-for a general product defect, never to optimize these ten known answers.
+Accept this terminal record if fresh review is clean. The next engineering
+unit should be offline and provider-neutral: force the answer boundary to
+explicitly select and compose cited evidence before prose generation, tested
+on general adversarial cases rather than these known answers. A new scored run
+requires a separate founder GO.

@@ -3,6 +3,20 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0013 RESULT — repaired Ettin + Luna completed at 6/10)
+  **Record the one invocation as terminal, with no rerun or result-driven
+  patch.** Both smokes and all ten answer/judge cells completed. Ettin/Luna
+  integration is live and mechanically correct: 12/13 required sessions were
+  consulted, all measured candidate scores were finite and immutable, and
+  every tool/finalization/provider boundary held. Official labels were
+  `PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS`. The four
+  failures all received every required answer-bearing session, locating the
+  remaining limitation after retrieval/reranking in evidence interpretation
+  and multi-fact composition. Fresh spend was `$0.75899237`; cumulative
+  accounted spend is `$6.03072623`. Any general answer-boundary repair must be
+  provider-neutral, offline, and separately governed; these known answers may
+  not become runtime rules. Another score requires fresh founder authority.
+
 - 2026-08-04 (FOUNDER GO — BRN-0013 repaired Ettin + Luna first ten)
   **Authorize exactly one fresh `j4-luna-ettin-first10-v2` invocation under a
   `$1.50` fresh / `$6.77173386` cumulative accounted cap after committed
