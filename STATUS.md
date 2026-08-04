@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
-FIRST-REVIEW P1 REPAIRED, FRESH REREVIEW NEXT. The terminal BRN-0013 score remains immutable at
+TWO REVIEW P1S REPAIRED, FRESH REREVIEW NEXT. The terminal BRN-0013 score remains immutable at
 official 6/10. Its three genuine answer-use/personalization failures all
 occurred after required evidence reached Luna, so this unit adds the smallest
 provider-neutral structural boundary: `answerWithRetrieval()` registers every
@@ -40,6 +40,12 @@ flag, flip it off during its own call, and bypass the post-call check. Luna's
 immutable declaration was not affected, but the provider-neutral guarantee
 was. The host now snapshots the declaration before invoking provider code, and
 a real-brain adversarial contract proves mid-call weakening remains rejected.
+The first fresh rereview of that repair found a second generic-provider P1:
+the validator called the provider-owned basis array's `.map()`, allowing an
+overridden method or changing accessor to skip validation and mint fabricated
+or empty bases. `commitAnswer()` now takes one private structured snapshot of
+the proposal and validates it with host-owned iteration; malicious methods are
+rejected and changing accessors are read exactly once into the snapshot.
 Next: rerun closeout checks, resubmit the repaired exact commit, and obtain a
 fresh independent rereview. A new live score remains a founder gate.
 

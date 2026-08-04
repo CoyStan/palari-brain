@@ -352,6 +352,76 @@ test('answer commitment rejects forged identity, unsupported provenance, and bad
       (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID',
     )
     assert.equal(mutableDeclaration.requiresEvidenceCommitment, false)
+
+    const maliciousMap = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      const bases = [{
+        evidenceId: found.matches[0].evidenceId,
+        quote: 'orange canvas satchel',
+      }]
+      bases.map = () => [{
+        evidenceId: 'never-returned',
+        quote: 'fabricated evidence',
+      }]
+      return commitAnswer({
+        abstained: false,
+        bases,
+        text: 'Unsupported answer.',
+      })
+    })
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: maliciousMap,
+        question: 'Where is the field notebook?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+        /cloneable structured data/.test(error.message),
+    )
+
+    let basisReads = 0
+    const changingAccessor = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'field notebook' },
+        tool: 'memory_find',
+      })
+      const valid = [{
+        evidenceId: found.matches[0].evidenceId,
+        quote: 'orange canvas satchel',
+      }]
+      const proposal = {
+        abstained: false,
+        text: 'It is in the orange canvas satchel.',
+      }
+      Object.defineProperty(proposal, 'bases', {
+        enumerable: true,
+        get() {
+          basisReads += 1
+          return basisReads === 1 ? valid : []
+        },
+      })
+      return commitAnswer(proposal)
+    })
+    const snapshotted = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      provider: changingAccessor,
+      question: 'Where is the field notebook?',
+    })
+    assert.equal(basisReads, 1)
+    assert.equal(snapshotted.answerCommitted, true)
+    assert.deepEqual(snapshotted.answerEvidence, [{
+      evidenceId: snapshotted.consultedEvidenceIds[0],
+      quote: 'orange canvas satchel',
+    }])
   })
 
 test('optional reranker sees immutable canonical candidates and reorders the bounded pool',

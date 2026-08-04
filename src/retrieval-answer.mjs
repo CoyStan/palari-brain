@@ -72,6 +72,16 @@ function answerCommitmentError(message) {
   return error
 }
 
+function snapshotCommitment(value) {
+  try {
+    return structuredClone(value)
+  } catch {
+    throw answerCommitmentError(
+      'Answer commitment must contain only cloneable structured data.',
+    )
+  }
+}
+
 function boundedCommitmentText(value, label, maximum, { trim = false } = {}) {
   if (typeof value !== 'string' || !value.trim() || value.includes('\u0000') ||
     value.length > maximum) {
@@ -510,29 +520,35 @@ export async function answerWithRetrieval(brain, {
   }
 
   const commitAnswer = (proposal) => {
-    if (!hasExactKeys(proposal, ['abstained', 'bases', 'text'])) {
+    // Provider objects are outside the host trust boundary. Read them once
+    // into a private structured snapshot, then use only host-owned iteration;
+    // never invoke provider-overridable Array methods during validation.
+    const candidate = snapshotCommitment(proposal)
+    if (!hasExactKeys(candidate, ['abstained', 'bases', 'text'])) {
       throw answerCommitmentError(
         'Answer commitment must contain exactly abstained, bases, and text.',
       )
     }
-    if (typeof proposal.abstained !== 'boolean') {
+    if (typeof candidate.abstained !== 'boolean') {
       throw answerCommitmentError('Answer commitment abstained must be boolean.')
     }
     const text = boundedCommitmentText(
-      proposal.text,
+      candidate.text,
       'Answer commitment text',
       MEMORY_ANSWER_MAX_TEXT_CHARS,
       { trim: true },
     )
-    if (!Array.isArray(proposal.bases) || proposal.bases.length < 1 ||
-      proposal.bases.length > MEMORY_ANSWER_MAX_BASES) {
+    if (!Array.isArray(candidate.bases) || candidate.bases.length < 1 ||
+      candidate.bases.length > MEMORY_ANSWER_MAX_BASES) {
       throw answerCommitmentError(
         `Answer commitment bases must contain 1 to ` +
           `${MEMORY_ANSWER_MAX_BASES} items.`,
       )
     }
     const seen = new Set()
-    const bases = proposal.bases.map((basis, index) => {
+    const bases = []
+    for (let index = 0; index < candidate.bases.length; index += 1) {
+      const basis = candidate.bases[index]
       if (!hasExactKeys(basis, ['evidenceId', 'quote'])) {
         throw answerCommitmentError(
           `Answer commitment basis ${index} must contain exactly evidenceId and quote.`,
@@ -566,10 +582,10 @@ export async function answerWithRetrieval(brain, {
           `Answer commitment basis ${index} quote is not exact contiguous returned evidence.`,
         )
       }
-      return { evidenceId, quote }
-    })
+      bases.push({ evidenceId, quote })
+    }
     const committed = deepFreeze({
-      abstained: proposal.abstained,
+      abstained: candidate.abstained,
       bases,
       text,
     })

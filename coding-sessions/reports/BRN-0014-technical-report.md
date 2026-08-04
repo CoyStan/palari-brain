@@ -52,6 +52,16 @@ declaration before any provider code runs and uses only that snapshot for the
 post-retrieval decision. A real-brain adversarial test mutates the property
 mid-call and proves the raw answer still fails closed.
 
+Fresh rereview at `99e74c3` found another P1: basis-length checks were followed
+by a call to the provider-owned array's `.map()`. An overridden method could
+return fabricated or empty bases without invoking the validation callback; a
+changing accessor could also present different arrays across reads. The host
+now structured-clones the proposal once before inspecting it and validates
+that private snapshot with an indexed host loop. Uncloneable methods fail
+closed, later provider mutation cannot affect the snapshot, and a changing
+accessor is read once. Both reviewer reproductions are permanent real-brain
+regressions.
+
 ## Structural Regression
 
 The provider-free regression now crosses the real commitment callback for
@@ -77,7 +87,7 @@ regression explicitly does not grade generated answer quality.
 - Focused retrieval/OpenAI/regression contracts: 45 pass, 0 fail.
 - Full suite: 701 pass, 0 fail, 15 skipped across 716 tests.
 - Quickstart: 6/6 journey steps pass.
-- Package dry-run: 32 files, 132.1 kB tarball / 475.1 kB unpacked; no private
+- Package dry-run: 32 files, 132.3 kB tarball / 476.0 kB unpacked; no private
   model, cache, result, runtime, or credential content.
 - `git diff --check`: pass.
 - Provider calls / network calls / model loads / credential reads / spend:
