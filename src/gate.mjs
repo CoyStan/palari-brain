@@ -14,6 +14,7 @@ import {
   permanentMemoryTypes,
   transientMemoryTypes,
 } from './memory-store.mjs'
+import { ftsMatchQueryForPhrase } from './store.mjs'
 
 // GAP-2: the contract fixes the ORDER (demote < promote < permanent
 // < ratify); these default confidence floors are kernel-chosen values
@@ -188,7 +189,12 @@ export function createGatedStore(store, options = {}) {
     recallMemories: (query, opts) => store.recallMemories(query, opts),
     recordRecallInclusion: (ids, opts) => store.recordRecallInclusion(ids, opts),
     runLifecycleJobs: (opts) => store.runLifecycleJobs(opts),
-    searchMemories: (query, opts) => store.searchMemories(query, opts),
+    // A caller's phrase reaches the FTS index as quoted terms, never as
+    // query syntax it could inject (see ftsMatchQueryForPhrase).
+    searchMemories: (query, opts) => {
+      const matchQuery = ftsMatchQueryForPhrase(query)
+      return matchQuery ? store.searchMemories(matchQuery, opts) : []
+    },
     status: () => store.status(),
     topicForget: (query, scope, opts) => store.topicForget(query, scope, opts),
   })

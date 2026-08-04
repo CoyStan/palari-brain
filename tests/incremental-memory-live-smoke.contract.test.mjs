@@ -482,10 +482,12 @@ test('frozen config, FINAL predictions, authority, and tracked artifacts reconci
       'evals/run-longmemeval-live.mjs',
       'src/brain.mjs',
       'src/dialogue-evidence.mjs',
+      'src/gate.mjs',
       'src/gemini.mjs',
       'src/index.mjs',
       'src/memory-digest-store.mjs',
       'src/memory-reducer.mjs',
+      'src/store.mjs',
     ])
     assert.equal(
       successorDrift.includes(

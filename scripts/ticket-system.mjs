@@ -805,7 +805,7 @@ function cmdScope(args) {
     ticket = args[index]
   }
   if (args.includes('--committed-plus-dirty') && !target) {
-    target = selectScopeTicket(ticket).data.target_branch || 'main'
+    target = ticketTarget(selectScopeTicket(ticket))
   }
   if (target && !args.includes('--committed-plus-dirty')) fail('--target requires --committed-plus-dirty')
   scopeCheck({ ticket, target })
@@ -829,8 +829,21 @@ function ticketBranch(entry) {
   return branch
 }
 
+// Frontmatter is committed text, so every value that becomes a git argument
+// is validated at the point of use as well as at lint time: a ref or path
+// that starts with `-` is an option, not a name.
+function ticketTarget(entry) {
+  const target = entry.data.target_branch || 'main'
+  if (!plausibleGitRef(target)) fail(`ticket ${entry.data.id} has an invalid target_branch`)
+  return target
+}
+
 function ticketWorktree(entry) {
-  return entry.data.worktree || defaultWorktree(entry.data.id, entry.data.title)
+  const worktree = entry.data.worktree || defaultWorktree(entry.data.id, entry.data.title)
+  if (!isAbsolute(worktree) || /[\r\n\0]/.test(worktree) || worktree.split('/').includes('..')) {
+    fail(`ticket ${entry.data.id} has an invalid worktree path`)
+  }
+  return worktree
 }
 
 function assertWorktreeReady(entry, { clean = true } = {}) {
@@ -851,7 +864,7 @@ function cmdWorktree(ticket) {
   if (realpathSync(ROOT) !== realpathSync(canonical)) fail(`ticket-worktree must run from canonical checkout: ${canonical}`)
   assertClean(canonical, 'canonical checkout')
   assertSyncedMain(canonical)
-  const target = entry.data.target_branch || 'main'
+  const target = ticketTarget(entry)
   runGit(['rev-parse', '--verify', target], { cwd: canonical })
   const branch = ticketBranch(entry)
   const worktree = ticketWorktree(entry)
@@ -959,7 +972,7 @@ function refExists(cwd, ref) {
 function committedTicketFacts(entry) {
   const canonical = canonicalRepoRoot()
   const branch = ticketBranch(entry)
-  const target = entry.data.target_branch || 'main'
+  const target = ticketTarget(entry)
   if (!refExists(canonical, branch) || !refExists(canonical, target)) {
     return { head: 'not detected', commits: 'not detected', paths: [] }
   }
@@ -1012,8 +1025,7 @@ function cmdAgentPacket(ticket, role) {
   assertSyncedMain(canonical)
   const worktree = assertWorktreeReady(entry)
   const branch = ticketBranch(entry)
-  const target = entry.data.target_branch || 'main'
-  if (!plausibleGitRef(target)) fail(`ticket ${entry.data.id} has an invalid target_branch`)
+  const target = ticketTarget(entry)
   try {
     execFileSync('git', ['merge-base', '--is-ancestor', target, branch], { cwd: canonical, stdio: 'ignore' })
   } catch {

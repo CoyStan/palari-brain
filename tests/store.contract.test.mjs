@@ -2,7 +2,7 @@
 // Zero-dependency: node:test + node:assert. Run: npm test (node --test tests/).
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, access } from 'node:fs/promises'
+import { mkdtemp, rm, access, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
@@ -165,4 +165,37 @@ test('ownership: one SQLite file per workspace; deletable as a unit (C19)', asyn
   store.close()
   await deleteKernelStoreFile({ statePath, workspaceId: 'ownership-check' })
   assert.equal(await pathExists(store.dbPath), false, 'whole store deletable as a unit')
+})
+
+test('topic-forget: a user phrase is data, never FTS5 query syntax', async () => {
+  const store = await openStore()
+  const quoted = addFixture(store, { content: 'user-1: the tax filing deadline moved.', keywords: ['tax'] })
+  const unrelated = addFixture(store, { content: 'user-1: prefers walking meetings.', keywords: ['walking'] })
+
+  // A quote used to reach FTS5 as syntax and throw `unterminated string`,
+  // which failed the deletion the user actually asked for.
+  const withQuote = store.topicForget('"tax', { palariId: 'palari-a', userId: 'user-1' }, { actor: 'explicit_user_action' })
+  assert.deepEqual(withQuote.deleted, [quoted.memory.id])
+
+  // `OR` is a term, so it cannot widen a deletion past the requested topic.
+  const widened = addFixture(store, { content: 'user-1: espresso grind notes.', keywords: ['espresso'] })
+  const withOr = store.topicForget('espresso OR walking', { palariId: 'palari-a', userId: 'user-1' }, { actor: 'explicit_user_action' })
+  assert.deepEqual(withOr.deleted, [])
+  assert.ok(store.getMemoryById(widened.memory.id), 'unmatched row survives an OR attempt')
+  assert.ok(store.getMemoryById(unrelated.memory.id), 'unrelated row survives an OR attempt')
+
+  // A phrase with no matchable content deletes nothing instead of erroring.
+  assert.deepEqual(
+    store.topicForget('"" -', { palariId: 'palari-a', userId: 'user-1' }, { actor: 'explicit_user_action' }),
+    { count: 0, deleted: [] },
+  )
+  store.close()
+})
+
+test('store file: complete dialogue is never world-readable (0600)', async () => {
+  const store = await openStore('mode-check')
+  addFixture(store)
+  const { mode } = await stat(store.dbPath)
+  assert.equal(mode & 0o777, 0o600)
+  store.close()
 })
