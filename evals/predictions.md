@@ -1914,3 +1914,53 @@ Predictions, failing categories first:
    artifact at mode 0600, reports zero exact credential matches, and has no
    sealing error. Any miss or stop is recorded as the result without retry,
    reroll, regrade, repair-in-place, or replacement identity.
+
+### P-set 28 terminal result — 2026-08-04
+
+The founder authorized exactly one invocation under the preregistered `$1.50`
+fresh / `$7.90824561` cumulative accounted caps. That invocation completed,
+is consumed, and is sealed. It may not be resumed, rerun, selectively
+rescored, regraded, or repaired in place.
+
+Failing categories first:
+
+1. **OFFICIAL ACCURACY — FAIL.** Official score is `6/10`, below the
+   preregistered at-least-`8/10` floor and `10/10` objective. Exact immutable
+   labels are `PASS, FAIL, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS, PASS`.
+   None of BRN-0013's three genuine answer-use FAIL rows reversed, and its
+   ordinal-six PASS regressed to FAIL. The prior clear ordinal-nine judge false
+   negative returned PASS in this fresh invocation; this is a new official
+   label, not a regrade of either terminal predecessor.
+2. **COMPLETION — PASS.** The provider-free and live compatibility smokes
+   passed, all ten questions received one non-empty answer and one official
+   label, and no answer exceeded four memory calls. The repaired forced wire
+   completed successfully on ordinals 6, 7, and 9; ordinal 5 crossed the old
+   stop point through its legitimate empty-evidence plain-terminal path.
+3. **CITED COMMITMENT — PASS.** Compatibility returned one exact basis. Nine
+   scored answers with returned canonical evidence were host commitments with
+   14 total evidence bases. The sole uncommitted answer was the abstention row,
+   which returned zero canonical messages and therefore correctly used the
+   plain-terminal path.
+4. **RETRIEVAL/RERANK — PASS.** Exactly 12/13 required answer-bearing sessions
+   were consulted. The only missing required session was one of two on
+   `0977f2af`; that row failed. Twelve non-empty native Ettin calls scored 330
+   complete candidates, maximum 50, with exactly 330 finite scores and zero
+   canonical-content mutation. Mean measured rerank latency was 2,082.4 ms.
+5. **WIRE — PASS.** All 34 Luna calls succeeded: 30 exact normal, one exact
+   plain-terminal, and three exact forced-commit requests. Every request used
+   `gpt-5.6-luna`, low reasoning, 512 maximum output tokens, and no unrecognized
+   mode; the largest scored cell used five dispatches. Ten judges and 95
+   Gemini embedding batches also completed once.
+6. **EXECUTION/ACCOUNTING — PASS.** One consumed invocation sealed 74/74
+   artifacts / 89,786,836 bytes at mode 0600 with zero exact credential
+   matches and zero sealing errors. Fresh spend is `$0.76368433` accounted =
+   `$0.02779288` measured + `$0.73589145` uncertain. Cumulative spend is
+   `$7.17192994` = `$1.76173444` measured + `$5.41019550` uncertain, below the
+   authorized boundary.
+
+The run recorded 139 successful physical calls: 34 Luna Responses calls
+(150,037 input, 70,054 cached input, 4,221 output, and 870 reasoning tokens),
+ten official judge calls (2,060 input / 18 output tokens), and 95 Gemini
+embedding batches carrying 4,794 requests / 4,905,943 conservatively reserved
+tokens. Terminal artifact-manifest SHA-256 is
+`850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`.

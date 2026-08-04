@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0017
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-04T23:11:46Z
 target_branch: "main"
 branch: "ticket/BRN-0017-validate-hardened-cited-luna-meter-on-first-ten"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0017-validate-hardened-cited-luna-meter-on-first-ten"
@@ -141,3 +141,24 @@ publication.
 - Opening spend is `$6.40824561`; `$1.50` fresh / `$7.90824561` cumulative are
   proposed boundaries only. The prior BRN-0015 authorization is consumed and
   cannot authorize this identity.
+
+## Terminal Result Evidence
+
+- The founder authorized the exact frozen identity and `$1.50` fresh /
+  `$7.90824561` cumulative caps. One invocation completed with exit 0; the
+  launcher attempt is consumed and cannot be reused.
+- Both smokes and all ten questions completed once. Official score is `6/10`,
+  labels `PASS, FAIL, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS, PASS`, with
+  12/13 required answer-bearing sessions consulted.
+- All 34 Luna calls succeeded as 30 normal, one plain-terminal, and three
+  forced-commit wires. Nine evidence-bearing answers were host commitments
+  with 14 exact bases; the sole uncommitted row returned zero messages.
+- Twelve native Ettin calls scored 330/330 finite candidates with zero content
+  mutation. All 139 physical provider calls succeeded.
+- Fresh accounted spend is `$0.76368433`; cumulative is `$7.17192994`, below
+  both caps. The manifest rehashes 74/74 mode-0600 artifacts / 89,786,836 bytes
+  with zero credential matches and zero sealing errors. Manifest SHA-256 is
+  `850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`.
+- P-set 28 accuracy fails below its at-least-8/10 floor. Completion,
+  commitment, retrieval/rerank, wire, and execution/accounting pass. No retry,
+  resume, reroll, regrade, or repair-in-place occurred or is authorized.

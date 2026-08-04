@@ -11,6 +11,8 @@
 - Private git-excluded launcher/runtime: bind the accepted product and all
   evaluation inputs, import the BRN-0016 validator, meter every physical call,
   and reserve the one-shot identity before credential access.
+- Private sealed result: preserves the single founder-authorized invocation,
+  exact answer/judge labels, meter ledger, transcripts, and terminal manifest.
 
 ## Verification
 
@@ -27,15 +29,23 @@
 - `npm run ticket -- scope-check --committed-plus-dirty --target main BRN-0017`:
   PASS, four scoped paths.
 - `git diff --check`: PASS.
+- Founder-authorized launcher `--run`: PASS once, exit 0. Both smokes and all
+  ten cells completed at official 6/10 with 12/13 required-session coverage.
+- Terminal manifest rehash: PASS, 74/74 artifacts / 89,786,836 bytes, no extra
+  or missing artifact, every artifact mode 0600, zero credential matches, and
+  zero sealing errors. Manifest SHA-256 is
+  `850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`.
+- Meter reconciliation: PASS, 139 successful physical calls and fresh
+  `$0.76368433` = `$0.02779288` measured + `$0.73589145` uncertain. Cumulative
+  accounted spend is `$7.17192994`, below `$7.90824561`.
 
 ## Risks / Follow-Ups
 
-- The live provider behavior and official ten-question outcome remain unknown.
-  Prior authority is consumed. Dispatch requires a new exact founder
-  authorization for identity `j4-luna-ettin-cited-first10-v2` under the frozen
-  fresh and cumulative caps.
+- The official 6/10 result fails P-set 28's at-least-8/10 accuracy floor. None
+  of BRN-0013's three genuine answer-use failures reversed, and one prior PASS
+  regressed. This is evidence against another measurement-only successor.
 - The ten inspected cases are a causal integration diagnostic, not an estimate
-  of unseen-user accuracy. Any terminal stop remains the result and receives no
+  of unseen-user accuracy. This terminal identity is consumed and receives no
   retry, reroll, or regrade.
 
 ## Review Repair

@@ -16,23 +16,26 @@ and predecessor, meters every physical call, and seals terminal outcomes.
 
 ## What I Should Know
 
-Offline verification passed with no credentials, inference, provider calls, or
-spend. Full tests pass 710/0/15 and quickstart is 6/6. The first independent
-review found no substantive P0-P2 issue and one metadata P3: two trailing
-spaces caused the committed target-aware diff check to fail. That discrepancy
-is repaired and awaits fresh exact-head rereview.
+After clean rereview, the founder authorized one invocation. It completed all
+ten questions at official 6/10 with 12/13 required-session coverage. The wire
+repair worked: three forced commitments crossed the live meter successfully.
+Nine evidence-bearing answers carried 14 exact bases; the zero-message
+abstention correctly remained uncommitted.
 
-The proposed `$1.50` fresh / `$7.90824561` cumulative caps are not authority.
-The BRN-0015 authorization is consumed and cannot be reused.
+The result did not improve the earlier 6/10 aggregate. Fresh spend was
+`$0.76368433`; cumulative accounted spend is `$7.17192994`. The result is
+sealed with no credential match or sealing error and cannot be rerun.
 
 ## What To Check
 
-- Fresh rereview has no open P0-P3 findings.
-- Identity is exactly `j4-luna-ettin-cited-first10-v2` and result is absent.
-- The exact fresh/cumulative caps are separately authorized before `--run`.
-- Any terminal outcome is recorded once without retry or regrade.
+- Independent terminal review rehashes the complete seal and reconciles all
+  139 physical calls, usage, commitments, labels, and spend.
+- The immutable labels remain
+  `PASS, FAIL, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS, PASS`.
+- No retry, selective rescore, or regrade occurs.
 
 ## Recommended Next Move
 
-Complete fresh pre-dispatch rereview. If it is clean, stop at the founder gate
-and request one exact authorization for the frozen identity and caps.
+Complete independent terminal review. If clean, accept and merge the immutable
+result record. The next product ticket should target answer use; do not spend
+on another rerun of the same treatment.

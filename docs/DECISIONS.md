@@ -2825,3 +2825,27 @@ here with dates. Agents record; the founder decides.
   irrelevant non-empty results, temporal metadata, and honest empty results;
   it makes no live-quality claim. This unit made no provider call, read no
   credential, changed no terminal result, and spent nothing.
+
+- 2026-08-04 (FOUNDER GO + RESULT — BRN-0017 hardened cited Luna first-ten)
+  The founder authorized exactly one invocation of identity
+  `j4-luna-ettin-cited-first10-v2` under a `$1.50` fresh / `$7.90824561`
+  cumulative accounted cap after P-set 28 and clean independent pre-dispatch
+  review. The invocation completed both smokes and all ten ordered non-U8
+  answer/judge cells once. No retry, resume, reroll, or regrade is authorized.
+
+  The official immutable result is `6/10`, labels
+  `PASS, FAIL, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS, PASS`, with 12/13
+  required answer-bearing sessions consulted. The accepted wire repair is
+  live-proven by 30 normal, one plain-terminal, and three forced-commit Luna
+  requests; all succeeded. Nine evidence-bearing answers carried 14
+  host-validated bases; the sole uncommitted answer was the zero-message
+  abstention row. The score did not improve over BRN-0013, so another
+  measurement-only successor is not justified; the next product work must
+  target answer use, not reranking or a score rerun.
+
+  Fresh spend is `$0.76368433` = `$0.02779288` measured + `$0.73589145`
+  uncertain. Cumulative J4 spend is `$7.17192994` = `$1.76173444` measured +
+  `$5.41019550` uncertain. The terminal seal contains 74 artifacts /
+  89,786,836 bytes, zero exact credential matches, and zero sealing errors;
+  manifest SHA-256 is
+  `850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`.

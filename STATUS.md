@@ -1,29 +1,43 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN IDENTITY FROZEN AND CLEANLY
-REVIEWED; EXACT FOUNDER GATE NEXT. Fresh identity
-`j4-luna-ettin-cited-first10-v2` preserves terminal BRN-0015's exact ten
-non-U8 questions and full product/eval surface; its sole treatment is accepted
-BRN-0016's exact meter-wire validator. P-set 28 is FINAL before any credential,
-model, provider, or score access. The mode-0600 private launcher/runtime hashes
-are `a1428495...` / `5c72c1c6...`; offline verification rehashes 328 terminal
-artifacts, eleven product/eval files, seven Ettin files, the complete 3,208-file
-runtime closure, dataset/order, and absent result. Product-generated fake
-normal, plain-terminal, and forced-commit requests each validate before one
-fake reservation and dispatch. Offline activity is zero credential reads,
-provider calls, inference, and spend.
+Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN TERMINAL AT OFFICIAL 6/10;
+IMMUTABLE RESULT RECORD AND TERMINAL REVIEW NEXT. Founder-authorized identity
+`j4-luna-ettin-cited-first10-v2` completed exactly once under the `$1.50`
+fresh / `$7.90824561` cumulative accounted caps. Both smokes and all ten
+answer/judge cells completed. Exact official labels are
+`PASS, FAIL, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS, PASS`: 6/10, below
+P-set 28's at-least-8/10 floor and unchanged from BRN-0013's aggregate. None
+of the three prior genuine answer-use failures reversed, ordinal six regressed,
+and the prior ordinal-nine judge false negative returned PASS in this fresh
+run. No answer or label was rerun or regraded.
 
-Opening cumulative accounted spend is `$6.40824561` = `$1.73394156` measured
-+ `$4.67430405` uncertain. Proposed fresh/cumulative caps are `$1.50` /
-`$7.90824561`, not authority. Prior BRN-0015 authority is consumed. No live
-result identity exists. First independent review found no substantive P0-P2
-issue and one P3: ticket-transition trailing whitespace contradicted the
-target-aware diff-check claim. The repaired exact head `2bdd8ad` was freshly
-rereviewed with no P0-P3 finding and an ACCEPT / GO-to-founder-gate
-recommendation; canonical note commit is `01c4a0a`. Ticket, report, scope,
-target-aware diff, private offline verification, focused 5/5, full 710/0/15,
-and quickstart 6/6 checks pass. Next: stop at the new exact founder gate;
-never reuse prior authority.
+The repaired meter is live-proven: all 34 Luna requests succeeded as 30 normal,
+one plain-terminal, and three forced-commit wires; the forced path completed on
+ordinals 6, 7, and 9. Nine evidence-bearing answers were authentic host
+commitments with 14 exact bases. The abstention row returned zero canonical
+messages and correctly remained uncommitted. Retrieval coverage was 12/13;
+12 native Ettin calls returned 330/330 finite scores across at most 50 complete
+candidates with zero content mutation and 2,082.4 ms mean latency.
+
+Fresh spend is `$0.76368433` = `$0.02779288` measured + `$0.73589145`
+uncertain. Cumulative accounted spend is `$7.17192994` = `$1.76173444`
+measured + `$5.41019550` uncertain. The sealed manifest SHA-256 is
+`850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`:
+74 artifacts / 89,786,836 bytes, zero exact credential matches, and zero
+sealing errors. All 139 physical calls succeeded: 34 Luna, ten judges, and 95
+Gemini batches carrying 4,794 embedding requests. The identity is consumed and
+cannot be resumed, rerun, selectively rescored, or repaired in place.
+
+Product stop rule: (1) yes, quickstart remains 6/6; (2) no score improvement
+was measured—the unit made the live measurement reliable, not the user journey
+better; (3) other frameworks offer retrieval/citation patterns but not this
+host-committed, exact-wire measured boundary; (4) yes, the founder explicitly
+requested Luna + Ettin first-ten validation; (5) deleting this evaluation
+would not change product behavior, but would erase the only complete live
+cited-Luna measurement and its causal meter evidence. Do not start another
+measurement-only successor. Next: record, commit, independently terminal-review,
+then accept/merge if clean; the next product unit must target answer use rather
+than reranking or another score rerun.
 
 Loop state: BRN-0016 FORCED COMMITMENT METER REPAIR REPAIRED AFTER TWO P1S;
 FRESH REREVIEW PENDING.
