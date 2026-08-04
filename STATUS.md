@@ -32,8 +32,11 @@ both full tool hashes, the actual six-tool order, and 512 output tokens. Fake
 verification passes with credential/provider/model/spend activity
 `0 / 0 / 0 / $0.00`. Consumed BRN-0015 hashes remain unchanged. Full suite
 passes 710 / fails 0 / skips 15 across 725 tests; quickstart passes 6/6;
-ticket/report/scope/diff checks pass. Next: commit/push and fresh independent
-rereview. No live successor exists or is authorized.
+ticket/report/scope/diff checks pass. Fresh independent rereview at exact
+`a86e663` found no P0-P3 issue after repeating both prior attacks and recommends
+acceptance. Under the founder's standing delegation, BRN-0016 is accepted.
+Next: close, commit/push, merge, then prepare a fresh measurement identity only
+up to its founder spend gate. No live successor exists or is authorized.
 
 Loop state: BRN-0015 TERMINAL FAILED MEASUREMENT SEALED; 4/10 QUESTIONS
 REACHED, OFFICIAL PREFIX 3/4, NO RERUN. Founder-authorized identity

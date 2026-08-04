@@ -35,6 +35,6 @@ rehash the private template plus the unchanged BRN-0015 sealed files.
 
 ## Recommended Next Move
 
-Accept this offline repair after full verification and independent review.
-Then prepare—but do not run—a fresh measurement identity. A live invocation
-needs a new exact founder cap.
+Fresh independent rereview is clean. Accept this offline repair, then
+prepare—but do not run—a fresh measurement identity. A live invocation needs a
+new exact founder cap.

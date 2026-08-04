@@ -3,6 +3,14 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0016 — delegated acceptance) **Accept the exact hardened
+  meter-wire repair after clean fresh rereview.** Read-only rereview at exact
+  `a86e663` repeated both prior attacks, confirmed full tool-hash and null-
+  prototype snapshot closure plus exact 512/order, found no P0-P3 issue, and
+  recommends acceptance. The founder's standing autonomy directive authorizes
+  routine clean-review acceptance. This accepts an offline measurement guard,
+  not a live score, successor identity, provider call, or spend authority.
+
 - 2026-08-04 (BRN-0016 — first-review P1 repairs) **Pin complete tool arrays
   and remove mutable prototype authority before rereview.** The first reviewer
   proved that name/type/strict checks still admitted altered descriptions and

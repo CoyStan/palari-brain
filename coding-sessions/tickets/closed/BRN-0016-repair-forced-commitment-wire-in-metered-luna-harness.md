@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0016
 children: []
-status: in-review
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -172,6 +172,16 @@ three mismatches and receive fresh rereview before acceptance.
 - The private template pins the repaired validator, both surface hashes, actual
   tool order, and exact 512-token output limit. Fake forced validation,
   reservation, and dispatch pass with zero credential/provider/model/spend.
+
+## Fresh Rereview And Acceptance
+
+Fresh independent read-only rereview at exact `a86e663` found no P0-P3 issue.
+It repeated both prior P1 attacks, independently verified exact product bodies,
+512/order and tool hashes, immutable null-prototype dispatch bytes, private
+template pins, unchanged BRN-0015 hashes, 5/5 focused, 710/0/15 full suite,
+quickstart 6/6, and governance. It recommends acceptance. Under the founder's
+standing delegation for clean independently reviewed tickets, BRN-0016 is
+accepted. This creates no live identity or spend authority.
 
 ## Stop Conditions
 

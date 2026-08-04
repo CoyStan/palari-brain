@@ -39,6 +39,10 @@ Reopen. Obtain a fresh independent rereview on the repaired committed head.
 
 ## Rereview State
 
-The first-review P1 repair is submitted at a new committed head. Fresh
-independent rereview is pending; the prior reopen recommendation remains the
-historical result for `25fc0a4`, not an acceptance decision.
+Fresh independent read-only rereview at exact `a86e663` found no P0-P3 issue
+and recommends **ACCEPT**. Both prior P1s are closed. Direct adversarial checks
+confirmed complete tool hashes, non-empty dynamic fields, exact 512/order,
+null-prototype frozen snapshots, stable post-reservation serialization, and
+failure-before-reserve for every changed surface. Focused 5/5, full
+710/0/15, quickstart 6/6, governance, hashes, and cleanliness all pass. No
+reviewer edit or live path occurred.

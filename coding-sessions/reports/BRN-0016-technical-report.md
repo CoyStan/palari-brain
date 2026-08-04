@@ -34,6 +34,10 @@ fields, creates null-prototype snapshots using captured intrinsics, and tests
 map/toJSON/`__proto__` attacks. Exact product-generated bodies replace the
 hand-authored tool fixtures. Fresh rereview is required.
 
+Fresh rereview at exact `a86e663` repeated the adversarial attacks, found both
+P1s and the 512/order mismatch closed, found no P0-P3 issue, and recommends
+acceptance.
+
 ## Product Stop Rule
 
 1. A new user can run the basic journey: quickstart verification is required
