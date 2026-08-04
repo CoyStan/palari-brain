@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0013
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-04T04:02:08Z
 target_branch: "main"
 branch: "ticket/BRN-0013-validate-repaired-ettin-with-luna-on-first-ten"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0013-validate-repaired-ettin-with-luna-on-first-ten"
@@ -216,8 +216,12 @@ reached.
 - Local Ettin smoke and live Gemini + Ettin + Luna compatibility both passed.
   All ten questions completed and received one official judgment. Exact labels
   are `PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS`: 6/10.
-- Required-session coverage is 12/13. Every failed answer consulted every
+- Required-session coverage is 12/13. Every official FAIL row consulted every
   required answer-bearing session; the sole missing session was on a PASS.
+  Three FAIL rows are observed answer-use/personalization failures. On
+  `10d9b85a`, the exact reference and Luna response both say `3 days`, but the
+  official judge returned `No`; this is a clear judge false negative. The
+  official FAIL and aggregate 6/10 remain immutable and were not regraded.
   Ten non-empty Ettin calls scored exactly 250 immutable candidates, maximum
   50, with one finite score per candidate and mean 1,290.7 ms/call.
 - Compatibility, completion, retrieval/rerank, wire, and accounting
@@ -234,6 +238,16 @@ reached.
 - No retry, rerun, regrade, selective score, prompt/model change, result
   repair, or second identity occurred. Fresh terminal review remains before
   delegated acceptance or merge.
+
+## Terminal Review Correction
+
+- Fresh review at `699cc0a45d84e68410ebc145eb6120f49d2f8c8c` rehashed the
+  complete seal, reconciled all execution/accounting evidence, and found one
+  P1 reporting issue: the tracked record materially misclassified the
+  `10d9b85a` judge false negative as an answer-composition failure.
+- BRN-0013 was reopened for reporting correction only. No private artifact,
+  label, score, prediction, or execution changes. Fresh terminal rereview is
+  mandatory before acceptance.
 
 ## Verification
 

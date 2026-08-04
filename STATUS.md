@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0013 REPAIRED ETTIN + LUNA FIRST-TEN TERMINAL AT 6/10;
-INDEPENDENT TERMINAL REVIEW NEXT. BRN-0012 was independently accepted, merged, and
+Loop state: BRN-0013 REPAIRED ETTIN + LUNA FIRST-TEN TERMINAL AT OFFICIAL
+6/10; REOPENED FOR REPORTING CORRECTION ONLY. BRN-0012 was independently accepted, merged, and
 pushed at `90e1837`; canonical administrative head `784de72` adds only this
 evaluation contract. Fresh identity `j4-luna-ettin-first10-v2` preserves the
 exact BRN-0010 treatment and changes only the accepted absolute cached-model
@@ -27,8 +27,14 @@ answer/judge cells at `6/10`, with labels
 `PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS` and 12/13 required
 answer sessions consulted. Compatibility, completion, retrieval/rerank, wire,
 and accounting predictions pass; accuracy fails below the `>=7/10` floor.
-All four failed answers received every required session, so no measured miss
-is attributable to candidate retrieval or Ettin ordering. Ten non-empty Ettin
+All four official FAIL rows received every required session, so no miss is
+attributable to candidate retrieval or Ettin ordering. Fresh terminal review
+found one material diagnostic correction: `10d9b85a` has frozen reference
+`3 days`, Luna answered `3 days`, and the unchanged official judge still said
+`No`. Its official FAIL and the 6/10 score remain immutable, but it is a clear
+judge false negative rather than an answer-composition failure. The observed
+breakdown is therefore three answer-use/personalization failures plus one
+judge-label failure. Ten non-empty Ettin
 calls scored 250 candidates, maximum 50, with exact finite score counts and
 zero content mutation; mean measured rerank latency was 1,290.7 ms per call.
 
@@ -40,10 +46,10 @@ calls succeeded: 33 Luna, 10 judges, and 95 Gemini embedding batches carrying
 `eb7dcb01c7a60cbade9a25d179cffde783e1f46c5c79644422eae819da7c3b71`
 rehashes 73/73 artifacts / 89,106,477 bytes, has no sealing error, and reports
 zero exact credential matches. The identity is consumed and cannot be rerun.
-Next: commit/push this honest terminal record, obtain fresh independent
-terminal review, then accept/merge if clean. The smallest evidence-led next
-product unit is an offline provider-neutral answer-evidence composition repair;
-a second scored identity is a founder gate.
+Next: commit/push the reporting-only correction, obtain fresh independent
+terminal rereview, then accept/merge if clean. The smallest evidence-led next
+product units are separate offline provider-neutral answer-evidence composition
+and judge-robustness contracts; a second scored identity is a founder gate.
 
 Loop state: BRN-0012 ETTIN CACHED-ONLY MODEL RESOLUTION INDEPENDENTLY REVIEWED
 AND ACCEPTED; MERGE NEXT. Quetzali explicitly accepted

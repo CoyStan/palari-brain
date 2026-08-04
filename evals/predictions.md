@@ -1666,9 +1666,14 @@ three tool-disabled finalizations held. (4) RETRIEVAL/RERANK **PASS**: 12/13
 required answer sessions were consulted against the `>=11/13` prediction.
 Every measured call returned one finite score per immutable candidate; ten
 non-empty reranks scored 250 candidates, maximum 50. The only missing required
-session was one of two on `0977f2af`, which still passed. All four failed
-answers received every required session, so their failure is downstream of
-candidate retrieval/reranking. (5) WIRE **PASS**: all 33 Luna calls, ten
+session was one of two on `0977f2af`, which still passed. All four official
+FAIL rows received every required session, so none is a candidate retrieval/
+reranking failure. Static terminal audit found three answer-use/personalization
+failures and one clear judge false negative: `10d9b85a` has reference
+`3 days`, Luna answered `3 days`, and the official judge returned `No`.
+Its official FAIL and aggregate 6/10 remain immutable; this is not a regrade.
+The preregistered causal subprediction that this row would fail because its
+candidate sessions were absent is refuted. (5) WIRE **PASS**: all 33 Luna calls, ten
 judges, and 95 Gemini embedding batches succeeded; every answer was judged
 once and finalization wire remained exact. (6) EXECUTION/ACCOUNTING **PASS**:
 one consumed invocation sealed 73/73 artifacts (89,106,477 bytes), no sealing

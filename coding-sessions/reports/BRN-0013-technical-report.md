@@ -11,10 +11,12 @@ there was no retry, rerun, regrade, selective score, or result repair.
 
 - Official labels: `PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL,
   PASS` for 6/10.
-- Required-session coverage: 12/13. All four failed answers consulted every
-  required answer-bearing session; the sole missing session occurred on the
-  passing sixth question. The remaining measured failure is downstream of
-  candidate retrieval/reranking.
+- Required-session coverage: 12/13. All four official FAIL rows consulted
+  every required answer-bearing session; the sole missing session occurred on
+  the passing sixth question. Three rows exhibit answer-use/personalization
+  failures. `10d9b85a` is instead a clear official-judge false negative: its
+  reference is exactly `3 days`, Luna answered `3 days`, and the judge returned
+  `No`. The official FAIL and 6/10 remain immutable; no regrade occurred.
 - Local real-brain smoke: pass, four finite scores, titanium memory first,
   provider calls zero. Live compatibility: pass, semantic use and reranking
   true, planted indigo answer correct.
@@ -32,7 +34,10 @@ Failing category first:
 1. OFFICIAL ACCURACY: fail. `6/10` is below the expected `>=7/10` floor and
    10/10 objective. The first-six vector stayed
    `PASS, FAIL, PASS, PASS, PASS, PASS`; `09d032c9` remained FAIL. Ordinal 10
-   supplied the predicted later PASS.
+   supplied the predicted later PASS. The subprediction that `10d9b85a` would
+   fail because its candidate sessions remained absent is refuted: both target
+   sessions arrived and the answer contained the exact reference, while the
+   official judge produced the FAIL.
 2. COMPATIBILITY: pass. Repaired cached loading and live three-surface wiring
    both completed exactly.
 3. COMPLETION: pass. Ten answers and ten validated labels completed under cap.
@@ -136,12 +141,13 @@ are private external artifacts and never enter git.
 1. A new user can run the basic journey: yes, quickstart is 6/6.
 2. This measurement changes no product byte; it proved the accepted loader
    repair makes the chosen local reranker usable end to end, while answer
-   evidence use remains unreliable.
+   evidence use and official-judge robustness remain separate limitations.
 3. Existing providers/frameworks do not supply this cross-provider,
    local-reranker, host-gated, one-shot evidence contract.
 4. Quetzali explicitly requested correct Ettin integration and a fresh rerun.
 5. Without this record, Palari could claim Ettin/Luna integration from offline
-   contracts or blame answer failures on retrieval despite 12/13 coverage.
+   contracts, blame answer failures on retrieval despite 12/13 coverage, or
+   treat an obvious judge false negative as product behavior.
 
 This is one measurement unit after a product repair. It is not a public or
 unseen-data benchmark.
@@ -150,9 +156,10 @@ unseen-data benchmark.
 
 - The known ten cannot establish generalization and must not drive
   answer-specific tuning.
-- All four failures are evidence-use/composition failures after complete target
-  coverage, not an Ettin loader or retrieval bug. A provider-neutral structural
-  answer repair may be developed offline against general adversarial cases,
-  but known benchmark answers must not become runtime logic.
+- Three official failures are evidence-use/personalization failures after
+  complete target coverage; one is a clear judge false negative. Neither is an
+  Ettin loader or retrieval bug. Provider-neutral structural answer and judge-
+  robustness work must remain separate offline tickets tested on general
+  adversarial cases; known benchmark answers must not become runtime logic.
 - A second score needs fresh founder authority after that separate unit; this
   identity is permanently consumed.

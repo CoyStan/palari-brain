@@ -3,6 +3,17 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0013 RESULT CLASSIFICATION CORRECTION) **Keep the official
+  6/10 immutable, but classify `10d9b85a` as a clear judge false negative, not
+  an answer-composition failure.** The frozen reference is exactly `3 days`
+  and Luna's response begins `You spent 3 days`; the unchanged official judge
+  nevertheless returned `No`. The terminal reviewer found this P1 reporting
+  error while independently rehashing the clean seal. No answer, label, score,
+  prediction, judge call, or result byte changes. The honest breakdown is four
+  official FAIL labels: three observed answer-use/personalization failures and
+  one judge-label failure. Answer-boundary and judge-robustness work are now
+  separate offline concerns; any new scoring remains founder-gated.
+
 - 2026-08-04 (BRN-0013 RESULT — repaired Ettin + Luna completed at 6/10)
   **Record the one invocation as terminal, with no rerun or result-driven
   patch.** Both smokes and all ten answer/judge cells completed. Ettin/Luna
