@@ -36,3 +36,9 @@ limit to the product's exact 512-token envelope.
 ## Recommendation
 
 Reopen. Obtain a fresh independent rereview on the repaired committed head.
+
+## Rereview State
+
+The first-review P1 repair is submitted at a new committed head. Fresh
+independent rereview is pending; the prior reopen recommendation remains the
+historical result for `25fc0a4`, not an acceptance decision.
