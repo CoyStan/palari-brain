@@ -40,6 +40,12 @@ bytes or dependency entered the package.
 
 ## Recommended Next Move
 
-Accept BRN-0008 if review is clean. Keep MiniLM-L6 as an optional local
-default, not a mandatory dependency. Then test it end to end only under a new
-founder-approved live identity; do not reuse or reroll an old benchmark run.
+The requested Ettin model loaded, but its official ONNX package separates the
+scoring head from the transformer output. Palari's generic JavaScript adapter
+correctly stopped instead of pretending hidden-state vectors were relevance
+scores, and the bank was not run. Keep MiniLM-L6 as the currently measured
+optional default for this ticket. If Ettin remains the choice, open a separate
+governed unit for either a small native-JavaScript implementation of its
+pooling/Dense/LayerNorm/Dense head or an official local Python Sentence
+Transformers sidecar. The JavaScript path is likely the lower-latency and
+smaller-deployment option, but it needs its own tests and fresh measurement.

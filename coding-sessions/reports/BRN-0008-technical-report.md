@@ -2,12 +2,43 @@
 
 ## State
 
-Implementation and the preregistered offline bakeoff are complete. The
+Implementation and the original preregistered offline bakeoff are complete. The
 provider-neutral seam preserves ranked + semantic RRF candidate generation,
 reads complete canonical rows, optionally scores at most 50 immutable texts,
 and applies the original output bounds after deterministic reranking. The
-measured default is MiniLM-L6. BRN-0008 is ready for fresh independent review;
-founder acceptance and merge remain separate gates.
+original measured default remains MiniLM-L6. The founder-directed Ettin
+supplement reached a terminal compatibility failure before its bank run.
+BRN-0008 requires a new independent review; founder acceptance and merge
+remain separate gates.
+
+## Founder-Directed Ettin Supplement
+
+P-set 23 and the exact amended adapter/runner were committed and pushed at
+`572ab8e` before any Ettin artifact was downloaded or scored. The only allowed
+compatibility smoke used fp32
+`cross-encoder/ettin-reranker-17m-v1@9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6`
+through the same isolated Transformers.js 4.2.0 runtime. It failed closed with
+`Reranker runtime returned an invalid logits batch.` The exclusive mode-0600
+result SHA-256 is
+`b2a802f43eed464ba1e448df602370b9cefd6ab4beea6a9f08e136fc987c1d4a`.
+
+Static inspection after the terminal failure identified the wire mismatch
+without another inference. The 67,329,240-byte official ONNX graph has inputs
+`input_ids` and `attention_mask` but only output `last_hidden_state`. Its
+`config.json` declares `ModernBertModel`, not a sequence-classification head.
+The separate official `modules.json` defines Transformer -> mean Pooling ->
+Dense -> LayerNorm -> Dense; the generic Transformers.js loader runs only the
+first exported transformer and therefore cannot return Ettin relevance
+logits. The official Python Sentence Transformers loader composes all five
+modules.
+
+The bank was not run. P-set 23 grades: COMPATIBILITY fail; QUALITY, LATENCY,
+SELECTION, and SAFETY not assessable; ACCOUNTING pass. There was no retry,
+old-model rerun, model/revision/dtype/runtime swap, provider or generation
+call, credential read, dataset access, or spend. The external runtime occupied
+686 MiB and the Ettin cache 68 MiB; neither is tracked. A custom JavaScript
+implementation of the modular head or a local Python sidecar is a new governed
+design, not a permissible retry in this ticket.
 
 ## Measured Result
 

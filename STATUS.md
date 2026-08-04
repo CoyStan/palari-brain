@@ -1,18 +1,33 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0008 REOPENED BY FOUNDER FOR ETTIN-17M; SUPPLEMENTAL FREEZE
-IN PROGRESS. After the terminal three-model P-set 22 result and two fresh
-reviews, Quetzali declined MiniLM-L6 as the intended default and explicitly
-selected the newer local Ettin family. The original bank, predictions, and
-MiniLM-L6/L12/mxbai-xsmall results remain immutable. The reopened contract
-adds only Apache-2.0 English `cross-encoder/ettin-reranker-17m-v1` at exact
-revision `9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6`, with one preregistered
-generic compatibility smoke followed, only if compatible, by one terminal
-pass over the unchanged bank. P-set 23 predicts at least 13/15 top-1, 0.90
-MRR, 15/15 recall@5, and lower latency than MiniLM-L6's measured 44.6342
-ms/case. No provider, credential, generation model, dataset, LongMemEval
-identity, or paid call is involved; expected provider spend is `$0.00`.
-Next: commit and push the amended freeze before downloading or scoring Ettin.
+Loop state: BRN-0008 ETTIN-17M COMPATIBILITY TERMINAL FAILED; BANK NOT RUN.
+The founder-directed supplemental freeze was committed and pushed at
+`572ab8e` before any Ettin download or score. The one allowed generic smoke
+loaded exact Apache-2.0 revision
+`9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6` as fp32, then failed closed with
+`Reranker runtime returned an invalid logits batch.` Static inspection found
+the cause without another inference: the official ONNX graph exposes only
+`last_hidden_state`, while the model's Sentence Transformers definition puts
+mean pooling, Dense, LayerNorm, and final Dense scoring in four separate
+modules. The existing generic Transformers.js sequence-classifier adapter
+therefore cannot produce Ettin's relevance score from that export.
+
+Per P-set 23 there was no retry, runtime/model/dtype swap, old-model rerun, or
+bank pass. Compatibility FAILS; quality, latency, selection, and safety are
+not assessable; accounting PASSES at `$0.00`. The mode-0600 private smoke
+result SHA-256 is
+`b2a802f43eed464ba1e448df602370b9cefd6ab4beea6a9f08e136fc987c1d4a`.
+The external runtime is 686 MiB and the downloaded model cache is 68 MiB;
+nothing entered git. Provider calls, credential reads, generation calls,
+datasets, LongMemEval identities, and paid spend are all zero. The original
+P-set 22 evidence and MiniLM-L6 optional default remain unchanged. Product
+stop rule: (1) quickstart remains available; (2) this amendment did not improve
+the user journey, but prevented selecting an incompatible default; (3)
+Sentence Transformers already implements the missing modular head in Python;
+(4) the founder explicitly requested Ettin; (5) deleting this result would
+cause Palari to repeat a known-incompatible wire. Next: fresh review of this
+terminal result. A custom local modular-head adapter or Python sidecar is a
+separate governed successor, never a retry of this identity.
 
 Loop state: BRN-0008 PROVIDER-NEUTRAL RERANKER IMPLEMENTED AND MEASURED;
 INDEPENDENT REVIEW NEXT. The founder approved adapting the retrieve-then-

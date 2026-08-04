@@ -639,6 +639,17 @@ MiB, and 280 MiB. These synthetic ordering numbers do not establish generated
 answer accuracy. A missing runtime is terminal and clearly labelled; RRF
 remains the default when no reranker was configured.
 
+The pinned `cross-encoder/ettin-reranker-17m-v1` identity is recorded in the
+adapter registry, but it is **not a working default through this generic
+sequence-classifier loader**. Its official ONNX graph exposes
+`last_hidden_state`; Sentence Transformers applies a separate mean-pooling,
+Dense, LayerNorm, Dense scoring head described by `modules.json`. BRN-0008's
+single compatibility smoke therefore failed closed before the bank ran.
+The shipped registry now rejects that identity up front with
+`RERANKER_MODEL_UNSUPPORTED`; applications cannot accidentally repeat the
+known-incompatible download path. A separately reviewed modular-head
+implementation is required before Ettin can be selected.
+
 `result.consultedEvidenceIds` contains every canonical message or graph edge
 returned to the answer callback. `result.retrievalTranscript` records every
 bounded tool request/result. Search ranking and graph structure locate

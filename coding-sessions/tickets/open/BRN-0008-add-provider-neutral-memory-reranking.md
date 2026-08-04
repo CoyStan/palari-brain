@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0008
 children: []
-status: claimed
+status: in-review
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-08-03T23:59:39Z
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0008-add-provider-neutral-memory-reranking"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0008-add-provider-neutral-memory-reranking"
@@ -62,7 +62,7 @@ verification:
   - "npm test"
   - "npm run quickstart"
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-04
 ---
 
 # BRN-0008 Add provider-neutral memory reranking

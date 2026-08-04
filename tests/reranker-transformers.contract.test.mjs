@@ -24,6 +24,8 @@ const expectedModels = {
   'cross-encoder/ettin-reranker-17m-v1': {
     dtype: 'fp32', language: 'en', license: 'Apache-2.0',
     revision: '9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6',
+    unsupportedReason:
+      'The official ONNX export requires a separate Sentence Transformers modular head.',
   },
 }
 
@@ -73,6 +75,12 @@ test('model allowlist pins exact licensed revisions', () => {
   )
   assert.equal(createTransformersReranker().model.id,
     DEFAULT_TRANSFORMERS_RERANKER_MODEL)
+  assert.throws(
+    () => createTransformersReranker({
+      modelId: 'cross-encoder/ettin-reranker-17m-v1',
+    }),
+    (error) => error?.code === 'RERANKER_MODEL_UNSUPPORTED',
+  )
 })
 
 test('adapter is lazy, pinned, pair-batched, and loads exactly once',

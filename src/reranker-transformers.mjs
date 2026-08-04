@@ -28,6 +28,8 @@ export const TRANSFORMERS_RERANKER_MODELS = Object.freeze({
     language: 'en',
     license: 'Apache-2.0',
     revision: '9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6',
+    unsupportedReason:
+      'The official ONNX export requires a separate Sentence Transformers modular head.',
   }),
 })
 
@@ -85,6 +87,11 @@ export function createTransformersReranker({
   const model = TRANSFORMERS_RERANKER_MODELS[modelId]
   if (!model) {
     throw new TypeError(`Unsupported reranker model: ${String(modelId)}`)
+  }
+  if (model.unsupportedReason) {
+    const failure = new Error(model.unsupportedReason)
+    failure.code = 'RERANKER_MODEL_UNSUPPORTED'
+    throw failure
   }
   if (cacheDir !== undefined &&
     (typeof cacheDir !== 'string' || cacheDir.length < 1)) {
