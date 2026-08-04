@@ -1,16 +1,23 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN MEASUREMENT CONTRACT OPEN;
-OFFLINE FREEZE NEXT. BRN-0016 is accepted, merged, and pushed at `232bfe2`.
-Fresh identity `j4-luna-ettin-cited-first10-v2` will preserve terminal
-BRN-0015's exact ten non-U8 questions and full product/eval surface; its sole
-treatment is the accepted exact meter-wire validator. Opening cumulative
-accounted spend is `$6.40824561` = `$1.73394156` measured + `$4.67430405`
-uncertain. Proposed fresh/cumulative caps are `$1.50` / `$7.90824561`, not
-authority. No new identity bytes, predictions, credential access, inference,
-provider call, result, or spend exist yet. Next: commit/push this contract,
-create the governed worktree, freeze/preregister/review offline, then stop at
-the new exact founder gate.
+Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN IDENTITY FROZEN OFFLINE;
+INDEPENDENT PRE-DISPATCH REVIEW NEXT. Fresh identity
+`j4-luna-ettin-cited-first10-v2` preserves terminal BRN-0015's exact ten
+non-U8 questions and full product/eval surface; its sole treatment is accepted
+BRN-0016's exact meter-wire validator. P-set 28 is FINAL before any credential,
+model, provider, or score access. The mode-0600 private launcher/runtime hashes
+are `a1428495...` / `5c72c1c6...`; offline verification rehashes 328 terminal
+artifacts, eleven product/eval files, seven Ettin files, the complete 3,208-file
+runtime closure, dataset/order, and absent result. Product-generated fake
+normal, plain-terminal, and forced-commit requests each validate before one
+fake reservation and dispatch. Offline activity is zero credential reads,
+provider calls, inference, and spend.
+
+Opening cumulative accounted spend is `$6.40824561` = `$1.73394156` measured
++ `$4.67430405` uncertain. Proposed fresh/cumulative caps are `$1.50` /
+`$7.90824561`, not authority. Prior BRN-0015 authority is consumed. No live
+result identity exists. Next: commit/push the freeze, obtain fresh independent
+review, then stop at a new exact founder gate; never reuse prior authority.
 
 Loop state: BRN-0016 FORCED COMMITMENT METER REPAIR REPAIRED AFTER TWO P1S;
 FRESH REREVIEW PENDING.

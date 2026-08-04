@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0017
 children: []
-status: open
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-04T06:43:35Z
 target_branch: "main"
 branch: "ticket/BRN-0017-validate-hardened-cited-luna-meter-on-first-ten"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0017-validate-hardened-cited-luna-meter-on-first-ten"
@@ -123,3 +123,21 @@ publication.
   confirmed for the fully frozen identity.
 - Any smoke, meter, cap, provider, artifact, or seal failure is terminal; record
   it without repair or replacement inside the consumed identity.
+
+## Offline Freeze Evidence
+
+- P-set 28 is FINAL before any credential read, inference, provider dispatch,
+  result creation, or spend.
+- Private launcher/runtime are mode 0600 with SHA-256
+  `a14284952f5004f80dc9dc7cb8e5bcb5e15cf31d88752ec1916c1ea9ca0d7387`
+  and `5c72c1c62612e9f2963e9b664fdf47ee02a941a39ec61b57548afea51c09da32`.
+- Offline verification binds the accepted product cut, clean canonical
+  administrative commit, twelve terminal predecessors / 328 artifacts,
+  dataset and ordered non-U8 population, seven Ettin artifacts, complete local
+  runtime closure, and absent result identity.
+- Product-generated normal, plain-terminal, and forced-commit bodies passed the
+  exact validator before three fake reservations and three fake dispatches.
+  Credential reads, provider calls, inference, and spend were all zero.
+- Opening spend is `$6.40824561`; `$1.50` fresh / `$7.90824561` cumulative are
+  proposed boundaries only. The prior BRN-0015 authorization is consumed and
+  cannot authorize this identity.

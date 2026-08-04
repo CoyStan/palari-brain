@@ -1826,3 +1826,91 @@ The terminal artifact-manifest SHA-256 is
 `d48030533c6a344ea1c180bb7c99c7edb20dc48a0c7403f65a04837c0697448f`.
 There is no official first-ten score for this identity; `3/4` is explicitly a
 reached-prefix diagnostic, not a substitute denominator.
+
+## P-set 28 — hardened cited-answer meter + Luna first-ten, FINAL before execution
+
+Author: repository execution lane, 2026-08-04. Grading run:
+`j4-luna-ettin-cited-first10-v2` only.
+
+Status: **FINAL before any BRN-0017 credential read, model inference, provider
+dispatch, or LongMemEval score.** This fresh identity is a causal successor to
+terminal BRN-0015, never a resume, retry, rerun, selective rescore, or regrade.
+The ten cases are already inspected and remain a private integration
+diagnostic, not an estimate of unseen-user accuracy.
+
+The exact ordered S60 IDs are `08e075c7`, `09d032c9`, `16c90bf4`, `5e1b23de`,
+`80ec1f4f_abs`, `0977f2af`, `0a34ad58`, `0edc2aef`, `10d9b85a`, and
+`1192316e`; ordered-array SHA-256
+`d3a9a8c234468e0120d605c7868b418a5ab3313384d0d162e11a30ab6d9fe4cf`.
+Dataset SHA-256 is
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+Sealed U8 `1568498a` is absent and unreachable.
+
+Product cut is accepted BRN-0016 `232bfe2a34fcf88b5fea88599327120a86292982`.
+Question/session bytes, prompts, answer behavior, Gemini
+`gemini-embedding-001`, native fp32 Ettin, Luna `gpt-5.6-luna` Standard/low/
+no-store, official `gpt-4o-2024-08-06` judge, candidate limits, serial order,
+four-memory-call ceiling, and structural citation boundary are unchanged from
+BRN-0015. The sole treatment is the accepted exact answer-wire validator in
+the private meter. It admits product-generated normal, tool-disabled, and
+forced `palari_answer_commit` requests while rejecting any other body before
+reservation or transport. No known answer, label, or prior generated answer
+enters runtime logic.
+
+Private mode-0600 launcher
+`/home/quetza/palari-brain-private/luna-ettin-cited-first10-v2-live-launcher.mjs`
+has SHA-256
+`a14284952f5004f80dc9dc7cb8e5bcb5e15cf31d88752ec1916c1ea9ca0d7387`.
+It generates mode-0600 runtime SHA-256
+`5c72c1c62612e9f2963e9b664fdf47ee02a941a39ec61b57548afea51c09da32`
+from unchanged terminal template SHA-256
+`4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`.
+Offline verification rehashes 328 artifacts across all twelve predecessor
+manifests, eleven product/eval files, all seven Ettin files, the 3,208-file
+runtime closure, dataset/order, and absent result. Product-generated fake
+normal, plain-terminal, and forced-commit bodies each validate before exactly
+one fake reservation and dispatch. This verification performs zero credential
+reads, provider calls, model inference, or spend.
+
+Opening cumulative spend is `$6.40824561`: `$1.73394156` measured plus
+`$4.67430405` uncertain. A proposed `$1.50` fresh cap would create a
+`$7.90824561` cumulative boundary, but this preregistration is not authority.
+After a new exact founder authorization, one invocation reserves and consumes
+the identity before one provider-free Ettin smoke, one live Gemini-semantic +
+Ettin + Luna cited compatibility smoke, and at most ten ordered answer/judge
+cells. Every physical request reserves before dispatch. Any failure is
+terminal and authorizes no replacement invocation.
+
+Predictions, failing categories first:
+
+1. OFFICIAL ACCURACY: objective `10/10`; expected floor at least `8/10`, the
+   unchanged BRN-0015 preregistered floor. No BRN-0013 PASS row regresses, and
+   at least two of its three genuine answer-use failures reverse under the
+   unchanged cited-answer treatment. The prior clear judge false negative is
+   reported separately whatever its new immutable official label. The meter
+   repair itself is predicted to change completion, not answer quality.
+2. COMPLETION: both smokes pass and all ten questions receive exactly one
+   non-empty Luna answer and one official label. No answer exceeds four memory
+   calls, and a forced commitment request is admitted and dispatched once
+   rather than terminating the run at question 5.
+3. CITED COMMITMENT: the live smoke and every scored row with returned
+   canonical evidence report `answerCommitted: true`; every basis names a
+   returned evidence ID and an exact contiguous quote. No uncited raw fallback
+   survives after non-empty evidence.
+4. RETRIEVAL/RERANK: at least 12/13 required answer-bearing sessions are
+   consulted. Every non-empty measured `memory_search` uses semantic retrieval
+   and native Ettin reranking; each rerank receives at most 50 immutable full
+   candidates and returns exactly one finite score per candidate with zero
+   canonical-content mutation.
+5. WIRE: the live meter accepts only the three pinned product forms: six exact
+   ordered tools with `tool_choice: "auto"`, no tools with `"none"`, or the
+   sole strict commitment tool with the exact forced-function selector. It
+   uses 512 maximum output tokens and low reasoning. Validation precedes
+   reservation and transport on every Luna answer call; no answer exceeds
+   seven Luna dispatches.
+6. EXECUTION/ACCOUNTING: one terminal invocation stays within the exact
+   founder-authorized fresh and cumulative caps, records measured versus
+   uncertain usage plus reranker/commitment telemetry, seals every private
+   artifact at mode 0600, reports zero exact credential matches, and has no
+   sealing error. Any miss or stop is recorded as the result without retry,
+   reroll, regrade, repair-in-place, or replacement identity.
