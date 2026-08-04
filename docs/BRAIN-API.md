@@ -674,8 +674,11 @@ This native export preserves the same 500-character query, 50-candidate,
 100,000-character canonical-message bounds and fail-closed result contract.
 It is English-only and fp32-only. Quantization, alternate Ettin sizes, Python
 sidecars, and runtime substitutions are not implied. Its measured/default
-status is recorded only after the preregistered BRN-0009 compatibility and
-single bank pass complete.
+result is 14/15 top-1, 0.9667 MRR, 15/15 recall@5, and 26.14 warm ms/case on
+the frozen synthetic bank. It dominates all three BRN-0008 models under the
+preregistered quality/latency rule and is therefore Palari's recommended
+optional local reranker. This remains an ordering measurement, not generated
+answer accuracy; trusted host chronology is still required for latestness.
 
 `result.consultedEvidenceIds` contains every canonical message or graph edge
 returned to the answer callback. `result.retrievalTranscript` records every

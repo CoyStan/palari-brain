@@ -1510,3 +1510,24 @@ Predictions, failing categories first:
 6. ACCOUNTING: provider spend is exactly `$0.00`; no credential, generation
    model, dataset, LongMemEval identity, or tracked cache/result/model byte is
    accessed or produced.
+
+Result recorded 2026-08-04, failing-first: all six categories **PASS**.
+COMPATIBILITY returned two finite scores and ranked the relevant generic text
+first. QUALITY measured `14/15` top-1 (`0.9333333333333333`), MRR
+`0.9666666666666667`, and recall@5 `15/15`. LATENCY measured
+`26.1374138125` warm milliseconds/case in the one frozen pass, below
+MiniLM-L6's terminal `44.6342`. SELECTION passes: Ettin has higher top-1 and
+MRR than L6 at equal recall and lower latency, and equals mxbai-xsmall quality
+at much lower latency, so it dominates every BRN-0008 eligible model and is
+the recommended optional local reranker. FIDELITY/SAFETY passes with all three
+artifact hashes/layouts valid and `contentMutations: 0`; its sole top-1 miss is
+the first temporal-latestness case, preserving the finding that chronology
+remains host responsibility. ACCOUNTING passes at `$0.00`, with zero provider,
+credential, generation, dataset, or LongMemEval activity.
+
+The mode-0600 private smoke result SHA-256 is
+`9fa98aeb94ba8f99eb7b00762b6100b0d7301454d1f17b13da353fa8f0d63b24`;
+the mode-0600 terminal bank result SHA-256 is
+`4515742db2bbbe3cd4d0da84df20e427039320d3cd8591e3d56a4a19559c64c3`.
+There was exactly one smoke and one bank pass, with no retry, rerun, model,
+runtime, dtype, artifact, head, threshold, or timing substitution.

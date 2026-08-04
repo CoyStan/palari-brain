@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER IMPLEMENTED; P-SET 24
-FREEZE PENDING. After accepting and merging BRN-0008, Quetzali explicitly directed a
+Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER IMPLEMENTED AND MEASURED;
+INDEPENDENT REVIEW NEXT. After accepting and merging BRN-0008, Quetzali explicitly directed a
 new governed ticket for working local Ettin support. Metadata-only recon of
 exact Apache-2.0 revision
 `9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6` corrected the head definition to
@@ -17,10 +17,34 @@ CLS, PyTorch-oriented Dense/GELU, affine LayerNorm at epsilon `1e-5`, and final
 Dense scoring in JavaScript. Synthetic math, loader, tensor-layout, corruption,
 bounds, lazy-load, and runner contracts pass 7/7. P-set 24 pins fresh identity
 `brn-0009/ettin-native-v1`, unchanged bank, exact code hashes, one smoke, and
-at most one bank pass. No real inference, provider, credential, generation
-model, dataset, LongMemEval identity, or paid call has occurred in BRN-0009;
-spend is `$0.00`. Next: commit and push the implementation freeze before the
-sole compatibility smoke.
+at most one bank pass. The freeze was committed and pushed at `19b4e4a` before
+inference. The sole compatibility smoke passed, then the sole bank pass
+measured 14/15 top-1, 0.9667 MRR, 15/15 recall@5, and 26.1374 warm ms/case.
+That is higher quality and about 41% lower latency than MiniLM-L6's 13/15,
+0.9333, and 44.6342 ms/case; it also matches mxbai-xsmall quality at far lower
+latency. Ettin therefore dominates every BRN-0008 eligible model and becomes
+the recommended optional local reranker under the frozen rule. The only miss
+was temporal latestness, so host chronology remains mandatory.
+
+Private mode-0600 result SHA-256 values are smoke
+`9fa98aeb94ba8f99eb7b00762b6100b0d7301454d1f17b13da353fa8f0d63b24`
+and bank
+`4515742db2bbbe3cd4d0da84df20e427039320d3cd8591e3d56a4a19559c64c3`.
+The private cache is 68 MiB, including 265,604 exact head-weight bytes; cache
+and result directories are mode 0700 and head/result files mode 0600. P-set 24
+grades 6/6 pass. Provider, credential, generation, dataset, LongMemEval, and
+paid activity remain zero / `$0.00`; no external byte entered git. Product
+stop rule: (1) quickstart remains green; (2) evidence ordering is measurably
+better and faster than the prior default; (3) Sentence Transformers supplies
+the modular design, while Palari adds the strict native/cache boundary; (4)
+the founder explicitly requested Ettin; (5) deleting this unit restores the
+known incompatible wire or the weaker/slower prior default. Final verification
+is green: focused 7/7, full suite 692 pass / 0 fail / 15 skipped across 707,
+quickstart 6/6, package dry-run, ticket lint, scope, and diff checks. An initial
+full-suite closeout caught a sealed package-root import-closure regression; the
+root re-export was removed while retaining the explicit
+`palari-brain/reranker-ettin` package subpath, and no scoring rerun followed.
+Next: fresh independent review before founder acceptance.
 
 Loop state: BRN-0008 FOUNDER-ACCEPTED AND MERGE AUTHORIZED; ETTIN-17M
 COMPATIBILITY TERMINAL FAILED; BANK NOT RUN.
