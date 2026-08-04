@@ -3,6 +3,14 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0017 — successor measurement contract) **Prepare one fresh
+  hardened-meter causal successor, but do not dispatch without new exact founder
+  authority.** Identity `j4-luna-ettin-cited-first10-v2` keeps BRN-0015's exact
+  first-ten surface; accepted BRN-0016 is the sole treatment. Opening accounted
+  spend is `$6.40824561`; proposed `$1.50` fresh / `$7.90824561` cumulative
+  boundaries are a request only. Offline freeze, FINAL predictions, and clean
+  review must precede any cap request or credential access.
+
 - 2026-08-04 (BRN-0016 — delegated acceptance) **Accept the exact hardened
   meter-wire repair after clean fresh rereview.** Read-only rereview at exact
   `a86e663` repeated both prior attacks, confirmed full tool-hash and null-

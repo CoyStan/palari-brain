@@ -1,5 +1,17 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN MEASUREMENT CONTRACT OPEN;
+OFFLINE FREEZE NEXT. BRN-0016 is accepted, merged, and pushed at `232bfe2`.
+Fresh identity `j4-luna-ettin-cited-first10-v2` will preserve terminal
+BRN-0015's exact ten non-U8 questions and full product/eval surface; its sole
+treatment is the accepted exact meter-wire validator. Opening cumulative
+accounted spend is `$6.40824561` = `$1.73394156` measured + `$4.67430405`
+uncertain. Proposed fresh/cumulative caps are `$1.50` / `$7.90824561`, not
+authority. No new identity bytes, predictions, credential access, inference,
+provider call, result, or spend exist yet. Next: commit/push this contract,
+create the governed worktree, freeze/preregister/review offline, then stop at
+the new exact founder gate.
+
 Loop state: BRN-0016 FORCED COMMITMENT METER REPAIR REPAIRED AFTER TWO P1S;
 FRESH REREVIEW PENDING.
 BRN-0015 is accepted, merged, and pushed at `7491684`; its sealed failed
@@ -34,9 +46,8 @@ verification passes with credential/provider/model/spend activity
 passes 710 / fails 0 / skips 15 across 725 tests; quickstart passes 6/6;
 ticket/report/scope/diff checks pass. Fresh independent rereview at exact
 `a86e663` found no P0-P3 issue after repeating both prior attacks and recommends
-acceptance. Under the founder's standing delegation, BRN-0016 is accepted.
-Next: close, commit/push, merge, then prepare a fresh measurement identity only
-up to its founder spend gate. No live successor exists or is authorized.
+acceptance. Under the founder's standing delegation, BRN-0016 is accepted,
+closed, merged, and pushed at `232bfe2`. No live successor is authorized.
 
 Loop state: BRN-0015 TERMINAL FAILED MEASUREMENT SEALED; 4/10 QUESTIONS
 REACHED, OFFICIAL PREFIX 3/4, NO RERUN. Founder-authorized identity
