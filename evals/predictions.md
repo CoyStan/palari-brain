@@ -1778,3 +1778,51 @@ Predictions, failing categories first:
    hashes and mode 0600, reports zero exact credential matches, and has no
    sealing error. Any miss or stop is the result and authorizes no retry,
    reroll, regrade, repair-in-place, or replacement identity.
+
+### P-set 27 terminal result — 2026-08-04
+
+The founder authorized exactly one invocation under the preregistered `$1.50`
+fresh / `$7.53072623` cumulative accounted caps. That invocation is consumed,
+failed terminally, and sealed. It may not be resumed, rerun, selectively
+rescored, regraded, or repaired in place.
+
+Failing categories first:
+
+1. **OFFICIAL ACCURACY — FAIL / NOT FULLY REACHED.** Only questions 1-4
+   received official labels: `PASS, FAIL, PASS, PASS` (3/4 on the reached
+   prefix). This is neither the predicted at-least-8/10 floor nor a ten-case
+   score. The BRN-0013 failure represented by question 2 did not reverse;
+   later predicted reversals and PASS non-regressions are unmeasured.
+2. **COMPLETION — FAIL.** Both smokes passed, but only 4/10 questions completed.
+   During question 5 the product requested forced commit-only finalization
+   after its fourth memory call. The frozen private meter rejected that request
+   before reservation or transport because its allowlist omitted the accepted
+   forced-function `tool_choice` object. Questions 6-10 were not reached.
+3. **CITED COMMITMENT — PARTIAL.** The live smoke passed with the planted
+   indigo fact, `answerCommitted: true`, and one exact basis. Every one of the
+   four scored answers was also committed with one returned evidence ID and
+   exact contiguous quote. The remaining six scored rows are unmeasured, so
+   the all-row prediction cannot pass.
+4. **RETRIEVAL/RERANK — PARTIAL.** The four completed rows matched all 5/5
+   required answer-bearing sessions and each recorded semantic retrieval plus
+   native Ettin reranking. The at-least-12/13 whole-run prediction and suffix
+   mechanics are unmeasured.
+5. **WIRE — FAIL.** Normal turns and valid commitments worked in the smoke and
+   first four rows. On question 5, however, BRN-0014 correctly emitted
+   `tool_choice: {type:"function", name:"palari_answer_commit"}` for fourth-call
+   finalization. Private runtime lines 425-433 admitted only `"auto"` with
+   tools or `"none"` without tools, so the meter raised `OpenAI answer request
+   changed from the frozen wire.` The rejected fifth dispatch was not reserved
+   or sent. This is a measurement-harness compatibility defect, not a provider
+   rejection and not a product fallback.
+6. **EXECUTION/ACCOUNTING — PASS.** Exactly one invocation ran. It sealed 37
+   artifacts / 45,126,680 bytes with zero credential matches and zero sealing
+   errors. Fresh spend was `$0.37751938` = `$0.01059868` measured +
+   `$0.3669207` uncertain; cumulative spend is `$6.40824561` = `$1.73394156`
+   measured + `$4.67430405` uncertain. The run stayed below both caps and no
+   retry occurred.
+
+The terminal artifact-manifest SHA-256 is
+`d48030533c6a344ea1c180bb7c99c7edb20dc48a0c7403f65a04837c0697448f`.
+There is no official first-ten score for this identity; `3/4` is explicitly a
+reached-prefix diagnostic, not a substitute denominator.

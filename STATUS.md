@@ -1,44 +1,54 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0015 CITED LUNA + ETTIN FIRST-TEN IDENTITY FROZEN OFFLINE;
-EXACT FOUNDER CAP AUTHORIZED; ONE INVOCATION NEXT. Accepted BRN-0014 is merged/pushed at
-`c6e29c0`; canonical administrative head `4081ada` adds only this successor
-contract. Fresh identity `j4-luna-ettin-cited-first10-v1` preserves terminal
-BRN-0013's exact ten non-U8 questions, sessions, Gemini embedder, native Ettin,
-Luna low/Standard/no-store model, official judge, prompts, limits, serial
-order, and accounting. The sole product treatment is BRN-0014's exact cited
-answer commitment after non-empty canonical retrieval.
+Loop state: BRN-0015 TERMINAL FAILED MEASUREMENT SEALED; 4/10 QUESTIONS
+REACHED, OFFICIAL PREFIX 3/4, NO RERUN. Founder-authorized identity
+`j4-luna-ettin-cited-first10-v1` was invoked exactly once on 2026-08-04 under
+the `$1.50` fresh / `$7.53072623` cumulative accounted caps. The local Ettin
+smoke and live Gemini-semantic + native-Ettin + Luna cited-answer smoke passed.
+Questions 1-4 then completed once with immutable official labels
+`PASS, FAIL, PASS, PASS`; all four answers were authentic host-created
+commitments with one exact returned-evidence basis each. Required answer-
+bearing session coverage was 5/5 on this reached prefix, and every measured
+search was semantic and natively reranked.
 
-P-set 27 is FINAL before inference, credential read, provider call, or score;
-full prediction-file SHA-256 is
-`844972a51ed4106dcb95c5f96666115f08710c1de5c38d9d76b1c5c9b4c26360`.
-It predicts at least 8/10 with 10/10 the objective, no prior PASS regression,
-at least two of three genuine BRN-0013 answer-use failures reversing, complete
-10/10 execution, a cited live smoke, exact commitments on every evidence-backed
-answer, unchanged Ettin/retrieval mechanics, and exact cap/seal behavior. The
-prior judge false negative stays separately classified and is never regraded.
+The run stopped terminally while processing question 5, `80ec1f4f_abs`, before
+its fifth Luna dispatch. Four permitted memory calls had completed; the
+accepted BRN-0014 product correctly requested forced commit-only finalization
+with `tool_choice: {type:"function", name:"palari_answer_commit"}`. The frozen
+private meter admitted only `"auto"` with tools or `"none"` without tools and
+rejected the documented forced-function wire as changed. This is a private
+measurement-meter compatibility defect, not evidence that the product failed
+to request a cited commitment. The rejected request was not reserved or sent.
+Questions 6-10 were never reached. There is no ten-question score: the honest
+result is terminal failure with a 3/4 official reached-prefix diagnostic.
 
-Private launcher/runtime SHA-256 are
-`6ccc091b521cd3c9874805278ab7959e9fdb5523326fe775df01a37dd992f29b` /
-`d123525ec5e1c9bc1664fc9c323e9fa567831e9118d4e5cc273cfb29344c6ea2`,
-both mode 0600. Offline verification rehashed eleven predecessor manifests /
-291 artifacts, ten product/eval files, seven Ettin files, the exact 3,208-file
-runtime closure, dataset/order, and absent result. A denied `--run` without
-exact run-ID/cap confirmation stopped before result creation. No credential,
-model inference, provider/network call, result byte, or spend occurred.
-Full suite passes 705 / fails 0 / skips 15 across 720 tests; quickstart passes
-6/6; the 32-file package dry-run is clean.
+P-set 27 grades failing-first: OFFICIAL ACCURACY fail/not reached (3/4 prefix,
+not the predicted at least 8/10); COMPLETION fail (4/10); CITED COMMITMENT
+partial (smoke and all four scored answers passed, suffix unmeasured);
+RETRIEVAL/RERANK partial (5/5 required sessions on the scored prefix, suffix
+unmeasured); WIRE fail (private meter omitted the forced-function form);
+EXECUTION/ACCOUNTING pass. No answer, label, question, or result was rerun,
+resumed, regraded, or repaired in place.
 
-Opening cumulative spend remains `$6.03072623` = `$1.72334288` measured +
-`$4.30738335` uncertain. On 2026-08-04 the founder explicitly authorized
-identity `j4-luna-ettin-cited-first10-v1` for exactly one invocation under
-`$1.50` fresh / `$7.53072623` cumulative accounted caps; this is new authority
-and does not reuse BRN-0013. Fresh independent review at exact
-`38800533af260861945b204e829383159f78eb1f` found no P0-P3 issue and
-recommends GO after exact cap confirmation. Next: commit/push this founder GO,
-repeat inert verification, set only the two frozen confirmation variables,
-and invoke the one-shot launcher once. Any smoke failure, cap stop, provider
-failure, score, or seal outcome is terminal.
+The sealed terminal bundle has artifact-manifest SHA-256
+`d48030533c6a344ea1c180bb7c99c7edb20dc48a0c7403f65a04837c0697448f`,
+37 artifacts / 45,126,680 bytes, mode-0600 result content, zero exact
+credential matches, and zero sealing errors. It records 66 physical calls:
+48 Gemini embedding batches covering 2,410 embedding requests and 2,446,138
+reserved tokens; 14 Luna Responses calls; and four official judge calls.
+Luna used 53,464 input / 21,014 cached input / 1,357 output / 318 reasoning
+tokens for `$0.00853868`; judges used 804 input / 5 output tokens for
+`$0.00206`; Gemini remains conservatively uncertain at `$0.3669207`.
+
+Fresh accounted spend is `$0.37751938` = `$0.01059868` measured +
+`$0.3669207` uncertain. Cumulative accounted spend is now `$6.40824561` =
+`$1.73394156` measured + `$4.67430405` uncertain, below both caps. The
+one-shot attempt is consumed and launcher exit status is 1. The reporting head
+passes 705 / fails 0 / skips 15 across 720 tests; quickstart passes 6/6; ticket,
+scope, report, and diff checks pass. Next: commit/push this immutable result
+record, obtain fresh read-only terminal review, then close BRN-0015 honestly
+and open a separate offline meter-repair ticket. Any successor live identity
+requires a new exact founder cap.
 
 Loop state: BRN-0014 CITED ANSWER-COMMIT BOUNDARY IMPLEMENTED OFFLINE;
 SIX REVIEW P1S AND ONE P3 REPAIRED, CLEANLY REREVIEWED, AND ACCEPTED. The terminal BRN-0013 score remains immutable at

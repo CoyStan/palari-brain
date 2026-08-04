@@ -2,10 +2,10 @@
 
 ## State
 
-Fresh cited-answer Luna + Ettin first-ten identity is frozen offline,
-independently reviewed with no P0-P3 finding, and authorized for exactly one
-invocation under the preregistered caps. No credential, model inference,
-provider transport, result identity, or spend has occurred yet.
+The one authorized invocation is terminally failed, consumed, and sealed. Both
+smokes passed; 4/10 questions completed with official reached-prefix labels
+`PASS, FAIL, PASS, PASS`; the remaining six were not reached. This identity
+cannot be rerun, resumed, regraded, or repaired in place.
 
 ## Causal Treatment
 
@@ -53,11 +53,35 @@ Opening cumulative spend is `$6.03072623` = `$1.72334288` measured +
 Those numbers were preregistered and the founder confirmed them verbatim on
 2026-08-04 for exactly one invocation. No broader authority exists.
 
+## Terminal Result
+
+- Compatibility: local Ettin pass; live Gemini semantic + native Ettin + Luna
+  cited-answer pass, including the planted indigo basis.
+- Completed rows: 4/10; official reached-prefix diagnostic 3/4. Every reached
+  answer was host-committed with one exact returned-evidence basis; required
+  answer-bearing session coverage was 5/5.
+- Stop: on question 5, after four memory calls, the product correctly requested
+  forced `palari_answer_commit`. The private meter rejected the forced-function
+  tool-choice object before reservation/dispatch because its frozen allowlist
+  covered only auto/none. This is a harness compatibility defect.
+- Calls: 48 Gemini embedding batches (2,410 requests; 2,446,138 reserved
+  tokens), 14 Luna Responses, four official judges; 66 physical calls total.
+- Fresh spend: `$0.37751938` = `$0.01059868` measured + `$0.3669207`
+  uncertain. Cumulative: `$6.40824561` = `$1.73394156` measured +
+  `$4.67430405` uncertain.
+- Seal: manifest SHA-256
+  `d48030533c6a344ea1c180bb7c99c7edb20dc48a0c7403f65a04837c0697448f`;
+  37 artifacts / 45,126,680 bytes; zero credential matches; zero sealing
+  errors; launcher status 1 and consumed.
+
+P-set 27 grades: accuracy FAIL/not reached; completion FAIL; commitment
+PARTIAL; retrieval/rerank PARTIAL; wire FAIL; execution/accounting PASS.
+
 ## Files Changed
 
 - `evals/predictions.md`: FINAL P-set 27 identity and failing-first outcomes.
 - `docs/DECISIONS.md` and `STATUS.md`: causal treatment, freeze evidence,
-  accounting, verification, and the unresolved founder gate.
+  terminal result, accounting, failure diagnosis, and successor boundary.
 - BRN-0015 ticket, technical report, and human report.
 - Private gitignored launcher/runtime: fresh mode-0600 one-shot identity;
   neither file nor any generated result is tracked.
@@ -72,21 +96,24 @@ Those numbers were preregistered and the founder confirmed them verbatim on
 - Ticket/report/scope/diff checks: pass at freeze closeout.
 - Fresh review at exact `38800533af260861945b204e829383159f78eb1f`:
   no P0-P3 finding; GO only after exact founder cap confirmation.
-- Provider calls / network calls / model loads / credential reads / result
-  bytes / spend: `0 / 0 / 0 / 0 / 0 / $0.00`.
-- Cumulative accounted spend remains `$6.03072623`.
+- Terminal bundle: sealed failed, zero credential matches and sealing errors.
+- Reporting head: 705 pass / 0 fail / 15 skip across 720 tests; quickstart 6/6;
+  ticket, scope, report, and diff checks pass.
+- Result integrity and exact accounting await fresh read-only terminal review.
 
 ## Product Stop Rule
 
 1. New-user basic journey: yes, quickstart passes 6/6.
-2. This unit has not yet made the journey measurably better; it prepares one
-   causal validation of the accepted BRN-0014 product repair.
+2. This unit measured that cited commitments work on the live smoke and every
+   completed row, but did not establish a ten-row improvement because a private
+   meter defect stopped execution.
 3. OpenAI function calling supplies the wire, but no framework supplies this
    exact Palari/Ettin/Luna/host-commit causal measurement and one-shot ledger.
 4. Quetzali explicitly requested autonomous Ettin/Luna validation toward a
    no-bug 10/10 objective.
-5. Deleting only this measurement unit would remove evidence of whether cited
-   commitments improve real Luna answer use; product behavior would remain.
+5. Deleting only this measurement unit would erase live proof of cited
+   commitments and the discovered forced-wire meter incompatibility; product
+   behavior would remain.
 
 This is one measurement unit after a product repair, not infrastructure drift.
 
@@ -94,7 +121,7 @@ This is one measurement unit after a product repair, not infrastructure drift.
 
 Ten inspected questions are not unseen-user generalization. Citation is not
 semantic entailment, and the official judge may repeat its known false
-negative. A low score, smoke failure, or cap stop is terminal evidence, never
-authority to patch, reroll, regrade, or create a replacement identity. The
-next action is exact founder cap confirmation; provider dispatch remains
-stopped until then.
+negative. A low score, smoke failure, or harness stop is terminal evidence,
+never authority to patch, reroll, regrade, or create a replacement identity.
+The next action is independent terminal review, honest closeout, and a separate
+offline meter-repair ticket. Any successor live dispatch needs a new exact cap.

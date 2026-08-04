@@ -3,6 +3,20 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0015 TERMINAL RESULT) **Keep the one invocation as a sealed
+  failed measurement; do not rerun or regrade it.** Both compatibility smokes
+  passed and the first four questions completed at official `PASS, FAIL, PASS,
+  PASS`, with authentic cited commitments on every reached answer. During
+  question 5 the product correctly requested the accepted forced-function
+  commitment wire after four memory calls, but the private meter's frozen
+  allowlist admitted only auto/none tool choice and stopped before reserving or
+  dispatching that request. The suffix was not reached. Fresh accounted spend
+  is `$0.37751938`; cumulative accounted spend is `$6.40824561`. The sealed
+  manifest hash is
+  `d48030533c6a344ea1c180bb7c99c7edb20dc48a0c7403f65a04837c0697448f`.
+  Fixing the general meter defect belongs to a separate offline ticket; any
+  new live identity requires a new exact founder cap.
+
 - 2026-08-04 (FOUNDER GO — BRN-0015 cited Luna + Ettin first ten)
   **Authorize exactly one invocation of frozen identity
   `j4-luna-ettin-cited-first10-v1` under a `$1.50` fresh /

@@ -16,27 +16,26 @@ will stop permanently on a smoke, cap, provider, or seal failure.
 
 ## What I Should Know
 
-The prior official score remains 6/10. We predict at least 8/10 and want 10/10,
-but neither is guaranteed. Exact citation makes evidence use auditable; it does
-not guarantee correct reasoning or a correct judge. Whatever happens will be
-recorded without rerun or regrade.
+The local and live compatibility tests passed. The first four questions then
+scored 3/4, and every answer carried an authentic exact citation. On question
+five, Palari correctly tried to force the citation tool after four searches,
+but our private cost meter did not recognize that valid request shape and
+stopped the run before sending it. The final six questions were never reached.
 
-Offline verification has rehashed the full private lineage, current product,
-dataset/order, Ettin model/runtime, launcher, and absent result. No credential
-was read, no model loaded, no provider called, and spend is `$0.00`.
-The full suite is 705 pass / 0 fail / 15 skip; quickstart remains 6/6 and the
-32-file package boundary is clean.
+This means there is no new 10-question score. `3/4` describes only the reached
+prefix. The honest result is a sealed failed run, not an 8/10 miss and not a
+reason to reroll. It cost `$0.37751938` accounted; cumulative accounted spend
+is `$6.40824561`, safely below the authorized cap.
 
 ## What To Check
 
-Independent review should verify BRN-0014 is the only treatment, P-set 27 and
-the private hashes match, known answers are absent from runtime logic, all
-provider paths are metered, the exact cap gate fails before result creation,
-U8 is unreachable, and the one-shot identity cannot execute twice.
+Independent review should rehash the sealed 37-artifact bundle, reconcile all
+66 calls and spend, verify the rejected fifth request was never dispatched,
+confirm the meter mismatch diagnosis, and ensure no result was altered or
+retried.
 
 ## Recommended Next Move
 
-Fresh independent pre-dispatch review is clean, and the founder has confirmed
-exactly the `$1.50` fresh / `$7.53072623` cumulative caps for one invocation.
-Commit this GO, verify once more without credentials, then run the frozen
-launcher exactly once and record its terminal result.
+Accept the immutable measurement record after fresh terminal review. Then fix
+the general forced-function meter compatibility in a separate offline ticket.
+Do not run another live identity without a new exact founder cap.

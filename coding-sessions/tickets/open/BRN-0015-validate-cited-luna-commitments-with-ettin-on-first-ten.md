@@ -209,6 +209,39 @@ founder cap. Opening cumulative accounted spend is `$6.03072623`:
 - `npm run ticket -- check BRN-0015`
 - `git diff --check`
 
+## Terminal Invocation Evidence
+
+- On 2026-08-04 the exact authorized launcher command was invoked once. The
+  attempt was reserved, consumed at `2026-08-04T05:48:52.715Z`, and exited 1 at
+  `2026-08-04T05:51:01.551Z`. It cannot run again.
+- Local Ettin and live cited-answer compatibility smokes passed. The live smoke
+  used semantic Gemini retrieval, native Ettin reranking, two Luna dispatches,
+  and returned the planted indigo fact through an authentic one-basis
+  commitment.
+- Questions 1-4 completed with official labels `PASS, FAIL, PASS, PASS`. All
+  four answers had `answerCommitted: true`, one exact registered basis, one
+  semantic/reranked search, and aggregate 5/5 required-session coverage.
+- Question 5 stopped before its fifth Luna dispatch. Four memory-tool
+  dispatches had succeeded. BRN-0014 then correctly selected forced
+  `palari_answer_commit`, but private runtime lines 425-433 did not allow the
+  forced-function `tool_choice` object and raised `OpenAI answer request
+  changed from the frozen wire.` That request was not reserved or sent.
+  Questions 6-10 were not reached; 3/4 is only a reached-prefix diagnostic.
+- Calls: 66 physical = 48 Gemini embedding batches (2,410 requests / 2,446,138
+  reserved tokens), 14 Luna Responses, and four official judges. Luna measured
+  `$0.00853868`; judges measured `$0.00206`; Gemini uncertain reservation is
+  `$0.3669207`.
+- Fresh spend: `$0.37751938` = `$0.01059868` measured + `$0.3669207`
+  uncertain. Cumulative: `$6.40824561` = `$1.73394156` measured +
+  `$4.67430405` uncertain. Both founder caps held.
+- Artifact manifest SHA-256:
+  `d48030533c6a344ea1c180bb7c99c7edb20dc48a0c7403f65a04837c0697448f`;
+  sealed failed status, 37 artifacts / 45,126,680 bytes, zero credential
+  matches, zero sealing errors.
+- P-set 27: accuracy FAIL/not reached; completion FAIL; cited commitment
+  PARTIAL; retrieval/rerank PARTIAL; wire FAIL; execution/accounting PASS.
+  No retry, resume, reroll, regrade, result mutation, or replacement occurred.
+
 ## Stop Conditions
 
 - Stop if the work needs a path outside `allowed_paths` or touches `forbidden_paths`.
