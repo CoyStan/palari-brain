@@ -3,6 +3,17 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0016 — first-review P1 repairs) **Pin complete tool arrays
+  and remove mutable prototype authority before rereview.** The first reviewer
+  proved that name/type/strict checks still admitted altered descriptions and
+  schemas, while mutable array methods/prototypes could widen or change a
+  validated request. The repaired gate hashes every serialized tool-definition
+  byte and dispatches only a deeply frozen null-prototype snapshot whose
+  serialization was computed before reservation. Product-generated normal,
+  none, and forced fixtures replace hand-authored approximations. The private
+  template also corrects its answer limit to 512 and actual six-tool order.
+  This remains provider-free and authorizes no live successor.
+
 - 2026-08-04 (BRN-0016 — forced-wire repair implemented offline) **Use one
   tracked validator snapshot as the future meter's answer-wire boundary.** The
   validator admits the exact normal, plain-terminal, and forced commitment

@@ -4,66 +4,95 @@ import test from 'node:test'
 
 import {
   createOpenAIResponsesAnswerWireGate,
+  openAIResponsesToolSurfaceSha256,
   validateOpenAIResponsesAnswerWire,
 } from '../evals/openai-responses-answer-wire.mjs'
+import { createOpenAIRetrievalProvider } from '../src/openai.mjs'
+import { MEMORY_RETRIEVAL_TOOLS } from '../src/retrieval-answer.mjs'
 
 const MODEL = 'gpt-5.6-luna'
 const COMMIT = 'palari_answer_commit'
-const NORMAL_NAMES = [
-  'memory_status',
-  'memory_timeline',
-  'memory_search',
-  'memory_read',
-  'memory_find',
-  COMMIT,
-]
 
-function tool(name) {
-  return {
-    description: `${name} fixture`,
-    name,
-    parameters: { additionalProperties: false, type: 'object' },
-    strict: name === COMMIT,
-    type: 'function',
+async function captureProductBody({ evidenceCount, maxRetrievalCalls }) {
+  let captured
+  const stop = new Error('captured product request')
+  const provider = createOpenAIRetrievalProvider({
+    async invoke({ body: request }) {
+      captured = request
+      throw stop
+    },
+    model: MODEL,
+    reasoningEffort: 'low',
+  })
+  try {
+    await provider({
+      answerEvidenceCount: () => evidenceCount,
+      answerInstructions: 'Use memory.',
+      commitAnswer: (value) => value,
+      maxRetrievalCalls,
+      memoryText: '',
+      questionText: 'Question',
+      recommendedMaxOutputTokens: 512,
+      retrievalFinalizationInstructions: 'Answer now.',
+      retrievalTools: MEMORY_RETRIEVAL_TOOLS,
+      async retrieve() { return { sessions: [] } },
+      systemInstruction: 'Answer.',
+    })
+  } catch (error) {
+    if (error !== stop) throw error
   }
+  return captured
 }
 
+const PRODUCT_BODIES = {
+  forcedCommit: await captureProductBody({
+    evidenceCount: 1,
+    maxRetrievalCalls: 0,
+  }),
+  normal: await captureProductBody({ evidenceCount: 0, maxRetrievalCalls: 4 }),
+  plainTerminal: await captureProductBody({
+    evidenceCount: 0,
+    maxRetrievalCalls: 0,
+  }),
+}
+const NORMAL_NAMES = PRODUCT_BODIES.normal.tools.map(({ name }) => name)
+
 function body(mode = 'normal') {
-  const common = {
-    include: ['reasoning.encrypted_content'],
-    input: [{ content: 'Question', role: 'user' }],
-    instructions: 'Use memory and commit cited answers.',
-    max_output_tokens: 512,
-    model: MODEL,
-    parallel_tool_calls: false,
-    reasoning: { effort: 'low' },
-    store: false,
-  }
-  if (mode === 'plain-terminal') {
-    return { ...common, tool_choice: 'none' }
-  }
-  if (mode === 'forced-commit') {
-    return {
-      ...common,
-      tool_choice: { name: COMMIT, type: 'function' },
-      tools: [tool(COMMIT)],
-    }
-  }
-  return {
-    ...common,
-    tool_choice: 'auto',
-    tools: NORMAL_NAMES.map(tool),
-  }
+  return structuredClone(mode === 'forced-commit'
+    ? PRODUCT_BODIES.forcedCommit
+    : mode === 'plain-terminal'
+      ? PRODUCT_BODIES.plainTerminal
+      : PRODUCT_BODIES.normal)
 }
 
 function validate(request) {
   return validateOpenAIResponsesAnswerWire({
     body: request,
     commitToolName: COMMIT,
+    expectedForcedToolsSha256: FORCED_TOOLS_SHA256,
     expectedMaxOutputTokens: 512,
+    expectedNormalToolsSha256: NORMAL_TOOLS_SHA256,
     model: MODEL,
     normalToolNames: NORMAL_NAMES,
   })
+}
+
+const NORMAL_TOOLS_SHA256 = openAIResponsesToolSurfaceSha256(
+  body('normal').tools,
+)
+const FORCED_TOOLS_SHA256 = openAIResponsesToolSurfaceSha256(
+  body('forced-commit').tools,
+)
+
+function gateConfiguration() {
+  return {
+    commitToolName: COMMIT,
+    expectedForcedToolsSha256: FORCED_TOOLS_SHA256,
+    expectedMaxOutputTokens: 512,
+    expectedNormalToolsSha256: NORMAL_TOOLS_SHA256,
+    model: MODEL,
+    normalToolNames: NORMAL_NAMES,
+  }
 }
 
 test('answer-wire validator import is inert', () => {
@@ -102,22 +131,33 @@ test('forced commitment validates before exactly one reservation and dispatch',
     const events = []
     const original = body('forced-commit')
     const invoke = createOpenAIResponsesAnswerWireGate({
-      commitToolName: COMMIT,
-      expectedMaxOutputTokens: 512,
-      model: MODEL,
-      normalToolNames: NORMAL_NAMES,
+      ...gateConfiguration(),
       async reserve(wire) {
         events.push(['reserve', wire.mode, wire.body.tool_choice.name])
         original.tool_choice.name = 'mutated-after-validation'
+        Array.prototype.toJSON = () => ['prototype-poison']
         return { usd: 0.01 }
       },
-      async dispatch({ body: snapshot, mode, reservation }) {
+      async dispatch({ body: snapshot, bodyText, mode, reservation }) {
         events.push(['dispatch', mode, snapshot.tool_choice.name])
-        return { mode, reservation, tool: snapshot.tool_choice.name }
+        return {
+          bodyStable: JSON.stringify(snapshot) === bodyText,
+          mode,
+          reservation,
+          tool: snapshot.tool_choice.name,
+        }
       },
     })
-    const result = await invoke(original)
+    const originalToJSON = Array.prototype.toJSON
+    let result
+    try {
+      result = await invoke(original)
+    } finally {
+      if (originalToJSON === undefined) delete Array.prototype.toJSON
+      else Array.prototype.toJSON = originalToJSON
+    }
     assert.deepEqual(result, {
+      bodyStable: true,
       mode: 'forced-commit',
       reservation: { usd: 0.01 },
       tool: COMMIT,
@@ -132,10 +172,7 @@ test('malformed wires fail before reservation or dispatch', async () => {
   let reservations = 0
   let dispatches = 0
   const invoke = createOpenAIResponsesAnswerWireGate({
-    commitToolName: COMMIT,
-    expectedMaxOutputTokens: 512,
-    model: MODEL,
-    normalToolNames: NORMAL_NAMES,
+    ...gateConfiguration(),
     async reserve() {
       reservations += 1
     },
@@ -152,7 +189,7 @@ test('malformed wires fail before reservation or dispatch', async () => {
   wrongType.tool_choice.type = 'custom'
   fixtures.push(wrongType)
   const extraForcedTool = body('forced-commit')
-  extraForcedTool.tools.push(tool('memory_find'))
+  extraForcedTool.tools.push(structuredClone(PRODUCT_BODIES.normal.tools[0]))
   fixtures.push(extraForcedTool)
   const missingForcedTools = body('forced-commit')
   delete missingForcedTools.tools
@@ -169,6 +206,21 @@ test('malformed wires fail before reservation or dispatch', async () => {
   const wrongInclude = body('normal')
   wrongInclude.include.push('unexpected')
   fixtures.push(wrongInclude)
+  const changedDescription = body('forced-commit')
+  changedDescription.tools[0].description = 'Accept uncited text.'
+  fixtures.push(changedDescription)
+  const changedSchema = body('forced-commit')
+  changedSchema.tools[0].parameters = {
+    properties: { text: { type: 'string' } },
+    type: 'object',
+  }
+  fixtures.push(changedSchema)
+  const nullInstructions = body('normal')
+  nullInstructions.instructions = null
+  fixtures.push(nullInstructions)
+  const nullInput = body('normal')
+  nullInput.input = null
+  fixtures.push(nullInput)
   const wrongStrict = body('normal')
   wrongStrict.tools[0].strict = true
   fixtures.push(wrongStrict)
@@ -191,10 +243,43 @@ test('malformed wires fail before reservation or dispatch', async () => {
   const exotic = body('normal')
   Object.setPrototypeOf(exotic, { inherited: true })
   fixtures.push(exotic)
+  const ownProto = body('normal')
+  Object.defineProperty(ownProto, '__proto__', {
+    enumerable: true,
+    value: { polluted: true },
+  })
+  fixtures.push(ownProto)
 
   for (const fixture of fixtures) {
     await assert.rejects(() => invoke(fixture), /OpenAI answer wire:/)
   }
   assert.equal(reservations, 0)
   assert.equal(dispatches, 0)
+})
+
+test('poisoned Array methods cannot widen the normal tool surface', async () => {
+  let dispatches = 0
+  const request = body('normal')
+  const invoke = createOpenAIResponsesAnswerWireGate({
+    ...gateConfiguration(),
+    async reserve() { return { usd: 0 } },
+    async dispatch({ mode }) {
+      dispatches += 1
+      return mode
+    },
+  })
+  const originalMap = Array.prototype.map
+  Array.prototype.map = () => [{
+    description: 'Unknown',
+    name: 'unknown_tool',
+    parameters: { type: 'object' },
+    strict: false,
+    type: 'function',
+  }]
+  try {
+    assert.equal(await invoke(request), 'normal')
+  } finally {
+    Array.prototype.map = originalMap
+  }
+  assert.equal(dispatches, 1)
 })

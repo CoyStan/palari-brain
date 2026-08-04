@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0016 FORCED COMMITMENT METER REPAIR IMPLEMENTED OFFLINE;
-VERIFICATION AND REVIEW NEXT.
+Loop state: BRN-0016 FORCED COMMITMENT METER REPAIR REPAIRED AFTER TWO P1S;
+FRESH REREVIEW PENDING.
 BRN-0015 is accepted, merged, and pushed at `7491684`; its sealed failed
 measurement and `$6.40824561` cumulative accounted spend remain immutable.
 The next unit adds one tracked import-inert validator for the exact Luna
@@ -10,25 +10,30 @@ private BRN-0015 meter omitted, plus adversarial provider-free tests and a
 fresh private offline template. The consumed identity and bundle are excluded.
 No credential, model, dataset, provider, new result identity, or spend is in
 scope. Any successor live run remains founder-gated behind a new exact cap.
-The new import-inert validator snapshots plain own-data JSON before any
-reservation, accepts exactly normal-auto, plain-none, and forced
-`palari_answer_commit` request modes, and freezes the validated body/serialization
-for downstream use. Wrong common fields, forced name/type, missing/extra tools,
-accessors, exotic prototypes, sparse arrays, and cycles fail before reservation
-or dispatch. The exact request shape rejected by BRN-0015 now passes as
-`forced-commit`.
+Fresh review at exact `25fc0a4` found that name-only tool validation admitted
+arbitrary descriptions and schemas/null input, and mutable array prototypes
+could bypass validation or change serialization after it. My post-submit audit
+also found the private template used 4096 rather than the product's exact 512
+output tokens. All are now repaired.
 
-Focused contracts pass 4/4. Fresh private mode-0600 offline template SHA-256 is
-`055361961b55d1ff9917c38f4fb261cc620b92a27ec84700a0701d536a21596c`;
-it pins tracked validator SHA-256
-`d1c98a9ce81161760a1e200a012e0a35eb237a06e1b083d0404b025c37d89d5d`
-and proved `reserve:forced-commit` then `dispatch:forced-commit` with fake
-callbacks. Credential reads / provider calls / model calls / spend were
-`0 / 0 / 0 / $0.00`. The consumed launcher/runtime/manifest still rehash to
-`6ccc091b...` / `d123525e...` / `d4803053...`; no terminal byte changed.
-Full suite passes 709 / fails 0 / skips 15 across 724 tests; quickstart passes
-6/6; ticket, report, scope, and diff checks pass. Next: commit/push, then fresh
-independent read-only review. No live successor exists or is authorized.
+The validator builds dense null-prototype snapshots using captured intrinsics,
+requires non-empty input/instructions, freezes the body and precomputed
+serialization, and pins every serialized byte of the normal/forced tool arrays
+at `46d925c9...` / `0b006512...`. Changed descriptions/schemas fail before
+reservation. Poisoned array methods/toJSON and own `__proto__` cannot widen or
+mutate dispatch. Exact normal/none/forced bodies are captured from accepted
+`src/openai.mjs`, not hand-authored fixtures.
+
+Focused contracts pass 5/5. Fresh private mode-0600 template SHA-256 is
+`6b5ba32ccbee2960f53a47621d3a2bd40c92e5875c648e06181c176161532d5a`;
+it pins validator SHA-256
+`b29387dc286f7f2ab164a9f7d25d81dbbca0a7bf264ea6867f7ba7046ee5cfe2`,
+both full tool hashes, the actual six-tool order, and 512 output tokens. Fake
+verification passes with credential/provider/model/spend activity
+`0 / 0 / 0 / $0.00`. Consumed BRN-0015 hashes remain unchanged. Full suite
+passes 710 / fails 0 / skips 15 across 725 tests; quickstart passes 6/6;
+ticket/report/scope/diff checks pass. Next: commit/push and fresh independent
+rereview. No live successor exists or is authorized.
 
 Loop state: BRN-0015 TERMINAL FAILED MEASUREMENT SEALED; 4/10 QUESTIONS
 REACHED, OFFICIAL PREFIX 3/4, NO RERUN. Founder-authorized identity

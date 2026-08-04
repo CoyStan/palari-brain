@@ -15,11 +15,14 @@ the meter reserves money or sends anything.
 
 ## What I Should Know
 
-The previously rejected forced request now passes locally. Fourteen changed or
-hostile request fixtures fail before even a fake reservation. A fresh private
-template imports the exact tracked validator and passes fake compatibility.
-No key was read, no provider or model was called, no result was created, and
-spend was `$0.00`.
+The first reviewer found our initial version still trusted tool descriptions,
+schemas, and JavaScript array prototypes too much. The repair now hashes every
+tool-definition byte, creates snapshots with no mutable prototype, and checks
+real product-generated requests. Nineteen changed or hostile fixtures fail
+before a fake reservation, and prototype poisoning no longer changes the
+accepted or dispatched request. The private template also uses the real
+512-token limit and actual six-tool order. No key was read, no provider or
+model was called, no result was created, and spend was `$0.00`.
 
 BRN-0015 remains untouched and cannot be retried. This repair does not itself
 tell us what questions 5-10 would score.

@@ -13,18 +13,26 @@
 
 ## Verification
 
-- Focused contract: 4 pass / 0 fail.
+- Focused contract: 5 pass / 0 fail.
 - Exact forced request: validation, then one fake reservation, then one fake
   dispatch. Invalid requests: zero reservations and zero dispatches.
 - Private offline template SHA-256:
-  `055361961b55d1ff9917c38f4fb261cc620b92a27ec84700a0701d536a21596c`;
+  `6b5ba32ccbee2960f53a47621d3a2bd40c92e5875c648e06181c176161532d5a`;
   mode 0600; validator pin
-  `d1c98a9ce81161760a1e200a012e0a35eb237a06e1b083d0404b025c37d89d5d`.
+  `b29387dc286f7f2ab164a9f7d25d81dbbca0a7bf264ea6867f7ba7046ee5cfe2`;
+  normal/forced tool pins `46d925c9...` / `0b006512...`; output limit 512.
 - Consumed BRN-0015 launcher/runtime/manifest hashes are unchanged.
 - Credential reads / provider calls / model calls / result identities / spend:
   `0 / 0 / 0 / 0 / $0.00`.
-- Full suite: 709 pass, 0 fail, 15 skip across 724 tests. Quickstart: 6/6.
+- Full suite: 710 pass, 0 fail, 15 skip across 725 tests. Quickstart: 6/6.
   Ticket, report, scope, and diff checks pass.
+
+First review at `25fc0a4` found two P1s: descriptions/schemas/null input were
+not fully frozen, and mutable prototypes could widen or change the snapshot.
+The repair pins complete serialized tool arrays, requires non-empty dynamic
+fields, creates null-prototype snapshots using captured intrinsics, and tests
+map/toJSON/`__proto__` attacks. Exact product-generated bodies replace the
+hand-authored tool fixtures. Fresh rereview is required.
 
 ## Product Stop Rule
 
@@ -47,7 +55,7 @@ infrastructure unit is drift and must not start.
 
 Exact wire admission proves local compatibility, not provider acceptance or
 answer quality. The validator intentionally permits only the current low-
-reasoning Luna envelope and exact tool names. Any future provider/model/tool
+reasoning Luna envelope and exact serialized tool definitions. Any future provider/model/tool
 change needs a new reviewed contract rather than widening this validator.
 
 The next legitimate unit is a separately frozen measurement identity. That
