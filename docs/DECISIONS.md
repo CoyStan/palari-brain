@@ -3,6 +3,20 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0010 TERMINAL RESULT — local Ettin smoke failed) After fresh
+  independent GO, identity `j4-luna-ettin-first10-v1` ran exactly once and
+  failed during provider-free Transformers.js tokenizer loading with
+  `Cannot read properties of undefined (reading 'tokenizer_class')`. This was
+  before credential-read intent, `.env`, live compatibility, question 1, or
+  any provider dispatch. Fresh spend is `$0.00`; the cumulative ledger remains
+  `$5.27173386`. The five-artifact private bundle is cleanly sealed by manifest
+  SHA-256
+  `aceab5b79409dc441526097c4c0e401d912ca7fde2fa99139513bdf324b2d60a`.
+  BRN-0009's successful runner did not apply BRN-0010's cached-only
+  `env.allowRemoteModels=false` setting; that is the leading static diagnosis,
+  not a proved cause. The identity is terminal and authorizes no rerun, repair,
+  compatibility call, benchmark question, regrade, or replacement mode.
+
 - 2026-08-04 (FOUNDER — BRN-0010 Ettin end-to-end validation) **Accept and
   merge BRN-0009, then run a fresh governed validation of Ettin on the Luna
   first ten.** BRN-0010 uses identity `j4-luna-ettin-first10-v1` on the exact

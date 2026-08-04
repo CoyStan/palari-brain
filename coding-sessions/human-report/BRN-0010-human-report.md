@@ -8,31 +8,31 @@ end-to-end claim on the same first-ten diagnostic used before.
 
 ## What Changed
 
-Only evidence ordering changes: Ettin locally reorders Palari's existing
-bounded canonical candidates. Luna, Gemini embeddings, the judge, prompts,
-memory, questions, four-search limit, finalization, and grading stay fixed.
+The test did not reach Luna. The provider-free local Ettin smoke failed while
+loading the cached tokenizer, before it produced a single relevance score.
+That stopped the run exactly as designed.
 
 ## What I Should Know
 
-The private one-shot launcher verifies every input and the complete local model
-runtime before reading keys. It runs one local smoke, one live compatibility
-smoke, then the ten questions if healthy. Every provider is metered without
-retry. The hard ceiling is `$1.50` fresh, carrying the cumulative ledger from
-`$5.27173386` to at most `$6.77173386`. Any failure is the final result.
+No API key was read, no provider was called, no question was answered, and
+spend was exactly `$0.00`. Therefore there is no new accuracy number. The
+cumulative ledger remains `$5.27173386`.
 
-The preregistration predicts all ten complete, at least 7/10 pass, the previous
-five first-six passes remain passes, question 2 improves, and question 9 stays
-a retrieval miss. It also requires the telemetry to prove Ettin actually ran
-without changing canonical evidence.
+The private bundle is healthy: all five files rehash, every file is mode 0600,
+the manifest has no sealing errors, and the consumed identity cannot run again.
+The strongest static clue is that this run forced cached-only model resolution
+while the earlier successful Ettin bakeoff did not. That is a hypothesis, not
+a result we can confirm by rerunning this identity.
 
 ## What To Check
 
-Independent review should reproduce every hash and cap, confirm Ettin is the
-only causal treatment, confirm benchmark answers never enter runtime logic,
-and confirm the one invocation cannot be repeated or exceed the meter.
+Independent review should reproduce the terminal manifest, zero-call meter,
+absent credential markers, exact error, and one-way consumed attempt. It should
+also ensure the likely cached-only cause is described as an inference.
 
 ## Recommended Next Move
 
-No model inference, credential read, provider call, score, or spend has
-occurred. Offline verification and a fresh independent GO review are next;
-only then may the founder-authorized one-shot run execute.
+Accept this as an honest failed compatibility result after terminal review.
+If end-to-end Ettin validation still matters, open a separate offline repair
+ticket for deterministic cached tokenizer loading, prove that with generic
+data, then request a fresh identity. Do not rerun BRN-0010.

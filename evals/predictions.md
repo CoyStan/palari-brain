@@ -1649,3 +1649,28 @@ Predictions, failing categories first:
    private artifacts with hashes/modes, and reports zero exact credential
    matches with no sealing error. Any failed prediction or terminal stop is the result and authorizes
    no retry, reroll, regrade, repair, or replacement identity.
+
+Result recorded 2026-08-04, failing-first. (1) COMPATIBILITY **FAIL**: the
+exclusive attempt was consumed and entered the provider-free real-brain smoke,
+then Transformers.js tokenizer loading threw
+`TypeError: Cannot read properties of undefined (reading 'tokenizer_class')`.
+No finite Ettin score or local smoke result was produced. (2) COMPLETION
+**FAIL** before live compatibility and question 1. (3) OFFICIAL ACCURACY,
+(4) RETRIEVAL/RERANK, and (5) WIRE are **not assessable**: zero provider call,
+answer, judge, semantic search, scored rerank, or official label occurred.
+(6) EXECUTION/ACCOUNTING **PASS**: exactly one invocation is terminal; fresh
+measured, uncertain, and accounted spend are each `$0.00`; cumulative spend
+remains `$5.27173386`; and the result sealed cleanly with no credential-read
+intent, no `.env` access, no provider dispatch, and no sealing error. Because
+keys were never read, the manifest correctly records that exact-value scanning
+was not performed rather than reading credentials solely to scan.
+
+The mode-0600 terminal manifest SHA-256 is
+`aceab5b79409dc441526097c4c0e401d912ca7fde2fa99139513bdf324b2d60a`.
+Its five artifacts total 238,834 bytes and rehash exactly at mode 0600;
+directories are mode 0700. Static inspection, without inference, locates the
+exception in `AutoTokenizer.from_pretrained` after it received an undefined
+tokenizer configuration. The terminal BRN-0009 runner did not set
+`env.allowRemoteModels=false`; this runtime did. That cached-only difference is
+the leading diagnosis, not a proved cause. No retry, replacement mode, provider
+call, question run, score, reroll, regrade, or result edit followed.

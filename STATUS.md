@@ -1,38 +1,37 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0010 ETTIN + LUNA FIRST-TEN VALIDATION FROZEN; OFFLINE
-VERIFICATION AND FRESH PRE-DISPATCH REVIEW NEXT. Quetzali explicitly accepted
-and merged BRN-0009, then directed a fresh
-governed run validating Ettin end to end. BRN-0010 holds Luna, Gemini semantic
-embeddings, the official judge, questions 1-10, prompts, memory, four-call
-ceiling, finalization, order, and grading fixed; its sole intended treatment is
-injecting the accepted native Ettin reranker into the bounded canonical
-candidate path. Fresh identity `j4-luna-ettin-first10-v1` carries the exact
-`$5.27173386` cumulative accounted ledger forward and uses a `$1.50` fresh /
-`$6.77173386` cumulative hard boundary. This is a known-case private causal
-diagnostic, not an unseen benchmark. P-set 25 freezes the exact ten IDs,
-dataset/order, nine predecessor bundles, ten product/eval hashes, seven Ettin
-artifacts, full 3,208-file runtime closure, provider controls, caps, predictions,
-and one-way execution ritual. Fresh independent review rejected the initial
-private freeze before any inference or credential read: it found incomplete
-tracked-closure pinning, an ambiguous credential-read failure state, and two
-early-terminalization gaps. All four are repaired. The launcher now requires
-exact clean canonical commit `b010d73ad167ff7ff3435607019ed758f9cb79bc`,
-reserves/consumes the identity before re-verification and child preflight,
-uses durable credential intent/stage markers, and always attempts a sanitized
-terminal manifest. The replacement private mode-0600 launcher hashes
-`44dbd48b1265775971264f7ad40a6de9e2e9a4a359b0f7d525743608c436dd67` and
-generates mode-0600 runtime
-`be7d95440b7739beb7ff0331076f5d08cd130e6924df1953e4235ce87a0890f4`.
-Its inert verification is green and confirms the result identity is absent;
-it reads no credential. No BRN-0010 model inference, provider call, credential
-read, result, or spend exists yet. Next: complete provider-free suite and
-ticket checks, commit/push this replacement freeze, obtain fresh independent GO, then
-execute the launcher once under the founder-authorized caps.
+Loop state: BRN-0010 ETTIN + LUNA FIRST-TEN IDENTITY TERMINAL FAILED IN LOCAL
+SMOKE; NO CREDENTIAL OR PROVIDER CALL; TERMINAL REVIEW NEXT. After clean fresh
+GO at `cfc3849`, the founder-authorized launcher ran exactly once. Its durable
+identity was reserved and consumed, then the provider-free real-brain Ettin
+smoke failed during tokenizer loading with
+`TypeError: Cannot read properties of undefined (reading 'tokenizer_class')`.
+No local relevance scores were returned. The failure occurred before the
+credential-read intent marker, `.env`, live compatibility, question 1, or any
+Gemini/Luna/judge dispatch. All ten questions are unlabelled; accuracy,
+retrieval/rerank, and provider-wire predictions are not assessable.
 
-Fresh independent rereview at `cfc3849` found no P0-P3 issue, independently
-closed all four findings, reproduced the final private hashes and inert gates,
-and recommends GO for the single founder-authorized invocation.
+Fresh spend is exactly `$0.00` measured / `$0.00` uncertain / `$0.00`
+accounted, so the cumulative ledger remains `$5.27173386` = `$1.70023596`
+measured + `$3.5714979` uncertain. The mode-0600 terminal manifest SHA-256 is
+`aceab5b79409dc441526097c4c0e401d912ca7fde2fa99139513bdf324b2d60a`.
+All 5/5 artifacts (238,834 bytes) rehash at mode 0600; directories are mode
+0700; `sealStatus` is `sealed` with zero sealing errors. Credential intent and
+loaded-stage markers are both absent, so the manifest truthfully records no
+credential scan rather than reading keys merely to scan.
+
+P-set 25 grades failing-first: (1) COMPATIBILITY FAIL in the local smoke;
+(2) COMPLETION FAIL at the pre-compatibility boundary; (3) OFFICIAL ACCURACY,
+(4) RETRIEVAL/RERANK, and (5) WIRE not assessable; (6)
+EXECUTION/ACCOUNTING PASS for one terminal invocation, exact zero fresh spend,
+clean sealing, and no credential/provider activity. Static inspection locates
+the exception at Transformers.js `AutoTokenizer.from_pretrained`, where the
+loaded tokenizer configuration was undefined. BRN-0009 used the same pinned
+runtime/cache successfully but did not set `env.allowRemoteModels=false`;
+BRN-0010 did. That cached-only mode difference is the leading hypothesis, not
+a proven cause, and this consumed identity authorizes no confirming inference,
+repair, or rerun. Next: fresh independent terminal review, then founder
+acceptance of this honest failed result or a separately governed successor.
 
 Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER IMPLEMENTED AND MEASURED;
 FOUNDER-ACCEPTED AND MERGE AUTHORIZED. After accepting and merging BRN-0008, Quetzali explicitly directed a
