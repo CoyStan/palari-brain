@@ -1,6 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0008 ETTIN-17M COMPATIBILITY TERMINAL FAILED; BANK NOT RUN.
+Loop state: BRN-0008 FOUNDER-ACCEPTED AND MERGE AUTHORIZED; ETTIN-17M
+COMPATIBILITY TERMINAL FAILED; BANK NOT RUN.
 The founder-directed supplemental freeze was committed and pushed at
 `572ab8e` before any Ettin download or score. The one allowed generic smoke
 loaded exact Apache-2.0 revision
@@ -30,7 +31,10 @@ terminal result. A custom local modular-head adapter or Python sidecar is a
 separate governed successor, never a retry of this identity.
 Fresh independent read-only review at `0fb01be` found no P0-P3 issues and
 recommends `accept` specifically as an honest terminal compatibility result,
-not as working Ettin support. Founder acceptance remains pending.
+not as working Ettin support. On 2026-08-04 Quetzali explicitly accepted this
+terminal result and directed a new governed ticket for a native Ettin modular
+head. Next: merge BRN-0008, then freeze that successor without retrying P-set
+23.
 
 Loop state: BRN-0008 PROVIDER-NEUTRAL RERANKER IMPLEMENTED AND MEASURED;
 INDEPENDENT REVIEW NEXT. The founder approved adapting the retrieve-then-

@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0008
 children: []
-status: in-review
+status: accepted
 risk: R2
 priority: P0
 agents_allowed: 1
@@ -282,3 +282,13 @@ cleanup. Review is a recommendation only.
 - Stop if reranking can mutate canonical content/provenance, escape caller
   scope/time bounds, exceed limits, silently fall back after a configured
   reranker fails, or add a second generation-model turn.
+
+## Founder Acceptance
+
+On 2026-08-04 Quetzali explicitly accepted BRN-0008 and directed starting a
+new governed ticket for the native Ettin modular head. Acceptance closes this
+ticket exactly as reviewed: the provider-neutral reranking seam and P-set 22
+MiniLM measurements are accepted; the P-set 23 Ettin compatibility smoke is a
+terminal failure and does not constitute working Ettin support. It authorizes
+no retry of that identity. A successor must use a fresh preregistered
+compatibility identity and preserve the terminal evidence.
