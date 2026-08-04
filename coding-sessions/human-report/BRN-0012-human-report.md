@@ -22,12 +22,13 @@ real model runtime was touched.
 
 ## What To Check
 
-Independent review should check path containment and symlink handling, that
-validation precedes every loader, the two factory argument shapes, stable
-failure behavior, and that the broader suite remains green.
+Fresh independent review checked path containment and symlink handling,
+validation before every loader, both factory argument shapes, stable failure
+behavior, the broader suite, package contents, and ticket scope. It found no
+P0-P3 issue and recommends acceptance.
 
 ## Recommended Next Move
 
-If review is clean, accept and merge BRN-0012 under the founder's delegated
-autonomy. Then open a separate fresh validation ticket that freezes the exact
-runtime/cache/code identity and predictions before one Luna+Ettin run.
+Accept and merge BRN-0012 under the founder's delegated autonomy. Then open a
+separate fresh validation ticket that freezes the exact runtime/cache/code
+identity and predictions before one Luna+Ettin run.

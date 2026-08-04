@@ -3,6 +3,16 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0012 — delegated acceptance) **Accept and merge the
+  cached-only Ettin loader repair after a clean independent review.** The
+  reviewer inspected exact commit
+  `f2e5a74abb17ae4a904c97431ff5358643233a5c`, independently repeated focused,
+  full-suite, quickstart, package, scope, and diff checks, found no P0-P3
+  issue, and recommended acceptance. Quetzali's recorded autonomy directive
+  authorizes this routine clean-review acceptance and merge. A separately
+  frozen successor owns the first real runtime load and must bind every
+  private model artifact before inference.
+
 - 2026-08-04 (BRN-0012 — Ettin cached-only implementation) **Resolve and
   validate the exact local revision directory before loading, then give that
   directory to both Transformers.js factories with `local_files_only: true`.**
