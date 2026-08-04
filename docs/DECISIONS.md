@@ -3,6 +3,20 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (FOUNDER — BRN-0012 Ettin cached-only repair and autonomous
+  validation chain) **Accept BRN-0011, integrate Ettin correctly, then govern
+  implementation, independent review, and one fresh preregistered Luna+Ettin
+  evaluation without returning for routine engineering decisions.** Quetzali
+  directed the agent to continue autonomously until a CEO-level blocker. This
+  delegates routine ticket creation, clean-review acceptance, merge, and
+  successor preparation within the stated Ettin/Luna scope; it does not waive
+  scope checks, independent review, provider spend caps, preregistration,
+  honest terminal results, no-reroll/no-regrade discipline, or the sealed U8
+  prohibition. BRN-0012 repairs only the provider-free offline loader. A live
+  successor must freeze and push its identity/predictions before calls and
+  record the first result whatever it is; 10/10 is an objective, never a basis
+  for tuning or repeated scoring.
+
 - 2026-08-04 (BRN-0011 — supported Ettin integration research) **Keep the
   measured native JavaScript Ettin head; repair only the offline local-directory
   boundary in a separately approved ticket.** The official path and the clear

@@ -1,5 +1,23 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0012 ETTIN CACHED-ONLY MODEL-RESOLUTION CONTRACT OPEN;
+CONTRACT COMMIT/WORKTREE NEXT. Quetzali explicitly accepted BRN-0011, which is
+merged at `29bab2f`, and directed autonomous governed implementation, review,
+and fresh validation of Ettin with Luna until a CEO-level blocker. BRN-0012 is
+the smallest provider-free repair: derive or accept the exact absolute
+revision directory inside the application-owned Transformers.js cache, reject
+symlink/canonical escapes, and give that local directory to both factories
+with `local_files_only: true`. It leaves the frozen model, fp32 transformer,
+tokenization, native head math/artifacts, retrieval bounds, and prior metrics
+unchanged. No real runtime/model load, inference, provider/credential call,
+question, result mutation, download/install, or spend is authorized in this
+unit. After implementation and full verification, fresh independent review is
+mandatory; a clean reviewer may accept and merge under the founder's delegated
+autonomy. Only then may a separately frozen/preregistered live successor run
+once and report its score honestly—10/10 is the objective, not permission to
+reroll or tune on known answers. Cumulative accounted spend remains
+`$5.27173386`.
+
 Loop state: BRN-0011 ETTIN UPSTREAM-INTEGRATION RESEARCH COMPLETE;
 FOUNDER-ACCEPTED AND MERGE AUTHORIZED. Twelve primary upstream artifacts and
 every substantive exact-ID public integration found were inspected. The
