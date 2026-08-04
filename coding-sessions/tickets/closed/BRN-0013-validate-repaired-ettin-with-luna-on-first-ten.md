@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0013
 children: []
-status: open
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -184,6 +184,78 @@ reached.
 - A second scored identity, changed cap/provider/prompt/model/runtime/dataset,
   or selective retry requires fresh explicit founder authority and a new
   preregistration. Routine review/merge authority does not waive that gate.
+
+## Pre-Dispatch Freeze Evidence
+
+- Product cut point: merged BRN-0012 `90e1837`; clean canonical administrative
+  head `784de723daf5be9824b5ef2f18b274eff94e1313` adds only this ticket contract.
+- Private launcher / generated runtime SHA-256:
+  `d9242b407b7477168a9c746bf5350659222f7e6ad3a329ad2ed79e186de57a63` /
+  `df2b746bbc422e88bbf773eeab68292ea1ad85d026988e4ab7ff765a4349a50a`.
+  Terminal runtime-template SHA-256 is
+  `4bc21c6c3d14d977f0aa659608d0998bd029d3f754c4398c1e4f49705aa266d0`.
+- Offline launcher verification: 10/10 predecessor bundles and 218/218
+  predecessor artifacts rehashed; 10/10 product/eval inputs, 7/7 Ettin files,
+  dataset/order, and the 3,208-file runtime closure rehashed; result absent;
+  launcher/runtime mode 0600; syntax and generated runtime verification pass.
+- Focused contracts: 10/10. Full suite: 695 pass, 0 fail, 15 skipped across
+  710. Quickstart: 6/6.
+- Provider calls, credential reads, local model inference, fresh result bytes,
+  and fresh spend: 0 / 0 / 0 / 0 / `$0.00`.
+- Fresh independent review at
+  `163e7e532cf631239f66155dd179b186959d8032` found no P0-P3 issue, repeated
+  launcher/focused/full/quickstart/governance verification, and recommends GO
+  for exactly one invocation. Its review note must be committed and pushed
+  before dispatch.
+
+## Terminal Evidence
+
+- Pre-dispatch GO was committed/pushed at `1ceed8b`. The launcher then ran
+  exactly once; attempt state is `consumed`, child/launcher status is 0, and
+  identity `j4-luna-ettin-first10-v2` is permanently sealed.
+- Local Ettin smoke and live Gemini + Ettin + Luna compatibility both passed.
+  All ten questions completed and received one official judgment. Exact labels
+  are `PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS`: 6/10.
+- Required-session coverage is 12/13. Every official FAIL row consulted every
+  required answer-bearing session; the sole missing session was on a PASS.
+  Three FAIL rows are observed answer-use/personalization failures. On
+  `10d9b85a`, the exact reference and Luna response both say `3 days`, but the
+  official judge returned `No`; this is a clear judge false negative. The
+  official FAIL and aggregate 6/10 remain immutable and were not regraded.
+  Ten non-empty Ettin calls scored exactly 250 immutable candidates, maximum
+  50, with one finite score per candidate and mean 1,290.7 ms/call.
+- Compatibility, completion, retrieval/rerank, wire, and accounting
+  predictions pass. Official accuracy fails below the preregistered `>=7/10`
+  floor and 10/10 objective; specifically `09d032c9` did not reverse.
+- All 138 physical calls succeeded: 33 Luna Responses, ten official judges,
+  and 95 Gemini batches / 4,794 embedding requests. Fresh spend is
+  `$0.75899237` = `$0.02310692` measured + `$0.73588545` uncertain. Cumulative
+  spend is `$6.03072623` = `$1.72334288` measured + `$4.30738335` uncertain.
+- Terminal manifest
+  `eb7dcb01c7a60cbade9a25d179cffde783e1f46c5c79644422eae819da7c3b71`
+  rehashes 73/73 artifacts / 89,106,477 bytes. All recorded files match modes;
+  no symlink, sealing error, or exact credential match exists.
+- No retry, rerun, regrade, selective score, prompt/model change, result
+  repair, or second identity occurred. Fresh terminal review remains before
+  delegated acceptance or merge.
+
+## Terminal Review Correction
+
+- Fresh review at `699cc0a45d84e68410ebc145eb6120f49d2f8c8c` rehashed the
+  complete seal, reconciled all execution/accounting evidence, and found one
+  P1 reporting issue: the tracked record materially misclassified the
+  `10d9b85a` judge false negative as an answer-composition failure.
+- BRN-0013 was reopened for reporting correction only. No private artifact,
+  label, score, prediction, or execution changes. Fresh terminal rereview is
+  mandatory before acceptance.
+
+## Delegated Acceptance
+
+Fresh terminal rereview at `e48ac2bde3d5ea8c4d3d1184c9de3e25bd3259b6`
+found no P0-P3 issue and recommends acceptance. Quetzali's recorded autonomy
+directive authorizes routine clean-review acceptance and merge. This closes
+the official 6/10 terminal record without publication, regrade, rerun, or
+authority for another identity.
 
 ## Verification
 

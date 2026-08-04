@@ -1,5 +1,58 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0013 REPAIRED ETTIN + LUNA FIRST-TEN TERMINAL AT OFFICIAL
+6/10; CORRECTED, CLEANLY REREVIEWED, AND ACCEPTED. BRN-0012 was independently accepted, merged, and
+pushed at `90e1837`; canonical administrative head `784de72` adds only this
+evaluation contract. Fresh identity `j4-luna-ettin-first10-v2` preserves the
+exact BRN-0010 treatment and changes only the accepted absolute cached-model
+directory repair. It selects the ten fixed non-U8 S60 questions, Luna
+`gpt-5.6-luna` Standard/low/no-store, Gemini `gemini-embedding-001`, official
+`gpt-4o-2024-08-06` judge, four memory calls plus tool-disabled finalization,
+and one serial answer/judge per question. Opening cumulative spend remains
+`$5.27173386` = `$1.70023596` measured + `$3.5714979` uncertain; hard caps are
+`$1.50` fresh / `$6.77173386` cumulative.
+
+Private launcher SHA-256 is
+`d9242b407b7477168a9c746bf5350659222f7e6ad3a329ad2ed79e186de57a63`;
+generated runtime SHA-256 is
+`df2b746bbc422e88bbf773eeab68292ea1ad85d026988e4ab7ff765a4349a50a`.
+Offline verification rehashed 218 artifacts in ten terminal predecessors,
+ten product/eval inputs, seven Ettin model/head files, the 3,208-file runtime
+closure, dataset/order, clean canonical checkout, caps, and absent result.
+Focused contracts pass 10/10; full suite passes 695 / fails 0 / skips 15;
+quickstart is green 6/6. P-set 26 was FINAL before execution. Fresh independent
+review at `163e7e532cf631239f66155dd179b186959d8032` found no P0-P3 issue and
+recommended GO. The one invocation then completed both smokes and all ten
+answer/judge cells at `6/10`, with labels
+`PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS` and 12/13 required
+answer sessions consulted. Compatibility, completion, retrieval/rerank, wire,
+and accounting predictions pass; accuracy fails below the `>=7/10` floor.
+All four official FAIL rows received every required session, so no miss is
+attributable to candidate retrieval or Ettin ordering. Fresh terminal review
+found one material diagnostic correction: `10d9b85a` has frozen reference
+`3 days`, Luna answered `3 days`, and the unchanged official judge still said
+`No`. Its official FAIL and the 6/10 score remain immutable, but it is a clear
+judge false negative rather than an answer-composition failure. The observed
+breakdown is therefore three answer-use/personalization failures plus one
+judge-label failure. Ten non-empty Ettin
+calls scored 250 candidates, maximum 50, with exact finite score counts and
+zero content mutation; mean measured rerank latency was 1,290.7 ms per call.
+
+Fresh spend is `$0.75899237` = `$0.02310692` measured + `$0.73588545`
+uncertain. Cumulative spend is `$6.03072623` = `$1.72334288` measured +
+`$4.30738335` uncertain, under the `$6.77173386` boundary. All 138 physical
+calls succeeded: 33 Luna, 10 judges, and 95 Gemini embedding batches carrying
+4,794 requests. Terminal manifest
+`eb7dcb01c7a60cbade9a25d179cffde783e1f46c5c79644422eae819da7c3b71`
+rehashes 73/73 artifacts / 89,106,477 bytes, has no sealing error, and reports
+zero exact credential matches. The identity is consumed and cannot be rerun.
+Fresh rereview at `e48ac2bde3d5ea8c4d3d1184c9de3e25bd3259b6` found no
+P0-P3 issue and recommends acceptance. BRN-0013 is accepted under the
+founder's delegated routine authority. Next: merge/push this record. The
+smallest evidence-led next
+product units are separate offline provider-neutral answer-evidence composition
+and judge-robustness contracts; a second scored identity is a founder gate.
+
 Loop state: BRN-0012 ETTIN CACHED-ONLY MODEL RESOLUTION INDEPENDENTLY REVIEWED
 AND ACCEPTED; MERGE NEXT. Quetzali explicitly accepted
 BRN-0011, which is

@@ -3,6 +3,52 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-04 (BRN-0013 — delegated acceptance) **Accept and merge the honest
+  terminal official 6/10 record after clean corrected rereview.** Fresh review
+  at `e48ac2bde3d5ea8c4d3d1184c9de3e25bd3259b6` found no P0-P3 issue, directly
+  rehashed the complete sealed bundle, and reconciled calls/accounting. The
+  founder's recorded autonomy directive authorizes routine acceptance/merge.
+  This accepts the measurement record and live Ettin/Luna compatibility; it
+  does not publish, regrade, claim 10/10, or authorize another identity.
+
+- 2026-08-04 (BRN-0013 RESULT CLASSIFICATION CORRECTION) **Keep the official
+  6/10 immutable, but classify `10d9b85a` as a clear judge false negative, not
+  an answer-composition failure.** The frozen reference is exactly `3 days`
+  and Luna's response begins `You spent 3 days`; the unchanged official judge
+  nevertheless returned `No`. The terminal reviewer found this P1 reporting
+  error while independently rehashing the clean seal. No answer, label, score,
+  prediction, judge call, or result byte changes. The honest breakdown is four
+  official FAIL labels: three observed answer-use/personalization failures and
+  one judge-label failure. Answer-boundary and judge-robustness work are now
+  separate offline concerns; any new scoring remains founder-gated.
+
+- 2026-08-04 (BRN-0013 RESULT — repaired Ettin + Luna completed at 6/10)
+  **Record the one invocation as terminal, with no rerun or result-driven
+  patch.** Both smokes and all ten answer/judge cells completed. Ettin/Luna
+  integration is live and mechanically correct: 12/13 required sessions were
+  consulted, all measured candidate scores were finite and immutable, and
+  every tool/finalization/provider boundary held. Official labels were
+  `PASS, FAIL, PASS, PASS, PASS, PASS, FAIL, FAIL, FAIL, PASS`. The four
+  failures all received every required answer-bearing session, locating the
+  remaining limitation after retrieval/reranking in evidence interpretation
+  and multi-fact composition. Fresh spend was `$0.75899237`; cumulative
+  accounted spend is `$6.03072623`. Any general answer-boundary repair must be
+  provider-neutral, offline, and separately governed; these known answers may
+  not become runtime rules. Another score requires fresh founder authority.
+
+- 2026-08-04 (FOUNDER GO — BRN-0013 repaired Ettin + Luna first ten)
+  **Authorize exactly one fresh `j4-luna-ettin-first10-v2` invocation under a
+  `$1.50` fresh / `$6.77173386` cumulative accounted cap after committed
+  preregistration and independent GO review.** Quetzali accepted BRN-0011,
+  directed correct Ettin integration and rerun/fix work, and delegated routine
+  governed engineering/review/merge until a CEO-level blocker. BRN-0012 is
+  merged at `90e1837`; BRN-0013 carries the unchanged `$5.27173386` opening
+  ledger and exact BRN-0010 treatment except for that accepted loader repair.
+  One provider-free local smoke and one live compatibility smoke precede the
+  ten ordered questions. Any failure or score is terminal. Ten of ten is the
+  objective, never authority for reroll, regrade, answer-specific tuning, or a
+  second identity. Sealed U8 remains unreachable.
+
 - 2026-08-04 (BRN-0012 — delegated acceptance) **Accept and merge the
   cached-only Ettin loader repair after a clean independent review.** The
   reviewer inspected exact commit
