@@ -23,6 +23,12 @@ export const TRANSFORMERS_RERANKER_MODELS = Object.freeze({
     license: 'Apache-2.0',
     revision: 'b5c6e9da73abc3711f593f705371cdbe9e0fe422',
   }),
+  'cross-encoder/ettin-reranker-17m-v1': Object.freeze({
+    dtype: 'fp32',
+    language: 'en',
+    license: 'Apache-2.0',
+    revision: '9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6',
+  }),
 })
 
 // Selected by the preregistered BRN-0008 Pareto rule: eligible at 13/15

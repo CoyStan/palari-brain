@@ -1,5 +1,19 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0008 REOPENED BY FOUNDER FOR ETTIN-17M; SUPPLEMENTAL FREEZE
+IN PROGRESS. After the terminal three-model P-set 22 result and two fresh
+reviews, Quetzali declined MiniLM-L6 as the intended default and explicitly
+selected the newer local Ettin family. The original bank, predictions, and
+MiniLM-L6/L12/mxbai-xsmall results remain immutable. The reopened contract
+adds only Apache-2.0 English `cross-encoder/ettin-reranker-17m-v1` at exact
+revision `9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6`, with one preregistered
+generic compatibility smoke followed, only if compatible, by one terminal
+pass over the unchanged bank. P-set 23 predicts at least 13/15 top-1, 0.90
+MRR, 15/15 recall@5, and lower latency than MiniLM-L6's measured 44.6342
+ms/case. No provider, credential, generation model, dataset, LongMemEval
+identity, or paid call is involved; expected provider spend is `$0.00`.
+Next: commit and push the amended freeze before downloading or scoring Ettin.
+
 Loop state: BRN-0008 PROVIDER-NEUTRAL RERANKER IMPLEMENTED AND MEASURED;
 INDEPENDENT REVIEW NEXT. The founder approved adapting the retrieve-then-
 rerank pattern found across Graphiti, Mem0, FastEmbed, Transformers.js,

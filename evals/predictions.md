@@ -1382,3 +1382,56 @@ Predictions, failing categories first:
 6. ACCOUNTING: provider spend is exactly `$0.00`; no credential is read, no
    generation or live provider call occurs, and no model/cache/result byte is
    present in the committed diff.
+
+## P-set 23 — BRN-0008 founder-directed Ettin-17M local successor
+
+Status: **FINAL before any Ettin model download, compatibility inference, or
+bank score.** This block supplements and never changes P-set 22. P-set 22's
+MiniLM-L6, MiniLM-L12, and mxbai-xsmall invocations and results remain
+terminal and are not rerun.
+
+Author: repository implementation lane, 2026-08-03. Quetzali explicitly chose
+the newer local Ettin family after reviewing the completed older-model result.
+This remains an offline synthetic retrieval-order measurement: no provider
+credential, paid request, generation model, LongMemEval row, known answer, or
+sealed identity participates.
+
+The only new model identity is the Apache-2.0 English model
+`cross-encoder/ettin-reranker-17m-v1` at exact revision
+`9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6`, executed as fp32 ONNX through the
+same isolated `@huggingface/transformers@4.2.0` runtime and external cache.
+The bank remains exact version `brn-0008/v1`; its canonical JSON SHA-256 is
+`a89f5179874313d60e4bf46b7af8aad74ad31398873f55f1f4796dbaf96784f1`.
+The amended runner SHA-256 is
+`70ad701bbfb711836607fc0d00689fab518631998496cc52539fc43f90f675b5` and the
+amended adapter SHA-256 is
+`e5caf48ae213589b244809e0be67856013272c2fc7c4eaebf917234634dc7f55`.
+The scoring metrics, 15-positive labels, return cutoff 5, baseline, timing
+method, eligibility floors, and Pareto rule are unchanged from P-set 22.
+
+After this block and the exact amended code identities are committed and
+pushed, one generic two-document compatibility inference is permitted. It
+must load the pinned model and return exactly two finite logits. If it passes,
+exactly one ordered bank pass is permitted. A compatibility or bank failure is
+retained; there is no retry, model/revision/dtype/runtime swap, threshold sweep,
+case-specific rerun, or old-model rerun after any Ettin score is visible.
+
+Predictions, failing categories first:
+
+1. COMPATIBILITY: the exact Ettin revision loads through the existing local
+   tokenizer plus sequence-classifier wire and returns exactly two finite
+   scores for the generic smoke pair.
+2. QUALITY: Ettin reaches at least `13/15` top-1, MRR `>=0.90`, and recall@5
+   `15/15`; it therefore meets the unchanged eligibility floors.
+3. LATENCY: Ettin completes below `44.6342` warm milliseconds/case on this
+   machine, beating the terminal MiniLM-L6 measurement. This is deliberately
+   stronger than merely remaining below the existing 500 ms ceiling.
+4. SELECTION: Ettin is eligible and lower-latency than every terminal eligible
+   model, so the unchanged lowest-latency nondominated rule replaces
+   MiniLM-L6 with Ettin-17M as the optional measured default.
+5. SAFETY: the result reports zero canonical content mutations; Ettin returns
+   only locating scores and cannot author or alter canonical evidence or
+   provenance. English-only support is recorded as a limitation.
+6. ACCOUNTING: provider spend remains exactly `$0.00`; no credential,
+   generation model, dataset, or live provider is accessed, and no
+   model/cache/result byte enters git.

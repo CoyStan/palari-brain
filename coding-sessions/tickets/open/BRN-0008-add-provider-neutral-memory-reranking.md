@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0008
 children: []
-status: in-review
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-03T23:59:39Z
 target_branch: "main"
 branch: "ticket/BRN-0008-add-provider-neutral-memory-reranking"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0008-add-provider-neutral-memory-reranking"
@@ -107,6 +107,20 @@ No upstream source code is copied. Model weights are external adapted data:
 their origin, revision, license, and cache boundary must be recorded before
 download, and no model or benchmark result bytes may enter git.
 
+### Founder-Directed Ettin Reopening
+
+After the original three-model result and two independent reviews were
+committed, Quetzali explicitly declined the measured MiniLM-L6 default and
+directed Palari to use the newer local Ettin family. This reopens the ticket;
+it does not rewrite, rerun, or discard P-set 22 or any of its three terminal
+results. The bounded successor comparison adds only
+`cross-encoder/ettin-reranker-17m-v1` at the exact Apache-2.0 revision
+`9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6`. Hugging Face's published fp32
+CPU table reports 267.4 pairs/second for Ettin-17M versus 143.9 for MiniLM-L6,
+and its English retrieval table reports higher quality. Those upstream
+figures are a prediction source, not Palari evidence; local compatibility and
+the frozen Palari bank remain decisive.
+
 ## Scope
 
 - Add one optional `reranker(query, canonicalTexts)` capability to
@@ -135,6 +149,12 @@ download, and no model or benchmark result bytes may enter git.
   `7b0235231ca2674cb8ca8f022859a6eba2b1c968`, and
   `mixedbread-ai/mxbai-rerank-xsmall-v1` at
   `b5c6e9da73abc3711f593f705371cdbe9e0fe422`.
+- Preserve those three terminal results, then run one compatibility smoke and
+  exactly one recorded offline bank pass for
+  `cross-encoder/ettin-reranker-17m-v1` at
+  `9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6`, after a new prediction block and
+  the amended adapter/runner identity are committed and pushed. The smoke uses
+  generic text outside the bank and is not an authority to retry the bank.
 - Choose a default only if it is on the preregistered quality/latency Pareto
   frontier and passes every safety/shape contract. Otherwise ship the seam
   without a default and report the finding.
@@ -157,6 +177,8 @@ download, and no model or benchmark result bytes may enter git.
   findings (including ONNX archive and Sharp/libvips paths), so the recorded
   bakeoff runs in an isolated untracked runtime and ships no vulnerable
   package transitively.
+- No Ettin-32M, Ettin-68M, language expansion, runtime replacement, old-model
+  rerun, or second Ettin bank pass. Those require a separate successor.
 - No vendored model weights or cache files in git. No BGE model download in
   this ticket: the inspected community ONNX conversion does not carry a clear
   license field, and the upstream 0.6B model is outside the low-latency trial.
@@ -173,13 +195,14 @@ download, and no model or benchmark result bytes may enter git.
    results fail loudly before the answer provider can treat a partial ranking
    as valid. Scores remain locating metadata, never evidence.
 4. The local adapter is import-inert, reads no credential, makes no generation
-   call, pins only the three licensed revisions above, bounds inputs/batches,
+   call, pins only the four licensed revisions above, bounds inputs/batches,
    and can be tested without network or model downloads. Runtime model cache is
    gitignored and absent from the committed diff.
-5. The exact bank and predictions are FINAL before the first model score. The
+5. P-set 22 and its three results remain immutable. A new exact prediction
+   block is FINAL before the Ettin compatibility score or model download. The
    runner reports top-1 accuracy, MRR, recall at the return cutoff, warm batch
-   latency, model/revision/runtime identity, and raw per-case ranks. Each model
-   gets one recorded scored pass; a bad result is retained, not rerun.
+   latency, model/revision/runtime identity, and raw per-case ranks. Ettin gets
+   one recorded bank pass; a bad result is retained, not rerun.
 6. Selection follows the frozen Pareto rule instead of choosing the model that
   happens to repair one known case. Product code, adapter defaults, newly
   added tests, and the bakeoff bank contain no LongMemEval ID or known
@@ -208,6 +231,8 @@ answer-use failure behind a question-specific rule.
 - Generic reranker seam and local adapter are committed with broad contracts.
 - The preregistered one-pass bakeoff is reproducible from pinned external model
   revisions while keeping all weight/cache bytes out of git.
+- The founder-directed Ettin amendment preserves the first comparison and adds
+  one preregistered compatibility smoke plus one terminal Ettin bank pass.
 - The measured winner, or honest no-winner result, is recorded before review.
 - A fresh reviewer recommends `accept`, `reopen`, or `needs-human`.
 
@@ -224,8 +249,8 @@ answer-use failure behind a question-specific rule.
 
 - A needed product path, model, dependency, metric, or second scored pass
   outside this contract requires reopening before work proceeds.
-- A model load or inference failure is its recorded result; do not swap model
-  revision, dtype, execution provider, or rerun after seeing scores.
+- An Ettin model load or inference failure is its recorded result; do not swap
+  model revision, dtype, execution provider, or rerun after seeing scores.
 - Any future live answer evaluation requires a separate founder-gated ticket,
   fresh identity, predictions, cap, and review.
 

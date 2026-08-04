@@ -3,6 +3,20 @@
 Append-only, newest first. Founder decisions and license verdicts land
 here with dates. Agents record; the founder decides.
 
+- 2026-08-03 (FOUNDER — BRN-0008 Ettin reopening) **Use the newer local
+  English Ettin-17M reranker instead of accepting MiniLM-L6 as Palari's
+  measured default.** Preserve the three terminal P-set 22 results, pin
+  `cross-encoder/ettin-reranker-17m-v1` at
+  `9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6` (Apache-2.0), preregister a
+  supplemental comparison, then permit one generic compatibility smoke and
+  one terminal pass over the unchanged bank. The upstream
+  [model repository](https://huggingface.co/cross-encoder/ettin-reranker-17m-v1/tree/9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6)
+  publishes fp32 and quantized ONNX artifacts; the
+  [verified benchmark correction](https://huggingface.co/cross-encoder/ettin-reranker-17m-v1/commit/9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6)
+  reports 267.4 fp32 CPU pairs/second. These external figures inform the
+  prediction but do not replace Palari's on-machine result. No API provider,
+  credential, generation model, or paid spend is authorized or involved.
+
 - 2026-08-03 (FOUNDER — Quetzali, in session) **Add and honestly measure a
   provider-neutral local memory reranker.** After reviewing Graphiti, Mem0,
   FastEmbed, FlagEmbedding, Mixedbread, and Sentence Transformers, the

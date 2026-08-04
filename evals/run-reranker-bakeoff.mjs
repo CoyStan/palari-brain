@@ -60,7 +60,7 @@ function parseArgs(argv) {
   const options = {}
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
-    if (token === '--verify' || token === '--run') {
+    if (token === '--verify' || token === '--run' || token === '--smoke') {
       if (options.mode) throw new TypeError('Choose exactly one mode.')
       options.mode = token.slice(2)
       continue
@@ -197,6 +197,67 @@ async function runModel(options) {
   }
 }
 
+async function runSmoke(options) {
+  if (options.model !== 'cross-encoder/ettin-reranker-17m-v1') {
+    throw new TypeError('The frozen smoke model is Ettin-17M.')
+  }
+  for (const name of ['cache', 'result', 'runtime']) {
+    if (!options[name]) throw new TypeError(`--${name} is required in smoke mode.`)
+  }
+  const cacheDir = outsideRepository(options.cache, 'cache')
+  const resultPath = outsideRepository(options.result, 'result')
+  const runtimePath = outsideRepository(options.runtime, 'runtime')
+  const runtimeUrl = pathToFileURL(runtimePath).href
+  let loadedRuntime
+  const reranker = createTransformersReranker({
+    cacheDir,
+    loadRuntime: async () => {
+      loadedRuntime ??= await import(runtimeUrl)
+      return loadedRuntime
+    },
+    modelId: options.model,
+  })
+  const common = {
+    costUsd: 0,
+    model: reranker.model,
+    runtime: {
+      name: '@huggingface/transformers',
+      version: '4.2.0',
+    },
+    startedAt: new Date().toISOString(),
+  }
+  try {
+    const scores = await reranker(
+      'Which planet is known as the Red Planet?',
+      [
+        'Mars is commonly called the Red Planet.',
+        'The Pacific Ocean is the largest ocean on Earth.',
+      ],
+    )
+    const result = {
+      ...common,
+      completedAt: new Date().toISOString(),
+      finiteScores: scores.length === 2 && scores.every(Number.isFinite),
+      scoreCount: scores.length,
+      status: 'completed',
+    }
+    if (!result.finiteScores) {
+      throw new TypeError('Ettin compatibility smoke returned invalid scores.')
+    }
+    await writeExclusive(resultPath, result)
+    return result
+  } catch (error) {
+    const result = {
+      ...common,
+      completedAt: new Date().toISOString(),
+      failure: error instanceof Error ? error.message : String(error),
+      status: 'failed',
+    }
+    await writeExclusive(resultPath, result)
+    return result
+  }
+}
+
 export async function main(argv = process.argv.slice(2)) {
   const options = parseArgs(argv)
   if (options.mode === 'verify') {
@@ -212,8 +273,11 @@ export async function main(argv = process.argv.slice(2)) {
       selectionRule: RERANKER_SELECTION_RULE,
     }
   }
+  if (options.mode === 'smoke') {
+    return runSmoke(options)
+  }
   if (options.mode !== 'run') {
-    throw new TypeError('Choose --verify or --run.')
+    throw new TypeError('Choose --verify, --smoke, or --run.')
   }
   return runModel(options)
 }

@@ -43,7 +43,7 @@ test('metrics use positive cases and the frozen return cutoff', () => {
 test('verification is import-safe and scoring flags fail closed', async () => {
   const verified = await main(['--verify'])
   assert.equal(verified.bankCases, 16)
-  await assert.rejects(() => main([]), /Choose --verify or --run/)
+  await assert.rejects(() => main([]), /Choose --verify, --smoke, or --run/)
   await assert.rejects(
     () => main(['--verify', '--model', 'x']),
     /accepts no scoring arguments/,
@@ -51,5 +51,9 @@ test('verification is import-safe and scoring flags fail closed', async () => {
   await assert.rejects(
     () => main(['--run', '--model', 'x']),
     /frozen --model/,
+  )
+  await assert.rejects(
+    () => main(['--smoke', '--model', 'x']),
+    /frozen smoke model/,
   )
 })
