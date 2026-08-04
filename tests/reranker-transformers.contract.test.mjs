@@ -150,6 +150,24 @@ test('adapter rejects overbounds and malformed runtime outputs', async () => {
   await assert.rejects(() => nonfinite('q', ['a']), /nonfinite logit/)
 })
 
+test('a failed runtime load reaches the caller and is not memoized',
+  async () => {
+    const fake = fakeRuntime()
+    let loads = 0
+    const rerank = createTransformersReranker({
+      loadRuntime: async () => {
+        loads += 1
+        if (loads === 1) throw new Error('offline cache miss')
+        return fake.runtime
+      },
+      modelId: 'cross-encoder/ms-marco-MiniLM-L6-v2',
+    })
+    await assert.rejects(() => rerank('q', ['a']), /offline cache miss/)
+    // The rejection is reported, not latched: the next call retries the load.
+    assert.deepEqual(await rerank('q', ['a', 'b']), [0.1, 0.9])
+    assert.equal(loads, 2)
+  })
+
 test('empty candidates do not load the optional runtime', async () => {
   let loaded = false
   const rerank = createTransformersReranker({

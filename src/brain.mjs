@@ -251,8 +251,13 @@ export async function createPalariBrain(options = {}) {
     if (store && !options.store) {
       try {
         store.close()
-      } catch {
+      } catch (closeError) {
         // Preserve the initialization error; this handle is package-owned.
+        // A failed close still leaves a database handle open, so record it
+        // on the error being thrown rather than discarding it.
+        error.storeCloseFailure = String(
+          closeError?.code ?? closeError?.message ?? 'store_close_failed',
+        )
       }
     }
     throw error
@@ -663,8 +668,10 @@ export async function ingestChatTurn(brain, turn = {}, {
   let normalized
   try {
     normalized = normalizeStatementExtractionPayload(payload)
-  } catch {
-    return noIndex('invalid_payload')
+  } catch (error) {
+    return noIndex('invalid_payload', {
+      errorCategory: String(error?.code ?? error?.name ?? 'invalid_payload'),
+    })
   }
   let index
   try {

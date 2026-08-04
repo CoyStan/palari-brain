@@ -122,8 +122,21 @@ export class OpenAIResponsesError extends Error {
   }
 }
 
-function adapterError(code, message) {
-  return new OpenAIResponsesError(code, message)
+// The underlying failure never travels as `cause`: a transport or parser
+// error can quote the request, and the request carries the API key. Its
+// category (an errno, a DOMException name, `SyntaxError`) carries no request
+// bytes, and without it every dispatch failure is one indistinguishable
+// message.
+function adapterError(code, message, cause) {
+  const error = new OpenAIResponsesError(code, message)
+  if (cause !== undefined) {
+    // `fetch` reports connection failures as a generic TypeError whose own
+    // cause holds the errno, so read one level down before the name.
+    error.causeCategory = String(
+      cause?.code ?? cause?.cause?.code ?? cause?.name ?? 'unknown_failure',
+    ).slice(0, 80)
+  }
+  return error
 }
 
 async function boundedResponseText(response, maxBytes) {
@@ -249,10 +262,11 @@ export function createOpenAIResponsesTransport({
         ...request.init,
         signal: AbortSignal.timeout(timeout),
       })
-    } catch {
+    } catch (error) {
       throw adapterError(
         'OPENAI_TRANSPORT_FAILED',
         'OpenAI Responses dispatch failed.',
+        error,
       )
     }
 
@@ -272,6 +286,7 @@ export function createOpenAIResponsesTransport({
       throw adapterError(
         'OPENAI_RESPONSE_READ_FAILED',
         'OpenAI Responses body could not be read.',
+        error,
       )
     }
     if (!text.trim()) {
@@ -284,10 +299,11 @@ export function createOpenAIResponsesTransport({
       const parsed = JSON.parse(text)
       if (!plainObject(parsed)) throw new TypeError('not an object')
       return parsed
-    } catch {
+    } catch (error) {
       throw adapterError(
         'OPENAI_RESPONSE_INVALID_JSON',
         'OpenAI Responses returned malformed JSON.',
+        error,
       )
     }
   }
@@ -342,10 +358,11 @@ function functionCalls(output, allowedNames) {
     let parsed
     try {
       parsed = JSON.parse(item.arguments)
-    } catch {
+    } catch (error) {
       throw adapterError(
         'OPENAI_FUNCTION_ARGUMENTS_INVALID',
         `OpenAI function ${name} arguments are malformed JSON.`,
+        error,
       )
     }
     calls.push({
@@ -854,10 +871,11 @@ function normalizeGraphText(text, evidence) {
   let parsed
   try {
     parsed = JSON.parse(text)
-  } catch {
+  } catch (error) {
     throw adapterError(
       'OPENAI_GRAPH_PROPOSAL_INVALID',
       'OpenAI graph extraction must be valid JSON.',
+      error,
     )
   }
   if (!exactKeys(parsed, ['assertions']) ||

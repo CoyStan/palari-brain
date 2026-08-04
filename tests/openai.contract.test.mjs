@@ -257,6 +257,86 @@ test('OpenAI transport is one-shot, bounded, and does not echo credentials',
     )
   })
 
+test('adapter failures name their underlying category without echoing bytes',
+  async () => {
+    const apiKey = 'offline-category-secret'
+    const refused = new Error(`connect refused for ${apiKey}`)
+    refused.cause = Object.assign(new Error('refused'), {
+      code: 'ECONNREFUSED',
+    })
+    const transportFailure = createOpenAIResponsesTransport({
+      apiKey,
+      async fetchImpl() {
+        throw refused
+      },
+    })
+    await assert.rejects(
+      transportFailure({
+        body: { input: 'hello', model: OPENAI_LUNA_MODEL, store: false },
+      }),
+      (error) => {
+        assert.equal(error.code, 'OPENAI_TRANSPORT_FAILED')
+        // The category identifies the failure; nothing quotes the request.
+        assert.equal(error.causeCategory, 'ECONNREFUSED')
+        assert.equal(error.cause, undefined)
+        assert.equal(String(error).includes(apiKey), false)
+        assert.equal(
+          JSON.stringify(error, Object.keys(error)).includes(apiKey),
+          false,
+        )
+        return true
+      },
+    )
+
+    const malformed = createOpenAIResponsesTransport({
+      apiKey,
+      async fetchImpl() {
+        return {
+          headers: { get: () => 'req_test' },
+          ok: true,
+          status: 200,
+          async text() {
+            return 'not json'
+          },
+        }
+      },
+    })
+    await assert.rejects(
+      malformed({
+        body: { input: 'hello', model: OPENAI_LUNA_MODEL, store: false },
+      }),
+      (error) => {
+        assert.equal(error.code, 'OPENAI_RESPONSE_INVALID_JSON')
+        assert.equal(error.causeCategory, 'SyntaxError')
+        return true
+      },
+    )
+
+    const notAnObject = createOpenAIResponsesTransport({
+      apiKey,
+      async fetchImpl() {
+        return {
+          headers: { get: () => 'req_test' },
+          ok: true,
+          status: 200,
+          async text() {
+            return '[]'
+          },
+        }
+      },
+    })
+    await assert.rejects(
+      notAnObject({
+        body: { input: 'hello', model: OPENAI_LUNA_MODEL, store: false },
+      }),
+      (error) => {
+        assert.equal(error.code, 'OPENAI_RESPONSE_INVALID_JSON')
+        assert.equal(error.causeCategory, 'TypeError')
+        return true
+      },
+    )
+  })
+
 test('retrieval provider preserves reasoning and tool output across Responses',
   async () => {
     const bodies = []

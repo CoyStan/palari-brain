@@ -131,6 +131,13 @@ export function createTransformersReranker({
         }
         return { classifier, tokenizer }
       })()
+      // A rejected load must reach every waiter, but it must not become the
+      // permanent memoized answer: a missing cache entry or a transient
+      // download failure would otherwise disable the reranker for the
+      // lifetime of the process.
+      loading.catch(() => {
+        loading = undefined
+      })
     }
     return loading
   }
