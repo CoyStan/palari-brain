@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0010 ETTIN + LUNA FIRST-TEN VALIDATION CONTRACT OPEN; FREEZE
-NEXT. Quetzali explicitly accepted and merged BRN-0009, then directed a fresh
+Loop state: BRN-0010 ETTIN + LUNA FIRST-TEN VALIDATION FROZEN; OFFLINE
+VERIFICATION AND FRESH PRE-DISPATCH REVIEW NEXT. Quetzali explicitly accepted
+and merged BRN-0009, then directed a fresh
 governed run validating Ettin end to end. BRN-0010 holds Luna, Gemini semantic
 embeddings, the official judge, questions 1-10, prompts, memory, four-call
 ceiling, finalization, order, and grading fixed; its sole intended treatment is
@@ -9,11 +10,18 @@ injecting the accepted native Ettin reranker into the bounded canonical
 candidate path. Fresh identity `j4-luna-ettin-first10-v1` carries the exact
 `$5.27173386` cumulative accounted ledger forward and uses a `$1.50` fresh /
 `$6.77173386` cumulative hard boundary. This is a known-case private causal
-diagnostic, not an unseen benchmark. No BRN-0010 launcher, prediction, runtime,
-result, provider call, credential read, or spend exists yet. Next: commit and
-push the ticket contract from clean canonical main, create its worktree, then
-freeze the exact private launcher/runtime and FINAL predictions before fresh
-pre-dispatch review.
+diagnostic, not an unseen benchmark. P-set 25 freezes the exact ten IDs,
+dataset/order, nine predecessor bundles, ten product/eval hashes, seven Ettin
+artifacts, full 3,208-file runtime closure, provider controls, caps, predictions,
+and one-way execution ritual. The private mode-0600 launcher hashes
+`418e0bebd9844f7291c29e0df3fffcc8c7891a280d7143d1b571068cace518ef` and
+generates mode-0600 runtime
+`877365443162cbbe7dd190642c08bbfb9c6d26ed24dabcd7483f94e4fcf4c0d9`.
+Its inert verification is green and confirms the result identity is absent;
+it reads no credential. No BRN-0010 model inference, provider call, credential
+read, result, or spend exists yet. Next: complete provider-free suite and
+ticket checks, commit/push this exact freeze, obtain fresh independent GO, then
+execute the launcher once under the founder-authorized caps.
 
 Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER IMPLEMENTED AND MEASURED;
 FOUNDER-ACCEPTED AND MERGE AUTHORIZED. After accepting and merging BRN-0008, Quetzali explicitly directed a

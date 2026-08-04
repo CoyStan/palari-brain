@@ -18,6 +18,17 @@ here with dates. Agents record; the founder decides.
   reroll, regrade, second identity, sealed-U8 access, or publication is
   authorized.
 
+  The committed freeze uses FINAL P-set 25 and private identity
+  `j4-luna-ettin-first10-v1`. Its mode-0600 launcher SHA-256 is
+  `418e0bebd9844f7291c29e0df3fffcc8c7891a280d7143d1b571068cace518ef`;
+  generated runtime SHA-256 is
+  `877365443162cbbe7dd190642c08bbfb9c6d26ed24dabcd7483f94e4fcf4c0d9`.
+  Before loading `.env`, the one-shot execution must pass a provider-free
+  real-brain Ettin smoke. The terminal private bundle is sealed with exact
+  artifact hashes/modes and, once credentials have lawfully been read, an
+  exact-value credential scan. An early pre-credential failure records that
+  the scan was not performed rather than reading credentials merely to scan.
+
 - 2026-08-04 (FOUNDER — BRN-0009 native Ettin successor) **Accept and merge
   BRN-0008 as an honest terminal compatibility finding, then implement the
   missing Ettin modular scoring head locally in native JavaScript.** BRN-0009
