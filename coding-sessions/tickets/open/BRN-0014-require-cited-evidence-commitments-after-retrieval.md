@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0014
 children: []
-status: open
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-04T04:12:58Z
 target_branch: "main"
 branch: "ticket/BRN-0014-require-cited-evidence-commitments-after-retrieval"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0014-require-cited-evidence-commitments-after-retrieval"
