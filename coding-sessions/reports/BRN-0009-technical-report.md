@@ -42,6 +42,18 @@ weights, exact sizes, and exact SHA-256 values. Missing head files download
 only from exact revision URLs into private external cache paths; corrupt cached
 bytes fail and are not silently replaced.
 
+After the first independent review, the loader was tightened to reject every
+existing symlink component below the cache root and to verify canonical parent
+containment before an atomic write. The evaluation runner now verifies the
+actually imported runtime's exported version plus exact package metadata and
+entrypoint hashes before any model operation. A read-only audit of the
+preserved runtime reproduced `@huggingface/transformers@4.2.0`, package JSON
+SHA-256
+`9cf12901d934e5a0628c6f163484abade392ab2d3b369d458ed3dfdeaa7f9a39`,
+and entrypoint SHA-256
+`268f62dadd7bee2dbdf7f8634d0185603e68a985f91009488b956f3f62da5c23`
+without model inference.
+
 The external model/head cache is 68 MiB; exact head files total 265,604 bytes
 and are mode 0600. Palari ships neither weights nor the optional 686 MiB
 Transformers.js runtime and adds no dependency. Consumers own that runtime's
@@ -64,7 +76,10 @@ previously recorded audit findings and cache lifecycle.
 
 ## Verification
 
-- Focused contracts before closeout: 7 pass, 0 fail.
+- Focused contracts before first review: 7 pass, 0 fail. After review repair:
+  8 pass, 0 fail, with direct nonsymmetric orientation, affine LayerNorm,
+  repeatability, malformed descriptor/layout, runtime identity, frozen
+  artifact, and symlink-escape cases.
 - `npm run ettin-bakeoff`: exact identity, artifacts, bank, baseline, and rule
   verify without inference.
 - Compatibility/model passes: 1 smoke + 1 bank, both completed; no rerun.
@@ -74,12 +89,26 @@ previously recorded audit findings and cache lifecycle.
   failures caused by the new root re-export. The root export was removed while
   retaining the explicit `palari-brain/reranker-ettin` subpath; no inference
   or scoring rerun followed that packaging-only correction.
-- Final full suite: 692 pass, 0 fail, 15 skipped across 707 tests.
+- Pre-review full suite: 692 pass, 0 fail, 15 skipped across 707 tests.
 - Quickstart: 6/6 pass.
 - `npm pack --dry-run --json`: pass; the package contains the adapter and no
   runtime, model, weight, cache, or result artifact.
 - Ticket lint, committed-plus-dirty scope check, and diff check: pass before
-  the review transition. Report lint awaits the independent reviewer note.
+  the first review transition.
+
+The first fresh reviewer recommended `reopen` at `863fa09`: P1 for a runner
+that recorded a constant runtime version without verifying the imported
+module, P2 for lexical-only cache containment that followed symlinks, and P2
+for missing direct tests of promised math/parser properties. All three were
+fixed without changing P-set 24, the bank, a terminal result byte, score,
+grade, selection, or accounting record. No inference, download, rerun, or
+regrade occurred during repair.
+
+Post-repair verification: focused contracts 8/8; full suite 693 pass, 0 fail,
+15 skipped across 708; quickstart 6/6; inert identity verification, package
+dry-run, ticket lint, scope, and diff checks pass. All three preserved cached
+head files rehash and load with network explicitly forbidden. The reviewer
+note is recorded; final report lint follows the rereviewer note.
 
 ## Risks / Follow-Ups
 

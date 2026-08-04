@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0009 NATIVE ETTIN MODULAR RERANKER IMPLEMENTED AND MEASURED;
-INDEPENDENT REVIEW NEXT. After accepting and merging BRN-0008, Quetzali explicitly directed a
+FIRST REVIEW FINDINGS FIXED; REREVIEW NEXT. After accepting and merging BRN-0008, Quetzali explicitly directed a
 new governed ticket for working local Ettin support. Metadata-only recon of
 exact Apache-2.0 revision
 `9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6` corrected the head definition to
@@ -15,7 +15,7 @@ The new import-inert `createEttinReranker()` uses the base ONNX transformer,
 strictly parses and rehashes the three external safetensors, then applies exact
 CLS, PyTorch-oriented Dense/GELU, affine LayerNorm at epsilon `1e-5`, and final
 Dense scoring in JavaScript. Synthetic math, loader, tensor-layout, corruption,
-bounds, lazy-load, and runner contracts pass 7/7. P-set 24 pins fresh identity
+bounds, lazy-load, and runner contracts initially passed 7/7. P-set 24 pins fresh identity
 `brn-0009/ettin-native-v1`, unchanged bank, exact code hashes, one smoke, and
 at most one bank pass. The freeze was committed and pushed at `19b4e4a` before
 inference. The sole compatibility smoke passed, then the sole bank pass
@@ -38,13 +38,31 @@ stop rule: (1) quickstart remains green; (2) evidence ordering is measurably
 better and faster than the prior default; (3) Sentence Transformers supplies
 the modular design, while Palari adds the strict native/cache boundary; (4)
 the founder explicitly requested Ettin; (5) deleting this unit restores the
-known incompatible wire or the weaker/slower prior default. Final verification
-is green: focused 7/7, full suite 692 pass / 0 fail / 15 skipped across 707,
+known incompatible wire or the weaker/slower prior default. Pre-review verification
+was green: focused 7/7, full suite 692 pass / 0 fail / 15 skipped across 707,
 quickstart 6/6, package dry-run, ticket lint, scope, and diff checks. An initial
 full-suite closeout caught a sealed package-root import-closure regression; the
 root re-export was removed while retaining the explicit
 `palari-brain/reranker-ettin` package subpath, and no scoring rerun followed.
-Next: fresh independent review before founder acceptance.
+The first independent review at `863fa09` found no arithmetic defect but
+recommended reopening for one P1 runtime-provenance gap and two P2 boundary/
+test gaps. The repaired runner now verifies the actually imported 4.2.0
+runtime's exported version, package metadata SHA-256
+`9cf12901d934e5a0628c6f163484abade392ab2d3b369d458ed3dfdeaa7f9a39`,
+and entrypoint SHA-256
+`268f62dadd7bee2dbdf7f8634d0185603e68a985f91009488b956f3f62da5c23`;
+a read-only audit reproduced all four identity fields against the preserved
+runtime without model inference. The artifact loader now rejects symlinks in
+existing cache components and rechecks canonical containment. Expanded 8/8
+contracts directly prove nonsymmetric PyTorch weight orientation, affine
+LayerNorm, repeatability, malformed dtype/shape/offset/overlap/trailing data,
+frozen artifact identity, runtime substitution, and cache-symlink rejection.
+The terminal scores, P-set, bank, results, grades, and `$0.00` spend are
+unchanged; there was no model inference, download, rerun, or regrade. Next:
+fresh independent rereview before founder acceptance. Post-repair verification
+is green: focused 8/8, full suite 693 pass / 0 fail / 15 skipped across 708,
+quickstart 6/6, inert identity verify, cached artifact rehash with network
+forbidden, package dry-run, ticket lint, scope, and diff checks.
 
 Loop state: BRN-0008 FOUNDER-ACCEPTED AND MERGE AUTHORIZED; ETTIN-17M
 COMPATIBILITY TERMINAL FAILED; BANK NOT RUN.

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
@@ -47,6 +47,17 @@ function artifactFor(path, tensors, bytes) {
     sha256: createHash('sha256').update(bytes).digest('hex'),
     tensors,
   }
+}
+
+function customSafetensors(header, dataBytes, trailingBytes = 0) {
+  let headerBytes = Buffer.from(JSON.stringify(header))
+  while ((8 + headerBytes.length) % 8 !== 0) {
+    headerBytes = Buffer.concat([headerBytes, Buffer.from(' ')])
+  }
+  const result = Buffer.alloc(8 + headerBytes.length + dataBytes + trailingBytes)
+  result.writeBigUInt64LE(BigInt(headerBytes.length), 0)
+  headerBytes.copy(result, 8)
+  return new Uint8Array(result)
 }
 
 function identityHead() {
@@ -131,6 +142,54 @@ test('strict safetensors reader accepts exact F32 layout and rejects drift', () 
     ),
     /Nonfinite tensor value/,
   )
+
+  const invalidDescriptors = [
+    {
+      bytes: customSafetensors({
+        weight: { data_offsets: [0, 8], dtype: 'F64', shape: [2] },
+      }, 8),
+      expected: /Invalid tensor descriptor/,
+      tensors: { weight: [2] },
+    },
+    {
+      bytes: customSafetensors({
+        weight: { data_offsets: [0, 8], dtype: 'F32', shape: [1] },
+      }, 8),
+      expected: /Invalid tensor descriptor/,
+      tensors: { weight: [2] },
+    },
+    {
+      bytes: customSafetensors({
+        weight: { data_offsets: [1, 9], dtype: 'F32', shape: [2] },
+      }, 8),
+      expected: /Invalid tensor offsets/,
+      tensors: { weight: [2] },
+    },
+    {
+      bytes: customSafetensors({
+        first: { data_offsets: [0, 4], dtype: 'F32', shape: [1] },
+        second: { data_offsets: [0, 4], dtype: 'F32', shape: [1] },
+      }, 8),
+      expected: /Non-contiguous tensor data/,
+      tensors: { first: [1], second: [1] },
+    },
+    {
+      bytes: customSafetensors({
+        weight: { data_offsets: [0, 4], dtype: 'F32', shape: [1] },
+      }, 4, 4),
+      expected: /trailing tensor ambiguity/,
+      tensors: { weight: [1] },
+    },
+  ]
+  for (const fixture of invalidDescriptors) {
+    assert.throws(
+      () => parseEttinSafetensors(
+        fixture.bytes,
+        artifactFor('invalid', fixture.tensors, fixture.bytes),
+      ),
+      fixture.expected,
+    )
+  }
 })
 
 test('native head uses CLS, exact orientation, GELU, LayerNorm, and final bias', () => {
@@ -161,6 +220,35 @@ test('native head uses CLS, exact orientation, GELU, LayerNorm, and final bias',
     254 * mean ** 2) / 256
   const expected = (positive - mean) / Math.sqrt(variance + 1e-5) + 0.25
   assert.ok(Math.abs(first - expected) < 2e-6)
+
+  const oriented = identityHead()
+  oriented.dense['linear.weight'].fill(0)
+  oriented.dense['linear.weight'][1] = 2
+  oriented.norm['norm.weight'][0] = 1.5
+  oriented.norm['norm.bias'][0] = -0.4
+  oriented.final['linear.weight'][0] = 2
+  const orientedData = new Float32Array(256)
+  orientedData[0] = 3
+  orientedData[1] = 1
+  const orientedScore = scoreEttinHiddenStates(
+    { data: orientedData, dims: [1, 1, 256] },
+    oriented,
+    1,
+  )[0]
+  const activatedFirst = ettinGelu(2)
+  const orientedMean = activatedFirst / 256
+  const orientedVariance = ((activatedFirst - orientedMean) ** 2 +
+    255 * orientedMean ** 2) / 256
+  const orientedExpected = (((activatedFirst - orientedMean) /
+    Math.sqrt(orientedVariance + 1e-5)) * 1.5 - 0.4) * 2 + 0.25
+  assert.ok(Math.abs(orientedScore - orientedExpected) < 2e-6)
+  assert.equal(
+    scoreEttinHiddenStates(
+      { data: orientedData, dims: [1, 1, 256] }, oriented, 1,
+    )[0],
+    orientedScore,
+    'native scoring must be deterministic',
+  )
 })
 
 test('adapter is lazy, pair-batched, base-model only, and loads once', async () => {
@@ -264,4 +352,22 @@ test('adapter and artifact cache reject bounds, bad shape, and corrupt bytes', a
     /integrity mismatch/,
   )
   assert.equal(fetches, 1, 'corrupt cached bytes must not be silently replaced')
+
+  const escapedCache = await mkdtemp(join(tmpdir(), 'ettin-symlink-cache-'))
+  const escapedTarget = await mkdtemp(join(tmpdir(), 'ettin-symlink-target-'))
+  await mkdir(join(escapedCache, 'ettin-head'), { mode: 0o700 })
+  await symlink(escapedTarget, join(escapedCache, 'ettin-head', '4_Dense'))
+  await assert.rejects(
+    () => loadEttinArtifact(ETTIN_HEAD_ARTIFACTS[2], {
+      cacheDir: escapedCache,
+      fetchImpl: async () => {
+        throw new Error('symlink rejection must precede fetch')
+      },
+    }),
+    /symlink/,
+  )
+  await assert.rejects(
+    () => loadEttinArtifact({ ...ETTIN_HEAD_ARTIFACTS[2] }, { cacheDir }),
+    /Only frozen Ettin head artifacts/,
+  )
 })

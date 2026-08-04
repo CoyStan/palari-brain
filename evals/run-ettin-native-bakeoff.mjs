@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { open } from 'node:fs/promises'
+import { open, readFile } from 'node:fs/promises'
 import { performance } from 'node:perf_hooks'
 import { dirname, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -18,6 +18,12 @@ import {
 } from './run-reranker-bakeoff.mjs'
 
 export const ETTIN_NATIVE_IDENTITY = 'brn-0009/ettin-native-v1'
+export const ETTIN_RUNTIME_IDENTITY = Object.freeze({
+  entrypointSha256: '268f62dadd7bee2dbdf7f8634d0185603e68a985f91009488b956f3f62da5c23',
+  name: '@huggingface/transformers',
+  packageJsonSha256: '9cf12901d934e5a0628c6f163484abade392ab2d3b369d458ed3dfdeaa7f9a39',
+  version: '4.2.0',
+})
 
 function parseArgs(argv) {
   const options = {}
@@ -67,24 +73,46 @@ function requiredPaths(options, mode) {
   return {
     cacheDir: outsideRepository(options.cache, 'cache'),
     resultPath: outsideRepository(options.result, 'result'),
-    runtimeUrl: pathToFileURL(outsideRepository(options.runtime, 'runtime')).href,
+    runtimePath: outsideRepository(options.runtime, 'runtime'),
   }
+}
+
+export async function verifyEttinRuntime(runtimePath) {
+  const entrypoint = await readFile(runtimePath)
+  const packagePath = resolve(dirname(runtimePath), '..', 'package.json')
+  const packageBytes = await readFile(packagePath)
+  let metadata
+  try {
+    metadata = JSON.parse(packageBytes.toString('utf8'))
+  } catch (error) {
+    throw new TypeError('Ettin runtime package metadata is invalid JSON.', {
+      cause: error,
+    })
+  }
+  if (runnerHash(entrypoint) !== ETTIN_RUNTIME_IDENTITY.entrypointSha256 ||
+    runnerHash(packageBytes) !== ETTIN_RUNTIME_IDENTITY.packageJsonSha256 ||
+    metadata?.name !== ETTIN_RUNTIME_IDENTITY.name ||
+    metadata?.version !== ETTIN_RUNTIME_IDENTITY.version) {
+    throw new TypeError('Ettin runtime does not match the frozen identity.')
+  }
+  const runtime = await import(pathToFileURL(runtimePath).href)
+  if (runtime?.env?.version !== ETTIN_RUNTIME_IDENTITY.version) {
+    throw new TypeError('Ettin runtime export does not match the frozen version.')
+  }
+  return Object.freeze({ runtime, runtimeIdentity: ETTIN_RUNTIME_IDENTITY })
 }
 
 async function configuredReranker(options, mode) {
   const paths = requiredPaths(options, mode)
-  let loadedRuntime
+  const { runtime, runtimeIdentity } = await verifyEttinRuntime(paths.runtimePath)
   const reranker = createEttinReranker({
     cacheDir: paths.cacheDir,
-    loadRuntime: async () => {
-      loadedRuntime ??= await import(paths.runtimeUrl)
-      return loadedRuntime
-    },
+    loadRuntime: async () => runtime,
   })
-  return { ...paths, loadedRuntime: () => loadedRuntime, reranker }
+  return { ...paths, reranker, runtimeIdentity }
 }
 
-function common(reranker, runtimeVersion = '4.2.0') {
+function common(reranker, runtimeIdentity) {
   return {
     artifacts: ETTIN_HEAD_ARTIFACTS.map(({ bytes, path, sha256 }) => ({
       bytes, path, sha256,
@@ -94,14 +122,14 @@ function common(reranker, runtimeVersion = '4.2.0') {
     costUsd: 0,
     identity: ETTIN_NATIVE_IDENTITY,
     model: reranker.model,
-    runtime: { name: '@huggingface/transformers', version: runtimeVersion },
+    runtime: runtimeIdentity,
     startedAt: new Date().toISOString(),
   }
 }
 
 async function runSmoke(options) {
   const configured = await configuredReranker(options, 'smoke')
-  const state = common(configured.reranker)
+  const state = common(configured.reranker, configured.runtimeIdentity)
   try {
     const scores = await configured.reranker(
       'Which planet is known as the Red Planet?',
@@ -138,7 +166,7 @@ async function runSmoke(options) {
 async function runBank(options) {
   const configured = await configuredReranker(options, 'run')
   const state = {
-    ...common(configured.reranker),
+    ...common(configured.reranker, configured.runtimeIdentity),
     baseline: baselineMetrics(),
     selectionRule: RERANKER_SELECTION_RULE,
   }
@@ -222,6 +250,7 @@ export async function main(argv = process.argv.slice(2)) {
       bankVersion: RERANKER_BANK_VERSION,
       baseline: baselineMetrics(),
       identity: ETTIN_NATIVE_IDENTITY,
+      runtime: ETTIN_RUNTIME_IDENTITY,
       selectionRule: RERANKER_SELECTION_RULE,
     }
   }

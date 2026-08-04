@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
-import { mkdir, open, readFile, rename, unlink } from 'node:fs/promises'
-import { dirname, isAbsolute, resolve, sep } from 'node:path'
+import { lstat, mkdir, open, readFile, realpath, rename, unlink } from 'node:fs/promises'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 
 import { TRANSFORMERS_RERANKER_LIMITS } from './reranker-transformers.mjs'
 
@@ -152,8 +152,74 @@ export function parseEttinSafetensors(value, artifact) {
   return Object.freeze(result)
 }
 
-async function privateAtomicWrite(path, bytes) {
-  await mkdir(dirname(path), { recursive: true, mode: 0o700 })
+async function existingPathIsSafe(path) {
+  try {
+    const status = await lstat(path)
+    if (status.isSymbolicLink()) {
+      throw new TypeError(`Ettin cache path contains a symlink: ${path}`)
+    }
+    return status
+  } catch (error) {
+    if (error?.code === 'ENOENT') return undefined
+    throw error
+  }
+}
+
+async function assertSafeCachePath(root, target) {
+  const suffix = relative(root, target)
+  if (suffix === '' || suffix === '..' || suffix.startsWith(`..${sep}`) ||
+    isAbsolute(suffix)) {
+    throw new TypeError('Ettin artifact path escaped cacheDir.')
+  }
+  let current = root
+  const rootStatus = await existingPathIsSafe(current)
+  if (rootStatus && !rootStatus.isDirectory()) {
+    throw new TypeError('Ettin cacheDir must be a directory.')
+  }
+  if (!rootStatus) return
+  for (const component of suffix.split(sep)) {
+    current = join(current, component)
+    const status = await existingPathIsSafe(current)
+    if (!status) return
+  }
+  const canonicalRoot = await realpath(root)
+  const canonicalTarget = await realpath(target)
+  if (!canonicalTarget.startsWith(`${canonicalRoot}${sep}`)) {
+    throw new TypeError('Ettin artifact path escaped cacheDir.')
+  }
+}
+
+async function ensurePrivateDirectory(root, directory) {
+  await mkdir(root, { recursive: true, mode: 0o700 })
+  const rootStatus = await existingPathIsSafe(root)
+  if (!rootStatus?.isDirectory()) {
+    throw new TypeError('Ettin cacheDir must be a non-symlink directory.')
+  }
+  const suffix = relative(root, directory)
+  if (suffix === '..' || suffix.startsWith(`..${sep}`) || isAbsolute(suffix)) {
+    throw new TypeError('Ettin artifact path escaped cacheDir.')
+  }
+  let current = root
+  for (const component of suffix.split(sep).filter(Boolean)) {
+    current = join(current, component)
+    await mkdir(current, { mode: 0o700 }).catch((error) => {
+      if (error?.code !== 'EEXIST') throw error
+    })
+    const status = await existingPathIsSafe(current)
+    if (!status?.isDirectory()) {
+      throw new TypeError(`Ettin cache path is not a safe directory: ${current}`)
+    }
+  }
+  const canonicalRoot = await realpath(root)
+  const canonicalDirectory = await realpath(directory)
+  if (canonicalDirectory !== canonicalRoot &&
+    !canonicalDirectory.startsWith(`${canonicalRoot}${sep}`)) {
+    throw new TypeError('Ettin artifact path escaped cacheDir.')
+  }
+}
+
+async function privateAtomicWrite(root, path, bytes) {
+  await ensurePrivateDirectory(root, dirname(path))
   const temporary = `${path}.${process.pid}.tmp`
   let handle
   try {
@@ -184,6 +250,7 @@ export async function loadEttinArtifact(artifact, {
   if (!target.startsWith(`${root}${sep}`)) {
     throw new TypeError('Ettin artifact path escaped cacheDir.')
   }
+  await assertSafeCachePath(root, target)
   let bytes
   try {
     bytes = new Uint8Array(await readFile(target))
@@ -204,7 +271,7 @@ export async function loadEttinArtifact(artifact, {
     if (bytes.length !== artifact.bytes || sha256(bytes) !== artifact.sha256) {
       throw new Error(`Ettin artifact integrity mismatch: ${artifact.path}`)
     }
-    await privateAtomicWrite(target, bytes)
+    await privateAtomicWrite(root, target, bytes)
   }
   if (bytes.length !== artifact.bytes || sha256(bytes) !== artifact.sha256) {
     throw new Error(`Ettin artifact integrity mismatch: ${artifact.path}`)

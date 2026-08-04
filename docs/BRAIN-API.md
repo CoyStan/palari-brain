@@ -667,6 +667,8 @@ JavaScript. The three small head safetensors are revision/path/size/hash pinned,
 stored privately below `cacheDir`, and rehashed before every use. Missing files
 may be downloaded only from their exact pinned Hugging Face URLs; corrupt or
 unexpected tensor bytes fail before scoring and are never silently replaced.
+Existing symlinks anywhere below the cache root are rejected before reads or
+writes, and the canonical parent remains contained below that root.
 Palari still ships no ONNX runtime or model weights. Consumers own the optional
 runtime, initial model download, cache lifecycle, and dependency audit.
 
@@ -679,6 +681,10 @@ the frozen synthetic bank. It dominates all three BRN-0008 models under the
 preregistered quality/latency rule and is therefore Palari's recommended
 optional local reranker. This remains an ordering measurement, not generated
 answer accuracy; trusted host chronology is still required for latestness.
+The BRN-0009 measurement runner additionally verifies its exact isolated
+Transformers.js 4.2.0 package metadata and entrypoint hashes before execution;
+that evaluation pin does not add a package dependency or restrict a consumer's
+separately audited compatible injected runtime.
 
 `result.consultedEvidenceIds` contains every canonical message or graph edge
 returned to the answer callback. `result.retrievalTranscript` records every

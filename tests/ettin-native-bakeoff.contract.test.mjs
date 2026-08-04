@@ -5,12 +5,15 @@ import { fileURLToPath } from 'node:url'
 
 import {
   ETTIN_NATIVE_IDENTITY,
+  ETTIN_RUNTIME_IDENTITY,
   main,
+  verifyEttinRuntime,
 } from '../evals/run-ettin-native-bakeoff.mjs'
 
 test('native Ettin identity reuses the unchanged frozen bank and rule', async () => {
   const verified = await main(['--verify'])
   assert.equal(verified.identity, 'brn-0009/ettin-native-v1')
+  assert.deepEqual(verified.runtime, ETTIN_RUNTIME_IDENTITY)
   assert.equal(ETTIN_NATIVE_IDENTITY, verified.identity)
   assert.equal(verified.bankCases, 16)
   assert.equal(
@@ -21,6 +24,13 @@ test('native Ettin identity reuses the unchanged frozen bank and rule', async ()
   assert.equal(verified.baseline.recallAtCutoff, 1)
   assert.equal(verified.artifacts.length, 3)
   assert.equal(verified.selectionRule.minimumTop1, 0.8)
+})
+
+test('execution rejects an external runtime that is not the frozen identity', async () => {
+  await assert.rejects(
+    () => verifyEttinRuntime(fileURLToPath(import.meta.url)),
+    /frozen identity|ENOENT/,
+  )
 })
 
 test('execution modes require complete external paths and verify is inert', async () => {
