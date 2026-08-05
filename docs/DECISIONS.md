@@ -2902,3 +2902,15 @@ here with dates. Agents record; the founder decides.
   cross-context inferences must cite selected used evidence, remain revisable,
   and never cross the admission gate. Legacy custom-provider bases remain
   compatible, but the active OpenAI wire uses the stricter contract.
+
+- 2026-08-05 (BRN-0020 post-architecture comparison contract)
+  **Compare from sealed memory state, not frozen answer context.** The
+  pre-change Sol control altered only the final model turn and therefore could
+  not test BRN-0019 retrieval. Its post-change counterpart will copy the exact
+  four sealed BRN-0017 SQLite memories read-only, hold questions and Sol/low
+  fixed, and execute current planning/retrieval/commitment end to end. It runs
+  no writer or official judge and cannot change the historical 6/10. Proposed
+  identity `j4-sol-frozen-failures-post-architecture-v1` has `$0.50` fresh /
+  `$8.17192994` cumulative accounted boundaries, but no invocation is
+  authorized until a pushed freeze receives independent review and a new
+  exact founder GO.

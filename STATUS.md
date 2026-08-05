@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0019 PROVENANCE-AWARE RETRIEVAL/USE PRODUCT ACCEPTED;
-MERGE NEXT. BRN-0018 is accepted, merged, and pushed at
+Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON CONTRACT PREPARED;
+FREEZE COMMIT NEXT. BRN-0019 is accepted, merged, and pushed at `146d911`.
+BRN-0018 is accepted, merged, and pushed at
 `8a4d11c`. Its immutable pre-change control found that Sol/low fixed Phone but
 not Miami and could not replace missing original-user evidence; historical
 BRN-0017 remains 6/10 and cumulative accounted spend remains `$7.67192994`.
@@ -48,9 +49,16 @@ use/not-use and temporary-inference boundary; (4) yes, the founder explicitly
 requested each guarantee and acceptance case; (5) deleting it would again let
 relevant evidence go missing or unused without an observable reason, and let
 cross-context transfer masquerade as a permanent fact. Next: commit the exact
-accepted implementation and merge it. Then prepare the post-change live
-comparison as a separate founder-gated ticket with a new P-set, immutable
-identity, and exact cap; do not dispatch without fresh founder authority.
+accepted implementation. P-set 30 now freezes its post-change comparison from
+the same four sealed BRN-0017 memory databases, with Sol/low and questions
+fixed. Proposed one-shot identity is
+`j4-sol-frozen-failures-post-architecture-v1`; proposed boundaries are `$0.50`
+fresh / `$8.17192994` cumulative accounted from the exact `$7.67192994`
+opening ledger. This preregistration is not live authority. Next: commit and
+push the BRN-0020 contract, build and verify the private one-shot launcher in
+its governed worktree, obtain independent pre-dispatch review, then stop at the
+founder gate. Credential/provider/spend activity for BRN-0020 remains
+`0 / 0 / $0.00`.
 
 Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
 INDEPENDENTLY ACCEPTED, MERGE NEXT. Founder-authorized identity

@@ -2054,3 +2054,69 @@ Diagnostic conclusion: Sol/low repaired Phone but not Miami, while missing
 original user evidence remained a hard limit. Model strength alone is not the
 solution. This is judged diagnostic telemetry, not an official score or a
 regrade; BRN-0017 remains historically 6/10.
+
+## P-set 30 — post-architecture Sol on four sealed failure memories
+
+Status: **FINAL before credential access, provider dispatch, inference, result
+creation, or spend.** Date: 2026-08-05. Proposed identity:
+`j4-sol-frozen-failures-post-architecture-v1`.
+
+This is the preregistered post-change counterpart to P-set 29, not a benchmark
+rerun or regrade. It starts each question from an exact read-only copy of its
+sealed BRN-0017 SQLite memory database, then executes accepted BRN-0019
+retrieval planning, canonical timeline/read, semantic Gemini retrieval, native
+Ettin reranking, and modern evidence-use commitment end to end with
+`gpt-5.6-sol` / low reasoning. Fixed order is `09d032c9`, `0977f2af`,
+`0a34ad58`, `0edc2aef`. No writer or official judge runs. Historical BRN-0017
+remains 6/10 and P-set 29 remains immutable.
+
+Opening cumulative accounted spend is exactly `$7.67192994`. Proposed
+boundaries are `$0.50` fresh and `$8.17192994` cumulative accounted. They are
+not authority. After an exact founder authorization, one invocation first runs
+one unrelated modern-wire answer smoke, then the four cells once unless a
+terminal failure stops it. No retry, resume, reroll, regrade, repair-in-place,
+top-up, or replacement identity is permitted.
+
+Predictions, failing categories first:
+
+1. EXACT SOURCE RECALL: objective `4/4` question cases and all `6/6` required
+   original-user spans. Phone returns the portable-power-bank statement;
+   Instant Pot returns the original purchase statement; Tokyo returns both the
+   Suica and TripIt user statements; Miami returns both view and private-
+   balcony-hot-tub preference statements. Old Palari answers do not substitute
+   for any required user span.
+2. SELECTION AND MATERIAL USE: objective `4/4`. Phone explicitly changes its
+   battery advice because the user already owns the power bank. Instant Pot's
+   chronology answer identifies the earlier appliance from the returned user
+   statement. Tokyo's personalized advice incorporates both Suica and TripIt.
+   Miami combines view and balcony-hot-tub evidence in one recommendation.
+   Every selected basis has exactly one consequence or non-use reason; a
+   consequence is only a provider declaration, while material use is recorded
+   as a separate judged diagnostic label.
+3. GENERAL PLANNING: Instant Pot, Tokyo, and Miami each register at most one
+   general plan containing anchor, relation, category, and bounded time range,
+   then use timeline/read to recover canonical source messages. The plan costs
+   zero of four evidence calls, is never cited as evidence, and contains no
+   benchmark answer, question ID, or case-specific production route.
+4. TEMPORARY INFERENCE: Miami may transfer earlier hotel preferences only in
+   one provenance-linked, `revisable: true` temporary inference. Its cited
+   evidence is selected and declared used. The copied journal remains
+   logically and byte-stably free of any new canonical cross-city preference.
+   Phone, Instant Pot, and Tokyo require no cross-context inference.
+5. METRIC SEPARATION: every cell reports session recall, exact-span recall,
+   selected evidence, judged equivalent-fact recall, and judged materially-used
+   evidence as five distinct surfaces. Equivalent/material judgments retain
+   judged authority and never become canonical truth or historical grades.
+6. COMPATIBILITY/COMPLETION: the unrelated smoke produces one valid modern
+   commitment on the six-tool wire, then all four questions receive one
+   terminal non-empty Sol answer exactly once. Each cell uses at most one plan,
+   four evidence calls, and seven OpenAI dispatches. Any smoke/provider/wire
+   failure is sealed terminal evidence, not permission to retry.
+7. CAUSAL INTEGRITY AND ACCOUNTING: the launcher rehashes all sealed source
+   databases/questions and exact accepted product/runtime files before key
+   access. Every physical Gemini/OpenAI request reserves durably before
+   dispatch. One invocation stays within `$0.50` fresh / `$8.17192994`
+   cumulative accounted caps, seals all private artifacts at mode 0600 with
+   zero exact credential matches and no sealing error, and records measured
+   versus uncertain spend. Any miss is recorded without mutation, reroll,
+   regrade, publication, or replacement.
