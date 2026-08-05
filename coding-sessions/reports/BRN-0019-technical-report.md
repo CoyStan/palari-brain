@@ -46,8 +46,8 @@ and have no admission or journal-write path.
 ## Verification
 
 - Relevant modules pass `node --check`.
-- Focused contract suite: 62 passed, 0 failed.
-- Full `npm test`: 740 tests; 725 passed, 15 optional skips, 0 failed.
+- Repaired focused contract suite: 64 passed, 0 failed.
+- Fresh full `npm test`: 742 tests; 727 passed, 15 optional skips, 0 failed.
 - `npm run quickstart`: PASS, 6/6 journey stages.
 - `git diff --check`: PASS.
 - Governed committed-plus-dirty scope check: PASS; final scope is rechecked at
@@ -71,3 +71,13 @@ and have no admission or journal-write path.
 Fresh independent review is required before acceptance. A post-architecture
 live comparison is a separate founder-gated ticket with a preregistered
 prediction set, new one-shot identity, and exact fresh/cumulative cap.
+
+## Review Repair
+
+Independent review of submitted head `9a765be` recommended reopen with two P2
+findings. JavaScript's permissive date parser accepted non-ISO bounds including
+`0`, and relation coercion allowed a prototype-poisoned object to become a
+supported string. The repair applies a captured ISO parser boundary with
+calendar validation, requires a string relation before exact comparison, and
+adds permanent reproductions for both attacks. A fresh review of the repaired
+head is required; the first review did not create an acceptance note.

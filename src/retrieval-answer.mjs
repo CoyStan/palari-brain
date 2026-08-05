@@ -42,6 +42,10 @@ export const MEMORY_RETRIEVAL_PLAN_RELATIONS = Object.freeze([
 
 const MAX_RETRIEVAL_PLAN_ANCHOR_CHARS = 500
 const MAX_RETRIEVAL_PLAN_CATEGORY_CHARS = 200
+const RETRIEVAL_PLAN_ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})(?:T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,9})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d))?$/u
+const RETRIEVAL_PLAN_MONTH_DAYS = Object.freeze([
+  31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+])
 
 export const MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS = [
   'Memory retrieval is complete. Do not call another memory tool.',
@@ -69,6 +73,7 @@ const dateGetTime = Function.call.bind(Date.prototype.getTime)
 const dateToISOString = Function.call.bind(Date.prototype.toISOString)
 const mapGet = Function.call.bind(Map.prototype.get)
 const mapSet = Function.call.bind(Map.prototype.set)
+const numberConstructor = Number
 const numberIsNaN = Number.isNaN
 const objectDefineProperty = Object.defineProperty
 const objectFreeze = Object.freeze
@@ -82,6 +87,7 @@ const promiseConstructor = Promise
 const promiseReject = Promise.reject.bind(Promise)
 const promiseThen = Function.call.bind(Promise.prototype.then)
 const reflectOwnKeys = Reflect.ownKeys
+const regexpExec = Function.call.bind(RegExp.prototype.exec)
 const setAdd = Function.call.bind(Set.prototype.add)
 const setHas = Function.call.bind(Set.prototype.has)
 const setConstructor = Set
@@ -324,7 +330,23 @@ function retrievalPlanInstant(value, label) {
   if (typeof value !== 'string' || !stringTrim(value)) {
     throw retrievalPlanError(`${label} must be an ISO-8601 string or null.`)
   }
-  const parsed = new dateConstructor(value)
+  const match = regexpExec(RETRIEVAL_PLAN_ISO_INSTANT, value)
+  if (!match) {
+    throw retrievalPlanError(`${label} must be an ISO-8601 string or null.`)
+  }
+  const year = numberConstructor(match[1])
+  const month = numberConstructor(match[2])
+  const day = numberConstructor(match[3])
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+  const maximumDay = month === 2 && leap
+    ? 29
+    : RETRIEVAL_PLAN_MONTH_DAYS[month - 1]
+  if (!maximumDay || day < 1 || day > maximumDay) {
+    throw retrievalPlanError(`${label} must be an ISO-8601 string or null.`)
+  }
+  const parsed = new dateConstructor(
+    match[0].length === 10 ? `${value}T00:00:00Z` : value,
+  )
   if (numberIsNaN(dateGetTime(parsed))) {
     throw retrievalPlanError(`${label} must be an ISO-8601 string or null.`)
   }
@@ -369,7 +391,10 @@ export function normalizeRetrievalPlan(value) {
     'Retrieval plan category',
     MAX_RETRIEVAL_PLAN_CATEGORY_CHARS,
   )
-  const relation = stringFrom(snapshot.relation ?? '')
+  if (typeof snapshot.relation !== 'string') {
+    throw retrievalPlanError('Retrieval plan relation must be a string.')
+  }
+  const relation = snapshot.relation
   let supported = false
   for (let index = 0; index < MEMORY_RETRIEVAL_PLAN_RELATIONS.length; index += 1) {
     if (MEMORY_RETRIEVAL_PLAN_RELATIONS[index] === relation) {

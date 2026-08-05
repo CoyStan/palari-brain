@@ -46,8 +46,17 @@ test('retrieval plan is exact, normalized, immutable, and provider-neutral', () 
 test('retrieval plan rejects malformed ranges, fields, accessors, and mutation tricks', () => {
   for (const invalid of [
     { ...validPlan(), relation: 'earlier_than_the_expected_answer' },
+    { ...validPlan(), relation: {} },
     { ...validPlan(), benchmarkAnswer: 'forbidden' },
     { ...validPlan(), time_range: { after: 'not-a-date', before: null } },
+    { ...validPlan(), time_range: { after: '08/05/2026', before: null } },
+    { ...validPlan(), time_range: { after: 'August 5, 2026', before: null } },
+    { ...validPlan(), time_range: { after: '0', before: null } },
+    { ...validPlan(), time_range: { after: '2026-02-30', before: null } },
+    {
+      ...validPlan(),
+      time_range: { after: '2026-08-05T00:00:00', before: null },
+    },
     {
       ...validPlan(),
       time_range: {
@@ -76,6 +85,39 @@ test('retrieval plan rejects malformed ranges, fields, accessors, and mutation t
     (error) => error.code === 'MEMORY_RETRIEVAL_PLAN_INVALID',
   )
   assert.equal(reads, 0)
+})
+
+test('retrieval plan relation cannot gain authority from prototype coercion', () => {
+  const original = Object.prototype.toString
+  Object.prototype.toString = () => 'before'
+  try {
+    assert.throws(
+      () => normalizeRetrievalPlan({ ...validPlan(), relation: {} }),
+      (error) => error.code === 'MEMORY_RETRIEVAL_PLAN_INVALID',
+    )
+  } finally {
+    Object.prototype.toString = original
+  }
+})
+
+test('retrieval plan accepts canonical ISO date and zoned timestamp bounds', () => {
+  assert.equal(
+    normalizeRetrievalPlan({
+      ...validPlan(),
+      time_range: { after: '2024-02-29', before: null },
+    }).time_range.after,
+    '2024-02-29T00:00:00.000Z',
+  )
+  assert.equal(
+    normalizeRetrievalPlan({
+      ...validPlan(),
+      time_range: {
+        after: null,
+        before: '2026-08-05T02:30:00+02:30',
+      },
+    }).time_range.before,
+    '2026-08-05T00:00:00.000Z',
+  )
 })
 
 test('product planning and commitment code contains no acceptance-case route',
