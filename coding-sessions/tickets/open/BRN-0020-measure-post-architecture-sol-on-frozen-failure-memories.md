@@ -6,12 +6,12 @@ level: 1
 parent_id:
 root_id: BRN-0020
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T03:30:45Z
 target_branch: "main"
 branch: "ticket/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
@@ -243,8 +243,9 @@ numbers are a preregistration boundary only; they are not founder authority.
   `$0.08309185` accounted. Cumulative accounted is `$7.75502179`.
 - The terminal manifest has 16 mode-0600 artifacts, zero credential matches,
   zero sealing errors, SHA-256 `a039a12a...`. Historical BRN-0017 stays 6/10.
-- Independent terminal review must rehash the bundle and judge Phone's pending
-  equivalent-fact and materially-used labels exactly once without mutating it.
+- Independent terminal review rehashed and reconciled the bundle and judged
+  Phone's two pending semantic surfaces exactly once. Later rereviews must
+  reuse those labels and must not access or mutate the private namespace.
 - Terminal review judged both Phone semantic surfaces PASS `1/1`, then reopened
   one P2 custody issue: a later in-place SQLite read-only audit created two
   unmanifested Instant Pot sidecars and retouched one manifested SHM timestamp.
