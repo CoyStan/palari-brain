@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0018
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T00:30:25Z
 target_branch: "main"
 branch: "ticket/BRN-0018-isolate-stronger-answer-model-on-frozen-failure-contexts"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0018-isolate-stronger-answer-model-on-frozen-failure-contexts"
@@ -170,7 +170,7 @@ baseline is terminal.
 - P-set 29 is FINAL before any credential read, provider dispatch, inference,
   result creation, or spend.
 - Private launcher is mode 0600 at SHA-256
-  `325128ffa85e48a926416a4210aba6da8e039a19f69f4674bfeaa446c85bafd0`.
+  `a7c91b99ec38572093e88548c526710592c02a3c008ca81984b1aac2fb472c46`.
   `--verify` passes, rehashes all 74 BRN-0017 manifest artifacts and all four
   exact source/replay request hashes, proves each treatment changes only
   `model`, snapshots requests before smoke, and confirms the one-shot result
@@ -179,5 +179,7 @@ baseline is terminal.
   and this preregistered launcher hash before reading the key.
 - Opening spend is `$7.17192994`; `$0.50` fresh / `$7.67192994` cumulative are
   proposed boundaries only. No live authority has been consumed.
-- Full suite passes 722 / fails 0 / skips 3 across 725 tests; quickstart passes
-  6/6; ticket lint and target-aware whitespace checks pass.
+- Full suite passes with zero failures across 725 tests. The specialist
+  environment reports 722 pass / 3 optional skips; the fresh reviewer context
+  reports 710 pass / 15 optional skips. Quickstart passes 6/6; ticket lint and
+  target-aware whitespace checks pass.

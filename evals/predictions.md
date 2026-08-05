@@ -1987,7 +1987,7 @@ Official OpenAI guidance names Sol as the frontier-capability GPT-5.6 tier and
 recommends preserving effective reasoning effort for the first migration
 comparison before changing prompts or capabilities. The private mode-0600
 launcher SHA-256 is
-`325128ffa85e48a926416a4210aba6da8e039a19f69f4674bfeaa446c85bafd0`.
+`a7c91b99ec38572093e88548c526710592c02a3c008ca81984b1aac2fb472c46`.
 It binds BRN-0017 terminal manifest SHA-256
 `850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`
 and the four exact source/replay request hashes emitted by `--verify`.

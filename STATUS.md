@@ -11,7 +11,7 @@ no-store, 512 output tokens, instructions, input, tools, and tool choice are
 unchanged. No judge runs and the historical 6/10 remains immutable.
 
 Provider-free verification passes. The private mode-0600 launcher SHA-256 is
-`325128ffa85e48a926416a4210aba6da8e039a19f69f4674bfeaa446c85bafd0`;
+`a7c91b99ec38572093e88548c526710592c02a3c008ca81984b1aac2fb472c46`;
 it rehashes all 74 sealed BRN-0017 artifacts from manifest SHA-256
 `850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`
 and binds four exact source/replay hashes before snapshotting those requests,

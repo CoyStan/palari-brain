@@ -30,7 +30,9 @@
   launcher pin, all 74 source artifacts, and absent result namespace.
 - Credential reads / provider calls / inference / fresh spend:
   `0 / 0 / 0 / $0.00`.
-- `npm test`: PASS, 722 passed / 0 failed / 3 skipped across 725 tests.
+- `npm test`: PASS with 0 failures across 725 tests. Specialist context:
+  722 pass / 3 optional skips; fresh reviewer context: 710 pass / 15 optional
+  skips.
 - `npm run quickstart`: PASS, 6/6 journey stages.
 - `npm run ticket -- ticket-lint BRN-0018`: PASS.
 - `git diff --check`: PASS.
@@ -60,3 +62,9 @@
   pushed authority before key access, atomically writes and syncs every
   reservation/artifact, makes credential matches fatal, and reconciles meter,
   wire, report, terminal, modes, caps, and hashes before sealed success.
+- The paused second review found directory setup outside the guarded lifecycle,
+  no empty meter before key validation, and full private report output on
+  stdout. The final launcher enters the terminal lifecycle immediately after
+  atomic namespace creation, persists/syncs an empty meter before key access,
+  seals missing-key and other normal pre-dispatch failures, and prints only a
+  non-sensitive identity/spend/path summary after success.
