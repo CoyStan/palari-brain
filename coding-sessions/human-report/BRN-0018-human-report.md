@@ -22,18 +22,26 @@ where enough evidence was delivered. It should not invent Instant Pot or the
 user's Tokyo apps when their original user statements were missing. That split
 would confirm both an answer-application gap and an evidence-delivery gap.
 
-The live run has not happened. The proposed maximum is `$0.50` fresh, taking
-the cumulative accounted ceiling from `$7.17192994` to `$7.67192994`.
+The authorized run completed once. Sol fixed the Phone behavior by explicitly
+using the existing power bank. It did not combine Miami's view and balcony
+hot-tub evidence. It correctly refused to guess the missing Instant Pot fact,
+but Tokyo still fell back to old Palari transit advice instead of revealing
+that the user's original Suica and TripIt statements were missing.
+
+The control therefore gives a clean answer: a stronger model helps, but it is
+not the fix. Palari still needs better evidence delivery and an explicit
+evidence-use boundary. The meter conservatively accounted the full `$0.50`,
+taking cumulative accounted spend to `$7.67192994`.
 
 ## What To Check
 
-- Independent review must confirm that only the model field changes.
-- The old 6/10 and labels must remain untouched.
-- Any compatibility or replay failure must be recorded without a retry or
-  reconstructed prompt.
+- Independent terminal review must reconcile all five calls, usage, raw
+  outputs, prediction grades, and the private seal.
+- The old 6/10 and labels remain untouched.
+- The identity is consumed; there is no retry, reroll, or regrade.
 
 ## Recommended Next Move
 
-After clean independent review, authorize the exact frozen identity and cap.
-Then use its terminal finding as the baseline for the separate architecture
-ticket and repeat the same comparison only after those changes.
+Accept the immutable result after clean independent terminal review. Then use
+it as the pre-change baseline for the separate architecture ticket and repeat
+the comparison only after those changes.

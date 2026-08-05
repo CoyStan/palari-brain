@@ -28,8 +28,8 @@
 - `--verify-authority FULL_SHA` provides a provider-free exact-head check of
   clean pushed branch equality, target-main ancestry, committed P-set bytes,
   launcher pin, all 74 source artifacts, and absent result namespace.
-- Credential reads / provider calls / inference / fresh spend:
-  `0 / 0 / 0 / $0.00`.
+- Before founder authority, credential reads / provider calls / inference /
+  fresh spend were `0 / 0 / 0 / $0.00`.
 - `npm test`: PASS with 0 failures across 725 tests. Specialist context:
   722 pass / 3 optional skips; fresh reviewer context: 710 pass / 15 optional
   skips.
@@ -68,3 +68,27 @@
   atomic namespace creation, persists/syncs an empty meter before key access,
   seals missing-key and other normal pre-dispatch failures, and prints only a
   non-sensitive identity/spend/path summary after success.
+
+## Terminal Result
+
+- The founder authorized the exact identity for one invocation under `$0.50`
+  fresh / `$7.67192994` cumulative accounted caps. It ran once and is consumed.
+- Compatibility returned exact `compatible`; four of four frozen requests then
+  returned HTTP 200 exactly once. Every result was one valid
+  `palari_answer_commit`; no memory tool or judge ran.
+- P-set 29: ANSWER USE **1/2 FAIL** (Phone pass, Miami fail); EVIDENCE LIMIT
+  **1/2 FAIL** (Instant Pot pass, Tokyo fail); COMPATIBILITY/COMPLETION,
+  CAUSAL INTEGRITY, and EXECUTION/ACCOUNTING **PASS**.
+- Phone materially used the power bank. Miami used only view evidence and
+  omitted private-balcony hot-tub evidence. Instant Pot abstained on missing
+  evidence. Tokyo cited prior Palari Suica/transit advice and omitted TripIt,
+  rather than reporting the missing original user evidence.
+- Meter: five successful HTTP-200 calls, 29,281.3 ms total / 5,856.26 ms mean;
+  26,775 input, 1,326 output, 322 reasoning, 28,101 total tokens; 24,942
+  cache-write and 1,554 cached input tokens. Conservative reservations account
+  `$0.50` fresh and `$7.67192994` cumulative.
+- Seal: 14 listed mode-0600 artifacts, zero credential matches, zero sealing
+  errors. Manifest SHA-256:
+  `6c9ab17351d8f09c1b714d33bb8fe34e468d25a8cdf0397d4dc9794c5dcba725`.
+- The historical BRN-0017 6/10 and all ten labels are unchanged. This result
+  supports an architecture fix; it is not a new official grade.

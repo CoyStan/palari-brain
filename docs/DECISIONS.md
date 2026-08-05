@@ -2866,3 +2866,15 @@ here with dates. Agents record; the founder decides.
   historical 6/10. The one live invocation
   remains founder-gated behind a pushed freeze, independent review, and exact
   fresh/cumulative spend authority.
+
+- 2026-08-05 (BRN-0018 terminal finding)
+  **Model strength is not a substitute for evidence architecture.** The one
+  authorized Sol/low invocation completed its smoke and four frozen final
+  turns exactly once. Sol explicitly used the phone power-bank evidence but
+  still omitted Miami's balcony-hot-tub evidence. It correctly abstained on
+  the missing Instant Pot fact, while Tokyo reused prior Palari advice instead
+  of exposing that the original user Suica and TripIt statements were absent.
+  Thus the model-only control repaired one of two evidence-use cases and none
+  of the missing-user-evidence boundary. Proceed with the separate architecture
+  work for retrieval planning, provenance-aware evidence commitment, and
+  distinct recall/use telemetry. Do not alter BRN-0017's historical 6/10.

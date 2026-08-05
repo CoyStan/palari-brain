@@ -183,3 +183,22 @@ baseline is terminal.
   environment reports 722 pass / 3 optional skips; the fresh reviewer context
   reports 710 pass / 15 optional skips. Quickstart passes 6/6; ticket lint and
   target-aware whitespace checks pass.
+
+## Terminal Result Evidence
+
+- Exact founder authority was granted for one invocation under `$0.50` fresh /
+  `$7.67192994` cumulative accounted caps. The identity completed and is
+  permanently consumed.
+- Compatibility returned exact `compatible`; all four frozen cells returned
+  HTTP 200 exactly once. No memory tool or judge ran.
+- P-set 29 grades: ANSWER USE `1/2` FAIL; EVIDENCE LIMIT `1/2` FAIL;
+  COMPATIBILITY/COMPLETION, CAUSAL INTEGRITY, and EXECUTION/ACCOUNTING PASS.
+- Usage: 26,775 input / 1,326 output / 322 reasoning / 28,101 total tokens.
+  Transport: 29,281.3 ms total / 5,856.26 ms mean. Accounted fresh spend:
+  `$0.50`; cumulative: `$7.67192994`.
+- Private manifest SHA-256 is
+  `6c9ab17351d8f09c1b714d33bb8fe34e468d25a8cdf0397d4dc9794c5dcba725`;
+  all listed artifacts are mode 0600 with zero credential matches and zero
+  sealing errors.
+- Historical BRN-0017 remains 6/10. Independent terminal review is required
+  before acceptance or merge.

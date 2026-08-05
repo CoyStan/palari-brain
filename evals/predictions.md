@@ -2025,3 +2025,32 @@ Predictions, failing categories first:
    hashes, mode 0600, and zero exact credential matches. Any compatibility,
    provider, cap, parse, or seal failure is terminal without retry, resume,
    reroll, regrade, or replacement identity.
+
+Terminal result (recorded after the one authorized invocation):
+
+- ANSWER USE: **FAIL, 1/2.** Phone explicitly incorporated the existing
+  portable power bank. Miami used the returned view preference but omitted the
+  returned private-balcony hot-tub evidence.
+- EVIDENCE LIMIT: **FAIL, 1/2.** Instant Pot correctly abstained because the
+  delivered evidence did not identify the earlier appliance. Tokyo reused old
+  Palari Suica/transit advice rather than stating that the original user Suica
+  and TripIt statements were absent. It did not establish those as user facts,
+  but it still failed the preregistered insufficiency outcome.
+- COMPATIBILITY/COMPLETION: **PASS.** The smoke returned exact `compatible` and
+  all four frozen requests returned HTTP 200 exactly once with one
+  `palari_answer_commit`; no memory tool was executed and no cell was retried.
+- CAUSAL INTEGRITY: **PASS.** Runtime authority bound exact reviewed commit
+  `71e6ca56908485520210a90edbc3307230c93475`, P-set, launcher, frozen target,
+  and all 74 source artifacts. The sole request treatment remained `model`.
+  No judge ran and the historical 6/10 is unchanged.
+- EXECUTION/ACCOUNTING: **PASS.** Five calls reserved exactly `$0.50`; all
+  completed successfully under the `$7.67192994` cumulative accounted cap.
+  Usage was 26,775 input / 1,326 output / 322 reasoning / 28,101 total tokens;
+  transport latency was 29,281.3 ms total / 5,856.26 ms mean. The terminal
+  manifest reports zero credential matches and zero sealing errors at SHA-256
+  `6c9ab17351d8f09c1b714d33bb8fe34e468d25a8cdf0397d4dc9794c5dcba725`.
+
+Diagnostic conclusion: Sol/low repaired Phone but not Miami, while missing
+original user evidence remained a hard limit. Model strength alone is not the
+solution. This is judged diagnostic telemetry, not an official score or a
+regrade; BRN-0017 remains historically 6/10.

@@ -1,40 +1,46 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE PREPARED;
-INDEPENDENT PRE-DISPATCH REVIEW NEXT. The founder accepted the corrected
-answer-use diagnosis and requested the stronger-model comparison before any
-architecture change. P-set 29 is FINAL for private one-shot identity
-`j4-sol-frozen-failures-pre-architecture-v1`. It replays the exact last
-Responses request from BRN-0017's four immutable FAIL cells and changes only
-`gpt-5.6-luna` to `gpt-5.6-sol`; low reasoning, Standard/default service,
-no-store, 512 output tokens, instructions, input, tools, and tool choice are
-unchanged. No judge runs and the historical 6/10 remains immutable.
+Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
+INDEPENDENT TERMINAL REVIEW NEXT. Founder-authorized identity
+`j4-sol-frozen-failures-pre-architecture-v1` completed exactly once. The
+compatibility smoke returned exact `compatible`, then all four frozen requests
+completed once with HTTP 200. No memory tool was executed, no judge ran, and
+the historical BRN-0017 6/10 and its ten labels remain immutable.
 
-Provider-free verification passes. The private mode-0600 launcher SHA-256 is
-`a7c91b99ec38572093e88548c526710592c02a3c008ca81984b1aac2fb472c46`;
-it rehashes all 74 sealed BRN-0017 artifacts from manifest SHA-256
-`850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`
-and binds four exact source/replay hashes before snapshotting those requests,
-and confirms the result namespace is absent. The run path additionally binds
-the exact clean pushed/reviewed ticket commit, committed P-set, launcher hash,
-and target main before credential access. Atomic synced writes, meter/wire/
-report reconciliation, and credential-match failure are seal requirements.
-Credential reads, provider calls, inference, and fresh spend remain
-`0 / 0 / 0 / $0.00`. Opening cumulative accounted spend is exactly
-`$7.17192994`. Proposed, not yet authorized ceilings are `$0.50` fresh /
-`$7.67192994` cumulative for one smoke plus four single-dispatch cells.
+P-set 29 grades are ANSWER USE `1/2`, EVIDENCE LIMIT `1/2`, and
+COMPATIBILITY/COMPLETION, CAUSAL INTEGRITY, and EXECUTION/ACCOUNTING all PASS.
+Phone explicitly used the existing portable power bank and passed. Instant Pot
+correctly abstained because the delivered context did not identify the earlier
+appliance and passed. Tokyo failed the predicted evidence limit: Sol reused old
+Palari Suica/transit advice instead of stating that the original user Suica and
+TripIt statements were absent. Miami failed answer use: it used the delivered
+view preference but omitted the delivered private-balcony hot-tub evidence.
+Therefore a stronger final-answer model repaired one answer-use failure, but
+did not repair the second and could not replace missing user evidence. This
+supports the planned retrieval/commitment architecture rather than a model-only
+fix. The comparison remains Sol's final turn conditioned on Luna's frozen
+reasoning/tool trajectory, not a pure end-to-end Sol measurement.
 
-Product stop rule: (1) yes, quickstart remains green at the frozen main cut;
-(2) no product behavior changes in this causal baseline; (3) model-tier evals
-are standard provider practice but do not explain this product's evidence
-boundary by themselves; (4) yes, the founder explicitly requested the
-stronger-model comparison on frozen contexts; (5) deleting this ticket would
-erase the pre-change causal control needed to distinguish answer quality from
-retrieval delivery. Next: commit/push the freeze, obtain fresh independent
-review, then stop at the exact founder spend gate. The comparison measures
-Sol's final turn conditioned on the frozen Luna reasoning/tool trajectory, not
-a pure end-to-end Sol run. After its terminal result,
-open the separate product architecture ticket; do not regrade BRN-0017.
+All five calls succeeded. Measured transport was 29,281.3 ms total / 5,856.26
+ms mean. Provider usage was 26,775 input, 1,326 output, 322 reasoning, and
+28,101 total tokens; input details reported 24,942 cache-write and 1,554 cached
+tokens. The meter conservatively reserved/accounted the full authorized `$0.50`
+fresh, so cumulative accounted spend is exactly `$7.67192994` =
+`$1.76173444` measured + `$5.91019550` uncertain. The private seal lists 14
+mode-0600 artifacts with zero credential matches and zero sealing errors;
+manifest SHA-256 is
+`6c9ab17351d8f09c1b714d33bb8fe34e468d25a8cdf0397d4dc9794c5dcba725`.
+The identity is consumed and cannot be retried, resumed, rerolled, or regraded.
+
+Product stop rule: (1) yes, quickstart remains 6/6; (2) this diagnostic changed
+no product behavior but established that model strength alone is insufficient;
+(3) model-tier controls are standard practice, while the provenance/use split
+is Palari's product boundary; (4) yes, the founder explicitly required the
+pre-change stronger-model control; (5) deleting it would erase the causal
+baseline separating answer use from evidence delivery. Next: independently
+review and accept the immutable terminal bundle, then open the separate product
+architecture ticket for distinct recall/use metrics, evidence commitments, and
+temporary provenance-linked cross-context inference. Do not regrade BRN-0017.
 
 Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN TERMINAL AT OFFICIAL 6/10;
 IMMUTABLE RESULT RECORD AND TERMINAL REVIEW NEXT. Founder-authorized identity
