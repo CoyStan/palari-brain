@@ -92,8 +92,8 @@ embedding bytes and retains their reservations as uncertain/accounted, injects
 and validates `service_tier: "default"` on the exact OpenAI wire, and reserves
 the resulting serialized bytes before dispatch.
 
-Next: commit and push this cumulative meter repair, obtain a fresh independent
-pre-dispatch rereview, then stop at the founder gate. Credential reads /
+Next: obtain a fresh independent pre-dispatch rereview of the clean pushed
+cumulative repair, then stop at the founder gate. Credential reads /
 provider calls / inference / fresh spend for BRN-0020 remain exactly
 `0 / 0 / 0 / $0.00`.
 
