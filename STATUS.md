@@ -100,8 +100,8 @@ cached, and cache-write fields with consistent totals. Any invalid usage is
 persisted as terminal `invalid-usage` and the full durable reservation remains
 uncertain/accounted.
 
-Next: commit and push the strict usage repair, obtain a fresh independent
-pre-dispatch rereview, then stop at the founder gate. Credential reads /
+Next: obtain a fresh independent pre-dispatch rereview of the clean pushed
+strict-usage repair, then stop at the founder gate. Credential reads /
 provider calls / inference / fresh spend for BRN-0020 remain exactly
 `0 / 0 / 0 / $0.00`.
 
