@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON TERMINAL;
-CAP-STOPPED AFTER PHONE, INDEPENDENT TERMINAL REVIEW NEXT. The founder-authorized
+CAP-STOPPED AFTER PHONE, TERMINAL CUSTODY DISCLOSURE IN REVIEW. The founder-authorized
 identity `j4-sol-frozen-failures-post-architecture-v1` ran exactly once and is
 consumed. The compatibility smoke passed. Phone completed and explicitly used
 the original portable-power-bank statement. During Instant Pot, Sol registered
@@ -18,6 +18,25 @@ artifacts, zero credential matches, zero sealing errors, and manifest SHA-256
 `a039a12a580545c2a048abdad017d0cfd7a3c569f8ac593edc74a7ce67f8c6a6`.
 Historical BRN-0017 remains 6/10; this diagnostic is incomplete and does not
 create or change an official benchmark score.
+
+Independent terminal review judged Phone's two semantic surfaces exactly once:
+equivalent-fact recall **PASS 1/1** because the returned exact user statement
+establishes ownership of the power bank; materially-used evidence **PASS 1/1**
+because the committed answer explicitly personalized its backup advice around
+that power bank. These are tracked judged labels, not canonical truth and not a
+sealed-bundle mutation.
+
+The same review found one P2 custody defect caused after sealing by our
+inspection, not by the live run: opening copied SQLite databases with
+`readOnly:true` retouched Phone's already-manifested SHM timestamp and created
+unmanifested Instant Pot SHM/WAL sidecars. The 16 manifested artifact bytes and
+all main database bytes still rehash exactly; the new SHM is mode 0600 at SHA
+`fd4c9fda...` and the empty WAL is mode 0600 at SHA `e3b0c442...`. They are
+preserved—never deleted, resealed, or used to justify a rerun. Future sealed DB
+audits must copy bytes outside the sealed namespace before SQLite opens them.
+Review also found a P3 stale prediction phrase, “six-tool wire”; the immutable
+P-set's exact hash/names and every request correctly bind seven tools: six
+memory tools plus `palari_answer_commit`.
 
 BRN-0019 is accepted, merged, and pushed at `146d911`. BRN-0018 is accepted,
 merged, and pushed at `8a4d11c`.
@@ -126,9 +145,9 @@ prior finding and the entire cumulative authority, source-integrity, leakage,
 meter, call-cap, one-shot, metric, and seal contract. It found no P0-P3 issue
 and recommended the freeze for founder-gated dispatch. The founder then gave
 the exact authority, producing the terminal cap-stop recorded at the top of
-this file. Next: independently rehash and judge the sealed terminal evidence,
-record the two Phone semantic labels, and accept or reopen the ticket without
-rerunning the consumed identity.
+this file. Next: independently rereview the tracked-only custody disclosure and
+semantic labels, then accept or reopen the ticket without touching or rerunning
+the consumed identity.
 
 Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
 INDEPENDENTLY ACCEPTED, MERGE NEXT. Founder-authorized identity

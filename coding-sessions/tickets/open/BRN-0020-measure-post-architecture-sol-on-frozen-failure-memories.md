@@ -6,12 +6,12 @@ level: 1
 parent_id:
 root_id: BRN-0020
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T03:26:58Z
 target_branch: "main"
 branch: "ticket/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
@@ -245,3 +245,9 @@ numbers are a preregistration boundary only; they are not founder authority.
   zero sealing errors, SHA-256 `a039a12a...`. Historical BRN-0017 stays 6/10.
 - Independent terminal review must rehash the bundle and judge Phone's pending
   equivalent-fact and materially-used labels exactly once without mutating it.
+- Terminal review judged both Phone semantic surfaces PASS `1/1`, then reopened
+  one P2 custody issue: a later in-place SQLite read-only audit created two
+  unmanifested Instant Pot sidecars and retouched one manifested SHM timestamp.
+  Manifested/main DB bytes remain exact. Preserve and disclose; never delete,
+  reseal, or rerun. It also clarified the stale “six-tool” phrase: exact frozen
+  evidence correctly binds six memory tools plus commit, seven total.

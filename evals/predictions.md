@@ -2143,17 +2143,18 @@ Predictions, failing categories first:
    publication, or replacement.
 
 Terminal result (recorded after the one authorized invocation; semantic labels
-remain pending independent terminal review):
+were applied exactly once by independent terminal review):
 
 - EXACT SOURCE RECALL: **INCOMPLETE, 1/4 cases and 1/6 spans observed.** Phone
   returned the exact original user power-bank statement. Instant Pot stopped
   before a complete trace/result; Tokyo and Miami were not reached.
-- SELECTION AND MATERIAL USE: **INCOMPLETE, structural Phone pass only.** Phone
+- SELECTION AND MATERIAL USE: **INCOMPLETE RUN; PHONE PASS 1/1.** Phone
   selected the exact power-bank evidence and answered, “Since you have a
-  portable power bank, keep it charged as a short-term backup.” Its separate
-  equivalent-fact and material-use labels remain pending the preregistered
-  independent terminal judgment. The other three cases have no terminal
-  answer result.
+  portable power bank, keep it charged as a short-term backup.” Independent
+  terminal review labels equivalent-fact recall PASS 1/1 for fact
+  `phone-user-has-portable-power-bank`, and materially-used evidence PASS 1/1
+  for `dialogue_5cfaaa3c5d64c1ca388b37699c83f227652b14b628eb13e9dd7105935cd48e32`.
+  The other three cases have no terminal answer result.
 - GENERAL PLANNING: **PARTIAL.** Instant Pot registered a general `before` plan
   anchored on getting the Air Fryer, then called `memory_timeline` and
   requested `memory_search`. The cap stopped before the search result could be
@@ -2161,7 +2162,8 @@ remain pending independent terminal review):
   reached.
 - TEMPORARY INFERENCE: **NOT REACHED.** Miami did not run.
 - METRIC SEPARATION: **PHONE PASS; RUN INCOMPLETE.** Phone sealed five distinct
-  non-aliased surfaces; the two judged surfaces remain explicit pending/null.
+  non-aliased surfaces. Its two pending/null semantic records were judged once
+  in tracked terminal evidence and were not written back into the bundle.
 - COMPATIBILITY/COMPLETION: **FAIL.** The smoke passed and Phone completed, but
   only `1/4` questions produced a terminal answer. The hard cap stopped during
   Instant Pot; Tokyo and Miami were not reached.
@@ -2175,3 +2177,12 @@ remain pending independent terminal review):
   `a039a12a580545c2a048abdad017d0cfd7a3c569f8ac593edc74a7ce67f8c6a6`.
   The identity is consumed; no retry, resume, replacement, regrade, or official
   benchmark score is permitted. Historical BRN-0017 remains 6/10.
+- POST-SEAL CUSTODY: **P2 DISCLOSED.** A later provider-free inspection opened
+  copied SQLite databases in place. It retouched the manifested Phone SHM
+  timestamp and created unmanifested Instant Pot SHM/WAL sidecars. All 16
+  manifested bytes and copied main databases remain exact; the added files are
+  preserved and separately hashed. The bundle is no longer a clean closed
+  physical file set and is not repaired, resealed, or rerun.
+- PREDICTION COUNT CLARIFICATION: P-set 30's immutable “six-tool wire” phrase
+  is stale shorthand. Its exact frozen normal hash and every request correctly
+  contain seven tools: timeline, read, find, plan, search, graph, and commit.

@@ -2974,3 +2974,13 @@ here with dates. Agents record; the founder decides.
   new cumulative ledger is `$7.75502179`. The sealed result is terminal
   evidence, not permission for a retry, replacement, top-up, regrade, or new
   official score; historical BRN-0017 remains 6/10.
+
+- 2026-08-05 (BRN-0020 post-seal custody)
+  **Never open a sealed SQLite database in place, even read-only.** SQLite may
+  touch or create WAL/SHM sidecars under a read-only connection. A terminal
+  audit must first copy the database and any sealed sidecars outside the sealed
+  namespace, then open only that copy. BRN-0020's post-seal inspection created
+  two unmanifested sidecars and retouched one manifested sidecar timestamp;
+  preserve and disclose them. The exact manifested/main DB bytes remain valid,
+  but the directory may no longer be described as a closed physical artifact
+  set and must never be deleted, repaired, resealed, or rerun.

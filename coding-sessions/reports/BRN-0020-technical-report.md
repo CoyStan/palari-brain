@@ -82,8 +82,9 @@ occurred during review.
 - Phone completed. It recalled and selected the exact original user statement
   about owning a portable power bank, declared its consequence, and explicitly
   recommended keeping that power bank charged as a short-term backup. Session
-  recall and exact-span recall were both `1/1`; equivalent-fact and materially-
-  used labels remain pending independent terminal judgment.
+  recall and exact-span recall were both `1/1`. Independent terminal review
+  judged equivalent-fact recall PASS `1/1` and materially-used evidence PASS
+  `1/1` exactly once from the sealed raw trace.
 - Instant Pot registered the general `before` plan, called timeline, and
   requested semantic search. Before the next model dispatch, its conservative
   reservation would have crossed the fresh cap. The meter refused before
@@ -99,3 +100,23 @@ occurred during review.
   zero sealing errors, manifest `a039a12a...`.
 - This incomplete diagnostic creates no official score and does not alter the
   historical BRN-0017 6/10.
+
+## Terminal Review Disclosure
+
+- P0/P1: none. Terminal call, usage, accounting, cap, source, transcript, and
+  historical-result reconciliation passed.
+- P2: after sealing, the specialist's SQLite `readOnly:true` canonical check
+  retouched the manifested Phone SHM timestamp and created unmanifested Instant
+  Pot SHM/WAL sidecars. All 16 manifested bytes still rehash, both copied main
+  DBs remain byte/canonically exact, the added SHM is mode 0600 SHA
+  `fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb`,
+  and the empty WAL is mode 0600 SHA `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+  Preserve all files; do not delete, reseal, rerun, or claim a closed physical
+  file set. Future audits open only a copy outside a sealed namespace.
+- P3: the preregistered phrase “six-tool wire” is a stale count. The immutable
+  exact hash/names and every request correctly bind six memory tools plus the
+  commit tool, seven total. Completion already fails independently.
+- Phone judged labels: equivalent fact PASS `1/1` for
+  `phone-user-has-portable-power-bank`; materially used PASS `1/1` for evidence
+  `dialogue_5cfaaa3c5d64c1ca388b37699c83f227652b14b628eb13e9dd7105935cd48e32`.
+  They remain tracked judgments, not canonical or sealed truth.
