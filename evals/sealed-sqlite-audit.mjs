@@ -86,12 +86,27 @@ function immutableArray(values) {
 
 function aggregateErrors(errors, message) {
   const iterable = objectCreate(null)
+  const iterator = objectCreate(null)
+  let index = 0
+  objectDefineProperty(iterator, 'next', {
+    enumerable: false,
+    value: function nextError() {
+      const result = objectCreate(null)
+      if (index < errors.length) {
+        result.done = false
+        result.value = errors[index]
+        index += 1
+      } else {
+        result.done = true
+        result.value = undefined
+      }
+      return result
+    },
+  })
   objectDefineProperty(iterable, symbolIterator, {
     enumerable: false,
-    value: function* iterateErrors() {
-      for (let index = 0; index < errors.length; index += 1) {
-        yield errors[index]
-      }
+    value: function iterateErrors() {
+      return iterator
     },
   })
   return new aggregateErrorFrom(iterable, message)

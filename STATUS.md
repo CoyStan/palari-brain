@@ -37,8 +37,14 @@ The cumulative repair now uses indexed private collections, a private exact
 error iterable, and captured prefix/sort/stat/file-handle operations. All four
 attacks have permanent tests.
 
-Repaired focused contracts pass 20/20. Full suite passes 747 / fails 0 / skips 15
-optional tests across 762. Quickstart passes 6/6. Syntax, offline-runtime scan,
+A second independent reviewer confirmed the prior ten findings repaired, then
+reopened one P2: the combined-error iterable inherited a mutable generator
+`next`, so simultaneous callback and custody failures could lose their causes.
+The repair uses a null-prototype iterator with an own method, and its permanent
+test preserves both ordered causes.
+
+Repaired focused contracts pass 21/21. Full suite passes 748 / fails 0 / skips 15
+optional tests across 763. Quickstart passes 6/6. Syntax, offline-runtime scan,
 diff, ticket lint, and governed committed-plus-dirty scope pass. Credential
 reads, network requests, provider calls, inference, private-result reads, and
 spend are `0 / 0 / 0 / 0 / 0 / $0.00`; cumulative accounted spend remains

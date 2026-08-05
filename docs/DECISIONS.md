@@ -3026,3 +3026,11 @@ here with dates. Agents record; the founder decides.
   uses index-only private collections, a private error iterable, captured
   prefix/sort operations, and file-handle/stat operations captured before any
   callback. Each attack is a permanent provider-free regression.
+
+- 2026-08-05 (BRN-0021 combined-error boundary)
+  **A private iterable must own its iteration method.** A second independent
+  review showed that a generator-based AggregateError input still inherited a
+  mutable shared `next`, so concurrent callback and custody causes could be
+  omitted even though cleanup succeeded. The replacement is a null-prototype
+  iterator with an own `next` method. A permanent combined-failure contract
+  requires both causes to remain present and ordered.

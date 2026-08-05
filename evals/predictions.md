@@ -2271,3 +2271,10 @@ collections, captured operations, and a private error iterable now close those
 paths. Repaired focused tests pass 20/20; full suite passes 747, fails 0, and
 skips 15 across 762. Quickstart remains 6/6. Another fresh independent
 rereview is required.
+
+A second independent reviewer confirmed those ten repairs, then reopened one
+P2: the private AggregateError iterable's generator inherited a mutable shared
+`next`, allowing simultaneous callback and custody causes to disappear from
+the error list. A null-prototype iterator with an own `next` plus a permanent
+combined-failure regression repairs it. Focused tests pass 21/21; full suite
+passes 748, fails 0, and skips 15 across 763. Fresh rereview is required.

@@ -42,8 +42,8 @@ historical-request replay.
 
 ## Verification
 
-- Repaired focused contracts: 20 passed, 0 failed.
-- Full `node --test`: 762 tests; 747 passed, 15 optional skips, 0 failed.
+- Repaired focused contracts: 21 passed, 0 failed.
+- Full `node --test`: 763 tests; 748 passed, 15 optional skips, 0 failed.
 - `npm run quickstart`: PASS, 6/6.
 - Relevant `node --check`, `git diff --check`, ticket lint, and governed
   committed-plus-dirty scope: PASS.
@@ -107,3 +107,10 @@ and sort operations, and captures file-handle/stat operations before any
 callback. All four attacks are permanent tests. Focused tests now pass 20/20
 and full tests pass 747/762 with 15 optional skips. A second fresh independent
 cumulative rereview remains required.
+
+A second independent reviewer confirmed all preceding repairs, then found one
+P2 in combined-error preservation: the private iterable was a generator whose
+shared inherited `next` remained mutable. The repair replaces it with a null-
+prototype iterator carrying an own `next`; a simultaneous callback and source-
+custody failure now preserves both ordered causes. Focused tests pass 21/21 and
+full tests pass 748/763 with 15 optional skips. Fresh rereview remains required.

@@ -393,6 +393,47 @@ test('poisoned array iterator cannot skip WAL and SHM custody', async () => {
   }
 })
 
+test('combined failures retain both causes when generator next is poisoned', async () => {
+  const fixture = await fixtureRoot()
+  const sourcePath = join(fixture.source, 'memory.sqlite')
+  const expected = new Error('callback failed too')
+  let generatorPrototype = Object.getPrototypeOf((function* probe() {})())
+  while (generatorPrototype &&
+    !Object.hasOwn(generatorPrototype, 'next')) {
+    generatorPrototype = Object.getPrototypeOf(generatorPrototype)
+  }
+  const originalNext = generatorPrototype.next
+  let observed
+  try {
+    const database = await createDatabase(sourcePath)
+    database.close()
+    try {
+      await auditSealedSqliteCopy({
+        sourcePath,
+        scratchParent: fixture.scratch,
+        async audit() {
+          await chmod(sourcePath, 0o4600)
+          generatorPrototype.next = () => ({ done: true, value: undefined })
+          throw expected
+        },
+      })
+    } catch (error) {
+      observed = error
+    }
+  } finally {
+    generatorPrototype.next = originalNext
+  }
+  try {
+    assert.equal(observed instanceof AggregateError, true)
+    assert.equal(observed.errors.length, 2)
+    assert.equal(observed.errors[0], expected)
+    assert.match(observed.errors[1].message, /source physical set/u)
+    assert.deepEqual(await readdir(fixture.scratch), [])
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true })
+  }
+})
+
 test('relative, missing, symlink, and in-namespace scratch paths fail closed', async () => {
   const fixture = await fixtureRoot()
   const sourcePath = join(fixture.source, 'memory.sqlite')

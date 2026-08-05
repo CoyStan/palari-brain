@@ -24,7 +24,7 @@ are checked afterward, and temporary state is removed even if the audit fails.
 Across three fixed synthetic request shapes, exact-count reservations were
 `6.907x`, `13.939x`, and `6.095x` smaller than the old byte fallback while
 keeping the full 512-token answer ceiling. After independent review and repair,
-all 20 focused tests, 762 repository tests (15 optional skips), and the 6/6
+all 21 focused tests, 763 repository tests (15 optional skips), and the 6/6
 quickstart passed.
 
 No provider was called, no key was read, no private result was opened, and no
@@ -46,6 +46,12 @@ identity rather than trusting a pathname. Special permission bits, parent
 symlink retargets, synthetic Proxy responses, and the ticket's contradictory
 generated filename guard also have permanent repairs. A fresh reviewer must
 confirm the cumulative fix before merge.
+
+A second reviewer found one final-looking reporting issue: when two failures
+happened together, a mutable shared generator could erase both detailed causes
+from the combined error. The combined-error iterator is now fully private with
+its own method, and a regression proves both causes remain visible. It still
+requires fresh rereview before merge.
 
 The first rereview confirmed those issues repaired and then found a subtler
 JavaScript class: mutable built-in array/string methods could suppress an
