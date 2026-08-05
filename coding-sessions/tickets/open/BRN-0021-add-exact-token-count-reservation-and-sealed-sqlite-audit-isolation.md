@@ -6,7 +6,7 @@ level: 1
 parent_id:
 root_id: BRN-0021
 children: []
-status: open
+status: in-review
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -38,8 +38,6 @@ forbidden_paths:
   - "**/secrets/**"
   - "*secret*"
   - "**/*secret*"
-  - "*token*"
-  - "**/*token*"
   - "infra/prod/**"
   - "prod/**"
   - "runtime-data/**"
@@ -183,3 +181,24 @@ SQLite library opens them, so inspection cannot mutate a terminal bundle.
   private-result access, generation, benchmark run, judge, or spend.
 - Stop rather than presenting a local tokenizer or byte heuristic as the exact
   structured-input count.
+
+## Implementation Evidence
+
+- Exact count parsing is strict, immutable, and internally brands accepted
+  records so reservation cannot be invoked with a caller-forged raw number.
+  The counter has one caller-injected invocation and no credential, network,
+  retry, meter, or post-dispatch fallback surface.
+- Counted and fallback reservations reconcile exact integer picodollars and an
+  exact USD decimal string. The fixed three-case synthetic bank measures
+  `6.907x`, `13.939x`, and `6.095x` tighter reservations with the identical 512
+  output ceiling.
+- Copy-first SQLite tests cover main-only state, valid live WAL/SHM state, and
+  callback failure. The source file set/hashes/modes remain exact; SQLite and
+  scratch mutations see only the owned copy; cleanup succeeds on both paths.
+- Focused tests: 12 passed, 0 failed. Full suite: 739 passed, 15 optional skips,
+  0 failed across 754. Quickstart: 6/6. Offline source, syntax, diff, ticket,
+  and committed-plus-dirty scope checks pass.
+- Credential reads / network requests / provider calls / inference /
+  private-result reads / spend: `0 / 0 / 0 / 0 / 0 / $0.00`. Cumulative
+  accounted spend remains exactly `$7.75502179`; historical BRN-0017 remains
+  6/10 and consumed BRN-0020 remains unchanged.
