@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON TERMINAL;
-CAP-STOPPED AFTER PHONE, TERMINAL CUSTODY DISCLOSURE IN REVIEW. The founder-authorized
+CAP-STOPPED AFTER PHONE, INDEPENDENTLY ACCEPTED. The founder-authorized
 identity `j4-sol-frozen-failures-post-architecture-v1` ran exactly once and is
 consumed. The compatibility smoke passed. Phone completed and explicitly used
 the original portable-power-bank statement. During Instant Pot, Sol registered
@@ -37,6 +37,13 @@ audits must copy bytes outside the sealed namespace before SQLite opens them.
 Review also found a P3 stale prediction phrase, “six-tool wire”; the immutable
 P-set's exact hash/names and every request correctly bind seven tools: six
 memory tools plus `palari_answer_commit`.
+
+Fresh tracked-only rereview of exact head `df5dd0a` found no remaining P0-P3
+issue and recommends ACCEPT. Formal independent terminal reviewer-note commit
+`dc4718b` records the complete result, the custody disclosure, Phone's two
+exactly-once semantic labels, and the prohibition on private reaccess, deletion,
+resealing, rerunning, or rejudging. BRN-0020 is accepted under the founder's
+standing delegation for clean independently reviewed tickets.
 
 BRN-0019 is accepted, merged, and pushed at `146d911`. BRN-0018 is accepted,
 merged, and pushed at `8a4d11c`.

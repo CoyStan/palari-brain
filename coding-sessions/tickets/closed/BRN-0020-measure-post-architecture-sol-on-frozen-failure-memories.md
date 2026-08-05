@@ -6,7 +6,7 @@ level: 1
 parent_id:
 root_id: BRN-0020
 children: []
-status: in-review
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -252,3 +252,8 @@ numbers are a preregistration boundary only; they are not founder authority.
   Manifested/main DB bytes remain exact. Preserve and disclose; never delete,
   reseal, or rerun. It also clarified the stale “six-tool” phrase: exact frozen
   evidence correctly binds six memory tools plus commit, seven total.
+- Fresh tracked-only rereview of exact head `df5dd0a` found no P0-P3 issue and
+  recommends ACCEPT. Formal terminal reviewer-note commit `dc4718b` records
+  the complete result, custody disclosure, immutable labels, and no-rerun rule.
+  Under the founder's standing delegation for clean independently reviewed
+  tickets, BRN-0020 is accepted for merge without touching the private result.
