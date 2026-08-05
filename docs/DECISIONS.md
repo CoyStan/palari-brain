@@ -2925,3 +2925,15 @@ here with dates. Agents record; the founder decides.
   then compares a deterministic hash of every canonical table before and after
   answering so derived SQLite/WAL activity cannot masquerade as a memory write.
   Pricing source: <https://developers.openai.com/api/docs/models/gpt-5.6-sol>.
+
+- 2026-08-05 (BRN-0020 terminal judgment and durability boundary)
+  **Persist dispatch authority before transport; judge semantic use after the
+  immutable trace exists.** Every reservation must be file- and directory-
+  synced before a request can leave the process. The provider run computes
+  session recall, exact-span recall, and selected evidence, but seals separate
+  pending records for equivalent-fact recall and materially-used evidence.
+  One independent terminal reviewer applies those two labels exactly once from
+  the sealed trace in tracked evidence; no label is written back to canonical
+  memory or the sealed result. Sealing reconciles meter, caps, report, and
+  terminal hash and persists either a sealed manifest or an explicit failed
+  manifest with its errors.

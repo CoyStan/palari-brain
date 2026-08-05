@@ -25,6 +25,13 @@
 - Governed scope and `git diff --check`: PASS.
 - Credential reads / provider calls / inference / spend: `0 / 0 / 0 / $0.00`.
 
+Independent review of submitted head `e1986d9` reopened three findings. The
+launcher repair now file- and directory-syncs every meter reservation before
+dispatch; emits separate, non-aliased pending records for equivalent-fact and
+material-use terminal judgment; reconciles meter, report, terminal hash, and
+caps during sealing; and persists an explicit failed manifest with errors when
+any reconciliation, artifact, mode, or credential scan fails.
+
 ## Risks / Follow-Ups
 
 - Sol may choose not to plan, may fail the stricter commitment, or may miss the
@@ -32,7 +39,9 @@
   or reroll.
 - `$0.50` is a hard accounted cap, not a promise of completion. Any uncertain
   request retains its reservation and stops if the next call cannot fit.
-- Material use and equivalent fact remain judged diagnostics. Structural
-  commitment fields do not prove semantic use and cannot regrade BRN-0017.
+- Material use and equivalent fact remain judged diagnostics. The sealed run
+  leaves both explicitly pending; one independent terminal reviewer labels
+  them exactly once from raw trace evidence in tracked terminal reporting.
+  Structural commitment fields do not prove semantic use or regrade BRN-0017.
 - Independent pre-dispatch review and a new exact founder authorization are
   required before `--run`.

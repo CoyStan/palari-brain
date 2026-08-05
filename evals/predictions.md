@@ -2062,7 +2062,7 @@ creation, or spend.** Date: 2026-08-05. Proposed identity:
 `j4-sol-frozen-failures-post-architecture-v1`.
 
 Private launcher SHA-256 is
-`5968c4166ea4d7c980bb0165440b1038a24885747015fe903fce17631fd7de4c`.
+`264cb057ad8a382cd550135ab3fd6a12ba5c72d72fb2602d6d7668ac39475e44`.
 It binds the exact sealed database, question, product, tool-wire, Ettin runtime,
 meter, one-shot, authority, and seal evidence described below.
 
@@ -2109,9 +2109,13 @@ Predictions, failing categories first:
    logically and byte-stably free of any new canonical cross-city preference.
    Phone, Instant Pot, and Tokyo require no cross-context inference.
 5. METRIC SEPARATION: every cell reports session recall, exact-span recall,
-   selected evidence, judged equivalent-fact recall, and judged materially-used
-   evidence as five distinct surfaces. Equivalent/material judgments retain
-   judged authority and never become canonical truth or historical grades.
+   selected evidence, equivalent-fact recall, and materially-used evidence as
+   five distinct, non-aliased surfaces. The provider run computes the three
+   structural surfaces and seals the two semantic surfaces as explicit
+   `pending`/null judged records. One independent terminal reviewer applies the
+   preregistered equivalent-fact and material-use labels exactly once from the
+   sealed raw trace and records them in tracked terminal evidence; that review
+   does not mutate the sealed bundle, canonical truth, or historical grades.
 6. COMPATIBILITY/COMPLETION: the unrelated smoke produces one valid modern
    commitment on the six-tool wire, then all four questions receive one
    terminal non-empty Sol answer exactly once. Each cell uses at most one plan,

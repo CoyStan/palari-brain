@@ -6,12 +6,12 @@ level: 1
 parent_id:
 root_id: BRN-0020
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T02:14:35Z
 target_branch: "main"
 branch: "ticket/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
@@ -102,8 +102,10 @@ numbers are a preregistration boundary only; they are not founder authority.
 - Then answer the four fixed questions in order exactly once. Preserve raw
   tool transcripts, canonical returned rows, plan, commitments, temporary
   inferences, answer text, latency, usage, retrieval/rerank telemetry, and the
-  five separate metric surfaces. Equivalent-fact and materially-used values
-  remain explicit diagnostic judgments, never canonical truth.
+  five separate, non-aliased metric surfaces. The run seals equivalent-fact
+  and materially-used surfaces as explicit pending/null judged records; one
+  independent terminal reviewer labels them exactly once from the sealed raw
+  trace, without mutating the bundle or canonical truth.
 - Grade only the preregistered architecture acceptance observations and record
   whatever happens in `STATUS.md`. No replacement identity, reroll, selective
   retry, repair-in-place, regrade, or publication.
@@ -147,8 +149,10 @@ numbers are a preregistration boundary only; they are not founder authority.
    linked `revisable: true` temporary inference.
 6. The report keeps session recall, exact-span recall, judged equivalent-fact
    recall, selected evidence, and judged materially-used evidence distinct.
+   The run computes structural values and leaves both semantic surfaces
+   explicitly pending for one independent terminal judgment.
    `consequence_for_answer` and `not_used_reason` remain declarations; judged
-   labels are not stored as canonical truth.
+   labels are not stored as canonical truth or written back into the seal.
 7. `STATUS.md` records the terminal outcome, raw diagnostic grades, usage,
    latency, measured/uncertain spend, and seal whatever they are. Historical
    BRN-0017 remains 6/10 and BRN-0018 remains immutable.
@@ -190,7 +194,7 @@ numbers are a preregistration boundary only; they are not founder authority.
 ## Offline Freeze Evidence
 
 - P-set 30 is FINAL. Private launcher SHA-256 is
-  `5968c4166ea4d7c980bb0165440b1038a24885747015fe903fce17631fd7de4c`;
+  `264cb057ad8a382cd550135ab3fd6a12ba5c72d72fb2602d6d7668ac39475e44`;
   `node --check` and provider-free `--verify` pass.
 - All 74 BRN-0017 artifacts rehash under terminal manifest
   `850ca100...`. The smoke plus four database bytes/canonical-row hashes match,
@@ -205,3 +209,7 @@ numbers are a preregistration boundary only; they are not founder authority.
   reads / provider calls / inference / spend are `0 / 0 / 0 / $0.00`.
 - Full suite: 727 passed, 0 failed, 15 optional skips across 742 tests.
   Quickstart: 6/6. Governed scope and diff checks pass.
+- Review of submitted freeze `e1986d9` reopened three issues. The repaired
+  launcher file- and directory-syncs reservations before dispatch, emits two
+  distinct pending semantic-judgment records, reconciles meter/report/terminal
+  evidence, and writes an explicit failed manifest if sealing cannot succeed.

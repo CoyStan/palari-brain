@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON OFFLINE-FROZEN;
-INDEPENDENT PRE-DISPATCH REVIEW NEXT. BRN-0019 is accepted, merged, and pushed
+Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON PRE-DISPATCH REPAIRS;
+FRESH INDEPENDENT REVIEW NEXT. BRN-0019 is accepted, merged, and pushed
 at `146d911`.
 BRN-0018 is accepted, merged, and pushed at
 `8a4d11c`. Its immutable pre-change control found that Sol/low fixed Phone but
@@ -58,7 +58,7 @@ fresh / `$8.17192994` cumulative accounted from the exact `$7.67192994`
 opening ledger. This preregistration is not live authority.
 
 The mode-0600 private launcher is frozen at SHA-256
-`5968c4166ea4d7c980bb0165440b1038a24885747015fe903fce17631fd7de4c`.
+`264cb057ad8a382cd550135ab3fd6a12ba5c72d72fb2602d6d7668ac39475e44`.
 Provider-free verification passes: all 74 BRN-0017 artifacts rehash; the smoke
 and four exact databases have sealed byte hashes plus canonical-row hashes;
 all six required original-user evidence IDs/content hashes are present; the
@@ -72,7 +72,18 @@ before every dispatch. Invalid/no authority fails before result creation,
 credential access, or transport. Full suite passes 727 / fails 0 / skips 15
 across 742 tests; quickstart remains 6/6; scope and diff checks pass.
 
-Next: commit and push the exact freeze, obtain independent pre-dispatch review,
+Independent review of submitted freeze `e1986d9` correctly reopened the ticket
+with three pre-dispatch findings: reservation writes lacked file/directory
+`fsync`, the two semantic metric surfaces had no explicit terminal-judgment
+handoff, and seal failures could escape without a failed manifest or complete
+meter/report/terminal reconciliation. The repaired launcher now makes each
+reservation crash-durable before dispatch, emits distinct non-aliased pending
+judgment records for independent terminal labeling, reconciles all accounting
+and terminal hashes, and always writes an explicit `sealed` or `failed`
+manifest with errors. A fresh review must replay all three findings before any
+founder gate can open.
+
+Next: commit and push the repaired freeze, obtain independent pre-dispatch review,
 then stop at the founder gate. Credential reads / provider calls / inference /
 fresh spend for BRN-0020 remain exactly `0 / 0 / 0 / $0.00`.
 
