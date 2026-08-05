@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0019
 children: []
-status: open
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -193,3 +193,31 @@ not affect) the answer, and keep cross-context inferences ephemeral.
 - Stop before any credential read, provider invocation, inference, dataset
   access, score, rerun, regrade, or spend.
 - Stop rather than encoding any benchmark-specific product rule.
+
+## Implementation Evidence
+
+- One normalized immutable `memory_plan` is trace-only and consumes zero of the
+  four evidence-retrieval calls; duplicate or malformed plans fail closed.
+- Modern commitments accept only exact returned evidence and require exactly
+  one consequence or non-use reason per selected memory. Temporary inferences
+  require selected used provenance and `revisable: true`; no write capability
+  is exposed.
+- Provider-free telemetry returns five independent surfaces and preserves the
+  judged authority of equivalent-fact and materially-used labels.
+- Phone, Instant Pot, Tokyo, and Miami offline acceptance fixtures all pass the
+  general path, and production-source scanning excludes fixture literals.
+- Repaired focused tests: 64 passed, 0 failed. Fresh full suite: 727 passed, 15
+  optional skips, 0 failed across 742 tests. Quickstart: 6/6. Scope and diff
+  checks pass.
+- Historical BRN-0017 remains 6/10. Credential/provider/spend activity is
+  `0 / 0 / $0.00`; cumulative accounted spend remains `$7.67192994`.
+
+## Review Repair
+
+- Independent review of exact head `9a765be` recommended reopen for two P2s.
+  The plan parser accepted non-ISO strings through permissive `Date` parsing,
+  and coerced a non-string relation after prototype poisoning.
+- The repair requires a canonical ISO date or zoned timestamp, rejects invalid
+  calendar days before normalization, and requires relation to be a string
+  before exact enum comparison. Regressions cover the reviewer's concrete
+  inputs, invalid calendar/timezone forms, and poisoned `Object.prototype`.

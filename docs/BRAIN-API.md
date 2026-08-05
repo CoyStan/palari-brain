@@ -497,6 +497,7 @@ const result = await answerWithRetrieval(brain, {
     commitAnswer,
     memoryText,
     maxRetrievalCalls,
+    maxRetrievalPlanningCalls,
     recommendedMaxOutputTokens,
     retrievalFinalizationInstructions,
     retrievalTools,
@@ -505,8 +506,10 @@ const result = await answerWithRetrieval(brain, {
     // Map retrievalTools (the same value as MEMORY_RETRIEVAL_TOOLS) to
     // provider tool declarations. For Gemini:
     const tools = buildGeminiFunctionTools(retrievalTools)
-    // Route each requested call through retrieve. Palari executes at most
-    // maxRetrievalCalls (never more than 4) across all memory tools.
+    // Route each requested call through retrieve. One memory_plan may register
+    // ephemeral navigation metadata without consuming maxRetrievalCalls.
+    // Palari executes at most maxRetrievalCalls (never more than 4) across
+    // the evidence-retrieval tools.
     // If the budget is spent, perform one tool-disabled response using
     // retrievalFinalizationInstructions: answer from consulted evidence or
     // say stored evidence is insufficient.
@@ -520,7 +523,13 @@ const result = await answerWithRetrieval(brain, {
     if (answerEvidenceCount() > 0) {
       return commitAnswer({
         abstained: false,
-        bases: [{ evidenceId: 'returned-id', quote: 'exact returned quote' }],
+        bases: [{
+          evidenceId: 'returned-id',
+          quote: 'exact returned quote',
+          consequence_for_answer: 'This fact changes the recommendation.',
+          not_used_reason: '',
+        }],
+        temporaryInferences: [],
         text: '...',
       })
     }
@@ -575,15 +584,26 @@ Public configuration may lower, but cannot raise, the seven-dispatch ceiling.
 It also cannot raise the four-call memory budget.
 
 The OpenAI adapter declares the additive evidence-commit capability. Its
-normal tool set contains the five memory tools plus the private strict
+normal tool set contains six memory tools plus the private strict
 `palari_answer_commit` function. The private function cannot read or write the
-journal and does not consume a memory-tool call. Once any canonical row or
+journal and does not consume a retrieval call. `memory_plan` is also outside
+the four-call retrieval budget: it may run once, records only session-ephemeral
+navigation metadata, and returns no evidence. Once any canonical row or
 admitted graph quote has been returned, Palari accepts only the exact object
 returned by the host's `commitAnswer()` callback. The proposal must contain a
 boolean `abstained`, bounded non-empty answer text, and one or more unique
-returned evidence IDs with exact contiguous quotes. Unknown IDs, fabricated
-quotes, duplicate bases, extra provider-authored provenance, malformed fields,
-and copied or mutated callback results fail closed.
+returned evidence IDs with exact contiguous quotes. Every selected basis sets
+exactly one non-empty `consequence_for_answer` or `not_used_reason`; unrelated
+retrieved rows need not be selected. Unknown IDs, fabricated quotes, duplicate
+bases, ambiguous use/non-use, extra provider-authored provenance, malformed
+fields, and copied or mutated callback results fail closed.
+
+A cross-context inference is a separate `temporaryInferences` entry. It must
+cite selected used evidence, set `revisable: true`, state its consequence for
+this answer, and remains only in the returned answer trace. It never crosses
+the admission gate and never becomes a canonical user fact. This lets an
+answer tentatively transfer a preference between contexts without claiming the
+transfer is permanently true.
 
 A valid commitment ends the answer immediately, without another generation.
 Raw text or an invalid commitment after evidence gets at most one host-guided
@@ -611,13 +631,14 @@ an independent adapter and can coexist with the OpenAI generation path.
 Offline adapter tests do not establish live compatibility, quality, latency,
 or price.
 
-It supplies the digest first and exposes all five tools:
+It supplies the digest first and exposes all six tools:
 
 | Tool | Behavior |
 | --- | --- |
 | `memory_timeline` | Chronological session orientation |
 | `memory_read` | Complete canonical messages by identity/session |
 | `memory_find` | Exact or stemmed-ranked journal lookup |
+| `memory_plan` | One ephemeral anchor/relation/category/time-range plan; no evidence and no retrieval-budget charge |
 | `memory_search` | Reciprocal-rank fusion of ranked and optional semantic hits, followed by canonical reads |
 | `memory_graph` | Read-only traversal of previously admitted quoted edges |
 
@@ -745,13 +766,35 @@ bounded tool request/result. Search ranking and graph structure locate
 evidence; exact journal messages and verified edge quotes remain the only
 testimony.
 
+`result.retrievalPlan` is either null or the one immutable session plan with
+exact fields `anchor_event`, `relation`, `category`, and `time_range`.
+`result.retrievalPlanningCalls` is zero or one. A temporal/relational provider
+should plan first, locate the anchor when needed, orient with
+`memory_timeline`, then use `memory_read` to recover complete original source
+messages. This is general navigation guidance, not a host keyword classifier.
+
 `result.answerCommitted` reports whether the provider returned the exact
-host-created commitment object. `result.answerEvidence` is a deeply frozen
-array of its declared `{ evidenceId, quote }` bases. It is auditable provider
-provenance: the host proves that each ID and exact quote was returned in this
-answer session, not that the answer prose logically follows from the quote.
-This boundary makes ignored evidence visible and prevents uncited
-post-retrieval answers; it is intentionally not a semantic answer grader.
+host-created commitment object. `result.evidenceCommitments` preserves every
+selected memory with its exact quote and normalized consequence or non-use
+reason. `result.selectedEvidenceIds` is derived from those host-accepted
+commitments. `result.answerEvidence` remains the compatibility surface and
+contains only `{ evidenceId, quote }` entries declared used (legacy custom
+providers retain their historical basis behavior). `result.temporaryInferences`
+contains only the validated ephemeral inference envelope described above.
+
+These are auditable provider declarations: the host proves that IDs and exact
+quotes were returned and that the fields are structurally coherent. A declared
+`consequence_for_answer` does not prove the answer materially depended on that
+memory. Semantic material use remains an independently judged label.
+
+The provider-free evaluator in `evals/retrieval-evidence-metrics.mjs` therefore
+keeps five surfaces separate: session recall from returned canonical sessions,
+exact-span recall from returned evidence IDs, selected evidence from accepted
+commitments, and explicit judged labels for equivalent-fact recall and
+materially-used evidence. Both judged surfaces retain `judged: true` and
+`labelAuthority: "judge"`; neither is stored or represented as canonical
+truth. Changing one label cannot regrade another surface or alter a historical
+benchmark result.
 
 The provider-neutral answer contract applies to the initial briefing and all
 later tool results as one evidence stream:
@@ -770,12 +813,17 @@ later tool results as one evidence stream:
 
 These remain semantic instructions, not a host-side lexical answer grader.
 Providers that opt into the additive commitment capability also cross the
-structural exact-ID/exact-quote boundary described above. That proves declared
-evidence use, not semantic correctness. The host continues to preserve
+structural exact-ID/exact-quote/use-declaration boundary described above. That
+proves declared selection and use/non-use, not semantic correctness. The host continues to preserve
 canonical bytes, speaker, time, evidence identity, scope, and the bounded
 retrieval transcript; a separately authorized live measurement is required to
 measure generated-answer behavior. One normal valid commitment adds no model
 dispatch; only the single invalid/raw repair adds latency.
+
+The four historical BRN-0017 failures remain recorded at the immutable 6/10.
+Provider-free Phone, Instant Pot, Tokyo, and Miami fixtures exercise this
+general architecture but do not regrade that run. A post-change live comparison
+requires a new preregistered identity, cap, and founder authorization.
 
 ### Host-computed question-relative time
 

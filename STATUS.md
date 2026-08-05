@@ -1,10 +1,10 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0019 PROVENANCE-AWARE RETRIEVAL/USE PRODUCT CONTRACT PREPARED;
-FREEZE COMMIT NEXT. BRN-0018 is accepted, merged, and pushed at `8a4d11c`.
-Its immutable pre-change control found that Sol/low fixed Phone but not Miami
-and could not replace missing original-user evidence; historical BRN-0017
-remains 6/10 and cumulative accounted spend remains `$7.67192994`.
+Loop state: BRN-0019 PROVENANCE-AWARE RETRIEVAL/USE PRODUCT ACCEPTED;
+MERGE NEXT. BRN-0018 is accepted, merged, and pushed at
+`8a4d11c`. Its immutable pre-change control found that Sol/low fixed Phone but
+not Miami and could not replace missing original-user evidence; historical
+BRN-0017 remains 6/10 and cumulative accounted spend remains `$7.67192994`.
 
 BRN-0019 is the required product unit, not another measurement. It adds one
 general session-ephemeral retrieval plan (`anchor_event`, `relation`,
@@ -13,20 +13,44 @@ exactly one `consequence_for_answer` or `not_used_reason`, and temporary
 provenance-linked/revisable cross-context inferences that cannot enter durable
 memory. Provider-free telemetry keeps session recall, exact-span recall,
 judged equivalent-fact recall, selected evidence, and judged materially-used
-evidence separate. The four founder-specified failure shapes are offline
-acceptance fixtures only; production code may contain no benchmark keyword or
-question-specific route.
+evidence separate. The answer host derives selected and declared-used evidence
+from exact returned IDs/quotes while preserving non-use reasons. Temporary
+inferences require used provenance, `revisable: true`, and have no journal write
+path. One general plan is allowed without spending any of the four evidence
+retrieval calls.
 
-Product stop rule: (1) yes, quickstart is green at the accepted main cut; (2)
-yes, the unit targets the measured user-visible retrieval/use failures; (3)
-frameworks expose retrieval traces and citations, but do not supply Palari's
-host-checked use/not-use and temporary-inference boundary; (4) yes, the founder
-explicitly requested each guarantee and acceptance case; (5) deleting it would
-again let relevant evidence go missing or unused without an observable reason,
-and let cross-context transfer masquerade as a permanent fact. Next: commit and
-push the contract, create the isolated worktree, implement provider-free, and
-obtain independent review. Any post-change live comparison remains a separate
-founder-gated ticket with a new P-set and cap.
+All four founder-specified offline fixtures now pass through the same product
+path: Phone uses the existing power bank; Instant Pot retrieves the original
+user statement; Tokyo retrieves and selects the original user Suica and TripIt
+statements; Miami combines view and balcony-hot-tub evidence while keeping the
+cross-city transfer temporary. A production-source scan rejects those fixture
+literals outside tests. These are architecture acceptance tests, not a live
+Luna/Sol result and not a regrade.
+
+Focused contracts initially passed 62/62. Independent review of exact submitted
+head `9a765be` correctly reopened the ticket with two P2 findings: permissive
+`Date` parsing admitted non-ISO bounds, and relation coercion let a poisoned
+object masquerade as a supported relation. Both are repaired with captured
+intrinsics, syntactic/calendar-valid ISO checks, strict string typing, and
+permanent adversarial tests. The repaired focused suite passes 64/64. Fresh
+full `npm test` passes 727 / fails 0 / skips 15 across 742 tests. Quickstart
+passes 6/6, syntax/diff checks pass, and governed committed-plus-dirty scope is
+clean. Fresh independent rereview of repaired head `258de2d` found no P0-P3
+issue after replaying both attacks and the full cumulative contract. Reviewer
+commit `787c925` recommends acceptance. BRN-0019 performed zero credential reads,
+provider calls, generation, judge calls, or spend; cumulative accounted spend
+therefore remains exactly `$7.67192994`.
+
+Product stop rule: (1) yes, quickstart is green; (2) yes, the unit improves the
+measured retrieval/use path and makes each boundary observable; (3) frameworks
+expose retrieval traces and citations, but do not supply Palari's host-checked
+use/not-use and temporary-inference boundary; (4) yes, the founder explicitly
+requested each guarantee and acceptance case; (5) deleting it would again let
+relevant evidence go missing or unused without an observable reason, and let
+cross-context transfer masquerade as a permanent fact. Next: commit the exact
+accepted implementation and merge it. Then prepare the post-change live
+comparison as a separate founder-gated ticket with a new P-set, immutable
+identity, and exact cap; do not dispatch without fresh founder authority.
 
 Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
 INDEPENDENTLY ACCEPTED, MERGE NEXT. Founder-authorized identity

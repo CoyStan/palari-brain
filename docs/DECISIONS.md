@@ -2891,3 +2891,14 @@ here with dates. Agents record; the founder decides.
   failures may appear in tests but never in product routing. A repeat live
   comparison is deferred to a fresh founder-gated successor after independent
   product review; the historical 6/10 remains unchanged.
+
+- 2026-08-05 (BRN-0019 implementation shape)
+  **Planning is ephemeral navigation; consequence is a declaration, not a
+  grade.** One plan may orient an answer without spending the bounded evidence
+  retrieval budget. Selected evidence must declare either its consequence or
+  its non-use reason, while unrelated retrieved evidence may remain unselected.
+  The host reports selected and declared-used evidence separately; only an
+  external judged label may claim equivalent-fact or material use. Temporary
+  cross-context inferences must cite selected used evidence, remain revisable,
+  and never cross the admission gate. Legacy custom-provider bases remain
+  compatible, but the active OpenAI wire uses the stricter contract.
