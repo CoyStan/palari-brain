@@ -25,6 +25,9 @@
 - A provider-free `--run --authority-commit 000...000` control fails before
   result creation, credential access, or transport; the one-shot namespace
   remains absent.
+- `--verify-authority FULL_SHA` provides a provider-free exact-head check of
+  clean pushed branch equality, target-main ancestry, committed P-set bytes,
+  launcher pin, all 74 source artifacts, and absent result namespace.
 - Credential reads / provider calls / inference / fresh spend:
   `0 / 0 / 0 / $0.00`.
 - `npm test`: PASS, 722 passed / 0 failed / 3 skipped across 725 tests.
