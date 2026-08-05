@@ -147,6 +147,18 @@ SQLite library opens them, so inspection cannot mutate a terminal bundle.
 
 ## Ticket Completion Contract
 
+### Founder Scope Reconciliation
+
+The founder explicitly approved work on BRN-0021 after its exact-input-count
+and sealed-SQLite-audit purpose was proposed. The generated broad `*token*`
+filename guard contradicted that approved purpose and even forbade this
+ticket's own generated filename. Before accepting any implementation, this
+target-branch amendment removes only those two ambiguous filename globs. All
+actual credential boundaries remain forbidden: `.env`, key files, secret
+directories/names, private result namespaces, runtime data, probes, and live
+provider activity. This amendment grants no credential read, live invocation,
+spend, or path outside the ticket's explicit `allowed_paths`.
+
 ### Definition Of Done
 
 - A later governed launcher can inject an exact structured-input counter and
