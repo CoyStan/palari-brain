@@ -11,7 +11,9 @@ Changing retrieval and the answer model together would hide which cause moved.
 No product behavior or historical result changed. The ticket freezes one
 answer-only control: replay the exact final context of each failure once with
 Sol instead of Luna, preserving every other request field. There is no new
-search and no judge.
+search and no judge. Because the exact context includes Luna's prior encrypted
+reasoning and tool trajectory, the result isolates the final Sol turn—not a
+complete end-to-end Sol run.
 
 ## What I Should Know
 

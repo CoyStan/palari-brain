@@ -2860,7 +2860,9 @@ here with dates. Agents record; the founder decides.
   request from each of the four immutable failure cells and permits only the
   model-string change from Luna to Sol, keeping low reasoning, Standard/no-
   store wire, instructions, evidence, tools, and output ceiling unchanged.
-  This is an answer-only causal diagnostic with no retrieval calls or judge;
-  it cannot regrade or change the historical 6/10. The one live invocation
+  This is a final-turn causal diagnostic with no new retrieval calls or judge;
+  because the exact replay retains Luna's encrypted reasoning/tool trajectory,
+  it is not a pure end-to-end Sol measurement. It cannot regrade or change the
+  historical 6/10. The one live invocation
   remains founder-gated behind a pushed freeze, independent review, and exact
   fresh/cumulative spend authority.

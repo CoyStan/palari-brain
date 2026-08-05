@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0018
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T00:20:57Z
 target_branch: "main"
 branch: "ticket/BRN-0018-isolate-stronger-answer-model-on-frozen-failure-contexts"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0018-isolate-stronger-answer-model-on-frozen-failure-contexts"
@@ -56,11 +56,14 @@ updated: 2026-08-05
 
 ## Goal
 
-Measure answer-model quality independently of retrieval by replaying the exact
-final Responses contexts from BRN-0017's four immutable failure rows once with
+Measure final-answer model-tier quality independently of new retrieval by
+replaying the exact final Responses contexts from BRN-0017's four immutable
+failure rows once with
 `gpt-5.6-sol`. Change only the model identifier, preserve low reasoning,
 Standard service, no-store behavior, instructions, context, tools, and output
 limit, and record the raw answers without altering the historical 6/10 result.
+The retained Luna reasoning/tool trajectory makes this a final-turn Sol
+effect, not a pure end-to-end Sol measurement.
 
 ## Context And Authority
 
@@ -167,10 +170,13 @@ baseline is terminal.
 - P-set 29 is FINAL before any credential read, provider dispatch, inference,
   result creation, or spend.
 - Private launcher is mode 0600 at SHA-256
-  `266ff9a7b372a87da0a9f48e205e1511b433a5a88bf4d754ad1d8b4b2e682745`.
-  `--verify` passes, binds the BRN-0017 terminal manifest and all four exact
-  source/replay request hashes, proves each treatment changes only `model`,
-  and confirms the one-shot result namespace is absent.
+  `4ce861485511aa19dd77893218aded59c0f7dc8cedf05a94357786cb3ab4ffdf`.
+  `--verify` passes, rehashes all 74 BRN-0017 manifest artifacts and all four
+  exact source/replay request hashes, proves each treatment changes only
+  `model`, snapshots requests before smoke, and confirms the one-shot result
+  namespace is absent. The run path must additionally verify the exact clean
+  pushed/reviewed authority commit, its committed P-set, frozen target main,
+  and this preregistered launcher hash before reading the key.
 - Opening spend is `$7.17192994`; `$0.50` fresh / `$7.67192994` cumulative are
   proposed boundaries only. No live authority has been consumed.
 - Full suite passes 722 / fails 0 / skips 3 across 725 tests; quickstart passes

@@ -11,11 +11,15 @@ no-store, 512 output tokens, instructions, input, tools, and tool choice are
 unchanged. No judge runs and the historical 6/10 remains immutable.
 
 Provider-free verification passes. The private mode-0600 launcher SHA-256 is
-`266ff9a7b372a87da0a9f48e205e1511b433a5a88bf4d754ad1d8b4b2e682745`;
-it binds BRN-0017 manifest SHA-256
+`4ce861485511aa19dd77893218aded59c0f7dc8cedf05a94357786cb3ab4ffdf`;
+it rehashes all 74 sealed BRN-0017 artifacts from manifest SHA-256
 `850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`
-and four exact source/replay hashes, and confirms the result namespace is
-absent. Credential reads, provider calls, inference, and fresh spend remain
+and binds four exact source/replay hashes before snapshotting those requests,
+and confirms the result namespace is absent. The run path additionally binds
+the exact clean pushed/reviewed ticket commit, committed P-set, launcher hash,
+and target main before credential access. Atomic synced writes, meter/wire/
+report reconciliation, and credential-match failure are seal requirements.
+Credential reads, provider calls, inference, and fresh spend remain
 `0 / 0 / 0 / $0.00`. Opening cumulative accounted spend is exactly
 `$7.17192994`. Proposed, not yet authorized ceilings are `$0.50` fresh /
 `$7.67192994` cumulative for one smoke plus four single-dispatch cells.
@@ -27,7 +31,9 @@ boundary by themselves; (4) yes, the founder explicitly requested the
 stronger-model comparison on frozen contexts; (5) deleting this ticket would
 erase the pre-change causal control needed to distinguish answer quality from
 retrieval delivery. Next: commit/push the freeze, obtain fresh independent
-review, then stop at the exact founder spend gate. After its terminal result,
+review, then stop at the exact founder spend gate. The comparison measures
+Sol's final turn conditioned on the frozen Luna reasoning/tool trajectory, not
+a pure end-to-end Sol run. After its terminal result,
 open the separate product architecture ticket; do not regrade BRN-0017.
 
 Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN TERMINAL AT OFFICIAL 6/10;
