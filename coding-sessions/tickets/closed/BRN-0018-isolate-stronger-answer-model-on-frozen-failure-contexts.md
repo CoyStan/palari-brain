@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0018
 children: []
-status: open
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -56,11 +56,14 @@ updated: 2026-08-05
 
 ## Goal
 
-Measure answer-model quality independently of retrieval by replaying the exact
-final Responses contexts from BRN-0017's four immutable failure rows once with
+Measure final-answer model-tier quality independently of new retrieval by
+replaying the exact final Responses contexts from BRN-0017's four immutable
+failure rows once with
 `gpt-5.6-sol`. Change only the model identifier, preserve low reasoning,
 Standard service, no-store behavior, instructions, context, tools, and output
 limit, and record the raw answers without altering the historical 6/10 result.
+The retained Luna reasoning/tool trajectory makes this a final-turn Sol
+effect, not a pure end-to-end Sol measurement.
 
 ## Context And Authority
 
@@ -167,11 +170,43 @@ baseline is terminal.
 - P-set 29 is FINAL before any credential read, provider dispatch, inference,
   result creation, or spend.
 - Private launcher is mode 0600 at SHA-256
-  `e4a181598c6bc7d8fa3b72b74bf5e3091d76cc1df5d91de741af4f26a13bc67c`.
-  `--verify` passes, binds the BRN-0017 terminal manifest and all four exact
-  source/replay request hashes, proves each treatment changes only `model`,
-  and confirms the one-shot result namespace is absent.
+  `a7c91b99ec38572093e88548c526710592c02a3c008ca81984b1aac2fb472c46`.
+  `--verify` passes, rehashes all 74 BRN-0017 manifest artifacts and all four
+  exact source/replay request hashes, proves each treatment changes only
+  `model`, snapshots requests before smoke, and confirms the one-shot result
+  namespace is absent. The run path must additionally verify the exact clean
+  pushed/reviewed authority commit, its committed P-set, frozen target main,
+  and this preregistered launcher hash before reading the key.
 - Opening spend is `$7.17192994`; `$0.50` fresh / `$7.67192994` cumulative are
   proposed boundaries only. No live authority has been consumed.
-- Full suite passes 722 / fails 0 / skips 3 across 725 tests; quickstart passes
-  6/6; ticket lint and target-aware whitespace checks pass.
+- Full suite passes with zero failures across 725 tests. The specialist
+  environment reports 722 pass / 3 optional skips; the fresh reviewer context
+  reports 710 pass / 15 optional skips. Quickstart passes 6/6; ticket lint and
+  target-aware whitespace checks pass.
+
+## Terminal Result Evidence
+
+- Exact founder authority was granted for one invocation under `$0.50` fresh /
+  `$7.67192994` cumulative accounted caps. The identity completed and is
+  permanently consumed.
+- Compatibility returned exact `compatible`; all four frozen cells returned
+  HTTP 200 exactly once. No memory tool or judge ran.
+- P-set 29 grades: ANSWER USE `1/2` FAIL; EVIDENCE LIMIT `1/2` FAIL;
+  COMPATIBILITY/COMPLETION, CAUSAL INTEGRITY, and EXECUTION/ACCOUNTING PASS.
+- Usage: 26,775 input / 1,326 output / 322 reasoning / 28,101 total tokens.
+  Transport: 29,281.3 ms total / 5,856.26 ms mean. Accounted fresh spend:
+  `$0.50`; cumulative: `$7.67192994`.
+- Private manifest SHA-256 is
+  `6c9ab17351d8f09c1b714d33bb8fe34e468d25a8cdf0397d4dc9794c5dcba725`;
+  all listed artifacts are mode 0600 with zero credential matches and zero
+  sealing errors.
+- Historical BRN-0017 remains 6/10. Independent terminal review is required
+  before acceptance or merge.
+
+## Independent Terminal Review
+
+- Exact result head `410bc99a7f9475841291b1223bfdf85d56c359e4` received
+  no P0-P3 findings after complete result/source rehash and reconciliation.
+- Reviewer-note commit `62e0dd68df1cbe5adb83383b2b05b1ae5dc256b2` recommends
+  ACCEPT / GO. The founder's standing delegation authorizes acceptance and
+  merge of a clean independently reviewed ticket.

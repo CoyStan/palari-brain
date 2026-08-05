@@ -1,5 +1,51 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
+INDEPENDENTLY ACCEPTED, MERGE NEXT. Founder-authorized identity
+`j4-sol-frozen-failures-pre-architecture-v1` completed exactly once. The
+compatibility smoke returned exact `compatible`, then all four frozen requests
+completed once with HTTP 200. No memory tool was executed, no judge ran, and
+the historical BRN-0017 6/10 and its ten labels remain immutable.
+
+P-set 29 grades are ANSWER USE `1/2`, EVIDENCE LIMIT `1/2`, and
+COMPATIBILITY/COMPLETION, CAUSAL INTEGRITY, and EXECUTION/ACCOUNTING all PASS.
+Phone explicitly used the existing portable power bank and passed. Instant Pot
+correctly abstained because the delivered context did not identify the earlier
+appliance and passed. Tokyo failed the predicted evidence limit: Sol reused old
+Palari Suica/transit advice instead of stating that the original user Suica and
+TripIt statements were absent. Miami failed answer use: it used the delivered
+view preference but omitted the delivered private-balcony hot-tub evidence.
+Therefore a stronger final-answer model repaired one answer-use failure, but
+did not repair the second and could not replace missing user evidence. This
+supports the planned retrieval/commitment architecture rather than a model-only
+fix. The comparison remains Sol's final turn conditioned on Luna's frozen
+reasoning/tool trajectory, not a pure end-to-end Sol measurement.
+
+All five calls succeeded. Measured transport was 29,281.3 ms total / 5,856.26
+ms mean. Provider usage was 26,775 input, 1,326 output, 322 reasoning, and
+28,101 total tokens; input details reported 24,942 cache-write and 1,554 cached
+tokens. The meter conservatively reserved/accounted the full authorized `$0.50`
+fresh, so cumulative accounted spend is exactly `$7.67192994` =
+`$1.76173444` measured + `$5.91019550` uncertain. The private seal lists 14
+mode-0600 artifacts with zero credential matches and zero sealing errors;
+manifest SHA-256 is
+`6c9ab17351d8f09c1b714d33bb8fe34e468d25a8cdf0397d4dc9794c5dcba725`.
+The identity is consumed and cannot be retried, resumed, rerolled, or regraded.
+Independent terminal review of exact result head `410bc99` found no P0-P3
+issue after rehashing all 14 result artifacts and 74 source artifacts;
+reviewer-note commit is `62e0dd6`. Under the founder's standing delegation for
+clean independently reviewed tickets, BRN-0018 is accepted for merge.
+
+Product stop rule: (1) yes, quickstart remains 6/6; (2) this diagnostic changed
+no product behavior but established that model strength alone is insufficient;
+(3) model-tier controls are standard practice, while the provenance/use split
+is Palari's product boundary; (4) yes, the founder explicitly required the
+pre-change stronger-model control; (5) deleting it would erase the causal
+baseline separating answer use from evidence delivery. Next: independently
+merge the immutable terminal bundle, then open the separate product architecture
+ticket for distinct recall/use metrics, evidence commitments, and
+temporary provenance-linked cross-context inference. Do not regrade BRN-0017.
+
 Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN TERMINAL AT OFFICIAL 6/10;
 IMMUTABLE RESULT RECORD AND TERMINAL REVIEW NEXT. Founder-authorized identity
 `j4-luna-ettin-cited-first10-v2` completed exactly once under the `$1.50`

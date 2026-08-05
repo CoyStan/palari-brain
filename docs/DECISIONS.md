@@ -2849,3 +2849,32 @@ here with dates. Agents record; the founder decides.
   89,786,836 bytes, zero exact credential matches, and zero sealing errors;
   manifest SHA-256 is
   `850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`.
+
+- 2026-08-05 (BRN-0018 frozen-context stronger-answer control)
+  **Measure model quality before changing the evidence architecture.** The
+  founder requested one stronger-model comparison on BRN-0017's existing
+  frozen contexts. Official OpenAI guidance identifies `gpt-5.6-sol` as the
+  frontier-capability GPT-5.6 tier and recommends preserving the current
+  effective reasoning effort for the initial migration comparison before
+  changing prompts or capabilities. P-set 29 therefore freezes the exact last
+  request from each of the four immutable failure cells and permits only the
+  model-string change from Luna to Sol, keeping low reasoning, Standard/no-
+  store wire, instructions, evidence, tools, and output ceiling unchanged.
+  This is a final-turn causal diagnostic with no new retrieval calls or judge;
+  because the exact replay retains Luna's encrypted reasoning/tool trajectory,
+  it is not a pure end-to-end Sol measurement. It cannot regrade or change the
+  historical 6/10. The one live invocation
+  remains founder-gated behind a pushed freeze, independent review, and exact
+  fresh/cumulative spend authority.
+
+- 2026-08-05 (BRN-0018 terminal finding)
+  **Model strength is not a substitute for evidence architecture.** The one
+  authorized Sol/low invocation completed its smoke and four frozen final
+  turns exactly once. Sol explicitly used the phone power-bank evidence but
+  still omitted Miami's balcony-hot-tub evidence. It correctly abstained on
+  the missing Instant Pot fact, while Tokyo reused prior Palari advice instead
+  of exposing that the original user Suica and TripIt statements were absent.
+  Thus the model-only control repaired one of two evidence-use cases and none
+  of the missing-user-evidence boundary. Proceed with the separate architecture
+  work for retrieval planning, provenance-aware evidence commitment, and
+  distinct recall/use telemetry. Do not alter BRN-0017's historical 6/10.
