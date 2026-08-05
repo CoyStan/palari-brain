@@ -2964,3 +2964,13 @@ here with dates. Agents record; the founder decides.
   512-token ceiling, and computed measured dollars by the durable pre-dispatch
   reservation. Zero or out-of-bound usage is terminal `invalid-usage`; the
   reservation stays uncertain/accounted and cannot be settled or released.
+
+- 2026-08-05 (BRN-0020 terminal cap stop)
+  **Keep the incomplete run; do not reroll it.** The authorized one-shot passed
+  its smoke and completed Phone with exact power-bank recall and explicit use.
+  During Instant Pot, the next conservative dispatch reservation would have
+  exceeded the `$0.50` fresh cap, so the meter refused before transport. Tokyo
+  and Miami were not reached. Fresh accounted spend is `$0.08309185` and the
+  new cumulative ledger is `$7.75502179`. The sealed result is terminal
+  evidence, not permission for a retry, replacement, top-up, regrade, or new
+  official score; historical BRN-0017 remains 6/10.

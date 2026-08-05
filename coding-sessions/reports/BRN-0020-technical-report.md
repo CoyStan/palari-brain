@@ -72,5 +72,30 @@ occurred during review.
   leaves both explicitly pending; one independent terminal reviewer labels
   them exactly once from raw trace evidence in tracked terminal reporting.
   Structural commitment fields do not prove semantic use or regrade BRN-0017.
-- Independent pre-dispatch review and a new exact founder authorization are
-  required before `--run`.
+- The authorized identity is now terminal and consumed; no retry, resume,
+  replacement identity, or top-up is permitted.
+
+## Terminal Result
+
+- The exact founder-authorized invocation ran once. Its modern commitment
+  smoke passed with the answer “The compatibility color is indigo.”
+- Phone completed. It recalled and selected the exact original user statement
+  about owning a portable power bank, declared its consequence, and explicitly
+  recommended keeping that power bank charged as a short-term backup. Session
+  recall and exact-span recall were both `1/1`; equivalent-fact and materially-
+  used labels remain pending independent terminal judgment.
+- Instant Pot registered the general `before` plan, called timeline, and
+  requested semantic search. Before the next model dispatch, its conservative
+  reservation would have crossed the fresh cap. The meter refused before
+  transport; Instant Pot has no terminal result. Tokyo and Miami were not
+  reached.
+- P-set 30 completion is FAIL: smoke pass, only `1/4` fixed questions complete.
+  Accounting/integrity is PASS: seven successful OpenAI calls used 21,745
+  input / 715 output tokens with 12,915 cached and 8,809 cache-write tokens;
+  transport latency totaled 22,614.3 ms. Three Gemini calls remain uncertain.
+- Fresh spend is `$0.08306875` measured + `$0.00002310` uncertain =
+  `$0.08309185` accounted. Cumulative accounted is `$7.75502179`, below the
+  `$8.17192994` ceiling. Seal: 16 mode-0600 artifacts, zero credential matches,
+  zero sealing errors, manifest `a039a12a...`.
+- This incomplete diagnostic creates no official score and does not alter the
+  historical BRN-0017 6/10.

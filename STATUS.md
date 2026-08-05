@@ -1,12 +1,26 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON OFFLINE-FROZEN;
-INDEPENDENTLY REVIEWED, FOUNDER GATE NEXT. BRN-0019 is accepted, merged, and pushed
-at `146d911`.
-BRN-0018 is accepted, merged, and pushed at
-`8a4d11c`. Its immutable pre-change control found that Sol/low fixed Phone but
-not Miami and could not replace missing original-user evidence; historical
-BRN-0017 remains 6/10 and cumulative accounted spend remains `$7.67192994`.
+Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON TERMINAL;
+CAP-STOPPED AFTER PHONE, INDEPENDENT TERMINAL REVIEW NEXT. The founder-authorized
+identity `j4-sol-frozen-failures-post-architecture-v1` ran exactly once and is
+consumed. The compatibility smoke passed. Phone completed and explicitly used
+the original portable-power-bank statement. During Instant Pot, Sol registered
+the general before-plan, called timeline, and requested semantic search; the
+next conservative reservation would have exceeded the `$0.50` fresh cap, so it
+stopped before dispatch and produced no final Instant Pot result. Tokyo and
+Miami were not reached. No retry, resume, replacement, or top-up is permitted.
+
+Fresh accounted spend is `$0.08309185`: `$0.08306875` measured across seven
+successful Standard/default OpenAI calls plus `$0.00002310` uncertain across
+three successful usage-absent Gemini embedding calls. Cumulative accounted
+spend is now exactly `$7.75502179`. The terminal seal lists 16 mode-0600
+artifacts, zero credential matches, zero sealing errors, and manifest SHA-256
+`a039a12a580545c2a048abdad017d0cfd7a3c569f8ac593edc74a7ce67f8c6a6`.
+Historical BRN-0017 remains 6/10; this diagnostic is incomplete and does not
+create or change an official benchmark score.
+
+BRN-0019 is accepted, merged, and pushed at `146d911`. BRN-0018 is accepted,
+merged, and pushed at `8a4d11c`.
 
 BRN-0019 is the required product unit, not another measurement. It adds one
 general session-ephemeral retrieval plan (`anchor_event`, `relation`,
@@ -107,15 +121,14 @@ tokens and bounds input to the serialized UTF-8 request bytes, output to 512,
 and measured dollars to the durable reservation. Zero or out-of-bound usage
 persists `invalid-usage`, terminates, and retains full uncertainty.
 
-Fresh independent review of exact clean pushed head `2d4beec` replayed every
+Fresh independent pre-dispatch review of exact clean pushed head `2d4beec` replayed every
 prior finding and the entire cumulative authority, source-integrity, leakage,
 meter, call-cap, one-shot, metric, and seal contract. It found no P0-P3 issue
-and recommends the freeze for founder-gated dispatch. Provider-free checks
-remain 727 passed / 0 failed / 15 skipped, quickstart 6/6, and exact launcher
-authority green. Next: stop at the founder gate for a new exact authorization
-of identity `j4-sol-frozen-failures-post-architecture-v1` under `$0.50` fresh /
-`$8.17192994` cumulative accounted caps. Credential reads / provider calls /
-inference / fresh spend for BRN-0020 remain exactly `0 / 0 / 0 / $0.00`.
+and recommended the freeze for founder-gated dispatch. The founder then gave
+the exact authority, producing the terminal cap-stop recorded at the top of
+this file. Next: independently rehash and judge the sealed terminal evidence,
+record the two Phone semantic labels, and accept or reopen the ticket without
+rerunning the consumed identity.
 
 Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
 INDEPENDENTLY ACCEPTED, MERGE NEXT. Founder-authorized identity

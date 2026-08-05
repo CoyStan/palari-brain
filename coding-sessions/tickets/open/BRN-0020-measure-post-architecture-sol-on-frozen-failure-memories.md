@@ -6,12 +6,12 @@ level: 1
 parent_id:
 root_id: BRN-0020
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T03:15:16Z
 target_branch: "main"
 branch: "ticket/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
@@ -232,3 +232,16 @@ numbers are a preregistration boundary only; they are not founder authority.
   prior finding and found no P0-P3 issue. It recommends the freeze for exact
   founder-gated dispatch; no credential, provider, inference, namespace, or
   spend activity occurred.
+
+## Terminal Evidence
+
+- The exact authorized identity ran once and is consumed. Smoke passed; Phone
+  completed with exact power-bank recall/selection/use; the hard cap refused a
+  later Instant Pot dispatch before transport; Tokyo and Miami were not
+  reached. No retry or replacement is authorized.
+- Fresh spend is `$0.08306875` measured + `$0.00002310` uncertain =
+  `$0.08309185` accounted. Cumulative accounted is `$7.75502179`.
+- The terminal manifest has 16 mode-0600 artifacts, zero credential matches,
+  zero sealing errors, SHA-256 `a039a12a...`. Historical BRN-0017 stays 6/10.
+- Independent terminal review must rehash the bundle and judge Phone's pending
+  equivalent-fact and materially-used labels exactly once without mutating it.

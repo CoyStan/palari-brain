@@ -2141,3 +2141,37 @@ Predictions, failing categories first:
    credential matches and no sealing error, and records measured versus
    uncertain spend. Any miss is recorded without mutation, reroll, regrade,
    publication, or replacement.
+
+Terminal result (recorded after the one authorized invocation; semantic labels
+remain pending independent terminal review):
+
+- EXACT SOURCE RECALL: **INCOMPLETE, 1/4 cases and 1/6 spans observed.** Phone
+  returned the exact original user power-bank statement. Instant Pot stopped
+  before a complete trace/result; Tokyo and Miami were not reached.
+- SELECTION AND MATERIAL USE: **INCOMPLETE, structural Phone pass only.** Phone
+  selected the exact power-bank evidence and answered, “Since you have a
+  portable power bank, keep it charged as a short-term backup.” Its separate
+  equivalent-fact and material-use labels remain pending the preregistered
+  independent terminal judgment. The other three cases have no terminal
+  answer result.
+- GENERAL PLANNING: **PARTIAL.** Instant Pot registered a general `before` plan
+  anchored on getting the Air Fryer, then called `memory_timeline` and
+  requested `memory_search`. The cap stopped before the search result could be
+  returned to Sol or a final answer committed. Tokyo and Miami were not
+  reached.
+- TEMPORARY INFERENCE: **NOT REACHED.** Miami did not run.
+- METRIC SEPARATION: **PHONE PASS; RUN INCOMPLETE.** Phone sealed five distinct
+  non-aliased surfaces; the two judged surfaces remain explicit pending/null.
+- COMPATIBILITY/COMPLETION: **FAIL.** The smoke passed and Phone completed, but
+  only `1/4` questions produced a terminal answer. The hard cap stopped during
+  Instant Pot; Tokyo and Miami were not reached.
+- CAUSAL INTEGRITY AND ACCOUNTING: **PASS.** One invocation made seven
+  successful Standard/default OpenAI calls and three successful Gemini
+  embedding calls. Fresh spend is `$0.08306875` measured plus `$0.00002310`
+  uncertain = `$0.08309185` accounted; cumulative accounted is `$7.75502179`.
+  The next dispatch was refused before transport because its conservative
+  reservation would cross `$0.50`. The terminal manifest is sealed with 16
+  mode-0600 artifacts, zero credential matches/errors, at SHA-256
+  `a039a12a580545c2a048abdad017d0cfd7a3c569f8ac593edc74a7ce67f8c6a6`.
+  The identity is consumed; no retry, resume, replacement, regrade, or official
+  benchmark score is permitted. Historical BRN-0017 remains 6/10.
