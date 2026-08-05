@@ -1,11 +1,52 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON CONTRACT PREPARED;
-FREEZE COMMIT NEXT. BRN-0019 is accepted, merged, and pushed at `146d911`.
-BRN-0018 is accepted, merged, and pushed at
-`8a4d11c`. Its immutable pre-change control found that Sol/low fixed Phone but
-not Miami and could not replace missing original-user evidence; historical
-BRN-0017 remains 6/10 and cumulative accounted spend remains `$7.67192994`.
+Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON TERMINAL;
+CAP-STOPPED AFTER PHONE, INDEPENDENTLY ACCEPTED. The founder-authorized
+identity `j4-sol-frozen-failures-post-architecture-v1` ran exactly once and is
+consumed. The compatibility smoke passed. Phone completed and explicitly used
+the original portable-power-bank statement. During Instant Pot, Sol registered
+the general before-plan, called timeline, and requested semantic search; the
+next conservative reservation would have exceeded the `$0.50` fresh cap, so it
+stopped before dispatch and produced no final Instant Pot result. Tokyo and
+Miami were not reached. No retry, resume, replacement, or top-up is permitted.
+
+Fresh accounted spend is `$0.08309185`: `$0.08306875` measured across seven
+successful Standard/default OpenAI calls plus `$0.00002310` uncertain across
+three successful usage-absent Gemini embedding calls. Cumulative accounted
+spend is now exactly `$7.75502179`. The terminal seal lists 16 mode-0600
+artifacts, zero credential matches, zero sealing errors, and manifest SHA-256
+`a039a12a580545c2a048abdad017d0cfd7a3c569f8ac593edc74a7ce67f8c6a6`.
+Historical BRN-0017 remains 6/10; this diagnostic is incomplete and does not
+create or change an official benchmark score.
+
+Independent terminal review judged Phone's two semantic surfaces exactly once:
+equivalent-fact recall **PASS 1/1** because the returned exact user statement
+establishes ownership of the power bank; materially-used evidence **PASS 1/1**
+because the committed answer explicitly personalized its backup advice around
+that power bank. These are tracked judged labels, not canonical truth and not a
+sealed-bundle mutation.
+
+The same review found one P2 custody defect caused after sealing by our
+inspection, not by the live run: opening copied SQLite databases with
+`readOnly:true` retouched Phone's already-manifested SHM timestamp and created
+unmanifested Instant Pot SHM/WAL sidecars. The 16 manifested artifact bytes and
+all main database bytes still rehash exactly; the new SHM is mode 0600 at SHA
+`fd4c9fda...` and the empty WAL is mode 0600 at SHA `e3b0c442...`. They are
+preserved—never deleted, resealed, or used to justify a rerun. Future sealed DB
+audits must copy bytes outside the sealed namespace before SQLite opens them.
+Review also found a P3 stale prediction phrase, “six-tool wire”; the immutable
+P-set's exact hash/names and every request correctly bind seven tools: six
+memory tools plus `palari_answer_commit`.
+
+Fresh tracked-only rereview of exact head `df5dd0a` found no remaining P0-P3
+issue and recommends ACCEPT. Formal independent terminal reviewer-note commit
+`dc4718b` records the complete result, the custody disclosure, Phone's two
+exactly-once semantic labels, and the prohibition on private reaccess, deletion,
+resealing, rerunning, or rejudging. BRN-0020 is accepted under the founder's
+standing delegation for clean independently reviewed tickets.
+
+BRN-0019 is accepted, merged, and pushed at `146d911`. BRN-0018 is accepted,
+merged, and pushed at `8a4d11c`.
 
 BRN-0019 is the required product unit, not another measurement. It adds one
 general session-ephemeral retrieval plan (`anchor_event`, `relation`,
@@ -48,17 +89,72 @@ expose retrieval traces and citations, but do not supply Palari's host-checked
 use/not-use and temporary-inference boundary; (4) yes, the founder explicitly
 requested each guarantee and acceptance case; (5) deleting it would again let
 relevant evidence go missing or unused without an observable reason, and let
-cross-context transfer masquerade as a permanent fact. Next: commit the exact
-accepted implementation. P-set 30 now freezes its post-change comparison from
+cross-context transfer masquerade as a permanent fact. BRN-0019's accepted
+implementation is merged. P-set 30 now freezes its post-change comparison from
 the same four sealed BRN-0017 memory databases, with Sol/low and questions
 fixed. Proposed one-shot identity is
 `j4-sol-frozen-failures-post-architecture-v1`; proposed boundaries are `$0.50`
 fresh / `$8.17192994` cumulative accounted from the exact `$7.67192994`
-opening ledger. This preregistration is not live authority. Next: commit and
-push the BRN-0020 contract, build and verify the private one-shot launcher in
-its governed worktree, obtain independent pre-dispatch review, then stop at the
-founder gate. Credential/provider/spend activity for BRN-0020 remains
-`0 / 0 / $0.00`.
+opening ledger. This preregistration is not live authority.
+
+The mode-0600 private launcher is frozen at SHA-256
+`09d53ecb96da1902abae2de0ab1544f952e9ab894a4b44a10f0bc0b6d2c79391`.
+Provider-free verification passes: all 74 BRN-0017 artifacts rehash; the smoke
+and four exact databases have sealed byte hashes plus canonical-row hashes;
+all six required original-user evidence IDs/content hashes are present; the
+four canonical question/date hashes and dataset hash match; accepted BRN-0019
+product files and the seven-tool normal/forced hashes match; native Ettin's
+3,208-file closure rehashes at `a0aca462...`; and the result namespace is
+absent. The launcher uses official Sol Standard rates of `$5/M` input,
+`$0.50/M` cached input, and `$30/M` output, including the documented cache-
+write and long-context multipliers, with conservative byte-based reservations
+before every dispatch. Invalid/no authority fails before result creation,
+credential access, or transport. Full suite passes 727 / fails 0 / skips 15
+across 742 tests; quickstart remains 6/6; scope and diff checks pass.
+
+Independent review of submitted freeze `e1986d9` correctly reopened the ticket
+with three pre-dispatch findings: reservation writes lacked file/directory
+`fsync`, the two semantic metric surfaces had no explicit terminal-judgment
+handoff, and seal failures could escape without a failed manifest or complete
+meter/report/terminal reconciliation. The repaired launcher now makes each
+reservation crash-durable before dispatch, emits distinct non-aliased pending
+judgment records for independent terminal labeling, reconciles all accounting
+and terminal hashes, and always writes an explicit `sealed` or `failed`
+manifest with errors. A fresh review must replay all three findings before any
+founder gate can open.
+
+Rereview of repaired head `08e4a59` confirmed those three repairs, then
+correctly reopened two P1 accounting defects: Gemini reservations counted
+UTF-16 code units and relabeled usage-absent estimates as measured, while Sol
+requests/responses did not actually pin Standard/default service. It also
+found the stale next-step statement here. The cumulative repair counts UTF-8
+embedding bytes and retains their reservations as uncertain/accounted, injects
+and validates `service_tier: "default"` on the exact OpenAI wire, and reserves
+the resulting serialized bytes before dispatch.
+
+Fresh rereview of cumulative head `c12eb73` confirmed all preceding repairs,
+then found one final P1 settlement gap: missing, null, or string OpenAI token
+fields could be coerced and settle real spend to zero. The current repair
+requires plain own-property raw numeric safe-integer input, output, total,
+cached, and cache-write fields with consistent totals. Any invalid usage is
+persisted as terminal `invalid-usage` and the full durable reservation remains
+uncertain/accounted.
+
+Rereview of strict head `8d047b0` confirmed that repair but found the remaining
+P1 bound: explicit all-zero usage or numeric usage beyond the reservation could
+still settle. The cumulative validator now requires positive input/output/total
+tokens and bounds input to the serialized UTF-8 request bytes, output to 512,
+and measured dollars to the durable reservation. Zero or out-of-bound usage
+persists `invalid-usage`, terminates, and retains full uncertainty.
+
+Fresh independent pre-dispatch review of exact clean pushed head `2d4beec` replayed every
+prior finding and the entire cumulative authority, source-integrity, leakage,
+meter, call-cap, one-shot, metric, and seal contract. It found no P0-P3 issue
+and recommended the freeze for founder-gated dispatch. The founder then gave
+the exact authority, producing the terminal cap-stop recorded at the top of
+this file. Next: independently rereview the tracked-only custody disclosure and
+semantic labels, then accept or reopen the ticket without touching or rerunning
+the consumed identity.
 
 Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
 INDEPENDENTLY ACCEPTED, MERGE NEXT. Founder-authorized identity

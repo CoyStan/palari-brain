@@ -2914,3 +2914,73 @@ here with dates. Agents record; the founder decides.
   `$8.17192994` cumulative accounted boundaries, but no invocation is
   authorized until a pushed freeze receives independent review and a new
   exact founder GO.
+
+- 2026-08-05 (BRN-0020 meter and sealed-state freeze)
+  **Reserve conservatively, settle only from provider usage, and compare
+  canonical rows.** Sol Standard is metered from official `$5/M` input,
+  `$0.50/M` cached input, and `$30/M` output rates; cache writes use `1.25x`,
+  and requests above 272K input use documented long-context multipliers.
+  Reservations treat request bytes as input tokens at the highest applicable
+  multiplier before dispatch. The launcher copies exact sealed SQLite bytes,
+  then compares a deterministic hash of every canonical table before and after
+  answering so derived SQLite/WAL activity cannot masquerade as a memory write.
+  Pricing source: <https://developers.openai.com/api/docs/models/gpt-5.6-sol>.
+
+- 2026-08-05 (BRN-0020 terminal judgment and durability boundary)
+  **Persist dispatch authority before transport; judge semantic use after the
+  immutable trace exists.** Every reservation must be file- and directory-
+  synced before a request can leave the process. The provider run computes
+  session recall, exact-span recall, and selected evidence, but seals separate
+  pending records for equivalent-fact recall and materially-used evidence.
+  One independent terminal reviewer applies those two labels exactly once from
+  the sealed trace in tracked evidence; no label is written back to canonical
+  memory or the sealed result. Sealing reconciles meter, caps, report, and
+  terminal hash and persists either a sealed manifest or an explicit failed
+  manifest with its errors.
+
+- 2026-08-05 (BRN-0020 provider accounting boundary)
+  **Pin the billed service and never promote an estimate to measured usage.**
+  The metered Sol request explicitly injects `service_tier: "default"`, and a
+  response must report the same tier before its validated usage can settle the
+  reservation at Standard rates. Gemini embedding reservations count UTF-8
+  bytes for each embedded text. Because the accepted embedding response wire
+  has no provider token-usage contract, a successful embedding call remains
+  `completed-usage-unavailable` and its conservative reservation remains
+  uncertain/accounted rather than being relabeled measured.
+
+- 2026-08-05 (BRN-0020 usage settlement boundary)
+  **Provider usage is typed evidence, not coercible input.** An OpenAI
+  reservation settles only when the response contains a plain own-property
+  usage object with raw numeric safe-integer input, output, total, cached, and
+  cache-write token counts whose totals are consistent. Missing, null, string,
+  negative, fractional, unsafe, or inconsistent fields persist an
+  `invalid-usage` terminal call and retain the full reservation as uncertain
+  and accounted. No default zero or numeric coercion is permitted.
+
+- 2026-08-05 (BRN-0020 usage reservation bound)
+  **Validated usage cannot outrun or erase its reservation.** Provider-reported
+  input, output, and total tokens must each be positive. Input is bounded by
+  the exact serialized UTF-8 request-byte reservation, output by the requested
+  512-token ceiling, and computed measured dollars by the durable pre-dispatch
+  reservation. Zero or out-of-bound usage is terminal `invalid-usage`; the
+  reservation stays uncertain/accounted and cannot be settled or released.
+
+- 2026-08-05 (BRN-0020 terminal cap stop)
+  **Keep the incomplete run; do not reroll it.** The authorized one-shot passed
+  its smoke and completed Phone with exact power-bank recall and explicit use.
+  During Instant Pot, the next conservative dispatch reservation would have
+  exceeded the `$0.50` fresh cap, so the meter refused before transport. Tokyo
+  and Miami were not reached. Fresh accounted spend is `$0.08309185` and the
+  new cumulative ledger is `$7.75502179`. The sealed result is terminal
+  evidence, not permission for a retry, replacement, top-up, regrade, or new
+  official score; historical BRN-0017 remains 6/10.
+
+- 2026-08-05 (BRN-0020 post-seal custody)
+  **Never open a sealed SQLite database in place, even read-only.** SQLite may
+  touch or create WAL/SHM sidecars under a read-only connection. A terminal
+  audit must first copy the database and any sealed sidecars outside the sealed
+  namespace, then open only that copy. BRN-0020's post-seal inspection created
+  two unmanifested sidecars and retouched one manifested sidecar timestamp;
+  preserve and disclose them. The exact manifested/main DB bytes remain valid,
+  but the directory may no longer be described as a closed physical artifact
+  set and must never be deleted, repaired, resealed, or rerun.

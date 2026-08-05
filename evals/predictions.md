@@ -2061,6 +2061,11 @@ Status: **FINAL before credential access, provider dispatch, inference, result
 creation, or spend.** Date: 2026-08-05. Proposed identity:
 `j4-sol-frozen-failures-post-architecture-v1`.
 
+Private launcher SHA-256 is
+`09d53ecb96da1902abae2de0ab1544f952e9ab894a4b44a10f0bc0b6d2c79391`.
+It binds the exact sealed database, question, product, tool-wire, Ettin runtime,
+meter, one-shot, authority, and seal evidence described below.
+
 This is the preregistered post-change counterpart to P-set 29, not a benchmark
 rerun or regrade. It starts each question from an exact read-only copy of its
 sealed BRN-0017 SQLite memory database, then executes accepted BRN-0019
@@ -2104,9 +2109,13 @@ Predictions, failing categories first:
    logically and byte-stably free of any new canonical cross-city preference.
    Phone, Instant Pot, and Tokyo require no cross-context inference.
 5. METRIC SEPARATION: every cell reports session recall, exact-span recall,
-   selected evidence, judged equivalent-fact recall, and judged materially-used
-   evidence as five distinct surfaces. Equivalent/material judgments retain
-   judged authority and never become canonical truth or historical grades.
+   selected evidence, equivalent-fact recall, and materially-used evidence as
+   five distinct, non-aliased surfaces. The provider run computes the three
+   structural surfaces and seals the two semantic surfaces as explicit
+   `pending`/null judged records. One independent terminal reviewer applies the
+   preregistered equivalent-fact and material-use labels exactly once from the
+   sealed raw trace and records them in tracked terminal evidence; that review
+   does not mutate the sealed bundle, canonical truth, or historical grades.
 6. COMPATIBILITY/COMPLETION: the unrelated smoke produces one valid modern
    commitment on the six-tool wire, then all four questions receive one
    terminal non-empty Sol answer exactly once. Each cell uses at most one plan,
@@ -2115,8 +2124,65 @@ Predictions, failing categories first:
 7. CAUSAL INTEGRITY AND ACCOUNTING: the launcher rehashes all sealed source
    databases/questions and exact accepted product/runtime files before key
    access. Every physical Gemini/OpenAI request reserves durably before
-   dispatch. One invocation stays within `$0.50` fresh / `$8.17192994`
-   cumulative accounted caps, seals all private artifacts at mode 0600 with
-   zero exact credential matches and no sealing error, and records measured
-   versus uncertain spend. Any miss is recorded without mutation, reroll,
-   regrade, publication, or replacement.
+   dispatch. Every OpenAI request and accepted response pins Standard with
+   `service_tier: "default"`; reservations cover the exact serialized request
+   bytes and settle only when provider usage supplies raw own numeric safe-
+   integer input, output, total, cached, and cache-write token fields with
+   consistent totals. Input, output, and total must be positive; input cannot
+   exceed the conservative serialized-byte token bound, output cannot exceed
+   512, and measured dollars cannot exceed the durable reservation. Missing,
+   zero, coerced, inconsistent, or out-of-bound usage terminates as
+   `invalid-usage` while retaining the full reservation as uncertain/accounted.
+   Gemini embedding
+   reservations count UTF-8 bytes for every embedded text and remain
+   uncertain/accounted because this wire supplies no accepted usage metadata.
+   One invocation stays within `$0.50` fresh / `$8.17192994` cumulative
+   accounted caps, seals all private artifacts at mode 0600 with zero exact
+   credential matches and no sealing error, and records measured versus
+   uncertain spend. Any miss is recorded without mutation, reroll, regrade,
+   publication, or replacement.
+
+Terminal result (recorded after the one authorized invocation; semantic labels
+were applied exactly once by independent terminal review):
+
+- EXACT SOURCE RECALL: **INCOMPLETE, 1/4 cases and 1/6 spans observed.** Phone
+  returned the exact original user power-bank statement. Instant Pot stopped
+  before a complete trace/result; Tokyo and Miami were not reached.
+- SELECTION AND MATERIAL USE: **INCOMPLETE RUN; PHONE PASS 1/1.** Phone
+  selected the exact power-bank evidence and answered, “Since you have a
+  portable power bank, keep it charged as a short-term backup.” Independent
+  terminal review labels equivalent-fact recall PASS 1/1 for fact
+  `phone-user-has-portable-power-bank`, and materially-used evidence PASS 1/1
+  for `dialogue_5cfaaa3c5d64c1ca388b37699c83f227652b14b628eb13e9dd7105935cd48e32`.
+  The other three cases have no terminal answer result.
+- GENERAL PLANNING: **PARTIAL.** Instant Pot registered a general `before` plan
+  anchored on getting the Air Fryer, then called `memory_timeline` and
+  requested `memory_search`. The cap stopped before the search result could be
+  returned to Sol or a final answer committed. Tokyo and Miami were not
+  reached.
+- TEMPORARY INFERENCE: **NOT REACHED.** Miami did not run.
+- METRIC SEPARATION: **PHONE PASS; RUN INCOMPLETE.** Phone sealed five distinct
+  non-aliased surfaces. Its two pending/null semantic records were judged once
+  in tracked terminal evidence and were not written back into the bundle.
+- COMPATIBILITY/COMPLETION: **FAIL.** The smoke passed and Phone completed, but
+  only `1/4` questions produced a terminal answer. The hard cap stopped during
+  Instant Pot; Tokyo and Miami were not reached.
+- CAUSAL INTEGRITY AND ACCOUNTING: **PASS.** One invocation made seven
+  successful Standard/default OpenAI calls and three successful Gemini
+  embedding calls. Fresh spend is `$0.08306875` measured plus `$0.00002310`
+  uncertain = `$0.08309185` accounted; cumulative accounted is `$7.75502179`.
+  The next dispatch was refused before transport because its conservative
+  reservation would cross `$0.50`. The terminal manifest is sealed with 16
+  mode-0600 artifacts, zero credential matches/errors, at SHA-256
+  `a039a12a580545c2a048abdad017d0cfd7a3c569f8ac593edc74a7ce67f8c6a6`.
+  The identity is consumed; no retry, resume, replacement, regrade, or official
+  benchmark score is permitted. Historical BRN-0017 remains 6/10.
+- POST-SEAL CUSTODY: **P2 DISCLOSED.** A later provider-free inspection opened
+  copied SQLite databases in place. It retouched the manifested Phone SHM
+  timestamp and created unmanifested Instant Pot SHM/WAL sidecars. All 16
+  manifested bytes and copied main databases remain exact; the added files are
+  preserved and separately hashed. The bundle is no longer a clean closed
+  physical file set and is not repaired, resealed, or rerun.
+- PREDICTION COUNT CLARIFICATION: P-set 30's immutable “six-tool wire” phrase
+  is stale shorthand. Its exact frozen normal hash and every request correctly
+  contain seven tools: timeline, read, find, plan, search, graph, and commit.

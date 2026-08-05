@@ -6,7 +6,7 @@ level: 1
 parent_id:
 root_id: BRN-0020
 children: []
-status: open
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -87,7 +87,8 @@ numbers are a preregistration boundary only; they are not founder authority.
   Gemini embedder, native Ettin runtime/model closure, four question objects,
   P-set, private launcher, clean pushed authority commit, caps, and absent
   result identity before credential access.
-- Use `gpt-5.6-sol`, low reasoning, Standard/default service, no-store, 512
+- Use `gpt-5.6-sol`, low reasoning, explicit `service_tier: "default"` on both
+  the actual request and accepted response, no-store, 512
   maximum output tokens, the accepted six memory tools, strict modern
   `palari_answer_commit`, at most one zero-budget plan, at most four evidence
   retrieval calls, and at most seven OpenAI dispatches per answer.
@@ -102,8 +103,10 @@ numbers are a preregistration boundary only; they are not founder authority.
 - Then answer the four fixed questions in order exactly once. Preserve raw
   tool transcripts, canonical returned rows, plan, commitments, temporary
   inferences, answer text, latency, usage, retrieval/rerank telemetry, and the
-  five separate metric surfaces. Equivalent-fact and materially-used values
-  remain explicit diagnostic judgments, never canonical truth.
+  five separate, non-aliased metric surfaces. The run seals equivalent-fact
+  and materially-used surfaces as explicit pending/null judged records; one
+  independent terminal reviewer labels them exactly once from the sealed raw
+  trace, without mutating the bundle or canonical truth.
 - Grade only the preregistered architecture acceptance observations and record
   whatever happens in `STATUS.md`. No replacement identity, reroll, selective
   retry, repair-in-place, regrade, or publication.
@@ -147,8 +150,10 @@ numbers are a preregistration boundary only; they are not founder authority.
    linked `revisable: true` temporary inference.
 6. The report keeps session recall, exact-span recall, judged equivalent-fact
    recall, selected evidence, and judged materially-used evidence distinct.
+   The run computes structural values and leaves both semantic surfaces
+   explicitly pending for one independent terminal judgment.
    `consequence_for_answer` and `not_used_reason` remain declarations; judged
-   labels are not stored as canonical truth.
+   labels are not stored as canonical truth or written back into the seal.
 7. `STATUS.md` records the terminal outcome, raw diagnostic grades, usage,
    latency, measured/uncertain spend, and seal whatever they are. Historical
    BRN-0017 remains 6/10 and BRN-0018 remains immutable.
@@ -186,3 +191,69 @@ numbers are a preregistration boundary only; they are not founder authority.
   action until the exact identity/caps receive fresh founder authorization.
 - Any compatibility, hash, meter, cap, provider, parse, artifact, or seal
   failure is terminal and grants no retry or replacement.
+
+## Offline Freeze Evidence
+
+- P-set 30 is FINAL. Private launcher SHA-256 is
+  `09d53ecb96da1902abae2de0ab1544f952e9ab894a4b44a10f0bc0b6d2c79391`;
+  `node --check` and provider-free `--verify` pass.
+- All 74 BRN-0017 artifacts rehash under terminal manifest
+  `850ca100...`. The smoke plus four database bytes/canonical-row hashes match,
+  and six preregistered original-user evidence IDs/content hashes are present.
+- Dataset `d6f21e...`, four question/date hashes, accepted product files, normal
+  seven-tool hash `cf9074...`, forced-tool hash `89b867...`, and native Ettin
+  closure `a0aca4...` match. Result identity is absent.
+- Sol Standard pricing is pinned to official `$5/M` input, `$0.50/M` cached
+  input, and `$30/M` output, with cache-write/long-context multipliers and
+  conservative byte-based pre-dispatch reservations.
+- An invalid authority command fails before namespace creation. Credential
+  reads / provider calls / inference / spend are `0 / 0 / 0 / $0.00`.
+- Full suite: 727 passed, 0 failed, 15 optional skips across 742 tests.
+  Quickstart: 6/6. Governed scope and diff checks pass.
+- Review of submitted freeze `e1986d9` reopened three issues. The repaired
+  launcher file- and directory-syncs reservations before dispatch, emits two
+  distinct pending semantic-judgment records, reconciles meter/report/terminal
+  evidence, and writes an explicit failed manifest if sealing cannot succeed.
+- Rereview of repaired head `08e4a59` reopened two P1 accounting issues and
+  one P3 status issue. The cumulative repair forces and validates OpenAI
+  Standard/default on the exact metered wire, reserves Gemini embeddings from
+  UTF-8 text bytes, retains usage-absent embedding reservations as uncertain,
+  and corrects the stale next-step statement.
+- Rereview of cumulative head `c12eb73` reopened one P1: missing or coercible
+  OpenAI usage could settle a real reservation to zero. The repair requires
+  raw own numeric safe-integer input/output/total and cached/cache-write fields
+  with consistent totals; any invalid usage is persisted as terminal while the
+  full reservation remains uncertain/accounted.
+- Rereview of strict head `8d047b0` reopened the remaining P1 bound: explicit
+  zero or numerically consistent out-of-reservation usage could still settle.
+  The cumulative validator now requires positive input/output/total and binds
+  input, output, and measured dollars to their durable reservation ceilings.
+- Fresh independent review of exact clean pushed head `2d4beec` replayed every
+  prior finding and found no P0-P3 issue. It recommends the freeze for exact
+  founder-gated dispatch; no credential, provider, inference, namespace, or
+  spend activity occurred.
+
+## Terminal Evidence
+
+- The exact authorized identity ran once and is consumed. Smoke passed; Phone
+  completed with exact power-bank recall/selection/use; the hard cap refused a
+  later Instant Pot dispatch before transport; Tokyo and Miami were not
+  reached. No retry or replacement is authorized.
+- Fresh spend is `$0.08306875` measured + `$0.00002310` uncertain =
+  `$0.08309185` accounted. Cumulative accounted is `$7.75502179`.
+- The terminal manifest has 16 mode-0600 artifacts, zero credential matches,
+  zero sealing errors, SHA-256 `a039a12a...`. Historical BRN-0017 stays 6/10.
+- Independent terminal review rehashed and reconciled the bundle and judged
+  Phone's two pending semantic surfaces exactly once. Later rereviews must
+  reuse those labels and must not access or mutate the private namespace.
+- Terminal review judged both Phone semantic surfaces PASS `1/1`, then reopened
+  one P2 custody issue: a later in-place SQLite read-only audit created two
+  unmanifested Instant Pot sidecars and retouched one manifested SHM timestamp.
+  Manifested/main DB bytes remain exact. Preserve and disclose; never delete,
+  reseal, or rerun. It also clarified the stale “six-tool” phrase: exact frozen
+  evidence correctly binds six memory tools plus commit, seven total.
+- Fresh tracked-only rereview of exact head `df5dd0a` found no P0-P3 issue and
+  recommends ACCEPT. Formal terminal reviewer-note commit `dc4718b` records
+  the complete result, custody disclosure, immutable labels, and no-rerun rule.
+  Under the founder's standing delegation for clean independently reviewed
+  tickets, BRN-0020 is accepted for merge without touching the private result.
