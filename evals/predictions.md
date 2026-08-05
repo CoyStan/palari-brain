@@ -2061,6 +2061,11 @@ Status: **FINAL before credential access, provider dispatch, inference, result
 creation, or spend.** Date: 2026-08-05. Proposed identity:
 `j4-sol-frozen-failures-post-architecture-v1`.
 
+Private launcher SHA-256 is
+`5968c4166ea4d7c980bb0165440b1038a24885747015fe903fce17631fd7de4c`.
+It binds the exact sealed database, question, product, tool-wire, Ettin runtime,
+meter, one-shot, authority, and seal evidence described below.
+
 This is the preregistered post-change counterpart to P-set 29, not a benchmark
 rerun or regrade. It starts each question from an exact read-only copy of its
 sealed BRN-0017 SQLite memory database, then executes accepted BRN-0019

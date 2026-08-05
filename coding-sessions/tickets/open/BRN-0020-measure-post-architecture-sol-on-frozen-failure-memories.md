@@ -6,12 +6,12 @@ level: 1
 parent_id:
 root_id: BRN-0020
 children: []
-status: open
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T01:50:40Z
 target_branch: "main"
 branch: "ticket/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
@@ -186,3 +186,22 @@ numbers are a preregistration boundary only; they are not founder authority.
   action until the exact identity/caps receive fresh founder authorization.
 - Any compatibility, hash, meter, cap, provider, parse, artifact, or seal
   failure is terminal and grants no retry or replacement.
+
+## Offline Freeze Evidence
+
+- P-set 30 is FINAL. Private launcher SHA-256 is
+  `5968c4166ea4d7c980bb0165440b1038a24885747015fe903fce17631fd7de4c`;
+  `node --check` and provider-free `--verify` pass.
+- All 74 BRN-0017 artifacts rehash under terminal manifest
+  `850ca100...`. The smoke plus four database bytes/canonical-row hashes match,
+  and six preregistered original-user evidence IDs/content hashes are present.
+- Dataset `d6f21e...`, four question/date hashes, accepted product files, normal
+  seven-tool hash `cf9074...`, forced-tool hash `89b867...`, and native Ettin
+  closure `a0aca4...` match. Result identity is absent.
+- Sol Standard pricing is pinned to official `$5/M` input, `$0.50/M` cached
+  input, and `$30/M` output, with cache-write/long-context multipliers and
+  conservative byte-based pre-dispatch reservations.
+- An invalid authority command fails before namespace creation. Credential
+  reads / provider calls / inference / spend are `0 / 0 / 0 / $0.00`.
+- Full suite: 727 passed, 0 failed, 15 optional skips across 742 tests.
+  Quickstart: 6/6. Governed scope and diff checks pass.

@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON CONTRACT PREPARED;
-FREEZE COMMIT NEXT. BRN-0019 is accepted, merged, and pushed at `146d911`.
+Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON OFFLINE-FROZEN;
+INDEPENDENT PRE-DISPATCH REVIEW NEXT. BRN-0019 is accepted, merged, and pushed
+at `146d911`.
 BRN-0018 is accepted, merged, and pushed at
 `8a4d11c`. Its immutable pre-change control found that Sol/low fixed Phone but
 not Miami and could not replace missing original-user evidence; historical
@@ -54,11 +55,26 @@ the same four sealed BRN-0017 memory databases, with Sol/low and questions
 fixed. Proposed one-shot identity is
 `j4-sol-frozen-failures-post-architecture-v1`; proposed boundaries are `$0.50`
 fresh / `$8.17192994` cumulative accounted from the exact `$7.67192994`
-opening ledger. This preregistration is not live authority. Next: commit and
-push the BRN-0020 contract, build and verify the private one-shot launcher in
-its governed worktree, obtain independent pre-dispatch review, then stop at the
-founder gate. Credential/provider/spend activity for BRN-0020 remains
-`0 / 0 / $0.00`.
+opening ledger. This preregistration is not live authority.
+
+The mode-0600 private launcher is frozen at SHA-256
+`5968c4166ea4d7c980bb0165440b1038a24885747015fe903fce17631fd7de4c`.
+Provider-free verification passes: all 74 BRN-0017 artifacts rehash; the smoke
+and four exact databases have sealed byte hashes plus canonical-row hashes;
+all six required original-user evidence IDs/content hashes are present; the
+four canonical question/date hashes and dataset hash match; accepted BRN-0019
+product files and the seven-tool normal/forced hashes match; native Ettin's
+3,208-file closure rehashes at `a0aca462...`; and the result namespace is
+absent. The launcher uses official Sol Standard rates of `$5/M` input,
+`$0.50/M` cached input, and `$30/M` output, including the documented cache-
+write and long-context multipliers, with conservative byte-based reservations
+before every dispatch. Invalid/no authority fails before result creation,
+credential access, or transport. Full suite passes 727 / fails 0 / skips 15
+across 742 tests; quickstart remains 6/6; scope and diff checks pass.
+
+Next: commit and push the exact freeze, obtain independent pre-dispatch review,
+then stop at the founder gate. Credential reads / provider calls / inference /
+fresh spend for BRN-0020 remain exactly `0 / 0 / 0 / $0.00`.
 
 Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
 INDEPENDENTLY ACCEPTED, MERGE NEXT. Founder-authorized identity

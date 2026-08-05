@@ -2914,3 +2914,14 @@ here with dates. Agents record; the founder decides.
   `$8.17192994` cumulative accounted boundaries, but no invocation is
   authorized until a pushed freeze receives independent review and a new
   exact founder GO.
+
+- 2026-08-05 (BRN-0020 meter and sealed-state freeze)
+  **Reserve conservatively, settle only from provider usage, and compare
+  canonical rows.** Sol Standard is metered from official `$5/M` input,
+  `$0.50/M` cached input, and `$30/M` output rates; cache writes use `1.25x`,
+  and requests above 272K input use documented long-context multipliers.
+  Reservations treat request bytes as input tokens at the highest applicable
+  multiplier before dispatch. The launcher copies exact sealed SQLite bytes,
+  then compares a deterministic hash of every canonical table before and after
+  answering so derived SQLite/WAL activity cannot masquerade as a memory write.
+  Pricing source: <https://developers.openai.com/api/docs/models/gpt-5.6-sol>.
