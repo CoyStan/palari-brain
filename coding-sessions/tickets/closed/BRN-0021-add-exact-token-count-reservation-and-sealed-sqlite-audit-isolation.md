@@ -6,7 +6,7 @@ level: 1
 parent_id:
 root_id: BRN-0021
 children: []
-status: in-review
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -246,3 +246,8 @@ spend, or path outside the ticket's explicit `allowed_paths`.
   generator `next`, so combined callback/custody causes could be erased. It now
   uses a null-prototype iterator with an own `next` method, and a permanent
   combined-failure test proves both causes survive. Fresh rereview is required.
+- Fresh independent acceptance review of exact clean pushed head `2daef94`
+  against target `8a880e2` found no P0-P3 issue after reconciling all nine
+  criteria and eleven retained findings. Focused 21/21, full 748/763 with 15
+  optional skips, quickstart 6/6, and syntax/diff/ticket/scope checks pass. The
+  reviewer recommends ACCEPT and performed no edit or external/private access.

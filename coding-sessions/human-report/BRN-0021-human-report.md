@@ -69,6 +69,6 @@ four more permanent regressions. A second rereview is required.
 
 ## Recommended Next Move
 
-Accept and merge only after fresh independent review. Then prepare a separate
-small compatibility-probe ticket for the official count endpoint; do not run
-another benchmark yet.
+Independent acceptance review is now clean with no P0-P3 issue. Merge this
+offline ticket. The next work, if desired, is a separate tiny founder-gated
+compatibility probe for the official count endpoint—not another benchmark run.

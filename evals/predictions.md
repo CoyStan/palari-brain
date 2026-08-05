@@ -2278,3 +2278,9 @@ P2: the private AggregateError iterable's generator inherited a mutable shared
 the error list. A null-prototype iterator with an own `next` plus a permanent
 combined-failure regression repairs it. Focused tests pass 21/21; full suite
 passes 748, fails 0, and skips 15 across 763. Fresh rereview is required.
+
+Fresh independent acceptance review of exact clean head `2daef94` against
+target `8a880e2` found no P0-P3 issue. It confirmed every P-set 31 outcome, all
+nine ticket criteria, all eleven retained review findings, focused 21/21, full
+748/0/15 across 763, and quickstart 6/6. This acceptance is offline harness
+evidence only and grants no live count request, provider call, or spend.

@@ -114,3 +114,8 @@ shared inherited `next` remained mutable. The repair replaces it with a null-
 prototype iterator carrying an own `next`; a simultaneous callback and source-
 custody failure now preserves both ordered causes. Focused tests pass 21/21 and
 full tests pass 748/763 with 15 optional skips. Fresh rereview remains required.
+
+Fresh independent acceptance review of exact head `2daef94` against target
+`8a880e2` replayed the cumulative criteria/findings, found no P0-P3 issue, and
+recommends acceptance. It confirmed focused 21/21, full 748 passed / 15 skipped
+/ 0 failed, quickstart 6/6, and clean syntax/diff/ticket/scope/upstream state.

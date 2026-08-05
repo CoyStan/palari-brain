@@ -3034,3 +3034,11 @@ here with dates. Agents record; the founder decides.
   omitted even though cleanup succeeded. The replacement is a null-prototype
   iterator with an own `next` method. A permanent combined-failure contract
   requires both causes to remain present and ordered.
+
+- 2026-08-05 (BRN-0021 independent acceptance)
+  **Accept the offline primitives; keep live counting separately gated.** Fresh
+  independent review of exact clean head `2daef94` against target `8a880e2`
+  found no P0-P3 issue after all nine criteria and eleven retained findings.
+  Acceptance covers only deterministic exact-reservation and copy-first audit
+  code. Input-count wire compatibility, billing treatment, credential access,
+  provider dispatch, benchmark execution, and spend remain unauthorized.

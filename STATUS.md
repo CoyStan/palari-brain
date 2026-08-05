@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0021 REPAIRED AFTER INDEPENDENT REOPEN; REREVIEW NEXT. The ticket
+Loop state: BRN-0021 INDEPENDENTLY ACCEPTED; MERGE NEXT. The ticket
 adds a strict injected OpenAI structured-input counter, exact Sol Standard
 reservation in integer picodollars, the prior highest-rate UTF-8-byte fallback,
 and a copy-first SQLite audit boundary. It performs no live integration.
@@ -43,6 +43,14 @@ reopened one P2: the combined-error iterable inherited a mutable generator
 The repair uses a null-prototype iterator with an own method, and its permanent
 test preserves both ordered causes.
 
+Fresh independent acceptance review of exact clean pushed head `2daef94`
+against target `8a880e2` found no P0-P3 issue. It reconciled all nine acceptance
+criteria and all eleven retained review findings, confirmed focused 21/21,
+full 748 passed / 15 skipped / 0 failed, quickstart 6/6, and clean syntax,
+diff, ticket, scope, head/target/upstream state. BRN-0021 is accepted under the
+founder's standing delegation for clean independently reviewed tickets. This
+does not authorize a live count request or any spend.
+
 Repaired focused contracts pass 21/21. Full suite passes 748 / fails 0 / skips 15
 optional tests across 763. Quickstart passes 6/6. Syntax, offline-runtime scan,
 diff, ticket lint, and governed committed-plus-dirty scope pass. Credential
@@ -54,9 +62,8 @@ remains unchanged.
 Official OpenAI guidance requires its input-count endpoint for exact structured
 Responses accounting; local tokenizers cannot reproduce every tool/schema and
 model-specific formatting detail. BRN-0021 injects that future transport but
-does not call it or assume it is free. Next: commit the cumulative repair,
-obtain fresh independent adversarial rereview, and accept/reopen through the governed
-workflow. Only after acceptance should a separate tiny founder-gated count-wire
+does not call it or assume it is free. Next: merge the accepted offline ticket.
+Only afterward should a separate tiny founder-gated count-wire
 compatibility probe be prepared; do not run another benchmark yet.
 
 Product stop rule: (1) yes, quickstart is green; (2) yes, future live runs can
