@@ -1,5 +1,33 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0019 PROVENANCE-AWARE RETRIEVAL/USE PRODUCT CONTRACT PREPARED;
+FREEZE COMMIT NEXT. BRN-0018 is accepted, merged, and pushed at `8a4d11c`.
+Its immutable pre-change control found that Sol/low fixed Phone but not Miami
+and could not replace missing original-user evidence; historical BRN-0017
+remains 6/10 and cumulative accounted spend remains `$7.67192994`.
+
+BRN-0019 is the required product unit, not another measurement. It adds one
+general session-ephemeral retrieval plan (`anchor_event`, `relation`,
+`category`, `time_range`), provenance-checked memory commitments carrying
+exactly one `consequence_for_answer` or `not_used_reason`, and temporary
+provenance-linked/revisable cross-context inferences that cannot enter durable
+memory. Provider-free telemetry keeps session recall, exact-span recall,
+judged equivalent-fact recall, selected evidence, and judged materially-used
+evidence separate. The four founder-specified failure shapes are offline
+acceptance fixtures only; production code may contain no benchmark keyword or
+question-specific route.
+
+Product stop rule: (1) yes, quickstart is green at the accepted main cut; (2)
+yes, the unit targets the measured user-visible retrieval/use failures; (3)
+frameworks expose retrieval traces and citations, but do not supply Palari's
+host-checked use/not-use and temporary-inference boundary; (4) yes, the founder
+explicitly requested each guarantee and acceptance case; (5) deleting it would
+again let relevant evidence go missing or unused without an observable reason,
+and let cross-context transfer masquerade as a permanent fact. Next: commit and
+push the contract, create the isolated worktree, implement provider-free, and
+obtain independent review. Any post-change live comparison remains a separate
+founder-gated ticket with a new P-set and cap.
+
 Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
 INDEPENDENTLY ACCEPTED, MERGE NEXT. Founder-authorized identity
 `j4-sol-frozen-failures-pre-architecture-v1` completed exactly once. The

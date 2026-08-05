@@ -2878,3 +2878,16 @@ here with dates. Agents record; the founder decides.
   of the missing-user-evidence boundary. Proceed with the separate architecture
   work for retrieval planning, provenance-aware evidence commitment, and
   distinct recall/use telemetry. Do not alter BRN-0017's historical 6/10.
+
+- 2026-08-05 (BRN-0019 evidence planning and use boundary)
+  **Fix the evidence path, not the benchmark answers.** BRN-0018 showed that a
+  stronger final model alone repaired only Phone. The next product contract
+  therefore introduces a general ephemeral plan over anchor event, relation,
+  category, and time range; timeline/read recovery of canonical source speech;
+  host-validated selected-memory consequences or non-use reasons; and explicit
+  provenance-linked, revisable temporary inferences. Recall, selection, and
+  material use remain separate observations. Equivalent-fact and materially-
+  used metrics are judged telemetry, never canonical truth. The four known
+  failures may appear in tests but never in product routing. A repeat live
+  comparison is deferred to a fresh founder-gated successor after independent
+  product review; the historical 6/10 remains unchanged.
