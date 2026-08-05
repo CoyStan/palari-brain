@@ -2062,7 +2062,7 @@ creation, or spend.** Date: 2026-08-05. Proposed identity:
 `j4-sol-frozen-failures-post-architecture-v1`.
 
 Private launcher SHA-256 is
-`264cb057ad8a382cd550135ab3fd6a12ba5c72d72fb2602d6d7668ac39475e44`.
+`db88363781c5e51e69473d77f33d40851df387c540e7e3fd37214007588e4c6a`.
 It binds the exact sealed database, question, product, tool-wire, Ettin runtime,
 meter, one-shot, authority, and seal evidence described below.
 
@@ -2124,8 +2124,13 @@ Predictions, failing categories first:
 7. CAUSAL INTEGRITY AND ACCOUNTING: the launcher rehashes all sealed source
    databases/questions and exact accepted product/runtime files before key
    access. Every physical Gemini/OpenAI request reserves durably before
-   dispatch. One invocation stays within `$0.50` fresh / `$8.17192994`
-   cumulative accounted caps, seals all private artifacts at mode 0600 with
-   zero exact credential matches and no sealing error, and records measured
-   versus uncertain spend. Any miss is recorded without mutation, reroll,
-   regrade, publication, or replacement.
+   dispatch. Every OpenAI request and accepted response pins Standard with
+   `service_tier: "default"`; reservations cover the exact serialized request
+   bytes and settle only from validated provider usage. Gemini embedding
+   reservations count UTF-8 bytes for every embedded text and remain
+   uncertain/accounted because this wire supplies no accepted usage metadata.
+   One invocation stays within `$0.50` fresh / `$8.17192994` cumulative
+   accounted caps, seals all private artifacts at mode 0600 with zero exact
+   credential matches and no sealing error, and records measured versus
+   uncertain spend. Any miss is recorded without mutation, reroll, regrade,
+   publication, or replacement.

@@ -2937,3 +2937,13 @@ here with dates. Agents record; the founder decides.
   memory or the sealed result. Sealing reconciles meter, caps, report, and
   terminal hash and persists either a sealed manifest or an explicit failed
   manifest with its errors.
+
+- 2026-08-05 (BRN-0020 provider accounting boundary)
+  **Pin the billed service and never promote an estimate to measured usage.**
+  The metered Sol request explicitly injects `service_tier: "default"`, and a
+  response must report the same tier before its validated usage can settle the
+  reservation at Standard rates. Gemini embedding reservations count UTF-8
+  bytes for each embedded text. Because the accepted embedding response wire
+  has no provider token-usage contract, a successful embedding call remains
+  `completed-usage-unavailable` and its conservative reservation remains
+  uncertain/accounted rather than being relabeled measured.

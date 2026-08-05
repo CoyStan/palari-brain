@@ -49,8 +49,8 @@ expose retrieval traces and citations, but do not supply Palari's host-checked
 use/not-use and temporary-inference boundary; (4) yes, the founder explicitly
 requested each guarantee and acceptance case; (5) deleting it would again let
 relevant evidence go missing or unused without an observable reason, and let
-cross-context transfer masquerade as a permanent fact. Next: commit the exact
-accepted implementation. P-set 30 now freezes its post-change comparison from
+cross-context transfer masquerade as a permanent fact. BRN-0019's accepted
+implementation is merged. P-set 30 now freezes its post-change comparison from
 the same four sealed BRN-0017 memory databases, with Sol/low and questions
 fixed. Proposed one-shot identity is
 `j4-sol-frozen-failures-post-architecture-v1`; proposed boundaries are `$0.50`
@@ -58,7 +58,7 @@ fresh / `$8.17192994` cumulative accounted from the exact `$7.67192994`
 opening ledger. This preregistration is not live authority.
 
 The mode-0600 private launcher is frozen at SHA-256
-`264cb057ad8a382cd550135ab3fd6a12ba5c72d72fb2602d6d7668ac39475e44`.
+`db88363781c5e51e69473d77f33d40851df387c540e7e3fd37214007588e4c6a`.
 Provider-free verification passes: all 74 BRN-0017 artifacts rehash; the smoke
 and four exact databases have sealed byte hashes plus canonical-row hashes;
 all six required original-user evidence IDs/content hashes are present; the
@@ -83,9 +83,19 @@ and terminal hashes, and always writes an explicit `sealed` or `failed`
 manifest with errors. A fresh review must replay all three findings before any
 founder gate can open.
 
-Next: commit and push the repaired freeze, obtain independent pre-dispatch review,
-then stop at the founder gate. Credential reads / provider calls / inference /
-fresh spend for BRN-0020 remain exactly `0 / 0 / 0 / $0.00`.
+Rereview of repaired head `08e4a59` confirmed those three repairs, then
+correctly reopened two P1 accounting defects: Gemini reservations counted
+UTF-16 code units and relabeled usage-absent estimates as measured, while Sol
+requests/responses did not actually pin Standard/default service. It also
+found the stale next-step statement here. The cumulative repair counts UTF-8
+embedding bytes and retains their reservations as uncertain/accounted, injects
+and validates `service_tier: "default"` on the exact OpenAI wire, and reserves
+the resulting serialized bytes before dispatch.
+
+Next: commit and push this cumulative meter repair, obtain a fresh independent
+pre-dispatch rereview, then stop at the founder gate. Credential reads /
+provider calls / inference / fresh spend for BRN-0020 remain exactly
+`0 / 0 / 0 / $0.00`.
 
 Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
 INDEPENDENTLY ACCEPTED, MERGE NEXT. Founder-authorized identity

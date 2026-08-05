@@ -32,6 +32,15 @@ material-use terminal judgment; reconciles meter, report, terminal hash, and
 caps during sealing; and persists an explicit failed manifest with errors when
 any reconciliation, artifact, mode, or credential scan fails.
 
+Rereview of repaired head `08e4a59` reopened two P1 accounting findings: the
+Gemini bound used UTF-16 code units and settled usage-absent responses as
+measured, while the OpenAI request/response did not pin Standard/default
+service. The cumulative repair reserves Gemini from UTF-8 text bytes and
+retains successful usage-absent calls as uncertain/accounted. It also injects
+`service_tier: "default"` into the actual serialized OpenAI request, reserves
+those exact bytes, and rejects a response whose tier is not `default` before
+settlement.
+
 ## Risks / Follow-Ups
 
 - Sol may choose not to plan, may fail the stricter commitment, or may miss the

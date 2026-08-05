@@ -6,12 +6,12 @@ level: 1
 parent_id:
 root_id: BRN-0020
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T02:35:34Z
 target_branch: "main"
 branch: "ticket/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
@@ -87,7 +87,8 @@ numbers are a preregistration boundary only; they are not founder authority.
   Gemini embedder, native Ettin runtime/model closure, four question objects,
   P-set, private launcher, clean pushed authority commit, caps, and absent
   result identity before credential access.
-- Use `gpt-5.6-sol`, low reasoning, Standard/default service, no-store, 512
+- Use `gpt-5.6-sol`, low reasoning, explicit `service_tier: "default"` on both
+  the actual request and accepted response, no-store, 512
   maximum output tokens, the accepted six memory tools, strict modern
   `palari_answer_commit`, at most one zero-budget plan, at most four evidence
   retrieval calls, and at most seven OpenAI dispatches per answer.
@@ -194,7 +195,7 @@ numbers are a preregistration boundary only; they are not founder authority.
 ## Offline Freeze Evidence
 
 - P-set 30 is FINAL. Private launcher SHA-256 is
-  `264cb057ad8a382cd550135ab3fd6a12ba5c72d72fb2602d6d7668ac39475e44`;
+  `db88363781c5e51e69473d77f33d40851df387c540e7e3fd37214007588e4c6a`;
   `node --check` and provider-free `--verify` pass.
 - All 74 BRN-0017 artifacts rehash under terminal manifest
   `850ca100...`. The smoke plus four database bytes/canonical-row hashes match,
@@ -213,3 +214,8 @@ numbers are a preregistration boundary only; they are not founder authority.
   launcher file- and directory-syncs reservations before dispatch, emits two
   distinct pending semantic-judgment records, reconciles meter/report/terminal
   evidence, and writes an explicit failed manifest if sealing cannot succeed.
+- Rereview of repaired head `08e4a59` reopened two P1 accounting issues and
+  one P3 status issue. The cumulative repair forces and validates OpenAI
+  Standard/default on the exact metered wire, reserves Gemini embeddings from
+  UTF-8 text bytes, retains usage-absent embedding reservations as uncertain,
+  and corrects the stale next-step statement.
