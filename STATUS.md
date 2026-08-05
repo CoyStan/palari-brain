@@ -58,7 +58,7 @@ fresh / `$8.17192994` cumulative accounted from the exact `$7.67192994`
 opening ledger. This preregistration is not live authority.
 
 The mode-0600 private launcher is frozen at SHA-256
-`7ff8bb0f1719ce2e9b5495c4c93ef1460c7eeec0698a9e2727ada8e9b907d52d`.
+`09d53ecb96da1902abae2de0ab1544f952e9ab894a4b44a10f0bc0b6d2c79391`.
 Provider-free verification passes: all 74 BRN-0017 artifacts rehash; the smoke
 and four exact databases have sealed byte hashes plus canonical-row hashes;
 all six required original-user evidence IDs/content hashes are present; the
@@ -100,8 +100,15 @@ cached, and cache-write fields with consistent totals. Any invalid usage is
 persisted as terminal `invalid-usage` and the full durable reservation remains
 uncertain/accounted.
 
-Next: obtain a fresh independent pre-dispatch rereview of the clean pushed
-strict-usage repair, then stop at the founder gate. Credential reads /
+Rereview of strict head `8d047b0` confirmed that repair but found the remaining
+P1 bound: explicit all-zero usage or numeric usage beyond the reservation could
+still settle. The cumulative validator now requires positive input/output/total
+tokens and bounds input to the serialized UTF-8 request bytes, output to 512,
+and measured dollars to the durable reservation. Zero or out-of-bound usage
+persists `invalid-usage`, terminates, and retains full uncertainty.
+
+Next: commit and push the reservation-bound usage repair, obtain a fresh
+independent pre-dispatch rereview, then stop at the founder gate. Credential reads /
 provider calls / inference / fresh spend for BRN-0020 remain exactly
 `0 / 0 / 0 / $0.00`.
 

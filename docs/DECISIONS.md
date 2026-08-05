@@ -2956,3 +2956,11 @@ here with dates. Agents record; the founder decides.
   negative, fractional, unsafe, or inconsistent fields persist an
   `invalid-usage` terminal call and retain the full reservation as uncertain
   and accounted. No default zero or numeric coercion is permitted.
+
+- 2026-08-05 (BRN-0020 usage reservation bound)
+  **Validated usage cannot outrun or erase its reservation.** Provider-reported
+  input, output, and total tokens must each be positive. Input is bounded by
+  the exact serialized UTF-8 request-byte reservation, output by the requested
+  512-token ceiling, and computed measured dollars by the durable pre-dispatch
+  reservation. Zero or out-of-bound usage is terminal `invalid-usage`; the
+  reservation stays uncertain/accounted and cannot be settled or released.

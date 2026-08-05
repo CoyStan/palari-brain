@@ -6,12 +6,12 @@ level: 1
 parent_id:
 root_id: BRN-0020
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T02:51:00Z
 target_branch: "main"
 branch: "ticket/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
@@ -195,7 +195,7 @@ numbers are a preregistration boundary only; they are not founder authority.
 ## Offline Freeze Evidence
 
 - P-set 30 is FINAL. Private launcher SHA-256 is
-  `7ff8bb0f1719ce2e9b5495c4c93ef1460c7eeec0698a9e2727ada8e9b907d52d`;
+  `09d53ecb96da1902abae2de0ab1544f952e9ab894a4b44a10f0bc0b6d2c79391`;
   `node --check` and provider-free `--verify` pass.
 - All 74 BRN-0017 artifacts rehash under terminal manifest
   `850ca100...`. The smoke plus four database bytes/canonical-row hashes match,
@@ -224,3 +224,7 @@ numbers are a preregistration boundary only; they are not founder authority.
   raw own numeric safe-integer input/output/total and cached/cache-write fields
   with consistent totals; any invalid usage is persisted as terminal while the
   full reservation remains uncertain/accounted.
+- Rereview of strict head `8d047b0` reopened the remaining P1 bound: explicit
+  zero or numerically consistent out-of-reservation usage could still settle.
+  The cumulative validator now requires positive input/output/total and binds
+  input, output, and measured dollars to their durable reservation ceilings.

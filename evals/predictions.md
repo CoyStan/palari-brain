@@ -2062,7 +2062,7 @@ creation, or spend.** Date: 2026-08-05. Proposed identity:
 `j4-sol-frozen-failures-post-architecture-v1`.
 
 Private launcher SHA-256 is
-`7ff8bb0f1719ce2e9b5495c4c93ef1460c7eeec0698a9e2727ada8e9b907d52d`.
+`09d53ecb96da1902abae2de0ab1544f952e9ab894a4b44a10f0bc0b6d2c79391`.
 It binds the exact sealed database, question, product, tool-wire, Ettin runtime,
 meter, one-shot, authority, and seal evidence described below.
 
@@ -2128,7 +2128,10 @@ Predictions, failing categories first:
    `service_tier: "default"`; reservations cover the exact serialized request
    bytes and settle only when provider usage supplies raw own numeric safe-
    integer input, output, total, cached, and cache-write token fields with
-   consistent totals. Missing, coerced, or inconsistent usage terminates as
+   consistent totals. Input, output, and total must be positive; input cannot
+   exceed the conservative serialized-byte token bound, output cannot exceed
+   512, and measured dollars cannot exceed the durable reservation. Missing,
+   zero, coerced, inconsistent, or out-of-bound usage terminates as
    `invalid-usage` while retaining the full reservation as uncertain/accounted.
    Gemini embedding
    reservations count UTF-8 bytes for every embedded text and remain

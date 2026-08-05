@@ -48,6 +48,13 @@ safe-integer input/output/total and cached/cache-write fields and consistent
 totals. Any malformed usage is persisted as `invalid-usage`, terminates the
 cell, and leaves the entire durable reservation uncertain/accounted.
 
+Rereview of strict head `8d047b0` found that explicit zero usage and numeric
+usage beyond the durable reservation could still settle. The cumulative fix
+requires positive input/output/total tokens, constrains input to the serialized
+UTF-8-byte bound, output to 512, and measured dollars to the reserved amount.
+Any zero or out-of-bound usage follows the same terminal `invalid-usage` path
+without releasing uncertainty.
+
 ## Risks / Follow-Ups
 
 - Sol may choose not to plan, may fail the stricter commitment, or may miss the
