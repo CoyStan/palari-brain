@@ -207,8 +207,8 @@ spend, or path outside the ticket's explicit `allowed_paths`.
 - Copy-first SQLite tests cover main-only state, valid live WAL/SHM state, and
   callback failure. The source file set/hashes/modes remain exact; SQLite and
   scratch mutations see only the owned copy; cleanup succeeds on both paths.
-- Repaired focused tests: 16 passed, 0 failed. Full suite: 743 passed, 15
-  optional skips, 0 failed across 758. Quickstart: 6/6. Offline source, syntax, diff, ticket,
+- Repaired focused tests: 20 passed, 0 failed. Full suite: 747 passed, 15
+  optional skips, 0 failed across 762. Quickstart: 6/6. Offline source, syntax, diff, ticket,
   and committed-plus-dirty scope checks pass.
 - Credential reads / network requests / provider calls / inference /
   private-result reads / spend: `0 / 0 / 0 / 0 / 0 / $0.00`. Cumulative
@@ -233,3 +233,11 @@ spend, or path outside the ticket's explicit `allowed_paths`.
   remains forbidden. The branch merged that target amendment before rereview.
 - Permanent reproductions pass. Fresh independent cumulative rereview is still
   required; this specialist does not accept its own repair.
+- The first cumulative rereview confirmed all original findings repaired, then
+  found four further mutable-intrinsic P1 gaps: poisoned `unshift` or `push`
+  could suppress callback/custody errors, poisoned `startsWith` could admit an
+  in-source scratch directory, and a poisoned array iterator could skip WAL/SHM
+  enumeration. The cumulative repair uses captured prefix/sort operations and
+  index-only source/error/result arrays with a private error iterable. It also
+  captures file-handle operations and stat type tests before any callback.
+  All four attacks now have permanent tests; another fresh rereview is required.

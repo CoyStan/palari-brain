@@ -19,11 +19,26 @@ import { tmpdir } from 'node:os'
 
 const arrayIsArray = Array.isArray
 const arraySort = Function.prototype.call.bind(Array.prototype.sort)
+const aggregateErrorFrom = AggregateError
+const bigintFrom = BigInt
+const functionCallBind = Function.prototype.call.bind(Function.prototype.call)
 const hashProbe = createHash('sha256')
 const hashDigest = Function.prototype.call.bind(hashProbe.digest)
 const hashUpdate = Function.prototype.call.bind(hashProbe.update)
 const numberFrom = Number
+const objectCreate = Object.create
+const objectDefineProperty = Object.defineProperty
 const objectFreeze = Object.freeze
+const objectGetPrototypeOf = Object.getPrototypeOf
+const stringStartsWith = Function.prototype.call.bind(
+  String.prototype.startsWith,
+)
+const symbolIterator = Symbol.iterator
+const statTypeMask = bigintFrom(constants.S_IFMT)
+const statDirectoryType = bigintFrom(constants.S_IFDIR)
+const statRegularType = bigintFrom(constants.S_IFREG)
+const statSymlinkType = bigintFrom(constants.S_IFLNK)
+let handleOperations
 const pathCandidates = (sourcePath) => [
   sourcePath,
   `${sourcePath}-wal`,
@@ -36,7 +51,50 @@ function fail(message) {
 
 function isWithin(parent, candidate) {
   const route = relative(parent, candidate)
-  return route === '' || (!route.startsWith('..') && !isAbsolute(route))
+  return route === '' || (!stringStartsWith(route, '..') && !isAbsolute(route))
+}
+
+function append(values, value) {
+  values[values.length] = value
+}
+
+function statIs(metadata, type) {
+  return (metadata.mode & statTypeMask) === type
+}
+
+function operationsFor(handle) {
+  if (!handleOperations) {
+    const prototype = objectGetPrototypeOf(handle)
+    handleOperations = objectFreeze({
+      chmod: functionCallBind.bind(null, prototype.chmod),
+      readFile: functionCallBind.bind(null, prototype.readFile),
+      stat: functionCallBind.bind(null, prototype.stat),
+      sync: functionCallBind.bind(null, prototype.sync),
+      writeFile: functionCallBind.bind(null, prototype.writeFile),
+    })
+  }
+  return handleOperations
+}
+
+function immutableArray(values) {
+  const copy = []
+  for (let index = 0; index < values.length; index += 1) {
+    copy[index] = values[index]
+  }
+  return objectFreeze(copy)
+}
+
+function aggregateErrors(errors, message) {
+  const iterable = objectCreate(null)
+  objectDefineProperty(iterable, symbolIterator, {
+    enumerable: false,
+    value: function* iterateErrors() {
+      for (let index = 0; index < errors.length; index += 1) {
+        yield errors[index]
+      }
+    },
+  })
+  return new aggregateErrorFrom(iterable, message)
 }
 
 function sha256(bytes) {
@@ -49,10 +107,13 @@ async function readStableFile(path) {
   let handle
   try {
     handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW)
-    const before = await handle.stat({ bigint: true })
-    if (!before.isFile()) fail(`${path} is not a regular file.`)
-    const bytes = await handle.readFile()
-    const after = await handle.stat({ bigint: true })
+    const operations = operationsFor(handle)
+    const before = await operations.stat(handle, { bigint: true })
+    if (!statIs(before, statRegularType)) {
+      fail(`${path} is not a regular file.`)
+    }
+    const bytes = await operations.readFile(handle)
+    const after = await operations.stat(handle, { bigint: true })
     if (before.dev !== after.dev || before.ino !== after.ino ||
       before.size !== after.size || before.mtimeNs !== after.mtimeNs ||
       before.mode !== after.mode) {
@@ -72,7 +133,9 @@ async function readStableFile(path) {
 
 async function snapshotSource(sourcePath) {
   const entries = []
-  for (const path of pathCandidates(sourcePath)) {
+  const candidates = pathCandidates(sourcePath)
+  for (let index = 0; index < candidates.length; index += 1) {
+    const path = candidates[index]
     let metadata
     try {
       metadata = await lstat(path, { bigint: true })
@@ -80,11 +143,12 @@ async function snapshotSource(sourcePath) {
       if (error?.code === 'ENOENT') continue
       throw error
     }
-    if (metadata.isSymbolicLink() || !metadata.isFile()) {
+    if (statIs(metadata, statSymlinkType) ||
+      !statIs(metadata, statRegularType)) {
       fail(`${path} must be a non-symlink regular file.`)
     }
     const snapshot = await readStableFile(path)
-    entries.push(objectFreeze({
+    append(entries, objectFreeze({
       bytes: snapshot.bytes,
       device: snapshot.device,
       inode: snapshot.inode,
@@ -101,11 +165,16 @@ async function snapshotSource(sourcePath) {
 }
 
 function publicSnapshot(entries) {
-  return objectFreeze(entries.map((entry) => objectFreeze({
-    mode: entry.mode,
-    name: entry.name,
-    sha256: entry.sha256,
-  })))
+  const snapshot = []
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index]
+    snapshot[index] = objectFreeze({
+      mode: entry.mode,
+      name: entry.name,
+      sha256: entry.sha256,
+    })
+  }
+  return objectFreeze(snapshot)
 }
 
 function sameSnapshot(before, after) {
@@ -121,7 +190,8 @@ function sameSnapshot(before, after) {
 }
 
 async function copySnapshot(entries, scratchDirectory) {
-  for (const entry of entries) {
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index]
     const target = join(scratchDirectory, entry.name)
     const handle = await open(
       target,
@@ -129,9 +199,10 @@ async function copySnapshot(entries, scratchDirectory) {
       entry.mode,
     )
     try {
-      await handle.writeFile(entry.bytes)
-      await handle.chmod(entry.mode)
-      await handle.sync()
+      const operations = operationsFor(handle)
+      await operations.writeFile(handle, entry.bytes)
+      await operations.chmod(handle, entry.mode)
+      await operations.sync(handle)
     } finally {
       await handle.close()
     }
@@ -143,19 +214,20 @@ function sameIdentity(metadata, identity) {
 }
 
 async function ownedDirectoryPath(handle, identity) {
-  const metadata = await handle.stat({ bigint: true })
+  const metadata = await operationsFor(handle).stat(handle, { bigint: true })
   if (!sameIdentity(metadata, identity)) {
     fail('owned scratch handle identity changed.')
   }
   if (metadata.nlink === 0n) return null
   let path
   try {
-    path = await realpath(`/proc/self/fd/${handle.fd}`)
+    path = await realpath(`/proc/self/fd/${identity.fd}`)
   } catch {
     fail('cannot resolve the physical owned scratch directory.')
   }
   const pathMetadata = await lstat(path, { bigint: true })
-  if (pathMetadata.isSymbolicLink() || !pathMetadata.isDirectory() ||
+  if (statIs(pathMetadata, statSymlinkType) ||
+    !statIs(pathMetadata, statDirectoryType) ||
     !sameIdentity(pathMetadata, identity)) {
     fail('resolved scratch path does not match its owned physical identity.')
   }
@@ -179,7 +251,10 @@ async function removeOwnedScratch({
   if (ownedPath) {
     await rm(ownedPath, { recursive: true, force: false })
   }
-  const after = await scratchHandle.stat({ bigint: true })
+  const after = await operationsFor(scratchHandle).stat(
+    scratchHandle,
+    { bigint: true },
+  )
   if (after.nlink !== 0n) {
     fail('owned scratch directory still has a filesystem link after cleanup.')
   }
@@ -202,8 +277,9 @@ export async function auditSealedSqliteCopy({
   if (typeof audit !== 'function') fail('audit must be a function.')
 
   const normalizedSource = resolve(sourcePath)
-  const sourceMetadata = await lstat(normalizedSource)
-  if (sourceMetadata.isSymbolicLink() || !sourceMetadata.isFile()) {
+  const sourceMetadata = await lstat(normalizedSource, { bigint: true })
+  if (statIs(sourceMetadata, statSymlinkType) ||
+    !statIs(sourceMetadata, statRegularType)) {
     fail('source database must be a non-symlink regular file.')
   }
   const realSourcePath = await realpath(normalizedSource)
@@ -230,9 +306,13 @@ export async function auditSealedSqliteCopy({
       scratchDirectory,
       constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW,
     )
-    const scratchMetadata = await scratchHandle.stat({ bigint: true })
+    const scratchMetadata = await operationsFor(scratchHandle).stat(
+      scratchHandle,
+      { bigint: true },
+    )
     scratchIdentity = objectFreeze({
       device: scratchMetadata.dev,
+      fd: scratchHandle.fd,
       inode: scratchMetadata.ino,
     })
     await copySnapshot(sourceBefore, scratchDirectory)
@@ -271,12 +351,12 @@ export async function auditSealedSqliteCopy({
     sourceAfter = await snapshotSource(realSourcePath)
     if (currentRealSourcePath !== realSourcePath ||
       !sameSnapshot(sourceBefore ?? [], sourceAfter)) {
-      finalErrors.push(new Error(
+      append(finalErrors, new Error(
         'Sealed SQLite audit: source physical set, bytes, or modes changed.',
       ))
     }
   } catch (error) {
-    finalErrors.push(error)
+    append(finalErrors, error)
   }
   if (scratchDirectory && scratchHandle && scratchIdentity) {
     try {
@@ -286,36 +366,48 @@ export async function auditSealedSqliteCopy({
         scratchIdentity,
       })
     } catch (error) {
-      finalErrors.push(error)
+      append(finalErrors, error)
     } finally {
       try {
         await scratchHandle.close()
       } catch (error) {
-        finalErrors.push(error)
+        append(finalErrors, error)
       }
     }
   } else if (scratchDirectory) {
     try {
       if (dirname(scratchDirectory) !== dirname(scratchPrefix) ||
-        !basename(scratchDirectory).startsWith(basename(scratchPrefix))) {
+        !stringStartsWith(
+          basename(scratchDirectory),
+          basename(scratchPrefix),
+        )) {
         fail('refused pre-callback cleanup outside the scratch prefix.')
       }
       await rm(scratchDirectory, { recursive: true, force: false })
     } catch (error) {
-      finalErrors.push(error)
+      append(finalErrors, error)
     }
   }
-  if (primaryError) finalErrors.unshift(primaryError)
-  if (finalErrors.length === 1) throw finalErrors[0]
-  if (finalErrors.length > 1) {
-    throw new AggregateError(finalErrors, 'Sealed SQLite audit failed.')
+  if (primaryError && finalErrors.length === 0) throw primaryError
+  if (!primaryError && finalErrors.length === 1) throw finalErrors[0]
+  if (primaryError || finalErrors.length > 1) {
+    const combined = []
+    let offset = 0
+    if (primaryError) {
+      combined[0] = primaryError
+      offset = 1
+    }
+    for (let index = 0; index < finalErrors.length; index += 1) {
+      combined[index + offset] = finalErrors[index]
+    }
+    throw aggregateErrors(combined, 'Sealed SQLite audit failed.')
   }
 
   return objectFreeze({
     result,
-    scratchFiles: objectFreeze(arrayIsArray(scratchFiles)
-      ? [...scratchFiles]
-      : []),
+    scratchFiles: arrayIsArray(scratchFiles)
+      ? immutableArray(scratchFiles)
+      : objectFreeze([]),
     sourceSnapshot: publicSnapshot(sourceAfter),
   })
 }

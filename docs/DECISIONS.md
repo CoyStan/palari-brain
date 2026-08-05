@@ -3017,3 +3017,12 @@ here with dates. Agents record; the founder decides.
   retarget as terminal. Target-main commit `8a880e2` separately reconciles the
   generated `*token*` guard that contradicted the approved ticket's own name;
   no credential, private-data, live-provider, or spend boundary was widened.
+
+- 2026-08-05 (BRN-0021 cumulative intrinsic boundary)
+  **A detected failure must not depend on mutable collection prototypes.** The
+  first rereview confirmed the physical-identity repair, then proved mutable
+  array/string operations could suppress callback or custody errors, admit an
+  in-source scratch directory, or skip WAL/SHM candidates. The custody path now
+  uses index-only private collections, a private error iterable, captured
+  prefix/sort operations, and file-handle/stat operations captured before any
+  callback. Each attack is a permanent provider-free regression.

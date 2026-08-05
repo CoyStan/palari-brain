@@ -254,6 +254,145 @@ test('retargeting a symlinked parent cannot substitute identical source bytes', 
   }
 })
 
+test('poisoned unshift cannot swallow a callback failure', async () => {
+  const fixture = await fixtureRoot()
+  const sourcePath = join(fixture.source, 'memory.sqlite')
+  const originalUnshift = Array.prototype.unshift
+  const expected = new Error('must remain terminal')
+  let observed
+  try {
+    const database = await createDatabase(sourcePath)
+    database.close()
+    Array.prototype.unshift = function poisonedUnshift() {
+      return this.length
+    }
+    try {
+      await auditSealedSqliteCopy({
+        sourcePath,
+        scratchParent: fixture.scratch,
+        audit() {
+          throw expected
+        },
+      })
+    } catch (error) {
+      observed = error
+    }
+  } finally {
+    Array.prototype.unshift = originalUnshift
+  }
+  try {
+    assert.equal(observed, expected)
+    assert.deepEqual(await readdir(fixture.scratch), [])
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true })
+  }
+})
+
+test('poisoned push cannot swallow a detected source mode change', async () => {
+  const fixture = await fixtureRoot()
+  const sourcePath = join(fixture.source, 'memory.sqlite')
+  const originalPush = Array.prototype.push
+  let observed
+  try {
+    const database = await createDatabase(sourcePath)
+    database.close()
+    await auditSealedSqliteCopy({
+      sourcePath,
+      scratchParent: fixture.scratch,
+      async audit() {
+        await chmod(sourcePath, 0o4600)
+        Array.prototype.push = function poisonedPush() {
+          return this.length
+        }
+      },
+    })
+  } catch (error) {
+    observed = error
+  } finally {
+    Array.prototype.push = originalPush
+  }
+  try {
+    assert.match(observed?.message ?? '', /source physical set/u)
+    assert.deepEqual(await readdir(fixture.scratch), [])
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true })
+  }
+})
+
+test('poisoned startsWith cannot place scratch inside the source namespace', async () => {
+  const fixture = await fixtureRoot()
+  const sourcePath = join(fixture.source, 'memory.sqlite')
+  const originalStartsWith = String.prototype.startsWith
+  let observed
+  try {
+    const database = await createDatabase(sourcePath)
+    database.close()
+    String.prototype.startsWith = () => true
+    try {
+      await auditSealedSqliteCopy({
+        sourcePath,
+        scratchParent: fixture.source,
+        audit() {},
+      })
+    } catch (error) {
+      observed = error
+    }
+  } finally {
+    String.prototype.startsWith = originalStartsWith
+  }
+  try {
+    assert.match(observed?.message ?? '', /outside the source namespace/u)
+    assert.deepEqual(await physicalSnapshot(fixture.source), [{
+      device: String((await lstat(sourcePath)).dev),
+      inode: String((await lstat(sourcePath)).ino),
+      mode: 0o600,
+      name: 'memory.sqlite',
+      sha256: sha256(await readFile(sourcePath)),
+    }])
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true })
+  }
+})
+
+test('poisoned array iterator cannot skip WAL and SHM custody', async () => {
+  const fixture = await fixtureRoot()
+  const sourcePath = join(fixture.source, 'memory.sqlite')
+  const originalIterator = Array.prototype[Symbol.iterator]
+  let sourceDatabase
+  let observed
+  try {
+    sourceDatabase = await createDatabase(sourcePath, { wal: true })
+    Array.prototype[Symbol.iterator] = function* poisonedIterator() {
+      if (this.length === 3 && this[0] === sourcePath &&
+        this[1] === `${sourcePath}-wal` && this[2] === `${sourcePath}-shm`) {
+        yield this[0]
+        return
+      }
+      yield* originalIterator.call(this)
+    }
+    try {
+      await auditSealedSqliteCopy({
+        sourcePath,
+        scratchParent: fixture.scratch,
+        async audit() {
+          await chmod(`${sourcePath}-wal`, 0o640)
+        },
+      })
+    } catch (error) {
+      observed = error
+    }
+  } finally {
+    Array.prototype[Symbol.iterator] = originalIterator
+  }
+  try {
+    assert.match(observed?.message ?? '', /source physical set/u)
+    assert.deepEqual(await readdir(fixture.scratch), [])
+  } finally {
+    sourceDatabase?.close()
+    await rm(fixture.root, { recursive: true, force: true })
+  }
+})
+
 test('relative, missing, symlink, and in-namespace scratch paths fail closed', async () => {
   const fixture = await fixtureRoot()
   const sourcePath = join(fixture.source, 'memory.sqlite')

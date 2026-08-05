@@ -29,8 +29,16 @@ resolved source identity, and preserves a substituted pathname while failing.
 Target-main commit `8a880e2` explicitly reconciles only the self-conflicting
 filename globs and retains every actual secret/private/provider prohibition.
 
-Repaired focused contracts pass 16/16. Full suite passes 743 / fails 0 / skips 15
-optional tests across 758. Quickstart passes 6/6. Syntax, offline-runtime scan,
+The first cumulative rereview confirmed all original findings repaired, then
+found four further P1 intrinsic-poisoning gaps: mutable `push`/`unshift` could
+suppress detected errors, mutable `startsWith` could admit scratch under the
+source namespace, and a poisoned array iterator could skip WAL/SHM custody.
+The cumulative repair now uses indexed private collections, a private exact
+error iterable, and captured prefix/sort/stat/file-handle operations. All four
+attacks have permanent tests.
+
+Repaired focused contracts pass 20/20. Full suite passes 747 / fails 0 / skips 15
+optional tests across 762. Quickstart passes 6/6. Syntax, offline-runtime scan,
 diff, ticket lint, and governed committed-plus-dirty scope pass. Credential
 reads, network requests, provider calls, inference, private-result reads, and
 spend are `0 / 0 / 0 / 0 / 0 / $0.00`; cumulative accounted spend remains

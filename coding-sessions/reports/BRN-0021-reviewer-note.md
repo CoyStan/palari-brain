@@ -62,3 +62,25 @@ merge, or implementation repair.
 Reopen BRN-0021. Do not accept, merge, or use these primitives in a live
 launcher until all findings have permanent tests and a fresh reviewer returns
 no P0-P3 issue.
+
+## First Cumulative Rereview
+
+Fresh rereview of exact clean pushed repair head `156f763` against reconciled
+target `8a880e2` confirmed all six original findings fixed and the scope
+reconciliation genuinely present on target main. It also confirmed descriptor-
+based cleanup deletes the renamed owned inode, preserves a replacement path,
+aggregates combined callback/source/cleanup failures, and fails closed when
+Linux `/proc/self/fd` resolution is unavailable.
+
+The rereview correctly reopened four additional P1-class intrinsic-poisoning
+gaps. Mutable `Array.prototype.unshift` could swallow a callback exception;
+mutable `push` could swallow a detected source-mode change; mutable
+`String.prototype.startsWith` could admit scratch beneath the source namespace;
+and a poisoned array iterator could make WAL/SHM enumeration skip both
+sidecars. No other P0-P3 finding was confirmed in that pass. The reviewer made
+no edits or private/provider access.
+
+The cumulative specialist repair removes prototype-dependent collection and
+iteration from the custody path, captures the required string/sort/stat/file-
+handle operations before callbacks, supplies its own exact error iterable, and
+adds all four reproductions. A second fresh cumulative rereview is required.

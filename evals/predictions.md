@@ -2263,5 +2263,11 @@ repair captures integer/string/hash intrinsics, rejects Proxies, binds cleanup
 to the open directory descriptor and device/inode, compares complete modes and
 resolved source identity, and reconciles the contradictory guard on target
 `main` while retaining every actual secret/private boundary. Repaired focused
-tests pass 16/16; full suite passes 743, fails 0, and skips 15 optional tests
-across 758. Quickstart remains 6/6. A fresh independent rereview is required.
+tests passed 16/16; full suite passed 743, failed 0, and skipped 15 optional
+tests across 758 before rereview. The first cumulative rereview confirmed every
+original finding repaired, then exposed four further mutable-intrinsic P1 gaps
+in error collection, namespace checking, and sidecar iteration. Indexed local
+collections, captured operations, and a private error iterable now close those
+paths. Repaired focused tests pass 20/20; full suite passes 747, fails 0, and
+skips 15 across 762. Quickstart remains 6/6. Another fresh independent
+rereview is required.

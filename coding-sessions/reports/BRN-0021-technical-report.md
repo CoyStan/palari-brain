@@ -42,8 +42,8 @@ historical-request replay.
 
 ## Verification
 
-- Repaired focused contracts: 16 passed, 0 failed.
-- Full `node --test`: 758 tests; 743 passed, 15 optional skips, 0 failed.
+- Repaired focused contracts: 20 passed, 0 failed.
+- Full `node --test`: 762 tests; 747 passed, 15 optional skips, 0 failed.
 - `npm run quickstart`: PASS, 6/6.
 - Relevant `node --check`, `git diff --check`, ticket lint, and governed
   committed-plus-dirty scope: PASS.
@@ -99,5 +99,11 @@ The cumulative repair:
   two self-conflicting filename globs while preserving all actual secret and
   private-data prohibitions.
 
-Focused tests now pass 16/16 and full tests pass 743/758 with 15 optional skips.
-A fresh independent cumulative rereview remains required.
+The first cumulative rereview confirmed those repairs, then found four mutable-
+prototype P1 gaps in error collection, source sidecar iteration, and namespace
+prefix checking. The cumulative repair replaces `push`/`unshift`/`for...of`
+with indexed local arrays, uses a private exact error iterable, captures prefix
+and sort operations, and captures file-handle/stat operations before any
+callback. All four attacks are permanent tests. Focused tests now pass 20/20
+and full tests pass 747/762 with 15 optional skips. A second fresh independent
+cumulative rereview remains required.
