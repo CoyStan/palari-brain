@@ -6,12 +6,12 @@ level: 1
 parent_id:
 root_id: BRN-0021
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T04:08:47Z
 target_branch: "main"
 branch: "ticket/BRN-0021-add-exact-token-count-reservation-and-sealed-sqlite-audit-isolation"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0021-add-exact-token-count-reservation-and-sealed-sqlite-audit-isolation"
