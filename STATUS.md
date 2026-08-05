@@ -58,7 +58,7 @@ fresh / `$8.17192994` cumulative accounted from the exact `$7.67192994`
 opening ledger. This preregistration is not live authority.
 
 The mode-0600 private launcher is frozen at SHA-256
-`db88363781c5e51e69473d77f33d40851df387c540e7e3fd37214007588e4c6a`.
+`7ff8bb0f1719ce2e9b5495c4c93ef1460c7eeec0698a9e2727ada8e9b907d52d`.
 Provider-free verification passes: all 74 BRN-0017 artifacts rehash; the smoke
 and four exact databases have sealed byte hashes plus canonical-row hashes;
 all six required original-user evidence IDs/content hashes are present; the
@@ -92,8 +92,16 @@ embedding bytes and retains their reservations as uncertain/accounted, injects
 and validates `service_tier: "default"` on the exact OpenAI wire, and reserves
 the resulting serialized bytes before dispatch.
 
-Next: obtain a fresh independent pre-dispatch rereview of the clean pushed
-cumulative repair, then stop at the founder gate. Credential reads /
+Fresh rereview of cumulative head `c12eb73` confirmed all preceding repairs,
+then found one final P1 settlement gap: missing, null, or string OpenAI token
+fields could be coerced and settle real spend to zero. The current repair
+requires plain own-property raw numeric safe-integer input, output, total,
+cached, and cache-write fields with consistent totals. Any invalid usage is
+persisted as terminal `invalid-usage` and the full durable reservation remains
+uncertain/accounted.
+
+Next: commit and push the strict usage repair, obtain a fresh independent
+pre-dispatch rereview, then stop at the founder gate. Credential reads /
 provider calls / inference / fresh spend for BRN-0020 remain exactly
 `0 / 0 / 0 / $0.00`.
 

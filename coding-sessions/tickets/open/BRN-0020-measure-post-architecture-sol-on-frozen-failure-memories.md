@@ -6,12 +6,12 @@ level: 1
 parent_id:
 root_id: BRN-0020
 children: []
-status: in-review
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T02:44:31Z
 target_branch: "main"
 branch: "ticket/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0020-measure-post-architecture-sol-on-frozen-failure-memories"
@@ -195,7 +195,7 @@ numbers are a preregistration boundary only; they are not founder authority.
 ## Offline Freeze Evidence
 
 - P-set 30 is FINAL. Private launcher SHA-256 is
-  `db88363781c5e51e69473d77f33d40851df387c540e7e3fd37214007588e4c6a`;
+  `7ff8bb0f1719ce2e9b5495c4c93ef1460c7eeec0698a9e2727ada8e9b907d52d`;
   `node --check` and provider-free `--verify` pass.
 - All 74 BRN-0017 artifacts rehash under terminal manifest
   `850ca100...`. The smoke plus four database bytes/canonical-row hashes match,
@@ -219,3 +219,8 @@ numbers are a preregistration boundary only; they are not founder authority.
   Standard/default on the exact metered wire, reserves Gemini embeddings from
   UTF-8 text bytes, retains usage-absent embedding reservations as uncertain,
   and corrects the stale next-step statement.
+- Rereview of cumulative head `c12eb73` reopened one P1: missing or coercible
+  OpenAI usage could settle a real reservation to zero. The repair requires
+  raw own numeric safe-integer input/output/total and cached/cache-write fields
+  with consistent totals; any invalid usage is persisted as terminal while the
+  full reservation remains uncertain/accounted.

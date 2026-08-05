@@ -2947,3 +2947,12 @@ here with dates. Agents record; the founder decides.
   has no provider token-usage contract, a successful embedding call remains
   `completed-usage-unavailable` and its conservative reservation remains
   uncertain/accounted rather than being relabeled measured.
+
+- 2026-08-05 (BRN-0020 usage settlement boundary)
+  **Provider usage is typed evidence, not coercible input.** An OpenAI
+  reservation settles only when the response contains a plain own-property
+  usage object with raw numeric safe-integer input, output, total, cached, and
+  cache-write token counts whose totals are consistent. Missing, null, string,
+  negative, fractional, unsafe, or inconsistent fields persist an
+  `invalid-usage` terminal call and retain the full reservation as uncertain
+  and accounted. No default zero or numeric coercion is permitted.

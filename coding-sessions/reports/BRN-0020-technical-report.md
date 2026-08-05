@@ -41,6 +41,13 @@ retains successful usage-absent calls as uncertain/accounted. It also injects
 those exact bytes, and rejects a response whose tier is not `default` before
 settlement.
 
+Rereview of cumulative head `c12eb73` found that missing, null, or string
+OpenAI usage fields could still be coerced to zero/numbers and erase a real
+reservation. The repair requires plain provider usage with own raw numeric
+safe-integer input/output/total and cached/cache-write fields and consistent
+totals. Any malformed usage is persisted as `invalid-usage`, terminates the
+cell, and leaves the entire durable reservation uncertain/accounted.
+
 ## Risks / Follow-Ups
 
 - Sol may choose not to plan, may fail the stricter commitment, or may miss the
