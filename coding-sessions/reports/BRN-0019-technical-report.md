@@ -68,9 +68,10 @@ and have no admission or journal-write path.
 
 ## Risks / Follow-Ups
 
-Fresh independent review is required before acceptance. A post-architecture
-live comparison is a separate founder-gated ticket with a preregistered
-prediction set, new one-shot identity, and exact fresh/cumulative cap.
+Fresh independent review is complete and recommends acceptance. A
+post-architecture live comparison is a separate founder-gated ticket with a
+preregistered prediction set, new one-shot identity, and exact
+fresh/cumulative cap.
 
 ## Review Repair
 
@@ -80,4 +81,8 @@ findings. JavaScript's permissive date parser accepted non-ISO bounds including
 supported string. The repair applies a captured ISO parser boundary with
 calendar validation, requires a string relation before exact comparison, and
 adds permanent reproductions for both attacks. A fresh review of the repaired
-head is required; the first review did not create an acceptance note.
+head was required; the first review did not create an acceptance note.
+
+Fresh independent rereview of repaired exact head `258de2d` replayed both prior
+attacks, audited the complete cumulative contract, and found no P0-P3 issue.
+Reviewer commit `787c925` recommends acceptance.

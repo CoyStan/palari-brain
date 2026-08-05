@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0019 PROVENANCE-AWARE RETRIEVAL/USE PRODUCT IMPLEMENTED;
-INDEPENDENT REVIEW NEXT. BRN-0018 is accepted, merged, and pushed at
+Loop state: BRN-0019 PROVENANCE-AWARE RETRIEVAL/USE PRODUCT ACCEPTED;
+MERGE NEXT. BRN-0018 is accepted, merged, and pushed at
 `8a4d11c`. Its immutable pre-change control found that Sol/low fixed Phone but
 not Miami and could not replace missing original-user evidence; historical
 BRN-0017 remains 6/10 and cumulative accounted spend remains `$7.67192994`.
@@ -34,8 +34,10 @@ object masquerade as a supported relation. Both are repaired with captured
 intrinsics, syntactic/calendar-valid ISO checks, strict string typing, and
 permanent adversarial tests. The repaired focused suite passes 64/64. Fresh
 full `npm test` passes 727 / fails 0 / skips 15 across 742 tests. Quickstart
-passes 6/6, syntax/diff checks pass, and governed
-committed-plus-dirty scope is clean. BRN-0019 performed zero credential reads,
+passes 6/6, syntax/diff checks pass, and governed committed-plus-dirty scope is
+clean. Fresh independent rereview of repaired head `258de2d` found no P0-P3
+issue after replaying both attacks and the full cumulative contract. Reviewer
+commit `787c925` recommends acceptance. BRN-0019 performed zero credential reads,
 provider calls, generation, judge calls, or spend; cumulative accounted spend
 therefore remains exactly `$7.67192994`.
 
@@ -46,10 +48,9 @@ use/not-use and temporary-inference boundary; (4) yes, the founder explicitly
 requested each guarantee and acceptance case; (5) deleting it would again let
 relevant evidence go missing or unused without an observable reason, and let
 cross-context transfer masquerade as a permanent fact. Next: commit the exact
-repaired implementation, rerun the full suite, obtain fresh independent review,
-and merge only if clean. Any
-post-change live comparison remains a separate founder-gated ticket with a new
-P-set, immutable identity, and exact cap.
+accepted implementation and merge it. Then prepare the post-change live
+comparison as a separate founder-gated ticket with a new P-set, immutable
+identity, and exact cap; do not dispatch without fresh founder authority.
 
 Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
 INDEPENDENTLY ACCEPTED, MERGE NEXT. Founder-authorized identity
