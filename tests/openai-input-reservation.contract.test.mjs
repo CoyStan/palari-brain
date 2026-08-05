@@ -94,6 +94,33 @@ test('count response parser fails five malformed classes closed', () => {
     input_tokens: 6_885,
     undocumented: true,
   }), TypeError)
+
+  const virtual = new Proxy({}, {
+    getOwnPropertyDescriptor(_target, property) {
+      if (property === 'object') {
+        return {
+          configurable: true,
+          enumerable: true,
+          value: 'response.input_tokens',
+          writable: true,
+        }
+      }
+      if (property === 'input_tokens') {
+        return {
+          configurable: true,
+          enumerable: true,
+          value: 6_885,
+          writable: true,
+        }
+      }
+    },
+    getPrototypeOf: () => Object.prototype,
+    ownKeys: () => ['object', 'input_tokens'],
+  })
+  assert.throws(
+    () => parseOpenAIInputCountResponse(virtual),
+    /must not be a Proxy/u,
+  )
 })
 
 test('counter transport failure is terminal and never invokes a fallback', async () => {
@@ -197,6 +224,29 @@ test('fixed synthetic bank is at least three times tighter with exact counts', (
         3n * BigInt(exact.reservedPicodollars),
       `${fallback.reservedUsdDecimal} was not 3x ${exact.reservedUsdDecimal}`,
     )
+  }
+})
+
+test('poisoned global BigInt cannot reduce exact or fallback reservation', () => {
+  const originalBigInt = globalThis.BigInt
+  try {
+    globalThis.BigInt = () => 0n
+    const exact = reserveOpenAIResponseFromExactCount({
+      count: acceptedCount(1_000),
+      maxOutputTokens: 512,
+    })
+    const fallback = reserveOpenAIResponseFromUtf8Bytes({
+      bodyText: JSON.stringify(sampleBody()),
+      maxOutputTokens: 512,
+    })
+    assert.equal(exact.inputPicodollars, '6250000000')
+    assert.equal(exact.outputPicodollars, '15360000000')
+    assert.equal(exact.reservedPicodollars, '21610000000')
+    assert.notEqual(fallback.inputPicodollars, '0')
+    assert.equal(fallback.outputPicodollars, '23040000000')
+    assert.notEqual(fallback.reservedPicodollars, '0')
+  } finally {
+    globalThis.BigInt = originalBigInt
   }
 })
 

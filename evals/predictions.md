@@ -2251,3 +2251,17 @@ Deterministic result (recorded after the fixed offline measurement):
   Runtime-source scan finds no environment or network surface. Credential,
   network, provider, inference, private-result, and spend activity is zero;
   cumulative accounted spend remains exactly `$7.75502179`.
+
+Independent-review repair (the deterministic P-set outcome above is not a live
+result and needed no rerun): fresh review of submitted head `30d0d4f` correctly
+reopened two P1, three P2, and one P3 defects. A poisoned global `BigInt` could
+zero all authoritative amounts; pathname substitution could leak the renamed
+owned scratch directory; special mode bits and parent-directory retargeting
+escaped source checks; the generated `*token*` guard contradicted the ticket's
+own approved name; and a Proxy could synthesize a plain response. The cumulative
+repair captures integer/string/hash intrinsics, rejects Proxies, binds cleanup
+to the open directory descriptor and device/inode, compares complete modes and
+resolved source identity, and reconciles the contradictory guard on target
+`main` while retaining every actual secret/private boundary. Repaired focused
+tests pass 16/16; full suite passes 743, fails 0, and skips 15 optional tests
+across 758. Quickstart remains 6/6. A fresh independent rereview is required.

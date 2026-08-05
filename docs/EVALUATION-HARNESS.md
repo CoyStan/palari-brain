@@ -61,10 +61,20 @@ post-seal BRN-0020 inspection and remains preserved as disclosed evidence.
 5. Re-snapshot the source, require an identical physical set/hashes/modes, and
    remove only the exact owned scratch directory on success or failure.
 
-The utility cannot prevent a malicious callback from independently reaching a
-source path it already knows. Governed callers must therefore keep the source
-path out of the callback closure and treat any custody or cleanup error as a
-terminal audit failure.
+The source check also pins device/inode identity, the complete permission mode
+including special bits, and the source's resolved physical path. Parent-symlink
+retargeting therefore fails even when the replacement has identical bytes.
+Scratch cleanup holds an open directory descriptor, follows `/proc/self/fd` to
+the same device/inode after a rename, removes that owned physical directory,
+and treats pathname substitution as terminal without deleting the replacement.
+This rename-safe cleanup currently requires Linux `/proc` support; failure to
+resolve the owned descriptor is terminal rather than permission to delete by
+an unverified path.
+
+The utility cannot capability-sandbox arbitrary same-process code or prevent a
+malicious callback from independently reaching a source path it already knows.
+Governed callers must therefore keep the source path out of the callback
+closure and treat any custody or cleanup error as a terminal audit failure.
 
 ## Measurement meaning
 

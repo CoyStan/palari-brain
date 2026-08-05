@@ -3005,3 +3005,15 @@ here with dates. Agents record; the founder decides.
   scratch directory. BRN-0021 is deterministic and offline: it does not access
   BRN-0020's private namespace, call a provider, read credentials, spend, or
   change historical BRN-0017's 6/10 or BRN-0020's consumed result.
+
+- 2026-08-05 (BRN-0021 independent-review repair)
+  **Physical identity, not mutable globals or pathnames, is the accounting and
+  custody boundary.** Independent review proved that uncaptured `BigInt` could
+  zero reservations and that renaming/replacing the scratch pathname could
+  leak the actual copy while cleanup deleted the replacement. The repair
+  captures authoritative intrinsics, brands non-Proxy responses, follows the
+  open scratch descriptor to the same device/inode for cleanup, compares full
+  modes and source identities, and treats any pathname substitution or parent
+  retarget as terminal. Target-main commit `8a880e2` separately reconciles the
+  generated `*token*` guard that contradicted the approved ticket's own name;
+  no credential, private-data, live-provider, or spend boundary was widened.

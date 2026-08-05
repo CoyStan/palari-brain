@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0021 IMPLEMENTED OFFLINE; INDEPENDENT REVIEW NEXT. The ticket
+Loop state: BRN-0021 REPAIRED AFTER INDEPENDENT REOPEN; REREVIEW NEXT. The ticket
 adds a strict injected OpenAI structured-input counter, exact Sol Standard
 reservation in integer picodollars, the prior highest-rate UTF-8-byte fallback,
 and a copy-first SQLite audit boundary. It performs no live integration.
@@ -17,8 +17,20 @@ SQLite opens only the owned scratch copy; source physical names, SHA-256 bytes,
 and permission modes remain exact; scratch-only changes are removed on success
 and failure. The implementation never accessed BRN-0020's private namespace.
 
-Focused contracts pass 12/12. Full suite passes 739 / fails 0 / skips 15
-optional tests across 754. Quickstart passes 6/6. Syntax, offline-runtime scan,
+Initial independent review of exact submitted head `30d0d4f` correctly reopened
+two P1, three P2, and one P3 findings: mutable `BigInt` could zero reservations;
+scratch pathname substitution could leak the owned copy; special mode bits and
+parent-symlink retargeting escaped custody checks; the generated token filename
+guard contradicted the ticket itself; and a Proxy could synthesize a plain
+count response. All attacks now have permanent reproductions. The repair
+captures accounting/string/hash operations, rejects Proxies, binds scratch
+cleanup to an open descriptor plus device/inode, compares complete modes and
+resolved source identity, and preserves a substituted pathname while failing.
+Target-main commit `8a880e2` explicitly reconciles only the self-conflicting
+filename globs and retains every actual secret/private/provider prohibition.
+
+Repaired focused contracts pass 16/16. Full suite passes 743 / fails 0 / skips 15
+optional tests across 758. Quickstart passes 6/6. Syntax, offline-runtime scan,
 diff, ticket lint, and governed committed-plus-dirty scope pass. Credential
 reads, network requests, provider calls, inference, private-result reads, and
 spend are `0 / 0 / 0 / 0 / 0 / $0.00`; cumulative accounted spend remains
@@ -28,8 +40,8 @@ remains unchanged.
 Official OpenAI guidance requires its input-count endpoint for exact structured
 Responses accounting; local tokenizers cannot reproduce every tool/schema and
 model-specific formatting detail. BRN-0021 injects that future transport but
-does not call it or assume it is free. Next: commit the implementation, obtain
-fresh independent adversarial review, and accept/reopen through the governed
+does not call it or assume it is free. Next: commit the cumulative repair,
+obtain fresh independent adversarial rereview, and accept/reopen through the governed
 workflow. Only after acceptance should a separate tiny founder-gated count-wire
 compatibility probe be prepared; do not run another benchmark yet.
 

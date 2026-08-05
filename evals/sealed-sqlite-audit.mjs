@@ -18,6 +18,11 @@ import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:pat
 import { tmpdir } from 'node:os'
 
 const arrayIsArray = Array.isArray
+const arraySort = Function.prototype.call.bind(Array.prototype.sort)
+const hashProbe = createHash('sha256')
+const hashDigest = Function.prototype.call.bind(hashProbe.digest)
+const hashUpdate = Function.prototype.call.bind(hashProbe.update)
+const numberFrom = Number
 const objectFreeze = Object.freeze
 const pathCandidates = (sourcePath) => [
   sourcePath,
@@ -32,6 +37,12 @@ function fail(message) {
 function isWithin(parent, candidate) {
   const route = relative(parent, candidate)
   return route === '' || (!route.startsWith('..') && !isAbsolute(route))
+}
+
+function sha256(bytes) {
+  const hash = createHash('sha256')
+  hashUpdate(hash, bytes)
+  return hashDigest(hash, 'hex')
 }
 
 async function readStableFile(path) {
@@ -49,8 +60,10 @@ async function readStableFile(path) {
     }
     return {
       bytes,
-      mode: Number(before.mode & 0o777n),
-      sha256: createHash('sha256').update(bytes).digest('hex'),
+      device: before.dev,
+      inode: before.ino,
+      mode: numberFrom(before.mode & 0o7777n),
+      sha256: sha256(bytes),
     }
   } finally {
     await handle?.close()
@@ -73,6 +86,8 @@ async function snapshotSource(sourcePath) {
     const snapshot = await readStableFile(path)
     entries.push(objectFreeze({
       bytes: snapshot.bytes,
+      device: snapshot.device,
+      inode: snapshot.inode,
       mode: snapshot.mode,
       name: basename(path),
       path,
@@ -99,7 +114,8 @@ function sameSnapshot(before, after) {
     const left = before[index]
     const right = after[index]
     if (left.name !== right.name || left.mode !== right.mode ||
-      left.sha256 !== right.sha256) return false
+      left.sha256 !== right.sha256 || left.device !== right.device ||
+      left.inode !== right.inode) return false
   }
   return true
 }
@@ -122,12 +138,54 @@ async function copySnapshot(entries, scratchDirectory) {
   }
 }
 
-async function removeOwnedScratch({ scratchDirectory, scratchPrefix }) {
-  if (!scratchDirectory || dirname(scratchDirectory) !== dirname(scratchPrefix) ||
-    !basename(scratchDirectory).startsWith(basename(scratchPrefix))) {
-    fail('refused cleanup outside the exact owned scratch prefix.')
+function sameIdentity(metadata, identity) {
+  return metadata.dev === identity.device && metadata.ino === identity.inode
+}
+
+async function ownedDirectoryPath(handle, identity) {
+  const metadata = await handle.stat({ bigint: true })
+  if (!sameIdentity(metadata, identity)) {
+    fail('owned scratch handle identity changed.')
   }
-  await rm(scratchDirectory, { recursive: true, force: false })
+  if (metadata.nlink === 0n) return null
+  let path
+  try {
+    path = await realpath(`/proc/self/fd/${handle.fd}`)
+  } catch {
+    fail('cannot resolve the physical owned scratch directory.')
+  }
+  const pathMetadata = await lstat(path, { bigint: true })
+  if (pathMetadata.isSymbolicLink() || !pathMetadata.isDirectory() ||
+    !sameIdentity(pathMetadata, identity)) {
+    fail('resolved scratch path does not match its owned physical identity.')
+  }
+  return path
+}
+
+async function removeOwnedScratch({
+  scratchDirectory,
+  scratchHandle,
+  scratchIdentity,
+}) {
+  const ownedPath = await ownedDirectoryPath(scratchHandle, scratchIdentity)
+  let pathnameSubstituted = false
+  try {
+    const originalMetadata = await lstat(scratchDirectory, { bigint: true })
+    pathnameSubstituted = !sameIdentity(originalMetadata, scratchIdentity)
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error
+    pathnameSubstituted = true
+  }
+  if (ownedPath) {
+    await rm(ownedPath, { recursive: true, force: false })
+  }
+  const after = await scratchHandle.stat({ bigint: true })
+  if (after.nlink !== 0n) {
+    fail('owned scratch directory still has a filesystem link after cleanup.')
+  }
+  if (pathnameSubstituted) {
+    fail('scratch pathname was substituted during the audit.')
+  }
 }
 
 export async function auditSealedSqliteCopy({
@@ -144,15 +202,18 @@ export async function auditSealedSqliteCopy({
   if (typeof audit !== 'function') fail('audit must be a function.')
 
   const normalizedSource = resolve(sourcePath)
-  const sourceNamespace = await realpath(dirname(normalizedSource))
   const sourceMetadata = await lstat(normalizedSource)
   if (sourceMetadata.isSymbolicLink() || !sourceMetadata.isFile()) {
     fail('source database must be a non-symlink regular file.')
   }
+  const realSourcePath = await realpath(normalizedSource)
+  const sourceNamespace = dirname(realSourcePath)
   await mkdir(scratchParent, { recursive: true, mode: 0o700 })
   const realScratchParent = await realpath(scratchParent)
   const scratchPrefix = join(realScratchParent, 'palari-sqlite-audit-')
   let scratchDirectory
+  let scratchHandle
+  let scratchIdentity
   let primaryError
   let result
   let sourceBefore
@@ -160,23 +221,44 @@ export async function auditSealedSqliteCopy({
   let scratchFiles = []
 
   try {
-    sourceBefore = await snapshotSource(normalizedSource)
+    sourceBefore = await snapshotSource(realSourcePath)
     scratchDirectory = await mkdtemp(scratchPrefix)
     if (isWithin(sourceNamespace, scratchDirectory)) {
       fail('scratch directory must be outside the source namespace.')
     }
+    scratchHandle = await open(
+      scratchDirectory,
+      constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW,
+    )
+    const scratchMetadata = await scratchHandle.stat({ bigint: true })
+    scratchIdentity = objectFreeze({
+      device: scratchMetadata.dev,
+      inode: scratchMetadata.ino,
+    })
     await copySnapshot(sourceBefore, scratchDirectory)
     const copiedDatabasePath = join(
       scratchDirectory,
-      basename(normalizedSource),
+      basename(realSourcePath),
     )
     result = await audit(copiedDatabasePath)
-    scratchFiles = (await readdir(scratchDirectory)).sort()
+    const currentScratch = await ownedDirectoryPath(
+      scratchHandle,
+      scratchIdentity,
+    )
+    scratchFiles = currentScratch
+      ? arraySort(await readdir(currentScratch))
+      : []
   } catch (error) {
     primaryError = error
-    if (scratchDirectory) {
+    if (scratchHandle && scratchIdentity) {
       try {
-        scratchFiles = (await readdir(scratchDirectory)).sort()
+        const currentScratch = await ownedDirectoryPath(
+          scratchHandle,
+          scratchIdentity,
+        )
+        scratchFiles = currentScratch
+          ? arraySort(await readdir(currentScratch))
+          : []
       } catch {
         // Cleanup and source verification below remain authoritative.
       }
@@ -185,8 +267,10 @@ export async function auditSealedSqliteCopy({
 
   const finalErrors = []
   try {
-    sourceAfter = await snapshotSource(normalizedSource)
-    if (!sameSnapshot(sourceBefore ?? [], sourceAfter)) {
+    const currentRealSourcePath = await realpath(normalizedSource)
+    sourceAfter = await snapshotSource(realSourcePath)
+    if (currentRealSourcePath !== realSourcePath ||
+      !sameSnapshot(sourceBefore ?? [], sourceAfter)) {
       finalErrors.push(new Error(
         'Sealed SQLite audit: source physical set, bytes, or modes changed.',
       ))
@@ -194,9 +278,29 @@ export async function auditSealedSqliteCopy({
   } catch (error) {
     finalErrors.push(error)
   }
-  if (scratchDirectory) {
+  if (scratchDirectory && scratchHandle && scratchIdentity) {
     try {
-      await removeOwnedScratch({ scratchDirectory, scratchPrefix })
+      await removeOwnedScratch({
+        scratchDirectory,
+        scratchHandle,
+        scratchIdentity,
+      })
+    } catch (error) {
+      finalErrors.push(error)
+    } finally {
+      try {
+        await scratchHandle.close()
+      } catch (error) {
+        finalErrors.push(error)
+      }
+    }
+  } else if (scratchDirectory) {
+    try {
+      if (dirname(scratchDirectory) !== dirname(scratchPrefix) ||
+        !basename(scratchDirectory).startsWith(basename(scratchPrefix))) {
+        fail('refused pre-callback cleanup outside the scratch prefix.')
+      }
+      await rm(scratchDirectory, { recursive: true, force: false })
     } catch (error) {
       finalErrors.push(error)
     }

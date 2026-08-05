@@ -2,8 +2,11 @@
 // Responses inputs. This module deliberately owns no transport, credential,
 // retry, meter, or fallback-after-dispatch behavior.
 
+import { types as utilTypes } from 'node:util'
+
 const arrayIsArray = Array.isArray
 const arrayPrototype = Array.prototype
+const bigintFrom = BigInt
 const bufferByteLength = Buffer.byteLength
 const jsonStringify = JSON.stringify
 const numberIsFinite = Number.isFinite
@@ -16,6 +19,10 @@ const objectHasOwn = Object.hasOwn
 const objectPrototype = Object.prototype
 const objectSetPrototypeOf = Object.setPrototypeOf
 const reflectOwnKeys = Reflect.ownKeys
+const stringFrom = String
+const stringPadStart = Function.prototype.call.bind(String.prototype.padStart)
+const stringSlice = Function.prototype.call.bind(String.prototype.slice)
+const utilIsProxy = utilTypes.isProxy
 const weakSetAdd = Function.prototype.call.bind(WeakSet.prototype.add)
 const weakSetHas = Function.prototype.call.bind(WeakSet.prototype.has)
 
@@ -60,6 +67,7 @@ function snapshotJson(value, seen = nullArray(), label = 'body') {
   if (!value || typeof value !== 'object') {
     fail(`${label} contains non-JSON data.`)
   }
+  if (utilIsProxy(value)) fail(`${label} must not be a Proxy.`)
   if (seenContains(seen, value)) fail(`${label} contains a cycle.`)
   seen[seen.length] = value
 
@@ -153,6 +161,7 @@ export function parseOpenAIInputCountResponse(response) {
   if (!response || typeof response !== 'object' || arrayIsArray(response)) {
     fail('count response must be a plain object.')
   }
+  if (utilIsProxy(response)) fail('count response must not be a Proxy.')
   const prototype = objectGetPrototypeOf(response)
   if (prototype !== objectPrototype && prototype !== null) {
     fail('count response must be a plain object.')
@@ -218,9 +227,12 @@ const RATE_CENTS_PER_MILLION = deepFreeze(record([
 
 function usdDecimal(picodollars) {
   const whole = picodollars / PICODOLLARS_PER_DOLLAR
-  const fraction = String(
+  let fraction = stringPadStart(stringFrom(
     picodollars % PICODOLLARS_PER_DOLLAR,
-  ).padStart(12, '0').replace(/0+$/u, '')
+  ), 12, '0')
+  while (fraction.length > 0 && fraction[fraction.length - 1] === '0') {
+    fraction = stringSlice(fraction, 0, -1)
+  }
   return fraction ? `${whole}.${fraction}` : `${whole}`
 }
 
@@ -228,10 +240,10 @@ function reserve({ inputUnits, maxOutputTokens, source, band }) {
   positiveSafeInteger(inputUnits, 'input units')
   positiveSafeInteger(maxOutputTokens, 'maxOutputTokens')
   const rates = RATE_CENTS_PER_MILLION[band]
-  const inputPicodollars = BigInt(inputUnits) *
-    BigInt(rates.input) * PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
-  const outputPicodollars = BigInt(maxOutputTokens) *
-    BigInt(rates.output) * PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
+  const inputPicodollars = bigintFrom(inputUnits) *
+    bigintFrom(rates.input) * PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
+  const outputPicodollars = bigintFrom(maxOutputTokens) *
+    bigintFrom(rates.output) * PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
   const reservedPicodollars = inputPicodollars + outputPicodollars
   const reservedUsdDecimal = usdDecimal(reservedPicodollars)
   return deepFreeze(record([
@@ -242,9 +254,9 @@ function reserve({ inputUnits, maxOutputTokens, source, band }) {
     ['maxOutputTokens', maxOutputTokens],
     ['inputUsdPerMillion', rates.input / 100],
     ['outputUsdPerMillion', rates.output / 100],
-    ['inputPicodollars', String(inputPicodollars)],
-    ['outputPicodollars', String(outputPicodollars)],
-    ['reservedPicodollars', String(reservedPicodollars)],
+    ['inputPicodollars', stringFrom(inputPicodollars)],
+    ['outputPicodollars', stringFrom(outputPicodollars)],
+    ['reservedPicodollars', stringFrom(reservedPicodollars)],
     ['reservedUsdDecimal', reservedUsdDecimal],
   ]))
 }

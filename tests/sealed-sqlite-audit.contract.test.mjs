@@ -2,18 +2,21 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import {
   chmod,
+  copyFile,
   lstat,
   mkdir,
   mkdtemp,
   readFile,
   readdir,
+  rename,
   rm,
   stat,
   symlink,
+  unlink,
   writeFile,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { isAbsolute, join, relative } from 'node:path'
+import { dirname, isAbsolute, join, relative } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { test } from 'node:test'
 
@@ -42,8 +45,10 @@ async function physicalSnapshot(source, databaseName = 'memory.sqlite') {
     const path = join(source, name)
     const metadata = await lstat(path)
     entries.push({
+      device: String(metadata.dev),
+      inode: String(metadata.ino),
       name,
-      mode: metadata.mode & 0o777,
+      mode: metadata.mode & 0o7777,
       sha256: sha256(await readFile(path)),
     })
   }
@@ -156,6 +161,93 @@ test('callback failure still verifies source and removes exact owned scratch', a
     }), (error) => error === expected)
     assert.deepEqual(await physicalSnapshot(fixture.source), before)
     await assert.rejects(stat(scratchDirectory), { code: 'ENOENT' })
+    assert.deepEqual(await readdir(fixture.scratch), [])
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true })
+  }
+})
+
+test('scratch pathname substitution fails and cleans the owned inode only', async () => {
+  const fixture = await fixtureRoot()
+  const sourcePath = join(fixture.source, 'memory.sqlite')
+  let escapedDirectory
+  let replacementDirectory
+  try {
+    const database = await createDatabase(sourcePath)
+    database.close()
+    await assert.rejects(auditSealedSqliteCopy({
+      sourcePath,
+      scratchParent: fixture.scratch,
+      async audit(path) {
+        const ownedDirectory = dirname(path)
+        escapedDirectory = `${ownedDirectory}-renamed`
+        replacementDirectory = ownedDirectory
+        await rename(ownedDirectory, escapedDirectory)
+        await mkdir(replacementDirectory, { mode: 0o700 })
+        await writeFile(join(replacementDirectory, 'replacement.txt'), 'keep')
+        return 'must not escape'
+      },
+    }), /scratch pathname was substituted/u)
+    await assert.rejects(stat(escapedDirectory), { code: 'ENOENT' })
+    assert.equal(
+      await readFile(join(replacementDirectory, 'replacement.txt'), 'utf8'),
+      'keep',
+    )
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true })
+  }
+})
+
+test('special permission-bit changes are detected and scratch is cleaned', async () => {
+  const fixture = await fixtureRoot()
+  const sourcePath = join(fixture.source, 'memory.sqlite')
+  let copiedDirectory
+  try {
+    const database = await createDatabase(sourcePath)
+    database.close()
+    await assert.rejects(auditSealedSqliteCopy({
+      sourcePath,
+      scratchParent: fixture.scratch,
+      async audit(path) {
+        copiedDirectory = dirname(path)
+        await chmod(sourcePath, 0o4600)
+      },
+    }), /source physical set, bytes, or modes changed/u)
+    assert.equal((await lstat(sourcePath)).mode & 0o7777, 0o4600)
+    await assert.rejects(stat(copiedDirectory), { code: 'ENOENT' })
+    assert.deepEqual(await readdir(fixture.scratch), [])
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true })
+  }
+})
+
+test('retargeting a symlinked parent cannot substitute identical source bytes', async () => {
+  const fixture = await fixtureRoot()
+  const physicalA = join(fixture.root, 'physical-a')
+  const physicalB = join(fixture.root, 'physical-b')
+  const active = join(fixture.root, 'active')
+  const databaseName = 'memory.sqlite'
+  await mkdir(physicalA, { mode: 0o700 })
+  await mkdir(physicalB, { mode: 0o700 })
+  const sourceA = join(physicalA, databaseName)
+  const sourceB = join(physicalB, databaseName)
+  let copiedDirectory
+  try {
+    const database = await createDatabase(sourceA)
+    database.close()
+    await copyFile(sourceA, sourceB)
+    await chmod(sourceB, 0o600)
+    await symlink(physicalA, active)
+    await assert.rejects(auditSealedSqliteCopy({
+      sourcePath: join(active, databaseName),
+      scratchParent: fixture.scratch,
+      async audit(path) {
+        copiedDirectory = dirname(path)
+        await unlink(active)
+        await symlink(physicalB, active)
+      },
+    }), /source physical set, bytes, or modes changed/u)
+    await assert.rejects(stat(copiedDirectory), { code: 'ENOENT' })
     assert.deepEqual(await readdir(fixture.scratch), [])
   } finally {
     await rm(fixture.root, { recursive: true, force: true })

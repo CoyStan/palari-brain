@@ -23,8 +23,9 @@ are checked afterward, and temporary state is removed even if the audit fails.
 
 Across three fixed synthetic request shapes, exact-count reservations were
 `6.907x`, `13.939x`, and `6.095x` smaller than the old byte fallback while
-keeping the full 512-token answer ceiling. All 12 focused tests, 754 repository
-tests (15 optional skips), and the 6/6 quickstart passed.
+keeping the full 512-token answer ceiling. After independent review and repair,
+all 16 focused tests, 758 repository tests (15 optional skips), and the 6/6
+quickstart passed.
 
 No provider was called, no key was read, no private result was opened, and no
 money was spent. The cumulative ledger remains `$7.75502179`. The historical
@@ -36,6 +37,15 @@ This proves the offline safety and accounting shape, not the live count wire.
 Official OpenAI guidance says the provider endpoint is needed for exact
 structured requests, but its compatibility and billing treatment still need a
 separate tiny founder-authorized probe. We do not assume that call is free.
+
+The first independent review did its job and reopened six issues, including
+two high-severity ones: a poisoned JavaScript integer constructor could zero
+the reservation, and a renamed temporary directory could escape cleanup. The
+repair now captures the accounting operations and follows physical directory
+identity rather than trusting a pathname. Special permission bits, parent
+symlink retargets, synthetic Proxy responses, and the ticket's contradictory
+generated filename guard also have permanent repairs. A fresh reviewer must
+confirm the cumulative fix before merge.
 
 ## What To Check
 

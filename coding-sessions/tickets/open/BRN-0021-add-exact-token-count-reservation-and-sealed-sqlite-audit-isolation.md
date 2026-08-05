@@ -6,12 +6,12 @@ level: 1
 parent_id:
 root_id: BRN-0021
 children: []
-status: claimed
+status: in-review
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-08-05T04:08:47Z
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0021-add-exact-token-count-reservation-and-sealed-sqlite-audit-isolation"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0021-add-exact-token-count-reservation-and-sealed-sqlite-audit-isolation"
@@ -207,10 +207,29 @@ spend, or path outside the ticket's explicit `allowed_paths`.
 - Copy-first SQLite tests cover main-only state, valid live WAL/SHM state, and
   callback failure. The source file set/hashes/modes remain exact; SQLite and
   scratch mutations see only the owned copy; cleanup succeeds on both paths.
-- Focused tests: 12 passed, 0 failed. Full suite: 739 passed, 15 optional skips,
-  0 failed across 754. Quickstart: 6/6. Offline source, syntax, diff, ticket,
+- Repaired focused tests: 16 passed, 0 failed. Full suite: 743 passed, 15
+  optional skips, 0 failed across 758. Quickstart: 6/6. Offline source, syntax, diff, ticket,
   and committed-plus-dirty scope checks pass.
 - Credential reads / network requests / provider calls / inference /
   private-result reads / spend: `0 / 0 / 0 / 0 / 0 / $0.00`. Cumulative
   accounted spend remains exactly `$7.75502179`; historical BRN-0017 remains
   6/10 and consumed BRN-0020 remains unchanged.
+
+## Review Repair
+
+- Independent review of exact head `30d0d4f` recommended reopen for two P1,
+  three P2, and one P3 findings. Poisoning uncaptured `BigInt` zeroed both
+  reservation paths; a callback rename/replacement leaked the real scratch;
+  special mode bits and symlinked-parent retargeting escaped custody checks;
+  the generated token filename guard contradicted the ticket itself; and a
+  virtual Proxy passed plain-response parsing.
+- The repair captures authoritative integer/string/hash operations, rejects
+  Proxies, tracks full mode plus device/inode, pins resolved source identity,
+  and resolves cleanup from the open directory descriptor before removing only
+  the matching owned inode. A substituted pathname is preserved and terminal.
+- Target `main` commit `8a880e2` explicitly reconciles only the self-conflicting
+  generated filename globs under the founder-approved BRN-0021 purpose; every
+  real credential, secret, private-result, runtime, and provider boundary
+  remains forbidden. The branch merged that target amendment before rereview.
+- Permanent reproductions pass. Fresh independent cumulative rereview is still
+  required; this specialist does not accept its own repair.

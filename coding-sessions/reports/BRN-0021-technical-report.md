@@ -42,8 +42,8 @@ historical-request replay.
 
 ## Verification
 
-- Focused contracts: 12 passed, 0 failed.
-- Full `node --test`: 754 tests; 739 passed, 15 optional skips, 0 failed.
+- Repaired focused contracts: 16 passed, 0 failed.
+- Full `node --test`: 758 tests; 743 passed, 15 optional skips, 0 failed.
 - `npm run quickstart`: PASS, 6/6.
 - Relevant `node --check`, `git diff --check`, ticket lint, and governed
   committed-plus-dirty scope: PASS.
@@ -74,3 +74,30 @@ historical-request replay.
   callback that independently knows the source path could reach it. Governed
   callers must supply an audit closure containing only the copied path.
 - Independent adversarial review is required before acceptance.
+
+## Review Repair
+
+Independent review of submitted head `30d0d4f` recommended reopen with two P1,
+three P2, and one P3 findings. The review proved uncaptured `BigInt` could zero
+all authoritative reservation values; pathname substitution could leave the
+real owned database copy behind; special mode bits and parent-symlink
+retargeting escaped source comparison; the generated token filename guard was
+self-contradictory; and a virtual Proxy could synthesize a valid response.
+
+The cumulative repair:
+
+- captures integer, string, and hash operations and rejects Proxy response/body
+  shapes before reflection;
+- keeps an open scratch directory descriptor, resolves its current physical
+  path from the descriptor after callback activity, validates device/inode,
+  removes only that owned directory, and fails without deleting a substituted
+  pathname;
+- compares full permission mode, device/inode, bytes, physical file set, and
+  the resolved source path, so leaf replacement and parent retargeting fail;
+- adds permanent reproductions for every attack; and
+- merges target-main contract reconciliation `8a880e2`, which removes only the
+  two self-conflicting filename globs while preserving all actual secret and
+  private-data prohibitions.
+
+Focused tests now pass 16/16 and full tests pass 743/758 with 15 optional skips.
+A fresh independent cumulative rereview remains required.
