@@ -1,5 +1,46 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0021 IMPLEMENTED OFFLINE; INDEPENDENT REVIEW NEXT. The ticket
+adds a strict injected OpenAI structured-input counter, exact Sol Standard
+reservation in integer picodollars, the prior highest-rate UTF-8-byte fallback,
+and a copy-first SQLite audit boundary. It performs no live integration.
+
+P-set 31's fixed synthetic reservation bank passes `3/3`: exact-count versus
+byte-fallback reservations are `$0.05839125` vs `$0.4033275` (`6.907x`),
+`$0.04911` vs `$0.6845775` (`13.939x`), and `$0.04161` vs `$0.25364`
+(`6.095x`). All retain the full 512-token output ceiling; the minimum exceeds
+the preregistered `3x` threshold. These are deterministic synthetic oracles,
+not live provider counts or spend.
+
+SQLite custody passes the main-only, valid WAL/SHM, and callback-failure cases.
+SQLite opens only the owned scratch copy; source physical names, SHA-256 bytes,
+and permission modes remain exact; scratch-only changes are removed on success
+and failure. The implementation never accessed BRN-0020's private namespace.
+
+Focused contracts pass 12/12. Full suite passes 739 / fails 0 / skips 15
+optional tests across 754. Quickstart passes 6/6. Syntax, offline-runtime scan,
+diff, ticket lint, and governed committed-plus-dirty scope pass. Credential
+reads, network requests, provider calls, inference, private-result reads, and
+spend are `0 / 0 / 0 / 0 / 0 / $0.00`; cumulative accounted spend remains
+exactly `$7.75502179`. Historical BRN-0017 remains 6/10 and consumed BRN-0020
+remains unchanged.
+
+Official OpenAI guidance requires its input-count endpoint for exact structured
+Responses accounting; local tokenizers cannot reproduce every tool/schema and
+model-specific formatting detail. BRN-0021 injects that future transport but
+does not call it or assume it is free. Next: commit the implementation, obtain
+fresh independent adversarial review, and accept/reopen through the governed
+workflow. Only after acceptance should a separate tiny founder-gated count-wire
+compatibility probe be prepared; do not run another benchmark yet.
+
+Product stop rule: (1) yes, quickstart is green; (2) yes, future live runs can
+reserve materially closer to expected cost and sealed audits no longer mutate
+their source bundle; (3) OpenAI supplies exact counting and SQLite supplies
+backup/open primitives, but neither supplies Palari's durable cap/custody
+composition; (4) yes, both defects came directly from the founder-authorized
+BRN-0020 run and review; (5) deleting this unit would restore false cap stops
+and unsafe in-place sealed SQLite inspection.
+
 Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON TERMINAL;
 CAP-STOPPED AFTER PHONE, INDEPENDENTLY ACCEPTED. The founder-authorized
 identity `j4-sol-frozen-failures-post-architecture-v1` ran exactly once and is

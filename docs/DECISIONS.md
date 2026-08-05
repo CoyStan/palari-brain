@@ -2984,3 +2984,24 @@ here with dates. Agents record; the founder decides.
   preserve and disclose them. The exact manifested/main DB bytes remain valid,
   but the directory may no longer be described as a closed physical artifact
   set and must never be deleted, repaired, resealed, or rerun.
+
+- 2026-08-05 (BRN-0021 exact reservation and copy-first audit boundary)
+  **Use provider counting for exact structured inputs; keep bytes only as a
+  pre-dispatch fallback.** OpenAI documents `/v1/responses/input_tokens` as the
+  exact count for structured Responses requests and explains that local text
+  tokenizers cannot exactly reproduce model-specific tool/schema formatting.
+  The harness therefore gains an injected, provider-neutral counter contract
+  rather than a tokenizer dependency. It strictly validates the count, applies
+  pinned Standard/default rates with exact integer picodollar accounting, and
+  reserves the full output ceiling. The existing one-UTF-8-byte-equals-one-
+  token calculation remains a conservative highest-rate fallback only when no
+  count request has been sent. A dispatched count failure is terminal, and no
+  claim is made that the count endpoint is free.
+
+  SQLite inspection now has a separate copy-first primitive. It snapshots the
+  main database plus present WAL/SHM sidecars through no-follow handles, opens
+  SQLite only through a callback receiving the owned scratch copy, proves the
+  source physical set/hashes/modes are unchanged, and removes only its exact
+  scratch directory. BRN-0021 is deterministic and offline: it does not access
+  BRN-0020's private namespace, call a provider, read credentials, spend, or
+  change historical BRN-0017's 6/10 or BRN-0020's consumed result.
