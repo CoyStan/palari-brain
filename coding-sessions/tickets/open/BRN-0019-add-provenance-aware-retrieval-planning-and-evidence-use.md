@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0019
 children: []
-status: open
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T01:01:42Z
 target_branch: "main"
 branch: "ticket/BRN-0019-add-provenance-aware-retrieval-planning-and-evidence-use"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0019-add-provenance-aware-retrieval-planning-and-evidence-use"
@@ -193,3 +193,20 @@ not affect) the answer, and keep cross-context inferences ephemeral.
 - Stop before any credential read, provider invocation, inference, dataset
   access, score, rerun, regrade, or spend.
 - Stop rather than encoding any benchmark-specific product rule.
+
+## Implementation Evidence
+
+- One normalized immutable `memory_plan` is trace-only and consumes zero of the
+  four evidence-retrieval calls; duplicate or malformed plans fail closed.
+- Modern commitments accept only exact returned evidence and require exactly
+  one consequence or non-use reason per selected memory. Temporary inferences
+  require selected used provenance and `revisable: true`; no write capability
+  is exposed.
+- Provider-free telemetry returns five independent surfaces and preserves the
+  judged authority of equivalent-fact and materially-used labels.
+- Phone, Instant Pot, Tokyo, and Miami offline acceptance fixtures all pass the
+  general path, and production-source scanning excludes fixture literals.
+- Focused tests: 62 passed, 0 failed. Full suite: 725 passed, 15 optional skips,
+  0 failed across 740 tests. Quickstart: 6/6. Scope and diff checks pass.
+- Historical BRN-0017 remains 6/10. Credential/provider/spend activity is
+  `0 / 0 / $0.00`; cumulative accounted spend remains `$7.67192994`.

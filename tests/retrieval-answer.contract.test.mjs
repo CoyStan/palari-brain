@@ -1301,6 +1301,7 @@ test('retrieval tools are provider-neutral, bounded, and additive', () => {
     [
       'memory_find',
       'memory_graph',
+      'memory_plan',
       'memory_read',
       'memory_search',
       'memory_timeline',
@@ -1313,6 +1314,14 @@ test('retrieval tools are provider-neutral, bounded, and additive', () => {
   const graph = MEMORY_RETRIEVAL_TOOLS.find((tool) =>
     tool.name === 'memory_graph')
   assert.equal(graph.parameters.properties.hops.maximum, 3)
+  const plan = MEMORY_RETRIEVAL_TOOLS.find((tool) =>
+    tool.name === 'memory_plan')
+  assert.deepEqual(plan.parameters.required, [
+    'anchor_event',
+    'relation',
+    'category',
+    'time_range',
+  ])
   assert.ok(
     MEMORY_RETRIEVAL_INSTRUCTIONS.startsWith(
       `${MEMORY_EXPLORATION_INSTRUCTIONS}\n`,
@@ -1420,5 +1429,461 @@ test('retrieval calls are bounded and unknown tools fail closed',
         question: 'Anything?',
       }),
       /Unknown memory tool/,
+    )
+  })
+
+test('Phone acceptance: selected power-bank evidence has a concrete consequence',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [{
+      id: 'travel-tech:0',
+      user: 'I already have a portable power bank for travel.',
+    }])
+    const provider = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'portable power bank' },
+        tool: 'memory_find',
+      })
+      const row = found.matches.find((entry) => entry.speaker === 'user')
+      return commitAnswer({
+        abstained: false,
+        bases: [{
+          consequence_for_answer:
+            'Battery advice explicitly tells the user to keep their existing power bank charged and available.',
+          evidenceId: row.evidenceId,
+          not_used_reason: '',
+          quote: 'I already have a portable power bank for travel.',
+        }],
+        temporaryInferences: [],
+        text:
+          'Because you already have a portable power bank, keep it charged and carry it while you diagnose the phone drain.',
+      })
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      provider,
+      question: 'My phone battery is draining quickly. What should I do?',
+    })
+    assert.match(result.answer, /already have a portable power bank/i)
+    assert.equal(result.evidenceCommitments.length, 1)
+    assert.match(
+      result.evidenceCommitments[0].consequence_for_answer,
+      /explicitly tells/,
+    )
+    assert.equal(result.evidenceCommitments[0].not_used_reason, null)
+    assert.equal(result.answerEvidence.length, 1)
+  })
+
+test('Instant Pot acceptance: general before-plan reaches the original user span',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [
+      {
+        id: 'kitchen-earlier:0',
+        user: 'I bought an Instant Pot for weeknight dinners.',
+      },
+      {
+        id: 'kitchen-anchor:0',
+        user: 'I bought an Air Fryer yesterday.',
+      },
+    ])
+    let originalReturnedBeforeCommit = false
+    const provider = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      await retrieve({
+        input: {
+          anchor_event: 'purchase of the later kitchen appliance',
+          category: 'kitchen appliance purchase',
+          relation: 'before',
+          time_range: { after: null, before: null },
+        },
+        tool: 'memory_plan',
+      })
+      const anchor = await retrieve({
+        input: { phrase: 'Air Fryer' },
+        tool: 'memory_find',
+      })
+      const timeline = await retrieve({
+        input: { limit: 20 },
+        tool: 'memory_timeline',
+      })
+      const anchorSession = anchor.matches.find((row) =>
+        row.speaker === 'user').session
+      const anchorIndex = timeline.sessions.findIndex((entry) =>
+        entry.session === anchorSession)
+      const earlierSession = timeline.sessions[anchorIndex - 1].session
+      const read = await retrieve({
+        input: { session: earlierSession },
+        tool: 'memory_read',
+      })
+      const row = read.messages.find((entry) =>
+        entry.speaker === 'user' && entry.text.includes('Instant Pot'))
+      originalReturnedBeforeCommit = Boolean(row)
+      return commitAnswer({
+        abstained: false,
+        bases: [{
+          consequence_for_answer:
+            'Identifies the earlier kitchen appliance as the Instant Pot.',
+          evidenceId: row.evidenceId,
+          not_used_reason: '',
+          quote: 'I bought an Instant Pot for weeknight dinners.',
+        }],
+        temporaryInferences: [],
+        text: 'You bought the Instant Pot before the Air Fryer.',
+      })
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      provider,
+      question: 'Which kitchen gadget did I get before the Air Fryer?',
+    })
+    assert.equal(originalReturnedBeforeCommit, true)
+    assert.equal(result.answer, 'You bought the Instant Pot before the Air Fryer.')
+    assert.equal(result.retrievalPlanningCalls, 1)
+    assert.equal(result.retrievalCalls, 3)
+    assert.equal(result.retrievalPlan.relation, 'before')
+    assert.deepEqual(
+      result.retrievalTranscript.map((entry) => entry.tool),
+      ['memory_plan', 'memory_find', 'memory_timeline', 'memory_read'],
+    )
+  })
+
+test('Tokyo acceptance: timeline/read returns original Suica and TripIt user speech',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [
+      {
+        assistant: 'That should make station entry easier.',
+        id: 'tokyo-card:0',
+        user: 'I already loaded a Suica card for my Tokyo trip.',
+      },
+      {
+        assistant: 'That should keep the itinerary organized.',
+        id: 'tokyo-itinerary:0',
+        user: 'I use TripIt to track my travel plans.',
+      },
+      {
+        assistant: 'Consider a transit card and a travel app.',
+        id: 'tokyo-old-advice:0',
+        user: 'Tokyo stations make me a little anxious.',
+      },
+    ])
+    const provider = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      await retrieve({
+        input: {
+          anchor_event: 'the user’s Tokyo trip',
+          category: 'transit access and itinerary tools',
+          relation: 'during',
+          time_range: { after: null, before: null },
+        },
+        tool: 'memory_plan',
+      })
+      const timeline = await retrieve({
+        input: { limit: 20 },
+        tool: 'memory_timeline',
+      })
+      const cardSession = timeline.sessions.find((entry) =>
+        entry.session === 'tokyo-card').session
+      const itinerarySession = timeline.sessions.find((entry) =>
+        entry.session === 'tokyo-itinerary').session
+      const card = await retrieve({
+        input: { session: cardSession },
+        tool: 'memory_read',
+      })
+      const itinerary = await retrieve({
+        input: { session: itinerarySession },
+        tool: 'memory_read',
+      })
+      const suica = card.messages.find((row) =>
+        row.speaker === 'user' && row.text.includes('Suica'))
+      const tripit = itinerary.messages.find((row) =>
+        row.speaker === 'user' && row.text.includes('TripIt'))
+      assert.ok(suica)
+      assert.ok(tripit)
+      return commitAnswer({
+        abstained: false,
+        bases: [
+          {
+            consequence_for_answer:
+              'Avoids recommending a new transit card and instead advises using the existing Suica.',
+            evidenceId: suica.evidenceId,
+            not_used_reason: '',
+            quote: 'I already loaded a Suica card for my Tokyo trip.',
+          },
+          {
+            consequence_for_answer:
+              'Personalizes route organization around the user’s existing TripIt workflow.',
+            evidenceId: tripit.evidenceId,
+            not_used_reason: '',
+            quote: 'I use TripIt to track my travel plans.',
+          },
+        ],
+        temporaryInferences: [],
+        text:
+          'Use your already-loaded Suica at the gates and keep each route in TripIt so the station sequence is easy to follow.',
+      })
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      provider,
+      question: 'How can I make getting around Tokyo less stressful?',
+    })
+    assert.match(result.answer, /already-loaded Suica/)
+    assert.match(result.answer, /TripIt/)
+    assert.deepEqual(
+      result.evidenceCommitments.map((entry) => entry.evidenceId),
+      result.selectedEvidenceIds,
+    )
+    assert.ok(result.retrievalTranscript
+      .filter((entry) => entry.tool === 'memory_read')
+      .flatMap((entry) => entry.result.messages)
+      .filter((row) => row.text.includes('Suica') || row.text.includes('TripIt'))
+      .every((row) => row.speaker === 'user'))
+  })
+
+test('Miami acceptance: combined evidence uses only temporary revisable transfer',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [
+      {
+        id: 'seattle-view:0',
+        user: 'For Seattle, I want a hotel with a great city view.',
+      },
+      {
+        id: 'hotel-amenity:0',
+        user: 'I loved having a private balcony hot tub at my last hotel.',
+      },
+    ])
+    const before = brain.exploreTimeline(SCOPE, { limit: 20 })
+    const provider = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const view = await retrieve({
+        input: { phrase: 'great city view' },
+        tool: 'memory_find',
+      })
+      const amenity = await retrieve({
+        input: { phrase: 'private balcony hot tub' },
+        tool: 'memory_find',
+      })
+      const viewRow = view.matches.find((row) => row.speaker === 'user')
+      const amenityRow = amenity.matches.find((row) => row.speaker === 'user')
+      return commitAnswer({
+        abstained: false,
+        bases: [
+          {
+            consequence_for_answer:
+              'Prioritizes a Miami property and room category with a strong water or skyline view.',
+            evidenceId: viewRow.evidenceId,
+            not_used_reason: '',
+            quote: 'For Seattle, I want a hotel with a great city view.',
+          },
+          {
+            consequence_for_answer:
+              'Adds a private balcony hot tub as a recommendation criterion.',
+            evidenceId: amenityRow.evidenceId,
+            not_used_reason: '',
+            quote: 'I loved having a private balcony hot tub at my last hotel.',
+          },
+        ],
+        temporaryInferences: [{
+          consequence_for_answer:
+            'Uses both preferences tentatively for this Miami recommendation.',
+          provenanceEvidenceIds: [viewRow.evidenceId, amenityRow.evidenceId],
+          revisable: true,
+          statement:
+            'The hotel qualities valued in earlier trips may transfer to this Miami choice.',
+        }],
+        text:
+          'For Miami, prioritize a room with an excellent water view and a private balcony hot tub; confirm those room-specific amenities before booking.',
+      })
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      provider,
+      question: 'What kind of Miami hotel would you recommend for me?',
+    })
+    const after = brain.exploreTimeline(SCOPE, { limit: 20 })
+    assert.match(result.answer, /water view/)
+    assert.match(result.answer, /private balcony hot tub/)
+    assert.equal(result.answerEvidence.length, 2)
+    assert.equal(result.temporaryInferences.length, 1)
+    assert.equal(result.temporaryInferences[0].revisable, true)
+    assert.deepEqual(after, before)
+  })
+
+test('modern commitments allow non-use without forcing every retrieved memory',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [{
+      assistant: 'A generic packing checklist can also help.',
+      id: 'selection:0',
+      user: 'My passport wallet is in the top drawer.',
+    }])
+    const provider = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const read = await retrieve({
+        input: { session: 'selection' },
+        tool: 'memory_read',
+      })
+      const user = read.messages.find((row) => row.speaker === 'user')
+      return commitAnswer({
+        abstained: true,
+        bases: [{
+          consequence_for_answer: '',
+          evidenceId: user.evidenceId,
+          not_used_reason:
+            'The passport-wallet location does not identify the requested vaccination record.',
+          quote: 'My passport wallet is in the top drawer.',
+        }],
+        temporaryInferences: [],
+        text: 'I do not have enough stored evidence about that vaccination record.',
+      })
+    })
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      provider,
+      question: 'Where is my vaccination record?',
+    })
+    assert.equal(result.answerEvidence.length, 0)
+    assert.equal(result.evidenceCommitments.length, 1)
+    assert.equal(result.selectedEvidenceIds.length, 1)
+    assert.match(result.evidenceCommitments[0].not_used_reason, /does not identify/)
+  })
+
+test('modern commitment use fields and temporary provenance fail closed',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [{
+      id: 'strict-modern:0',
+      user: 'I keep the blue folio in the desk drawer.',
+    }])
+    for (const mutate of [
+      (basis) => ({ ...basis, consequence_for_answer: '' }),
+      (basis) => ({
+        ...basis,
+        consequence_for_answer: 'Changes the answer.',
+        not_used_reason: 'Also unused.',
+      }),
+    ]) {
+      const provider = requireEvidenceCommitment(async ({
+        commitAnswer,
+        retrieve,
+      }) => {
+        const found = await retrieve({
+          input: { phrase: 'blue folio' },
+          tool: 'memory_find',
+        })
+        const row = found.matches[0]
+        return commitAnswer({
+          abstained: false,
+          bases: [mutate({
+            consequence_for_answer: 'Locates the folio.',
+            evidenceId: row.evidenceId,
+            not_used_reason: '',
+            quote: 'blue folio in the desk drawer',
+          })],
+          temporaryInferences: [],
+          text: 'The folio is in the desk drawer.',
+        })
+      })
+      await assert.rejects(
+        answerWithRetrieval(brain, {
+          ...SCOPE,
+          provider,
+          question: 'Where is the folio?',
+        }),
+        (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+          /exactly one/.test(error.message),
+      )
+    }
+
+    const nonRevisable = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      const found = await retrieve({
+        input: { phrase: 'blue folio' },
+        tool: 'memory_find',
+      })
+      const row = found.matches[0]
+      return commitAnswer({
+        abstained: false,
+        bases: [{
+          consequence_for_answer: 'Locates the folio.',
+          evidenceId: row.evidenceId,
+          not_used_reason: '',
+          quote: 'blue folio in the desk drawer',
+        }],
+        temporaryInferences: [{
+          consequence_for_answer: 'Would make the location permanent.',
+          provenanceEvidenceIds: [row.evidenceId],
+          revisable: false,
+          statement: 'The folio will always remain there.',
+        }],
+        text: 'The folio is in the desk drawer.',
+      })
+    })
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: nonRevisable,
+        question: 'Where is the folio?',
+      }),
+      (error) => error.code === 'MEMORY_ANSWER_COMMITMENT_INVALID' &&
+        /must be revisable/.test(error.message),
+    )
+  })
+
+test('one ephemeral plan costs zero retrieval calls and duplicate planning fails',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [{ user: 'A retained statement.' }])
+    const input = {
+      anchor_event: 'a retained event',
+      category: 'event detail',
+      relation: 'around',
+      time_range: { after: null, before: null },
+    }
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      maxRetrievalCalls: 0,
+      async provider({ retrieve }) {
+        const planned = await retrieve({ input, tool: 'memory_plan' })
+        assert.equal(planned.countsAgainstRetrievalBudget, false)
+        return { text: 'Planning alone supplied no evidence.' }
+      },
+      question: 'What happened around that event?',
+    })
+    assert.equal(result.retrievalPlanningCalls, 1)
+    assert.equal(result.retrievalCalls, 0)
+    assert.equal(result.retrievalExhausted, false)
+
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        async provider({ retrieve }) {
+          await retrieve({ input, tool: 'memory_plan' })
+          await retrieve({ input, tool: 'memory_plan' })
+          return { text: 'unreachable' }
+        },
+        question: 'What happened around that event?',
+      }),
+      (error) => error.code === 'MEMORY_RETRIEVAL_PLAN_ALREADY_REGISTERED',
     )
   })

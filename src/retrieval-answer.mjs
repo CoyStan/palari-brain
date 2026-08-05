@@ -20,13 +20,28 @@ import {
   MEMORY_EXPLORATION_INSTRUCTIONS,
   MEMORY_EXPLORATION_TOOLS,
 } from './memory-exploration.mjs'
-
 export const DEFAULT_RETRIEVAL_CALLS = 4
 export const MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS = 512
 export const MEMORY_HYBRID_RRF_K = 60
 export const MEMORY_ANSWER_MAX_BASES = 20
 export const MEMORY_ANSWER_MAX_QUOTE_CHARS = 2_000
 export const MEMORY_ANSWER_MAX_TEXT_CHARS = 20_000
+export const MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS = 2_000
+export const MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS = 2_000
+export const MEMORY_ANSWER_MAX_TEMPORARY_INFERENCES = 10
+export const MEMORY_ANSWER_MAX_INFERENCE_CHARS = 2_000
+export const MEMORY_RETRIEVAL_PLAN_TOOL_NAME = 'memory_plan'
+export const MEMORY_RETRIEVAL_PLAN_RELATIONS = Object.freeze([
+  'after',
+  'around',
+  'before',
+  'current',
+  'during',
+  'unspecified',
+])
+
+const MAX_RETRIEVAL_PLAN_ANCHOR_CHARS = 500
+const MAX_RETRIEVAL_PLAN_CATEGORY_CHARS = 200
 
 export const MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS = [
   'Memory retrieval is complete. Do not call another memory tool.',
@@ -49,8 +64,12 @@ const MAX_RANKED_PHRASE_CHARS = 200
 const arrayIsArray = Array.isArray
 const arrayPrototype = Array.prototype
 const arrayPush = Function.call.bind(Array.prototype.push)
+const dateConstructor = Date
+const dateGetTime = Function.call.bind(Date.prototype.getTime)
+const dateToISOString = Function.call.bind(Date.prototype.toISOString)
 const mapGet = Function.call.bind(Map.prototype.get)
 const mapSet = Function.call.bind(Map.prototype.set)
+const numberIsNaN = Number.isNaN
 const objectDefineProperty = Object.defineProperty
 const objectFreeze = Object.freeze
 const objectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
@@ -142,9 +161,13 @@ function exactDataProperties(value, expected, label) {
 }
 
 function assertCommitmentDataShape(proposal) {
+  const modern = plainObject(proposal) &&
+    objectHasOwn(proposal, 'temporaryInferences')
   exactDataProperties(
     proposal,
-    ['abstained', 'bases', 'text'],
+    modern
+      ? ['abstained', 'bases', 'temporaryInferences', 'text']
+      : ['abstained', 'bases', 'text'],
     'Answer commitment',
   )
   const bases = proposal.bases
@@ -165,11 +188,76 @@ function assertCommitmentDataShape(proposal) {
         'Answer commitment bases must contain only dense indexed items.',
       )
     }
-    exactDataProperties(
-      descriptor.value,
-      ['evidenceId', 'quote'],
-      `Answer commitment basis ${index}`,
+    const basis = descriptor.value
+    const declared = plainObject(basis) &&
+      (objectHasOwn(basis, 'consequence_for_answer') ||
+        objectHasOwn(basis, 'not_used_reason'))
+    exactDataProperties(basis, declared
+      ? [
+          'evidenceId',
+          'quote',
+          'consequence_for_answer',
+          'not_used_reason',
+        ]
+      : ['evidenceId', 'quote'], `Answer commitment basis ${index}`)
+  }
+  if (!modern) return
+  const inferences = proposal.temporaryInferences
+  if (!arrayIsArray(inferences) ||
+    objectGetPrototypeOf(inferences) !== arrayPrototype) {
+    throw answerCommitmentError(
+      'Answer commitment temporaryInferences must be an array.',
     )
+  }
+  const inferenceKeys = reflectOwnKeys(inferences)
+  if (inferenceKeys.length !== inferences.length + 1 ||
+    !objectHasOwn(inferences, 'length')) {
+    throw answerCommitmentError(
+      'Answer commitment temporaryInferences must contain only dense indexed items.',
+    )
+  }
+  for (let index = 0; index < inferences.length; index += 1) {
+    const descriptor = objectGetOwnPropertyDescriptor(
+      inferences,
+      stringFrom(index),
+    )
+    if (!descriptor || !objectHasOwn(descriptor, 'value') ||
+      descriptor.enumerable !== true) {
+      throw answerCommitmentError(
+        'Answer commitment temporaryInferences must contain only dense indexed items.',
+      )
+    }
+    const inference = descriptor.value
+    exactDataProperties(inference, [
+      'statement',
+      'provenanceEvidenceIds',
+      'revisable',
+      'consequence_for_answer',
+    ], `Answer commitment temporary inference ${index}`)
+    const ids = inference.provenanceEvidenceIds
+    if (!arrayIsArray(ids) || objectGetPrototypeOf(ids) !== arrayPrototype) {
+      throw answerCommitmentError(
+        `Answer commitment temporary inference ${index} provenanceEvidenceIds must be an array.`,
+      )
+    }
+    const idKeys = reflectOwnKeys(ids)
+    if (idKeys.length !== ids.length + 1 || !objectHasOwn(ids, 'length')) {
+      throw answerCommitmentError(
+        `Answer commitment temporary inference ${index} provenanceEvidenceIds must contain only dense indexed items.`,
+      )
+    }
+    for (let idIndex = 0; idIndex < ids.length; idIndex += 1) {
+      const idDescriptor = objectGetOwnPropertyDescriptor(
+        ids,
+        stringFrom(idIndex),
+      )
+      if (!idDescriptor || !objectHasOwn(idDescriptor, 'value') ||
+        idDescriptor.enumerable !== true) {
+        throw answerCommitmentError(
+          `Answer commitment temporary inference ${index} provenanceEvidenceIds must contain only dense indexed items.`,
+        )
+      }
+    }
   }
 }
 
@@ -183,6 +271,182 @@ function boundedCommitmentText(value, label, maximum, { trim = false } = {}) {
   }
   return trim ? stringTrim(value) : value
 }
+
+function boundedOptionalCommitmentText(value, label, maximum) {
+  if (typeof value !== 'string' || stringIncludes(value, '\u0000') ||
+    value.length > maximum) {
+    throw answerCommitmentError(
+      `${label} must be a string of at most ${maximum} characters.`,
+    )
+  }
+  return stringTrim(value)
+}
+
+function retrievalPlanError(message) {
+  const error = new TypeError(message)
+  error.code = 'MEMORY_RETRIEVAL_PLAN_INVALID'
+  return error
+}
+
+function exactRetrievalPlanProperties(value, expected, label) {
+  if (!plainObject(value)) {
+    throw retrievalPlanError(`${label} must be a plain data object.`)
+  }
+  const keys = reflectOwnKeys(value)
+  if (keys.length !== expected.length) {
+    throw retrievalPlanError(`${label} has unsupported or missing fields.`)
+  }
+  for (let index = 0; index < expected.length; index += 1) {
+    const key = expected[index]
+    const descriptor = objectGetOwnPropertyDescriptor(value, key)
+    if (!descriptor || !objectHasOwn(descriptor, 'value') ||
+      descriptor.enumerable !== true) {
+      throw retrievalPlanError(`${label}.${key} must be a data property.`)
+    }
+  }
+}
+
+function retrievalPlanText(value, label, maximum) {
+  if (typeof value !== 'string') {
+    throw retrievalPlanError(`${label} must be a string.`)
+  }
+  const text = stringTrim(value)
+  if (!text || stringIncludes(text, '\u0000') || text.length > maximum) {
+    throw retrievalPlanError(
+      `${label} must be a non-empty string of at most ${maximum} characters.`,
+    )
+  }
+  return text
+}
+
+function retrievalPlanInstant(value, label) {
+  if (value === null) return null
+  if (typeof value !== 'string' || !stringTrim(value)) {
+    throw retrievalPlanError(`${label} must be an ISO-8601 string or null.`)
+  }
+  const parsed = new dateConstructor(value)
+  if (numberIsNaN(dateGetTime(parsed))) {
+    throw retrievalPlanError(`${label} must be an ISO-8601 string or null.`)
+  }
+  return dateToISOString(parsed)
+}
+
+export function normalizeRetrievalPlan(value) {
+  exactRetrievalPlanProperties(
+    value,
+    ['anchor_event', 'relation', 'category', 'time_range'],
+    'Retrieval plan',
+  )
+  const timeRangeDescriptor = objectGetOwnPropertyDescriptor(value, 'time_range')
+  exactRetrievalPlanProperties(
+    timeRangeDescriptor.value,
+    ['after', 'before'],
+    'Retrieval plan time_range',
+  )
+  let snapshot
+  try {
+    snapshot = structuredCloneValue(value)
+  } catch {
+    throw retrievalPlanError('Retrieval plan must contain only cloneable data.')
+  }
+  exactRetrievalPlanProperties(
+    snapshot,
+    ['anchor_event', 'relation', 'category', 'time_range'],
+    'Retrieval plan',
+  )
+  exactRetrievalPlanProperties(
+    snapshot.time_range,
+    ['after', 'before'],
+    'Retrieval plan time_range',
+  )
+  const anchor_event = retrievalPlanText(
+    snapshot.anchor_event,
+    'Retrieval plan anchor_event',
+    MAX_RETRIEVAL_PLAN_ANCHOR_CHARS,
+  )
+  const category = retrievalPlanText(
+    snapshot.category,
+    'Retrieval plan category',
+    MAX_RETRIEVAL_PLAN_CATEGORY_CHARS,
+  )
+  const relation = stringFrom(snapshot.relation ?? '')
+  let supported = false
+  for (let index = 0; index < MEMORY_RETRIEVAL_PLAN_RELATIONS.length; index += 1) {
+    if (MEMORY_RETRIEVAL_PLAN_RELATIONS[index] === relation) {
+      supported = true
+      break
+    }
+  }
+  if (!supported) throw retrievalPlanError('Retrieval plan relation is unsupported.')
+  const after = retrievalPlanInstant(
+    snapshot.time_range.after,
+    'Retrieval plan time_range.after',
+  )
+  const before = retrievalPlanInstant(
+    snapshot.time_range.before,
+    'Retrieval plan time_range.before',
+  )
+  if (after && before && after > before) {
+    throw retrievalPlanError(
+      'Retrieval plan time_range.after must not exceed before.',
+    )
+  }
+  return deepFreeze({
+    anchor_event,
+    relation,
+    category,
+    time_range: { after, before },
+  })
+}
+
+export const MEMORY_RETRIEVAL_PLAN_TOOL = deepFreeze({
+  description: [
+    'Register one temporary retrieval plan before navigating a temporal or relational memory question.',
+    'Identify the anchor event, requested relation, evidence category, and explicit time range when known.',
+    'The plan is not evidence, is never stored, and does not consume the memory retrieval-call budget.',
+    'After planning, locate the anchor if necessary, use memory_timeline to orient, then memory_read complete canonical source messages.',
+  ].join(' '),
+  name: MEMORY_RETRIEVAL_PLAN_TOOL_NAME,
+  parameters: {
+    additionalProperties: false,
+    properties: {
+      anchor_event: {
+        description: 'Event, entity, or state that anchors the requested relation.',
+        maxLength: MAX_RETRIEVAL_PLAN_ANCHOR_CHARS,
+        minLength: 1,
+        type: 'string',
+      },
+      relation: {
+        enum: [...MEMORY_RETRIEVAL_PLAN_RELATIONS],
+        type: 'string',
+      },
+      category: {
+        description: 'General kind of evidence needed to answer.',
+        maxLength: MAX_RETRIEVAL_PLAN_CATEGORY_CHARS,
+        minLength: 1,
+        type: 'string',
+      },
+      time_range: {
+        additionalProperties: false,
+        properties: {
+          after: { type: ['string', 'null'] },
+          before: { type: ['string', 'null'] },
+        },
+        required: ['after', 'before'],
+        type: 'object',
+      },
+    },
+    required: ['anchor_event', 'relation', 'category', 'time_range'],
+    type: 'object',
+  },
+})
+
+export const MEMORY_RETRIEVAL_PLAN_INSTRUCTIONS = [
+  'For a temporal or relational question, first register one memory_plan with the anchor event, relation, evidence category, and known time range.',
+  'A plan is navigation metadata, not evidence. Do not cite it or treat it as a remembered fact.',
+  'After planning, locate the anchor when needed, inspect memory_timeline, then use memory_read to recover complete canonical source messages from the relevant sessions.',
+  'Prefer original user statements when the question asks what the user owns, uses, did, or prefers. Old Palari responses prove only prior Palari advice.',
+].join(' ')
 
 function evidenceTexts(result) {
   const rows = []
@@ -355,16 +619,20 @@ const GRAPH_TOOL = deepFreeze({
 
 export const MEMORY_RETRIEVAL_TOOLS = deepFreeze([
   ...MEMORY_EXPLORATION_TOOLS,
+  MEMORY_RETRIEVAL_PLAN_TOOL,
   HYBRID_TOOL,
   GRAPH_TOOL,
 ])
 
 export const MEMORY_RETRIEVAL_INSTRUCTIONS = [
   MEMORY_EXPLORATION_INSTRUCTIONS,
+  MEMORY_RETRIEVAL_PLAN_INSTRUCTIONS,
   'Use memory_search when the digest does not answer a paraphrased question. It returns complete canonical messages, fusing ranked and semantic location when semantic retrieval is configured.',
   'Use memory_graph for relationship, correction-history, and multi-hop questions. Its edges are finding aids backed by the exact quote and evidence ID on each edge.',
   'After each memory-tool result, inspect the returned canonical messages or admitted edges themselves. If one directly addresses the question, use it or state the exact conflict or limitation that makes it unusable; do not claim no relevant memory merely because the initial briefing or digest was empty.',
   'A non-empty result does not establish relevance. If the returned records do not address the question, do not force an answer from them.',
+  'Select only memories you actually assessed for the answer. For each selected memory, state either its concrete consequence_for_answer or a specific not_used_reason; never both. Retrieved rows that were not selected need no commitment.',
+  'A consequence_for_answer is a declaration to audit, not proof of material use. Cross-context transfer must be a temporary provenance-linked inference marked revisable, never a canonical user fact.',
   'Prior Palari speech may be reported as advice, a recommendation, or a commitment previously made by Palari. It must never be recast as something the user said, did, owned, or preferred.',
   'For elapsed-time answers, use the host-derived questionRelativeTime metadata on returned rows. It is authoritative arithmetic from observedAt and the question date; do not invent dates from text or approximate a calendar month as 30 days.',
   'Do not treat an empty search as proof that an event never happened. For a time-bounded absence or count, search the relevant concept inside explicit after/before bounds.',
@@ -634,9 +902,15 @@ export async function answerWithRetrieval(brain, {
     // never invoke provider-overridable Array methods during validation.
     assertCommitmentDataShape(proposal)
     const candidate = snapshotCommitment(proposal)
-    if (!hasExactKeys(candidate, ['abstained', 'bases', 'text'])) {
+    const modern = hasExactKeys(candidate, [
+      'abstained',
+      'bases',
+      'temporaryInferences',
+      'text',
+    ])
+    if (!modern && !hasExactKeys(candidate, ['abstained', 'bases', 'text'])) {
       throw answerCommitmentError(
-        'Answer commitment must contain exactly abstained, bases, and text.',
+        'Answer commitment has unsupported or missing fields.',
       )
     }
     if (typeof candidate.abstained !== 'boolean') {
@@ -648,20 +922,30 @@ export async function answerWithRetrieval(brain, {
       MEMORY_ANSWER_MAX_TEXT_CHARS,
       { trim: true },
     )
-    if (!Array.isArray(candidate.bases) || candidate.bases.length < 1 ||
+    if (!arrayIsArray(candidate.bases) || candidate.bases.length < 1 ||
       candidate.bases.length > MEMORY_ANSWER_MAX_BASES) {
       throw answerCommitmentError(
         `Answer commitment bases must contain 1 to ` +
           `${MEMORY_ANSWER_MAX_BASES} items.`,
       )
     }
-    const seen = new Set()
+    const seen = new setConstructor()
+    const usedEvidenceIds = new setConstructor()
     const bases = []
+    const evidenceCommitments = []
     for (let index = 0; index < candidate.bases.length; index += 1) {
       const basis = candidate.bases[index]
-      if (!hasExactKeys(basis, ['evidenceId', 'quote'])) {
+      const declared = hasExactKeys(basis, [
+        'evidenceId',
+        'quote',
+        'consequence_for_answer',
+        'not_used_reason',
+      ])
+      if ((!modern && !declared &&
+          !hasExactKeys(basis, ['evidenceId', 'quote'])) ||
+        (modern && !declared)) {
         throw answerCommitmentError(
-          `Answer commitment basis ${index} must contain exactly evidenceId and quote.`,
+          `Answer commitment basis ${index} has unsupported or missing fields.`,
         )
       }
       const evidenceId = boundedCommitmentText(
@@ -699,11 +983,119 @@ export async function answerWithRetrieval(brain, {
           `Answer commitment basis ${index} quote is not exact contiguous returned evidence.`,
         )
       }
-      arrayPush(bases, { evidenceId, quote })
+      let consequence = null
+      let notUsedReason = null
+      if (declared) {
+        consequence = boundedOptionalCommitmentText(
+          basis.consequence_for_answer,
+          `Answer commitment basis ${index} consequence_for_answer`,
+          MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS,
+        ) || null
+        notUsedReason = boundedOptionalCommitmentText(
+          basis.not_used_reason,
+          `Answer commitment basis ${index} not_used_reason`,
+          MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
+        ) || null
+        if (Boolean(consequence) === Boolean(notUsedReason)) {
+          throw answerCommitmentError(
+            `Answer commitment basis ${index} must set exactly one consequence_for_answer or not_used_reason.`,
+          )
+        }
+      }
+      arrayPush(evidenceCommitments, {
+        consequence_for_answer: consequence,
+        evidenceId,
+        not_used_reason: notUsedReason,
+        quote,
+      })
+      // `answerEvidence` remains the compatibility surface for evidence the
+      // provider declared as used. Legacy custom providers predate use labels
+      // and retain their historical all-bases behavior.
+      if (!declared || consequence) {
+        arrayPush(bases, { evidenceId, quote })
+        setAdd(usedEvidenceIds, evidenceId)
+      }
+    }
+    const temporaryInferences = []
+    const proposedInferences = modern ? candidate.temporaryInferences : []
+    if (!arrayIsArray(proposedInferences) ||
+      proposedInferences.length > MEMORY_ANSWER_MAX_TEMPORARY_INFERENCES) {
+      throw answerCommitmentError(
+        `Answer commitment temporaryInferences must contain at most ` +
+          `${MEMORY_ANSWER_MAX_TEMPORARY_INFERENCES} items.`,
+      )
+    }
+    for (let index = 0; index < proposedInferences.length; index += 1) {
+      const inference = proposedInferences[index]
+      if (!hasExactKeys(inference, [
+        'statement',
+        'provenanceEvidenceIds',
+        'revisable',
+        'consequence_for_answer',
+      ])) {
+        throw answerCommitmentError(
+          `Answer commitment temporary inference ${index} has unsupported or missing fields.`,
+        )
+      }
+      if (inference.revisable !== true) {
+        throw answerCommitmentError(
+          `Answer commitment temporary inference ${index} must be revisable.`,
+        )
+      }
+      const statement = boundedCommitmentText(
+        inference.statement,
+        `Answer commitment temporary inference ${index} statement`,
+        MEMORY_ANSWER_MAX_INFERENCE_CHARS,
+        { trim: true },
+      )
+      const consequence_for_answer = boundedCommitmentText(
+        inference.consequence_for_answer,
+        `Answer commitment temporary inference ${index} consequence_for_answer`,
+        MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS,
+        { trim: true },
+      )
+      const ids = inference.provenanceEvidenceIds
+      if (!arrayIsArray(ids) || ids.length < 1 ||
+        ids.length > MEMORY_ANSWER_MAX_BASES) {
+        throw answerCommitmentError(
+          `Answer commitment temporary inference ${index} provenanceEvidenceIds must contain 1 to ${MEMORY_ANSWER_MAX_BASES} items.`,
+        )
+      }
+      const inferenceSeen = new setConstructor()
+      const provenanceEvidenceIds = []
+      for (let idIndex = 0; idIndex < ids.length; idIndex += 1) {
+        const evidenceId = boundedCommitmentText(
+          ids[idIndex],
+          `Answer commitment temporary inference ${index} provenance evidence ID ${idIndex}`,
+          500,
+          { trim: true },
+        )
+        if (setHas(inferenceSeen, evidenceId)) {
+          throw answerCommitmentError(
+            `Answer commitment temporary inference ${index} duplicates provenance evidence.`,
+          )
+        }
+        if (!mapGet(evidenceRegistry, evidenceId) ||
+          !setHas(usedEvidenceIds, evidenceId)) {
+          throw answerCommitmentError(
+            `Answer commitment temporary inference ${index} must link selected used evidence.`,
+          )
+        }
+        setAdd(inferenceSeen, evidenceId)
+        arrayPush(provenanceEvidenceIds, evidenceId)
+      }
+      arrayPush(temporaryInferences, {
+        consequence_for_answer,
+        provenanceEvidenceIds,
+        revisable: true,
+        statement,
+      })
     }
     const committed = deepFreeze({
       abstained: candidate.abstained,
       bases,
+      evidenceCommitments,
+      temporaryInferences,
       text,
     })
     weakSetAdd(committedResponses, committed)
@@ -716,6 +1108,8 @@ export async function answerWithRetrieval(brain, {
     }
   }
 
+  let retrievalPlan = null
+  let planningCalls = 0
   const tools = {
     memory_find(input) {
       const found = brain.exploreFind(scope, input)
@@ -734,6 +1128,22 @@ export async function answerWithRetrieval(brain, {
       return registerEvidence({
         ...result,
         edges: decorateAnswerRows(result.edges, referenceTime),
+      })
+    },
+    memory_plan(input) {
+      if (retrievalPlan) {
+        const error = new TypeError(
+          'Only one memory retrieval plan may be registered per answer.',
+        )
+        error.code = 'MEMORY_RETRIEVAL_PLAN_ALREADY_REGISTERED'
+        throw error
+      }
+      retrievalPlan = normalizeRetrievalPlan(input)
+      planningCalls = 1
+      return deepFreeze({
+        countsAgainstRetrievalBudget: false,
+        operation: MEMORY_RETRIEVAL_PLAN_TOOL_NAME,
+        plan: retrievalPlan,
       })
     },
     memory_read(input) {
@@ -774,14 +1184,15 @@ export async function answerWithRetrieval(brain, {
       if (!objectHasOwn(tools, name)) {
         throw new TypeError(`Unknown memory tool: ${name}`)
       }
-      if (calls >= budget) {
+      const planning = name === MEMORY_RETRIEVAL_PLAN_TOOL_NAME
+      if (!planning && calls >= budget) {
         exhausted = true
         return {
           exhausted: true,
           reason: 'retrieval_budget_exhausted',
         }
       }
-      calls += 1
+      if (!planning) calls += 1
       const input = request?.input ?? {}
       const result = await tools[name](input)
       arrayPush(transcript, { input, result, tool: name })
@@ -823,6 +1234,7 @@ export async function answerWithRetrieval(brain, {
       briefing,
       memoryText: briefing.text,
       maxRetrievalCalls: budget,
+      maxRetrievalPlanningCalls: 1,
       question,
       questionDate,
       questionText: [
@@ -867,6 +1279,12 @@ export async function answerWithRetrieval(brain, {
     )
   }
   const answerEvidence = []
+  const evidenceCommitments = answerCommitted
+    ? response.evidenceCommitments
+    : []
+  const temporaryInferences = answerCommitted
+    ? response.temporaryInferences
+    : []
   if (answerCommitted) {
     for (let index = 0; index < response.bases.length; index += 1) {
       const { evidenceId, quote } = response.bases[index]
@@ -874,6 +1292,13 @@ export async function answerWithRetrieval(brain, {
     }
   }
   deepFreeze(answerEvidence)
+  deepFreeze(evidenceCommitments)
+  deepFreeze(temporaryInferences)
+  const selectedEvidenceIds = []
+  for (let index = 0; index < evidenceCommitments.length; index += 1) {
+    arrayPush(selectedEvidenceIds, evidenceCommitments[index].evidenceId)
+  }
+  deepFreeze(selectedEvidenceIds)
   const uniqueConsulted = []
   const consultedSet = new setConstructor()
   for (let index = 0; index < consulted.length; index += 1) {
@@ -891,15 +1316,20 @@ export async function answerWithRetrieval(brain, {
       : stringFrom(response?.text ?? response ?? ''),
     answerCommitted,
     answerEvidence,
+    evidenceCommitments,
     briefingMode: briefing.briefingMode,
     briefingStatus: briefing.status,
     consultedEvidenceIds: uniqueConsulted,
     digestRevision: briefing.digestRevision,
     providerCalled: true,
+    retrievalPlan,
+    retrievalPlanningCalls: planningCalls,
     reductionBlocked: briefing.reductionBlocked,
     retrievalCalls: calls,
     retrievalCapabilities: capabilities,
     retrievalExhausted: exhausted,
     retrievalTranscript: transcript,
+    selectedEvidenceIds,
+    temporaryInferences,
   }
 }

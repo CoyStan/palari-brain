@@ -25,11 +25,18 @@ import {
 } from './memory-graph.mjs'
 import {
   DEFAULT_RETRIEVAL_CALLS,
+  MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS,
+  MEMORY_ANSWER_MAX_INFERENCE_CHARS,
+  MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
   MEMORY_ANSWER_MAX_BASES,
   MEMORY_ANSWER_MAX_QUOTE_CHARS,
+  MEMORY_ANSWER_MAX_TEMPORARY_INFERENCES,
   MEMORY_ANSWER_MAX_TEXT_CHARS,
   MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
 } from './retrieval-answer.mjs'
+import {
+  MEMORY_RETRIEVAL_PLAN_TOOL_NAME,
+} from './retrieval-plan.mjs'
 
 export const OPENAI_LUNA_MODEL = 'gpt-5.6-luna'
 export const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses'
@@ -430,8 +437,10 @@ function answerInput({ memoryText, questionText }) {
 const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
   description: [
     'Commit the final answer after memory evidence was returned.',
-    'Every basis must use an evidenceId returned in this answer session and copy an exact contiguous quote from that returned row.',
-    'Use abstained true when the returned evidence does not support an answer, while citing the returned evidence that was inspected.',
+    'Select only memories actually assessed for the answer; not every retrieved row needs a basis.',
+    'Every selected basis must use an evidenceId returned in this answer session, copy an exact contiguous quote, and set exactly one non-empty consequence_for_answer or not_used_reason.',
+    'A cross-context inference must remain temporary, cite selected provenance, set revisable true, and state its consequence; never report it as a canonical user fact.',
+    'Use abstained true when selected evidence does not support an answer.',
   ].join(' '),
   name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
   parameters: {
@@ -448,8 +457,21 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
               minLength: 1,
               type: 'string',
             },
+            consequence_for_answer: {
+              maxLength: MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS,
+              type: 'string',
+            },
+            not_used_reason: {
+              maxLength: MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
+              type: 'string',
+            },
           },
-          required: ['evidenceId', 'quote'],
+          required: [
+            'evidenceId',
+            'quote',
+            'consequence_for_answer',
+            'not_used_reason',
+          ],
           type: 'object',
         },
         maxItems: MEMORY_ANSWER_MAX_BASES,
@@ -461,8 +483,41 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
         minLength: 1,
         type: 'string',
       },
+      temporaryInferences: {
+        items: {
+          additionalProperties: false,
+          properties: {
+            statement: {
+              maxLength: MEMORY_ANSWER_MAX_INFERENCE_CHARS,
+              minLength: 1,
+              type: 'string',
+            },
+            provenanceEvidenceIds: {
+              items: { maxLength: 500, minLength: 1, type: 'string' },
+              maxItems: MEMORY_ANSWER_MAX_BASES,
+              minItems: 1,
+              type: 'array',
+            },
+            revisable: { enum: [true], type: 'boolean' },
+            consequence_for_answer: {
+              maxLength: MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS,
+              minLength: 1,
+              type: 'string',
+            },
+          },
+          required: [
+            'statement',
+            'provenanceEvidenceIds',
+            'revisable',
+            'consequence_for_answer',
+          ],
+          type: 'object',
+        },
+        maxItems: MEMORY_ANSWER_MAX_TEMPORARY_INFERENCES,
+        type: 'array',
+      },
     },
-    required: ['abstained', 'bases', 'text'],
+    required: ['abstained', 'bases', 'temporaryInferences', 'text'],
     type: 'object',
   },
   strict: true,
@@ -472,6 +527,8 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
 const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
   'Return the final answer only by calling palari_answer_commit.',
   'Use only evidence IDs and exact contiguous quotes from memory results already returned in this answer session.',
+  'For each selected basis set exactly one non-empty consequence_for_answer or not_used_reason; leave unrelated retrieved rows unselected.',
+  'Keep cross-context inferences temporary, provenance-linked, and revisable.',
   'No memory tool is available during this repair.',
 ].join(' ')
 
@@ -563,8 +620,16 @@ export function createOpenAIRetrievalProvider({
         `maxRetrievalCalls cannot exceed ${DEFAULT_RETRIEVAL_CALLS}.`,
       )
     }
+    const planningLimit = nonNegativeInteger(
+      session.maxRetrievalPlanningCalls ?? 1,
+      'maxRetrievalPlanningCalls',
+    )
+    if (planningLimit > 1) {
+      throw new TypeError('maxRetrievalPlanningCalls cannot exceed 1.')
+    }
     const input = answerInput(session)
     let dispatch = 0
+    let planningCalls = 0
     let retrievalCalls = 0
     let finalizing = retrievalLimit === 0
     let forcingCommit = false
@@ -695,8 +760,23 @@ export function createOpenAIRetrievalProvider({
             : 'OpenAI finalization returned a memory tool call after retrieval closed.',
         )
       }
+      const planCalls = calls.filter(({ name }) =>
+        name === MEMORY_RETRIEVAL_PLAN_TOOL_NAME)
+      if (planCalls.length && calls.length !== 1) {
+        throw adapterError(
+          'OPENAI_RETRIEVAL_PLAN_MIXED_CALLS',
+          'OpenAI memory_plan must be the only function call in its response.',
+        )
+      }
+      if (planningCalls + planCalls.length > planningLimit) {
+        throw adapterError(
+          'OPENAI_RETRIEVAL_PLAN_BUDGET_EXCEEDED',
+          'OpenAI requested more than one memory retrieval plan.',
+        )
+      }
       const remaining = retrievalLimit - retrievalCalls
-      if (calls.length > remaining) {
+      const retrievalCallsInBatch = calls.length - planCalls.length
+      if (retrievalCallsInBatch > remaining) {
         throw adapterError(
           'OPENAI_RETRIEVAL_CALL_BUDGET_EXCEEDED',
           'OpenAI requested more memory tools than remain in the retrieval budget.',
@@ -712,7 +792,11 @@ export function createOpenAIRetrievalProvider({
           input: clone(call.input),
           tool: call.name,
         })
-        retrievalCalls += 1
+        if (call.name === MEMORY_RETRIEVAL_PLAN_TOOL_NAME) {
+          planningCalls += 1
+        } else {
+          retrievalCalls += 1
+        }
         input.push({
           call_id: call.callId,
           output: JSON.stringify(result),

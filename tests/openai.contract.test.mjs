@@ -329,6 +329,85 @@ test('retrieval provider preserves reasoning and tool output across Responses',
     })
   })
 
+test('OpenAI answer commitment wire distinguishes use, non-use, and temporary inference',
+  async () => {
+    let body
+    const provider = createOpenAIRetrievalProvider({
+      async invoke(request) {
+        body = request.body
+        return completedText('No memory was needed.')
+      },
+    })
+    await provider(answerSession())
+    const commit = body.tools.find((tool) =>
+      tool.name === OPENAI_ANSWER_COMMIT_TOOL_NAME)
+    assert.deepEqual(commit.parameters.required, [
+      'abstained',
+      'bases',
+      'temporaryInferences',
+      'text',
+    ])
+    assert.deepEqual(commit.parameters.properties.bases.items.required, [
+      'evidenceId',
+      'quote',
+      'consequence_for_answer',
+      'not_used_reason',
+    ])
+    assert.deepEqual(
+      commit.parameters.properties.temporaryInferences.items.properties
+        .revisable.enum,
+      [true],
+    )
+    assert.match(commit.description, /not every retrieved row/i)
+    assert.match(commit.description, /temporary/i)
+  })
+
+test('one memory plan preserves all four retrieval calls in the OpenAI loop',
+  async () => {
+    const bodies = []
+    const retrievals = []
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) {
+          return completedCall({
+            arguments: JSON.stringify({
+              anchor_event: 'a later purchase',
+              category: 'purchase history',
+              relation: 'before',
+              time_range: { after: null, before: null },
+            }),
+            name: 'memory_plan',
+          })
+        }
+        return bodies.length <= 5
+          ? completedCall({ callId: `call_${bodies.length}` })
+          : completedText('Stored evidence is insufficient.')
+      },
+    })
+    const result = await provider(answerSession({
+      async retrieve(request) {
+        retrievals.push(request)
+        return request.tool === 'memory_plan'
+          ? { countsAgainstRetrievalBudget: false, operation: 'memory_plan' }
+          : { sessions: [] }
+      },
+    }))
+    assert.equal(result.text, 'Stored evidence is insufficient.')
+    assert.deepEqual(
+      retrievals.map((request) => request.tool),
+      [
+        'memory_plan',
+        'memory_timeline',
+        'memory_timeline',
+        'memory_timeline',
+        'memory_timeline',
+      ],
+    )
+    assert.equal(bodies.length, 6)
+    assert.equal(bodies[5].tool_choice, 'none')
+  })
+
 test('retrieval provider commits cited evidence without another model dispatch',
   async () => {
     const bodies = []
