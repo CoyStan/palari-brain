@@ -1,5 +1,35 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE PREPARED;
+INDEPENDENT PRE-DISPATCH REVIEW NEXT. The founder accepted the corrected
+answer-use diagnosis and requested the stronger-model comparison before any
+architecture change. P-set 29 is FINAL for private one-shot identity
+`j4-sol-frozen-failures-pre-architecture-v1`. It replays the exact last
+Responses request from BRN-0017's four immutable FAIL cells and changes only
+`gpt-5.6-luna` to `gpt-5.6-sol`; low reasoning, Standard/default service,
+no-store, 512 output tokens, instructions, input, tools, and tool choice are
+unchanged. No judge runs and the historical 6/10 remains immutable.
+
+Provider-free verification passes. The private mode-0600 launcher SHA-256 is
+`266ff9a7b372a87da0a9f48e205e1511b433a5a88bf4d754ad1d8b4b2e682745`;
+it binds BRN-0017 manifest SHA-256
+`850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`
+and four exact source/replay hashes, and confirms the result namespace is
+absent. Credential reads, provider calls, inference, and fresh spend remain
+`0 / 0 / 0 / $0.00`. Opening cumulative accounted spend is exactly
+`$7.17192994`. Proposed, not yet authorized ceilings are `$0.50` fresh /
+`$7.67192994` cumulative for one smoke plus four single-dispatch cells.
+
+Product stop rule: (1) yes, quickstart remains green at the frozen main cut;
+(2) no product behavior changes in this causal baseline; (3) model-tier evals
+are standard provider practice but do not explain this product's evidence
+boundary by themselves; (4) yes, the founder explicitly requested the
+stronger-model comparison on frozen contexts; (5) deleting this ticket would
+erase the pre-change causal control needed to distinguish answer quality from
+retrieval delivery. Next: commit/push the freeze, obtain fresh independent
+review, then stop at the exact founder spend gate. After its terminal result,
+open the separate product architecture ticket; do not regrade BRN-0017.
+
 Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN TERMINAL AT OFFICIAL 6/10;
 IMMUTABLE RESULT RECORD AND TERMINAL REVIEW NEXT. Founder-authorized identity
 `j4-luna-ettin-cited-first10-v2` completed exactly once under the `$1.50`

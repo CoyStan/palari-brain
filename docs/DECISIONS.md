@@ -2849,3 +2849,18 @@ here with dates. Agents record; the founder decides.
   89,786,836 bytes, zero exact credential matches, and zero sealing errors;
   manifest SHA-256 is
   `850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`.
+
+- 2026-08-05 (BRN-0018 frozen-context stronger-answer control)
+  **Measure model quality before changing the evidence architecture.** The
+  founder requested one stronger-model comparison on BRN-0017's existing
+  frozen contexts. Official OpenAI guidance identifies `gpt-5.6-sol` as the
+  frontier-capability GPT-5.6 tier and recommends preserving the current
+  effective reasoning effort for the initial migration comparison before
+  changing prompts or capabilities. P-set 29 therefore freezes the exact last
+  request from each of the four immutable failure cells and permits only the
+  model-string change from Luna to Sol, keeping low reasoning, Standard/no-
+  store wire, instructions, evidence, tools, and output ceiling unchanged.
+  This is an answer-only causal diagnostic with no retrieval calls or judge;
+  it cannot regrade or change the historical 6/10. The one live invocation
+  remains founder-gated behind a pushed freeze, independent review, and exact
+  fresh/cumulative spend authority.

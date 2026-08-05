@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0018
 children: []
-status: open
+status: claimed
 risk: R3
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-05T00:16:58Z
 target_branch: "main"
 branch: "ticket/BRN-0018-isolate-stronger-answer-model-on-frozen-failure-contexts"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0018-isolate-stronger-answer-model-on-frozen-failure-contexts"
@@ -167,7 +167,7 @@ baseline is terminal.
 - P-set 29 is FINAL before any credential read, provider dispatch, inference,
   result creation, or spend.
 - Private launcher is mode 0600 at SHA-256
-  `e4a181598c6bc7d8fa3b72b74bf5e3091d76cc1df5d91de741af4f26a13bc67c`.
+  `266ff9a7b372a87da0a9f48e205e1511b433a5a88bf4d754ad1d8b4b2e682745`.
   `--verify` passes, binds the BRN-0017 terminal manifest and all four exact
   source/replay request hashes, proves each treatment changes only `model`,
   and confirms the one-shot result namespace is absent.

@@ -1964,3 +1964,56 @@ ten official judge calls (2,060 input / 18 output tokens), and 95 Gemini
 embedding batches carrying 4,794 requests / 4,905,943 conservatively reserved
 tokens. Terminal artifact-manifest SHA-256 is
 `850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`.
+
+## P-set 29 — Sol answer-only replay on four frozen BRN-0017 failures
+
+Status: **FINAL before credential access, provider dispatch, inference, or
+result creation.** Date: 2026-08-05. Identity:
+`j4-sol-frozen-failures-pre-architecture-v1`.
+
+This is a causal answer-model diagnostic, not a benchmark rerun or regrade.
+The four selected requests are the exact last OpenAI Responses request from
+each immutable BRN-0017 failure cell, in fixed order `09d032c9`, `0977f2af`,
+`0a34ad58`, `0edc2aef`. The sole treatment is the model string
+`gpt-5.6-luna` to `gpt-5.6-sol`; low reasoning, Standard/default service,
+no-store, 512 maximum output tokens, instructions, input items, tools, and
+tool choice remain byte-identical. There is no memory transport and no judge.
+The historical official 6/10 and all ten labels remain unchanged.
+
+Official OpenAI guidance names Sol as the frontier-capability GPT-5.6 tier and
+recommends preserving effective reasoning effort for the first migration
+comparison before changing prompts or capabilities. The private mode-0600
+launcher SHA-256 is
+`266ff9a7b372a87da0a9f48e205e1511b433a5a88bf4d754ad1d8b4b2e682745`.
+It binds BRN-0017 terminal manifest SHA-256
+`850ca10026e7800dcaaa69eab482561d4eb0fe5db17e1a05b6fdb361a5959ebe`
+and the four exact source/replay request hashes emitted by `--verify`.
+
+Predictions, failing categories first:
+
+1. ANSWER USE: objective `2/2` on rows whose delivered context is sufficient.
+   Phone explicitly incorporates the user's existing portable power bank in
+   its battery advice. Miami combines the returned ocean/view evidence with
+   the returned private-balcony hot-tub evidence in one recommendation. A
+   generic phone checklist that merely cites the power-bank row fails this
+   category; naming only one Miami preference fails it.
+2. EVIDENCE LIMIT: Instant Pot does not guess the missing earlier appliance,
+   and Tokyo does not attribute Suica or TripIt to the user from old Palari
+   responses when the original user statements are absent. Both should state
+   that the delivered stored evidence is insufficient. This predicted limit
+   is evidence of retrieval/context failure, not answer-model failure.
+3. COMPATIBILITY/COMPLETION: one unrelated Sol/low/Standard/no-store smoke
+   returns exact `compatible`, then all four frozen requests receive HTTP 200
+   exactly once. Each produces either one `palari_answer_commit` or plain
+   answer; a new memory-tool call is recorded as a failed answer outcome and
+   is never executed. No cell is retried or replaced.
+4. CAUSAL INTEGRITY: offline verification and the terminal record prove each
+   request differs from its sealed BRN-0017 source only at `model`. No prompt,
+   evidence, effort, tool, answer, label, or benchmark reference is added.
+   No official judge runs and no historical result changes.
+5. EXECUTION/ACCOUNTING: exactly five or fewer physical OpenAI calls reserve
+   before dispatch under `$0.50` fresh / `$7.67192994` cumulative accounted
+   ceilings from the exact `$7.17192994` opening ledger. The private result is
+   sealed mode 0600 with zero exact credential matches. Any compatibility,
+   provider, cap, parse, or seal failure is terminal without retry, resume,
+   reroll, regrade, or replacement identity.
