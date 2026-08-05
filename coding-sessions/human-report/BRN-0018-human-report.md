@@ -42,6 +42,6 @@ taking cumulative accounted spend to `$7.67192994`.
 
 ## Recommended Next Move
 
-Accept the immutable result after clean independent terminal review. Then use
-it as the pre-change baseline for the separate architecture ticket and repeat
-the comparison only after those changes.
+The clean independent terminal review found no issue, so accept and merge the
+immutable result. Then use it as the pre-change baseline for the separate
+architecture ticket and repeat the comparison only after those changes.

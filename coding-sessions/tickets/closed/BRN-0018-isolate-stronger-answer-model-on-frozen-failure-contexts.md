@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0018
 children: []
-status: in-review
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -202,3 +202,11 @@ baseline is terminal.
   sealing errors.
 - Historical BRN-0017 remains 6/10. Independent terminal review is required
   before acceptance or merge.
+
+## Independent Terminal Review
+
+- Exact result head `410bc99a7f9475841291b1223bfdf85d56c359e4` received
+  no P0-P3 findings after complete result/source rehash and reconciliation.
+- Reviewer-note commit `62e0dd68df1cbe5adb83383b2b05b1ae5dc256b2` recommends
+  ACCEPT / GO. The founder's standing delegation authorizes acceptance and
+  merge of a clean independently reviewed ticket.

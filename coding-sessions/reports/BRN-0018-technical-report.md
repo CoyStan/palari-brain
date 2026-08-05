@@ -92,3 +92,7 @@
   `6c9ab17351d8f09c1b714d33bb8fe34e468d25a8cdf0397d4dc9794c5dcba725`.
 - The historical BRN-0017 6/10 and all ten labels are unchanged. This result
   supports an architecture fix; it is not a new official grade.
+- Independent terminal review of exact result head `410bc99` rehashed all 14
+  result and 74 source artifacts, reconciled the raw commitments, usage,
+  latency, accounting, and grades, and found no P0-P3 issue. Reviewer-note
+  commit `62e0dd6` recommends acceptance.

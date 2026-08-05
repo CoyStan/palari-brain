@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0018 STRONGER-ANSWER FROZEN-CONTEXT BASELINE TERMINAL;
-INDEPENDENT TERMINAL REVIEW NEXT. Founder-authorized identity
+INDEPENDENTLY ACCEPTED, MERGE NEXT. Founder-authorized identity
 `j4-sol-frozen-failures-pre-architecture-v1` completed exactly once. The
 compatibility smoke returned exact `compatible`, then all four frozen requests
 completed once with HTTP 200. No memory tool was executed, no judge ran, and
@@ -31,6 +31,10 @@ mode-0600 artifacts with zero credential matches and zero sealing errors;
 manifest SHA-256 is
 `6c9ab17351d8f09c1b714d33bb8fe34e468d25a8cdf0397d4dc9794c5dcba725`.
 The identity is consumed and cannot be retried, resumed, rerolled, or regraded.
+Independent terminal review of exact result head `410bc99` found no P0-P3
+issue after rehashing all 14 result artifacts and 74 source artifacts;
+reviewer-note commit is `62e0dd6`. Under the founder's standing delegation for
+clean independently reviewed tickets, BRN-0018 is accepted for merge.
 
 Product stop rule: (1) yes, quickstart remains 6/6; (2) this diagnostic changed
 no product behavior but established that model strength alone is insufficient;
@@ -38,8 +42,8 @@ no product behavior but established that model strength alone is insufficient;
 is Palari's product boundary; (4) yes, the founder explicitly required the
 pre-change stronger-model control; (5) deleting it would erase the causal
 baseline separating answer use from evidence delivery. Next: independently
-review and accept the immutable terminal bundle, then open the separate product
-architecture ticket for distinct recall/use metrics, evidence commitments, and
+merge the immutable terminal bundle, then open the separate product architecture
+ticket for distinct recall/use metrics, evidence commitments, and
 temporary provenance-linked cross-context inference. Do not regrade BRN-0017.
 
 Loop state: BRN-0017 HARDENED CITED LUNA FIRST-TEN TERMINAL AT OFFICIAL 6/10;
