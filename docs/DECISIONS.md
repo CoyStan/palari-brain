@@ -2984,3 +2984,61 @@ here with dates. Agents record; the founder decides.
   preserve and disclose them. The exact manifested/main DB bytes remain valid,
   but the directory may no longer be described as a closed physical artifact
   set and must never be deleted, repaired, resealed, or rerun.
+
+- 2026-08-05 (BRN-0021 exact reservation and copy-first audit boundary)
+  **Use provider counting for exact structured inputs; keep bytes only as a
+  pre-dispatch fallback.** OpenAI documents `/v1/responses/input_tokens` as the
+  exact count for structured Responses requests and explains that local text
+  tokenizers cannot exactly reproduce model-specific tool/schema formatting.
+  The harness therefore gains an injected, provider-neutral counter contract
+  rather than a tokenizer dependency. It strictly validates the count, applies
+  pinned Standard/default rates with exact integer picodollar accounting, and
+  reserves the full output ceiling. The existing one-UTF-8-byte-equals-one-
+  token calculation remains a conservative highest-rate fallback only when no
+  count request has been sent. A dispatched count failure is terminal, and no
+  claim is made that the count endpoint is free.
+
+  SQLite inspection now has a separate copy-first primitive. It snapshots the
+  main database plus present WAL/SHM sidecars through no-follow handles, opens
+  SQLite only through a callback receiving the owned scratch copy, proves the
+  source physical set/hashes/modes are unchanged, and removes only its exact
+  scratch directory. BRN-0021 is deterministic and offline: it does not access
+  BRN-0020's private namespace, call a provider, read credentials, spend, or
+  change historical BRN-0017's 6/10 or BRN-0020's consumed result.
+
+- 2026-08-05 (BRN-0021 independent-review repair)
+  **Physical identity, not mutable globals or pathnames, is the accounting and
+  custody boundary.** Independent review proved that uncaptured `BigInt` could
+  zero reservations and that renaming/replacing the scratch pathname could
+  leak the actual copy while cleanup deleted the replacement. The repair
+  captures authoritative intrinsics, brands non-Proxy responses, follows the
+  open scratch descriptor to the same device/inode for cleanup, compares full
+  modes and source identities, and treats any pathname substitution or parent
+  retarget as terminal. Target-main commit `8a880e2` separately reconciles the
+  generated `*token*` guard that contradicted the approved ticket's own name;
+  no credential, private-data, live-provider, or spend boundary was widened.
+
+- 2026-08-05 (BRN-0021 cumulative intrinsic boundary)
+  **A detected failure must not depend on mutable collection prototypes.** The
+  first rereview confirmed the physical-identity repair, then proved mutable
+  array/string operations could suppress callback or custody errors, admit an
+  in-source scratch directory, or skip WAL/SHM candidates. The custody path now
+  uses index-only private collections, a private error iterable, captured
+  prefix/sort operations, and file-handle/stat operations captured before any
+  callback. Each attack is a permanent provider-free regression.
+
+- 2026-08-05 (BRN-0021 combined-error boundary)
+  **A private iterable must own its iteration method.** A second independent
+  review showed that a generator-based AggregateError input still inherited a
+  mutable shared `next`, so concurrent callback and custody causes could be
+  omitted even though cleanup succeeded. The replacement is a null-prototype
+  iterator with an own `next` method. A permanent combined-failure contract
+  requires both causes to remain present and ordered.
+
+- 2026-08-05 (BRN-0021 independent acceptance)
+  **Accept the offline primitives; keep live counting separately gated.** Fresh
+  independent review of exact clean head `2daef94` against target `8a880e2`
+  found no P0-P3 issue after all nine criteria and eleven retained findings.
+  Acceptance covers only deterministic exact-reservation and copy-first audit
+  code. Input-count wire compatibility, billing treatment, credential access,
+  provider dispatch, benchmark execution, and spend remain unauthorized.

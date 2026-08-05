@@ -1,5 +1,79 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0021 INDEPENDENTLY ACCEPTED; MERGE NEXT. The ticket
+adds a strict injected OpenAI structured-input counter, exact Sol Standard
+reservation in integer picodollars, the prior highest-rate UTF-8-byte fallback,
+and a copy-first SQLite audit boundary. It performs no live integration.
+
+P-set 31's fixed synthetic reservation bank passes `3/3`: exact-count versus
+byte-fallback reservations are `$0.05839125` vs `$0.4033275` (`6.907x`),
+`$0.04911` vs `$0.6845775` (`13.939x`), and `$0.04161` vs `$0.25364`
+(`6.095x`). All retain the full 512-token output ceiling; the minimum exceeds
+the preregistered `3x` threshold. These are deterministic synthetic oracles,
+not live provider counts or spend.
+
+SQLite custody passes the main-only, valid WAL/SHM, and callback-failure cases.
+SQLite opens only the owned scratch copy; source physical names, SHA-256 bytes,
+and permission modes remain exact; scratch-only changes are removed on success
+and failure. The implementation never accessed BRN-0020's private namespace.
+
+Initial independent review of exact submitted head `30d0d4f` correctly reopened
+two P1, three P2, and one P3 findings: mutable `BigInt` could zero reservations;
+scratch pathname substitution could leak the owned copy; special mode bits and
+parent-symlink retargeting escaped custody checks; the generated token filename
+guard contradicted the ticket itself; and a Proxy could synthesize a plain
+count response. All attacks now have permanent reproductions. The repair
+captures accounting/string/hash operations, rejects Proxies, binds scratch
+cleanup to an open descriptor plus device/inode, compares complete modes and
+resolved source identity, and preserves a substituted pathname while failing.
+Target-main commit `8a880e2` explicitly reconciles only the self-conflicting
+filename globs and retains every actual secret/private/provider prohibition.
+
+The first cumulative rereview confirmed all original findings repaired, then
+found four further P1 intrinsic-poisoning gaps: mutable `push`/`unshift` could
+suppress detected errors, mutable `startsWith` could admit scratch under the
+source namespace, and a poisoned array iterator could skip WAL/SHM custody.
+The cumulative repair now uses indexed private collections, a private exact
+error iterable, and captured prefix/sort/stat/file-handle operations. All four
+attacks have permanent tests.
+
+A second independent reviewer confirmed the prior ten findings repaired, then
+reopened one P2: the combined-error iterable inherited a mutable generator
+`next`, so simultaneous callback and custody failures could lose their causes.
+The repair uses a null-prototype iterator with an own method, and its permanent
+test preserves both ordered causes.
+
+Fresh independent acceptance review of exact clean pushed head `2daef94`
+against target `8a880e2` found no P0-P3 issue. It reconciled all nine acceptance
+criteria and all eleven retained review findings, confirmed focused 21/21,
+full 748 passed / 15 skipped / 0 failed, quickstart 6/6, and clean syntax,
+diff, ticket, scope, head/target/upstream state. BRN-0021 is accepted under the
+founder's standing delegation for clean independently reviewed tickets. This
+does not authorize a live count request or any spend.
+
+Repaired focused contracts pass 21/21. Full suite passes 748 / fails 0 / skips 15
+optional tests across 763. Quickstart passes 6/6. Syntax, offline-runtime scan,
+diff, ticket lint, and governed committed-plus-dirty scope pass. Credential
+reads, network requests, provider calls, inference, private-result reads, and
+spend are `0 / 0 / 0 / 0 / 0 / $0.00`; cumulative accounted spend remains
+exactly `$7.75502179`. Historical BRN-0017 remains 6/10 and consumed BRN-0020
+remains unchanged.
+
+Official OpenAI guidance requires its input-count endpoint for exact structured
+Responses accounting; local tokenizers cannot reproduce every tool/schema and
+model-specific formatting detail. BRN-0021 injects that future transport but
+does not call it or assume it is free. Next: merge the accepted offline ticket.
+Only afterward should a separate tiny founder-gated count-wire
+compatibility probe be prepared; do not run another benchmark yet.
+
+Product stop rule: (1) yes, quickstart is green; (2) yes, future live runs can
+reserve materially closer to expected cost and sealed audits no longer mutate
+their source bundle; (3) OpenAI supplies exact counting and SQLite supplies
+backup/open primitives, but neither supplies Palari's durable cap/custody
+composition; (4) yes, both defects came directly from the founder-authorized
+BRN-0020 run and review; (5) deleting this unit would restore false cap stops
+and unsafe in-place sealed SQLite inspection.
+
 Loop state: BRN-0020 POST-ARCHITECTURE SOL COMPARISON TERMINAL;
 CAP-STOPPED AFTER PHONE, INDEPENDENTLY ACCEPTED. The founder-authorized
 identity `j4-sol-frozen-failures-post-architecture-v1` ran exactly once and is

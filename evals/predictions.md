@@ -2186,3 +2186,101 @@ were applied exactly once by independent terminal review):
 - PREDICTION COUNT CLARIFICATION: P-set 30's immutable “six-tool wire” phrase
   is stale shorthand. Its exact frozen normal hash and every request correctly
   contain seven tools: timeline, read, find, plan, search, graph, and commit.
+
+## P-set 31 — exact input reservation and copy-first SQLite audit
+
+Status: **FINAL before deterministic measurement, credential access, network,
+provider dispatch, private-result access, or spend.** Date: 2026-08-05.
+
+This is an offline harness contract, not a live provider probe, benchmark run,
+rerun, regrade, or replacement for consumed BRN-0020. It uses injected mock
+count transports, fixed synthetic structured request bodies, and synthetic
+temporary SQLite databases only. Historical BRN-0017 remains 6/10; BRN-0020's
+incomplete terminal result and exactly-once Phone judgments remain unchanged.
+
+Predictions, failing categories first:
+
+1. EXACT-COUNT ADMISSION: `5/5` malformed response classes—missing/coerced,
+   accessor, fractional, non-positive, and unsafe count—fail closed. One plain
+   `{object: "response.input_tokens", input_tokens: positive-safe-integer}`
+   response passes. The injected transport receives a deep-frozen independent
+   copy of the exact structured Responses body; neither caller input nor the
+   accepted count record can be mutated.
+2. RESERVATION SAFETY: counted mode applies the pinned highest safe input rate
+   for the exact short/long context band and the full output ceiling. Fallback
+   mode charges every serialized UTF-8 request byte at the highest long-context
+   input rate plus the same full output ceiling. Both expose exact integer
+   picodollar totals and never under-reserve their validated units/rates.
+3. RESERVATION TIGHTNESS: across the fixed synthetic structured-request bank,
+   exact-count reservation is at least `3x` lower than the UTF-8-byte fallback
+   for every case while retaining an identical output ceiling. This is a
+   synthetic harness oracle, not a claim about an unexecuted provider count or
+   a historical private request.
+4. SQLITE CUSTODY: `3/3` source shapes—main database alone, database with WAL
+   and SHM, and callback failure—retain the exact same source physical set,
+   SHA-256 bytes, and permission modes. SQLite is opened only on the scratch
+   copy; callback-created sidecars remain in scratch; the one exact owned
+   scratch directory is removed on both success and failure.
+5. OFFLINE INTEGRITY: contract tests, full suite, and quickstart pass with zero
+   environment-secret reads, network requests, provider calls, inference,
+   benchmark questions, private-result reads, or spend. Fresh spend is `$0.00`
+   and cumulative accounted spend remains exactly `$7.75502179`.
+
+Deterministic result (recorded after the fixed offline measurement):
+
+- EXACT-COUNT ADMISSION: **PASS.** The valid plain response passes; missing,
+  coerced, accessor, fractional, non-positive, unsafe, and extra-field shapes
+  fail closed. The transport sees a deep-frozen independent structured body,
+  and exact reservation accepts only the module-validated branded count record.
+- RESERVATION SAFETY: **PASS.** Short/long boundary tests apply `$6.25/$30`
+  and `$12.50/$45` per-million rates respectively, retain the complete 512
+  output ceiling, and reconcile exact input/output/total picodollars. UTF-8
+  fallback uses every serialized byte at the highest long-context rates.
+- RESERVATION TIGHTNESS: **PASS, 3/3.** Exact versus fallback reservations are
+  `$0.05839125` vs `$0.4033275` (`6.907x`), `$0.04911` vs `$0.6845775`
+  (`13.939x`), and `$0.04161` vs `$0.25364` (`6.095x`). The minimum is
+  `6.095x`, above the preregistered `3x` threshold, with 512 output tokens on
+  both paths. These are synthetic oracles, not provider measurements.
+- SQLITE CUSTODY: **PASS, 3/3.** Main-only, live valid WAL/SHM, and callback-
+  failure fixtures retain identical source file names, SHA-256 values, and
+  permission modes. SQLite opens only the scratch copy, scratch-only files do
+  not escape, and cleanup succeeds on both terminal paths. Additional invalid
+  source/symlink/in-namespace cases fail closed.
+- OFFLINE INTEGRITY: **PASS.** Focused tests pass 12/12; full suite passes 739,
+  fails 0, and skips 15 optional tests across 754; quickstart passes 6/6.
+  Runtime-source scan finds no environment or network surface. Credential,
+  network, provider, inference, private-result, and spend activity is zero;
+  cumulative accounted spend remains exactly `$7.75502179`.
+
+Independent-review repair (the deterministic P-set outcome above is not a live
+result and needed no rerun): fresh review of submitted head `30d0d4f` correctly
+reopened two P1, three P2, and one P3 defects. A poisoned global `BigInt` could
+zero all authoritative amounts; pathname substitution could leak the renamed
+owned scratch directory; special mode bits and parent-directory retargeting
+escaped source checks; the generated `*token*` guard contradicted the ticket's
+own approved name; and a Proxy could synthesize a plain response. The cumulative
+repair captures integer/string/hash intrinsics, rejects Proxies, binds cleanup
+to the open directory descriptor and device/inode, compares complete modes and
+resolved source identity, and reconciles the contradictory guard on target
+`main` while retaining every actual secret/private boundary. Repaired focused
+tests passed 16/16; full suite passed 743, failed 0, and skipped 15 optional
+tests across 758 before rereview. The first cumulative rereview confirmed every
+original finding repaired, then exposed four further mutable-intrinsic P1 gaps
+in error collection, namespace checking, and sidecar iteration. Indexed local
+collections, captured operations, and a private error iterable now close those
+paths. Repaired focused tests pass 20/20; full suite passes 747, fails 0, and
+skips 15 across 762. Quickstart remains 6/6. Another fresh independent
+rereview is required.
+
+A second independent reviewer confirmed those ten repairs, then reopened one
+P2: the private AggregateError iterable's generator inherited a mutable shared
+`next`, allowing simultaneous callback and custody causes to disappear from
+the error list. A null-prototype iterator with an own `next` plus a permanent
+combined-failure regression repairs it. Focused tests pass 21/21; full suite
+passes 748, fails 0, and skips 15 across 763. Fresh rereview is required.
+
+Fresh independent acceptance review of exact clean head `2daef94` against
+target `8a880e2` found no P0-P3 issue. It confirmed every P-set 31 outcome, all
+nine ticket criteria, all eleven retained review findings, focused 21/21, full
+748/0/15 across 763, and quickstart 6/6. This acceptance is offline harness
+evidence only and grants no live count request, provider call, or spend.

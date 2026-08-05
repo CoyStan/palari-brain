@@ -6,7 +6,7 @@ level: 1
 parent_id:
 root_id: BRN-0021
 children: []
-status: open
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -193,3 +193,61 @@ spend, or path outside the ticket's explicit `allowed_paths`.
   private-result access, generation, benchmark run, judge, or spend.
 - Stop rather than presenting a local tokenizer or byte heuristic as the exact
   structured-input count.
+
+## Implementation Evidence
+
+- Exact count parsing is strict, immutable, and internally brands accepted
+  records so reservation cannot be invoked with a caller-forged raw number.
+  The counter has one caller-injected invocation and no credential, network,
+  retry, meter, or post-dispatch fallback surface.
+- Counted and fallback reservations reconcile exact integer picodollars and an
+  exact USD decimal string. The fixed three-case synthetic bank measures
+  `6.907x`, `13.939x`, and `6.095x` tighter reservations with the identical 512
+  output ceiling.
+- Copy-first SQLite tests cover main-only state, valid live WAL/SHM state, and
+  callback failure. The source file set/hashes/modes remain exact; SQLite and
+  scratch mutations see only the owned copy; cleanup succeeds on both paths.
+- Repaired focused tests: 21 passed, 0 failed. Full suite: 748 passed, 15
+  optional skips, 0 failed across 763. Quickstart: 6/6. Offline source, syntax, diff, ticket,
+  and committed-plus-dirty scope checks pass.
+- Credential reads / network requests / provider calls / inference /
+  private-result reads / spend: `0 / 0 / 0 / 0 / 0 / $0.00`. Cumulative
+  accounted spend remains exactly `$7.75502179`; historical BRN-0017 remains
+  6/10 and consumed BRN-0020 remains unchanged.
+
+## Review Repair
+
+- Independent review of exact head `30d0d4f` recommended reopen for two P1,
+  three P2, and one P3 findings. Poisoning uncaptured `BigInt` zeroed both
+  reservation paths; a callback rename/replacement leaked the real scratch;
+  special mode bits and symlinked-parent retargeting escaped custody checks;
+  the generated token filename guard contradicted the ticket itself; and a
+  virtual Proxy passed plain-response parsing.
+- The repair captures authoritative integer/string/hash operations, rejects
+  Proxies, tracks full mode plus device/inode, pins resolved source identity,
+  and resolves cleanup from the open directory descriptor before removing only
+  the matching owned inode. A substituted pathname is preserved and terminal.
+- Target `main` commit `8a880e2` explicitly reconciles only the self-conflicting
+  generated filename globs under the founder-approved BRN-0021 purpose; every
+  real credential, secret, private-result, runtime, and provider boundary
+  remains forbidden. The branch merged that target amendment before rereview.
+- Permanent reproductions pass. Fresh independent cumulative rereview is still
+  required; this specialist does not accept its own repair.
+- The first cumulative rereview confirmed all original findings repaired, then
+  found four further mutable-intrinsic P1 gaps: poisoned `unshift` or `push`
+  could suppress callback/custody errors, poisoned `startsWith` could admit an
+  in-source scratch directory, and a poisoned array iterator could skip WAL/SHM
+  enumeration. The cumulative repair uses captured prefix/sort operations and
+  index-only source/error/result arrays with a private error iterable. It also
+  captures file-handle operations and stat type tests before any callback.
+  All four attacks now have permanent tests; another fresh rereview is required.
+- A second independent reviewer confirmed the preceding ten findings repaired,
+  then reopened one P2: the private AggregateError iterable still used a shared
+  generator `next`, so combined callback/custody causes could be erased. It now
+  uses a null-prototype iterator with an own `next` method, and a permanent
+  combined-failure test proves both causes survive. Fresh rereview is required.
+- Fresh independent acceptance review of exact clean pushed head `2daef94`
+  against target `8a880e2` found no P0-P3 issue after reconciling all nine
+  criteria and eleven retained findings. Focused 21/21, full 748/763 with 15
+  optional skips, quickstart 6/6, and syntax/diff/ticket/scope checks pass. The
+  reviewer recommends ACCEPT and performed no edit or external/private access.
