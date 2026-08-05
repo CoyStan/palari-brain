@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0021 INDEPENDENTLY ACCEPTED; MERGE NEXT. The ticket
+Loop state: BRN-0021 ACCEPTED, MERGED, AND PUSHED AT `c902089`. The ticket
 adds a strict injected OpenAI structured-input counter, exact Sol Standard
 reservation in integer picodollars, the prior highest-rate UTF-8-byte fallback,
 and a copy-first SQLite audit boundary. It performs no live integration.
@@ -62,9 +62,10 @@ remains unchanged.
 Official OpenAI guidance requires its input-count endpoint for exact structured
 Responses accounting; local tokenizers cannot reproduce every tool/schema and
 model-specific formatting detail. BRN-0021 injects that future transport but
-does not call it or assume it is free. Next: merge the accepted offline ticket.
-Only afterward should a separate tiny founder-gated count-wire
-compatibility probe be prepared; do not run another benchmark yet.
+does not call it or assume it is free. Next: a separate tiny count-wire
+compatibility probe requires a fresh ticket, preregistration, exact identity,
+meter/cap, independent pre-dispatch review, and founder authorization. Do not
+run another benchmark yet.
 
 Product stop rule: (1) yes, quickstart is green; (2) yes, future live runs can
 reserve materially closer to expected cost and sealed audits no longer mutate
