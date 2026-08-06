@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0024
 children: []
-status: in-review
+status: needs-human
 risk: R4
 priority: P0
 agents_allowed: 1
@@ -248,3 +248,27 @@ reinterpreting any historical score.
 - Full tests pass 775 / skip 15 / fail 0 across 790; quickstart passes 6/6;
   ticket, report, committed-plus-dirty scope, syntax, and diff checks pass.
   Independent pre-dispatch review remains required.
+
+## Independent Pre-Dispatch Review
+
+Fresh read-only review of exact pushed head `f015ac0` recommends
+`needs-human`; the identity must not dispatch from that freeze. The reviewer
+confirmed four technical defects that are repairable without provider access:
+
+- P0: live authority binds the identity and fresh cap, but not the cumulative
+  cap or exact reviewed freeze.
+- P1: long-context Luna usage settles at short-context rates.
+- P1: recreating the exact-count evaluator per dispatch does not enforce
+  run-wide operation-ID single use.
+- P2: the one-time equivalent-fact/material-use judgment overlay lacks an
+  implemented reviewer-provenance and immutable-seal path.
+
+The founder-level blocker is separate: the ten cells have no prior terminal
+execution, but tracked P-set 20 already contains row-specific, content-derived
+retrieval difficulty classifications for these ordinals. Therefore the
+frozen statement that their question/reference/supporting content and expected
+route were never inspected is not supportable. BRN-0024's own expansion rules
+make changing the population or evaluation claim a founder decision. No
+credential, provider, inference, result namespace, or spend occurred; the
+identity remains unconsumed and cumulative accounted spend remains
+`$7.80502179`.

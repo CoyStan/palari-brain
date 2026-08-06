@@ -4,7 +4,7 @@
 
 Prepared a provider-free, one-shot held-out Luna+Ettin evaluation freeze. No
 credential, provider, inference, or result namespace was accessed. Live use
-remains blocked on independent review and exact founder authority.
+is blocked by independent review and a founder-level population/claim choice.
 
 ## Files Changed
 
@@ -41,7 +41,16 @@ remains blocked on independent review and exact founder authority.
 
 ## Risks / Follow-Ups
 
-Input-count billing remains undocumented, so the full allowance stays
-uncertain. The `$5.00` cap is intentionally conservative. No live action is
-authorized until a reviewer accepts the exact pushed freeze and the founder
-names the identity plus `$5.00` fresh / `$12.80502179` cumulative caps.
+Independent review of `f015ac0` found that authority does not bind the
+cumulative cap/reviewed freeze, long-context settlement uses short-context
+rates, operation-ID custody is evaluator-local rather than run-wide, and the
+semantic-label overlay lacks append-once reviewer provenance. Those are
+offline-repairable.
+
+The founder-level issue is that all ten cells are unexecuted, but tracked
+P-set 20 already profiled their content-derived retrieval difficulty. The
+freeze therefore cannot truthfully call them genuinely uninspected. No live
+action is authorized until the founder chooses whether to retain and relabel
+this population or select a new one, all technical defects are repaired, and
+a fresh reviewer accepts the resulting exact pushed freeze. Input-count
+billing remains undocumented, so the full allowance stays uncertain.

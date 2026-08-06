@@ -3114,3 +3114,13 @@ here with dates. Agents record; the founder decides.
   budget does not replace the repository's exact identity/cap authorization
   gate; no provider activity occurs before clean independent review and exact
   GO.
+
+- 2026-08-06 (BRN-0024 pre-dispatch blocker)
+  **Do not dispatch the submitted freeze; distinguish unexecuted from
+  uninspected.** Independent review found that the selected ten have never
+  produced terminal results, but tracked P-set 20 already records row-specific
+  content-derived classifications for each. BRN-0024 therefore cannot retain
+  its pristine non-inspection claim. The founder must choose retain-and-
+  relabel or a new population. Four separate authority/accounting/custody
+  defects are offline-repairable. No credential, provider, result namespace,
+  or spend was consumed; cumulative accounted remains `$7.80502179`.

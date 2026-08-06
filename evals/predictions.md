@@ -2448,3 +2448,11 @@ Predictions, failing categories first:
    call is accounted before transport, measured/uncertain spend remains
    separate and within both caps, all artifacts rehash mode 0600, credential
    matches are zero, historical `6/10` remains unchanged, and U8 is untouched.
+
+Pre-dispatch review note (does not rewrite this FINAL prediction): tracked
+P-set 20 already contains row-specific, content-derived classifications for
+all ten selected ordinals. The population has no prior terminal execution,
+but the stronger “content and expected route were not inspected” premise is
+not supportable. Dispatch is blocked on a founder choice to retain and relabel
+the population or replace it, plus repair and fresh review of the technical
+freeze.
