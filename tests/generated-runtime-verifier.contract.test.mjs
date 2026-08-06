@@ -5,7 +5,11 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import test from 'node:test'
 
-import { verifyGeneratedRuntime } from '../evals/generated-runtime-verifier.mjs'
+import {
+  assertOneShotAttemptTransition,
+  hashStaticModuleClosure,
+  verifyGeneratedRuntime,
+} from '../evals/generated-runtime-verifier.mjs'
 
 const telemetry = JSON.stringify({
   status: 'passed',
@@ -93,27 +97,35 @@ console.log(${JSON.stringify(telemetry)})
         requiredFunctions: ['runLocalSmoke'],
         runtimePath: created.runtimePath,
       }),
-      /exactly one runLocalSmoke definition; found 0/u,
+      /exited nonzero/u,
     )
   } finally {
     await created.cleanup()
   }
 })
 
-test('rejects duplicate required definitions', async () => {
+test('rejects duplicate top-level required definitions structurally', async () => {
   await rejects(`
 function runLocalSmoke() {}
 function runLocalSmoke() {}
 runLocalSmoke()
 console.log(${JSON.stringify(telemetry)})
-`, /found 2/u)
+`, /exited nonzero/u)
 })
 
-test('rejects a required definition with no retained call', async () => {
+test('comments and strings cannot fake required function bindings', async () => {
   await rejects(`
-function runLocalSmoke() {}
+// function runLocalSmoke() {}
+const bait = 'runLocalSmoke()'
 console.log(${JSON.stringify(telemetry)})
-`, /retains no call/u)
+`, /required function bindings/u)
+})
+
+test('a hard-coded pass report cannot replace executable required bindings', async () => {
+  await rejects(`
+const claimed = 'function runLocalSmoke() { return true }'
+console.log(${JSON.stringify(telemetry)})
+`, /required function bindings/u)
 })
 
 test('rejects nonzero exits and signals', async () => {
@@ -178,5 +190,64 @@ function runLocalSmoke() {}
 runLocalSmoke()
 console.log(${JSON.stringify(JSON.stringify(report))})
 `, new RegExp(`nonzero ${field}`, 'u'))
+  }
+})
+
+test('hashes the complete transitive static import and reexport closure', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'palari-module-closure-'))
+  const entry = join(directory, 'entry.mjs')
+  const dependency = join(directory, 'dependency.mjs')
+  const reexport = join(directory, 'reexport.mjs')
+  try {
+    await writeFile(entry, `
+import value from './dependency.mjs'
+// import './ignored-comment.mjs'
+const bait = "export * from './ignored-string.mjs'"
+export { value }
+`, { mode: 0o600 })
+    await writeFile(dependency, `
+export { named } from './reexport.mjs'
+export default 1
+`, { mode: 0o600 })
+    await writeFile(reexport, 'export const named = 2\n', { mode: 0o600 })
+    const before = await hashStaticModuleClosure({
+      entryPaths: [entry],
+      root: directory,
+    })
+    assert.equal(before.files, 3)
+    assert.deepEqual(before.modules.map(({ path }) => path), [
+      'dependency.mjs',
+      'entry.mjs',
+      'reexport.mjs',
+    ])
+    await writeFile(reexport, 'export const named = 3\n', { mode: 0o600 })
+    const after = await hashStaticModuleClosure({
+      entryPaths: [entry],
+      root: directory,
+    })
+    assert.notEqual(after.sha256, before.sha256)
+    assert.notEqual(
+      after.modules.find(({ path }) => path === 'reexport.mjs').sha256,
+      before.modules.find(({ path }) => path === 'reexport.mjs').sha256,
+    )
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('one-shot attempt states allow only absent-reserved-launched-consumed', () => {
+  assert.equal(assertOneShotAttemptTransition('absent', 'reserved'), 'reserved')
+  assert.equal(assertOneShotAttemptTransition('reserved', 'launched'), 'launched')
+  assert.equal(assertOneShotAttemptTransition('launched', 'consumed'), 'consumed')
+  for (const [current, next] of [
+    ['absent', 'launched'],
+    ['reserved', 'consumed'],
+    ['launched', 'launched'],
+    ['consumed', 'reserved'],
+  ]) {
+    assert.throws(
+      () => assertOneShotAttemptTransition(current, next),
+      /Invalid one-shot attempt transition/u,
+    )
   }
 })
