@@ -2,10 +2,13 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import {
+  OPENAI_LUNA_STANDARD_RESERVATION_POLICY,
   OPENAI_SOL_STANDARD_RESERVATION_POLICY,
+  OPENAI_STANDARD_RESERVATION_POLICIES,
   createOpenAIInputCounter,
   parseOpenAIInputCountResponse,
   reserveOpenAIResponseFromExactCount,
+  reserveOpenAIStandardResponseFromExactCount,
   reserveOpenAIResponseFromUtf8Bytes,
   snapshotOpenAIResponseBody,
 } from '../evals/openai-input-reservation.mjs'
@@ -186,6 +189,32 @@ test('exact reservation selects the pinned short and long Standard bands', () =>
   assertDeepFrozen(long)
 })
 
+test('Luna policy pins the reduced Standard short and long rates', () => {
+  assertDeepFrozen(OPENAI_LUNA_STANDARD_RESERVATION_POLICY)
+  assertDeepFrozen(OPENAI_STANDARD_RESERVATION_POLICIES)
+  const short = reserveOpenAIStandardResponseFromExactCount({
+    count: acceptedCount(1_000),
+    maxOutputTokens: 512,
+    model: 'gpt-5.6-luna',
+  })
+  const long = reserveOpenAIStandardResponseFromExactCount({
+    count: acceptedCount(300_000),
+    maxOutputTokens: 512,
+    model: 'gpt-5.6-luna',
+  })
+  assert.equal(short.policyId, OPENAI_LUNA_STANDARD_RESERVATION_POLICY.id)
+  assert.equal(short.contextBand, 'short')
+  assert.equal(short.inputUsdPerMillion, 0.25)
+  assert.equal(short.outputUsdPerMillion, 1.2)
+  assert.equal(short.reservedUsdDecimal, '0.0008644')
+  assert.equal(long.contextBand, 'long')
+  assert.equal(long.inputUsdPerMillion, 0.5)
+  assert.equal(long.outputUsdPerMillion, 1.8)
+  assert.equal(long.reservedUsdDecimal, '0.1509216')
+  assertDeepFrozen(short)
+  assertDeepFrozen(long)
+})
+
 test('UTF-8 fallback charges bytes at highest rates and full output', () => {
   const bodyText = JSON.stringify({ input: 'café 東京 🔋' })
   const reservation = reserveOpenAIResponseFromUtf8Bytes({
@@ -277,5 +306,10 @@ test('reservation requires the module-validated count record', () => {
   assert.throws(() => reserveOpenAIResponseFromUtf8Bytes({
     bodyText: '{}',
     maxOutputTokens: '512',
+  }), TypeError)
+  assert.throws(() => reserveOpenAIStandardResponseFromExactCount({
+    count: acceptedCount(1),
+    maxOutputTokens: 512,
+    model: 'gpt-5.6-terra',
   }), TypeError)
 })

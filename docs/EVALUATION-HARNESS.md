@@ -57,6 +57,25 @@ input tokens, 1,277 ms, and one physical count request. No generation occurred.
 The identity is consumed and the full `$0.05` remains uncertain/accounted;
 this compatibility pass does not establish billing treatment.
 
+BRN-0023 composes that proven wire with generation reservation without adding
+a network client. `createExactCountedOpenAIResponsesEvaluator(...)` requires
+four injected functions: durable count-attempt reservation, one count
+transport, durable generation reservation, and one generation transport. For
+each unique operation it freezes and hashes one exact Responses body, records
+the caller's explicit unknown-billing count allowance before counting, parses
+the provider count, records the exact generation ceiling, and only then allows
+generation. An operation is consumed before the first callback; no failure can
+retry or fall back to byte estimation after count dispatch.
+
+The count-attempt allowance and generation reservation are deliberately
+separate. The former remains uncertain because the count response has no usage
+or billing field. The latter uses explicit 2026-08-06 Standard/default policy:
+Luna highest-safe input/cache-write is `$0.25/M` short and `$0.50/M` long,
+with `$1.20/M` and `$1.80/M` output; Sol remains `$6.25/M` and `$12.50/M`
+input with `$30/M` and `$45/M` output. Long context begins above 272,000 exact
+input tokens. Fast, Flex, Batch, regional, aliases, and cache discounts are not
+accepted by this boundary.
+
 ## Sealed SQLite inspection
 
 Opening a copied SQLite database in place is not read-only at the physical

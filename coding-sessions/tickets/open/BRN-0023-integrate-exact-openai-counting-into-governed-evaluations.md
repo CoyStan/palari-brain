@@ -6,7 +6,7 @@ level: 1
 parent_id:
 root_id: BRN-0023
 children: []
-status: open
+status: in-review
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -162,3 +162,21 @@ answer behavior.
   count billing must be guessed, if caller identity/cap/seal enforcement would
   need to move into this generic boundary, or if production behavior must
   change.
+
+## Implementation Evidence
+
+- Added a provider-neutral exact-counted Responses evaluator with four injected
+  ledger/transport boundaries and no environment, filesystem, endpoint, or
+  credential ownership.
+- Added Luna short/long Standard policies while preserving the accepted Sol
+  API and UTF-8 fallback behavior.
+- P-set 33 focused contracts pass 33/33, including exact preregistered Luna and
+  Sol amounts, ordering, one-shot identities, immutable bodies/audit records,
+  malformed response, cap stop, and transport failure paths.
+- Official provenance:
+  <https://developers.openai.com/api/docs/guides/token-counting> and
+  <https://developers.openai.com/api/docs/pricing>.
+- Provider, credential, private-result, benchmark, generation, and spend
+  activity: zero. Historical BRN-0017 remains 6/10; BRN-0022 remains consumed.
+- Full suite passes 772 / skips 15 / fails 0 across 787. Quickstart passes 6/6;
+  ticket, report, governed scope, syntax, and diff checks pass.

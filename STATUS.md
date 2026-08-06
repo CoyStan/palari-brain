@@ -1,11 +1,23 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0023 CONTRACT OPEN; OFFLINE EXACT-COUNT EVALUATION INTEGRATION
+Loop state: BRN-0023 IMPLEMENTED OFFLINE; VERIFICATION AND INDEPENDENT REVIEW
 NEXT. The founder directed BRN-0023 implementation and preparation of a fresh
 held-out BRN-0024 Luna+Ettin evaluation without returning between tickets
 unless a founder-level blocker occurs. BRN-0023 makes no provider call or
 spend; BRN-0024 still requires a frozen exact identity/cap and founder gate
 before live dispatch.
+
+BRN-0023 now composes one immutable structured Responses body through durable
+unknown-billing count-attempt reservation, one injected exact count, pinned
+Luna/Sol Standard reservation, and one injected generation call. Operation IDs
+are consumed before callbacks; every failure is terminal without retry or
+post-count byte fallback. P-set 33 provider-free contracts pass 33/33. Luna
+reserves exactly `$0.0008644` for 1,000 input + 512 output tokens and
+`$0.1509216` for 300,000 + 512; Sol compatibility remains `$0.02161` for
+1,000 + 512. Credential/provider/private-result/benchmark activity and spend
+remain zero; cumulative accounted remains `$7.80502179`. Full tests pass 772 /
+fail 0 / skip 15 across 787; quickstart passes 6/6; ticket, report, scope,
+syntax, and diff checks pass.
 
 BRN-0022 is accepted, merged, and pushed at `16655a4`.
 Founder-authorized identity

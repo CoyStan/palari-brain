@@ -2369,3 +2369,21 @@ Predictions, failing categories first:
 7. HISTORY: provider, credential, private-result, benchmark, generation, and
    spend activity remain zero; BRN-0022 stays consumed and historical BRN-0017
    remains 6/10.
+
+Provider-free result:
+
+- ORDERING: **PASS.** Both durable callbacks precede their respective single
+  transports and rejected/reused operations reach neither transport.
+- FAIL-CLOSED: **PASS.** Count, parser, count-reservation, response-reservation,
+  and response-transport failures are terminal with no retry or post-count
+  fallback.
+- EXACT BODY: **PASS.** Count and generation receive byte-equivalent frozen
+  structured snapshots despite caller/callback mutation attempts.
+- LUNA MATH: **PASS.** Measured deterministic reservations are exactly
+  `$0.0008644` short and `$0.1509216` long for the preregistered fixtures.
+- SOL COMPATIBILITY: **PASS.** The preregistered Sol fixture remains exactly
+  `$0.02161`.
+- ACCOUNTING: **PASS.** Count uncertainty and exact generation reservation are
+  distinct immutable audit fields with no settlement claim.
+- HISTORY: **PASS.** All provider/private/credential/benchmark/spend counters
+  remain zero; BRN-0022 is unchanged and historical BRN-0017 remains 6/10.
