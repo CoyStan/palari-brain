@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0023 REPAIRED OFFLINE; FRESH CUMULATIVE REVIEW NEXT. The
-founder directed BRN-0023 implementation and preparation of a fresh
+Loop state: BRN-0023 ACCEPTED FOR MERGE; BRN-0024 FREEZE NEXT. The founder
+directed BRN-0023 implementation and preparation of a fresh
 held-out BRN-0024 Luna+Ettin evaluation without returning between tickets
 unless a founder-level blocker occurs. BRN-0023 makes no provider call or
 spend; BRN-0024 still requires a frozen exact identity/cap and founder gate
@@ -24,6 +24,13 @@ reserves exactly `$0.0008644` for 1,000 input + 512 output tokens and
 remain zero; cumulative accounted remains `$7.80502179`. Full tests pass 775 /
 fail 0 / skip 15 across 790; quickstart passes 6/6; ticket, report, scope,
 syntax, and diff checks pass.
+
+Fresh independent cumulative review of exact clean pushed head `2b8f6c0`
+replayed all three findings plus same-ID reentrancy and additional
+callback-time intrinsic poisoning. It found no remaining P0-P3 issue and
+recommends ACCEPT. Under the founder's standing delegation for clean,
+independently reviewed tickets, BRN-0023 is accepted for merge. Acceptance
+authorizes no provider access or BRN-0024 dispatch.
 
 BRN-0022 is accepted, merged, and pushed at `16655a4`.
 Founder-authorized identity
