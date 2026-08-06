@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0022 REOPENED FOR SECOND CUMULATIVE P1 REPAIR. P-set 32 is FINAL for
+Loop state: BRN-0022 SECOND REPAIR IN FRESH CUMULATIVE REVIEW. P-set 32 is FINAL for
 identity `openai-structured-input-count-compat-v1`: one physical
 `POST /v1/responses/input_tokens` request, no generation, no retry, `$0.05`
 fresh / `$7.80502179` cumulative accounted caps from the exact `$7.75502179`
@@ -39,8 +39,8 @@ escaped the repository because both sides of the containment comparison were
 normalized. The store now permits only the frozen `.palari-input-count`
 segment; traversal and absolute variants fail before filesystem access.
 Repaired focused contracts pass 22/22; the full suite passes 761 / fails 0 /
-skips 15 optional tests across 776. Push and another independent cumulative
-rereview remain required. Quickstart is 6/6 and
+skips 15 optional tests across 776. The second repair is pushed; one fresh
+independent cumulative rereview remains required. Quickstart is 6/6 and
 provider-free verify, ticket/report, governed scope, syntax, and diff checks
 pass. Do not dispatch.
 
