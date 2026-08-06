@@ -12,6 +12,10 @@ Generated runtimes now have to execute their real provider-free smoke from the
 final bytes. A permanent test recreates the exact deletion. The new successor
 runtime actually built a temporary Palari brain, ranked synthetic memories
 with cached Ettin, returned `It is titanium.`, and cleaned up afterward.
+After independent review found three pre-run defects, the cumulative repair
+also proves the required helpers actually ran, hashes all 48 transitive source
+modules from one reviewed root, and fixes the one-shot state sequence so the
+runtime can consume exactly one launched attempt.
 
 ## What I Should Know
 

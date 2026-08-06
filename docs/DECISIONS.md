@@ -3175,3 +3175,17 @@ here with dates. Agents record; the founder decides.
   This ticket authorizes no credential access, provider call, result namespace,
   score, semantic judgment, or spend; a reviewed successor stops at a fresh
   founder gate.
+
+- 2026-08-06 (BRN-0025 cumulative review repair)
+  **Bind execution, one-shot state, and the complete same-root source closure.**
+  Independent review of submitted head `f6bc40b` found that the launcher wrote
+  `consumed` before spawning a runtime that required `launched`, the claimed
+  19-file list omitted transitive imports and mixed ticket/canonical roots, and
+  lexical symbol counting admitted comments/strings without proving a helper
+  ran. Repair all three offline: reserve then durably launch before spawn;
+  atomically consume in the runtime; derive a 48-file static import/reexport
+  closure from exact clean ticket-root bytes; and execute a nonce-instrumented
+  same-directory copy that proves every required helper binding ran. Keep the
+  successor namespaces absent and require fresh cumulative review. No live
+  authority, credential access, dataset access, provider call, or spend follows
+  from this repair.

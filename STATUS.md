@@ -1,19 +1,32 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0025 GENERATED-RUNTIME SMOKE-CUSTODY IMPLEMENTED OFFLINE;
-INDEPENDENT REVIEW NEXT. The tracked verifier now rejects missing/duplicate
-required definitions, retained-call defects, timeout/signal/nonzero exits,
-invalid or oversized output, and nonzero provider/credential/dataset/result
-telemetry. Its 8/8 contracts permanently reproduce BRN-0024's transformation-
-order deletion while proving syntax alone passes.
+Loop state: BRN-0025 CUMULATIVE REVIEW REPAIR IMPLEMENTED OFFLINE;
+FRESH INDEPENDENT REREVIEW NEXT. Independent review of `f6bc40b` reopened one
+P0, one P1, and one P2: launcher/runtime attempt states contradicted, the
+claimed 19-file source list was incomplete and mixed roots, and lexical helper
+matching could be fooled without proving execution.
+
+The cumulative repair makes the launcher durably write `reserved`, atomically
+replace it with `launched` before spawn, and lets the runtime require then
+atomically consume that state before preflight. Offline custody proves
+`reserved -> launched -> consumed`, rejects reuse, and cleans its temporary
+state. The generated runtime imports one exact clean ticket root; Node's module
+parser derives its complete 48-file / 732,601-byte static import/reexport
+closure at SHA-256
+`021cf118dec74f5611f5578488dbf86c5b11f996c0cec1a25ba6a680a8e2960d`.
+The final-runtime verifier now executes a nonce-instrumented same-directory
+copy and requires each named module-scope helper to exist and run. Comments,
+strings, duplicate declarations, hard-coded pass output, timeout/signal/
+nonzero exits, invalid/oversized output, and nonzero external telemetry fail
+closed. Focused contracts pass 11/11.
 
 New identity `j4-luna-ettin-unexecuted11to20-v2` and FINAL P-set 36 preserve
 the same disclosed population, architecture, treatment, predictions,
 historical `6/10`, U8 exclusion, `$7.80502179` opening accounting, and proposed
 `$5.00` fresh / `$12.80502179` cumulative caps. The mode-0600 private launcher
-SHA-256 is `8d0b6a6b19d03b7385445182dc91c1ed9a90dc83878cc82a267708f2d3b3a568`;
+SHA-256 is `1ac7f3854f09409a5f3cfc0d28e93279c840db7d9a8a47f8c33d00a01c38a46b`;
 the mode-0600 final runtime SHA-256 is
-`f3034fac3c43ebfc55911f85dfb65cff022825dc338b7c539357fd521c36a404`.
+`331776b2537b1e0b0921c842d61869eb0dc3025284f78dffeeceb98d5d634a4a`.
 Provider-free verification executed one real cached-Ettin rank through a
 temporary synthetic Palari brain: the titanium memory ranked first, the answer
 was `It is titanium.`, scores were finite 4/4, and temporary state was removed.
@@ -22,8 +35,8 @@ result writes. The successor result and semantic-review namespaces remain
 absent; fresh spend is `$0.00` and cumulative accounted stays `$7.80502179`.
 
 All seven BRN-0024 private launcher/runtime/terminal hashes and mode-0600 bytes
-rehash unchanged before and after. Focused contracts pass 8/8; full tests pass
-783 / fail 0 / skip 15 across 798; quickstart passes 6/6; syntax, ticket,
+rehash unchanged before and after. Focused contracts pass 11/11; full tests pass
+786 / fail 0 / skip 15 across 801; quickstart passes 6/6; syntax, ticket,
 report, governed scope, and diff checks pass. Independent review is PENDING.
 No live successor is authorized; an accepted freeze must stop for a new exact
 founder GO binding identity, both caps, reviewed head, launcher/runtime hashes,

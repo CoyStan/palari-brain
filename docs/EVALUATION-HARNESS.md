@@ -147,13 +147,27 @@ incomplete.
 ## Generated runtime execution verification
 
 `verifyGeneratedRuntime(...)` protects a final generated Node byte sequence,
-not merely its composer or syntax. Callers name every helper whose definition
-and retained call are required. The verifier rejects missing or duplicate
-definitions before execution, then runs one explicit provider-free child mode
-with a fixed timeout and output bound. It accepts only one JSON pass containing
-exact zero telemetry for provider calls, credential reads, dataset reads, and
-result writes. Signals, nonzero exits, timeouts, oversized output, stderr, and
-invalid JSON all fail closed.
+not merely its composer or syntax. It writes one mode-0600 ephemeral copy in
+the runtime's own directory, wraps each required module-scope function with a
+nonce-named call counter, then executes the caller's provider-free child mode.
+The original report and nonce-bound structural record must prove every binding
+exists and actually ran. The copy is removed in `finally`. Comments, strings,
+duplicate declarations, and a hard-coded pass report therefore cannot satisfy
+the boundary. Signals, nonzero exits, timeouts, oversized output, stderr,
+invalid JSON, and nonzero provider/credential/dataset/result telemetry fail
+closed.
+
+`hashStaticModuleClosure(...)` asks Node's module parser for every static
+import/reexport and walks relative dependencies under one canonical root. It
+rejects symlinks and escapes and freezes sorted per-file hashes plus external
+`node:` specifiers. BRN-0025's reviewed runtime imports from the same clean
+ticket-root bytes that this closure hashes: 48 files, 732,601 bytes, SHA-256
+`021cf118dec74f5611f5578488dbf86c5b11f996c0cec1a25ba6a680a8e2960d`.
+
+Live one-shot custody has exactly three durable transitions: absent to
+reserved, reserved to launched before spawn, then launched to consumed
+atomically inside the runtime before preflight. No other transition is valid;
+any failure leaves the new identity used and terminal rather than reusable.
 
 BRN-0025 uses this boundary for successor identity
 `j4-luna-ettin-unexecuted11to20-v2`. Its final mode-0600 runtime executes the

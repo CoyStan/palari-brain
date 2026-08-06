@@ -6,13 +6,18 @@ Independent review and founder-gated live authority are intentionally absent.
 
 ## Evidence
 
-Focused contracts pass 8/8; full tests pass 783/798 with 15 expected skips;
+Focused contracts pass 11/11; full tests pass 786/801 with 15 expected skips;
 quickstart passes 6/6. The exact final runtime ran one real synthetic cached-
 Ettin Palari smoke and reported zero provider/credential/dataset/result
 activity. New private launcher/runtime hashes are respectively
-`8d0b6a6b19d03b7385445182dc91c1ed9a90dc83878cc82a267708f2d3b3a568` and
-`f3034fac3c43ebfc55911f85dfb65cff022825dc338b7c539357fd521c36a404`,
+`1ac7f3854f09409a5f3cfc0d28e93279c840db7d9a8a47f8c33d00a01c38a46b` and
+`331776b2537b1e0b0921c842d61869eb0dc3025284f78dffeeceb98d5d634a4a`,
 both mode 0600. The successor namespaces are absent.
+
+The repaired launcher additionally proves durable
+`reserved -> launched -> consumed` custody and freezes the complete 48-file /
+732,601-byte same-ticket-root static closure at SHA-256
+`021cf118dec74f5611f5578488dbf86c5b11f996c0cec1a25ba6a680a8e2960d`.
 
 ## Options
 

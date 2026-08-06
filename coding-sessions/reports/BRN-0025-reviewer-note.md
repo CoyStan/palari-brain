@@ -10,7 +10,14 @@ PENDING independent review.
 
 ## Findings
 
-- PENDING fresh read-only inspection.
+- Historical independent review of exact head `f6bc40b` returned REOPEN:
+  - P0: launcher wrote `consumed` while the runtime required `launched`.
+  - P1: the claimed 19-file closure was curated/incomplete and mixed a clean
+    ticket-root check with canonical-root file hashing.
+  - P2: lexical symbol matching could accept comments/strings and did not
+    prove a hard-coded pass report executed the required helpers.
+- The specialist reports cumulative offline repairs. Fresh independent review
+  of the new exact pushed head remains PENDING.
 
 ## Verification Reviewed
 
@@ -27,9 +34,9 @@ Required final markers remain intentionally non-authorizing:
 
 `BRN0025_REVIEW_HEAD: PENDING`
 
-`BRN0025_REVIEW_LAUNCHER_SHA256: 8d0b6a6b19d03b7385445182dc91c1ed9a90dc83878cc82a267708f2d3b3a568`
+`BRN0025_REVIEW_LAUNCHER_SHA256: 1ac7f3854f09409a5f3cfc0d28e93279c840db7d9a8a47f8c33d00a01c38a46b`
 
-`BRN0025_REVIEW_RUNTIME_SHA256: f3034fac3c43ebfc55911f85dfb65cff022825dc338b7c539357fd521c36a404`
+`BRN0025_REVIEW_RUNTIME_SHA256: 331776b2537b1e0b0921c842d61869eb0dc3025284f78dffeeceb98d5d634a4a`
 
 `BRN0025_REVIEW_RECOMMENDATION: PENDING`
 

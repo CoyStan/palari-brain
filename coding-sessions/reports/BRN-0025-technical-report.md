@@ -13,21 +13,25 @@
 New private, gitignored mode-0600 artifacts:
 
 - `/home/quetza/palari-brain-private/luna-ettin-unexecuted11to20-v2-live-launcher.mjs`
-  — SHA-256 `8d0b6a6b19d03b7385445182dc91c1ed9a90dc83878cc82a267708f2d3b3a568`.
+  — SHA-256 `1ac7f3854f09409a5f3cfc0d28e93279c840db7d9a8a47f8c33d00a01c38a46b`.
 - `/home/quetza/palari-brain-private/luna-ettin-unexecuted11to20-v2-live.runtime.mjs`
-  — SHA-256 `f3034fac3c43ebfc55911f85dfb65cff022825dc338b7c539357fd521c36a404`.
+  — SHA-256 `331776b2537b1e0b0921c842d61869eb0dc3025284f78dffeeceb98d5d634a4a`.
 
 The successor result and semantic-review namespaces are absent.
-The launcher rehashes all 19 inherited runtime import-closure files and
-explicitly proves sealed U8 is excluded from the fixed population.
+The launcher derives and rehashes the complete transitive static import and
+reexport closure from one exact clean ticket root: 48 files, 732,601 bytes,
+SHA-256 `021cf118dec74f5611f5578488dbf86c5b11f996c0cec1a25ba6a680a8e2960d`.
+The generated runtime imports those same ticket-root bytes. Sealed U8 is
+explicitly excluded from the fixed population.
 
 ## Defect Reproduction And Repair
 
 The permanent regression inserts `runLocalSmoke`, then replaces the
 overlapping region from `measuredSpend` through `sourceSession`. The call
 remains while the definition disappears. `node --check` passes; the new
-verifier rejects the final byte sequence before child dispatch because it
-finds zero required definitions.
+verifier's ephemeral same-directory instrumented module fails before producing
+the nonce-bound structural proof. Comments, strings, duplicate definitions,
+and a hard-coded successful telemetry report are permanent failing cases.
 
 The successor composer starts from the exact consumed runtime bytes, changes
 only the identity/imports/mode boundary needed by this ticket, restores the
@@ -37,6 +41,13 @@ brain, loads the exact cached Ettin runtime with remote models disabled and a
 throwing fetch, ingests four synthetic mug statements, and executes one real
 rank. The titanium memory ranks first, the answer is `It is titanium.`, all
 four scores are finite, and the temporary workspace is removed.
+
+The successor launch protocol now writes and syncs `reserved`, atomically
+replaces it with `launched` before spawn, and lets the runtime require then
+atomically replace `launched` with `consumed` before preflight. Offline custody
+executes `reserved -> launched -> consumed`, rejects a post-consumption launch,
+and removes its temporary state. This verification creates no successor result
+namespace.
 
 The tracked verifier executed those final private runtime bytes with a
 180-second timeout and 64-KiB output bound. Accepted telemetry was exactly:
@@ -72,11 +83,11 @@ unchanged.
 ## Verification
 
 - `node --test tests/generated-runtime-verifier.contract.test.mjs`: PASS,
-  8/8.
+  11/11.
 - private successor launcher `--verify`: PASS; real synthetic cached-Ettin
   smoke, finite 4/4 scores, expected ordering/answer, temporary cleanup, exact
   zero external-activity telemetry.
-- `npm test`: PASS, 783 passed / 15 skipped / 0 failed across 798 tests.
+- `npm test`: PASS, 786 passed / 15 skipped / 0 failed across 801 tests.
 - `npm run quickstart`: PASS, 6/6.
 - `node --check` for launcher/runtime/verifier: PASS.
 - ticket, report, committed-plus-dirty scope, and diff checks: PASS at handoff.

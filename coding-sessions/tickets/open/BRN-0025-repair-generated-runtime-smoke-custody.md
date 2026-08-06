@@ -189,16 +189,26 @@ Do not obtain a score, improve answer quality, or authorize the live successor.
 ## Specialist Evidence
 
 - FINAL P-set 36 registered before any possible live access.
-- Focused verifier contracts: 8/8 PASS, including the exact helper-deletion
-  reproduction that passes syntax and fails final-runtime verification.
+- Focused verifier contracts: 11/11 PASS, including exact helper deletion,
+  comment/string bait, hard-coded pass, transitive-closure mutation, and
+  invalid one-shot transition reproductions.
 - Private successor `--verify`: PASS with expected titanium ordering/answer,
   finite 4/4 scores, temporary cleanup, and zero provider/credential/dataset/
   result telemetry.
 - Successor launcher/runtime are mode 0600 at SHA-256
-  `8d0b6a6b19d03b7385445182dc91c1ed9a90dc83878cc82a267708f2d3b3a568` /
-  `f3034fac3c43ebfc55911f85dfb65cff022825dc338b7c539357fd521c36a404`.
+  `1ac7f3854f09409a5f3cfc0d28e93279c840db7d9a8a47f8c33d00a01c38a46b` /
+  `331776b2537b1e0b0921c842d61869eb0dc3025284f78dffeeceb98d5d634a4a`.
+- Complete same-ticket-root static import/reexport closure: 48 files / 732,601
+  bytes / SHA-256
+  `021cf118dec74f5611f5578488dbf86c5b11f996c0cec1a25ba6a680a8e2960d`.
+- Attempt custody: durable `reserved -> launched` before spawn, atomic
+  `launched -> consumed` in runtime, and no post-consumption transition.
 - All seven BRN-0024 private hashes/modes rechecked unchanged before and after.
-- Full tests: 783 pass / 15 skip / 0 fail across 798. Quickstart: 6/6.
+- Full tests: 786 pass / 15 skip / 0 fail across 801. Quickstart: 6/6.
 - Provider, credential, dataset, result-namespace, semantic-judgment, and spend
   activity: `0 / 0 / 0 / 0 / 0 / $0.00`.
 - Independent review: PENDING. Live successor authority: ABSENT.
+
+Historical independent review of `f6bc40b` reopened P0 one-shot state, P1
+mixed/incomplete closure, and P2 lexical-symbol evidence. The evidence above
+is the cumulative specialist repair; fresh exact-head rereview is required.
