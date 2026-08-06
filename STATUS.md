@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0024 ACCEPTED TERMINAL ZERO-CALL FAILURE; BRN-0025 HARNESS
-REPAIR CONTRACT NEXT. Founder-authorized identity
+Loop state: BRN-0025 GENERATED-RUNTIME SMOKE-CUSTODY CONTRACT OPEN; OFFLINE
+IMPLEMENTATION NEXT. BRN-0024 is accepted and terminal. Its founder-authorized
+identity
 `j4-luna-ettin-unexecuted11to20-v1` was
 consumed exactly once under `$5.00` fresh / `$12.80502179` cumulative authority
 at reviewed head `ad37a5f`. It stopped before the provider-free Ettin smoke with
@@ -45,6 +46,15 @@ no P0-P3 issue and recommends ACCEPT. Under the founder's standing delegation
 for clean independently reviewed tickets, BRN-0024 was accepted, merged, and
 pushed at `d482cd7`. Any repair or new live identity requires a new governed
 ticket and fresh founder authorization.
+
+BRN-0025 owns the bounded offline repair: a reusable final-runtime verifier,
+the exact helper-deletion regression, and a new mode-0600 successor freeze
+whose synthetic cached-Ettin smoke actually executes during verification. It
+preserves the same disclosed population and treatment under new identity
+`j4-luna-ettin-unexecuted11to20-v2`, proposed `$5.00` fresh /
+`$12.80502179` cumulative caps, and new P-set 36. No live successor is
+authorized; implementation must make zero provider calls and stop at a fresh
+founder gate after independent review.
 
 BRN-0023 now composes one immutable structured Responses body through durable
 unknown-billing count-attempt reservation, one injected exact count, pinned
