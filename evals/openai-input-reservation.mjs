@@ -214,14 +214,44 @@ export const OPENAI_SOL_STANDARD_RESERVATION_POLICY = deepFreeze(record([
   ])],
 ]))
 
-const RATE_CENTS_PER_MILLION = deepFreeze(record([
+export const OPENAI_LUNA_STANDARD_RESERVATION_POLICY = deepFreeze(record([
+  ['id', 'openai-gpt-5.6-luna-standard-2026-08-06'],
+  ['longContextThresholdInputTokens', 272_000],
   ['shortContext', record([
-    ['input', 625],
-    ['output', 3_000],
+    ['highestInputUsdPerMillion', 0.25],
+    ['outputUsdPerMillion', 1.2],
   ])],
   ['longContext', record([
-    ['input', 1_250],
-    ['output', 4_500],
+    ['highestInputUsdPerMillion', 0.5],
+    ['outputUsdPerMillion', 1.8],
+  ])],
+]))
+
+export const OPENAI_STANDARD_RESERVATION_POLICIES = deepFreeze(record([
+  ['gpt-5.6-luna', OPENAI_LUNA_STANDARD_RESERVATION_POLICY],
+  ['gpt-5.6-sol', OPENAI_SOL_STANDARD_RESERVATION_POLICY],
+]))
+
+const RATE_CENTS_PER_MILLION = deepFreeze(record([
+  ['gpt-5.6-luna', record([
+    ['shortContext', record([
+      ['input', 25],
+      ['output', 120],
+    ])],
+    ['longContext', record([
+      ['input', 50],
+      ['output', 180],
+    ])],
+  ])],
+  ['gpt-5.6-sol', record([
+    ['shortContext', record([
+      ['input', 625],
+      ['output', 3_000],
+    ])],
+    ['longContext', record([
+      ['input', 1_250],
+      ['output', 4_500],
+    ])],
   ])],
 ]))
 
@@ -236,10 +266,13 @@ function usdDecimal(picodollars) {
   return fraction ? `${whole}.${fraction}` : `${whole}`
 }
 
-function reserve({ inputUnits, maxOutputTokens, source, band }) {
+function reserve({ inputUnits, maxOutputTokens, source, band, model }) {
   positiveSafeInteger(inputUnits, 'input units')
   positiveSafeInteger(maxOutputTokens, 'maxOutputTokens')
-  const rates = RATE_CENTS_PER_MILLION[band]
+  const policy = OPENAI_STANDARD_RESERVATION_POLICIES[model]
+  const modelRates = RATE_CENTS_PER_MILLION[model]
+  if (!policy || !modelRates) fail('model has no pinned Standard policy.')
+  const rates = modelRates[band]
   const inputPicodollars = bigintFrom(inputUnits) *
     bigintFrom(rates.input) * PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
   const outputPicodollars = bigintFrom(maxOutputTokens) *
@@ -248,7 +281,9 @@ function reserve({ inputUnits, maxOutputTokens, source, band }) {
   const reservedUsdDecimal = usdDecimal(reservedPicodollars)
   return deepFreeze(record([
     ['source', source],
-    ['policyId', OPENAI_SOL_STANDARD_RESERVATION_POLICY.id],
+    ['policyId', policy.id],
+    ['model', model],
+    ['serviceTier', 'default'],
     ['contextBand', band === 'shortContext' ? 'short' : 'long'],
     ['inputUnits', inputUnits],
     ['maxOutputTokens', maxOutputTokens],
@@ -265,13 +300,29 @@ export function reserveOpenAIResponseFromExactCount({
   count,
   maxOutputTokens,
 } = {}) {
+  return reserveOpenAIStandardResponseFromExactCount({
+    count,
+    maxOutputTokens,
+    model: 'gpt-5.6-sol',
+  })
+}
+
+export function reserveOpenAIStandardResponseFromExactCount({
+  count,
+  maxOutputTokens,
+  model,
+} = {}) {
   if (!count || typeof count !== 'object' ||
     !weakSetHas(acceptedCountRecords, count)) {
     fail('count must be the validated record returned by this module.')
   }
+  if (typeof model !== 'string' ||
+    !objectHasOwn(OPENAI_STANDARD_RESERVATION_POLICIES, model)) {
+    fail('model must have one exact pinned Standard policy.')
+  }
   const inputTokens = count.inputTokens
-  const band = inputTokens >
-    OPENAI_SOL_STANDARD_RESERVATION_POLICY.longContextThresholdInputTokens
+  const policy = OPENAI_STANDARD_RESERVATION_POLICIES[model]
+  const band = inputTokens > policy.longContextThresholdInputTokens
     ? 'longContext'
     : 'shortContext'
   return reserve({
@@ -279,6 +330,7 @@ export function reserveOpenAIResponseFromExactCount({
     maxOutputTokens,
     source: 'provider-input-count',
     band,
+    model,
   })
 }
 
@@ -295,6 +347,7 @@ export function reserveOpenAIResponseFromUtf8Bytes({
     maxOutputTokens,
     source: 'utf8-byte-fallback',
     band: 'longContext',
+    model: 'gpt-5.6-sol',
   })
 }
 

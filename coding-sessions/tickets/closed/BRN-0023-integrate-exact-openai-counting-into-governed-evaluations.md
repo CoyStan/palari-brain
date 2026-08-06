@@ -6,7 +6,7 @@ level: 1
 parent_id:
 root_id: BRN-0023
 children: []
-status: open
+status: accepted
 risk: R3
 priority: P0
 agents_allowed: 1
@@ -162,3 +162,33 @@ answer behavior.
   count billing must be guessed, if caller identity/cap/seal enforcement would
   need to move into this generic boundary, or if production behavior must
   change.
+
+## Implementation Evidence
+
+- Added a provider-neutral exact-counted Responses evaluator with four injected
+  ledger/transport boundaries and no environment, filesystem, endpoint, or
+  credential ownership.
+- Added Luna short/long Standard policies while preserving the accepted Sol
+  API and UTF-8 fallback behavior.
+- P-set 33 focused contracts pass 36/36, including exact preregistered Luna and
+  Sol amounts, ordering, one-shot identities, immutable bodies/audit records,
+  malformed response, cap stop, transport failure, captured-intrinsic, and
+  UTF-8 operation-ID boundary paths.
+- Official provenance:
+  <https://developers.openai.com/api/docs/guides/token-counting> and
+  <https://developers.openai.com/api/docs/pricing>.
+- Provider, credential, private-result, benchmark, generation, and spend
+  activity: zero. Historical BRN-0017 remains 6/10; BRN-0022 remains consumed.
+- Initial independent review of pushed head `4ce75aa` reopened one P1, one P2,
+  and one P3: mutable hash methods could falsify the body digest, mutable
+  regular-expression dispatch could admit a signed allowance, and the
+  operation-ID limit measured code units despite promising UTF-8 bytes. The
+  cumulative repair captures the trusted crypto/regex/byte-count intrinsics
+  before caller callbacks and adds one permanent regression for each finding.
+- Full suite passes 775 / skips 15 / fails 0 across 790. Quickstart passes 6/6;
+  ticket, report, governed scope, syntax, and diff checks pass.
+- Fresh cumulative review of exact clean pushed implementation head `2b8f6c0`
+  independently replayed the three findings and additional intrinsic attacks,
+  found no remaining P0-P3 issue, and recommends ACCEPT. The founder's
+  standing delegation authorizes acceptance and merge of this clean reviewed
+  offline ticket; it does not authorize live activity.

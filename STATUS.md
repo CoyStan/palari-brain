@@ -1,11 +1,36 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0023 CONTRACT OPEN; OFFLINE EXACT-COUNT EVALUATION INTEGRATION
-NEXT. The founder directed BRN-0023 implementation and preparation of a fresh
+Loop state: BRN-0023 ACCEPTED FOR MERGE; BRN-0024 FREEZE NEXT. The founder
+directed BRN-0023 implementation and preparation of a fresh
 held-out BRN-0024 Luna+Ettin evaluation without returning between tickets
 unless a founder-level blocker occurs. BRN-0023 makes no provider call or
 spend; BRN-0024 still requires a frozen exact identity/cap and founder gate
 before live dispatch.
+
+BRN-0023 now composes one immutable structured Responses body through durable
+unknown-billing count-attempt reservation, one injected exact count, pinned
+Luna/Sol Standard reservation, and one injected generation call. Operation IDs
+are consumed before callbacks; every failure is terminal without retry or
+post-count byte fallback. Initial independent review of pushed head `4ce75aa`
+reopened one P1, one P2, and one P3: mutable hash methods could falsify the
+body digest, mutable regex dispatch could admit a signed allowance, and the
+operation-ID limit measured code units while promising UTF-8 bytes. The
+cumulative repair captures trusted crypto/regex/byte-count intrinsics before
+callbacks and permanently tests each reproduction. P-set 33 provider-free
+contracts pass 36/36. Luna
+reserves exactly `$0.0008644` for 1,000 input + 512 output tokens and
+`$0.1509216` for 300,000 + 512; Sol compatibility remains `$0.02161` for
+1,000 + 512. Credential/provider/private-result/benchmark activity and spend
+remain zero; cumulative accounted remains `$7.80502179`. Full tests pass 775 /
+fail 0 / skip 15 across 790; quickstart passes 6/6; ticket, report, scope,
+syntax, and diff checks pass.
+
+Fresh independent cumulative review of exact clean pushed head `2b8f6c0`
+replayed all three findings plus same-ID reentrancy and additional
+callback-time intrinsic poisoning. It found no remaining P0-P3 issue and
+recommends ACCEPT. Under the founder's standing delegation for clean,
+independently reviewed tickets, BRN-0023 is accepted for merge. Acceptance
+authorizes no provider access or BRN-0024 dispatch.
 
 BRN-0022 is accepted, merged, and pushed at `16655a4`.
 Founder-authorized identity

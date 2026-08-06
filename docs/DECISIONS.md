@@ -3084,3 +3084,22 @@ here with dates. Agents record; the founder decides.
   larger proposed budget if evidence requires it, but the repository's exact
   live-run gate still requires the final identity and numeric caps before any
   credential or provider access.
+
+- 2026-08-06 (BRN-0023 implementation boundary)
+  **Keep exact counting evaluation-only and keep its uncertainty separate.**
+  One unique operation durably reserves a caller-chosen unknown-billing count
+  allowance, sends the exact frozen body once to the count transport, derives
+  an explicit Luna/Sol Standard reservation, durably records it, then permits
+  one generation transport. The generic module owns no credential, endpoint,
+  retry, filesystem, settlement, or cap policy. The official count guide and
+  pricing page are pinned as provenance; no live request was made.
+
+- 2026-08-06 (BRN-0023 acceptance)
+  **Accept the exact-count evaluation integration after clean cumulative
+  independent review.** The reviewer replayed the original P1/P2/P3 attacks
+  and additional callback-time intrinsic poisoning against exact pushed head
+  `2b8f6c0`, found no remaining P0-P3 issue, and independently confirmed all
+  offline gates. Merge under the founder's standing delegation for clean,
+  independently reviewed tickets. This accepts an offline orchestration
+  boundary only; it grants no provider call, spend, score, or BRN-0024 live
+  authority.
