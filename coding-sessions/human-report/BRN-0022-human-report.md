@@ -24,6 +24,13 @@ unchanged. We conservatively keep the entire `$0.05` as uncertain/accounted
 after the future call because OpenAI documents the count result but not a
 separate billing rule.
 
+The first independent review found a real filesystem bug before it could
+matter: a symlink at the private result-root path could redirect the reservation
+and seal outside the repo, and the root's parent was not synced for crash
+durability. The repair now rejects that path, holds physical directory handles,
+writes through those handles, and syncs the parent before key access. The exact
+attack is now a permanent offline test. A fresh reviewer must confirm it.
+
 ## What To Check
 
 - A bad authority, cap, git head, or reused identity must fail before key read.

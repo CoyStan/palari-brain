@@ -8,7 +8,7 @@ import {
   mkdir,
   open,
   readFile,
-  readdir,
+  realpath,
   stat,
 } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
@@ -374,6 +374,42 @@ async function pathAbsent(path) {
   }
 }
 
+async function openPrivateDirectory(path, expectedPhysicalPath) {
+  const metadata = await lstat(path)
+  if (metadata.isSymbolicLink() || !metadata.isDirectory()) {
+    throw new OpenAIInputCountProbeError(
+      'PRIVATE_DIRECTORY_INVALID',
+      `${basename(path)} must be a real private directory.`,
+    )
+  }
+  await chmod(path, 0o700)
+  const physicalPath = await realpath(path)
+  if (physicalPath !== expectedPhysicalPath) {
+    throw new OpenAIInputCountProbeError(
+      'PRIVATE_DIRECTORY_ESCAPE',
+      `${basename(path)} escaped its physical repository location.`,
+    )
+  }
+  const handle = await open(path, 'r')
+  try {
+    const opened = await handle.stat()
+    const descriptorPath = `/proc/self/fd/${handle.fd}`
+    const descriptorPhysicalPath = await realpath(descriptorPath)
+    if (!opened.isDirectory() || opened.dev !== metadata.dev ||
+      opened.ino !== metadata.ino ||
+      descriptorPhysicalPath !== expectedPhysicalPath) {
+      throw new OpenAIInputCountProbeError(
+        'PRIVATE_DIRECTORY_CHANGED',
+        `${basename(path)} changed while its descriptor was opened.`,
+      )
+    }
+    return { descriptorPath, handle, physicalPath }
+  } catch (error) {
+    await handle.close()
+    throw error
+  }
+}
+
 export function createOpenAIInputCountResultStore({
   repoRoot,
   resultRoot = '.palari-input-count',
@@ -386,7 +422,8 @@ export function createOpenAIInputCountResultStore({
   }
   const root = resolve(repoRoot, resultRoot)
   const identityPath = join(root, OPENAI_INPUT_COUNT_PROBE.identity)
-  if (dirname(identityPath) !== root) {
+  if (root !== join(resolve(repoRoot), resultRoot) ||
+    dirname(identityPath) !== root) {
     throw new OpenAIInputCountProbeError(
       'RESULT_ROOT_INVALID',
       'Identity escaped the private result root.',
@@ -395,10 +432,50 @@ export function createOpenAIInputCountResultStore({
   let begun = false
   let sealed = false
   let credentialForScan = null
+  let rootDirectory = null
+  let identityDirectory = null
+
+  async function inspectRoot() {
+    const repoPhysical = await realpath(repoRoot)
+    const expectedRootPhysical = join(repoPhysical, resultRoot)
+    let rootMetadata
+    try {
+      rootMetadata = await lstat(root)
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        return { expectedRootPhysical, repoPhysical, rootAbsent: true }
+      }
+      throw error
+    }
+    if (rootMetadata.isSymbolicLink() || !rootMetadata.isDirectory() ||
+      await realpath(root) !== expectedRootPhysical) {
+      throw new OpenAIInputCountProbeError(
+        'RESULT_ROOT_UNSAFE',
+        'The private result root is not a physical repository directory.',
+      )
+    }
+    return { expectedRootPhysical, repoPhysical, rootAbsent: false }
+  }
+
+  async function closeDirectories() {
+    const errors = []
+    for (const directory of [identityDirectory, rootDirectory]) {
+      if (!directory) continue
+      try {
+        await directory.handle.close()
+      } catch (error) {
+        errors.push(error)
+      }
+    }
+    identityDirectory = null
+    rootDirectory = null
+    if (errors.length) throw errors[0]
+  }
 
   return Object.freeze({
     identityPath,
     async namespaceAbsent() {
+      await inspectRoot()
       return pathAbsent(identityPath)
     },
     setCredentialForScan(value) {
@@ -411,13 +488,43 @@ export function createOpenAIInputCountResultStore({
           'Reservation was already begun.',
         )
       }
-      await mkdir(root, { mode: 0o700, recursive: true })
-      await chmod(root, 0o700)
-      await mkdir(identityPath, { mode: 0o700 })
-      await writePrivateJson(join(identityPath, 'reservation.json'), reservation)
-      await syncDirectory(identityPath)
-      await syncDirectory(root)
-      begun = true
+      const inspected = await inspectRoot()
+      try {
+        if (inspected.rootAbsent) {
+          await mkdir(root, { mode: 0o700 })
+          // The result-root directory entry itself must survive a crash before
+          // a billed dispatch, not only the files written beneath it.
+          await syncDirectory(repoRoot)
+        }
+        rootDirectory = await openPrivateDirectory(
+          root,
+          inspected.expectedRootPhysical,
+        )
+        const descriptorIdentityPath = join(
+          rootDirectory.descriptorPath,
+          OPENAI_INPUT_COUNT_PROBE.identity,
+        )
+        await mkdir(descriptorIdentityPath, { mode: 0o700 })
+        identityDirectory = await openPrivateDirectory(
+          descriptorIdentityPath,
+          join(
+            inspected.expectedRootPhysical,
+            OPENAI_INPUT_COUNT_PROBE.identity,
+          ),
+        )
+        await writePrivateJson(
+          join(identityDirectory.descriptorPath, 'reservation.json'),
+          reservation,
+        )
+        await identityDirectory.handle.sync()
+        await rootDirectory.handle.sync()
+        begun = true
+      } catch (error) {
+        try {
+          await closeDirectories()
+        } catch {}
+        throw error
+      }
     },
     async seal(terminal) {
       if (!begun || sealed) {
@@ -426,37 +533,59 @@ export function createOpenAIInputCountResultStore({
           'Terminal seal requires one unsealed reservation.',
         )
       }
-      const terminalPath = join(identityPath, 'terminal.json')
-      await writePrivateJson(terminalPath, terminal)
-      const artifactNames = ['reservation.json', 'terminal.json']
-      const artifacts = []
-      for (const name of artifactNames) {
-        const path = join(identityPath, name)
-        const bytes = await readFile(path)
-        if (credentialForScan && bytes.includes(Buffer.from(credentialForScan))) {
-          throw new OpenAIInputCountProbeError(
-            'CREDENTIAL_LEAK',
-            'A private artifact contains credential bytes.',
-          )
+      if (!identityDirectory || !rootDirectory) {
+        throw new OpenAIInputCountProbeError(
+          'SEAL_STATE_INVALID',
+          'Terminal seal lost its owned directory descriptors.',
+        )
+      }
+      try {
+        const terminalPath = join(
+          identityDirectory.descriptorPath,
+          'terminal.json',
+        )
+        await writePrivateJson(terminalPath, terminal)
+        const artifactNames = ['reservation.json', 'terminal.json']
+        const artifacts = []
+        for (const name of artifactNames) {
+          const path = join(identityDirectory.descriptorPath, name)
+          const bytes = await readFile(path)
+          if (credentialForScan &&
+            bytes.includes(Buffer.from(credentialForScan))) {
+            throw new OpenAIInputCountProbeError(
+              'CREDENTIAL_LEAK',
+              'A private artifact contains credential bytes.',
+            )
+          }
+          const metadata = await stat(path)
+          artifacts.push({
+            mode: (metadata.mode & 0o777).toString(8).padStart(4, '0'),
+            name,
+            sha256: sha256(bytes),
+            size: bytes.length,
+          })
         }
-        const metadata = await stat(path)
-        artifacts.push({
-          mode: (metadata.mode & 0o777).toString(8).padStart(4, '0'),
-          name,
-          sha256: sha256(bytes),
-          size: bytes.length,
-        })
+        const manifest = {
+          artifacts,
+          credentialMatches: 0,
+          identity: OPENAI_INPUT_COUNT_PROBE.identity,
+          outcome: terminal.outcome,
+          sealed: true,
+        }
+        await writePrivateJson(
+          join(identityDirectory.descriptorPath, 'manifest.json'),
+          manifest,
+        )
+        await identityDirectory.handle.sync()
+        await rootDirectory.handle.sync()
+        await closeDirectories()
+        sealed = true
+      } catch (error) {
+        try {
+          await closeDirectories()
+        } catch {}
+        throw error
       }
-      const manifest = {
-        artifacts,
-        credentialMatches: 0,
-        identity: OPENAI_INPUT_COUNT_PROBE.identity,
-        outcome: terminal.outcome,
-        sealed: true,
-      }
-      await writePrivateJson(join(identityPath, 'manifest.json'), manifest)
-      await syncDirectory(identityPath)
-      sealed = true
     },
   })
 }

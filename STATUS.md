@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0022 OPEN, OFFLINE FREEZE IN PROGRESS. P-set 32 is FINAL for
+Loop state: BRN-0022 REOPENED, CUMULATIVE REPAIR IN PROGRESS. P-set 32 is FINAL for
 identity `openai-structured-input-count-compat-v1`: one physical
 `POST /v1/responses/input_tokens` request, no generation, no retry, `$0.05`
 fresh / `$7.80502179` cumulative accounted caps from the exact `$7.75502179`
@@ -14,15 +14,27 @@ The private mode-0600 launcher SHA-256 is
 `98c5a9e57804f5ea4ccd5e9c6dcb91de716d69a355a9fe6acb4c49658d933689`;
 provider-free verification passes and the private result namespace is absent.
 
-Focused contracts pass 19/19. Full suite passes 758 / fails 0 / skips 15
+Initial focused contracts passed 19/19. Full suite passed 758 / failed 0 / skipped 15
 optional tests across 773. Credential reads, network requests, provider calls,
 generation, private benchmark access, and fresh spend are
 `0 / 0 / 0 / 0 / 0 / $0.00`; cumulative accounted remains `$7.75502179`.
 Historical BRN-0017 remains 6/10 and consumed BRN-0020 remains unchanged.
-Quickstart passes 6/6; syntax, diff, ticket, report, and governed
-committed-plus-dirty scope checks pass. Next: commit and push the freeze, obtain
-independent pre-dispatch review, then request the exact founder authorization.
-Do not dispatch before that gate.
+Quickstart passed 6/6; syntax, ticket, report, and governed scope checks passed.
+Independent review of pushed head `a51d10c` correctly reopened one P1 and one
+P3. A symlinked `.palari-input-count` root could redirect all artifacts outside
+the repository, and first creation did not sync `repoRoot`, so the new root
+entry was not crash-durable before dispatch. The ticket transition also left
+two trailing spaces despite the reported diff PASS.
+
+The cumulative repair rejects symlinked or physically escaped roots, holds
+open root/identity descriptors, writes through `/proc/self/fd`, and syncs
+`repoRoot` immediately after creating the result root. Permanent symlink and
+fresh-directory regressions pass; repaired focused contracts are 21/21 and
+ticket whitespace is clean. The repaired full suite passes 760 / fails 0 /
+skips 15 optional tests across 775; quickstart passes 6/6; provider-free verify,
+ticket/report, governed scope, syntax, and diff checks pass. Next: commit and
+push and obtain fresh independent cumulative rereview. Do not dispatch before
+that gate.
 
 Product stop rule: (1) yes, quickstart is green 6/6;
 (2) yes if the one live count establishes exact structured-wire compatibility,

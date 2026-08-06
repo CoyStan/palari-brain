@@ -28,7 +28,7 @@ launcher remains outside git. No live call has run.
 ## Verification
 
 - `node --check` on tracked runner, contract, and private launcher: PASS.
-- Focused contracts: PASS, 19/19.
+- Initial focused contracts: PASS, 19/19. After review repair: PASS, 21/21.
 - Private launcher `--verify`: PASS; identity namespace absent; request hash
   `805097ec9d165fb5206ea3ef5429ffd27b985572dea3362d3b635b7550669561`.
 - Full `npm test`: PASS, 758 passed / 15 skipped / 0 failed across 773.
@@ -60,3 +60,21 @@ launcher remains outside git. No live call has run.
 - Independent review must attack the preflight ordering, filesystem boundary,
   one-call guarantee, response parser seam, and credential scan before the
   exact founder gate can open.
+
+## Review Repair
+
+Independent review of exact pushed head `a51d10c` reopened a P1 physical and
+durability gap plus a P3 diff issue. A symlinked result root redirected all
+artifacts outside the repository, and the new root entry could be lost because
+`repoRoot` was never synced. The workflow also committed trailing spaces in
+two cleared claim fields.
+
+The result store now rejects symlink/non-directory/physically escaped roots,
+opens the root and identity as owned directory descriptors, writes and reads
+artifacts through `/proc/self/fd`, and syncs the repository directory after
+first root creation before completing the reservation. Both physical
+directories remain held through terminal seal. Two permanent regressions cover
+the exact symlink escape and fresh private-directory path. Repaired focused
+contracts pass 21/21; full suite passes 760 / 15 skipped / 0 failed across 775;
+quickstart passes 6/6; provider-free verify, ticket/report, scope, syntax, and
+the working diff pass. Fresh cumulative review is required after push.

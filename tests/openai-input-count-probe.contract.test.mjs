@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, stat } from 'node:fs/promises'
+import {
+  access,
+  mkdtemp,
+  readFile,
+  stat,
+  symlink,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -208,6 +214,38 @@ test('credential-byte leak blocks manifest seal', async () => {
     store.seal({ outcome: 'failed', accidental: 'accidental-secret' }),
     (error) => error.code === 'CREDENTIAL_LEAK',
   )
+})
+
+test('symlinked result root is rejected without writing outside repo', async () => {
+  const repoRoot = await mkdtemp(join(tmpdir(), 'palari-count-repo-'))
+  const outside = await mkdtemp(join(tmpdir(), 'palari-count-outside-'))
+  await symlink(outside, join(repoRoot, '.palari-input-count'))
+  const store = createOpenAIInputCountResultStore({ repoRoot })
+  await assert.rejects(
+    store.namespaceAbsent(),
+    (error) => error.code === 'RESULT_ROOT_UNSAFE',
+  )
+  await assert.rejects(
+    store.beginReservation({ amount: '0.05' }),
+    (error) => error.code === 'RESULT_ROOT_UNSAFE',
+  )
+  await assert.rejects(
+    access(join(outside, OPENAI_INPUT_COUNT_PROBE.identity)),
+    (error) => error.code === 'ENOENT',
+  )
+})
+
+test('fresh root and identity are physical private directories', async () => {
+  const repoRoot = await mkdtemp(join(tmpdir(), 'palari-count-physical-'))
+  const store = createOpenAIInputCountResultStore({ repoRoot })
+  await store.beginReservation({ amount: '0.05' })
+  const rootMetadata = await stat(join(repoRoot, '.palari-input-count'))
+  const identityMetadata = await stat(store.identityPath)
+  assert.equal(rootMetadata.isDirectory(), true)
+  assert.equal(identityMetadata.isDirectory(), true)
+  assert.equal(rootMetadata.mode & 0o777, 0o700)
+  assert.equal(identityMetadata.mode & 0o777, 0o700)
+  await store.seal({ outcome: 'compatible' })
 })
 
 test('CLI requires one explicit mode and full reviewed head for run', () => {

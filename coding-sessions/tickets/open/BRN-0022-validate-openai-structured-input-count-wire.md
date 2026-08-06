@@ -3,15 +3,15 @@ id: BRN-0022
 title: "Validate OpenAI structured input-count wire"
 stream: evaluation
 level: 1
-parent_id: 
+parent_id:
 root_id: BRN-0022
 children: []
-status: in-review
+status: claimed
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by: 
-claimed_at: 
+claimed_by: "quetza"
+claimed_at: 2026-08-06T03:47:38Z
 target_branch: "main"
 branch: "ticket/BRN-0022-validate-openai-structured-input-count-wire"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0022-validate-openai-structured-input-count-wire"
@@ -198,10 +198,30 @@ compatibility artifact without changing any historical benchmark result.
 - The private mode-0600 launcher is outside git at SHA-256
   `98c5a9e57804f5ea4ccd5e9c6dcb91de716d69a355a9fe6acb4c49658d933689`.
   Provider-free `--verify` passes and reports the result namespace absent.
-- Focused contracts pass 19/19. Full suite passes 758, fails 0, and skips 15
+- Focused contracts initially passed 19/19. Full suite passed 758, failed 0,
+  and skipped 15
   optional tests across 773. No live run has occurred: credential reads,
   network requests, provider calls, generation, private benchmark access, and
   spend remain `0 / 0 / 0 / 0 / 0 / $0.00`; cumulative accounted remains
   exactly `$7.75502179`.
 - The freeze still requires clean pushed committed scope, an independent
   reviewer with no P0-P3 finding, and the exact fresh founder authorization.
+
+## Review Repair
+
+- Independent review of exact pushed head `a51d10c` reopened one P1 and one
+  P3. The P1 reproduced a symlinked `.palari-input-count` root that redirected
+  every private artifact outside the repository, and found that first creation
+  synced the new root but not its `repoRoot` parent. The P3 found trailing
+  whitespace introduced when the workflow cleared claim fields.
+- The cumulative repair rejects symlink/non-directory/physically escaped roots
+  before result creation, holds open physical root and identity descriptors,
+  writes every artifact through `/proc/self/fd`, and syncs `repoRoot` after
+  first root creation before any reservation can complete. Permanent symlink
+  escape and fresh physical-directory regressions now pass. Ticket whitespace
+  is removed.
+- Repaired focused contracts pass 21/21; full suite passes 760, fails 0, and
+  skips 15 optional tests across 775; quickstart passes 6/6; provider-free
+  verify, ticket/report, governed scope, syntax, and diff checks pass. Fresh
+  independent cumulative rereview remains required before the founder dispatch
+  gate may open.
