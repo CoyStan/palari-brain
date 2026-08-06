@@ -146,11 +146,36 @@ function assertRequiredFunctionNames(requiredFunctions) {
 async function instrumentRuntime(runtimePath, source, requiredFunctions) {
   const nonce = randomUUID()
   const prefix = `PALARI_RUNTIME_SYMBOLS:${nonce}:`
-  const declarations = requiredFunctions.map((name) =>
-    `[${JSON.stringify(name)}, typeof ${name} === 'function']`).join(',\n  ')
-  const instrumented = `${source}\n` +
+  const identifier = nonce.replaceAll('-', '')
+  const callsName = `__palariRuntimeCalls_${identifier}`
+  const originalsName = `__palariRuntimeOriginals_${identifier}`
+  const applyName = `__palariRuntimeApply_${identifier}`
+  const wrappers = requiredFunctions.map((name) => `
+${callsName}[${JSON.stringify(name)}] = 0
+if (typeof ${name} === 'function') {
+  ${originalsName}[${JSON.stringify(name)}] = ${name}
+  ${name} = function (...args) {
+    ${callsName}[${JSON.stringify(name)}] += 1
+    return ${applyName}(
+      ${originalsName}[${JSON.stringify(name)}],
+      this,
+      args,
+    )
+  }
+}
+`).join('')
+  const structuralRows = requiredFunctions.map((name) =>
+    `[${JSON.stringify(name)}, typeof ${name} === 'function', ` +
+      `${callsName}[${JSON.stringify(name)}]]`).join(',\n  ')
+  const instrumentation =
+    `const ${callsName} = Object.create(null)\n` +
+    `const ${originalsName} = Object.create(null)\n` +
+    `const ${applyName} = Reflect.apply\n` + wrappers
+  const shebangEnd = source.startsWith('#!') ? source.indexOf('\n') + 1 : 0
+  const instrumented = source.slice(0, shebangEnd) + instrumentation +
+    source.slice(shebangEnd) + `\n` +
     `console.log(${JSON.stringify(prefix)} + JSON.stringify({\n` +
-    `  requiredFunctions: [\n  ${declarations}\n  ],\n` +
+    `  requiredFunctions: [\n  ${structuralRows}\n  ],\n` +
     `  status: 'structural-pass',\n` +
     `}))\n`
   const directory = dirname(resolve(runtimePath))
@@ -229,12 +254,16 @@ function parseSuccessfulTelemetry(
       cause: error,
     })
   }
-  const expectedFunctions = requiredFunctions.map((name) => [name, true])
+  const observedFunctions = structural?.requiredFunctions
   if (!structural || structural.status !== 'structural-pass' ||
-    JSON.stringify(structural.requiredFunctions) !==
-      JSON.stringify(expectedFunctions)) {
+    !Array.isArray(observedFunctions) ||
+    observedFunctions.length !== requiredFunctions.length ||
+    observedFunctions.some((row, index) =>
+      !Array.isArray(row) || row.length !== 3 ||
+      row[0] !== requiredFunctions[index] || row[1] !== true ||
+      !Number.isSafeInteger(row[2]) || row[2] < 1)) {
     throw new Error(
-      'Generated runtime required function bindings are missing or invalid.',
+      'Generated runtime required functions were missing or not executed.',
     )
   }
   if (!report || typeof report !== 'object' || Array.isArray(report) ||

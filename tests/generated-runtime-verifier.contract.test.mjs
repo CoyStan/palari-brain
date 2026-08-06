@@ -118,14 +118,14 @@ test('comments and strings cannot fake required function bindings', async () => 
 // function runLocalSmoke() {}
 const bait = 'runLocalSmoke()'
 console.log(${JSON.stringify(telemetry)})
-`, /required function bindings/u)
+`, /missing or not executed/u)
 })
 
 test('a hard-coded pass report cannot replace executable required bindings', async () => {
   await rejects(`
-const claimed = 'function runLocalSmoke() { return true }'
+function runLocalSmoke() { return true }
 console.log(${JSON.stringify(telemetry)})
-`, /required function bindings/u)
+`, /missing or not executed/u)
 })
 
 test('rejects nonzero exits and signals', async () => {
