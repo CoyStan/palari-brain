@@ -130,6 +130,36 @@ export function assertOneShotAttemptTransition(current, next) {
   return next
 }
 
+function exactMarker(note, name) {
+  const prefix = `${name}: `
+  const matches = note.split(/\r?\n/u).filter((line) => line.startsWith(prefix))
+  if (matches.length !== 1) {
+    throw new Error(`Review attestation requires one exact ${name} marker.`)
+  }
+  return matches[0].slice(prefix.length)
+}
+
+export function assertReviewAttestation({
+  identity,
+  launcherSha256,
+  note,
+  runtimeSha256,
+} = {}) {
+  if (typeof note !== 'string' || note.length === 0 ||
+    exactMarker(note, 'BRN0025_REVIEW_IDENTITY') !== identity ||
+    exactMarker(note, 'BRN0025_REVIEW_LAUNCHER_SHA256') !== launcherSha256 ||
+    exactMarker(note, 'BRN0025_REVIEW_RUNTIME_SHA256') !== runtimeSha256 ||
+    exactMarker(note, 'BRN0025_REVIEW_RECOMMENDATION') !== 'ACCEPT') {
+    throw new Error('Independent review attestation is not ACCEPT.')
+  }
+  return Object.freeze({
+    identity,
+    launcherSha256,
+    recommendation: 'ACCEPT',
+    runtimeSha256,
+  })
+}
+
 function assertRequiredFunctionNames(requiredFunctions) {
   if (!Array.isArray(requiredFunctions) || requiredFunctions.length === 0) {
     throw new TypeError('At least one required function is required.')

@@ -7,6 +7,7 @@ import test from 'node:test'
 
 import {
   assertOneShotAttemptTransition,
+  assertReviewAttestation,
   hashStaticModuleClosure,
   verifyGeneratedRuntime,
 } from '../evals/generated-runtime-verifier.mjs'
@@ -124,6 +125,14 @@ console.log(${JSON.stringify(telemetry)})
 test('a hard-coded pass report cannot replace executable required bindings', async () => {
   await rejects(`
 function runLocalSmoke() { return true }
+console.log(${JSON.stringify(telemetry)})
+`, /missing or not executed/u)
+})
+
+test('moving the real required call behind an unexecuted branch cannot pass', async () => {
+  await rejects(`
+function runLocalSmoke() { return true }
+if (false) runLocalSmoke()
 console.log(${JSON.stringify(telemetry)})
 `, /missing or not executed/u)
 })
@@ -250,4 +259,37 @@ test('one-shot attempt states allow only absent-reserved-launched-consumed', () 
       /Invalid one-shot attempt transition/u,
     )
   }
+})
+
+test('review attestation is marker-only while founder authority owns final head', () => {
+  const accepted = [
+    'BRN0025_REVIEW_IDENTITY: successor-v2',
+    'BRN0025_REVIEW_LAUNCHER_SHA256: launcher-sha',
+    'BRN0025_REVIEW_RUNTIME_SHA256: runtime-sha',
+    'BRN0025_REVIEW_RECOMMENDATION: ACCEPT',
+  ].join('\n')
+  assert.deepEqual(assertReviewAttestation({
+    identity: 'successor-v2',
+    launcherSha256: 'launcher-sha',
+    note: accepted,
+    runtimeSha256: 'runtime-sha',
+  }), {
+    identity: 'successor-v2',
+    launcherSha256: 'launcher-sha',
+    recommendation: 'ACCEPT',
+    runtimeSha256: 'runtime-sha',
+  })
+  assert.equal(accepted.includes('REVIEW_HEAD'), false)
+  assert.throws(() => assertReviewAttestation({
+    identity: 'successor-v2',
+    launcherSha256: 'launcher-sha',
+    note: accepted.replace('ACCEPT', 'PENDING'),
+    runtimeSha256: 'runtime-sha',
+  }), /not ACCEPT/u)
+  assert.throws(() => assertReviewAttestation({
+    identity: 'successor-v2',
+    launcherSha256: 'launcher-sha',
+    note: `${accepted}\nBRN0025_REVIEW_RECOMMENDATION: ACCEPT`,
+    runtimeSha256: 'runtime-sha',
+  }), /one exact BRN0025_REVIEW_RECOMMENDATION marker/u)
 })
