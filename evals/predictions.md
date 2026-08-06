@@ -2338,3 +2338,34 @@ Terminal result (recorded after the one exact founder-authorized invocation):
   `9607c0c97862c5c54593d07d599d79b61d4eae0a8223f014c6f09d1271936d69`.
 - HISTORY: **PASS.** Historical BRN-0017 remains 6/10 and prior private/sealed
   benchmark evidence remains unchanged and unaccessed.
+
+## P-set 33 — Exact-count governed Responses integration
+
+Status: **FINAL before implementation; provider-free only.**
+
+Identity: `brn0023-openai-counted-responses-offline-v1`
+
+Predictions, failing categories first:
+
+1. ORDERING: every unique operation durably records its explicit
+   unknown-billing count-attempt allowance before one count invocation, then
+   durably records its exact model reservation before one generation
+   invocation. No rejected or reused operation reaches either transport.
+2. FAIL-CLOSED: count, parse, or either reservation failure produces zero
+   generation invocations; generation failure is terminal; no path retries or
+   falls back to UTF-8 bytes after count dispatch.
+3. EXACT BODY: count and generation transports receive byte-equivalent frozen
+   snapshots of the caller's exact structured body, including instructions,
+   tools, and `max_output_tokens`; caller or callback mutation cannot alter it.
+4. LUNA MATH: at 1,000 exact input tokens and a 512-token ceiling, Luna
+   Standard short-context reservation is exactly `$0.0008644`. At 300,000
+   input tokens it selects long context and is exactly `$0.1509216`.
+5. SOL COMPATIBILITY: the accepted Sol Standard policy remains unchanged; at
+   1,000 exact input tokens and a 512-token ceiling it reserves exactly
+   `$0.02161`.
+6. ACCOUNTING: count-attempt uncertain allowance and exact generation
+   reservation remain distinct immutable fields; the module never claims the
+   count endpoint is free or settles either surface.
+7. HISTORY: provider, credential, private-result, benchmark, generation, and
+   spend activity remain zero; BRN-0022 stays consumed and historical BRN-0017
+   remains 6/10.

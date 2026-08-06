@@ -3072,3 +3072,15 @@ here with dates. Agents record; the founder decides.
   Merge under the founder's standing delegation for clean independently
   reviewed tickets. Acceptance grants no retry, regrade, benchmark run, or
   publication authority.
+
+- 2026-08-06 (FOUNDER — BRN-0023/24 next sequence)
+  **Integrate exact count reservations offline, then prepare a fresh held-out
+  Luna+Ettin evaluation without pausing between tickets absent a founder-level
+  blocker.** BRN-0023 composes the accepted BRN-0021 reservation primitive and
+  BRN-0022 physical-wire result into a reusable injected evaluation boundary.
+  It authorizes no provider activity or spend. BRN-0024 must use unseen cases,
+  preserve historical 6/10 and sealed U8, preregister one terminal identity,
+  and freeze a justified hard cap before dispatch. The founder permits a
+  larger proposed budget if evidence requires it, but the repository's exact
+  live-run gate still requires the final identity and numeric caps before any
+  credential or provider access.

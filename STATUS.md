@@ -1,6 +1,13 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0022 ACCEPTED, MERGED, AND PUSHED AT `16655a4`.
+Loop state: BRN-0023 CONTRACT OPEN; OFFLINE EXACT-COUNT EVALUATION INTEGRATION
+NEXT. The founder directed BRN-0023 implementation and preparation of a fresh
+held-out BRN-0024 Luna+Ettin evaluation without returning between tickets
+unless a founder-level blocker occurs. BRN-0023 makes no provider call or
+spend; BRN-0024 still requires a frozen exact identity/cap and founder gate
+before live dispatch.
+
+BRN-0022 is accepted, merged, and pushed at `16655a4`.
 Founder-authorized identity
 `openai-structured-input-count-compat-v1` ran exactly once and is consumed.
 The frozen `gpt-5.6-sol` request returned HTTP 200 and the strict response
