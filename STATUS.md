@@ -10,8 +10,8 @@ population, models, prompts, architecture, and `$5.00` fresh /
 `6/10` remain unchanged.
 
 The repaired private mode-0600 launcher/runtime hash to
-`a1af02cd5f6a010142264324a0b3f008f2d871bf4996b9b64c80610cfea2d915`
-and `49334a11ed353d3e5760d79c572d79852be5aafc1252e6a8362de5de5cada678`.
+`2ffb3d7a414008a74b9c61eaa1aca1db0240ef33fd155a6adb060863b2488459`
+and `b49c6f8c38d08271933daa415f19037fd7055ede3711bb5d27371c42aaadca81`.
 Provider-free verification binds 18 product/eval files, 13 predecessor
 bundles, the pinned dataset/order, seven Ettin artifacts and its 3,208-file
 runtime closure, the clean canonical contract commit `0615b10`, exact caps,
@@ -38,6 +38,18 @@ distinct metrics. Equivalent-fact and materially-used labels begin pending/
 null and never regrade the official score or canonical memory. Exact founder
 authority remains required after a clean pushed freeze and independent ACCEPT
 recommendation.
+
+Review of `a8b8ae8` reopened two additional custody defects. Caller-supplied
+`ACCEPT` was not backed by a machine-readable ACCEPT marker in the reviewed
+Git note, and runtime `--verify` parsed the selected dataset content before
+authority. Prior verifier executions exposed only aggregate counts (4,950
+messages, 4,867,901 visible bytes, maximum 15,338 characters), never text,
+answers, supporting messages, or a route to a human. No product/prompt/model/
+population change, provider, credential, namespace, or spend resulted. The
+runtime verifier is now synthetic-only and an `strace` check confirms it never
+opens the dataset. The live gate now also requires exact tracked
+`BRN0024_REVIEW_DISPOSITION: ACCEPT` and identity markers. That marker remains
+PENDING until an independent reviewer actually accepts the repaired head.
 
 Repaired private verification is green, including exact short/long settlement,
 duplicate operation rejection, the 20-label overlay schema, both absent

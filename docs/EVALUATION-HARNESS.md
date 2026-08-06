@@ -77,6 +77,11 @@ without changing official scoring or canonical memory. Exact live authority
 binds both caps, reviewed pushed head, launcher/runtime hashes, and ACCEPT
 state before result namespace creation. Standard Luna settlement uses
 short/long measured rates selected from the exact-count context band.
+Runtime `--verify` is synthetic-only and never opens the dataset; selected
+question/session parsing is confined to authorized `--run` after the launcher
+consumes the attempt. The launcher treats an environment ACCEPT as insufficient
+unless the exact pushed reviewed note also contains the machine-readable
+BRN-0024 ACCEPT disposition and identity.
 
 BRN-0023 composes that proven wire with generation reservation without adding
 a network client. `createExactCountedOpenAIResponsesEvaluator(...)` requires

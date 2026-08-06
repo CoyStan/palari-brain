@@ -240,8 +240,8 @@ changing or reinterpreting any historical score.
   P-set 35 relabels the same fixed IDs as never executed but previously
   profiled by P-set 20; it excludes U8 and permits no new content inspection.
 - Private launcher/runtime are mode 0600 with SHA-256
-  `a1af02cd5f6a010142264324a0b3f008f2d871bf4996b9b64c80610cfea2d915`
-  and `49334a11ed353d3e5760d79c572d79852be5aafc1252e6a8362de5de5cada678`.
+  `2ffb3d7a414008a74b9c61eaa1aca1db0240ef33fd155a6adb060863b2488459`
+  and `b49c6f8c38d08271933daa415f19037fd7055ede3711bb5d27371c42aaadca81`.
 - Provider-free verification binds clean canonical `0615b10`, product cut
   `146d911`, 18 current source/eval files, 13 predecessor bundles, dataset and
   order hashes, seven native Ettin artifacts and the 3,208-file runtime
@@ -294,3 +294,12 @@ remain abandoned and absent. The replacement identity/P-set 35 implement all
 four technical repairs without changing product, prompt, population, model,
 selection, or cap behavior. Fresh independent review of the exact repaired
 pushed freeze remains required.
+
+Review of repaired head `a8b8ae8` reopened two further findings. P0: a caller
+could assert ACCEPT even while the tracked note said PENDING. P1: runtime
+`--verify` called content-parsing `preflight()` before authority and emitted
+only aggregate counts. No text/reference/supporting content reached a human
+and no tuning or live action followed. The second repair makes `--verify`
+synthetic-only (confirmed not to open the dataset) and requires the exact
+reviewed note to contain machine-readable ACCEPT plus identity markers before
+namespace creation. The marker remains PENDING until independent acceptance.

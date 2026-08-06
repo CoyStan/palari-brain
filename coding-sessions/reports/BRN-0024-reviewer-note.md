@@ -58,9 +58,33 @@ semantic-review seal binds reviewer provenance plus the original manifest.
 Exact submitted private hashes for cumulative rereview:
 
 - Launcher:
-  `a1af02cd5f6a010142264324a0b3f008f2d871bf4996b9b64c80610cfea2d915`
+  `2ffb3d7a414008a74b9c61eaa1aca1db0240ef33fd155a6adb060863b2488459`
 - Runtime:
-  `49334a11ed353d3e5760d79c572d79852be5aafc1252e6a8362de5de5cada678`
+  `b49c6f8c38d08271933daa415f19037fd7055ede3711bb5d27371c42aaadca81`
 
 Fresh cumulative recommendation: **PENDING**. The original `needs-human`
 finding remains historical evidence and does not authorize dispatch.
+
+## Repaired-Head Review And Second Submission
+
+Independent review of exact pushed head `a8b8ae8` recommends REOPEN for one P0
+and one P1. The launcher trusted caller-supplied ACCEPT while this note said
+PENDING. Runtime `--verify` also parsed selected session content and emitted
+only aggregate message/byte/maximum-length values before authority. No text,
+answer, supporting message, credential, provider, result, or spend was
+exposed; no content-driven change followed.
+
+The second repair requires this tracked note at the confirmed pushed head to
+contain both exact machine markers below. PENDING intentionally cannot satisfy
+the live gate. After a fresh reviewer accepts this repaired implementation, a
+separate tracked attestation commit may change only the disposition to ACCEPT;
+that exact administrative head must then receive one final independent
+rereview before founder authority can name it.
+
+`BRN0024_REVIEW_DISPOSITION: PENDING`
+
+`BRN0024_REVIEW_IDENTITY: j4-luna-ettin-unexecuted11to20-v1`
+
+Runtime `--verify` is now synthetic-only; `preflight()` remains reachable only
+after the authorized launcher consumes the live attempt. System-call tracing
+confirms verification never opens `longmemeval_s_cleaned.json`.

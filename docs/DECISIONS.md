@@ -3133,3 +3133,13 @@ here with dates. Agents record; the founder decides.
   prompt, model, architecture, or caps. Disclose P-set 20's prior profiling,
   permit no new content-driven tuning, repair all reviewed technical defects,
   and require fresh independent review plus exact live authority.
+
+- 2026-08-06 (BRN-0024 second pre-dispatch repair)
+  **Bind ACCEPT to tracked review evidence and keep offline verification out of
+  selected content.** Review of `a8b8ae8` proved environment ACCEPT could
+  contradict a tracked PENDING note and runtime verification parsed selected
+  sessions to emit aggregate counts before authority. No text or answer was
+  exposed to a human and no candidate change followed. Require exact tracked
+  disposition/identity markers at the confirmed pushed head; keep the marker
+  PENDING until actual acceptance. Make `--verify` synthetic-only and reserve
+  dataset parsing for consumed authorized `--run`.

@@ -29,6 +29,13 @@ long-context pricing, global operation custody, and semantic-review seal are
 now repaired offline. Fresh independent review and exact founder authorization
 are still required before the first live request.
 
+A second review caught two more pre-run issues: offline verification was
+programmatically reading the ten sessions to calculate aggregates, and a
+caller could claim review acceptance while the tracked note still said
+pending. No conversation text was shown to a human and nothing was tuned from
+those aggregates. Verification is now synthetic-only, and the launcher must
+see a tracked ACCEPT marker from the exact reviewed Git head.
+
 ## Recommended Next Move
 
 Obtain fresh independent pre-dispatch review. If it is clean, request the

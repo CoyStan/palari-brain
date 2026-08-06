@@ -29,7 +29,7 @@ exact authority.
   `$12.80502179`.
 - Every Luna operation keeps a `$0.05` count allowance uncertain, then derives
   its generation ceiling from the exact count. No retry or byte fallback.
-- Launcher/runtime SHA-256: `a1af02cd...d915` / `49334a11...a678`, both mode
+- Launcher/runtime SHA-256: `2ffb3d7a...8459` / `b49c6f8c...ca81`, both mode
   0600. Result namespace is absent.
 
 ## Verification
@@ -58,3 +58,12 @@ owns the replacement identity. No live action is authorized until a fresh
 reviewer accepts the exact pushed freeze and the founder binds its exact
 identity, caps, head, private hashes, and ACCEPT state. Input-count billing
 remains undocumented, so the full allowance stays uncertain.
+
+Review of `a8b8ae8` reopened a P0 because caller-supplied ACCEPT was not backed
+by an ACCEPT disposition in the tracked reviewed note, and a P1 because runtime
+`--verify` called `preflight()` and parsed selected session content before
+authority. Prior executions exposed only aggregate counts to humans and caused
+no content-driven change. The second repair requires exact tracked disposition
+and identity markers and makes runtime verification synthetic-only. `strace`
+confirms it does not open the dataset; authorized `--run` retains the one
+content-parsing preflight after attempt consumption.

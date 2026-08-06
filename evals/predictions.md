@@ -2516,3 +2516,12 @@ Predictions, failing categories first:
    official short/long Standard rates from the exact context band; count
    uncertainty remains separate; all artifacts rehash mode 0600; credential
    matches are zero; historical `6/10` remains unchanged; and U8 is untouched.
+
+Pre-dispatch process note (does not rewrite the FINAL predictions): the first
+P-set 35 verifier programmatically parsed selected sessions and emitted only
+aggregate counts—4,950 messages, 4,867,901 visible bytes, maximum 15,338
+characters—before founder authority. No text, reference answer, supporting
+message, route, credential, provider call, namespace, or spend reached a human
+or changed the candidate. Independent review reopened this metadata-only
+boundary; the repaired runtime verifier is synthetic-only and dataset parsing
+is confined to consumed authorized `--run`.
