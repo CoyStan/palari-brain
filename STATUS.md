@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0022 REOPENED, CUMULATIVE REPAIR IN PROGRESS. P-set 32 is FINAL for
+Loop state: BRN-0022 REPAIRED FREEZE IN FRESH CUMULATIVE REVIEW. P-set 32 is FINAL for
 identity `openai-structured-input-count-compat-v1`: one physical
 `POST /v1/responses/input_tokens` request, no generation, no retry, `$0.05`
 fresh / `$7.80502179` cumulative accounted caps from the exact `$7.75502179`
@@ -32,9 +32,9 @@ open root/identity descriptors, writes through `/proc/self/fd`, and syncs
 fresh-directory regressions pass; repaired focused contracts are 21/21 and
 ticket whitespace is clean. The repaired full suite passes 760 / fails 0 /
 skips 15 optional tests across 775; quickstart passes 6/6; provider-free verify,
-ticket/report, governed scope, syntax, and diff checks pass. Next: commit and
-push and obtain fresh independent cumulative rereview. Do not dispatch before
-that gate.
+ticket/report, governed scope, syntax, and diff checks pass. The repaired freeze
+is pushed; fresh independent cumulative rereview is the remaining gate. Do not
+dispatch before it is clean and the founder gives exact authority.
 
 Product stop rule: (1) yes, quickstart is green 6/6;
 (2) yes if the one live count establishes exact structured-wire compatibility,
