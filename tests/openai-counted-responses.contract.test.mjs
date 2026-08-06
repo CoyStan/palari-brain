@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 
@@ -250,6 +251,67 @@ test('invalid operation, allowance, model, tier, store, and output fail pre-disp
     await assert.rejects(run.invoke(args), OpenAICountedResponsesError)
     assert.deepEqual(run.events, [])
   }
+})
+
+test('captured crypto methods keep body hashes authentic after prototype poisoning', async () => {
+  const source = body()
+  const expected = createHash('sha256')
+    .update(JSON.stringify(source))
+    .digest('hex')
+  const hashPrototype = Object.getPrototypeOf(createHash('sha256'))
+  const originalUpdate = hashPrototype.update
+  const originalDigest = hashPrototype.digest
+  try {
+    hashPrototype.update = function poisonedUpdate() { return this }
+    hashPrototype.digest = () => 'a'.repeat(64)
+    const run = create()
+    const terminal = await run.invoke({
+      body: source,
+      countAttemptPicodollars: '1',
+      operationId: 'authentic-hash',
+    })
+    assert.equal(terminal.audit.bodySha256, expected)
+    assert.notEqual(terminal.audit.bodySha256, 'a'.repeat(64))
+    assert.equal(run.seen.countPlan.bodySha256, expected)
+    assert.equal(run.seen.responsePlan.bodySha256, expected)
+  } finally {
+    hashPrototype.update = originalUpdate
+    hashPrototype.digest = originalDigest
+  }
+})
+
+test('captured decimal validation rejects signed allowance after prototype poisoning', async () => {
+  const originalTest = RegExp.prototype.test
+  try {
+    RegExp.prototype.test = () => true
+    const run = create()
+    await assert.rejects(
+      run.invoke({
+        body: body(),
+        countAttemptPicodollars: '+1',
+        operationId: 'signed-allowance',
+      }),
+      (error) => error instanceof OpenAICountedResponsesError &&
+        error.code === 'COUNT_RESERVATION_INVALID',
+    )
+    assert.deepEqual(run.events, [])
+  } finally {
+    RegExp.prototype.test = originalTest
+  }
+})
+
+test('operation ID limit is enforced in UTF-8 bytes before dispatch', async () => {
+  const run = create()
+  await assert.rejects(
+    run.invoke({
+      body: body(),
+      countAttemptPicodollars: '1',
+      operationId: '界'.repeat(100),
+    }),
+    (error) => error instanceof OpenAICountedResponsesError &&
+      error.code === 'OPERATION_ID_INVALID',
+  )
+  assert.deepEqual(run.events, [])
 })
 
 test('factory requires every injected ledger and transport dependency', () => {

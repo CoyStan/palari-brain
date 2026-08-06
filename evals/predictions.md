@@ -2387,3 +2387,11 @@ Provider-free result:
   distinct immutable audit fields with no settlement claim.
 - HISTORY: **PASS.** All provider/private/credential/benchmark/spend counters
   remain zero; BRN-0022 is unchanged and historical BRN-0017 remains 6/10.
+
+Initial independent review of pushed implementation head `4ce75aa` did not
+change or rerun this provider-free result. It reopened three implementation
+defects outside the predicted arithmetic: caller-side prototype poisoning
+could forge the audit hash or admit a signed allowance, and multibyte
+operation IDs exceeded the promised byte limit. The repaired 36/36 focused
+bank includes permanent adversarial reproductions; a fresh cumulative review
+is required before acceptance.

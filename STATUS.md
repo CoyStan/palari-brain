@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0023 IMPLEMENTED OFFLINE; VERIFICATION AND INDEPENDENT REVIEW
-NEXT. The founder directed BRN-0023 implementation and preparation of a fresh
+Loop state: BRN-0023 REPAIRED OFFLINE; FRESH CUMULATIVE REVIEW NEXT. The
+founder directed BRN-0023 implementation and preparation of a fresh
 held-out BRN-0024 Luna+Ettin evaluation without returning between tickets
 unless a founder-level blocker occurs. BRN-0023 makes no provider call or
 spend; BRN-0024 still requires a frozen exact identity/cap and founder gate
@@ -11,12 +11,18 @@ BRN-0023 now composes one immutable structured Responses body through durable
 unknown-billing count-attempt reservation, one injected exact count, pinned
 Luna/Sol Standard reservation, and one injected generation call. Operation IDs
 are consumed before callbacks; every failure is terminal without retry or
-post-count byte fallback. P-set 33 provider-free contracts pass 33/33. Luna
+post-count byte fallback. Initial independent review of pushed head `4ce75aa`
+reopened one P1, one P2, and one P3: mutable hash methods could falsify the
+body digest, mutable regex dispatch could admit a signed allowance, and the
+operation-ID limit measured code units while promising UTF-8 bytes. The
+cumulative repair captures trusted crypto/regex/byte-count intrinsics before
+callbacks and permanently tests each reproduction. P-set 33 provider-free
+contracts pass 36/36. Luna
 reserves exactly `$0.0008644` for 1,000 input + 512 output tokens and
 `$0.1509216` for 300,000 + 512; Sol compatibility remains `$0.02161` for
 1,000 + 512. Credential/provider/private-result/benchmark activity and spend
-remain zero; cumulative accounted remains `$7.80502179`. Full tests pass 772 /
-fail 0 / skip 15 across 787; quickstart passes 6/6; ticket, report, scope,
+remain zero; cumulative accounted remains `$7.80502179`. Full tests pass 775 /
+fail 0 / skip 15 across 790; quickstart passes 6/6; ticket, report, scope,
 syntax, and diff checks pass.
 
 BRN-0022 is accepted, merged, and pushed at `16655a4`.

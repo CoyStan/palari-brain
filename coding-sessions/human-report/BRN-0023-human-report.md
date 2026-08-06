@@ -31,5 +31,6 @@ consumes that operation without retry.
 
 ## Recommended Next Move
 
-Obtain independent review. If clean, prepare BRN-0024 on a held-out ten with a
-fresh one-shot identity and a budget derived from the new exact-count policy.
+Obtain fresh cumulative review of the three adversarial hardening repairs. If
+clean, prepare BRN-0024 on a held-out ten with a fresh one-shot identity and a
+budget derived from the new exact-count policy.

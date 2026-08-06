@@ -12,13 +12,24 @@ import {
 } from './openai-input-reservation.mjs'
 
 const bigintFrom = BigInt
+const bufferByteLength = Buffer.byteLength
+const functionCall = Function.prototype.call
+const functionBind = Function.prototype.bind
 const jsonStringify = JSON.stringify
 const numberIsSafeInteger = Number.isSafeInteger
 const objectFreeze = Object.freeze
+const objectGetPrototypeOf = Object.getPrototypeOf
 const objectHasOwn = Object.hasOwn
-const setAdd = Function.prototype.call.bind(Set.prototype.add)
-const setHas = Function.prototype.call.bind(Set.prototype.has)
-const stringTrim = Function.prototype.call.bind(String.prototype.trim)
+const bindCall = functionCall.bind(functionBind, functionCall)
+const hashPrototype = objectGetPrototypeOf(createHash('sha256'))
+const hashDigest = bindCall(hashPrototype.digest)
+const hashUpdate = bindCall(hashPrototype.update)
+const regexpTest = bindCall(RegExp.prototype.test)
+const setAdd = bindCall(Set.prototype.add)
+const setHas = bindCall(Set.prototype.has)
+const stringTrim = bindCall(String.prototype.trim)
+
+const POSITIVE_DECIMAL_PATTERN = /^[1-9][0-9]*$/u
 
 const SUPPORTED_MODELS = objectFreeze(new Set([
   'gpt-5.6-luna',
@@ -38,7 +49,9 @@ function fail(code, message) {
 }
 
 function sha256(value) {
-  return createHash('sha256').update(value).digest('hex')
+  const hash = createHash('sha256')
+  hashUpdate(hash, value)
+  return hashDigest(hash, 'hex')
 }
 
 function dependency(value, label) {
@@ -49,8 +62,8 @@ function dependency(value, label) {
 }
 
 function operation(value) {
-  if (typeof value !== 'string' || value.length > 200 ||
-    value.length < 1 || stringTrim(value) !== value) {
+  if (typeof value !== 'string' || value.length < 1 ||
+    bufferByteLength(value, 'utf8') > 200 || stringTrim(value) !== value) {
     fail(
       'OPERATION_ID_INVALID',
       'operationId must be a trimmed non-empty string of at most 200 bytes.',
@@ -60,7 +73,7 @@ function operation(value) {
 }
 
 function positivePicodollars(value) {
-  if (typeof value !== 'string' || !/^[1-9][0-9]*$/u.test(value)) {
+  if (typeof value !== 'string' || !regexpTest(POSITIVE_DECIMAL_PATTERN, value)) {
     fail(
       'COUNT_RESERVATION_INVALID',
       'countAttemptPicodollars must be a positive decimal integer string.',

@@ -20,14 +20,22 @@ Every operation ID is consumed before callbacks and no failure retries.
 
 ## Verification
 
-- Focused provider-free contracts: PASS, 33/33.
+- Focused provider-free contracts: PASS, 36/36.
 - Syntax checks: PASS.
-- Full suite: PASS, 772 passed / 15 skipped / 0 failed across 787.
+- Full suite: PASS, 775 passed / 15 skipped / 0 failed across 790.
 - Quickstart: PASS, 6/6.
 - Ticket, report, governed committed-plus-dirty scope, syntax, and diff checks:
   PASS.
 - Credential reads, provider/network calls, generation, private-result reads,
   benchmark access, and spend: zero.
+
+Initial independent review of pushed head `4ce75aa` reopened the ticket for
+three adversarial findings. Mutable Hash prototype methods could forge the
+body digest, mutable `RegExp.prototype.test` could admit a signed allowance,
+and the operation-ID ceiling counted JavaScript code units instead of UTF-8
+bytes. The cumulative repair captures the relevant trusted intrinsics before
+callbacks and permanently tests a valid-looking forged digest, `+1`, and a
+300-byte multibyte identifier. Fresh cumulative review remains required.
 
 ## Risks / Follow-Ups
 
