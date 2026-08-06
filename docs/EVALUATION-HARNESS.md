@@ -52,6 +52,11 @@ uncertain/accounted because the public response contract has no usage or
 billing field. Success proves the structured Sol wire; it does not establish
 that the endpoint is free or authorize benchmark integration.
 
+The founder-authorized BRN-0022 identity completed once: HTTP 200, 77 exact
+input tokens, 1,277 ms, and one physical count request. No generation occurred.
+The identity is consumed and the full `$0.05` remains uncertain/accounted;
+this compatibility pass does not establish billing treatment.
+
 ## Sealed SQLite inspection
 
 Opening a copied SQLite database in place is not read-only at the physical

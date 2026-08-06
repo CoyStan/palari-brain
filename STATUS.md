@@ -1,18 +1,27 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0022 INDEPENDENTLY REVIEWED; EXACT FOUNDER DISPATCH GATE NEXT. P-set 32 is FINAL for
-identity `openai-structured-input-count-compat-v1`: one physical
-`POST /v1/responses/input_tokens` request, no generation, no retry, `$0.05`
-fresh / `$7.80502179` cumulative accounted caps from the exact `$7.75502179`
-opening ledger. The full fresh cap remains uncertain/accounted because the
-official response contract does not establish billing treatment.
+Loop state: BRN-0022 LIVE INPUT-COUNT PROBE TERMINAL; INDEPENDENT TERMINAL
+REVIEW NEXT. Founder-authorized identity
+`openai-structured-input-count-compat-v1` ran exactly once and is consumed.
+The frozen `gpt-5.6-sol` request returned HTTP 200 and the strict response
+parsed successfully: exact input count **77 tokens**, latency **1,277 ms**,
+invocation count **1**, outcome `compatible`.
+
+No generation request, answer, memory tool execution, embedding, writer,
+judge, retry, or fallback ran. The durable `$0.05` reservation remains
+uncertain/accounted because the response has no billing metadata. Fresh
+accounted is `$0.05`; cumulative accounted is now exactly `$7.80502179` from
+the `$7.75502179` opening ledger.
 
 The frozen `gpt-5.6-sol` request includes instructions, one structured user
 `input_text`, and one strict function-tool schema. Request SHA-256 is
 `805097ec9d165fb5206ea3ef5429ffd27b985572dea3362d3b635b7550669561`.
 The private mode-0600 launcher SHA-256 is
 `98c5a9e57804f5ea4ccd5e9c6dcb91de716d69a355a9fe6acb4c49658d933689`;
-provider-free verification passes and the private result namespace is absent.
+provider-free verification confirms the private result namespace now exists.
+Reservation, terminal, and manifest files are mode 0600; credential matches
+are 0. External manifest SHA-256 is
+`9607c0c97862c5c54593d07d599d79b61d4eae0a8223f014c6f09d1271936d69`.
 
 Initial focused contracts passed 19/19. Full suite passed 758 / failed 0 / skipped 15
 optional tests across 773. Credential reads, network requests, provider calls,
@@ -46,9 +55,10 @@ pass. Third fresh cumulative review of exact clean pushed head `457bfbe` found
 no P0-P3 issue after replaying both P1 escapes, the parent-sync gap, and the P3
 whitespace. It recommends the freeze for founder-gated dispatch. No credential,
 network, provider, generation, private benchmark, or spend activity occurred;
-the result namespace is absent and cumulative accounted remains `$7.75502179`.
-Next: exact founder authority for one invocation under `$0.05` fresh /
-`$7.80502179` cumulative accounted. Do not run without that exact message.
+the result namespace was absent and cumulative accounted remained
+`$7.75502179`. The founder then supplied exact authority and the terminal pass
+above was produced. Next: independently rehash and reconcile the consumed
+result without rerun or mutation.
 
 Product stop rule: (1) yes, quickstart is green 6/6;
 (2) yes if the one live count establishes exact structured-wire compatibility,

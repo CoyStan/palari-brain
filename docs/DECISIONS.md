@@ -3054,3 +3054,13 @@ here with dates. Agents record; the founder decides.
   the documented response has no billing metadata. A failure is sealed and is
   not authority to retry or simplify the payload. The probe runs no generation
   model and leaves historical BRN-0017 at 6/10.
+
+- 2026-08-06 (BRN-0022 terminal compatibility result)
+  **Keep the one successful count and never rerun it.** The exact
+  founder-authorized identity returned HTTP 200 with 77 input tokens in 1,277
+  ms through one physical `/v1/responses/input_tokens` request. It made no
+  generation call or retry. The private identity is consumed. Retain `$0.05`
+  as uncertain/accounted because no billing metadata was returned, making the
+  cumulative accounted ledger `$7.80502179`. This validates the structured Sol
+  count wire only; historical 6/10 is unchanged and benchmark integration
+  remains separate governed work.

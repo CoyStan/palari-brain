@@ -2,11 +2,10 @@
 
 ## Outcome
 
-The offline freeze is ready for independent pre-dispatch review. A tracked
-dependency-free runner freezes one structured Sol input-count body, imports the
-strict BRN-0021 parser, durably reserves the whole `$0.05` cap, permits one
-transport call, and seals success or failure without retry. A mode-0600 private
-launcher remains outside git. No live call has run.
+The founder-authorized one-shot passed. OpenAI accepted the structured Sol
+input-count body and returned HTTP 200 with 77 exact input tokens. One physical
+request completed in 1,277 ms; no generation request or retry occurred. The
+private identity is terminal and consumed.
 
 ## Files Changed
 
@@ -35,8 +34,10 @@ launcher remains outside git. No live call has run.
 - Final full `npm test`: PASS, 761 passed / 15 skipped / 0 failed across 776.
 - `npm run quickstart`: PASS, 6/6. Syntax, diff, ticket, report, and governed
   committed-plus-dirty scope checks: PASS.
-- Live activity: zero credential reads, network/provider/generation calls,
-  private benchmark reads, and spend. Ledger stays `$7.75502179`.
+- Before exact founder authority, live activity and spend were zero and the
+  ledger stayed `$7.75502179`. The terminal invocation then made one count
+  request, zero generation calls, and retained `$0.05` uncertain/accounted,
+  bringing cumulative accounted to `$7.80502179`.
 
 ## Invariants
 
@@ -96,3 +97,19 @@ descriptor custody, parent sync, authority/head/cap ordering, one-call/no-retry
 wire, credential scan, accounting, scope/history, launcher hash/mode, and absent
 namespace. The reviewer recommends founder-gated dispatch; no live authority
 or execution is implied.
+
+## Terminal Measurement
+
+- HTTP status: 200.
+- Exact provider count: 77 input tokens.
+- Physical count requests: 1.
+- Latency: 1,277 ms.
+- Generation/model-answer calls: 0.
+- Fresh accounting: `$0.05` uncertain/accounted; billing is not asserted.
+- Cumulative accounted: `$7.80502179`.
+- Response SHA-256:
+  `8d999eb37b6b75ebb556220f59570687feeaac7f44b18d8f6ccda7935967e187`.
+- External manifest SHA-256:
+  `9607c0c97862c5c54593d07d599d79b61d4eae0a8223f014c6f09d1271936d69`.
+- Three artifacts are mode 0600; manifest reports zero credential matches.
+- Historical BRN-0017 remains 6/10. Independent terminal review remains.

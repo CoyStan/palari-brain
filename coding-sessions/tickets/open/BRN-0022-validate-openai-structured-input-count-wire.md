@@ -243,3 +243,20 @@ compatibility artifact without changing any historical benchmark result.
   with 15 optional skips, quickstart 6/6, clean ticket/scope/syntax/diff/head/
   upstream state, exact launcher mode/hash, absent namespace, and zero live or
   credential activity. This recommendation is not founder authority.
+
+## Terminal Evidence
+
+- The founder supplied the exact reviewed authority. Identity
+  `openai-structured-input-count-compat-v1` ran once and is consumed.
+- The one `POST /v1/responses/input_tokens` request returned HTTP 200. The
+  strict parser accepted **77** exact input tokens. Latency was **1,277 ms**
+  and invocation count was 1.
+- No generation, answer, memory tool execution, embedding, writer, judge,
+  retry, or fallback occurred.
+- Fresh `$0.05` remains uncertain/accounted; cumulative accounted is exactly
+  `$7.80502179`. This does not assert that the provider charged `$0.05`.
+- All three private artifacts are mode 0600 and rehash. Credential matches are
+  0; external manifest SHA-256 is
+  `9607c0c97862c5c54593d07d599d79b61d4eae0a8223f014c6f09d1271936d69`.
+- Historical BRN-0017 remains 6/10. Independent terminal review remains; the
+  result grants no retry, replacement, regrade, benchmark run, or publication.

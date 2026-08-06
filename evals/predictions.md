@@ -2320,3 +2320,21 @@ Predictions, failing categories first:
 5. HISTORY: historical BRN-0017 remains 6/10; consumed BRN-0020, its Phone
    judgments, and every sealed/private benchmark artifact remain unchanged and
    unaccessed.
+
+Terminal result (recorded after the one exact founder-authorized invocation):
+
+- COMPATIBILITY: **PASS.** The frozen `gpt-5.6-sol` body returned HTTP 200 and
+  the documented response parsed successfully. Measured exact input is **77
+  tokens**; response SHA-256 is
+  `8d999eb37b6b75ebb556220f59570687feeaac7f44b18d8f6ccda7935967e187`.
+- ONE-SHOT: **PASS.** Exactly one physical count request completed in **1,277
+  ms**. No generation, answer, memory tool execution, embedding, writer, judge,
+  retry, or fallback ran. The identity is consumed.
+- ACCOUNTING: **PASS.** The `$0.05` reservation was durable before dispatch and
+  remains uncertain/accounted because the response has no billing metadata.
+  Cumulative accounted is exactly `$7.80502179`.
+- INTEGRITY: **PASS.** All three private artifacts are mode 0600 and rehash;
+  `credentialMatches` is 0. External manifest SHA-256 is
+  `9607c0c97862c5c54593d07d599d79b61d4eae0a8223f014c6f09d1271936d69`.
+- HISTORY: **PASS.** Historical BRN-0017 remains 6/10 and prior private/sealed
+  benchmark evidence remains unchanged and unaccessed.

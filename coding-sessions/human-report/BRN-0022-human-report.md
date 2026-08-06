@@ -35,7 +35,13 @@ A second reviewer then caught a related caller-supplied `../outside` escape.
 The result root is now a fixed name, not configurable input. A third fresh
 reviewer replayed both escapes and every other boundary and found no P0-P3
 issue. The freeze is ready for the founder's exact one-call authorization; it
-has still not contacted OpenAI.
+had still not contacted OpenAI at that point.
+
+The founder then authorized the exact reviewed identity. The one live count
+request passed: OpenAI reported 77 input tokens in 1.277 seconds. It generated
+no answer and made no retry. The private identity is consumed. We retain the
+whole five-cent cap as uncertain accounting because the response does not say
+what, if anything, was billed; cumulative accounted is `$7.80502179`.
 
 ## What To Check
 
@@ -46,6 +52,6 @@ has still not contacted OpenAI.
 
 ## Recommended Next Move
 
-Have an independent reviewer inspect the committed pushed freeze. If it has no
-P0-P3 issue, request one exact founder authorization for the `$0.05` one-shot,
-then record the returned count or failure without rerunning.
+Have an independent terminal reviewer rehash and reconcile the consumed result
+without rerunning it. If clean, close and merge the ticket; benchmark-launcher
+integration remains a separate governed change.
