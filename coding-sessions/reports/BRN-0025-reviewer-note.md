@@ -18,6 +18,15 @@ PENDING independent review.
     prove a hard-coded pass report executed the required helpers.
 - The specialist reports cumulative offline repairs. Fresh independent review
   of the new exact pushed head remains PENDING.
+- Historical cumulative review of exact head `c83a664` returned REOPEN:
+  - P1: requiring the tracked note to contain its own current HEAD made the
+    final review attestation self-referential and unsatisfiable.
+  - P2: launcher-side lexical checks plus a simulated state sequence did not
+    prove live `run()` and offline verification used one actual consume
+    function.
+- The second cumulative repair is now submitted with PENDING markers. Fresh
+  implementation review, a later marker-only attestation commit, and final
+  out-of-band exact-head rereview remain required in that order.
 
 ## Verification Reviewed
 
@@ -32,11 +41,11 @@ private artifacts.
 
 Required final markers remain intentionally non-authorizing:
 
-`BRN0025_REVIEW_HEAD: PENDING`
+`BRN0025_REVIEW_IDENTITY: j4-luna-ettin-unexecuted11to20-v2`
 
-`BRN0025_REVIEW_LAUNCHER_SHA256: cb45ee69e74efad11d9ebe78997663525010702af15e32a1d51d72bb3aef9737`
+`BRN0025_REVIEW_LAUNCHER_SHA256: 122de407ad22fd8ee720023b0bbf7aad03dd716a865d6b283968688e30560373`
 
-`BRN0025_REVIEW_RUNTIME_SHA256: 7143690b581c6d10826a7f904cec029ec61524e0c96fec9d2f8f398c47a15fbf`
+`BRN0025_REVIEW_RUNTIME_SHA256: 8b1846493ca9835e21a91464a4885794a0b756ccaf33063ea3478fa197129dc6`
 
 `BRN0025_REVIEW_RECOMMENDATION: PENDING`
 

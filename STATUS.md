@@ -6,8 +6,22 @@ P0, one P1, and one P2: launcher/runtime attempt states contradicted, the
 claimed 19-file source list was incomplete and mixed roots, and lexical helper
 matching could be fooled without proving execution.
 
-The cumulative repair makes the launcher durably write `reserved`, atomically
-replace it with `launched` before spawn, and lets the runtime require then
+Cumulative review of `c83a664` then reopened two more issues: the review note
+could not attest its own final HEAD without changing that HEAD, and launcher
+verification simulated custody while using lexical source checks to claim the
+real runtime consumed an attempt. The second repair follows the proven marker-
+only sequence: the tracked note binds identity/private hashes/disposition but
+never its own HEAD; founder authority separately requires the current clean
+pushed HEAD to equal the supplied reviewed head. Implementation review is
+followed by a marker-only ACCEPT commit and a final out-of-band exact-head
+rereview before any founder gate can open.
+
+The final runtime now owns one `consumeLaunchedAttempt(path)` function. Live
+`run()` calls it, and provider-free verification executes that same function
+twice against a temporary reserved/launched attempt: the first call durably
+consumes it, the second proves reuse rejection, and cleanup removes all state.
+The launcher durably writes `reserved`, atomically
+replaces it with `launched` before spawn, and lets the runtime require then
 atomically consume that state before preflight. Offline custody proves
 `reserved -> launched -> consumed`, rejects reuse, and cleans its temporary
 state. The generated runtime imports one exact clean ticket root; Node's module
@@ -18,15 +32,16 @@ The final-runtime verifier now executes a nonce-instrumented same-directory
 copy and requires each named module-scope helper to exist and run. Comments,
 strings, duplicate declarations, hard-coded pass output, timeout/signal/
 nonzero exits, invalid/oversized output, and nonzero external telemetry fail
-closed. Focused contracts pass 11/11.
+closed. Focused contracts pass 13/13, including dead-branch rearrangement and
+marker-only attestation regressions.
 
 New identity `j4-luna-ettin-unexecuted11to20-v2` and FINAL P-set 36 preserve
 the same disclosed population, architecture, treatment, predictions,
 historical `6/10`, U8 exclusion, `$7.80502179` opening accounting, and proposed
 `$5.00` fresh / `$12.80502179` cumulative caps. The mode-0600 private launcher
-SHA-256 is `cb45ee69e74efad11d9ebe78997663525010702af15e32a1d51d72bb3aef9737`;
+SHA-256 is `122de407ad22fd8ee720023b0bbf7aad03dd716a865d6b283968688e30560373`;
 the mode-0600 final runtime SHA-256 is
-`7143690b581c6d10826a7f904cec029ec61524e0c96fec9d2f8f398c47a15fbf`.
+`8b1846493ca9835e21a91464a4885794a0b756ccaf33063ea3478fa197129dc6`.
 Provider-free verification executed one real cached-Ettin rank through a
 temporary synthetic Palari brain: the titanium memory ranked first, the answer
 was `It is titanium.`, scores were finite 4/4, and temporary state was removed.
@@ -35,8 +50,8 @@ result writes. The successor result and semantic-review namespaces remain
 absent; fresh spend is `$0.00` and cumulative accounted stays `$7.80502179`.
 
 All seven BRN-0024 private launcher/runtime/terminal hashes and mode-0600 bytes
-rehash unchanged before and after. Focused contracts pass 11/11; full tests pass
-786 / fail 0 / skip 15 across 801; quickstart passes 6/6; syntax, ticket,
+rehash unchanged before and after. Focused contracts pass 13/13; full tests pass
+788 / fail 0 / skip 15 across 803; quickstart passes 6/6; syntax, ticket,
 report, governed scope, and diff checks pass. Independent review is PENDING.
 No live successor is authorized; an accepted freeze must stop for a new exact
 founder GO binding identity, both caps, reviewed head, launcher/runtime hashes,

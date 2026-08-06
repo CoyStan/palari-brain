@@ -3189,3 +3189,17 @@ here with dates. Agents record; the founder decides.
   successor namespaces absent and require fresh cumulative review. No live
   authority, credential access, dataset access, provider call, or spend follows
   from this repair.
+
+- 2026-08-06 (BRN-0025 second cumulative review repair)
+  **Use marker-only review attestation and execute the runtime's real consume
+  function offline.** Review of `c83a664` found that requiring a note to name
+  its own current HEAD created an unsatisfiable tracked self-reference, while
+  launcher-side lexical checks and a simulated state sequence did not prove
+  live `run()` used the reviewed custody function. The note now carries only
+  identity, private hashes, and PENDING/ACCEPT disposition; exact final HEAD is
+  bound separately by clean pushed checkout plus founder authority after a
+  final out-of-band rereview. The generated runtime owns one durable
+  `consumeLaunchedAttempt` function used by both live `run()` and the offline
+  temporary custody case. Required-function instrumentation proves that exact
+  binding executes and rejects reuse. No provider, credential, dataset,
+  successor namespace, or spend is authorized or reached.

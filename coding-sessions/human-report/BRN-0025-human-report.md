@@ -16,6 +16,11 @@ After independent review found three pre-run defects, the cumulative repair
 also proves the required helpers actually ran, hashes all 48 transitive source
 modules from one reviewed root, and fixes the one-shot state sequence so the
 runtime can consume exactly one launched attempt.
+The latest repair removes a subtle review deadlock: the review note no longer
+tries to contain the hash of the commit containing itself. The founder still
+must name the exact final reviewed commit. Offline verification now calls the
+same real consume function that a live run would call, then proves it cannot be
+used twice.
 
 ## What I Should Know
 

@@ -189,26 +189,34 @@ Do not obtain a score, improve answer quality, or authorize the live successor.
 ## Specialist Evidence
 
 - FINAL P-set 36 registered before any possible live access.
-- Focused verifier contracts: 11/11 PASS, including exact helper deletion,
-  comment/string bait, hard-coded pass, transitive-closure mutation, and
-  invalid one-shot transition reproductions.
+- Focused verifier contracts: 13/13 PASS, including exact helper deletion,
+  comment/string bait, hard-coded pass, dead-branch rearrangement,
+  transitive-closure mutation, invalid one-shot transition reproductions,
+  and marker-only review-attestation regressions.
 - Private successor `--verify`: PASS with expected titanium ordering/answer,
   finite 4/4 scores, temporary cleanup, and zero provider/credential/dataset/
   result telemetry.
 - Successor launcher/runtime are mode 0600 at SHA-256
-  `cb45ee69e74efad11d9ebe78997663525010702af15e32a1d51d72bb3aef9737` /
-  `7143690b581c6d10826a7f904cec029ec61524e0c96fec9d2f8f398c47a15fbf`.
+  `122de407ad22fd8ee720023b0bbf7aad03dd716a865d6b283968688e30560373` /
+  `8b1846493ca9835e21a91464a4885794a0b756ccaf33063ea3478fa197129dc6`.
 - Complete same-ticket-root static import/reexport closure: 48 files / 732,601
   bytes / SHA-256
   `021cf118dec74f5611f5578488dbf86c5b11f996c0cec1a25ba6a680a8e2960d`.
-- Attempt custody: durable `reserved -> launched` before spawn, atomic
-  `launched -> consumed` in runtime, and no post-consumption transition.
+- Attempt custody: durable `reserved -> launched` before spawn; the runtime's
+  actual `consumeLaunchedAttempt` function performs atomic
+  `launched -> consumed`; live `run()` and offline verification call that same
+  function, and the latter proves a second call rejects reuse.
+- Review attestation uses immutable identity/launcher/runtime/disposition
+  markers only, avoiding a self-referential tracked HEAD. Founder authority
+  separately binds the exact current clean pushed HEAD at launch.
 - All seven BRN-0024 private hashes/modes rechecked unchanged before and after.
-- Full tests: 786 pass / 15 skip / 0 fail across 801. Quickstart: 6/6.
+- Full tests: 788 pass / 15 skip / 0 fail across 803. Quickstart: 6/6.
 - Provider, credential, dataset, result-namespace, semantic-judgment, and spend
   activity: `0 / 0 / 0 / 0 / 0 / $0.00`.
 - Independent review: PENDING. Live successor authority: ABSENT.
 
 Historical independent review of `f6bc40b` reopened P0 one-shot state, P1
-mixed/incomplete closure, and P2 lexical-symbol evidence. The evidence above
-is the cumulative specialist repair; fresh exact-head rereview is required.
+mixed/incomplete closure, and P2 lexical-symbol evidence. Cumulative review of
+`c83a664` then reopened P1 self-referential HEAD attestation and P2 simulated
+rather than runtime-owned custody. The evidence above is the second cumulative
+specialist repair; fresh exact-head rereview is required.

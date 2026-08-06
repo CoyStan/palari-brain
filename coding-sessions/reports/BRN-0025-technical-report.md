@@ -13,9 +13,9 @@
 New private, gitignored mode-0600 artifacts:
 
 - `/home/quetza/palari-brain-private/luna-ettin-unexecuted11to20-v2-live-launcher.mjs`
-  — SHA-256 `cb45ee69e74efad11d9ebe78997663525010702af15e32a1d51d72bb3aef9737`.
+  — SHA-256 `122de407ad22fd8ee720023b0bbf7aad03dd716a865d6b283968688e30560373`.
 - `/home/quetza/palari-brain-private/luna-ettin-unexecuted11to20-v2-live.runtime.mjs`
-  — SHA-256 `7143690b581c6d10826a7f904cec029ec61524e0c96fec9d2f8f398c47a15fbf`.
+  — SHA-256 `8b1846493ca9835e21a91464a4885794a0b756ccaf33063ea3478fa197129dc6`.
 
 The successor result and semantic-review namespaces are absent.
 The launcher derives and rehashes the complete transitive static import and
@@ -42,12 +42,21 @@ throwing fetch, ingests four synthetic mug statements, and executes one real
 rank. The titanium memory ranks first, the answer is `It is titanium.`, all
 four scores are finite, and the temporary workspace is removed.
 
-The successor launch protocol now writes and syncs `reserved`, atomically
-replaces it with `launched` before spawn, and lets the runtime require then
-atomically replace `launched` with `consumed` before preflight. Offline custody
-executes `reserved -> launched -> consumed`, rejects a post-consumption launch,
-and removes its temporary state. This verification creates no successor result
-namespace.
+The successor launch protocol writes and syncs `reserved`, then atomically
+replaces it with `launched` before spawn. The generated runtime owns one actual
+durable `consumeLaunchedAttempt(path)` function. Live `run()` calls it before
+preflight. Offline verification invokes the same binding against a temporary
+reserved/launched attempt, reopens its durable consumed bytes, calls it again
+to prove reuse rejection, and removes the temporary state. No lexical source
+claim or launcher-side simulation remains.
+
+Review authority is satisfiable without a tracked self-hash. The note carries
+exact identity, launcher hash, runtime hash, and PENDING/ACCEPT disposition;
+it never claims its own HEAD. After implementation acceptance, a marker-only
+attestation commit changes PENDING to ACCEPT, and a final out-of-band exact-head
+rereview must validate that commit. The launcher separately requires current
+clean pushed HEAD to equal founder-supplied `reviewedHead`, so exact-head
+authority remains mandatory.
 
 The tracked verifier executed those final private runtime bytes with a
 180-second timeout and 64-KiB output bound. Accepted telemetry was exactly:
@@ -83,11 +92,11 @@ unchanged.
 ## Verification
 
 - `node --test tests/generated-runtime-verifier.contract.test.mjs`: PASS,
-  11/11.
+  13/13.
 - private successor launcher `--verify`: PASS; real synthetic cached-Ettin
   smoke, finite 4/4 scores, expected ordering/answer, temporary cleanup, exact
   zero external-activity telemetry.
-- `npm test`: PASS, 786 passed / 15 skipped / 0 failed across 801 tests.
+- `npm test`: PASS, 788 passed / 15 skipped / 0 failed across 803 tests.
 - `npm run quickstart`: PASS, 6/6.
 - `node --check` for launcher/runtime/verifier: PASS.
 - ticket, report, committed-plus-dirty scope, and diff checks: PASS at handoff.

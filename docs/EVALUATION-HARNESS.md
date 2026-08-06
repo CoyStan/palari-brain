@@ -166,8 +166,21 @@ ticket-root bytes that this closure hashes: 48 files, 732,601 bytes, SHA-256
 
 Live one-shot custody has exactly three durable transitions: absent to
 reserved, reserved to launched before spawn, then launched to consumed
-atomically inside the runtime before preflight. No other transition is valid;
-any failure leaves the new identity used and terminal rather than reusable.
+atomically inside the runtime before preflight. One runtime function owns the
+last transition. Both live `run()` and provider-free offline verification call
+that function; offline verification proves the durable consumed bytes and
+rejects a second call before cleaning temporary state. No other transition is
+valid; any live failure leaves the new identity used and terminal rather than
+reusable.
+
+Review attestation deliberately does not contain its own final Git HEAD. A
+specialist submits PENDING identity/private-hash/disposition markers. After a
+clean implementation review, one marker-only commit changes disposition to
+ACCEPT. A final out-of-band rereview validates that exact marker head. At live
+dispatch, the launcher requires those exact ACCEPT/identity/private-hash
+markers and separately requires the current clean pushed head to equal the
+founder-supplied reviewed head. This removes the self-hash cycle without
+weakening exact-head authority.
 
 BRN-0025 uses this boundary for successor identity
 `j4-luna-ettin-unexecuted11to20-v2`. Its final mode-0600 runtime executes the
