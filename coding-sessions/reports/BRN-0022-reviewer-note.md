@@ -99,3 +99,18 @@ namespace was absent, no call had occurred, compatibility was not established,
 and no live improvement was claimed. Repair those statements cumulatively,
 without credential access, provider activity, rerun, or private-bundle
 mutation, then obtain a fresh narrow rereview.
+
+## First Narrow Terminal Rereview
+
+Reviewer: fifth independent fresh-context agent
+Reviewed commit: `205ca89`
+
+Result: **REOPEN** for one remaining P2; no P0, P1, or P3 finding. The five-file
+documentation-only repair corrected every reported contradiction except the
+ticket's retained sentence that independent terminal review “remains,”
+immediately before its completed-review record. Ticket, report, scope, diff,
+clean-head, and upstream checks passed. The sealed facts remained 77 tokens,
+one invocation, 1,277 ms, `$0.05` uncertain/accounted, `$7.80502179`
+cumulative accounted, and historical 6/10 unchanged. Remove only the stale
+clause and obtain one final narrow rereview; do not access or rerun the private
+result.

@@ -62,8 +62,10 @@ above was produced. Independent terminal review of pushed head `50e606f`
 validated every private hash, mode, count, invocation, latency, credential-scan,
 and accounting field, but reopened one P2: several retained pre-run sentences
 contradicted the terminal state. The cumulative documentation-only repair makes
-those statements explicitly historical. Next: narrow rereview; never rerun or
-mutate the consumed result.
+those statements explicitly historical. A first narrow rereview of exact head
+`205ca89` found one last stale clause in the ticket saying terminal review
+remained; it is now removed without changing any result. Next: final narrow
+rereview; never rerun or mutate the consumed result.
 
 Product stop rule: (1) yes, quickstart is green 6/6;
 (2) yes, the live count established exact structured-wire compatibility for
