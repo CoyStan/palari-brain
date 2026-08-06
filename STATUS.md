@@ -1,5 +1,37 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0022 OPEN, OFFLINE FREEZE IN PROGRESS. P-set 32 is FINAL for
+identity `openai-structured-input-count-compat-v1`: one physical
+`POST /v1/responses/input_tokens` request, no generation, no retry, `$0.05`
+fresh / `$7.80502179` cumulative accounted caps from the exact `$7.75502179`
+opening ledger. The full fresh cap remains uncertain/accounted because the
+official response contract does not establish billing treatment.
+
+The frozen `gpt-5.6-sol` request includes instructions, one structured user
+`input_text`, and one strict function-tool schema. Request SHA-256 is
+`805097ec9d165fb5206ea3ef5429ffd27b985572dea3362d3b635b7550669561`.
+The private mode-0600 launcher SHA-256 is
+`98c5a9e57804f5ea4ccd5e9c6dcb91de716d69a355a9fe6acb4c49658d933689`;
+provider-free verification passes and the private result namespace is absent.
+
+Focused contracts pass 19/19. Full suite passes 758 / fails 0 / skips 15
+optional tests across 773. Credential reads, network requests, provider calls,
+generation, private benchmark access, and fresh spend are
+`0 / 0 / 0 / 0 / 0 / $0.00`; cumulative accounted remains `$7.75502179`.
+Historical BRN-0017 remains 6/10 and consumed BRN-0020 remains unchanged.
+Quickstart passes 6/6; syntax, diff, ticket, report, and governed
+committed-plus-dirty scope checks pass. Next: commit and push the freeze, obtain
+independent pre-dispatch review, then request the exact founder authorization.
+Do not dispatch before that gate.
+
+Product stop rule: (1) yes, quickstart is green 6/6;
+(2) yes if the one live count establishes exact structured-wire compatibility,
+but no live improvement is claimed yet; (3) OpenAI provides the exact count
+endpoint, while Palari supplies the one-shot cap/seal boundary; (4) yes, the
+founder approved BRN-0022 after BRN-0021 exposed this missing live fact; (5)
+without it, the next benchmark integration would depend on an unproven wire or
+retain materially inflated byte reservations.
+
 Loop state: BRN-0021 ACCEPTED, MERGED, AND PUSHED AT `c902089`. The ticket
 adds a strict injected OpenAI structured-input counter, exact Sol Standard
 reservation in integer picodollars, the prior highest-rate UTF-8-byte fallback,

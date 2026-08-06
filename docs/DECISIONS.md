@@ -3042,3 +3042,15 @@ here with dates. Agents record; the founder decides.
   Acceptance covers only deterministic exact-reservation and copy-first audit
   code. Input-count wire compatibility, billing treatment, credential access,
   provider dispatch, benchmark execution, and spend remain unauthorized.
+
+- 2026-08-06 (BRN-0022 structured input-count probe contract)
+  **Prove the exact wire once without generation and account uncertainty at the
+  cap.** Identity `openai-structured-input-count-compat-v1` freezes one
+  `gpt-5.6-sol` body with instructions, structured text input, and one strict
+  function schema for `POST /v1/responses/input_tokens`. It may dispatch once
+  only after clean pushed independent review and exact founder authority under
+  `$0.05` fresh / `$7.80502179` cumulative caps. The full `$0.05` is durably
+  reserved before credential access and remains uncertain/accounted because
+  the documented response has no billing metadata. A failure is sealed and is
+  not authority to retry or simplify the payload. The probe runs no generation
+  model and leaves historical BRN-0017 at 6/10.

@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0022
 children: []
-status: open
+status: claimed
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-06T03:30:42Z
 target_branch: "main"
 branch: "ticket/BRN-0022-validate-openai-structured-input-count-wire"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0022-validate-openai-structured-input-count-wire"
@@ -184,3 +184,24 @@ compatibility artifact without changing any historical benchmark result.
 - Stop after the first transport attempt, regardless of success or failure.
 - Stop rather than accessing a sealed benchmark artifact, U8, or any prior
   private result namespace.
+
+## Offline Freeze Evidence
+
+- P-set 32 is FINAL. The exact structured request SHA-256 is
+  `805097ec9d165fb5206ea3ef5429ffd27b985572dea3362d3b635b7550669561`.
+  It contains the frozen Sol model, instructions, one structured user text
+  item, and one strict function-tool schema, with no generation-only fields.
+- The tracked runner imports BRN-0021's immutable counter/parser, admits one
+  injected transport only after exact authority/head/cap/namespace checks and
+  durable reservation, and seals compatible or failed outcomes without a
+  fallback. The full `$0.05` remains uncertain/accounted.
+- The private mode-0600 launcher is outside git at SHA-256
+  `98c5a9e57804f5ea4ccd5e9c6dcb91de716d69a355a9fe6acb4c49658d933689`.
+  Provider-free `--verify` passes and reports the result namespace absent.
+- Focused contracts pass 19/19. Full suite passes 758, fails 0, and skips 15
+  optional tests across 773. No live run has occurred: credential reads,
+  network requests, provider calls, generation, private benchmark access, and
+  spend remain `0 / 0 / 0 / 0 / 0 / $0.00`; cumulative accounted remains
+  exactly `$7.75502179`.
+- The freeze still requires clean pushed committed scope, an independent
+  reviewer with no P0-P3 finding, and the exact fresh founder authorization.

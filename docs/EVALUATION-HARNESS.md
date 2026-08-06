@@ -42,6 +42,16 @@ assert that input counting is free. Wire compatibility and billing treatment
 require a separate preregistered, founder-gated, metered probe before live
 integration.
 
+BRN-0022 is that bounded compatibility probe. Its frozen body follows the
+official count examples: model, instructions, structured message input, and a
+strict function-tool schema only. It deliberately omits generation-only
+controls and makes no `/v1/responses` generation request. One one-shot identity
+may make one physical count request after an exact founder gate. It durably
+reserves `$0.05` before credential access and retains the whole amount as
+uncertain/accounted because the public response contract has no usage or
+billing field. Success proves the structured Sol wire; it does not establish
+that the endpoint is free or authorize benchmark integration.
+
 ## Sealed SQLite inspection
 
 Opening a copied SQLite database in place is not read-only at the physical
