@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0022 INDEPENDENTLY ACCEPTED; MERGE NEXT.
+Loop state: BRN-0022 ACCEPTED, MERGED, AND PUSHED AT `16655a4`.
 Founder-authorized identity
 `openai-structured-input-count-compat-v1` ran exactly once and is consumed.
 The frozen `gpt-5.6-sol` request returned HTTP 200 and the strict response
@@ -67,8 +67,9 @@ those statements explicitly historical. A first narrow rereview of exact head
 remained; it was removed without changing any result. Final narrow rereview of
 exact clean pushed head `36fafc8` found no P0-P3 issue and recommends ACCEPT.
 BRN-0022 is accepted under the founder's standing delegation for clean,
-independently reviewed tickets. Next: merge; never rerun or mutate the consumed
-result.
+independently reviewed tickets. It was merged and pushed at `16655a4`. Next:
+benchmark-launcher integration, if requested, requires a separate governed
+ticket; never rerun or mutate the consumed result.
 
 Product stop rule: (1) yes, quickstart is green 6/6;
 (2) yes, the live count established exact structured-wire compatibility for
