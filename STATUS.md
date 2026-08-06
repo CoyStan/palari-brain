@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0024 TERMINAL FAILURE; RECORD AND INDEPENDENT TERMINAL REVIEW
-NEXT. Founder-authorized identity `j4-luna-ettin-unexecuted11to20-v1` was
+Loop state: BRN-0024 ACCEPTED TERMINAL ZERO-CALL FAILURE; BRN-0025 HARNESS
+REPAIR CONTRACT NEXT. Founder-authorized identity
+`j4-luna-ettin-unexecuted11to20-v1` was
 consumed exactly once under `$5.00` fresh / `$12.80502179` cumulative authority
 at reviewed head `ad37a5f`. It stopped before the provider-free Ettin smoke with
 `ReferenceError: runLocalEttinSmoke is not defined`. No writer smoke, answer
@@ -39,9 +40,11 @@ improved because the live evaluation failed before its first smoke; (3)
 provider frameworks do not supply this private one-shot custody; (4) yes, the
 founder requested and exactly authorized the evaluation; (5) deleting this
 record would risk falsely claiming a model result or retrying a consumed
-identity. Next: commit/push the immutable failure record and obtain independent
-terminal review. Any repair or new live identity requires a new governed ticket
-and fresh founder authorization.
+identity. Independent terminal rereview of exact pushed head `26c50c3` found
+no P0-P3 issue and recommends ACCEPT. Under the founder's standing delegation
+for clean independently reviewed tickets, BRN-0024 is accepted for merge. Any
+repair or new live identity requires a new governed ticket and fresh founder
+authorization.
 
 BRN-0023 now composes one immutable structured Responses body through durable
 unknown-billing count-attempt reservation, one injected exact count, pinned

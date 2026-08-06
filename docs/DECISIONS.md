@@ -3152,3 +3152,12 @@ here with dates. Agents record; the founder decides.
   four-artifact failure, grade P-set 35 as not reached except terminal
   accounting custody, retain cumulative `$7.80502179`, and require a new
   ticket/identity/authority for any repair or live successor.
+
+- 2026-08-06 (BRN-0024 acceptance)
+  **Accept the sealed terminal zero-call failure after clean independent
+  rereview.** Exact pushed head `26c50c3` reconciles the immutable four-artifact
+  seal, one consumed attempt, pre-credential `ReferenceError`, zero calls and
+  spend, unchanged `$7.80502179` cumulative accounting, absent score/semantic
+  overlay, historical `6/10`, and U8 custody. Merge under the founder's
+  standing delegation for clean independently reviewed tickets. Acceptance
+  grants no repair, retry, replacement identity, provider call, or spend.

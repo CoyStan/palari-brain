@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0024
 children: []
-status: in-review
+status: accepted
 risk: R4
 priority: P0
 agents_allowed: 1
@@ -325,3 +325,11 @@ artifact-list SHA-256 is
 `df32f6e0d8ce8b534653fb6cf4790f1a49a1074398b0c6c448ff4f8f6448d8e1`.
 This terminal finding satisfies the ticket's stop-and-record branch. It does
 not authorize a fix, replacement identity, or second invocation.
+
+Fresh independent terminal rereview accepted exact clean pushed head
+`26c50c334c2983c2e21a696453fc1de9d18e962b` with no P0-P3 finding. The
+reviewer reconciled the immutable seal, one consumed attempt, pre-credential
+failure, zero calls/spend, unchanged cumulative ledger and historical score,
+all 790 tests, quickstart 6/6, and governed checks. Under the founder's standing
+delegation for clean independently reviewed tickets, BRN-0024 is accepted.
+Acceptance grants no live successor authority.
