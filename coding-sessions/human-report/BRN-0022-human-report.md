@@ -31,6 +31,12 @@ durability. The repair now rejects that path, holds physical directory handles,
 writes through those handles, and syncs the parent before key access. The exact
 attack is now a permanent offline test. A fresh reviewer must confirm it.
 
+A second reviewer then caught a related caller-supplied `../outside` escape.
+The result root is now a fixed name, not configurable input. A third fresh
+reviewer replayed both escapes and every other boundary and found no P0-P3
+issue. The freeze is ready for the founder's exact one-call authorization; it
+has still not contacted OpenAI.
+
 ## What To Check
 
 - A bad authority, cap, git head, or reused identity must fail before key read.

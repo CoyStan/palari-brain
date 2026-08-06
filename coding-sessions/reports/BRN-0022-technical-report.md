@@ -28,10 +28,11 @@ launcher remains outside git. No live call has run.
 ## Verification
 
 - `node --check` on tracked runner, contract, and private launcher: PASS.
-- Initial focused contracts: PASS, 19/19. After review repair: PASS, 21/21.
+- Initial focused contracts: PASS, 19/19. After the two review repairs: PASS,
+  21/21 then 22/22.
 - Private launcher `--verify`: PASS; identity namespace absent; request hash
   `805097ec9d165fb5206ea3ef5429ffd27b985572dea3362d3b635b7550669561`.
-- Full `npm test`: PASS, 758 passed / 15 skipped / 0 failed across 773.
+- Final full `npm test`: PASS, 761 passed / 15 skipped / 0 failed across 776.
 - `npm run quickstart`: PASS, 6/6. Syntax, diff, ticket, report, and governed
   committed-plus-dirty scope checks: PASS.
 - Live activity: zero credential reads, network/provider/generation calls,
@@ -87,4 +88,11 @@ configuration surface. Parent, sibling, absolute, and normalized traversal
 variants all fail during store construction. The permanent regression passes;
 focused contracts are 22/22 and the full suite passes 761 / 15 skipped / 0
 failed across 776. Quickstart 6/6, provider-free verify, ticket/report, scope,
-syntax, and diff checks pass. Fresh rereview remains.
+syntax, and diff checks pass. Fresh rereview was required and is recorded below.
+
+Third fresh cumulative review of exact pushed head `457bfbe` replayed all
+retained defects and found no P0-P3 issue. It confirmed the frozen root,
+descriptor custody, parent sync, authority/head/cap ordering, one-call/no-retry
+wire, credential scan, accounting, scope/history, launcher hash/mode, and absent
+namespace. The reviewer recommends founder-gated dispatch; no live authority
+or execution is implied.

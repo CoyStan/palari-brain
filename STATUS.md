@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0022 SECOND REPAIR IN FRESH CUMULATIVE REVIEW. P-set 32 is FINAL for
+Loop state: BRN-0022 INDEPENDENTLY REVIEWED; EXACT FOUNDER DISPATCH GATE NEXT. P-set 32 is FINAL for
 identity `openai-structured-input-count-compat-v1`: one physical
 `POST /v1/responses/input_tokens` request, no generation, no retry, `$0.05`
 fresh / `$7.80502179` cumulative accounted caps from the exact `$7.75502179`
@@ -42,7 +42,13 @@ Repaired focused contracts pass 22/22; the full suite passes 761 / fails 0 /
 skips 15 optional tests across 776. The second repair is pushed; one fresh
 independent cumulative rereview remains required. Quickstart is 6/6 and
 provider-free verify, ticket/report, governed scope, syntax, and diff checks
-pass. Do not dispatch.
+pass. Third fresh cumulative review of exact clean pushed head `457bfbe` found
+no P0-P3 issue after replaying both P1 escapes, the parent-sync gap, and the P3
+whitespace. It recommends the freeze for founder-gated dispatch. No credential,
+network, provider, generation, private benchmark, or spend activity occurred;
+the result namespace is absent and cumulative accounted remains `$7.75502179`.
+Next: exact founder authority for one invocation under `$0.05` fresh /
+`$7.80502179` cumulative accounted. Do not run without that exact message.
 
 Product stop rule: (1) yes, quickstart is green 6/6;
 (2) yes if the one live count establishes exact structured-wire compatibility,

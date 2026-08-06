@@ -58,3 +58,25 @@ directory segment and retain a traversal regression. Focused 21/21, full
 760/775 with 15 skips, quickstart 6/6, ticket/scope/diff/head/upstream, launcher
 hash/mode, and absent-namespace checks passed. No credential or provider access
 occurred. Another fresh cumulative rereview is required after repair.
+
+## Third Fresh Cumulative Rereview
+
+Reviewer: third independent fresh-context agent
+Reviewed commit: `457bfbe`
+Target: `main` at `fe8eb92`
+
+Result: **PASS; no P0-P3 findings.** The reviewer replayed the symlink escape,
+missing parent sync, ticket whitespace, and caller-supplied traversal. All are
+repaired. It cumulatively verified exact authority/caps/head/upstream ordering,
+descriptor-bound durable reservation and seal, one physical count request,
+no retry/fallback/generation, strict HTTP/response parsing, credential scan,
+uncertain full-cap accounting, historical invariants, and scope.
+
+Focused 22/22 and quickstart 6/6 passed; recorded full suite is 761 passed / 15
+skipped / 0 failed across 776. Ticket, scope, syntax, diff, clean head/upstream,
+launcher mode 0600 and SHA-256 `98c5a9e...3389689`, and absent namespace all
+passed. No credential, network, provider, generation, private benchmark, or U8
+access occurred.
+
+Recommendation: accept the freeze for exact founder-gated dispatch. This does
+not accept, merge, authorize, or run the live probe.
