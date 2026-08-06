@@ -113,3 +113,13 @@ metered call. Four artifacts rehash; calls/spend are zero; manifest SHA-256 is
 `9287d3a235b390b63133482366d1aa5db84a80b8903f41c41be7b1e90e86c768`.
 Independent terminal review remains required; this specialist does not accept
 its own terminal record.
+
+## First Terminal Review
+
+Independent review of exact clean pushed terminal-record head `fb13c76` found
+no discrepancy in the sealed private evidence, accounting, historical-score
+custody, or zero-row metric treatment. It recommended REOPEN only because two
+pre-run statements in the technical report remained stale after consumption
+and the human report contained one grammar error. No semantic-review overlay
+is applicable because no result rows exist. The narrow documentation repair
+requires a fresh read-only terminal rereview.

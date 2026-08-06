@@ -25,7 +25,7 @@ regrade, or top-up. Historical 6/10 and sealed U8 never change.
 The offline freeze is implemented and costs `$0.00`. Proposed maximum fresh
 accounted spend is `$5.00`, including conservative unknown count billing.
 The first freeze was stopped by review before any spend. Its authority,
-long-context pricing, global operation custody, and semantic-review seal are
+long-context pricing, global operation custody, and semantic-review seal
 were repaired offline and independently accepted before the exact founder-
 authorized live request.
 
