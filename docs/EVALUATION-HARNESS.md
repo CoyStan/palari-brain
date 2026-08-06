@@ -143,3 +143,24 @@ oracle. It is not a measured provider count, live spend result, or replay of a
 private request. Its SQLite cases are synthetic temporary fixtures, not reads
 of BRN-0020. Historical BRN-0017 remains 6/10 and BRN-0020 remains consumed and
 incomplete.
+
+## Generated runtime execution verification
+
+`verifyGeneratedRuntime(...)` protects a final generated Node byte sequence,
+not merely its composer or syntax. Callers name every helper whose definition
+and retained call are required. The verifier rejects missing or duplicate
+definitions before execution, then runs one explicit provider-free child mode
+with a fixed timeout and output bound. It accepts only one JSON pass containing
+exact zero telemetry for provider calls, credential reads, dataset reads, and
+result writes. Signals, nonzero exits, timeouts, oversized output, stderr, and
+invalid JSON all fail closed.
+
+BRN-0025 uses this boundary for successor identity
+`j4-luna-ettin-unexecuted11to20-v2`. Its final mode-0600 runtime executes the
+real cached Ettin ranker through a temporary synthetic Palari brain and proves
+the expected travel-mug ordering, answer, and finite score telemetry. The
+temporary workspace is removed. Verification does not open the benchmark,
+load `.env`, inspect a credential, create a result/semantic-review namespace,
+or predict a benchmark score. P-set 36 and the successor freeze preserve the
+P-set 35 population/treatment/accounting but form a new evaluation. Any live
+invocation requires fresh exact founder authority after independent review.

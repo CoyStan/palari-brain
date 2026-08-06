@@ -2548,3 +2548,70 @@ while retaining its call. Zero questions or compatibility smokes were reached.
 
 This is an evaluation-harness failure, not a Luna, Ettin, retrieval, evidence,
 or answer-quality result. The identity is permanently consumed.
+
+## P-set 36 — Repaired-runtime Luna + Ettin unexecuted, previously profiled S60 ordinals 11-20
+
+Status: **FINAL before credential read, provider call, inference, or result
+creation.**
+
+Identity: `j4-luna-ettin-unexecuted11to20-v2`
+
+This is a new evaluation freeze, not a retry, resume, reroll, regrade, or
+mutation of consumed P-set 35. Population and immutable S60 order remain
+`18bc8abd`, `19b5f2b3`, `1a1907b4`, `2133c1b5`, `2133c1b5_abs`, `25e5aa4f`,
+`2698e78f_abs`, `32260d93`, `35a27287`, `36b9f61e`. None has a terminal
+question result. P-set 20 previously assigned content-derived difficulty/basis
+classifications to all ten, so the honest label remains never executed but
+previously profiled. No selected session, question, answer, supporting span,
+or expected route was parsed or inspected for this freeze. Sealed U8
+`1568498a` remains excluded.
+
+Opening cumulative accounted spend remains exactly `$7.80502179`. Proposed
+caps remain `$5.00` fresh and `$12.80502179` cumulative. Every Luna dispatch
+retains a separate `$0.05` uncertain count-attempt allowance until external
+billing evidence proves otherwise, then reserves generation from the returned
+exact count. These proposed boundaries are not live authority.
+
+Predictions, failing categories first:
+
+1. OFFICIAL ACCURACY: at least `8/10` unchanged official
+   `gpt-4o-2024-08-06` judge labels pass.
+2. SESSION RECALL: at least 90% of required answer-bearing sessions are
+   returned on reached non-abstention rows.
+3. EXACT-SPAN RECALL: at least 80% of dataset-marked supporting canonical
+   messages are returned where the dataset structurally supplies exact spans.
+   This is not substituted by an equivalent paraphrase.
+4. SELECTED EVIDENCE: at least 8/10 reached rows select answer-relevant
+   evidence through a host-accepted commitment, or correctly select none for
+   an abstention. Retrieved-but-unused memories may carry no commitment.
+5. MATERIALLY USED EVIDENCE: independent terminal review labels at least 8/10
+   rows PASS for actual answer use or correct abstention. This judged label is
+   distinct from the model's `consequence_for_answer` declaration.
+6. EQUIVALENT-FACT RECALL: one independent terminal reviewer labels the
+   separately sealed pending/null surface exactly once. It may explain an
+   exact-span miss but never changes exact recall, the official label, or
+   canonical truth.
+7. ARCHITECTURE: any temporal/relational plan is general and records anchor,
+   relation, category, and time range; commitments support either consequence
+   or non-use reason; every cross-context inference is provenance-linked,
+   `revisable: true`, trace-only, and never persisted.
+8. RERANK/BOUNDARY: every reached native Ettin score is finite with no input
+   mutation; evidence calls never exceed four; writer smoke precedes answer
+   smoke; each Luna operation has exactly one count and at most one generation
+   after both durable reservations. No retry, byte fallback, resume, reroll,
+   replacement, selective regrade, or cap top-up occurs.
+9. EXECUTION/ACCOUNTING: the one invocation either seals both smokes plus all
+   ten cells, or honestly seals the first terminal failure. Every physical
+   call is accounted before transport; Luna measured settlement selects
+   official short/long Standard rates from the exact context band; count
+   uncertainty remains separate; all artifacts rehash mode 0600; credential
+   matches are zero; historical `6/10` remains unchanged; and U8 is untouched.
+
+Offline freeze note (does not rewrite these FINAL predictions): BRN-0025 must
+execute the real cached-Ettin synthetic Palari smoke from the final generated
+runtime bytes, with zero provider calls, credential reads, dataset reads, or
+result writes. It must remove temporary state and keep the successor result
+namespace absent. Passing that local compatibility gate is not evidence for
+any numeric or behavioral prediction above. A live invocation remains blocked
+until independent review and a new exact founder authorization bind the
+identity, both caps, reviewed head, launcher hash, runtime hash, and ACCEPT.

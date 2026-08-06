@@ -3161,3 +3161,17 @@ here with dates. Agents record; the founder decides.
   overlay, historical `6/10`, and U8 custody. Merge under the founder's
   standing delegation for clean independently reviewed tickets. Acceptance
   grants no repair, retry, replacement identity, provider call, or spend.
+
+- 2026-08-06 (BRN-0025 offline repair boundary)
+  **Execute required helpers from final generated runtime bytes before opening
+  a live identity.** Static syntax checking cannot detect a retained call whose
+  helper definition was deleted by an overlapping later transformation. Add a
+  reusable bounded child verifier, permanently reproduce that exact defect,
+  and freeze new identity `j4-luna-ettin-unexecuted11to20-v2`. Its offline mode
+  must run one real cached-Ettin synthetic Palari smoke with exact zero
+  provider/credential/dataset/result telemetry and remove temporary state.
+  Preserve consumed BRN-0024 bytes, P-set 35 grading, historical `6/10`, U8,
+  the `$7.80502179` opening ledger, and proposed `$5.00` / `$12.80502179` caps.
+  This ticket authorizes no credential access, provider call, result namespace,
+  score, semantic judgment, or spend; a reviewed successor stops at a fresh
+  founder gate.
