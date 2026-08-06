@@ -10,7 +10,7 @@ Focused contracts pass 8/8; full tests pass 783/798 with 15 expected skips;
 quickstart passes 6/6. The exact final runtime ran one real synthetic cached-
 Ettin Palari smoke and reported zero provider/credential/dataset/result
 activity. New private launcher/runtime hashes are respectively
-`833c8f0dcab2e680a20cdc85cf852f5fee4b1ff3333a850d6edf0fe09b0cbc86` and
+`8d0b6a6b19d03b7385445182dc91c1ed9a90dc83878cc82a267708f2d3b3a568` and
 `f3034fac3c43ebfc55911f85dfb65cff022825dc338b7c539357fd521c36a404`,
 both mode 0600. The successor namespaces are absent.
 

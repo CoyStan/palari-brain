@@ -13,11 +13,13 @@
 New private, gitignored mode-0600 artifacts:
 
 - `/home/quetza/palari-brain-private/luna-ettin-unexecuted11to20-v2-live-launcher.mjs`
-  — SHA-256 `833c8f0dcab2e680a20cdc85cf852f5fee4b1ff3333a850d6edf0fe09b0cbc86`.
+  — SHA-256 `8d0b6a6b19d03b7385445182dc91c1ed9a90dc83878cc82a267708f2d3b3a568`.
 - `/home/quetza/palari-brain-private/luna-ettin-unexecuted11to20-v2-live.runtime.mjs`
   — SHA-256 `f3034fac3c43ebfc55911f85dfb65cff022825dc338b7c539357fd521c36a404`.
 
 The successor result and semantic-review namespaces are absent.
+The launcher rehashes all 19 inherited runtime import-closure files and
+explicitly proves sealed U8 is excluded from the fixed population.
 
 ## Defect Reproduction And Repair
 

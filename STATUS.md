@@ -11,7 +11,7 @@ New identity `j4-luna-ettin-unexecuted11to20-v2` and FINAL P-set 36 preserve
 the same disclosed population, architecture, treatment, predictions,
 historical `6/10`, U8 exclusion, `$7.80502179` opening accounting, and proposed
 `$5.00` fresh / `$12.80502179` cumulative caps. The mode-0600 private launcher
-SHA-256 is `833c8f0dcab2e680a20cdc85cf852f5fee4b1ff3333a850d6edf0fe09b0cbc86`;
+SHA-256 is `8d0b6a6b19d03b7385445182dc91c1ed9a90dc83878cc82a267708f2d3b3a568`;
 the mode-0600 final runtime SHA-256 is
 `f3034fac3c43ebfc55911f85dfb65cff022825dc338b7c539357fd521c36a404`.
 Provider-free verification executed one real cached-Ettin rank through a

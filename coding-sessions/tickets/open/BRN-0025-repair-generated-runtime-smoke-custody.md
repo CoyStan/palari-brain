@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0025
 children: []
-status: in-review
+status: claimed
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-06T19:42:13Z
 target_branch: "main"
 branch: "ticket/BRN-0025-repair-generated-runtime-smoke-custody"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0025-repair-generated-runtime-smoke-custody"
@@ -195,7 +195,7 @@ Do not obtain a score, improve answer quality, or authorize the live successor.
   finite 4/4 scores, temporary cleanup, and zero provider/credential/dataset/
   result telemetry.
 - Successor launcher/runtime are mode 0600 at SHA-256
-  `833c8f0dcab2e680a20cdc85cf852f5fee4b1ff3333a850d6edf0fe09b0cbc86` /
+  `8d0b6a6b19d03b7385445182dc91c1ed9a90dc83878cc82a267708f2d3b3a568` /
   `f3034fac3c43ebfc55911f85dfb65cff022825dc338b7c539357fd521c36a404`.
 - All seven BRN-0024 private hashes/modes rechecked unchanged before and after.
 - Full tests: 783 pass / 15 skip / 0 fail across 798. Quickstart: 6/6.
