@@ -42,9 +42,9 @@ founder requested and exactly authorized the evaluation; (5) deleting this
 record would risk falsely claiming a model result or retrying a consumed
 identity. Independent terminal rereview of exact pushed head `26c50c3` found
 no P0-P3 issue and recommends ACCEPT. Under the founder's standing delegation
-for clean independently reviewed tickets, BRN-0024 is accepted for merge. Any
-repair or new live identity requires a new governed ticket and fresh founder
-authorization.
+for clean independently reviewed tickets, BRN-0024 was accepted, merged, and
+pushed at `d482cd7`. Any repair or new live identity requires a new governed
+ticket and fresh founder authorization.
 
 BRN-0023 now composes one immutable structured Responses body through durable
 unknown-billing count-attempt reservation, one injected exact count, pinned
