@@ -81,10 +81,24 @@ separate tracked attestation commit may change only the disposition to ACCEPT;
 that exact administrative head must then receive one final independent
 rereview before founder authority can name it.
 
-`BRN0024_REVIEW_DISPOSITION: PENDING`
+`BRN0024_REVIEW_DISPOSITION: ACCEPT`
 
 `BRN0024_REVIEW_IDENTITY: j4-luna-ettin-unexecuted11to20-v1`
 
 Runtime `--verify` is now synthetic-only; `preflight()` remains reachable only
 after the authorized launcher consumes the live attempt. System-call tracing
 confirms verification never opens `longmemeval_s_cleaned.json`.
+
+## Independent Acceptance Attestation
+
+Fresh cumulative review of exact clean pushed implementation head
+`7312dc56287724ffd3cdf149e6a97679e00e9f5f` found no P0-P3 defects and
+recommended ACCEPT. It independently reproduced synthetic-only verification,
+PENDING-gate refusal, content-preflight ordering, both numeric caps, reviewed
+head/private-hash binding, long-context settlement, run-wide operation-ID
+custody, semantic overlay sealing, absent identities, U8 exclusion, P-set 35
+disclosure, 775/15/0 tests, quickstart 6/6, and all governed checks.
+
+This marker records that independent result. It is not founder live authority.
+The exact marker-only attestation head still requires a final fresh read-only
+rereview before any authorization request.
