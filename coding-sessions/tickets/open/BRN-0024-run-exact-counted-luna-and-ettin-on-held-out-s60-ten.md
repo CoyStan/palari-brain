@@ -303,3 +303,25 @@ and no tuning or live action followed. The second repair makes `--verify`
 synthetic-only (confirmed not to open the dataset) and requires the exact
 reviewed note to contain machine-readable ACCEPT plus identity markers before
 namespace creation. The marker remains PENDING until independent acceptance.
+
+## Terminal Result
+
+Final independent rereview accepted exact marker-only head `ad37a5f` with no
+P0-P3 finding. The founder then gave exact authority for the replacement
+identity, both caps, that reviewed head, both private hashes, and ACCEPT.
+
+The single invocation was consumed and sealed, but failed before the local
+Ettin smoke with `ReferenceError: runLocalEttinSmoke is not defined`. A later
+runtime source-region replacement had removed the previously inserted helper
+definition while leaving its call. Credential-read intent was never written;
+meter calls, measured spend, uncertain spend, and fresh accounted spend are
+all zero. No provider, smoke, question, judge, score, or semantic judgment was
+reached. Cumulative accounted spend remains `$7.80502179`; U8 and historical
+`6/10` are unchanged.
+
+The four-artifact seal has zero errors. Manifest SHA-256 is
+`9287d3a235b390b63133482366d1aa5db84a80b8903f41c41be7b1e90e86c768`;
+artifact-list SHA-256 is
+`df32f6e0d8ce8b534653fb6cf4790f1a49a1074398b0c6c448ff4f8f6448d8e1`.
+This terminal finding satisfies the ticket's stop-and-record branch. It does
+not authorize a fix, replacement identity, or second invocation.

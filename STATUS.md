@@ -1,71 +1,47 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0024 REPAIRED OFFLINE; FRESH INDEPENDENT REVIEW NEXT. The
-founder approved retaining S60 ordinals 11-20 under the honest claim
-“never-executed, previously profiled.” P-set 34 and identity
-`j4-luna-ettin-heldout11to20-v1` are abandoned unconsumed. P-set 35 freezes
-replacement identity `j4-luna-ettin-unexecuted11to20-v1` with the same ordered
-population, models, prompts, architecture, and `$5.00` fresh /
-`$12.80502179` cumulative proposed caps. Sealed U8 and historical BRN-0017
-`6/10` remain unchanged.
+Loop state: BRN-0024 TERMINAL FAILURE; RECORD AND INDEPENDENT TERMINAL REVIEW
+NEXT. Founder-authorized identity `j4-luna-ettin-unexecuted11to20-v1` was
+consumed exactly once under `$5.00` fresh / `$12.80502179` cumulative authority
+at reviewed head `ad37a5f`. It stopped before the provider-free Ettin smoke with
+`ReferenceError: runLocalEttinSmoke is not defined`. No writer smoke, answer
+smoke, question, judge, embedding, generation, credential read, or provider
+request occurred. The identity cannot be retried, resumed, rerolled, or
+regraded.
 
-The repaired private mode-0600 launcher/runtime hash to
-`2ffb3d7a414008a74b9c61eaa1aca1db0240ef33fd155a6adb060863b2488459`
-and `b49c6f8c38d08271933daa415f19037fd7055ede3711bb5d27371c42aaadca81`.
-Provider-free verification binds 18 product/eval files, 13 predecessor
-bundles, the pinned dataset/order, seven Ettin artifacts and its 3,208-file
-runtime closure, the clean canonical contract commit `0615b10`, exact caps,
-both absent identities, and absent result/review namespaces. Three fake Luna
-wire shapes each pass count-reserve -> one count -> exact generation-reserve
--> one generation with the preregistered `$0.0008644` 1,000-input/512-output
-reservation. Credential reads, provider calls, inference, and spend remain
-`0 / 0 / 0 / $0.00`; cumulative accounted remains `$7.80502179`.
+The deterministic root cause is a private runtime-composition defect. The
+launcher inserted `runLocalEttinSmoke`, then a later replacement of the region
+from `measuredOpenAISpend` through `sourceSession` removed that helper while
+leaving its call in `run()`. Syntax and offline verification did not execute
+the local-smoke call, so both passed. This is a harness failure, not evidence
+about Luna, Ettin ranking quality, retrieval, or answer quality.
 
-All four reviewed technical findings are repaired. The gate now requires both
-numeric caps, exact pushed reviewed head, exact private hashes, and explicit
-ACCEPT state before namespace creation. Luna measured settlement uses official
-Standard short `$0.20/$0.02/$1.20` and long `$0.40/$0.04/$1.80` input/cached/
-output rates. A run-wide operation-ID set consumes before reservation. A
-separate append-once semantic-review namespace binds 20 labels, reviewer
-provenance, and the immutable original manifest without changing canonical
-truth or the official score.
+The terminal bundle is sealed with four mode-0600 artifacts and zero sealing
+errors. Manifest SHA-256 is
+`9287d3a235b390b63133482366d1aa5db84a80b8903f41c41be7b1e90e86c768`;
+its artifact-list SHA-256 is
+`df32f6e0d8ce8b534653fb6cf4790f1a49a1074398b0c6c448ff4f8f6448d8e1`.
+The attempt was reserved at `2026-08-06T19:09:03.270Z`, consumed at
+`19:09:07.249Z`, and sealed at `19:09:13.210Z`. Meter state is exactly zero
+calls, `$0.00` measured, `$0.00` uncertain, and `$0.00` fresh accounted;
+cumulative accounted remains `$7.80502179`. Credential-read intent/stage are
+absent and the manifest records no credential environment load or scan need.
 
-The one invocation will run provider-free Ettin/meter gates, then a metered
-Gemini writer smoke, then a counted Luna answer/tool/commit smoke, then the ten
-questions serially. Each row preserves raw retrieval, plan, commitments,
-temporary inferences, native Ettin telemetry, official judge label, and five
-distinct metrics. Equivalent-fact and materially-used labels begin pending/
-null and never regrade the official score or canonical memory. Exact founder
-authority remains required after a clean pushed freeze and independent ACCEPT
-recommendation.
+P-set 35 grades failing-first: OFFICIAL ACCURACY, SESSION RECALL, EXACT-SPAN
+RECALL, SELECTED EVIDENCE, MATERIALLY USED EVIDENCE, EQUIVALENT-FACT RECALL,
+ARCHITECTURE, and RERANK/BOUNDARY are NOT REACHED and fail their numeric or
+behavioral predictions. EXECUTION/ACCOUNTING passes only its terminal-custody
+branch: the first failure stopped, sealed once, spent zero, preserved the
+historical `6/10`, and did not touch U8. P-set 34 remains abandoned unconsumed.
 
-Review of `a8b8ae8` reopened two additional custody defects. Caller-supplied
-`ACCEPT` was not backed by a machine-readable ACCEPT marker in the reviewed
-Git note, and runtime `--verify` parsed the selected dataset content before
-authority. Prior verifier executions exposed only aggregate counts (4,950
-messages, 4,867,901 visible bytes, maximum 15,338 characters), never text,
-answers, supporting messages, or a route to a human. No product/prompt/model/
-population change, provider, credential, namespace, or spend resulted. The
-runtime verifier is now synthetic-only and an `strace` check confirms it never
-opens the dataset. The live gate now also requires exact tracked
-`BRN0024_REVIEW_DISPOSITION: ACCEPT` and identity markers. That marker remains
-PENDING until an independent reviewer actually accepts the repaired head.
-
-Repaired private verification is green, including exact short/long settlement,
-duplicate operation rejection, the 20-label overlay schema, both absent
-identities, absent result/review namespaces, first overlay seal, second-seal
-refusal, and unchanged original manifest. Full tests pass 775 / skip 15 / fail
-0 across 790; quickstart passes 6/6; ticket, report, scope, syntax, and diff
-checks pass. Product stop rule: (1) yes, the basic journey
-remains green; (2) no product behavior changed, but this enables the first
-honestly labeled unexecuted-population live measure; (3) provider SDKs do not
-provide Palari's one-shot lineage, separate evidence-use metrics, or exact
-count/cap custody; (4) yes, the founder explicitly requested BRN-0024; (5)
-deleting the freeze would lose the unexecuted comparison and make a future run
-vulnerable to undercounting or reroll. BRN-0023 and this freeze are two
-consecutive infrastructure/measurement units in the founder-directed sequence,
-so the drift stop is explicit: do not start a third infrastructure unit. Next:
-commit/push the repaired freeze and obtain fresh independent review.
+Product stop rule: (1) yes, quickstart remains green; (2) no product behavior
+improved because the live evaluation failed before its first smoke; (3)
+provider frameworks do not supply this private one-shot custody; (4) yes, the
+founder requested and exactly authorized the evaluation; (5) deleting this
+record would risk falsely claiming a model result or retrying a consumed
+identity. Next: commit/push the immutable failure record and obtain independent
+terminal review. Any repair or new live identity requires a new governed ticket
+and fresh founder authorization.
 
 BRN-0023 now composes one immutable structured Responses body through durable
 unknown-billing count-attempt reservation, one injected exact count, pinned

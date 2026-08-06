@@ -26,8 +26,8 @@ The offline freeze is implemented and costs `$0.00`. Proposed maximum fresh
 accounted spend is `$5.00`, including conservative unknown count billing.
 The first freeze was stopped by review before any spend. Its authority,
 long-context pricing, global operation custody, and semantic-review seal are
-now repaired offline. Fresh independent review and exact founder authorization
-are still required before the first live request.
+were repaired offline and independently accepted before the exact founder-
+authorized live request.
 
 A second review caught two more pre-run issues: offline verification was
 programmatically reading the ten sessions to calculate aggregates, and a
@@ -38,6 +38,9 @@ see a tracked ACCEPT marker from the exact reviewed Git head.
 
 ## Recommended Next Move
 
-Obtain fresh independent pre-dispatch review. If it is clean, request the
-founder's exact identity, numeric caps, reviewed head/private hashes, and
-ACCEPT-state authorization; do not dispatch under earlier general direction.
+The authorized run has now happened once and cannot be retried. It stopped
+before any AI call because the generated runtime called a local Ettin smoke
+helper whose definition had accidentally been removed during composition.
+Cost was `$0.00`, no key was read, and no model result exists. Record and
+independently review this terminal failure. Any repair and new evaluation must
+use a new ticket, identity, prediction, review, and founder authorization.

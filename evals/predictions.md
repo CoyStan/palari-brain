@@ -2525,3 +2525,26 @@ message, route, credential, provider call, namespace, or spend reached a human
 or changed the candidate. Independent review reopened this metadata-only
 boundary; the repaired runtime verifier is synthetic-only and dataset parsing
 is confined to consumed authorized `--run`.
+
+Terminal grade: **CONSUMED — FAILED BEFORE FIRST SMOKE.** The one authorized
+invocation stopped with `ReferenceError: runLocalEttinSmoke is not defined`
+before credential access or any physical provider call. The private runtime
+composer removed the helper definition in a later source-region replacement
+while retaining its call. Zero questions or compatibility smokes were reached.
+
+- OFFICIAL ACCURACY: **FAIL / NOT REACHED**, `0/10` reached against `>=8/10`.
+- SESSION RECALL: **FAIL / NOT REACHED**, no answer-bearing row reached.
+- EXACT-SPAN RECALL: **FAIL / NOT REACHED**, no row reached.
+- SELECTED EVIDENCE: **FAIL / NOT REACHED**, no row reached.
+- MATERIALLY USED EVIDENCE: **FAIL / NOT REACHED**, no terminal labelable row.
+- EQUIVALENT-FACT RECALL: **FAIL / NOT REACHED**, no terminal labelable row.
+- ARCHITECTURE: **FAIL / NOT REACHED**, no answer trace was produced.
+- RERANK/BOUNDARY: **FAIL / NOT REACHED**, failure preceded the local Ettin
+  smoke, writer smoke, answer smoke, and every question.
+- EXECUTION/ACCOUNTING: **PASS** for the terminal branch only. The first
+  failure stopped and sealed the identity; calls and spend are zero; historical
+  `6/10` and U8 are unchanged; no retry, resume, replacement, or top-up
+  occurred.
+
+This is an evaluation-harness failure, not a Luna, Ettin, retrieval, evidence,
+or answer-quality result. The identity is permanently consumed.

@@ -41,3 +41,7 @@ replacement identity `j4-luna-ettin-unexecuted11to20-v1` preserves the same
 population under the honest “never-executed, previously profiled” claim. The
 four technical findings are repaired offline. Fresh independent review and a
 new exact live authorization remain required.
+
+The replacement identity was subsequently independently accepted, exactly
+authorized, consumed once, and sealed as a zero-call harness failure before
+credentials. This handoff is historical; it grants no retry or successor.

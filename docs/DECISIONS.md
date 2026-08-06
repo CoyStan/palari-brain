@@ -3143,3 +3143,12 @@ here with dates. Agents record; the founder decides.
   disposition/identity markers at the confirmed pushed head; keep the marker
   PENDING until actual acceptance. Make `--verify` synthetic-only and reserve
   dataset parsing for consumed authorized `--run`.
+
+- 2026-08-06 (BRN-0024 terminal invocation)
+  **Keep the zero-cost harness failure and never reuse the identity.** After
+  final independent ACCEPT and exact founder authority, the one invocation
+  stopped before credentials/providers on an undefined local-smoke helper.
+  The private composer had deleted its own earlier helper insertion. Seal the
+  four-artifact failure, grade P-set 35 as not reached except terminal
+  accounting custody, retain cumulative `$7.80502179`, and require a new
+  ticket/identity/authority for any repair or live successor.

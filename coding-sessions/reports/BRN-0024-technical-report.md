@@ -2,11 +2,11 @@
 
 ## Outcome
 
-Prepared a provider-free, one-shot Luna+Ettin freeze for a never-executed,
-previously profiled population. The founder resolved the prior claim blocker
-by approving that honest relabel. No credential, provider, inference, or
-result namespace was accessed. Live use remains blocked on fresh review and
-exact authority.
+The founder-authorized one-shot identity was consumed and sealed with a
+terminal harness failure before its first smoke:
+`ReferenceError: runLocalEttinSmoke is not defined`. No credential, provider,
+inference, question, or score was reached. Fresh and cumulative added spend
+are `$0.00`; cumulative accounted remains `$7.80502179`.
 
 ## Files Changed
 
@@ -42,7 +42,20 @@ exact authority.
 - Invalid authority refusal before result creation: PASS.
 - Full tests: PASS, 775 passed / 15 optional skips / 0 failed across 790.
 - Quickstart: PASS, 6/6. Ticket, report, committed-plus-dirty scope, syntax,
-  and diff checks: PASS. Independent pre-dispatch review remains pending.
+  and diff checks: PASS. Pre-dispatch review accepted exact `ad37a5f`; fresh
+  terminal review of the consumed failure remains required.
+
+## Terminal Evidence
+
+- Attempt: reserved, launched, consumed exactly once; no retry or resume.
+- Meter: zero calls; `$0.00` measured / uncertain / accounted.
+- Credential intent/stage: absent; environment not loaded.
+- Result: `failed-before-report`; no writer/answer smoke or question reached.
+- Seal: four artifacts, zero errors, manifest
+  `9287d3a235b390b63133482366d1aa5db84a80b8903f41c41be7b1e90e86c768`.
+- Root cause: helper inserted early in private runtime composition, then
+  removed by the later exact-transport region replacement ending at
+  `sourceSession`; its call remained in `run()`.
 
 ## Risks / Follow-Ups
 

@@ -102,3 +102,14 @@ disclosure, 775/15/0 tests, quickstart 6/6, and all governed checks.
 This marker records that independent result. It is not founder live authority.
 The exact marker-only attestation head still requires a final fresh read-only
 rereview before any authorization request.
+
+## Live Terminal Evidence Pending Review
+
+Final rereview accepted exact pushed marker head `ad37a5f` with no P0-P3
+finding. The founder's exact authority then consumed the identity once. It
+sealed `failed-before-report` on
+`ReferenceError: runLocalEttinSmoke is not defined`, before credentials or any
+metered call. Four artifacts rehash; calls/spend are zero; manifest SHA-256 is
+`9287d3a235b390b63133482366d1aa5db84a80b8903f41c41be7b1e90e86c768`.
+Independent terminal review remains required; this specialist does not accept
+its own terminal record.
