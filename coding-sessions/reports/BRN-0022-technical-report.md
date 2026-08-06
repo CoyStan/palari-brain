@@ -126,3 +126,7 @@ technical evidence passed. It reopened one P2 documentation defect: stale
 pre-dispatch sentences elsewhere in the terminal reports still described the
 namespace as absent and the call as future. This cumulative repair makes every
 such statement explicitly historical and leaves the sealed result untouched.
+
+Final narrow rereview of exact clean pushed head `36fafc8` found no P0-P3
+issue after the last stale ticket clause was removed. It recommends acceptance;
+all sealed technical facts and accounting remain unchanged.

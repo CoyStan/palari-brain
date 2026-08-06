@@ -52,8 +52,6 @@ what, if anything, was billed; cumulative accounted is `$7.80502179`.
 
 ## Recommended Next Move
 
-Have an independent terminal reviewer rehash and reconcile the consumed result
-without rerunning it. The first terminal review validated the evidence but
-reopened stale pre-run wording in these reports. After narrow rereview of that
-documentation-only repair, close and merge if clean; benchmark-launcher
-integration remains a separate governed change.
+The final independent rereview is clean with no P0-P3 issue. Close and merge
+the ticket. Benchmark-launcher integration remains a separate governed change;
+this consumed probe must never be rerun.

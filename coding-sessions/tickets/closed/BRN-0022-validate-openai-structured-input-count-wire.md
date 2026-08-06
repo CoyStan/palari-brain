@@ -6,7 +6,7 @@ level: 1
 parent_id:
 root_id: BRN-0022
 children: []
-status: in-review
+status: accepted
 risk: R4
 priority: P0
 agents_allowed: 1
@@ -272,3 +272,10 @@ The first narrow rereview of repaired head `205ca89` found one remaining P2:
 the bullet above still said terminal review remained while the next paragraph
 recorded its completion. That stale clause is removed. No private artifact,
 technical result, accounting value, or historical score changed.
+
+Final fresh narrow rereview of exact clean pushed head `36fafc8` found no
+P0-P3 issue. It confirmed the stale clause is gone, the three-file delta is
+documentation-only, HEAD equals upstream, ticket/report/diff/scope checks pass,
+and every sealed fact remains unchanged. The reviewer recommends ACCEPT.
+BRN-0022 is accepted under the founder's standing delegation for clean,
+independently reviewed tickets; merge is next.

@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0022 TERMINAL EVIDENCE VERIFIED; DOCUMENTATION P2 REOPENED.
+Loop state: BRN-0022 INDEPENDENTLY ACCEPTED; MERGE NEXT.
 Founder-authorized identity
 `openai-structured-input-count-compat-v1` ran exactly once and is consumed.
 The frozen `gpt-5.6-sol` request returned HTTP 200 and the strict response
@@ -64,8 +64,11 @@ and accounting field, but reopened one P2: several retained pre-run sentences
 contradicted the terminal state. The cumulative documentation-only repair makes
 those statements explicitly historical. A first narrow rereview of exact head
 `205ca89` found one last stale clause in the ticket saying terminal review
-remained; it is now removed without changing any result. Next: final narrow
-rereview; never rerun or mutate the consumed result.
+remained; it was removed without changing any result. Final narrow rereview of
+exact clean pushed head `36fafc8` found no P0-P3 issue and recommends ACCEPT.
+BRN-0022 is accepted under the founder's standing delegation for clean,
+independently reviewed tickets. Next: merge; never rerun or mutate the consumed
+result.
 
 Product stop rule: (1) yes, quickstart is green 6/6;
 (2) yes, the live count established exact structured-wire compatibility for

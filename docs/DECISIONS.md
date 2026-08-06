@@ -3064,3 +3064,11 @@ here with dates. Agents record; the founder decides.
   cumulative accounted ledger `$7.80502179`. This validates the structured Sol
   count wire only; historical 6/10 is unchanged and benchmark integration
   remains separate governed work.
+
+- 2026-08-06 (BRN-0022 acceptance)
+  **Accept after clean independent terminal rereview.** The terminal evidence
+  and cumulative accounting rehashed, two documentation-only consistency
+  findings were repaired, and final exact-head rereview found no P0-P3 issue.
+  Merge under the founder's standing delegation for clean independently
+  reviewed tickets. Acceptance grants no retry, regrade, benchmark run, or
+  publication authority.
