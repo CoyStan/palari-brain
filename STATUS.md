@@ -1,7 +1,44 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0025 GENERATED-RUNTIME SMOKE-CUSTODY CONTRACT OPEN; OFFLINE
-IMPLEMENTATION NEXT. BRN-0024 is accepted and terminal. Its founder-authorized
+Loop state: BRN-0025 GENERATED-RUNTIME SMOKE-CUSTODY IMPLEMENTED OFFLINE;
+INDEPENDENT REVIEW NEXT. The tracked verifier now rejects missing/duplicate
+required definitions, retained-call defects, timeout/signal/nonzero exits,
+invalid or oversized output, and nonzero provider/credential/dataset/result
+telemetry. Its 8/8 contracts permanently reproduce BRN-0024's transformation-
+order deletion while proving syntax alone passes.
+
+New identity `j4-luna-ettin-unexecuted11to20-v2` and FINAL P-set 36 preserve
+the same disclosed population, architecture, treatment, predictions,
+historical `6/10`, U8 exclusion, `$7.80502179` opening accounting, and proposed
+`$5.00` fresh / `$12.80502179` cumulative caps. The mode-0600 private launcher
+SHA-256 is `833c8f0dcab2e680a20cdc85cf852f5fee4b1ff3333a850d6edf0fe09b0cbc86`;
+the mode-0600 final runtime SHA-256 is
+`f3034fac3c43ebfc55911f85dfb65cff022825dc338b7c539357fd521c36a404`.
+Provider-free verification executed one real cached-Ettin rank through a
+temporary synthetic Palari brain: the titanium memory ranked first, the answer
+was `It is titanium.`, scores were finite 4/4, and temporary state was removed.
+Telemetry is exactly zero provider calls, credential reads, dataset reads, and
+result writes. The successor result and semantic-review namespaces remain
+absent; fresh spend is `$0.00` and cumulative accounted stays `$7.80502179`.
+
+All seven BRN-0024 private launcher/runtime/terminal hashes and mode-0600 bytes
+rehash unchanged before and after. Focused contracts pass 8/8; full tests pass
+783 / fail 0 / skip 15 across 798; quickstart passes 6/6; syntax, ticket,
+report, governed scope, and diff checks pass. Independent review is PENDING.
+No live successor is authorized; an accepted freeze must stop for a new exact
+founder GO binding identity, both caps, reviewed head, launcher/runtime hashes,
+and ACCEPT.
+
+Product stop rule: (1) yes, quickstart remains green; (2) yes, the next
+evaluation cannot consume an identity without executing the real local smoke;
+(3) Node syntax/child-process primitives exist, but frameworks do not bind
+generated evaluation custody and zero-activity telemetry; (4) yes, the
+founder explicitly asked to repair the failed evaluation autonomously; (5)
+deleting this unit would restore the exact class that consumed BRN-0024 before
+measurement. This is one infrastructure reliability unit after a measurement,
+not consecutive drift.
+
+BRN-0024 is accepted and terminal. Its founder-authorized
 identity
 `j4-luna-ettin-unexecuted11to20-v1` was
 consumed exactly once under `$5.00` fresh / `$12.80502179` cumulative authority

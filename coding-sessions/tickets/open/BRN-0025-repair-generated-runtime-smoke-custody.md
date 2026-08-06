@@ -185,3 +185,20 @@ Do not obtain a score, improve answer quality, or authorize the live successor.
 - Stop if the work needs a tracked path outside `allowed_paths`, touches a
   forbidden path, reads a credential or selected benchmark content, creates a
   successor result namespace, mutates BRN-0024 evidence, or needs live spend.
+
+## Specialist Evidence
+
+- FINAL P-set 36 registered before any possible live access.
+- Focused verifier contracts: 8/8 PASS, including the exact helper-deletion
+  reproduction that passes syntax and fails final-runtime verification.
+- Private successor `--verify`: PASS with expected titanium ordering/answer,
+  finite 4/4 scores, temporary cleanup, and zero provider/credential/dataset/
+  result telemetry.
+- Successor launcher/runtime are mode 0600 at SHA-256
+  `833c8f0dcab2e680a20cdc85cf852f5fee4b1ff3333a850d6edf0fe09b0cbc86` /
+  `f3034fac3c43ebfc55911f85dfb65cff022825dc338b7c539357fd521c36a404`.
+- All seven BRN-0024 private hashes/modes rechecked unchanged before and after.
+- Full tests: 783 pass / 15 skip / 0 fail across 798. Quickstart: 6/6.
+- Provider, credential, dataset, result-namespace, semantic-judgment, and spend
+  activity: `0 / 0 / 0 / 0 / 0 / $0.00`.
+- Independent review: PENDING. Live successor authority: ABSENT.
