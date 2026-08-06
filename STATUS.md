@@ -1,12 +1,50 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0023 ACCEPTED, MERGED, AND PUSHED AT `0219051`; BRN-0024
-FREEZE NEXT. The founder
-directed BRN-0023 implementation and preparation of a fresh
-held-out BRN-0024 Luna+Ettin evaluation without returning between tickets
-unless a founder-level blocker occurs. BRN-0023 makes no provider call or
-spend; BRN-0024 still requires a frozen exact identity/cap and founder gate
-before live dispatch.
+Loop state: BRN-0024 ACCEPTED TERMINAL ZERO-CALL FAILURE; BRN-0025 HARNESS
+REPAIR CONTRACT NEXT. Founder-authorized identity
+`j4-luna-ettin-unexecuted11to20-v1` was
+consumed exactly once under `$5.00` fresh / `$12.80502179` cumulative authority
+at reviewed head `ad37a5f`. It stopped before the provider-free Ettin smoke with
+`ReferenceError: runLocalEttinSmoke is not defined`. No writer smoke, answer
+smoke, question, judge, embedding, generation, credential read, or provider
+request occurred. The identity cannot be retried, resumed, rerolled, or
+regraded.
+
+The deterministic root cause is a private runtime-composition defect. The
+launcher inserted `runLocalEttinSmoke`, then a later replacement of the region
+from `measuredOpenAISpend` through `sourceSession` removed that helper while
+leaving its call in `run()`. Syntax and offline verification did not execute
+the local-smoke call, so both passed. This is a harness failure, not evidence
+about Luna, Ettin ranking quality, retrieval, or answer quality.
+
+The terminal bundle is sealed with four mode-0600 artifacts and zero sealing
+errors. Manifest SHA-256 is
+`9287d3a235b390b63133482366d1aa5db84a80b8903f41c41be7b1e90e86c768`;
+its artifact-list SHA-256 is
+`df32f6e0d8ce8b534653fb6cf4790f1a49a1074398b0c6c448ff4f8f6448d8e1`.
+The attempt was reserved at `2026-08-06T19:09:03.270Z`, consumed at
+`19:09:07.249Z`, and sealed at `19:09:13.210Z`. Meter state is exactly zero
+calls, `$0.00` measured, `$0.00` uncertain, and `$0.00` fresh accounted;
+cumulative accounted remains `$7.80502179`. Credential-read intent/stage are
+absent and the manifest records no credential environment load or scan need.
+
+P-set 35 grades failing-first: OFFICIAL ACCURACY, SESSION RECALL, EXACT-SPAN
+RECALL, SELECTED EVIDENCE, MATERIALLY USED EVIDENCE, EQUIVALENT-FACT RECALL,
+ARCHITECTURE, and RERANK/BOUNDARY are NOT REACHED and fail their numeric or
+behavioral predictions. EXECUTION/ACCOUNTING passes only its terminal-custody
+branch: the first failure stopped, sealed once, spent zero, preserved the
+historical `6/10`, and did not touch U8. P-set 34 remains abandoned unconsumed.
+
+Product stop rule: (1) yes, quickstart remains green; (2) no product behavior
+improved because the live evaluation failed before its first smoke; (3)
+provider frameworks do not supply this private one-shot custody; (4) yes, the
+founder requested and exactly authorized the evaluation; (5) deleting this
+record would risk falsely claiming a model result or retrying a consumed
+identity. Independent terminal rereview of exact pushed head `26c50c3` found
+no P0-P3 issue and recommends ACCEPT. Under the founder's standing delegation
+for clean independently reviewed tickets, BRN-0024 is accepted for merge. Any
+repair or new live identity requires a new governed ticket and fresh founder
+authorization.
 
 BRN-0023 now composes one immutable structured Responses body through durable
 unknown-billing count-attempt reservation, one injected exact count, pinned

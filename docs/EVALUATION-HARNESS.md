@@ -57,6 +57,32 @@ input tokens, 1,277 ms, and one physical count request. No generation occurred.
 The identity is consumed and the full `$0.05` remains uncertain/accounted;
 this compatibility pass does not establish billing treatment.
 
+BRN-0024 is the first benchmark composition of the accepted counted boundary.
+For every Luna answer dispatch its private one-shot runtime durably reserves a
+distinct `$0.05` unknown-billing count attempt, sends the exact structured body
+once to `/v1/responses/input_tokens`, reserves Luna Standard generation from
+that validated count, then sends the byte-equivalent body once to Responses.
+The same operation ID cannot retry or fall back to bytes. Count uncertainty
+and measured generation remain separate ledger entries.
+
+The population is S60 ordinals 11-20. It has never been executed, but tracked
+P-set 20 previously assigned content-derived difficulty classes, so BRN-0024
+calls it execution-held-out rather than pristine blind. Sealed U8 is excluded;
+no new content inspection or row-specific route is permitted. Writer and
+answer compatibility smokes precede the ten. The result reports session,
+exact-span, selected, judged-equivalent, and judged-material-use surfaces
+separately; the last two begin pending and can be labeled once in a separate
+append-only, provenance-bearing seal that binds the original terminal manifest
+without changing official scoring or canonical memory. Exact live authority
+binds both caps, reviewed pushed head, launcher/runtime hashes, and ACCEPT
+state before result namespace creation. Standard Luna settlement uses
+short/long measured rates selected from the exact-count context band.
+Runtime `--verify` is synthetic-only and never opens the dataset; selected
+question/session parsing is confined to authorized `--run` after the launcher
+consumes the attempt. The launcher treats an environment ACCEPT as insufficient
+unless the exact pushed reviewed note also contains the machine-readable
+BRN-0024 ACCEPT disposition and identity.
+
 BRN-0023 composes that proven wire with generation reservation without adding
 a network client. `createExactCountedOpenAIResponsesEvaluator(...)` requires
 four injected functions: durable count-attempt reservation, one count

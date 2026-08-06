@@ -2395,3 +2395,156 @@ could forge the audit hash or admit a signed allowance, and multibyte
 operation IDs exceeded the promised byte limit. The repaired 36/36 focused
 bank includes permanent adversarial reproductions; a fresh cumulative review
 is required before acceptance.
+
+## P-set 34 — Exact-counted Luna + Ettin held-out S60 ordinals 11-20
+
+Status: **FINAL before credential read, provider call, inference, or result
+creation.**
+
+Identity: `j4-luna-ettin-heldout11to20-v1`
+
+Population, in immutable S60 order: `18bc8abd`, `19b5f2b3`, `1a1907b4`,
+`2133c1b5`, `2133c1b5_abs`, `25e5aa4f`, `2698e78f_abs`, `32260d93`,
+`35a27287`, `36b9f61e`. Metadata-only reconciliation found no terminal result
+for these ten. Their question text, reference answers, supporting messages,
+and expected route were not inspected. Sealed U8 `1568498a` is excluded.
+
+Opening cumulative accounted spend is exactly `$7.80502179`. Proposed caps
+are `$5.00` fresh and `$12.80502179` cumulative. Every Luna dispatch retains a
+separate `$0.05` uncertain count-attempt allowance until external billing
+evidence proves otherwise, then reserves generation from the returned exact
+count. These values are proposed boundaries only and require exact founder GO.
+
+Predictions, failing categories first:
+
+1. OFFICIAL ACCURACY: at least `8/10` unchanged official
+   `gpt-4o-2024-08-06` judge labels pass.
+2. SESSION RECALL: at least 90% of required answer-bearing sessions are
+   returned on reached non-abstention rows.
+3. EXACT-SPAN RECALL: at least 80% of dataset-marked supporting canonical
+   messages are returned where the dataset structurally supplies exact spans.
+   This is not substituted by an equivalent paraphrase.
+4. SELECTED EVIDENCE: at least 8/10 reached rows select answer-relevant
+   evidence through a host-accepted commitment, or correctly select none for
+   an abstention. Retrieved-but-unused memories may carry no commitment.
+5. MATERIALLY USED EVIDENCE: independent terminal review labels at least 8/10
+   rows PASS for actual answer use or correct abstention. This judged label is
+   distinct from the model's `consequence_for_answer` declaration.
+6. EQUIVALENT-FACT RECALL: one independent terminal reviewer labels the
+   separately sealed pending/null surface exactly once. It may explain an
+   exact-span miss but never changes exact recall, the official label, or
+   canonical truth.
+7. ARCHITECTURE: any temporal/relational plan is general and records anchor,
+   relation, category, and time range; commitments support either consequence
+   or non-use reason; every cross-context inference is provenance-linked,
+   `revisable: true`, trace-only, and never persisted.
+8. RERANK/BOUNDARY: every reached native Ettin score is finite with no input
+   mutation; evidence calls never exceed four; writer smoke precedes answer
+   smoke; each Luna operation has exactly one count and at most one generation
+   after both durable reservations. No retry, byte fallback, resume, reroll,
+   replacement, selective regrade, or cap top-up occurs.
+9. EXECUTION/ACCOUNTING: the one invocation either seals both smokes plus all
+   ten cells, or honestly seals the first terminal failure. Every physical
+   call is accounted before transport, measured/uncertain spend remains
+   separate and within both caps, all artifacts rehash mode 0600, credential
+   matches are zero, historical `6/10` remains unchanged, and U8 is untouched.
+
+Pre-dispatch review note (does not rewrite this FINAL prediction): tracked
+P-set 20 already contains row-specific, content-derived classifications for
+all ten selected ordinals. The population has no prior terminal execution,
+but the stronger “content and expected route were not inspected” premise is
+not supportable. Dispatch is blocked on a founder choice to retain and relabel
+the population or replace it, plus repair and fresh review of the technical
+freeze.
+
+Founder disposition: **ABANDONED UNCONSUMED.** The founder retained the same
+never-executed population under a new honestly labeled identity in P-set 35.
+No credential, provider call, result namespace, or spend consumed P-set 34.
+
+## P-set 35 — Exact-counted Luna + Ettin unexecuted, previously profiled S60 ordinals 11-20
+
+Status: **FINAL before credential read, provider call, inference, or result
+creation.**
+
+Identity: `j4-luna-ettin-unexecuted11to20-v1`
+
+Population, in immutable S60 order: `18bc8abd`, `19b5f2b3`, `1a1907b4`,
+`2133c1b5`, `2133c1b5_abs`, `25e5aa4f`, `2698e78f_abs`, `32260d93`,
+`35a27287`, `36b9f61e`. None has a prior terminal result. P-set 20 previously
+assigned content-derived difficulty/basis classifications to all ten, so this
+is an execution holdout, not a claim of pristine content blindness. No new
+question, reference-answer, supporting-message, or expected-route inspection
+occurred for this repair. Sealed U8 `1568498a` is excluded.
+
+Opening cumulative accounted spend is exactly `$7.80502179`. Proposed caps
+are unchanged at `$5.00` fresh and `$12.80502179` cumulative. Every Luna
+dispatch retains a separate `$0.05` uncertain count-attempt allowance until
+external billing evidence proves otherwise, then reserves generation from the
+returned exact count. These proposed boundaries are not live authority.
+
+Predictions, failing categories first:
+
+1. OFFICIAL ACCURACY: at least `8/10` unchanged official
+   `gpt-4o-2024-08-06` judge labels pass.
+2. SESSION RECALL: at least 90% of required answer-bearing sessions are
+   returned on reached non-abstention rows.
+3. EXACT-SPAN RECALL: at least 80% of dataset-marked supporting canonical
+   messages are returned where the dataset structurally supplies exact spans.
+   This is not substituted by an equivalent paraphrase.
+4. SELECTED EVIDENCE: at least 8/10 reached rows select answer-relevant
+   evidence through a host-accepted commitment, or correctly select none for
+   an abstention. Retrieved-but-unused memories may carry no commitment.
+5. MATERIALLY USED EVIDENCE: independent terminal review labels at least 8/10
+   rows PASS for actual answer use or correct abstention. This judged label is
+   distinct from the model's `consequence_for_answer` declaration.
+6. EQUIVALENT-FACT RECALL: one independent terminal reviewer labels the
+   separately sealed pending/null surface exactly once. It may explain an
+   exact-span miss but never changes exact recall, the official label, or
+   canonical truth.
+7. ARCHITECTURE: any temporal/relational plan is general and records anchor,
+   relation, category, and time range; commitments support either consequence
+   or non-use reason; every cross-context inference is provenance-linked,
+   `revisable: true`, trace-only, and never persisted.
+8. RERANK/BOUNDARY: every reached native Ettin score is finite with no input
+   mutation; evidence calls never exceed four; writer smoke precedes answer
+   smoke; each Luna operation has exactly one count and at most one generation
+   after both durable reservations. No retry, byte fallback, resume, reroll,
+   replacement, selective regrade, or cap top-up occurs.
+9. EXECUTION/ACCOUNTING: the one invocation either seals both smokes plus all
+   ten cells, or honestly seals the first terminal failure. Every physical
+   call is accounted before transport; Luna measured settlement selects
+   official short/long Standard rates from the exact context band; count
+   uncertainty remains separate; all artifacts rehash mode 0600; credential
+   matches are zero; historical `6/10` remains unchanged; and U8 is untouched.
+
+Pre-dispatch process note (does not rewrite the FINAL predictions): the first
+P-set 35 verifier programmatically parsed selected sessions and emitted only
+aggregate counts—4,950 messages, 4,867,901 visible bytes, maximum 15,338
+characters—before founder authority. No text, reference answer, supporting
+message, route, credential, provider call, namespace, or spend reached a human
+or changed the candidate. Independent review reopened this metadata-only
+boundary; the repaired runtime verifier is synthetic-only and dataset parsing
+is confined to consumed authorized `--run`.
+
+Terminal grade: **CONSUMED — FAILED BEFORE FIRST SMOKE.** The one authorized
+invocation stopped with `ReferenceError: runLocalEttinSmoke is not defined`
+before credential access or any physical provider call. The private runtime
+composer removed the helper definition in a later source-region replacement
+while retaining its call. Zero questions or compatibility smokes were reached.
+
+- OFFICIAL ACCURACY: **FAIL / NOT REACHED**, `0/10` reached against `>=8/10`.
+- SESSION RECALL: **FAIL / NOT REACHED**, no answer-bearing row reached.
+- EXACT-SPAN RECALL: **FAIL / NOT REACHED**, no row reached.
+- SELECTED EVIDENCE: **FAIL / NOT REACHED**, no row reached.
+- MATERIALLY USED EVIDENCE: **FAIL / NOT REACHED**, no terminal labelable row.
+- EQUIVALENT-FACT RECALL: **FAIL / NOT REACHED**, no terminal labelable row.
+- ARCHITECTURE: **FAIL / NOT REACHED**, no answer trace was produced.
+- RERANK/BOUNDARY: **FAIL / NOT REACHED**, failure preceded the local Ettin
+  smoke, writer smoke, answer smoke, and every question.
+- EXECUTION/ACCOUNTING: **PASS** for the terminal branch only. The first
+  failure stopped and sealed the identity; calls and spend are zero; historical
+  `6/10` and U8 are unchanged; no retry, resume, replacement, or top-up
+  occurred.
+
+This is an evaluation-harness failure, not a Luna, Ettin, retrieval, evidence,
+or answer-quality result. The identity is permanently consumed.

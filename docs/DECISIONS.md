@@ -3103,3 +3103,61 @@ here with dates. Agents record; the founder decides.
   independently reviewed tickets. This accepts an offline orchestration
   boundary only; it grants no provider call, spend, score, or BRN-0024 live
   authority.
+
+- 2026-08-06 (BRN-0024 held-out freeze)
+  **Use exact S60 ordinals 11-20 as the first uninspected Luna+Ettin
+  architecture measurement.** Freeze identity
+  `j4-luna-ettin-heldout11to20-v1`, preserve old scores, exclude U8, retain
+  `$0.05` uncertain for every count request, and propose `$5.00` fresh /
+  `$12.80502179` cumulative caps. Writer and answer compatibility smokes must
+  pass before question 1. The founder's permission to increase a proposed
+  budget does not replace the repository's exact identity/cap authorization
+  gate; no provider activity occurs before clean independent review and exact
+  GO.
+
+- 2026-08-06 (BRN-0024 pre-dispatch blocker)
+  **Do not dispatch the submitted freeze; distinguish unexecuted from
+  uninspected.** Independent review found that the selected ten have never
+  produced terminal results, but tracked P-set 20 already records row-specific
+  content-derived classifications for each. BRN-0024 therefore cannot retain
+  its pristine non-inspection claim. The founder must choose retain-and-
+  relabel or a new population. Four separate authority/accounting/custody
+  defects are offline-repairable. No credential, provider, result namespace,
+  or spend was consumed; cumulative accounted remains `$7.80502179`.
+
+- 2026-08-06 (FOUNDER — BRN-0024 population resolution)
+  **Retain the same ten and relabel them as never executed, previously
+  profiled.** Preserve P-set 34 and its stronger-claim identity as abandoned
+  unconsumed evidence. Freeze replacement P-set 35 and identity
+  `j4-luna-ettin-unexecuted11to20-v1` without changing population, product,
+  prompt, model, architecture, or caps. Disclose P-set 20's prior profiling,
+  permit no new content-driven tuning, repair all reviewed technical defects,
+  and require fresh independent review plus exact live authority.
+
+- 2026-08-06 (BRN-0024 second pre-dispatch repair)
+  **Bind ACCEPT to tracked review evidence and keep offline verification out of
+  selected content.** Review of `a8b8ae8` proved environment ACCEPT could
+  contradict a tracked PENDING note and runtime verification parsed selected
+  sessions to emit aggregate counts before authority. No text or answer was
+  exposed to a human and no candidate change followed. Require exact tracked
+  disposition/identity markers at the confirmed pushed head; keep the marker
+  PENDING until actual acceptance. Make `--verify` synthetic-only and reserve
+  dataset parsing for consumed authorized `--run`.
+
+- 2026-08-06 (BRN-0024 terminal invocation)
+  **Keep the zero-cost harness failure and never reuse the identity.** After
+  final independent ACCEPT and exact founder authority, the one invocation
+  stopped before credentials/providers on an undefined local-smoke helper.
+  The private composer had deleted its own earlier helper insertion. Seal the
+  four-artifact failure, grade P-set 35 as not reached except terminal
+  accounting custody, retain cumulative `$7.80502179`, and require a new
+  ticket/identity/authority for any repair or live successor.
+
+- 2026-08-06 (BRN-0024 acceptance)
+  **Accept the sealed terminal zero-call failure after clean independent
+  rereview.** Exact pushed head `26c50c3` reconciles the immutable four-artifact
+  seal, one consumed attempt, pre-credential `ReferenceError`, zero calls and
+  spend, unchanged `$7.80502179` cumulative accounting, absent score/semantic
+  overlay, historical `6/10`, and U8 custody. Merge under the founder's
+  standing delegation for clean independently reviewed tickets. Acceptance
+  grants no repair, retry, replacement identity, provider call, or spend.
