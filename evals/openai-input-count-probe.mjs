@@ -32,6 +32,7 @@ export const OPENAI_INPUT_COUNT_PROBE = Object.freeze({
   model: 'gpt-5.6-sol',
   openingAccountedPicodollars: '7755021790000',
   openingAccountedUsd: '7.75502179',
+  resultRoot: '.palari-input-count',
   ticket: 'BRN-0022',
 })
 
@@ -412,7 +413,7 @@ async function openPrivateDirectory(path, expectedPhysicalPath) {
 
 export function createOpenAIInputCountResultStore({
   repoRoot,
-  resultRoot = '.palari-input-count',
+  resultRoot = OPENAI_INPUT_COUNT_PROBE.resultRoot,
 } = {}) {
   if (typeof repoRoot !== 'string' || !isAbsolute(repoRoot)) {
     throw new OpenAIInputCountProbeError(
@@ -420,10 +421,15 @@ export function createOpenAIInputCountResultStore({
       'repoRoot must be absolute.',
     )
   }
+  if (resultRoot !== OPENAI_INPUT_COUNT_PROBE.resultRoot) {
+    throw new OpenAIInputCountProbeError(
+      'RESULT_ROOT_INVALID',
+      'resultRoot must be the frozen private directory segment.',
+    )
+  }
   const root = resolve(repoRoot, resultRoot)
   const identityPath = join(root, OPENAI_INPUT_COUNT_PROBE.identity)
-  if (root !== join(resolve(repoRoot), resultRoot) ||
-    dirname(identityPath) !== root) {
+  if (dirname(identityPath) !== root) {
     throw new OpenAIInputCountProbeError(
       'RESULT_ROOT_INVALID',
       'Identity escaped the private result root.',

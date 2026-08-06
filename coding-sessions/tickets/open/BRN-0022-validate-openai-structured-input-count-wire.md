@@ -6,12 +6,12 @@ level: 1
 parent_id:
 root_id: BRN-0022
 children: []
-status: in-review
+status: claimed
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-06T03:55:34Z
 target_branch: "main"
 branch: "ticket/BRN-0022-validate-openai-structured-input-count-wire"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0022-validate-openai-structured-input-count-wire"
@@ -225,3 +225,15 @@ compatibility artifact without changing any historical benchmark result.
   verify, ticket/report, governed scope, syntax, and diff checks pass. Fresh
   independent cumulative rereview remains required before the founder dispatch
   gate may open.
+- Fresh cumulative rereview of pushed head `69fec72` confirmed the symlink,
+  parent-sync, and whitespace repairs, then reopened one further P1: the
+  exported store accepted caller-supplied `../outside-result` because its
+  normalized string comparison did not establish containment. A provider-free
+  reproduction wrote all artifacts outside `repoRoot`.
+- The store now accepts only the frozen single segment `.palari-input-count`;
+  `..`, `../outside-result`, absolute, and normalized traversal variants fail at
+  construction before filesystem access. The permanent regression passes and
+  repaired focused contracts are 22/22; the full suite passes 761 / fails 0 /
+  skips 15 optional tests across 776; quickstart passes 6/6; provider-free
+  verify, ticket/report, governed scope, syntax, and diff checks pass. Another
+  fresh independent cumulative rereview is required before dispatch authority.

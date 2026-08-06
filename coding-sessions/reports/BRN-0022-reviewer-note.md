@@ -43,3 +43,18 @@ Fail; reopen before any founder dispatch gate.
 
 Recommend `reopen`, cumulative repair, and fresh independent rereview. Do not
 request founder authorization or dispatch the live probe yet.
+
+## Fresh Cumulative Rereview
+
+Reviewer: second independent fresh-context agent
+Reviewed commit: `69fec72`
+
+Result: **REOPEN** for one new P1. The reviewer confirmed the original symlink
+escape, missing `repoRoot` sync, and ticket whitespace were repaired. It then
+reproduced an outside-repository write by constructing the exported store with
+`resultRoot: '../outside-result'`; using `..` could also chmod and reuse the
+repository parent. The required repair is to accept only the frozen private
+directory segment and retain a traversal regression. Focused 21/21, full
+760/775 with 15 skips, quickstart 6/6, ticket/scope/diff/head/upstream, launcher
+hash/mode, and absent-namespace checks passed. No credential or provider access
+occurred. Another fresh cumulative rereview is required after repair.

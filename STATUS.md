@@ -1,6 +1,6 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0022 REPAIRED FREEZE IN FRESH CUMULATIVE REVIEW. P-set 32 is FINAL for
+Loop state: BRN-0022 REOPENED FOR SECOND CUMULATIVE P1 REPAIR. P-set 32 is FINAL for
 identity `openai-structured-input-count-compat-v1`: one physical
 `POST /v1/responses/input_tokens` request, no generation, no retry, `$0.05`
 fresh / `$7.80502179` cumulative accounted caps from the exact `$7.75502179`
@@ -33,8 +33,16 @@ fresh-directory regressions pass; repaired focused contracts are 21/21 and
 ticket whitespace is clean. The repaired full suite passes 760 / fails 0 /
 skips 15 optional tests across 775; quickstart passes 6/6; provider-free verify,
 ticket/report, governed scope, syntax, and diff checks pass. The repaired freeze
-is pushed; fresh independent cumulative rereview is the remaining gate. Do not
-dispatch before it is clean and the founder gives exact authority.
+was pushed at `69fec72`. Fresh cumulative rereview confirmed the first P1/P3
+repairs, then correctly found that caller-supplied `../outside-result` still
+escaped the repository because both sides of the containment comparison were
+normalized. The store now permits only the frozen `.palari-input-count`
+segment; traversal and absolute variants fail before filesystem access.
+Repaired focused contracts pass 22/22; the full suite passes 761 / fails 0 /
+skips 15 optional tests across 776. Push and another independent cumulative
+rereview remain required. Quickstart is 6/6 and
+provider-free verify, ticket/report, governed scope, syntax, and diff checks
+pass. Do not dispatch.
 
 Product stop rule: (1) yes, quickstart is green 6/6;
 (2) yes if the one live count establishes exact structured-wire compatibility,

@@ -235,6 +235,25 @@ test('symlinked result root is rejected without writing outside repo', async () 
   )
 })
 
+test('result root is frozen and traversal cannot escape the repository', async () => {
+  const repoRoot = await mkdtemp(join(tmpdir(), 'palari-count-contained-'))
+  for (const resultRoot of [
+    '..',
+    '../outside-result',
+    '/tmp/outside-result',
+    '.palari-input-count/../outside-result',
+  ]) {
+    assert.throws(
+      () => createOpenAIInputCountResultStore({ repoRoot, resultRoot }),
+      (error) => error.code === 'RESULT_ROOT_INVALID',
+    )
+  }
+  assert.equal(
+    await createOpenAIInputCountResultStore({ repoRoot }).namespaceAbsent(),
+    true,
+  )
+})
+
 test('fresh root and identity are physical private directories', async () => {
   const repoRoot = await mkdtemp(join(tmpdir(), 'palari-count-physical-'))
   const store = createOpenAIInputCountResultStore({ repoRoot })

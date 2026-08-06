@@ -78,3 +78,13 @@ the exact symlink escape and fresh private-directory path. Repaired focused
 contracts pass 21/21; full suite passes 760 / 15 skipped / 0 failed across 775;
 quickstart passes 6/6; provider-free verify, ticket/report, scope, syntax, and
 the working diff pass. Fresh cumulative review is required after push.
+
+Fresh cumulative rereview of pushed head `69fec72` confirmed those repairs,
+then reproduced one further P1: a caller-supplied `../outside-result` passed the
+normalized string comparison and wrote the complete bundle outside `repoRoot`.
+The result-root parameter is now an exact frozen value rather than a path
+configuration surface. Parent, sibling, absolute, and normalized traversal
+variants all fail during store construction. The permanent regression passes;
+focused contracts are 22/22 and the full suite passes 761 / 15 skipped / 0
+failed across 776. Quickstart 6/6, provider-free verify, ticket/report, scope,
+syntax, and diff checks pass. Fresh rereview remains.
