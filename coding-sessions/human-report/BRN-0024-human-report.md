@@ -3,8 +3,9 @@
 ## Why This Mattered
 
 The prior 6/10 used ten questions we later inspected while debugging. This
-ticket freezes a different, uninspected ten so we can measure whether the
-current architecture generalizes instead of rewarding familiarity.
+ticket freezes a different ten that has never been executed. An older
+prediction bank did coarsely profile their difficulty, so we disclose them as
+previously profiled rather than claiming a pristine blind benchmark.
 
 ## What Changed
 
@@ -23,11 +24,13 @@ regrade, or top-up. Historical 6/10 and sealed U8 never change.
 
 The offline freeze is implemented and costs `$0.00`. Proposed maximum fresh
 accounted spend is `$5.00`, including conservative unknown count billing.
-Independent review and exact founder authorization are still required before
-the first live request.
+The first freeze was stopped by review before any spend. Its authority,
+long-context pricing, global operation custody, and semantic-review seal are
+now repaired offline. Fresh independent review and exact founder authorization
+are still required before the first live request.
 
 ## Recommended Next Move
 
 Obtain fresh independent pre-dispatch review. If it is clean, request the
-founder's exact identity and numeric-cap authorization; do not dispatch under
-the earlier general direction or any predecessor authority.
+founder's exact identity, numeric caps, reviewed head/private hashes, and
+ACCEPT-state authorization; do not dispatch under earlier general direction.

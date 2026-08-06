@@ -1,12 +1,12 @@
 ---
 id: BRN-0024
-title: "Run exact-counted Luna and Ettin on held-out S60 ten"
+title: "Run exact-counted Luna and Ettin on unexecuted S60 ten"
 stream: evaluation
 level: 1
 parent_id: 
 root_id: BRN-0024
 children: []
-status: needs-human
+status: in-review
 risk: R4
 priority: P0
 agents_allowed: 1
@@ -53,25 +53,29 @@ created: 2026-08-06
 updated: 2026-08-06
 ---
 
-# BRN-0024 Run exact-counted Luna and Ettin on held-out S60 ten
+# BRN-0024 Run exact-counted Luna and Ettin on unexecuted S60 ten
 
 ## Goal
 
 Measure the accepted Palari retrieval/evidence architecture with native Ettin
-and Luna on one genuinely held-out ten-question slice. Use exact structured
-input counts before every Luna generation reservation, preserve one-shot
-causal custody, and record the result whatever it is without changing or
-reinterpreting any historical score.
+and Luna on one never-executed, previously profiled ten-question slice. Use
+exact structured input counts before every Luna generation reservation,
+preserve one-shot causal custody, and record the result whatever it is without
+changing or reinterpreting any historical score.
 
 ## Frozen Candidate And Proposed Authority
 
-- Identity: `j4-luna-ettin-heldout11to20-v1`.
+- Identity: `j4-luna-ettin-unexecuted11to20-v1`. The prior
+  `j4-luna-ettin-heldout11to20-v1` freeze was abandoned unconsumed after review
+  disproved its stronger non-inspection premise.
 - Population: exact pinned LongMemEval S60 ordinals 11-20, in order:
   `18bc8abd`, `19b5f2b3`, `1a1907b4`, `2133c1b5`, `2133c1b5_abs`,
   `25e5aa4f`, `2698e78f_abs`, `32260d93`, `35a27287`, `36b9f61e`.
-- Pre-freeze metadata-only reconciliation found no terminal result for any of
-  these identities. Their question text, reference answers, and supporting
-  session content were not inspected. Sealed U8 `1568498a` is absent.
+- Reconciliation found no terminal result for any selected identity. Tracked
+  P-set 20 previously assigned content-derived difficulty/basis classes to all
+  ten, so this contract claims only execution holdout—not pristine content
+  blindness. No new question/answer/session inspection or route tuning is
+  permitted. Sealed U8 `1568498a` is absent.
 - Opening cumulative accounted spend: exactly `$7.80502179`.
 - Proposed hard caps: `$5.00` fresh and `$12.80502179` cumulative accounted.
   The fresh cap covers the maximum bounded Luna dispatch loop while retaining
@@ -79,7 +83,8 @@ reinterpreting any historical score.
   conservative Gemini writer/embedder and official-judge envelope.
 - These values are a preregistered proposal, not live authority. Dispatch
   requires a clean pushed freeze, independent pre-dispatch review, and a new
-  exact founder confirmation naming this identity and both numeric caps.
+  exact founder confirmation naming this identity, both numeric caps, reviewed
+  head, launcher/runtime hashes, and ACCEPT state.
 
 ## Scope
 
@@ -120,10 +125,11 @@ reinterpreting any historical score.
 
 ## Out Of Scope
 
-- No access to question text, reference answers, supporting sessions, or
+- No new access to question text, reference answers, supporting sessions, or
   private result content before the frozen launcher itself executes under
-  exact founder authority. Metadata/hashes and provider-free structural
-  verification are permitted.
+  exact founder authority. Prior P-set 20 profiling is disclosed but may not
+  drive a route, hint, prompt, or code change. Metadata/hashes and provider-free
+  structural verification are permitted.
 - No U8, first-ten rerun, old four-failure rerun, answer-specific rule,
   keyword router, known answer, benchmark-label hint, model/prompt tuning,
   memory repair, dataset/order change, product write, or publication.
@@ -131,7 +137,7 @@ reinterpreting any historical score.
   or cap top-up after the invocation starts. A bad score, smoke failure, cap
   stop, provider failure, or partial suffix is the terminal result.
 - No change to historical BRN-0017 `6/10`, BRN-0020's partial diagnostic, or
-  any predecessor bytes/labels/accounting. The held-out score is a new result,
+  any predecessor bytes/labels/accounting. The unexecuted score is a new result,
   not a regrade or a directly comparable rerun of the inspected first ten.
 - No claim that equivalent-fact or materially-used labels are canonical
   facts, that declared `consequence_for_answer` proves material use, or that
@@ -147,7 +153,8 @@ reinterpreting any historical score.
    predecessors, dataset bank/version/order, ten frozen metadata identities,
    U8 exclusion, opening ledger/caps, private modes, and absent result before
    credential or provider access.
-2. P-set 34 is FINAL before any credential read. Failing-first predictions are
+2. P-set 34 remains an abandoned immutable freeze; P-set 35 is FINAL before
+   any credential read. Failing-first predictions are
    fixed at: official accuracy at least `8/10`; at least 90% required-session
    recall; at least 80% exact supporting-span recall where an exact span is
    structurally gradeable; at least 8/10 rows select answer-relevant evidence
@@ -159,10 +166,11 @@ reinterpreting any historical score.
    temporary-inference capture, and one count-reserve/count/generation-reserve/
    generation sequence per Luna operation with exact body hashes and no retry.
 4. Independent pre-dispatch review confirms the slice was not previously
-   executed or content-inspected, no benchmark content/rule entered product or
-   launcher logic, the full meter/cap/seal covers every physical call, and the
-   frozen identity is absent. No provider call occurs before its ACCEPT
-   recommendation and exact founder authority.
+   executed, prior P-set 20 profiling is disclosed, no row-specific benchmark
+   content/rule entered product or launcher logic, the full meter/cap/seal
+   covers every physical call, and both old/new identities are absent. No
+   provider call occurs before its ACCEPT recommendation and exact founder
+   authority binding both caps plus the reviewed head/private hashes.
 5. One authorized invocation performs both live compatibility smokes and then
    all ten ordered cells unless the first terminal failure stops the suffix.
    Every reached answer is officially judged once; no cell is rerun, resumed,
@@ -189,7 +197,8 @@ reinterpreting any historical score.
 ### Definition Of Done
 
 - The identity is either fully frozen at the founder gate, or consumed and
-  sealed with one honest terminal outcome from the two smokes plus held-out ten.
+  sealed with one honest terminal outcome from the two smokes plus the
+  unexecuted ten.
 - If consumed, tracked evidence records the official and five-surface results
   without tuning, replacement, or publication.
 
@@ -218,7 +227,7 @@ reinterpreting any historical score.
   call, inference, or spend until the complete freeze is pushed, independently
   reviewed, and the founder authorizes the exact identity with exact fresh and
   cumulative caps.
-- Stop rather than inspect held-out question/answer/session content during
+- Stop rather than newly inspect question/answer/session content during
   preparation, encode a benchmark-specific route, access U8, reuse prior
   authority, or claim a historical score changed.
 - Once live invocation begins, any smoke, count, reservation, cap, provider,
@@ -227,12 +236,12 @@ reinterpreting any historical score.
 
 ## Offline Freeze Evidence
 
-- P-set 34 is FINAL. No question, answer, supporting-message content, or
-  expected route was inspected; the frozen IDs are metadata-only S60 ordinals
-  11-20 and exclude U8.
+- P-set 34 is abandoned unconsumed and remains immutable. Founder-approved
+  P-set 35 relabels the same fixed IDs as never executed but previously
+  profiled by P-set 20; it excludes U8 and permits no new content inspection.
 - Private launcher/runtime are mode 0600 with SHA-256
-  `75898b47728d0e8672b9e785e61977a4a3facb5640d333818b11a43a494e7cc3`
-  and `69bec48fddfb971eb6a3969840b90644deafdf22c16e12929e360ae7d271ebc1`.
+  `a1af02cd5f6a010142264324a0b3f008f2d871bf4996b9b64c80610cfea2d915`
+  and `49334a11ed353d3e5760d79c572d79852be5aafc1252e6a8362de5de5cada678`.
 - Provider-free verification binds clean canonical `0615b10`, product cut
   `146d911`, 18 current source/eval files, 13 predecessor bundles, dataset and
   order hashes, seven native Ettin artifacts and the 3,208-file runtime
@@ -240,8 +249,14 @@ reinterpreting any historical score.
 - Normal, plain-terminal, and forced-commit Luna bodies pass fake exact-count
   orchestration: each records count reservation, one count, exact generation
   reservation `$0.0008644` for the 1,000/512 fixture, and one generation in
-  order. Writer smoke, answer smoke, held-out IDs, five metric surfaces, and
+  order. Writer smoke, answer smoke, unexecuted IDs, five metric surfaces, and
   architecture telemetry are present in the generated runtime.
+- Exact live authority now binds both numeric caps, the pushed reviewed head,
+  the two private hashes above, and explicit ACCEPT state before namespace
+  creation. Luna settlement uses official Standard short/long measured rates;
+  one run-wide meter set consumes operation IDs before reservation; a separate
+  append-once sealed semantic-review overlay binds reviewer provenance and the
+  original immutable manifest without changing canonical truth or scoring.
 - Invalid live authority refuses before namespace creation. Credential reads,
   provider calls, inference, result creation, and spend are
   `0 / 0 / 0 / 0 / $0.00`; cumulative remains `$7.80502179`.
@@ -272,3 +287,10 @@ make changing the population or evaluation claim a founder decision. No
 credential, provider, inference, result namespace, or spend occurred; the
 identity remains unconsumed and cumulative accounted spend remains
 `$7.80502179`.
+
+The founder then approved retaining these same ten under the honest
+“never-executed, previously profiled” claim. The stronger identity and P-set 34
+remain abandoned and absent. The replacement identity/P-set 35 implement all
+four technical repairs without changing product, prompt, population, model,
+selection, or cap behavior. Fresh independent review of the exact repaired
+pushed freeze remains required.

@@ -33,3 +33,11 @@ fresh independent review, and request one exact live authorization.
 - Opening cumulative accounted spend: `$7.80502179`.
 - Proposed caps remain `$5.00` fresh / `$12.80502179` cumulative; they are not
   authority.
+
+## Resolution
+
+The founder approved option 1. The original identity is abandoned unconsumed;
+replacement identity `j4-luna-ettin-unexecuted11to20-v1` preserves the same
+population under the honest “never-executed, previously profiled” claim. The
+four technical findings are repaired offline. Fresh independent review and a
+new exact live authorization remain required.

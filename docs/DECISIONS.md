@@ -3124,3 +3124,12 @@ here with dates. Agents record; the founder decides.
   relabel or a new population. Four separate authority/accounting/custody
   defects are offline-repairable. No credential, provider, result namespace,
   or spend was consumed; cumulative accounted remains `$7.80502179`.
+
+- 2026-08-06 (FOUNDER — BRN-0024 population resolution)
+  **Retain the same ten and relabel them as never executed, previously
+  profiled.** Preserve P-set 34 and its stronger-claim identity as abandoned
+  unconsumed evidence. Freeze replacement P-set 35 and identity
+  `j4-luna-ettin-unexecuted11to20-v1` without changing population, product,
+  prompt, model, architecture, or caps. Disclose P-set 20's prior profiling,
+  permit no new content-driven tuning, repair all reviewed technical defects,
+  and require fresh independent review plus exact live authority.

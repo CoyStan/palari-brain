@@ -1,58 +1,59 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0024 NEEDS FOUNDER DECISION; DO NOT DISPATCH. Fresh independent
-review of exact pushed freeze `f015ac0` found that S60 ordinals 11-20 have no
-prior terminal execution, but an older tracked prediction bank already gives
-all ten row-specific content-derived difficulty classifications. They are
-execution-held-out, not genuinely content-uninspected as the frozen contract
-claims. Choosing to retain and relabel this population or replace it is the
-founder-level blocker. Identity `j4-luna-ettin-heldout11to20-v1` remains
-unconsumed; sealed U8 and historical BRN-0017 `6/10` remain unchanged.
+Loop state: BRN-0024 REPAIRED OFFLINE; FRESH INDEPENDENT REVIEW NEXT. The
+founder approved retaining S60 ordinals 11-20 under the honest claim
+“never-executed, previously profiled.” P-set 34 and identity
+`j4-luna-ettin-heldout11to20-v1` are abandoned unconsumed. P-set 35 freezes
+replacement identity `j4-luna-ettin-unexecuted11to20-v1` with the same ordered
+population, models, prompts, architecture, and `$5.00` fresh /
+`$12.80502179` cumulative proposed caps. Sealed U8 and historical BRN-0017
+`6/10` remain unchanged.
 
-The submitted private mode-0600 launcher/runtime hash to
-`75898b47728d0e8672b9e785e61977a4a3facb5640d333818b11a43a494e7cc3`
-and `69bec48fddfb971eb6a3969840b90644deafdf22c16e12929e360ae7d271ebc1`.
+The repaired private mode-0600 launcher/runtime hash to
+`a1af02cd5f6a010142264324a0b3f008f2d871bf4996b9b64c80610cfea2d915`
+and `49334a11ed353d3e5760d79c572d79852be5aafc1252e6a8362de5de5cada678`.
 Provider-free verification binds 18 product/eval files, 13 predecessor
 bundles, the pinned dataset/order, seven Ettin artifacts and its 3,208-file
 runtime closure, the clean canonical contract commit `0615b10`, exact caps,
-and absent result. Three fake Luna wire shapes each pass count-reserve -> one
-count -> exact generation-reserve -> one generation with the preregistered
-`$0.0008644` 1,000-input/512-output reservation. An invalid run command fails
-before result creation. Credential reads, provider calls, inference, and spend
-remain `0 / 0 / 0 / $0.00`; cumulative accounted remains `$7.80502179`.
+both absent identities, and absent result/review namespaces. Three fake Luna
+wire shapes each pass count-reserve -> one count -> exact generation-reserve
+-> one generation with the preregistered `$0.0008644` 1,000-input/512-output
+reservation. Credential reads, provider calls, inference, and spend remain
+`0 / 0 / 0 / $0.00`; cumulative accounted remains `$7.80502179`.
 
-The reviewer also found four offline-repairable defects: a P0 authority gate
-that does not bind the cumulative cap/reviewed freeze; P1 long-context
-settlement at short-context rates; P1 evaluator-local rather than run-wide
-operation-ID custody; and a P2 missing append-once, provenance-bearing overlay
-for the two judged semantic metrics. The ticket is `needs-human`; no repair
-may become a replacement freeze until the population/claim decision is made.
+All four reviewed technical findings are repaired. The gate now requires both
+numeric caps, exact pushed reviewed head, exact private hashes, and explicit
+ACCEPT state before namespace creation. Luna measured settlement uses official
+Standard short `$0.20/$0.02/$1.20` and long `$0.40/$0.04/$1.80` input/cached/
+output rates. A run-wide operation-ID set consumes before reservation. A
+separate append-once semantic-review namespace binds 20 labels, reviewer
+provenance, and the immutable original manifest without changing canonical
+truth or the official score.
 
 The one invocation will run provider-free Ettin/meter gates, then a metered
 Gemini writer smoke, then a counted Luna answer/tool/commit smoke, then the ten
 questions serially. Each row preserves raw retrieval, plan, commitments,
 temporary inferences, native Ettin telemetry, official judge label, and five
-distinct metrics. Equivalent-fact and materially-used labels are intended to
-begin pending/null and never regrade the official score or canonical memory,
-but their append-once reviewer-provenance path must be implemented during
-repair. Exact founder authority remains required after a corrected clean
-pushed freeze and independent ACCEPT recommendation.
+distinct metrics. Equivalent-fact and materially-used labels begin pending/
+null and never regrade the official score or canonical memory. Exact founder
+authority remains required after a clean pushed freeze and independent ACCEPT
+recommendation.
 
-Submitted-head offline verification is green: full tests pass 775 / skip 15 /
-fail 0 across
-790; quickstart passes 6/6; ticket, report, scope, syntax, and diff checks pass.
-Product stop rule: (1) yes, the basic journey remains green; (2) no product
-behavior changed in this evaluation freeze; if honestly relabeled, it enables
-a first unexecuted-population live measure of the accepted architecture; (3)
-provider SDKs do not
+Repaired private verification is green, including exact short/long settlement,
+duplicate operation rejection, the 20-label overlay schema, both absent
+identities, absent result/review namespaces, first overlay seal, second-seal
+refusal, and unchanged original manifest. Full tests pass 775 / skip 15 / fail
+0 across 790; quickstart passes 6/6; ticket, report, scope, syntax, and diff
+checks pass. Product stop rule: (1) yes, the basic journey
+remains green; (2) no product behavior changed, but this enables the first
+honestly labeled unexecuted-population live measure; (3) provider SDKs do not
 provide Palari's one-shot lineage, separate evidence-use metrics, or exact
-count/cap custody; (4) yes, the founder explicitly requested BRN-0024 after
-BRN-0023; (5) deleting the freeze would lose the unseen comparison and make a
-future run vulnerable to answer inspection, undercounting, or reroll. BRN-0023
-and this freeze are two consecutive infrastructure/measurement units in the
-founder-directed sequence, so the drift stop is now explicit: do not start a
-third infrastructure unit after BRN-0024. Next: founder chooses retain-and-
-relabel (recommended) or a new genuinely unprofiled population.
+count/cap custody; (4) yes, the founder explicitly requested BRN-0024; (5)
+deleting the freeze would lose the unexecuted comparison and make a future run
+vulnerable to undercounting or reroll. BRN-0023 and this freeze are two
+consecutive infrastructure/measurement units in the founder-directed sequence,
+so the drift stop is explicit: do not start a third infrastructure unit. Next:
+commit/push the repaired freeze and obtain fresh independent review.
 
 BRN-0023 now composes one immutable structured Responses body through durable
 unknown-billing count-attempt reservation, one injected exact count, pinned
