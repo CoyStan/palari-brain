@@ -10,8 +10,8 @@ Focused contracts pass 11/11; full tests pass 786/801 with 15 expected skips;
 quickstart passes 6/6. The exact final runtime ran one real synthetic cached-
 Ettin Palari smoke and reported zero provider/credential/dataset/result
 activity. New private launcher/runtime hashes are respectively
-`1ac7f3854f09409a5f3cfc0d28e93279c840db7d9a8a47f8c33d00a01c38a46b` and
-`331776b2537b1e0b0921c842d61869eb0dc3025284f78dffeeceb98d5d634a4a`,
+`cb45ee69e74efad11d9ebe78997663525010702af15e32a1d51d72bb3aef9737` and
+`7143690b581c6d10826a7f904cec029ec61524e0c96fec9d2f8f398c47a15fbf`,
 both mode 0600. The successor namespaces are absent.
 
 The repaired launcher additionally proves durable

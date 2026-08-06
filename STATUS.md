@@ -24,9 +24,9 @@ New identity `j4-luna-ettin-unexecuted11to20-v2` and FINAL P-set 36 preserve
 the same disclosed population, architecture, treatment, predictions,
 historical `6/10`, U8 exclusion, `$7.80502179` opening accounting, and proposed
 `$5.00` fresh / `$12.80502179` cumulative caps. The mode-0600 private launcher
-SHA-256 is `1ac7f3854f09409a5f3cfc0d28e93279c840db7d9a8a47f8c33d00a01c38a46b`;
+SHA-256 is `cb45ee69e74efad11d9ebe78997663525010702af15e32a1d51d72bb3aef9737`;
 the mode-0600 final runtime SHA-256 is
-`331776b2537b1e0b0921c842d61869eb0dc3025284f78dffeeceb98d5d634a4a`.
+`7143690b581c6d10826a7f904cec029ec61524e0c96fec9d2f8f398c47a15fbf`.
 Provider-free verification executed one real cached-Ettin rank through a
 temporary synthetic Palari brain: the titanium memory ranked first, the answer
 was `It is titanium.`, scores were finite 4/4, and temporary state was removed.
