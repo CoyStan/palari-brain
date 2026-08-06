@@ -7,4 +7,5 @@ node_modules/
 evals/results/
 .palari-probe/
 .palari-regression/
+.palari-input-count/
 evals/adapters/jcode-bridge/target/

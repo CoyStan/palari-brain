@@ -2284,3 +2284,57 @@ target `8a880e2` found no P0-P3 issue. It confirmed every P-set 31 outcome, all
 nine ticket criteria, all eleven retained review findings, focused 21/21, full
 748/0/15 across 763, and quickstart 6/6. This acceptance is offline harness
 evidence only and grants no live count request, provider call, or spend.
+
+## P-set 32 — OpenAI structured input-count wire compatibility
+
+Status: **FINAL before provider dispatch or spend.** Date: 2026-08-06.
+
+Identity `openai-structured-input-count-compat-v1` permits one physical request
+to `POST /v1/responses/input_tokens` after a clean pushed freeze, independent
+review, and exact founder authority. Opening cumulative accounted spend is
+exactly `$7.75502179`; the hard boundaries are `$0.05` fresh and
+`$7.80502179` cumulative accounted. Because official documentation establishes
+the count contract but not a separate billing treatment, the entire `$0.05`
+reservation remains uncertain/accounted after any dispatch. This is a wire
+probe with no generation, benchmark question, or historical regrade.
+
+Predictions, failing categories first:
+
+1. COMPATIBILITY: the frozen `gpt-5.6-sol` request containing instructions, one
+   structured user `input_text`, and one strict function-tool schema returns
+   HTTP 200. The exact documented object
+   `{object: "response.input_tokens", input_tokens: positive-safe-integer}`
+   passes the BRN-0021 strict parser.
+2. ONE-SHOT: one invocation makes exactly one physical count request. There is
+   no Responses generation request, answer output, memory tool execution,
+   embedding, writer, judge, retry, or fallback after dispatch. Any transport,
+   HTTP, JSON, or schema failure is terminal and consumes the identity.
+3. ACCOUNTING: a mode-0600 reservation for `$0.05` is file- and directory-
+   synced before credential access and transport. Terminal accounting remains
+   `$0.05` uncertain fresh and `$7.80502179` cumulative, regardless of success,
+   rather than inferring that counting is free.
+4. INTEGRITY: invalid authority, cap mismatch, dirty/unpushed reviewed head, or
+   existing identity fails before result creation, credential access, or
+   transport. A dispatched identity seals private mode-0600 reservation,
+   terminal, and manifest artifacts with zero exact credential-byte matches.
+5. HISTORY: historical BRN-0017 remains 6/10; consumed BRN-0020, its Phone
+   judgments, and every sealed/private benchmark artifact remain unchanged and
+   unaccessed.
+
+Terminal result (recorded after the one exact founder-authorized invocation):
+
+- COMPATIBILITY: **PASS.** The frozen `gpt-5.6-sol` body returned HTTP 200 and
+  the documented response parsed successfully. Measured exact input is **77
+  tokens**; response SHA-256 is
+  `8d999eb37b6b75ebb556220f59570687feeaac7f44b18d8f6ccda7935967e187`.
+- ONE-SHOT: **PASS.** Exactly one physical count request completed in **1,277
+  ms**. No generation, answer, memory tool execution, embedding, writer, judge,
+  retry, or fallback ran. The identity is consumed.
+- ACCOUNTING: **PASS.** The `$0.05` reservation was durable before dispatch and
+  remains uncertain/accounted because the response has no billing metadata.
+  Cumulative accounted is exactly `$7.80502179`.
+- INTEGRITY: **PASS.** All three private artifacts are mode 0600 and rehash;
+  `credentialMatches` is 0. External manifest SHA-256 is
+  `9607c0c97862c5c54593d07d599d79b61d4eae0a8223f014c6f09d1271936d69`.
+- HISTORY: **PASS.** Historical BRN-0017 remains 6/10 and prior private/sealed
+  benchmark evidence remains unchanged and unaccessed.

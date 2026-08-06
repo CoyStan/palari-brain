@@ -3,10 +3,10 @@ id: BRN-0022
 title: "Validate OpenAI structured input-count wire"
 stream: evaluation
 level: 1
-parent_id: 
+parent_id:
 root_id: BRN-0022
 children: []
-status: open
+status: accepted
 risk: R4
 priority: P0
 agents_allowed: 1
@@ -184,3 +184,98 @@ compatibility artifact without changing any historical benchmark result.
 - Stop after the first transport attempt, regardless of success or failure.
 - Stop rather than accessing a sealed benchmark artifact, U8, or any prior
   private result namespace.
+
+## Offline Freeze Evidence
+
+- P-set 32 is FINAL. The exact structured request SHA-256 is
+  `805097ec9d165fb5206ea3ef5429ffd27b985572dea3362d3b635b7550669561`.
+  It contains the frozen Sol model, instructions, one structured user text
+  item, and one strict function-tool schema, with no generation-only fields.
+- The tracked runner imports BRN-0021's immutable counter/parser, admits one
+  injected transport only after exact authority/head/cap/namespace checks and
+  durable reservation, and seals compatible or failed outcomes without a
+  fallback. The full `$0.05` remains uncertain/accounted.
+- The private mode-0600 launcher is outside git at SHA-256
+  `98c5a9e57804f5ea4ccd5e9c6dcb91de716d69a355a9fe6acb4c49658d933689`.
+  Provider-free `--verify` passes and reports the result namespace absent.
+- Focused contracts initially passed 19/19. Full suite passed 758, failed 0,
+  and skipped 15
+  optional tests across 773. No live run has occurred: credential reads,
+  network requests, provider calls, generation, private benchmark access, and
+  spend remain `0 / 0 / 0 / 0 / 0 / $0.00`; cumulative accounted remains
+  exactly `$7.75502179`.
+- The freeze still requires clean pushed committed scope, an independent
+  reviewer with no P0-P3 finding, and the exact fresh founder authorization.
+
+## Review Repair
+
+- Independent review of exact pushed head `a51d10c` reopened one P1 and one
+  P3. The P1 reproduced a symlinked `.palari-input-count` root that redirected
+  every private artifact outside the repository, and found that first creation
+  synced the new root but not its `repoRoot` parent. The P3 found trailing
+  whitespace introduced when the workflow cleared claim fields.
+- The cumulative repair rejects symlink/non-directory/physically escaped roots
+  before result creation, holds open physical root and identity descriptors,
+  writes every artifact through `/proc/self/fd`, and syncs `repoRoot` after
+  first root creation before any reservation can complete. Permanent symlink
+  escape and fresh physical-directory regressions now pass. Ticket whitespace
+  is removed.
+- Repaired focused contracts pass 21/21; full suite passes 760, fails 0, and
+  skips 15 optional tests across 775; quickstart passes 6/6; provider-free
+  verify, ticket/report, governed scope, syntax, and diff checks pass. Fresh
+  independent cumulative rereview remains required before the founder dispatch
+  gate may open.
+- Fresh cumulative rereview of pushed head `69fec72` confirmed the symlink,
+  parent-sync, and whitespace repairs, then reopened one further P1: the
+  exported store accepted caller-supplied `../outside-result` because its
+  normalized string comparison did not establish containment. A provider-free
+  reproduction wrote all artifacts outside `repoRoot`.
+- The store now accepts only the frozen single segment `.palari-input-count`;
+  `..`, `../outside-result`, absolute, and normalized traversal variants fail at
+  construction before filesystem access. The permanent regression passes and
+  repaired focused contracts are 22/22; the full suite passes 761 / fails 0 /
+  skips 15 optional tests across 776; quickstart passes 6/6; provider-free
+  verify, ticket/report, governed scope, syntax, and diff checks pass. A fresh
+  independent cumulative rereview was required before dispatch authority.
+- Third fresh cumulative review of exact clean pushed head `457bfbe` replayed
+  every retained defect, found no P0-P3 issue, and recommends the freeze for
+  founder-gated dispatch. It confirmed focused 22/22, recorded full 761/776
+  with 15 optional skips, quickstart 6/6, clean ticket/scope/syntax/diff/head/
+  upstream state, exact launcher mode/hash, absent namespace, and zero live or
+  credential activity. This recommendation is not founder authority.
+
+## Terminal Evidence
+
+- The founder supplied the exact reviewed authority. Identity
+  `openai-structured-input-count-compat-v1` ran once and is consumed.
+- The one `POST /v1/responses/input_tokens` request returned HTTP 200. The
+  strict parser accepted **77** exact input tokens. Latency was **1,277 ms**
+  and invocation count was 1.
+- No generation, answer, memory tool execution, embedding, writer, judge,
+  retry, or fallback occurred.
+- Fresh `$0.05` remains uncertain/accounted; cumulative accounted is exactly
+  `$7.80502179`. This does not assert that the provider charged `$0.05`.
+- All three private artifacts are mode 0600 and rehash. Credential matches are
+  0; external manifest SHA-256 is
+  `9607c0c97862c5c54593d07d599d79b61d4eae0a8223f014c6f09d1271936d69`.
+- Historical BRN-0017 remains 6/10. The result grants no retry, replacement,
+  regrade, benchmark run, or publication.
+
+Independent terminal review of exact pushed head `50e606f` validated all
+private technical evidence but reopened one P2 tracked-record defect: stale
+pre-run sentences contradicted the terminal namespace, compatibility, and
+accounting state. This documentation-only repair makes those statements
+explicitly historical. The consumed private result was not rerun or mutated;
+fresh narrow rereview remains required.
+
+The first narrow rereview of repaired head `205ca89` found one remaining P2:
+the bullet above still said terminal review remained while the next paragraph
+recorded its completion. That stale clause is removed. No private artifact,
+technical result, accounting value, or historical score changed.
+
+Final fresh narrow rereview of exact clean pushed head `36fafc8` found no
+P0-P3 issue. It confirmed the stale clause is gone, the three-file delta is
+documentation-only, HEAD equals upstream, ticket/report/diff/scope checks pass,
+and every sealed fact remains unchanged. The reviewer recommends ACCEPT.
+BRN-0022 is accepted under the founder's standing delegation for clean,
+independently reviewed tickets; merge is next.

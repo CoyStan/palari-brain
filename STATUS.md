@@ -1,5 +1,83 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0022 INDEPENDENTLY ACCEPTED; MERGE NEXT.
+Founder-authorized identity
+`openai-structured-input-count-compat-v1` ran exactly once and is consumed.
+The frozen `gpt-5.6-sol` request returned HTTP 200 and the strict response
+parsed successfully: exact input count **77 tokens**, latency **1,277 ms**,
+invocation count **1**, outcome `compatible`.
+
+No generation request, answer, memory tool execution, embedding, writer,
+judge, retry, or fallback ran. The durable `$0.05` reservation remains
+uncertain/accounted because the response has no billing metadata. Fresh
+accounted is `$0.05`; cumulative accounted is now exactly `$7.80502179` from
+the `$7.75502179` opening ledger.
+
+The frozen `gpt-5.6-sol` request includes instructions, one structured user
+`input_text`, and one strict function-tool schema. Request SHA-256 is
+`805097ec9d165fb5206ea3ef5429ffd27b985572dea3362d3b635b7550669561`.
+The private mode-0600 launcher SHA-256 is
+`98c5a9e57804f5ea4ccd5e9c6dcb91de716d69a355a9fe6acb4c49658d933689`;
+provider-free verification confirms the private result namespace now exists.
+Reservation, terminal, and manifest files are mode 0600; credential matches
+are 0. External manifest SHA-256 is
+`9607c0c97862c5c54593d07d599d79b61d4eae0a8223f014c6f09d1271936d69`.
+
+At the initial freeze, focused contracts passed 19/19 and the full suite passed
+758 / failed 0 / skipped 15 optional tests across 773. Before dispatch,
+credential reads, network requests, provider calls, generation, private
+benchmark access, and fresh spend were `0 / 0 / 0 / 0 / 0 / $0.00`; cumulative
+accounted then remained `$7.75502179`.
+Historical BRN-0017 remains 6/10 and consumed BRN-0020 remains unchanged.
+Quickstart passed 6/6; syntax, ticket, report, and governed scope checks passed.
+Independent review of pushed head `a51d10c` correctly reopened one P1 and one
+P3. A symlinked `.palari-input-count` root could redirect all artifacts outside
+the repository, and first creation did not sync `repoRoot`, so the new root
+entry was not crash-durable before dispatch. The ticket transition also left
+two trailing spaces despite the reported diff PASS.
+
+The cumulative repair rejects symlinked or physically escaped roots, holds
+open root/identity descriptors, writes through `/proc/self/fd`, and syncs
+`repoRoot` immediately after creating the result root. Permanent symlink and
+fresh-directory regressions pass; repaired focused contracts are 21/21 and
+ticket whitespace is clean. The repaired full suite passes 760 / fails 0 /
+skips 15 optional tests across 775; quickstart passes 6/6; provider-free verify,
+ticket/report, governed scope, syntax, and diff checks pass. The repaired freeze
+was pushed at `69fec72`. Fresh cumulative rereview confirmed the first P1/P3
+repairs, then correctly found that caller-supplied `../outside-result` still
+escaped the repository because both sides of the containment comparison were
+normalized. The store now permits only the frozen `.palari-input-count`
+segment; traversal and absolute variants fail before filesystem access.
+Repaired focused contracts pass 22/22; the full suite passes 761 / fails 0 /
+skips 15 optional tests across 776. The second repair is pushed; one fresh
+independent cumulative rereview remains required. Quickstart is 6/6 and
+provider-free verify, ticket/report, governed scope, syntax, and diff checks
+pass. Third fresh cumulative review of exact clean pushed head `457bfbe` found
+no P0-P3 issue after replaying both P1 escapes, the parent-sync gap, and the P3
+whitespace. It recommends the freeze for founder-gated dispatch. No credential,
+network, provider, generation, private benchmark, or spend activity occurred;
+the result namespace was absent and cumulative accounted remained
+`$7.75502179`. The founder then supplied exact authority and the terminal pass
+above was produced. Independent terminal review of pushed head `50e606f`
+validated every private hash, mode, count, invocation, latency, credential-scan,
+and accounting field, but reopened one P2: several retained pre-run sentences
+contradicted the terminal state. The cumulative documentation-only repair makes
+those statements explicitly historical. A first narrow rereview of exact head
+`205ca89` found one last stale clause in the ticket saying terminal review
+remained; it was removed without changing any result. Final narrow rereview of
+exact clean pushed head `36fafc8` found no P0-P3 issue and recommends ACCEPT.
+BRN-0022 is accepted under the founder's standing delegation for clean,
+independently reviewed tickets. Next: merge; never rerun or mutate the consumed
+result.
+
+Product stop rule: (1) yes, quickstart is green 6/6;
+(2) yes, the live count established exact structured-wire compatibility for
+the frozen body; (3) OpenAI provides the exact count
+endpoint, while Palari supplies the one-shot cap/seal boundary; (4) yes, the
+founder approved BRN-0022 after BRN-0021 exposed this missing live fact; (5)
+without it, the next benchmark integration would depend on an unproven wire or
+retain materially inflated byte reservations.
+
 Loop state: BRN-0021 ACCEPTED, MERGED, AND PUSHED AT `c902089`. The ticket
 adds a strict injected OpenAI structured-input counter, exact Sol Standard
 reservation in integer picodollars, the prior highest-rate UTF-8-byte fallback,
