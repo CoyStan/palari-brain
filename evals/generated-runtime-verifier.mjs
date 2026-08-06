@@ -53,7 +53,10 @@ function runChild(runtimePath, {
   return new Promise((resolve, reject) => {
     execFile(process.execPath, [runtimePath, ...args], {
       encoding: 'utf8',
-      env: Object.freeze({ PALARI_GENERATED_RUNTIME_VERIFY: '1' }),
+      env: Object.freeze({
+        NODE_NO_WARNINGS: '1',
+        PALARI_GENERATED_RUNTIME_VERIFY: '1',
+      }),
       maxBuffer: maxOutputBytes,
       timeout: timeoutMs,
     }, (error, stdout, stderr) => {
