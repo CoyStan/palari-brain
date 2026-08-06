@@ -18,11 +18,11 @@ and seals success or failure privately.
 
 ## What I Should Know
 
-Nothing has been sent to OpenAI yet and no money has been spent. The full test
-suite passes, the private result identity is absent, and historical 6/10 is
-unchanged. We conservatively keep the entire `$0.05` as uncertain/accounted
-after the future call because OpenAI documents the count result but not a
-separate billing rule.
+The one authorized count request has now been sent and accepted. It returned
+77 input tokens without generating an answer. The private result identity is
+present and consumed, and historical 6/10 is unchanged. OpenAI returned no
+billing metadata, so we do not claim an actual charge; we conservatively keep
+the entire `$0.05` as uncertain/accounted.
 
 The first independent review found a real filesystem bug before it could
 matter: a symlink at the private result-root path could redirect the reservation
@@ -53,5 +53,7 @@ what, if anything, was billed; cumulative accounted is `$7.80502179`.
 ## Recommended Next Move
 
 Have an independent terminal reviewer rehash and reconcile the consumed result
-without rerunning it. If clean, close and merge the ticket; benchmark-launcher
+without rerunning it. The first terminal review validated the evidence but
+reopened stale pre-run wording in these reports. After narrow rereview of that
+documentation-only repair, close and merge if clean; benchmark-launcher
 integration remains a separate governed change.

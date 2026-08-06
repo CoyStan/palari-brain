@@ -260,3 +260,10 @@ compatibility artifact without changing any historical benchmark result.
   `9607c0c97862c5c54593d07d599d79b61d4eae0a8223f014c6f09d1271936d69`.
 - Historical BRN-0017 remains 6/10. Independent terminal review remains; the
   result grants no retry, replacement, regrade, benchmark run, or publication.
+
+Independent terminal review of exact pushed head `50e606f` validated all
+private technical evidence but reopened one P2 tracked-record defect: stale
+pre-run sentences contradicted the terminal namespace, compatibility, and
+accounting state. This documentation-only repair makes those statements
+explicitly historical. The consumed private result was not rerun or mutated;
+fresh narrow rereview remains required.

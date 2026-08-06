@@ -29,8 +29,11 @@ private identity is terminal and consumed.
 - `node --check` on tracked runner, contract, and private launcher: PASS.
 - Initial focused contracts: PASS, 19/19. After the two review repairs: PASS,
   21/21 then 22/22.
-- Private launcher `--verify`: PASS; identity namespace absent; request hash
+- Private launcher pre-dispatch `--verify`: PASS; identity namespace was absent;
+  request hash
   `805097ec9d165fb5206ea3ef5429ffd27b985572dea3362d3b635b7550669561`.
+- Post-dispatch provider-free verification: PASS; the terminal identity
+  namespace exists and is consumed.
 - Final full `npm test`: PASS, 761 passed / 15 skipped / 0 failed across 776.
 - `npm run quickstart`: PASS, 6/6. Syntax, diff, ticket, report, and governed
   committed-plus-dirty scope checks: PASS.
@@ -55,13 +58,13 @@ private identity is terminal and consumed.
 
 ## Risks / Follow-Ups
 
-- Live Sol count-wire compatibility is not yet established; that is the one
-  founder-gated action this freeze prepares.
+- Live Sol count-wire compatibility is established for this frozen structured
+  body. This does not establish generation quality or authorize benchmark
+  integration.
 - Official documentation does not say whether this count request is billed.
   The entire `$0.05` therefore remains uncertain/accounted after dispatch.
-- Independent review must attack the preflight ordering, filesystem boundary,
-  one-call guarantee, response parser seam, and credential scan before the
-  exact founder gate can open.
+- The consumed terminal bundle requires independent reconciliation before the
+  ticket can be accepted and merged. It must never be rerun or mutated.
 
 ## Review Repair
 
@@ -112,4 +115,14 @@ or execution is implied.
 - External manifest SHA-256:
   `9607c0c97862c5c54593d07d599d79b61d4eae0a8223f014c6f09d1271936d69`.
 - Three artifacts are mode 0600; manifest reports zero credential matches.
-- Historical BRN-0017 remains 6/10. Independent terminal review remains.
+- Historical BRN-0017 remains 6/10.
+
+## Terminal Review
+
+Independent terminal review of exact pushed head `50e606f` rehashed and
+reconciled the request, response, launcher, reservation, terminal, manifest,
+invocation count, latency, permissions, credential scan, and ledger. All
+technical evidence passed. It reopened one P2 documentation defect: stale
+pre-dispatch sentences elsewhere in the terminal reports still described the
+namespace as absent and the call as future. This cumulative repair makes every
+such statement explicitly historical and leaves the sealed result untouched.

@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0022 LIVE INPUT-COUNT PROBE TERMINAL; INDEPENDENT TERMINAL
-REVIEW NEXT. Founder-authorized identity
+Loop state: BRN-0022 TERMINAL EVIDENCE VERIFIED; DOCUMENTATION P2 REOPENED.
+Founder-authorized identity
 `openai-structured-input-count-compat-v1` ran exactly once and is consumed.
 The frozen `gpt-5.6-sol` request returned HTTP 200 and the strict response
 parsed successfully: exact input count **77 tokens**, latency **1,277 ms**,
@@ -23,10 +23,11 @@ Reservation, terminal, and manifest files are mode 0600; credential matches
 are 0. External manifest SHA-256 is
 `9607c0c97862c5c54593d07d599d79b61d4eae0a8223f014c6f09d1271936d69`.
 
-Initial focused contracts passed 19/19. Full suite passed 758 / failed 0 / skipped 15
-optional tests across 773. Credential reads, network requests, provider calls,
-generation, private benchmark access, and fresh spend are
-`0 / 0 / 0 / 0 / 0 / $0.00`; cumulative accounted remains `$7.75502179`.
+At the initial freeze, focused contracts passed 19/19 and the full suite passed
+758 / failed 0 / skipped 15 optional tests across 773. Before dispatch,
+credential reads, network requests, provider calls, generation, private
+benchmark access, and fresh spend were `0 / 0 / 0 / 0 / 0 / $0.00`; cumulative
+accounted then remained `$7.75502179`.
 Historical BRN-0017 remains 6/10 and consumed BRN-0020 remains unchanged.
 Quickstart passed 6/6; syntax, ticket, report, and governed scope checks passed.
 Independent review of pushed head `a51d10c` correctly reopened one P1 and one
@@ -57,12 +58,16 @@ whitespace. It recommends the freeze for founder-gated dispatch. No credential,
 network, provider, generation, private benchmark, or spend activity occurred;
 the result namespace was absent and cumulative accounted remained
 `$7.75502179`. The founder then supplied exact authority and the terminal pass
-above was produced. Next: independently rehash and reconcile the consumed
-result without rerun or mutation.
+above was produced. Independent terminal review of pushed head `50e606f`
+validated every private hash, mode, count, invocation, latency, credential-scan,
+and accounting field, but reopened one P2: several retained pre-run sentences
+contradicted the terminal state. The cumulative documentation-only repair makes
+those statements explicitly historical. Next: narrow rereview; never rerun or
+mutate the consumed result.
 
 Product stop rule: (1) yes, quickstart is green 6/6;
-(2) yes if the one live count establishes exact structured-wire compatibility,
-but no live improvement is claimed yet; (3) OpenAI provides the exact count
+(2) yes, the live count established exact structured-wire compatibility for
+the frozen body; (3) OpenAI provides the exact count
 endpoint, while Palari supplies the one-shot cap/seal boundary; (4) yes, the
 founder approved BRN-0022 after BRN-0021 exposed this missing live fact; (5)
 without it, the next benchmark integration would depend on an unproven wire or
