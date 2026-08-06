@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0024
 children: []
-status: claimed
+status: in-review
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-08-06T05:11:59Z
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0024-run-exact-counted-luna-and-ettin-on-held-out-s60-ten"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0024-run-exact-counted-luna-and-ettin-on-held-out-s60-ten"
@@ -224,3 +224,27 @@ reinterpreting any historical score.
 - Once live invocation begins, any smoke, count, reservation, cap, provider,
   parse, artifact, or seal failure is terminal. Preserve and report it; never
   retry, resume, replace, or request a top-up for this identity.
+
+## Offline Freeze Evidence
+
+- P-set 34 is FINAL. No question, answer, supporting-message content, or
+  expected route was inspected; the frozen IDs are metadata-only S60 ordinals
+  11-20 and exclude U8.
+- Private launcher/runtime are mode 0600 with SHA-256
+  `75898b47728d0e8672b9e785e61977a4a3facb5640d333818b11a43a494e7cc3`
+  and `69bec48fddfb971eb6a3969840b90644deafdf22c16e12929e360ae7d271ebc1`.
+- Provider-free verification binds clean canonical `0615b10`, product cut
+  `146d911`, 18 current source/eval files, 13 predecessor bundles, dataset and
+  order hashes, seven native Ettin artifacts and the 3,208-file runtime
+  closure, exact opening/caps, private modes, and absent result.
+- Normal, plain-terminal, and forced-commit Luna bodies pass fake exact-count
+  orchestration: each records count reservation, one count, exact generation
+  reservation `$0.0008644` for the 1,000/512 fixture, and one generation in
+  order. Writer smoke, answer smoke, held-out IDs, five metric surfaces, and
+  architecture telemetry are present in the generated runtime.
+- Invalid live authority refuses before namespace creation. Credential reads,
+  provider calls, inference, result creation, and spend are
+  `0 / 0 / 0 / 0 / $0.00`; cumulative remains `$7.80502179`.
+- Full tests pass 775 / skip 15 / fail 0 across 790; quickstart passes 6/6;
+  ticket, report, committed-plus-dirty scope, syntax, and diff checks pass.
+  Independent pre-dispatch review remains required.

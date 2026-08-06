@@ -3103,3 +3103,14 @@ here with dates. Agents record; the founder decides.
   independently reviewed tickets. This accepts an offline orchestration
   boundary only; it grants no provider call, spend, score, or BRN-0024 live
   authority.
+
+- 2026-08-06 (BRN-0024 held-out freeze)
+  **Use exact S60 ordinals 11-20 as the first uninspected Luna+Ettin
+  architecture measurement.** Freeze identity
+  `j4-luna-ettin-heldout11to20-v1`, preserve old scores, exclude U8, retain
+  `$0.05` uncertain for every count request, and propose `$5.00` fresh /
+  `$12.80502179` cumulative caps. Writer and answer compatibility smokes must
+  pass before question 1. The founder's permission to increase a proposed
+  budget does not replace the repository's exact identity/cap authorization
+  gate; no provider activity occurs before clean independent review and exact
+  GO.

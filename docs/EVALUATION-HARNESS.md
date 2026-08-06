@@ -57,6 +57,21 @@ input tokens, 1,277 ms, and one physical count request. No generation occurred.
 The identity is consumed and the full `$0.05` remains uncertain/accounted;
 this compatibility pass does not establish billing treatment.
 
+BRN-0024 is the first benchmark composition of the accepted counted boundary.
+For every Luna answer dispatch its private one-shot runtime durably reserves a
+distinct `$0.05` unknown-billing count attempt, sends the exact structured body
+once to `/v1/responses/input_tokens`, reserves Luna Standard generation from
+that validated count, then sends the byte-equivalent body once to Responses.
+The same operation ID cannot retry or fall back to bytes. Count uncertainty
+and measured generation remain separate ledger entries.
+
+The held-out population is S60 ordinals 11-20, selected by pinned metadata
+before question/answer/session inspection and excluding sealed U8. Writer and
+answer compatibility smokes precede the ten. The result reports session,
+exact-span, selected, judged-equivalent, and judged-material-use surfaces
+separately; the last two begin pending and can be labeled once by independent
+terminal review without changing official scoring or canonical memory.
+
 BRN-0023 composes that proven wire with generation reservation without adding
 a network client. `createExactCountedOpenAIResponsesEvaluator(...)` requires
 four injected functions: durable count-attempt reservation, one count
