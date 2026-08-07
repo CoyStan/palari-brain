@@ -10,10 +10,22 @@ conservative accounted spend persists across CLI reruns in
 unchanged. The full pre-reset repository is preserved at annotated tag
 `pre-alpha-governance-reset-2026-08-07` (target `332b133`).
 
+The first live alpha diagnostic completed question `18bc8abd` end to end on
+2026-08-07: 44 sessions / 436 canonical turns -> Gemini semantic indexing ->
+local Ettin reranking -> two Luna dispatches -> one evidence-committed answer.
+Palari answered “Kansas City Masterpiece,” matching the reference, after one
+retrieval call. The first diagnostic attempt exposed a gitignored-adapter bug:
+messages longer than Gemini's 8,000-character embedding limit were not chunked.
+Adding the already-proven chunk-and-normalized-mean compatibility wrapper made
+the corrected attempt complete. This is an alpha diagnostic, not a benchmark
+grade, and no product source changed.
+
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
-`1568498a` remains forbidden. Accounted historical provider spend remains
-`$8.00840072`. No provider, credential, dataset, or live-evaluation action is
-part of BRN-0035.
+`1568498a` remains forbidden. Pre-alpha accounted provider spend was
+`$8.00840072`; the alpha ledger now accounts `$0.27247684`, for cumulative
+accounted spend of `$8.28087756`. Known alpha provider usage was approximately
+`$0.12263654`; the higher ledger value conservatively retains the failed
+answer-stage reservation.
 
 ## Active commands
 
@@ -31,14 +43,16 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Use the reusable debug runner to repair the first broken end-to-end memory path
-under one explicit aggregate budget. Do not freeze another benchmark identity
-until the full path works.
+Move only the long-text embedding compatibility wrapper from the local adapter
+into one reusable composition boundary, then exercise the next end-to-end
+question. Do not add benchmark or governance machinery while this alpha loop is
+still finding product-path bugs.
 
 ## Product check
 
 1. Basic journey runnable: yes, quickstart passed 6/6.
-2. Measurable improvement: default feedback targets the active alpha loop.
+2. Measurable improvement: one real 436-turn path now answers correctly with a
+   cited canonical user quote.
 3. Existing framework: the survey found useful patterns, but adding a full
    framework would add more surface than Palari needs.
 4. Founder request: yes, simplify the overbuilt prototype workflow.
