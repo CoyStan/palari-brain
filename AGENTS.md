@@ -1,106 +1,59 @@
-# Agent Charter — palari-brain
-
-You are the standing agent of this repository. You work it one unit
-per session. This charter outranks your habits. Founder messages
-outrank this charter.
+# Agent charter — Palari alpha
 
 ## Mission
 
-Make a chat assistant measurably better at memory, using the smallest
-thing that works. The kernel in this repo (gated SQLite store,
-provenance briefing, injection write boundary) is the current
-candidate — not the goal. The goal is this loop, working end to end
-for a real user:
+Make this memory journey work for a real user with the smallest clear change:
 
-    user says something worth remembering
-      -> assistant stores it
-      -> assistant recalls it in a later conversation
-      -> user corrects or deletes it
-      -> assistant behaves correctly afterward
+```text
+say something worth remembering -> store -> recall later -> correct/delete
+-> behave correctly afterward
+```
 
-## The loop (every session)
+The current kernel is a candidate, not the goal. Optimize for learning and
+working behavior, not certification machinery.
 
-1. Read `STATUS.md`. Identify the next unit. Never skip ahead.
-2. Recon only what the unit names. Digest, don't wander.
-3. Build the unit. Small diffs. Cut-point law: any stop leaves a
-   resumable, coherent state.
-4. Verify: tests for code units, checked links for doc units, and the
-   product stop rule below for every unit.
-5. Update `STATUS.md` (mark done with commit hash, advance Next).
-6. Commit with message `BRAIN <unit>: <summary>` and push.
-7. Stop, or continue to the next unit if the session has budget.
-   Units marked FOUNDER GATE are never executed by you — you prepare
-   them and stop.
+## Normal alpha loop
 
-## Governed ticket workflow
+1. Read the concise `STATUS.md` and take the next smallest useful unit.
+2. Reproduce the problem with the focused gate or reusable alpha runner.
+3. Fix it, rerun, and continue within the founder-approved scope and budget.
+4. Keep `npm test` and `npm run quickstart` green.
+5. Update `STATUS.md`, commit `BRAIN <unit>: <summary>`, and push.
 
-Use the governed workflow when the founder asks for a ticket, work spans
-multiple sessions or owners, independent review is required, or the real risk
-is R2-R4. Small, clear, reversible R0-R1 work may remain on the loop's fast
-lane. The ticket system itself was founder-requested bootstrap work; its rules
-apply after the bootstrap commit.
+Ordinary reversible alpha debugging does not require a ticket,
+preregistration, immutable evidence, exact token accounting, a fresh identity,
+or one-shot execution. Diagnostic runs may be fixed and repeated and must not
+be presented as benchmark grades.
 
-1. From clean canonical `main`, create and complete a ticket contract under
-   `coding-sessions/tickets/open/`, then commit and push that contract.
-2. Run `npm run ticket -- ticket-worktree ID`. Governed edits happen only in
-   the printed ticket worktree and branch.
-3. Generate the exact role packet with
-   `npm run ticket -- agent-packet ID specialist|reviewer|mediator`.
-4. Enforce both dirty and committed scope with `scope-check`; a needed path
-   outside `allowed_paths` is a stop, not an invitation to widen scope.
-5. Specialists may move ready work to `in-review`. Reviewers inspect committed
-   work with fresh, read-only context and recommend accept, reopen, or
-   needs-human; they do not implement fixes during that review.
-6. Only the founder or an explicitly authorized reviewer may mark a ticket
-   accepted, move it to `tickets/closed/`, merge it, or authorize cleanup.
+Use `npm run test:legacy` before broad merges or when a change touches product
+memory behavior or historical evaluator compatibility. It is not the default
+inner-loop gate.
 
-The CLI never accepts, merges, pushes, deletes, or grants founder-gated
-authority. Full rules and commands: `docs/TICKET-WORKFLOW.md`.
+## Hard boundaries
 
-## The product stop rule (answer in STATUS.md at every unit close)
+- Durable memory writes still pass through the admission gate.
+- Never commit, expose, or print credentials or `.env` contents.
+- Never weaken user/workspace isolation.
+- Never perform destructive or hard-to-recover operations beyond explicit
+  scope.
+- Never call a paid provider without a founder-approved maximum dollar cap;
+  stop before the next reserved call would cross it.
+- Datasets stay gitignored; do not download unclear-licence data.
+- U8 stays sealed: never execute question `1568498a`.
 
-1. Can a new user run the basic memory journey right now?
-   (`npm run quickstart` must stay green at every commit.)
-2. Did this unit make that journey measurably better?
-3. Does an existing framework already provide what this unit added?
-4. Has a real user or the founder asked for the guarantee it adds?
-5. If this unit's code were deleted, what user-visible behavior would
-   get worse?
+## Tickets and review
 
-A unit that fails questions 2-5 is infrastructure. One infrastructure
-unit in a row is allowed; two in a row is drift — stop and surface it
-to the founder instead of starting the third.
+Tickets are optional for ordinary R0-R1 alpha work. Use the governed workflow
+in `docs/TICKET-WORKFLOW.md` when the founder requests it, independent review
+is useful, work spans owners/sessions, or risk is genuinely R2-R4. Do not turn
+routine debugging into a ticket chain.
 
-## Laws (not optional)
+## Release benchmarks
 
-- **One gate.** Durable memory writes go through the admission gate.
-  If a shortcut would be easier, the shortcut is the bug.
-- **Provenance travels.** Extracted code records its source path and
-  commit (palari-v05 baseline: `190a4ad2`). Adapted data records its
-  license and origin. Every score records bank/dataset version,
-  model, prompt-config hash, and date.
-- **Pre-registered predictions.** Before ANY scoring run, write the
-  expected outcome in `evals/predictions.md`. Results are graded
-  against it, failing categories first. No re-rolls; a bad number is
-  a finding, not a retry.
-- **Mocks are not gates.** Deterministic tests protect plumbing; only
-  live runs (founder-gated spend) validate provider behavior.
-- **No dataset in git.** `data/` is gitignored. Check the license
-  BEFORE downloading; record the verdict in `docs/DECISIONS.md`.
-- **No secrets.** No API keys, tokens, or .env content in any commit.
-  Provider keys come from the environment at run time only.
-- **No self-expanded scope.** This repo is the kernel + adapter +
-  evals + journey bank. Product features, UI, multi-agent anything:
-  out. The v2 proof machinery stays archived at the git tag
-  `v2-proof-archive`; restoring any of it requires an explicit
-  founder GO recorded in `docs/DECISIONS.md`.
+A benchmark becomes immutable, one-shot, preregistered, hash-pinned, or
+independently graded only when the founder explicitly declares it a release
+benchmark. Historical scores remain historical; alpha diagnostics never
+rewrite or regrade them.
 
-## Founder gates (prepare, never execute)
-
-- Any live provider run (even one question).
-- Downloading anything whose license is unclear.
-- Publishing scores in README or anywhere public.
-- Announcing the repo or its results.
-- Restoring archived v2 machinery.
-- U8 remains sealed: never execute question `1568498a`, never
-  re-roll, re-grade, or publish the sealed 9/10 results.
+The pre-reset process and files are recoverable at annotated tag
+`pre-alpha-governance-reset-2026-08-07`.

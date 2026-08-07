@@ -1,0 +1,88 @@
+# Palari alpha architecture
+
+## Objective
+
+Make the smallest end-to-end memory loop work before certifying it. In alpha,
+debug runs are repeatable diagnostics. A release benchmark is a separate,
+explicitly declared event.
+
+## Active loop
+
+```text
+injected questions
+  -> writer
+  -> optional embedder
+  -> optional reranker
+  -> answer
+  -> mutable .palari-alpha/*.jsonl diagnostics
+```
+
+`evals/run-alpha-memory-debug.mjs` owns this orchestration. It does not import a
+provider, read credentials, load a dataset, or know a ticket/run identity.
+An adapter module exports `createAlphaRun()` and injects questions plus
+`writer`, `answer`, and optional `embedder`/`reranker` components.
+
+Each component is either a zero-cost function or:
+
+```js
+{
+  maxCostUsd: 0.02,
+  invoke: async (context) => ({ output, costUsd: 0.013 })
+}
+```
+
+The runner reserves `maxCostUsd` before invoking a component. It refuses the
+call if the reservation would cross `--max-dollar`, and rejects a component
+that reports more than it reserved. This is deliberately simple approximate
+accounting: enough to enforce a founder-approved ceiling, not a financial
+ledger.
+
+## Command
+
+```bash
+npm run alpha:debug -- \
+  --adapter .palari-alpha/my-adapter.mjs \
+  --questions 11-20 \
+  --retries 2 \
+  --max-dollar 0.50
+```
+
+The adapter and logs live under `.palari-alpha/` and are gitignored. Retries
+are explicit and capped at three. The default is no retry and
+continue-on-error so one broken row does not hide later diagnoses. Add
+`--stop-on-error` when a shared failure makes later rows meaningless.
+
+## Two modes, two standards
+
+### Alpha debug
+
+- repeat and repair freely inside the approved dollar cap;
+- append or replace local JSONL logs;
+- report attempts and failures, never a benchmark grade;
+- use focused tests during iteration;
+- use a ticket only for risky, broad, or independently reviewed changes.
+
+### Release benchmark
+
+Only an explicitly declared release benchmark may require immutable inputs,
+preregistered predictions, exact reproducibility hashes, one-shot execution,
+or independent grading. Those rules do not leak into ordinary debugging.
+
+## Gates retained in alpha
+
+- never commit or print secrets;
+- never weaken cross-user/workspace isolation;
+- never make destructive or hard-to-recover changes without explicit scope;
+- never call a paid provider without a clear founder-approved maximum dollar
+  amount;
+- never run sealed U8 question `1568498a`.
+
+## Tests
+
+- `npm test` and `npm run alpha:check`: the small runner contract tier;
+- `npm run quickstart`: the real basic memory journey;
+- `npm run test:legacy`: the complete historical suite, used before broad
+  merges or when touching legacy behavior, not after every small edit.
+
+The pre-reset state is recoverable at annotated tag
+`pre-alpha-governance-reset-2026-08-07`. Nothing was deleted in this reset.
