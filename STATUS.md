@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0025 TERMINAL FAILURE INDEPENDENTLY ACCEPTED; MERGE NEXT.
-Founder-authorized identity `j4-luna-ettin-unexecuted11to20-v2` was
+Loop state: BRN-0025 TERMINAL FAILURE ACCEPTED, MERGED, AND PUSHED; BRN-0026
+COUNT-WIRE AND DIRECTORY-WALKER REPAIR CONTRACT NEXT. Founder-authorized
+identity `j4-luna-ettin-unexecuted11to20-v2` was
 reserved at `2026-08-07T03:18:45.492Z`, launched at `.497Z`, and consumed at
 `.627Z` exactly once at reviewed head
 `782dc2212a7bc0b64c416dafeceebafefc41236f`. The launcher/runtime hashes were
@@ -48,9 +49,9 @@ governed scope, and diff checks green. Independent terminal review of exact
 clean pushed head `5e7fd07` found no P0-P3 issue and recommends ACCEPT after
 rehashing the immutable unsealed snapshot and exact accounting. Under the
 founder's standing delegation for clean independently reviewed tickets,
-BRN-0025 is accepted for merge. Any fix or successor requires a separate
-governed ticket, new identity, new predictions, fresh review, and fresh founder
-authorization.
+BRN-0025 was accepted, merged, and pushed at `01ee20b`. Any fix or successor
+requires a separate governed ticket, new identity, new predictions, fresh
+review, and fresh founder authorization.
 
 Product stop rule: (1) yes, quickstart remains green; (2) no user-facing memory
 behavior improved because the run stopped during answer compatibility; (3)
