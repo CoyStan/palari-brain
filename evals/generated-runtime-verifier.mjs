@@ -6,6 +6,8 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 const DEFAULT_MAX_OUTPUT_BYTES = 64 * 1024
 const DEFAULT_TIMEOUT_MS = 120_000
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/u
+const REVIEW_MARKER_NAMESPACE = /^[A-Z][A-Z0-9_]{0,63}$/u
+const LEGACY_REVIEW_MARKER_NAMESPACE = 'BRN0025_REVIEW'
 const STATIC_IMPORT_PARSER = String.raw`
 import { SourceTextModule } from 'node:vm'
 let source = ''
@@ -142,14 +144,21 @@ function exactMarker(note, name) {
 export function assertReviewAttestation({
   identity,
   launcherSha256,
+  markerNamespace = LEGACY_REVIEW_MARKER_NAMESPACE,
   note,
   runtimeSha256,
 } = {}) {
+  if (typeof markerNamespace !== 'string' ||
+    !REVIEW_MARKER_NAMESPACE.test(markerNamespace)) {
+    throw new TypeError(
+      'Review marker namespace must be an uppercase identifier of 1-64 characters.',
+    )
+  }
   if (typeof note !== 'string' || note.length === 0 ||
-    exactMarker(note, 'BRN0025_REVIEW_IDENTITY') !== identity ||
-    exactMarker(note, 'BRN0025_REVIEW_LAUNCHER_SHA256') !== launcherSha256 ||
-    exactMarker(note, 'BRN0025_REVIEW_RUNTIME_SHA256') !== runtimeSha256 ||
-    exactMarker(note, 'BRN0025_REVIEW_RECOMMENDATION') !== 'ACCEPT') {
+    exactMarker(note, `${markerNamespace}_IDENTITY`) !== identity ||
+    exactMarker(note, `${markerNamespace}_LAUNCHER_SHA256`) !== launcherSha256 ||
+    exactMarker(note, `${markerNamespace}_RUNTIME_SHA256`) !== runtimeSha256 ||
+    exactMarker(note, `${markerNamespace}_RECOMMENDATION`) !== 'ACCEPT') {
     throw new Error('Independent review attestation is not ACCEPT.')
   }
   return Object.freeze({

@@ -341,3 +341,29 @@ zero activity/accounting from source ordering. It must not be retried and must
 not be interpreted as provider, reranker, retrieval, or memory evidence. A
 repair should make the attestation schema ticket-neutral while remaining exact
 and fail-closed; that repair and any successor freeze are outside this record.
+
+BRN-0034 makes that repair at the shared verifier boundary. Callers may select
+one marker namespace matching an uppercase identifier of 1-64 characters;
+the verifier then requires exactly one `${namespace}_IDENTITY`,
+`${namespace}_LAUNCHER_SHA256`, `${namespace}_RUNTIME_SHA256`, and
+`${namespace}_RECOMMENDATION` line. Values remain bound to the supplied
+identity and hashes, and recommendation remains exact `ACCEPT`. The namespace
+is validated before any marker lookup, so malformed names cannot compose or
+confuse marker keys. Missing, duplicated, mismatched, mixed-namespace, and
+wrong-disposition notes all fail closed.
+
+Omitting the parameter preserves `BRN0025_REVIEW`, keeping frozen predecessor
+callers compatible. Fresh v6 selects `PALARI_REVIEW`; its launcher still binds
+the final clean pushed head separately through exact founder authority and
+reads the independently accepted tracked reviewer note before result-directory
+creation or custody. Generic namespace selection therefore removes a ticket
+coupling without accepting free-form prose or weakening one-shot authority.
+
+FINAL P-set 40 preserves P-set 39's population, order, models, prompts,
+architecture, source-occurrence repair, predictions, and `$8.00840072`
+opening ledger. Its actual private verification must execute the unchanged v5
+runtime surfaces plus the generic accepted marker shape, prove complete
+predecessor immutability and v5 namespace absence, remove temporary state, and
+report zero credential reads, dataset reads, provider calls, and result writes.
+The proposed `$5.00` fresh / `$13.00840072` cumulative caps are freeze metadata,
+not live authority.
