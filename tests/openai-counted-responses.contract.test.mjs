@@ -6,10 +6,12 @@ import { test } from 'node:test'
 import {
   OpenAICountedResponsesError,
   createExactCountedOpenAIResponsesEvaluator,
+  projectOpenAIResponsesInputCountBody,
 } from '../evals/openai-counted-responses.mjs'
 
 function body(model = 'gpt-5.6-luna') {
   return {
+    include: ['reasoning.encrypted_content'],
     model,
     instructions: 'Use exact cited memory evidence.',
     input: [{
@@ -28,6 +30,9 @@ function body(model = 'gpt-5.6-luna') {
         additionalProperties: false,
       },
     }],
+    parallel_tool_calls: false,
+    reasoning: { effort: 'low' },
+    tool_choice: 'auto',
     max_output_tokens: 512,
     service_tier: 'default',
     store: false,
@@ -85,9 +90,23 @@ test('durable count and exact generation reservations strictly precede transport
     'reserve-response',
     'response',
   ])
-  assert.equal(JSON.stringify(run.seen.countRequest.body), sourceText)
+  const projectedText = JSON.stringify(
+    projectOpenAIResponsesInputCountBody(source).body,
+  )
+  assert.equal(JSON.stringify(run.seen.countRequest.body), projectedText)
   assert.equal(JSON.stringify(run.seen.responseRequest.body), sourceText)
-  assert.equal(run.seen.countPlan.bodySha256, run.seen.responsePlan.bodySha256)
+  assert.notEqual(
+    run.seen.countPlan.countBodySha256,
+    run.seen.countPlan.generationBodySha256,
+  )
+  assert.equal(
+    run.seen.countPlan.countBodySha256,
+    run.seen.responsePlan.countBodySha256,
+  )
+  assert.equal(
+    run.seen.countPlan.generationBodySha256,
+    run.seen.responsePlan.generationBodySha256,
+  )
   assert.equal(run.seen.countPlan.billingTreatment, 'unknown-uncertain')
   assert.equal(run.seen.countPlan.reservedPicodollars, '50000000000')
   assert.equal(run.seen.responsePlan.exactInputTokens, 1_000)
@@ -112,7 +131,19 @@ test('both transports receive immutable independent snapshots', async () => {
       source.model = 'changed-after-snapshot'
     },
     async invokeCount(request) {
-      assert.equal(JSON.stringify(request.body), original)
+      assert.deepEqual(Object.keys(request.body), [
+        'model',
+        'instructions',
+        'input',
+        'tools',
+        'parallel_tool_calls',
+        'reasoning',
+        'tool_choice',
+      ])
+      assert.equal(request.body.include, undefined)
+      assert.equal(request.body.max_output_tokens, undefined)
+      assert.equal(request.body.service_tier, undefined)
+      assert.equal(request.body.store, undefined)
       assert.throws(() => { request.body.model = 'changed' }, TypeError)
       return { object: 'response.input_tokens', input_tokens: 1_000 }
     },
@@ -130,6 +161,78 @@ test('both transports receive immutable independent snapshots', async () => {
     countAttemptPicodollars: '1',
     operationId: 'immutable-operation',
   })
+})
+
+test('BRN-0025 body projects only documented count fields without nested drift', () => {
+  const source = body()
+  const original = JSON.stringify(source)
+  const wire = projectOpenAIResponsesInputCountBody(source)
+
+  assert.deepEqual(Object.keys(wire.body), [
+    'model',
+    'instructions',
+    'input',
+    'tools',
+    'parallel_tool_calls',
+    'reasoning',
+    'tool_choice',
+  ])
+  for (const key of [
+    'input',
+    'instructions',
+    'model',
+    'parallel_tool_calls',
+    'reasoning',
+    'tool_choice',
+    'tools',
+  ]) {
+    assert.equal(JSON.stringify(wire.body[key]), JSON.stringify(source[key]))
+  }
+  for (const key of [
+    'include',
+    'max_output_tokens',
+    'service_tier',
+    'store',
+  ]) {
+    assert.equal(Object.hasOwn(wire.body, key), false)
+  }
+  assert.equal(JSON.stringify(source), original)
+  assert.equal(Object.isFrozen(wire.body), true)
+  assert.equal(Object.isFrozen(wire.body.input[0].content), true)
+})
+
+test('observed include 400 is repaired while unknown fields fail closed', async () => {
+  const observedError = {
+    error: {
+      code: 'unknown_parameter',
+      message: "Unknown parameter: 'include'.",
+      param: 'include',
+      type: 'invalid_request_error',
+    },
+  }
+  const run = create({
+    async invokeCount(request) {
+      assert.equal(Object.hasOwn(request.body, observedError.error.param), false)
+      return { object: 'response.input_tokens', input_tokens: 1_000 }
+    },
+  })
+  await run.invoke({
+    body: body(),
+    countAttemptPicodollars: '1',
+    operationId: 'repaired-include-400',
+  })
+
+  const unknown = create()
+  await assert.rejects(
+    unknown.invoke({
+      body: { ...body(), undocumented_future_field: true },
+      countAttemptPicodollars: '1',
+      operationId: 'unknown-count-field',
+    }),
+    (error) => error instanceof OpenAICountedResponsesError &&
+      error.code === 'COUNT_FIELD_UNKNOWN',
+  )
+  assert.deepEqual(unknown.events, [])
 })
 
 test('operation IDs are consumed before reservation and cannot be reused', async () => {
@@ -258,6 +361,9 @@ test('captured crypto methods keep body hashes authentic after prototype poisoni
   const expected = createHash('sha256')
     .update(JSON.stringify(source))
     .digest('hex')
+  const expectedCount = createHash('sha256')
+    .update(projectOpenAIResponsesInputCountBody(source).bodyText)
+    .digest('hex')
   const hashPrototype = Object.getPrototypeOf(createHash('sha256'))
   const originalUpdate = hashPrototype.update
   const originalDigest = hashPrototype.digest
@@ -270,10 +376,11 @@ test('captured crypto methods keep body hashes authentic after prototype poisoni
       countAttemptPicodollars: '1',
       operationId: 'authentic-hash',
     })
-    assert.equal(terminal.audit.bodySha256, expected)
-    assert.notEqual(terminal.audit.bodySha256, 'a'.repeat(64))
-    assert.equal(run.seen.countPlan.bodySha256, expected)
-    assert.equal(run.seen.responsePlan.bodySha256, expected)
+    assert.equal(terminal.audit.generationBodySha256, expected)
+    assert.equal(terminal.audit.countBodySha256, expectedCount)
+    assert.notEqual(terminal.audit.generationBodySha256, 'a'.repeat(64))
+    assert.equal(run.seen.countPlan.generationBodySha256, expected)
+    assert.equal(run.seen.responsePlan.generationBodySha256, expected)
   } finally {
     hashPrototype.update = originalUpdate
     hashPrototype.digest = originalDigest
