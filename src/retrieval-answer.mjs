@@ -474,6 +474,7 @@ export const MEMORY_RETRIEVAL_PLAN_INSTRUCTIONS = [
 ].join(' ')
 
 export const MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS = [
+  'Treat the question date as context for relative-time descriptions, not as an automatic retrieval cutoff. Keep retrieval bounds open unless the question itself explicitly asks about a bounded period such as before, after, as of, or during an event.',
   'For a current value, duration, correction, or knowledge update, do not stop at an older direct value. Use a second targeted retrieval for a later direct user statement about the same entity before inferring; a later direct value takes precedence over arithmetic extrapolated from an older value.',
   'For a personalized recommendation, retrieve both the current situational constraints and at least one direct user preference relevant to the recommendation category. If no relevant preference is found, say that the result is not personalized rather than inventing one.',
   'For a total, count, or supposedly complete list, one relevance-ranked result is not exhaustive. Use complementary bounded searches inside the planned time range; if completeness is still unproven, report a partial result or insufficient evidence instead of a definitive total.',

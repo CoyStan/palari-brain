@@ -1101,6 +1101,7 @@ test('optional completeness guidance is bounded and provider-neutral',
       question: 'How long have I lived here?',
     })
     assert.ok(observed.startsWith(MEMORY_RETRIEVAL_INSTRUCTIONS))
+    assert.match(observed, /not as an automatic retrieval cutoff/)
     assert.match(observed, /second targeted retrieval/)
     assert.match(observed, /both the current situational constraints/)
     assert.match(observed, /one relevance-ranked result is not exhaustive/)

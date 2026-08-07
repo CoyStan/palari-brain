@@ -72,11 +72,25 @@ one artifact instead of repeatedly reopening its store. Focused tests pass
 17/17, quickstart passes 6/6, and the complete legacy tier passes 841 with 3
 optional skips.
 
+The next targeted run completed questions 14 and 19 for `$0.15141059` of
+accounted spend. Question 19 now retrieved the original direct French/Spanish
+language-exchange preference, materially used it, and answered with the right
+personalization while declining to invent a current location. Question 14
+still answered seven months, but its now-self-contained trace isolated a
+different cause: Luna performed the required second search while applying the
+question time (`08:39`) as a hard `before` bound, which excluded the dataset's
+canonical three-month statement timestamped later that day (`20:50`). The
+active planning guidance now treats question time as relative-time context,
+not an automatic cutoff; explicit before/after/as-of/during wording can still
+bound retrieval. This is a general temporal rule, not a question-specific
+keyword. Relevant contracts pass 34/34; focused tests and quickstart remain
+17/17 and 6/6 respectively.
+
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
-`$8.00840072`; the alpha ledger now accounts `$1.62690778`, for cumulative
-accounted spend of `$9.63530850`. Known alpha provider usage was approximately
-`$1.26100021`; the higher ledger value conservatively retains failed
+`$8.00840072`; the alpha ledger now accounts `$1.77831837`, for cumulative
+accounted spend of `$9.78671909`. Known alpha provider usage was approximately
+`$1.41241080`; the higher ledger value conservatively retains failed
 answer-stage reservations.
 
 ## Active commands
@@ -95,11 +109,10 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Run one targeted repeat of questions 14 and 19 with the operational planning
-guidance. The two answer reservations fit the `$0.37309222` remaining under the
-approved `$2.00` rolling cap. Treat the outcome as an alpha finding, not a
-benchmark regrade, and do not add benchmark or governance machinery while this
-loop is still finding product-path bugs.
+Run one final targeted question-14 repeat with open inferred bounds. Its one
+answer reservation fits the `$0.22168163` remaining under the approved `$2.00`
+rolling cap. Treat the outcome as an alpha finding, not a benchmark regrade,
+and stop live work afterward regardless of the answer.
 
 ## Product check
 
