@@ -613,6 +613,6 @@ test('J4 v6 freezes five predecessors, one repair, and the $5 fresh cap', async 
     loadJ4LiveConfig({ repoRoot: REPO_ROOT }),
     (error) =>
       error.code === 'ARTIFACT_HASH' &&
-      error.message.includes('evals/run-longmemeval-live.mjs'),
+      error.message.includes('evals/arms/kernel-longmemeval-live-arm.mjs'),
   )
 })

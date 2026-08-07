@@ -2890,3 +2890,81 @@ diagnosis is canonical-key aliasing: runtime identity uses only source session
 ID plus turn index, while the gate correctly rejects different immutable
 snapshots under the same `(palariId, userId, sourceMessageId)` key. This is not
 evidence about Luna, Ettin, retrieval, ranking, or memory quality.
+
+## P-set 39 — Occurrence-aware Luna + Ettin S60 ordinals 11-20
+
+### P-set 39 (FINAL)
+
+Status: **FINAL before credential read, provider call, inference, selected-data
+inspection, or result creation.**
+
+Identity: `j4-luna-ettin-unexecuted11to20-v5`
+
+This is a fresh successor freeze, not a retry, resume, reroll, regrade, or
+repair of consumed v1-v4 evidence. It preserves P-set 38's exact population,
+order, answer/reducer architecture, models, prompts, four-evidence-call
+ceiling, treatment, and predictions: `18bc8abd`, `19b5f2b3`, `1a1907b4`,
+`2133c1b5`, `2133c1b5_abs`, `25e5aa4f`, `2698e78f_abs`, `32260d93`,
+`35a27287`, `36b9f61e`. These rows remain never completed and previously
+profiled by P-set 20. No selected session, question, answer, supporting span,
+or expected route was inspected. Sealed U8 `1568498a` remains excluded and
+historical `6/10` is immutable.
+
+The only treatment repair is generic source provenance. Each source-message
+identity is reversibly derived from the original source session ID, its stable
+occurrence ordinal in the original instance, and the exchange turn index;
+canonical user/assistant rows retain their role suffix. Chronological replay
+sorts by event time with original occurrence ordinal as the stable tie-breaker.
+Isolation, session recall, and exact-span planning recover the unmodified
+original source session ID. Identical occurrence replay remains idempotent;
+changed event/presence/content under the same occurrence remains terminal
+`SOURCE_MESSAGE_CONFLICT` before writer work. No content hash, question ID,
+question text, answer text, or benchmark keyword participates in identity.
+
+Opening cumulative accounted spend is exactly `$8.00840072`. Proposed caps
+are `$5.00` fresh and `$13.00840072` cumulative. All v1-v4 measured and
+uncertain accounting remains unchanged. These boundaries are not live
+authority.
+
+Predictions, failing categories first:
+
+1. OFFICIAL ACCURACY: at least `8/10` unchanged official
+   `gpt-4o-2024-08-06` judge labels pass.
+2. SESSION RECALL: at least 90% of required original answer-bearing sessions
+   are returned on reached non-abstention rows.
+3. EXACT-SPAN RECALL: at least 80% of dataset-marked supporting canonical
+   role-specific messages are returned where exact spans exist. Equivalent
+   facts never substitute for this metric.
+4. SELECTED EVIDENCE: at least 8/10 reached rows select answer-relevant
+   evidence through a host-accepted commitment, or correctly select none for
+   an abstention. Retrieved evidence need not be forced into the answer.
+5. MATERIALLY USED EVIDENCE: independent terminal review labels at least 8/10
+   rows PASS for actual answer use or correct abstention. This judged label is
+   distinct from model-declared `consequence_for_answer` and canonical truth.
+6. EQUIVALENT-FACT RECALL: one independent terminal reviewer labels the
+   separately sealed pending/null surface exactly once. It may explain an
+   exact-span miss but never changes exact recall or official grade.
+7. ARCHITECTURE: temporal/relational planning remains general and records
+   anchor, relation, category, and time range; commitments support consequence
+   or `not_used_reason`; cross-context inference remains provenance-linked,
+   revisable, trace-only, and never a canonical fact.
+8. RERANK/BOUNDARY: every reached native Ettin score is finite without input
+   mutation; evidence calls never exceed four; writer smoke precedes answer
+   smoke; every Luna operation has one projected count and at most one exact
+   full-body generation after durable reservations. No retry, byte fallback,
+   resume, reroll, replacement, selective regrade, or cap top-up.
+9. EXECUTION/ACCOUNTING: one invocation either recursively seals both smokes
+   and all ten cells or recursively seals the first terminal failure. Every
+   physical call is accounted before transport; count uncertainty stays
+   separate; credential matches are zero; historical `6/10`, prior
+   accounting, and U8 remain unchanged.
+
+Offline freeze note: BRN-0032 must execute the actual final-runtime synthetic
+duplicate-occurrence ingest, exact replay, and mutation refusal together with
+cached Ettin, exact projected-count/full-generation fake wires, canonical
+Standard settlement, one-shot custody, recursive seal/reseal refusal, and
+temporary cleanup. It must preserve all v1-v4 bytes and report zero credential,
+dataset, provider, and result activity. Passing provider-free gates predicts
+no score. Any invocation requires independent review and exact founder
+authorization naming identity, both caps, reviewed head, mode-0600 launcher
+and runtime hashes, and ACCEPT.
