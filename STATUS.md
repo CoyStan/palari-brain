@@ -119,6 +119,23 @@ matching the reference. The complete safe trace remains self-contained at
 `.palari-alpha/current-palari-e2e-2133c1b5.json`. This is an alpha diagnostic
 success, not a benchmark regrade; historical LongMemEval remains 6/10.
 
+The provider-free anti-overfitting matrix is now part of the focused gate. It
+places older and newer facts from six unrelated domains into one noisy
+workspace: residence, medication, employment, subscriptions, travel, and
+purchases. Current queries must defeat a provider's false old cutoff in the
+first three; explicit historical queries must enforce the host cutoff and
+exclude later updates in the other three. All six pass through the real
+canonical ingest and retrieval path. Focused tests now pass 24/24 and
+quickstart remains 6/6.
+
+A five-question live held-out set was selected from dataset metadata before
+reading any question or reference answer: temporal `gpt4_59149c77`, preference
+`8a2466db`, multi-session aggregation `0a995998`, knowledge update `6a1eabeb`,
+and multi-session abstention `88432d0a_abs`. None was used to design or debug
+the Q14/Q19 changes, and U8 is absent. The gitignored adapter is prepared to
+run exactly these five and write one self-contained trace per question. No
+provider call has been made for this set.
+
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
 `$8.00840072`; the alpha ledger now accounts `$1.92923812`, for cumulative
@@ -142,17 +159,18 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Stop provider work. The authorized Q14 confirmation succeeded and no further
-paid invocation was authorized. Use the now-complete rolling 11–20 diagnostic
-results to choose the next smallest product behavior to improve; keep the
-historical 6/10 result unchanged.
+FOUNDER GATE: run the five prepared held-out questions together only after an
+explicit aggregate cap is approved. A `$2.45` aggregate cap leaves about
+`$0.52` of headroom above the current `$1.92923812` accounting and should cover
+the approximately `$0.40` diagnostic while still stopping safely if costs are
+higher. Record every answer as observed; do not modify the historical 6/10.
 
 ## Product check
 
 1. Basic journey runnable: yes, quickstart passed 6/6.
-2. Measurable improvement: question 19 retrieves and uses the direct language
-   preference, and live Q14 now answers three months from the exact original
-   user statement despite the model's bad cutoff.
+2. Measurable improvement: live Q14 and Q19 improved, and the same temporal
+   authority now passes current/historical counterexamples across six unrelated
+   domains; live held-out generalization remains unmeasured.
 3. Existing framework: the survey found useful patterns, but adding a full
    framework would add more surface than Palari needs.
 4. Founder request: yes, simplify the overbuilt prototype workflow.
