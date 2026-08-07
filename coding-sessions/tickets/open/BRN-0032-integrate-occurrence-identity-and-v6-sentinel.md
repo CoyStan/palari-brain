@@ -149,3 +149,23 @@ Do not expand beyond source occurrence identity and first-drift expectation.
 - Stop for any path outside the contract, forbidden path, provider/credential/
   selected-content action, frozen v6 mutation, prior evidence mutation, or live
   result creation.
+
+## Specialist Closeout
+
+The two interdependent changes are integrated at commit `8e91cb8` without
+merging either red predecessor branch. The occurrence envelope is versioned
+and reversible, retains the pre-sort occurrence ordinal, preserves source
+isolation and chronological replay, distinguishes repeated source sessions,
+is idempotent on exact replay, and rejects same-occurrence mutation before
+writer work. The historical-v6 sentinel changes only its expected first drift;
+the complete drift set and frozen v6 JSON bytes remain unchanged.
+
+The exact private v5 launcher/runtime are mode 0600 and hash to
+`d149ee3e145789cc97b0e92caa22e23a719e7125cd1435f028cb90899eec83ef` /
+`c013d8a32efd408094dd5881acbc4c7d5e96104661883b519e98618996efabd7`.
+Their provider-free verifier passed all gates with zero credential reads,
+dataset reads, provider calls, and result writes; both v5 namespaces remain
+absent. Focused tests passed 19/19, the full suite passed 805 with 15 optional
+skips and zero failures across 820, and quickstart passed 6/6. P-set 39 is
+FINAL. Ready for fresh independent read-only review; no live v5 authority is
+created.
