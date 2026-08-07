@@ -2,11 +2,10 @@
 
 ## Current state
 
-BRN-0035 corrected review head
-`a4b91ecb3ef5c92d06c1045a9061a665b317b48c` is ready for fresh independent
-review. Review correction one removed raw dependency invocation handles from
-stage context. Correction two confines file-backed logs to `.palari-alpha/`
-and carries conservative accounted spend across CLI reruns in
+BRN-0035 is independently accepted and merged at `23da4f1`. The default gate
+is now the small alpha runner contract; the complete historical suite remains
+available on demand. File-backed logs stay inside `.palari-alpha/`, and
+conservative accounted spend persists across CLI reruns in
 `.palari-alpha/budget.json`. The product kernel and historical evidence are
 unchanged. The full pre-reset repository is preserved at annotated tag
 `pre-alpha-governance-reset-2026-08-07` (target `332b133`).
@@ -32,8 +31,7 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Complete independent review of BRN-0035. After acceptance, use
-the reusable debug runner to repair the first broken end-to-end memory path
+Use the reusable debug runner to repair the first broken end-to-end memory path
 under one explicit aggregate budget. Do not freeze another benchmark identity
 until the full path works.
 
