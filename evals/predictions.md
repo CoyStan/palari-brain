@@ -2775,3 +2775,78 @@ call `invalid_response` only because its local settlement helper rejected the
 generic `short` label. This result does not characterize Luna answer quality,
 Ettin ranking quality, retrieval quality, or the ten-question score, and it
 authorizes no retry, regrade, semantic overlay, or successor.
+
+## P-set 38 — Canonically settled Luna + Ettin S60 ordinals 11-20
+
+### P-set 38 (FINAL)
+
+Status: **FINAL before credential read, provider call, inference, selected-data
+inspection, or result creation.**
+
+Identity: `j4-luna-ettin-unexecuted11to20-v4`
+
+This is a fresh successor freeze, not a retry, resume, reroll, regrade, or
+post-hoc settlement of consumed P-set 37. It preserves the exact population,
+order, architecture, models, prompts, four-evidence-call ceiling, treatment,
+and predictions: `18bc8abd`, `19b5f2b3`, `1a1907b4`, `2133c1b5`,
+`2133c1b5_abs`, `25e5aa4f`, `2698e78f_abs`, `32260d93`, `35a27287`,
+`36b9f61e`. These rows remain never completed and previously profiled by
+P-set 20. No selected session, question, answer, supporting span, or expected
+route was inspected. Sealed U8 `1568498a` remains excluded. Historical `6/10`
+is immutable.
+
+Opening cumulative accounted spend is exactly `$7.90712669`. Proposed caps
+are `$5.00` fresh and `$12.90712669` cumulative. P-set 37's `$0.0011499`
+unsettled Luna reservation and all other measured/uncertain accounting remain
+unchanged. Successful Responses usage now settles only through one tracked
+Standard helper whose public context-band vocabulary is exactly `short` or
+`long`; legacy `shortContext`/`longContext` values fail closed. These proposed
+boundaries are not live authority.
+
+Predictions, failing categories first:
+
+1. OFFICIAL ACCURACY: at least `8/10` unchanged official
+   `gpt-4o-2024-08-06` judge labels pass.
+2. SESSION RECALL: at least 90% of required answer-bearing sessions are
+   returned on reached non-abstention rows.
+3. EXACT-SPAN RECALL: at least 80% of dataset-marked supporting canonical
+   messages are returned where exact spans exist. Equivalent facts never
+   substitute for this metric.
+4. SELECTED EVIDENCE: at least 8/10 reached rows select answer-relevant
+   evidence through a host-accepted commitment, or correctly select none for
+   an abstention. Retrieved evidence need not be forced into the answer.
+5. MATERIALLY USED EVIDENCE: independent terminal review labels at least 8/10
+   rows PASS for actual answer use or correct abstention. This judged label is
+   distinct from model-declared `consequence_for_answer` and canonical truth.
+6. EQUIVALENT-FACT RECALL: one independent terminal reviewer labels the
+   separately sealed pending/null surface exactly once. It may explain an
+   exact-span miss but never changes exact recall or official grade.
+7. ARCHITECTURE: any temporal/relational plan is general and records anchor,
+   relation, category, and time range; commitments support consequence or
+   `not_used_reason`; cross-context inference is provenance-linked,
+   `revisable: true`, trace-only, and never persisted as canonical fact.
+8. RERANK/BOUNDARY: every reached native Ettin score is finite without input
+   mutation; evidence calls never exceed four; writer smoke precedes answer
+   smoke; each Luna operation has one projected count and at most one exact
+   full-body generation after durable reservations. The returned public
+   `short`/`long` band settles through the shared helper. No retry, byte
+   fallback, resume, reroll, replacement, selective regrade, or cap top-up.
+9. EXECUTION/ACCOUNTING: one invocation either recursively seals both smokes
+   and all ten cells, or recursively seals the first terminal failure. Every
+   physical call is accounted before transport; Standard settlement validates
+   raw input, cache-write, cached-input, output, reasoning, and total token
+   relationships; count uncertainty remains separate; credential matches are
+   zero; historical `6/10`, P-set 37 accounting, and U8 remain unchanged.
+
+Offline freeze note (does not rewrite these FINAL predictions): BRN-0028
+executes the actual final-runtime cached-Ettin synthetic smoke, exact paired
+fake count/full-generation wires, the sanitized BRN-0026 HTTP-200 usage shape
+(`2,142` input, `2,139` cache-write, zero cached, `40` output, `8` reasoning)
+settling through public `short` to exactly `$0.0004764`, legacy-label refusal,
+one durable custody sequence with reuse refusal, and one recursively sealed
+nested fixture. It removes temporary state, preserves all v1-v3 bytes and
+P-set 37's uncertain accounting, and reports zero credential, dataset,
+provider, and result activity. Passing these provider-free gates predicts no
+live score. Any invocation requires independent review and exact founder
+authorization naming identity, both caps, reviewed head, launcher/runtime
+hashes, and ACCEPT.

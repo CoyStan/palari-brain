@@ -173,6 +173,23 @@ or materially-used label exists, and no semantic overlay is created. Recursive
 verification binds 23 entries (13 files and 10 directories including the
 root), terminal status `failed`, and manifest SHA-256
 `df649931886a50341e03be62161f83ba50abe5ba7b832009840866808cd73b4b`.
+
+BRN-0028 normalizes the post-response boundary without changing the consumed
+record. `settleOpenAIStandardUsage(...)` accepts only the reservation surface's
+public `short`/`long` context bands and sources measured Standard/default rates
+from the same pinned Luna/Sol policies used for reservation. It validates the
+plain raw input, cache-write, cached-input, output, reasoning, and total token
+fields and their relationships before returning exact picodollars and a
+decimal USD string. Unknown models/bands, legacy `shortContext`/`longContext`,
+accessors, proxies, extra fields, coercion, and impossible counts fail closed.
+
+The sanitized successful v3 response shape (2,142 input, 2,139 cache-write,
+zero cached, 40 output, 8 reasoning, 2,182 total) settles through Luna `short`
+to exactly `$0.0004764`. Cache-write is validated as a subset of input; the
+frozen Luna measured policy bills non-cached input at the ordinary Standard
+input rate, so it does not add a second charge. This offline reproduction does
+not retroactively settle v3: its full generation reservation remains uncertain
+and cumulative accounted spend remains `$7.90712669`.
 The identity cannot be retried or resumed.
 
 ## Sealed SQLite inspection

@@ -204,6 +204,18 @@ export function createOpenAIInputCounter({ invoke } = {}) {
 export const OPENAI_SOL_STANDARD_RESERVATION_POLICY = deepFreeze(record([
   ['id', 'openai-gpt-5.6-sol-standard-2026-08-05'],
   ['longContextThresholdInputTokens', 272_000],
+  ['measuredStandard', record([
+    ['short', record([
+      ['cachedInputUsdPerMillion', 0.5],
+      ['inputUsdPerMillion', 5],
+      ['outputUsdPerMillion', 30],
+    ])],
+    ['long', record([
+      ['cachedInputUsdPerMillion', 1],
+      ['inputUsdPerMillion', 10],
+      ['outputUsdPerMillion', 45],
+    ])],
+  ])],
   ['shortContext', record([
     ['highestInputUsdPerMillion', 6.25],
     ['outputUsdPerMillion', 30],
@@ -217,6 +229,18 @@ export const OPENAI_SOL_STANDARD_RESERVATION_POLICY = deepFreeze(record([
 export const OPENAI_LUNA_STANDARD_RESERVATION_POLICY = deepFreeze(record([
   ['id', 'openai-gpt-5.6-luna-standard-2026-08-06'],
   ['longContextThresholdInputTokens', 272_000],
+  ['measuredStandard', record([
+    ['short', record([
+      ['cachedInputUsdPerMillion', 0.02],
+      ['inputUsdPerMillion', 0.2],
+      ['outputUsdPerMillion', 1.2],
+    ])],
+    ['long', record([
+      ['cachedInputUsdPerMillion', 0.04],
+      ['inputUsdPerMillion', 0.4],
+      ['outputUsdPerMillion', 1.8],
+    ])],
+  ])],
   ['shortContext', record([
     ['highestInputUsdPerMillion', 0.25],
     ['outputUsdPerMillion', 1.2],
@@ -230,29 +254,6 @@ export const OPENAI_LUNA_STANDARD_RESERVATION_POLICY = deepFreeze(record([
 export const OPENAI_STANDARD_RESERVATION_POLICIES = deepFreeze(record([
   ['gpt-5.6-luna', OPENAI_LUNA_STANDARD_RESERVATION_POLICY],
   ['gpt-5.6-sol', OPENAI_SOL_STANDARD_RESERVATION_POLICY],
-]))
-
-const RATE_CENTS_PER_MILLION = deepFreeze(record([
-  ['gpt-5.6-luna', record([
-    ['shortContext', record([
-      ['input', 25],
-      ['output', 120],
-    ])],
-    ['longContext', record([
-      ['input', 50],
-      ['output', 180],
-    ])],
-  ])],
-  ['gpt-5.6-sol', record([
-    ['shortContext', record([
-      ['input', 625],
-      ['output', 3_000],
-    ])],
-    ['longContext', record([
-      ['input', 1_250],
-      ['output', 4_500],
-    ])],
-  ])],
 ]))
 
 function usdDecimal(picodollars) {
@@ -270,13 +271,20 @@ function reserve({ inputUnits, maxOutputTokens, source, band, model }) {
   positiveSafeInteger(inputUnits, 'input units')
   positiveSafeInteger(maxOutputTokens, 'maxOutputTokens')
   const policy = OPENAI_STANDARD_RESERVATION_POLICIES[model]
-  const modelRates = RATE_CENTS_PER_MILLION[model]
-  if (!policy || !modelRates) fail('model has no pinned Standard policy.')
-  const rates = modelRates[band]
+  const rates = policy?.[band]
+  if (!policy || !rates) fail('model has no pinned Standard policy.')
+  const inputCentsPerMillion = rates.highestInputUsdPerMillion * 100
+  const outputCentsPerMillion = rates.outputUsdPerMillion * 100
+  if (!numberIsSafeInteger(inputCentsPerMillion) ||
+    !numberIsSafeInteger(outputCentsPerMillion)) {
+    fail('pinned Standard policy rates are not exact cents.')
+  }
   const inputPicodollars = bigintFrom(inputUnits) *
-    bigintFrom(rates.input) * PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
+    bigintFrom(inputCentsPerMillion) *
+    PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
   const outputPicodollars = bigintFrom(maxOutputTokens) *
-    bigintFrom(rates.output) * PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
+    bigintFrom(outputCentsPerMillion) *
+    PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
   const reservedPicodollars = inputPicodollars + outputPicodollars
   const reservedUsdDecimal = usdDecimal(reservedPicodollars)
   return deepFreeze(record([
@@ -287,8 +295,8 @@ function reserve({ inputUnits, maxOutputTokens, source, band, model }) {
     ['contextBand', band === 'shortContext' ? 'short' : 'long'],
     ['inputUnits', inputUnits],
     ['maxOutputTokens', maxOutputTokens],
-    ['inputUsdPerMillion', rates.input / 100],
-    ['outputUsdPerMillion', rates.output / 100],
+    ['inputUsdPerMillion', rates.highestInputUsdPerMillion],
+    ['outputUsdPerMillion', rates.outputUsdPerMillion],
     ['inputPicodollars', stringFrom(inputPicodollars)],
     ['outputPicodollars', stringFrom(outputPicodollars)],
     ['reservedPicodollars', stringFrom(reservedPicodollars)],

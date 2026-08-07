@@ -1,5 +1,38 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0028 CANONICAL OPENAI STANDARD SETTLEMENT IMPLEMENTED OFFLINE;
+FINAL P-SET 38 FROZEN; PRIVATE V4 VERIFICATION AND INDEPENDENT REVIEW NEXT. No
+credential read, provider call, selected-data inspection, result namespace,
+spend, retry, resume, reroll, regrade, or live successor use is authorized.
+
+The tracked settlement boundary now accepts only the counted reservation's
+public `short`/`long` context bands and reads measured Luna/Sol Standard rates
+from the same pinned policies used for reservation. It validates plain raw
+input, cache-write, cached-input, output, reasoning, and total token metadata,
+rejects impossible relationships and legacy `shortContext`/`longContext`
+labels, and returns exact picodollars plus decimal USD without mutating input.
+The sanitized successful BRN-0026 usage shape (2,142 input, 2,139 cache-write,
+zero cached, 40 output, 8 reasoning) settles through Luna `short` to exactly
+`$0.0004764` offline. Consumed v3 remains unsettled: its `$0.0011499`
+reservation stays uncertain and cumulative accounted spend remains
+`$7.90712669`.
+
+FINAL P-set 38 freezes `j4-luna-ettin-unexecuted11to20-v4` over the unchanged
+P-set 37 population/order/treatment, with historical `6/10` and sealed U8
+unchanged. Opening cumulative accounted spend is `$7.90712669`; proposed caps
+are `$5.00` fresh and `$12.90712669` cumulative. Private launcher/runtime
+hashes and final provider-free evidence are pending the first clean pushed
+tracked cut. This ticket grants no live authority.
+
+Product stop rule: (1) pending final quickstart rerun; (2) no end-user memory
+behavior changes because this is an evaluation harness repair; (3) provider
+SDKs expose usage but do not enforce Palari's pinned policy, public-band
+contract, one-shot custody, or evidence seal; (4) yes, the founder requested
+autonomous Luna+Ettin repair; (5) deleting it would repeat the accepted-HTTP-200
+local settlement failure and consume another identity without a benchmark row.
+This is one infrastructure unit after the BRN-0027 measurement record, so it
+does not trigger consecutive-infrastructure drift.
+
 Loop state: BRN-0026 LIVE IDENTITY CONSUMED; TERMINAL COMPATIBILITY FAILURE
 SEALED; BRN-0027 TERMINAL RECORD INDEPENDENTLY REVIEWED AND ACCEPTED. No retry,
 resume, reroll, regrade, provider call, or successor identity is authorized.
