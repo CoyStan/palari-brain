@@ -23,11 +23,17 @@ grade. The wrapper now lives at the dedicated provider-neutral
 chunking only derived embedding requests. Focused tests pass 17/17, quickstart
 passes 6/6, and the complete legacy tier passes 839 with 3 optional skips.
 
+Question `19b5f2b3` then completed through that reusable boundary: 43 sessions
+/ 482 canonical turns, one host-validated temporal retrieval plan, one
+retrieval call, and three Luna dispatches. Palari answered “two weeks,” matching
+the reference, and committed the exact user quote “I spent two weeks traveling
+solo around the country.” This remains an ungraded alpha diagnostic.
+
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
-`$8.00840072`; the alpha ledger now accounts `$0.27247684`, for cumulative
-accounted spend of `$8.28087756`. Known alpha provider usage was approximately
-`$0.12263654`; the higher ledger value conservatively retains the failed
+`$8.00840072`; the alpha ledger now accounts `$0.34641132`, for cumulative
+accounted spend of `$8.35481204`. Known alpha provider usage was approximately
+`$0.19657102`; the higher ledger value conservatively retains the failed
 answer-stage reservation.
 
 ## Active commands
@@ -46,9 +52,9 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Exercise question `19b5f2b3` through the reusable wrapper if its conservative
-reservation fits inside the remaining alpha cap. Do not add benchmark or
-governance machinery while this loop is still finding product-path bugs.
+Exercise question `1a1907b4` through the same path after an explicit aggregate
+cap increase. Do not add benchmark or governance machinery while this loop is
+still finding product-path bugs.
 
 ## Product check
 
