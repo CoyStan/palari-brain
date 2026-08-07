@@ -171,14 +171,27 @@ acceptance offline but is not a new answer result. Targeted retrieval contracts
 pass 40/40, focused tests pass 25/25, quickstart passes 6/6, and the complete
 legacy tier passes 855 with 3 optional skips.
 
+The one authorized live aggregation confirmation on `0a995998` completed on
+2026-08-07 without an infrastructure or budget failure, but its answer still
+did not match the reference `3`. Retrieval itself met the acceptance: the first
+search returned the original replacement-boots pickup at rank 1, the original
+old-boots return wording at rank 2, and the original navy-blazer pickup at rank
+4. A second search again returned all three at ranks 1–3. Luna selected the
+replacement-boots and blazer evidence but interpreted “exchanged them for a
+larger size” as proving that no separate return remained, then answered one
+store pickup plus the blazer separately. This is now an answer-interpretation
+finding, not a retrieval miss. No further retrieval tuning or provider call was
+made, and the historical LongMemEval result remains 6/10.
+
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
-`$8.00840072`; the alpha ledger now accounts `$2.30580607`, for cumulative
-accounted spend of `$10.31420679`. Known alpha provider usage is approximately
-`$1.79006624`; the higher ledger value conservatively retains failed
-answer-stage reservations. The run stayed below the approved `$2.45` aggregate
-alpha cap, with `$0.14419393` of accounted headroom left—less than the next
-`$0.15` answer reservation.
+`$8.00840072`; the alpha ledger now accounts `$2.38366359`, for cumulative
+accounted spend of `$10.39206431`. Known alpha provider usage is approximately
+`$1.86792376`; the higher ledger value conservatively retains failed
+answer-stage reservations. The aggregation confirmation added `$0.07785752`
+and stayed below the approved `$2.55` aggregate alpha cap, with `$0.16633641`
+of accounted headroom left. That is not enough to reserve another complete
+`$0.05` writer plus `$0.15` answer invocation.
 
 ## Active commands
 
@@ -196,14 +209,15 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Do not spend again under the current cap: its remaining accounted headroom is
-below one answer reservation. The next smallest unit is one live aggregation
-confirmation on `0a995998`, now that its exact persisted store passes the
-retrieval acceptance offline. A new aggregate cap of `$2.55` would cover its
-`$0.05` writer and `$0.15` answer reservations above the current
-`$2.30580607` accounting. A broader retry including the temporal and untouched
-abstention cases should instead use a cap of at least `$2.95`. Record any run
-as an alpha diagnostic; do not modify the historical 6/10.
+Do not spend again under the current cap. Do not tune retrieval further for
+`0a995998`: all relevant original statements were returned. The next smallest
+unit is an offline answer-composition contract for complete count/list
+questions: enumerate each directly stated candidate action, keep its identity
+and status distinct, then collapse it only when direct canonical evidence
+unambiguously proves it is the same completed action. The contract must use
+unrelated domains and must preserve honest conflict reporting rather than
+forcing a benchmark count. Only after that general rule passes offline should
+one fresh live confirmation be considered under a new founder-approved cap.
 
 ## Product check
 
@@ -211,9 +225,9 @@ as an alpha diagnostic; do not modify the historical 6/10.
 2. Measurable improvement: live Q14 and Q19 improved, the same temporal
    authority passes current/historical counterexamples across six unrelated
    domains, two held-out answer cases transferred, and the held-out aggregation
-   evidence failure is corrected on its exact store offline. Live aggregation
-   confirmation remains outstanding, so broad generalization is not yet
-   established.
+   evidence failure is corrected live. The live answer still interpreted the
+   complete evidence differently from the reference, so broad answer-quality
+   generalization is not yet established.
 3. Existing framework: the survey found useful patterns, but adding a full
    framework would add more surface than Palari needs.
 4. Founder request: yes, simplify the overbuilt prototype workflow.
