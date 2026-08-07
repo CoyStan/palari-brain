@@ -473,6 +473,13 @@ export const MEMORY_RETRIEVAL_PLAN_INSTRUCTIONS = [
   'Prefer original user statements when the question asks what the user owns, uses, did, or prefers. Old Palari responses prove only prior Palari advice.',
 ].join(' ')
 
+export const MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS = [
+  'For a current value, duration, correction, or knowledge update, search for the latest direct user statement before inferring from older evidence; a later direct value takes precedence over arithmetic extrapolated from an older value.',
+  'For a total, count, or supposedly complete list, one relevance-ranked result is not exhaustive. Use complementary bounded searches inside the planned time range; if completeness is still unproven, report a partial result or insufficient evidence instead of a definitive total.',
+  'Do not transfer a value across mismatched named people, places, objects, or relationships. Evidence about a different named entity may justify insufficiency or non-use, but cannot answer the requested entity.',
+  'Select each canonical evidence ID at most once in an answer commitment. When one message supports several points, choose one exact quote and combine its consequences in one basis.',
+].join(' ')
+
 function evidenceTexts(result) {
   const rows = []
   const rowKeys = ['matches', 'messages', 'edges']
@@ -876,6 +883,7 @@ async function hybridSearch(
 // sealed historical evaluators. Product integrations opt into this path and
 // can map MEMORY_RETRIEVAL_TOOLS to their provider's tool schema.
 export async function answerWithRetrieval(brain, {
+  additionalInstructions = '',
   maxChars = 100_000,
   maxRetrievalCalls = DEFAULT_RETRIEVAL_CALLS,
   palariId,
@@ -900,6 +908,16 @@ export async function answerWithRetrieval(brain, {
         `${DEFAULT_RETRIEVAL_CALLS}.`,
     )
   }
+  if (typeof additionalInstructions !== 'string' ||
+    additionalInstructions.length > 4_000) {
+    throw new TypeError(
+      'additionalInstructions must be a string of at most 4000 characters.',
+    )
+  }
+  const answerInstructions = [
+    MEMORY_RETRIEVAL_INSTRUCTIONS,
+    additionalInstructions.trim(),
+  ].filter(Boolean).join('\n\n')
 
   const scope = normalizedScope({ palariId, userId })
   const capabilities = capabilitiesOf(brain)
@@ -1255,7 +1273,7 @@ export async function answerWithRetrieval(brain, {
   try {
     response = await provider({
       answerEvidenceCount: () => evidenceCount,
-      answerInstructions: MEMORY_RETRIEVAL_INSTRUCTIONS,
+      answerInstructions,
       briefing,
       memoryText: briefing.text,
       maxRetrievalCalls: budget,

@@ -39,13 +39,26 @@ two-evidence recommendation commitment was truncated at the legacy 512-token
 ceiling. The OpenAI retrieval provider now supports an explicit bounded answer
 ceiling override; active alpha uses 1,024 while historical request bytes keep
 their 512 default. Relevant contracts pass 78/78 and the complete legacy tier
-passes 840 with 3 optional skips. No benchmark regrade follows from the failure.
+passes 840 with 3 optional skips. The committed retry then answered with a
+Pimm's Cup variation supported by two exact memories.
+
+The first rolling pass over questions 14–20 completed six of seven. Questions
+16–18 matched their references. Four general findings remain: question 14
+extrapolated seven months from an older statement instead of finding the later
+direct “3 months” update; question 15 borrowed Harajuku's duration while
+caveating that Shinjuku was unsupported; question 19 duplicated one evidence
+ID in its commitment and failed repair; question 20 returned a definitive
+`$1,700` total after missing an `$800` gown. The active composition now adds
+provider-neutral completeness guidance for latest direct updates, exhaustive
+totals, named-entity mismatches, and unique commitment evidence IDs. Its focused
+contracts pass 74/74 and the complete legacy tier passes 841 with 3 optional
+skips. These are alpha findings, not benchmark grades.
 
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
-`$8.00840072`; the alpha ledger now accounts `$0.64641132`, for cumulative
-accounted spend of `$8.65481204`. Known alpha provider usage was approximately
-`$0.35284606`; the higher ledger value conservatively retains failed
+`$8.00840072`; the alpha ledger now accounts `$1.32095830`, for cumulative
+accounted spend of `$9.32935902`. Known alpha provider usage was approximately
+`$0.95505073`; the higher ledger value conservatively retains failed
 answer-stage reservations.
 
 ## Active commands
@@ -64,10 +77,10 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Retry `1a1907b4` with the bounded active answer ceiling, then continue through
-questions `2133c1b5` to `36b9f61e` under the approved `$2.00` rolling cap. Do
-not add benchmark or governance machinery while this loop is still finding
-product-path bugs.
+Retest only questions 14, 15, 19, and 20 with the general completeness guidance,
+then make the smallest host-level change only if a failure repeats. Continue
+under the approved `$2.00` rolling cap; do not add benchmark or governance
+machinery while this loop is still finding product-path bugs.
 
 ## Product check
 

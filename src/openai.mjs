@@ -527,6 +527,7 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
 const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
   'Return the final answer only by calling palari_answer_commit.',
   'Use only evidence IDs and exact contiguous quotes from memory results already returned in this answer session.',
+  'Use each evidence ID at most once; combine multiple implications from one canonical message into one basis.',
   'For each selected basis set exactly one non-empty consequence_for_answer or not_used_reason; leave unrelated retrieved rows unselected.',
   'Keep cross-context inferences temporary, provenance-linked, and revisable.',
   'No memory tool is available during this repair.',

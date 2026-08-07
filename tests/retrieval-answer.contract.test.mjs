@@ -7,6 +7,7 @@ import test from 'node:test'
 import {
   DEFAULT_RETRIEVAL_CALLS,
   MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
+  MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
   MEMORY_EXPLORATION_INSTRUCTIONS,
   MEMORY_RETRIEVAL_INSTRUCTIONS,
   MEMORY_RETRIEVAL_TOOLS,
@@ -1083,6 +1084,36 @@ test('the new answer contract is concise and gives providers safe headroom',
     })
 
     assert.equal(result.answer.split(/\s+/u).length, 12)
+  })
+
+test('optional completeness guidance is bounded and provider-neutral',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [{ id: 'duration:0', user: 'I have lived here for three months.' }])
+    let observed
+    await answerWithRetrieval(brain, {
+      ...SCOPE,
+      additionalInstructions: MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
+      async provider(context) {
+        observed = context.answerInstructions
+        return { text: 'Three months.' }
+      },
+      question: 'How long have I lived here?',
+    })
+    assert.ok(observed.startsWith(MEMORY_RETRIEVAL_INSTRUCTIONS))
+    assert.match(observed, /latest direct user statement/)
+    assert.match(observed, /one relevance-ranked result is not exhaustive/)
+    assert.match(observed, /mismatched named people, places, objects, or relationships/)
+    assert.match(observed, /each canonical evidence ID at most once/)
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        additionalInstructions: 'x'.repeat(4_001),
+        provider: async () => ({ text: 'unused' }),
+        question: 'unused',
+      }),
+      /at most 4000 characters/,
+    )
   })
 
 test('evidence-use instructions cover relevant, irrelevant, corrected, and empty retrieval',
