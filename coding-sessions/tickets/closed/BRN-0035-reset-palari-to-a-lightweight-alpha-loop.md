@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0035
 children: []
-status: open
+status: accepted
 risk: R4
 priority: P0
 agents_allowed: 1
@@ -164,3 +164,38 @@ does not authorize any provider spend.
   adds a framework dependency, changes product memory behavior, performs live
   or secret/data activity, or deletes the legacy system instead of deactivating
   it.
+
+## Specialist Closeout
+
+Original implementation head `9220d80622d6fba473fd920c1ea656afa31e68b8`
+replaces the default governance-heavy loop with one injected alpha runner.
+Corrected review head `a4b91ecb3ef5c92d06c1045a9061a665b317b48c`
+contains thirteen focused provider-free contracts. The old default measured
+825 tests in 19.04 seconds; the corrected default measured 13 tests in 1.04
+seconds. The full historical tier passes 823 with 15 optional skips and zero
+failures across 838, including
+all 825 pre-existing tests. Quickstart passes 6/6.
+
+Exactly 20 official repositories were source-checked and recorded with
+adopt/avoid lessons. No framework dependency, product-memory change, mass
+legacy deletion, provider call, credential/data read, spend, score, or
+historical evidence mutation occurred. The annotated recovery tag exists and
+resolves to `332b133db40e6e790734e25dbef3e8e6436c9377`.
+
+Focused/default, legacy, quickstart, official-repository link checks,
+committed-plus-dirty scope, ticket checks, tag verification, and diff checks
+are green. Technical, human, and handoff reports carry the exact evidence for
+fresh read-only review.
+
+### Review Corrections
+
+1. `11189309cdbbc525b6762829c3cc714451995679` removed raw
+   embedder/reranker invocation handles from every stage context, so adapters
+   cannot bypass runner accounting through that escape hatch.
+2. `a4b91ecb3ef5c92d06c1045a9061a665b317b48c` rejects every
+   file-backed log path outside cwd `.palari-alpha/` and makes the CLI reserve
+   against fixed gitignored aggregate budget state before dispatch. Successful
+   calls refund only unused reservation; failures and crashes retain the full
+   amount; later invocations load it and reject caps below it. The deliberately
+   small alpha mechanism supports one process at a time and adds no ledger,
+   identity, hash, or seal.

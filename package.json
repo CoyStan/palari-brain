@@ -46,7 +46,10 @@
     "node": ">=22.5"
   },
   "scripts": {
-    "test": "node --test",
+    "test": "node --test tests/alpha-memory-debug.contract.test.mjs",
+    "alpha:check": "node --test tests/alpha-memory-debug.contract.test.mjs",
+    "alpha:debug": "node evals/run-alpha-memory-debug.mjs",
+    "test:legacy": "node --test",
     "quickstart": "node examples/quickstart.mjs",
     "bakeoff": "node evals/run-bakeoff.mjs",
     "memory-bench": "node evals/run-offline-memory-bench.mjs",

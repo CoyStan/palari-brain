@@ -8,4 +8,5 @@ evals/results/
 .palari-probe/
 .palari-regression/
 .palari-input-count/
+.palari-alpha/
 evals/adapters/jcode-bridge/target/
