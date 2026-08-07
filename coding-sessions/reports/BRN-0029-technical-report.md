@@ -63,8 +63,7 @@ about Luna, Ettin, retrieval, ranking, or memory quality.
 - fresh accounted: `$0.10127403`;
 - opening/closing cumulative: `$7.90712669` / `$8.00840072`.
 
-Read-only recursive verification passed all 28 entries: 17 mode-0600 files and
-11 mode-0700 directories including root. Manifest SHA-256 is
+Read-only recursive verification passed. The manifest tracks 28 entries: 16 non-manifest mode-0600 files and 12 mode-0700 directories including root. The physical tree also contains the mode-0600 manifest itself, for 17 files total. Manifest SHA-256 is
 `d4fc3f39006df122d4439ab42358a8852fbcb2e249ef463f66bd1c4e6c7df472`;
 report/meter SHA-256 are
 `5213df85d4bdc3bf3ef9fc98907c163454988cc897a5c304a47acdaad7d530c4` /

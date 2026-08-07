@@ -57,8 +57,7 @@ cumulative caps.
 Read-only recursive verification rehashed all 28 entries in the immutable
 mode-0700 tree. Manifest SHA-256 is
 `d4fc3f39006df122d4439ab42358a8852fbcb2e249ef463f66bd1c4e6c7df472`;
-metadata remains terminal `failed`. The 17 manifested files are mode 0600 and
-the 11 directories including root are mode 0700. Report/meter hashes are
+metadata remains terminal `failed`. The manifest tracks 28 entries: 16 non-manifest mode-0600 files and 12 mode-0700 directories including root. The physical tree also contains the mode-0600 manifest itself, for 17 files total. Report/meter hashes are
 `5213df85d4bdc3bf3ef9fc98907c163454988cc897a5c304a47acdaad7d530c4`
 and
 `991b0a21d2c81eaaff4d1bce0cc4a34194d69f1a3c5f494790ecac97ee7f8b05`.
