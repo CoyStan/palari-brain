@@ -109,11 +109,21 @@ cutoff; the returned result exposes the effective host range. Contracts pass
 35/35, focused tests pass 17/17, quickstart passes 6/6, and the complete legacy
 tier passes 842 with 3 optional skips. No live result is claimed yet.
 
+The founder-authorized live Q14 confirmation then completed successfully in
+one invocation for `$0.07551414`. Luna still requested the incorrect
+question-time `before` bound, but the host replaced it with the trusted
+unbounded range. Hybrid retrieval returned the canonical original user
+statement at rank 3, Luna selected its exact evidence ID and quote (“I've been
+living in Harajuku for 3 months now”), and answered “about three months,”
+matching the reference. The complete safe trace remains self-contained at
+`.palari-alpha/current-palari-e2e-2133c1b5.json`. This is an alpha diagnostic
+success, not a benchmark regrade; historical LongMemEval remains 6/10.
+
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
-`$8.00840072`; the alpha ledger now accounts `$1.85372398`, for cumulative
-accounted spend of `$9.86212470`. Known alpha provider usage was approximately
-`$1.48781641`; the higher ledger value conservatively retains failed
+`$8.00840072`; the alpha ledger now accounts `$1.92923812`, for cumulative
+accounted spend of `$9.93763884`. Known alpha provider usage was approximately
+`$1.56333055`; the higher ledger value conservatively retains failed
 answer-stage reservations.
 
 ## Active commands
@@ -132,17 +142,17 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-FOUNDER GATE: one Q14 confirmation is prepared with the host-owned unbounded
-range. Run it once with no reroll only after the founder raises the aggregate
-alpha cap from `$2.00` to at least `$2.10`; the current accounted spend is
-`$1.85372398`. Record whatever answer occurs and stop live work afterward.
+Stop provider work. The authorized Q14 confirmation succeeded and no further
+paid invocation was authorized. Use the now-complete rolling 11–20 diagnostic
+results to choose the next smallest product behavior to improve; keep the
+historical 6/10 result unchanged.
 
 ## Product check
 
 1. Basic journey runnable: yes, quickstart passed 6/6.
-2. Measurable improvement: question 19 now retrieves and uses the direct
-   language preference; offline Q14 navigation now returns the exact missing
-   direct statement despite the model's bad cutoff.
+2. Measurable improvement: question 19 retrieves and uses the direct language
+   preference, and live Q14 now answers three months from the exact original
+   user statement despite the model's bad cutoff.
 3. Existing framework: the survey found useful patterns, but adding a full
    framework would add more surface than Palari needs.
 4. Founder request: yes, simplify the overbuilt prototype workflow.
