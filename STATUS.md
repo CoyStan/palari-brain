@@ -1,5 +1,65 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0026 LIVE IDENTITY CONSUMED; TERMINAL COMPATIBILITY FAILURE
+SEALED; BRN-0027 TERMINAL RECORD READY FOR INDEPENDENT REVIEW. No retry,
+resume, reroll, regrade, provider call, or successor identity is authorized.
+
+Founder-authorized identity `j4-luna-ettin-unexecuted11to20-v3` ran exactly
+once at reviewed head `6403d629d28ff7bd2552b9c14d6332cfcf2e32b6` with
+launcher/runtime SHA-256
+`13700b4edb0a8a95e00c86bdfa45186410818ad0cbf740c9550d3667be57ea5e`
+and
+`9a821916e16dd1c731e34fe2882b1364303e14da21475aca588097aa40903189`.
+Custody progressed `reserved -> launched -> consumed` once. Cached Ettin
+passed with titanium first and four finite scores. Gemini writer compatibility
+passed one HTTP 200 `gemini-3.5-flash-lite` call using 525 input and 128 output
+tokens. The projected OpenAI count request passed HTTP 200 with 2,142 input
+tokens, and the exact full-body Luna generation passed HTTP 200 with completed
+usage metadata (2,142 input / 40 output tokens).
+
+The runtime then failed its local settlement boundary before successful answer
+smoke. The counted reservation exposes context band `short`, while
+`measuredOpenAISpend` accepts only `shortContext` or `longContext`; passing the
+former into the latter raised `OpenAI context band is invalid.` The meter
+therefore correctly left the full `$0.0011499` Luna generation reservation
+uncertain instead of estimating or claiming measured Luna spend. This is a
+generic harness representation mismatch after accepted provider wires, not a
+finding about Luna, Ettin, retrieval, ranking, or answer quality.
+
+The terminal report is `failed`, `compatibility: null`, and `questions: []`.
+No benchmark answer, judge, official grade, evidence metric, or semantic label
+exists. P-set 37 grades OFFICIAL ACCURACY, SESSION RECALL, EXACT-SPAN RECALL,
+SELECTED EVIDENCE, MATERIALLY USED EVIDENCE, EQUIVALENT-FACT RECALL,
+ARCHITECTURE, and end-to-end RERANK/BOUNDARY **NOT REACHED / FAIL**.
+EXECUTION/ACCOUNTING is a partial pass but overall fail: first-failure stop,
+one-shot custody, cap hold, recursive seal, and separation of measured versus
+uncertain spend passed, while exact Standard settlement did not.
+
+Measured spend is `$0.0004775` from Gemini. Uncertain spend is `$0.0511499` =
+the `$0.05` count-attempt allowance plus the `$0.0011499` unsettled Luna
+reservation. Fresh accounted spend is `$0.0516274`; cumulative accounted spend
+advances exactly from `$7.85549929` to `$7.90712669`, within the `$5.00` fresh
+/ `$12.85549929` cumulative caps.
+
+The recursive manifest verifies against the immutable mode-0700 tree: 23
+entries comprising 13 manifested mode-0600 files and 10 mode-0700 directories
+including the root. Manifest SHA-256 is
+`df649931886a50341e03be62161f83ba50abe5ba7b832009840866808cd73b4b`;
+metadata remains terminal `failed`. A credential-shaped artifact scan found
+zero matches. The semantic-review namespace is absent, so no judged overlay is
+created. Historical `6/10` and sealed U8 `1568498a` remain unchanged.
+
+Product stop rule: (1) yes, quickstart remains green; (2) no end-user memory
+behavior changed because this unit records a compatibility-smoke failure; (3)
+provider SDKs do not supply Palari's one-shot custody, accounting, or recursive
+evidence seal; (4) yes, the founder authorized the invocation and requires the
+result recorded whatever it is; (5) deleting this record could hide spend,
+misstate accepted provider wires as a model failure, or invite reuse of a
+consumed identity. This is a measurement record after one infrastructure unit,
+so it does not trigger consecutive-infrastructure drift. Next: independent
+read-only terminal review. Any repair or successor is a separate governed
+ticket and fresh founder gate.
+
 Loop state: BRN-0026 COUNT PROJECTION AND RECURSIVE SEAL IMPLEMENTED OFFLINE;
 FINAL P-SET 37 FROZEN; INDEPENDENT REVIEW NEXT. No live action is authorized.
 

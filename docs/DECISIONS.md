@@ -3256,3 +3256,19 @@ here with dates. Agents record; the founder decides.
   v3 result and semantic-review namespaces remain absent; telemetry is zero.
   P-set 37 is FINAL at `$7.85549929` opening and proposed `$5.00` fresh /
   `$12.85549929` cumulative caps. This decision grants no live authority.
+
+- 2026-08-07 (BRN-0026 terminal context-band failure)
+  **Preserve the sealed failure and leave the successful Luna wire unsettled.**
+  The one authorized v3 invocation passed cached Ettin, Gemini writer HTTP 200,
+  projected OpenAI count HTTP 200, and exact Luna generation HTTP 200. Local
+  settlement then passed reservation label `short` to a helper that accepts
+  only `shortContext`/`longContext`, raising `OpenAI context band is invalid.`
+  Do not back-compute a measured Luna charge: retain the full `$0.0011499`
+  generation reservation as uncertain alongside the `$0.05` count allowance.
+  Fresh accounted is `$0.0516274`; cumulative accounted is `$7.90712669`.
+  Preserve the recursively sealed 23-entry terminal tree at manifest SHA-256
+  `df649931886a50341e03be62161f83ba50abe5ba7b832009840866808cd73b4b`.
+  Zero question rows mean no score, memory-quality inference, or judged
+  semantic overlay. Historical `6/10` and U8 remain unchanged. The identity is
+  consumed; any repair or successor requires a separate governed ticket,
+  review, and fresh exact founder authorization.

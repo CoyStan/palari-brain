@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0027
 children: []
-status: claimed
+status: in-review
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-08-07T04:41:20Z
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0027-record-brn-0026-terminal-live-failure"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0027-record-brn-0026-terminal-live-failure"
@@ -155,3 +155,32 @@ Do not repair the mismatch or obtain a benchmark score.
 - Stop if the work needs a path outside `allowed_paths`, touches
   `forbidden_paths`, would make another live call, inspect selected benchmark
   content, mutate private evidence, or implement the repair.
+
+## Specialist Closeout
+
+Result: the consumed invocation is recorded as a recursively sealed terminal
+compatibility failure. Both OpenAI wires returned HTTP 200; local settlement
+failed on `short` versus `shortContext`. No benchmark row ran, no semantic
+overlay exists, historical `6/10` and U8 remain unchanged, and no retry or
+successor is authorized.
+
+Changed paths are limited to the ticket contract: STATUS, P-set 37,
+evaluation decisions/harness documentation, this ticket, technical/human
+reports, and handoff. No product/runtime code or private artifact changed.
+
+Evidence: the immutable manifest reverified 23 entries at SHA-256
+`df649931886a50341e03be62161f83ba50abe5ba7b832009840866808cd73b4b`;
+the report/meter reconcile `$0.0004775` measured, `$0.0511499` uncertain,
+`$0.0516274` fresh accounted, and `$7.90712669` cumulative accounted. The
+semantic namespace is absent and a value-free artifact scan found zero
+credential-shaped matches.
+
+Verification: full tests PASS 797 / skip 15 / fail 0 across 812; quickstart
+PASS 6/6; private immutable verification, ticket/report lint, governed scope,
+and diff checks PASS. No provider call, credential read, selected benchmark
+inspection, or private mutation occurred during closeout.
+
+Risk: this is not a benchmark score or model-quality finding. The full Luna
+reservation remains uncertain because exact settlement failed. Recommended
+next action is independent read-only terminal review; any normalization repair
+belongs to a separate governed ticket.
