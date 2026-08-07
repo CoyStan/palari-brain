@@ -3294,3 +3294,12 @@ here with dates. Agents record; the founder decides.
   `j4-luna-ettin-unexecuted11to20-v4` under FINAL P-set 38 at proposed `$5.00`
   fresh / `$12.90712669` cumulative caps. This decision grants no credential
   read, provider request, result namespace, retry, score, or live authority.
+
+- 2026-08-07 (BRN-0028 offline acceptance)
+  **Accept the canonical settlement repair and v4 freeze after clean
+  independent review.** Exact implementation head `474b84d` passed 31 focused
+  contracts, 802 full-suite tests with 15 optional skips, quickstart 6/6, and
+  actual final-runtime provider-free verification. The reviewer found no
+  P0-P3 issue and rehashed the exact mode-0600 private bytes and 50-file import
+  closure. Acceptance preserves consumed v3's uncertain spend and grants no
+  credential read, provider call, result namespace, spend, or live v4 use.

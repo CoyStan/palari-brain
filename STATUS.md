@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0028 CANONICAL OPENAI STANDARD SETTLEMENT IMPLEMENTED OFFLINE;
-FINAL P-SET 38 AND PRIVATE V4 FROZEN; INDEPENDENT REVIEW NEXT. No
+FINAL P-SET 38 AND PRIVATE V4 INDEPENDENTLY REVIEWED AND ACCEPTED. No
 credential read, provider call, selected-data inspection, result namespace,
 spend, retry, resume, reroll, regrade, or live successor use is authorized.
 
@@ -36,7 +36,8 @@ seal/verify/reseal refusal, and temporary cleanup. Credential reads, dataset
 reads, provider calls, and result writes were exactly `0 / 0 / 0 / 0`. The v4
 result and semantic-review namespaces remain absent. All six v1-v3 private
 launcher/runtime hashes and complete 6/21/24-entry result-tree snapshots were
-identical before/after. This ticket grants no live authority.
+identical before/after. This ticket grants no live authority. Next is an exact
+founder gate for v4.
 
 Product stop rule: (1) yes, quickstart remains green 6/6; (2) no end-user memory
 behavior changes because this is an evaluation harness repair; (3) provider
