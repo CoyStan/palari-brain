@@ -192,6 +192,25 @@ not retroactively settle v3: its full generation reservation remains uncertain
 and cumulative accounted spend remains `$7.90712669`.
 The identity cannot be retried or resumed.
 
+## Canonical source identity and repeated session IDs
+
+The live journey runtime currently derives each ingestion identity as
+`session.sessionId:turnIndex`. LongMemEval intake preserves aligned source
+session IDs but does not assert uniqueness within one instance. The dialogue
+gate then correctly binds `(palariId, userId, sourceMessageId)` to one immutable
+turn snapshot, including event time, role presence, content hashes, and user
+author identity. Replaying identical bytes is idempotent; differing metadata or
+bytes under that key raises `SOURCE_MESSAGE_CONFLICT` before the writer.
+
+BRN-0028 reached this boundary on the first benchmark cell after all
+compatibility surfaces passed. A repeated source session identifier at the same
+turn index mapped two different snapshots to `sharegpt_vyHqfrX_0:0`; question
+identity and session occurrence were not part of the key. The sealed failure
+therefore diagnoses generic source-key aliasing, not provider, reranker,
+retrieval, or answer behavior. Repair must preserve stable replay identity and
+the gate's fail-closed semantics; this terminal-record ticket does not choose
+or implement that repair.
+
 ## Sealed SQLite inspection
 
 Opening a copied SQLite database in place is not read-only at the physical
