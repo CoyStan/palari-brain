@@ -8,6 +8,7 @@
   "main": "src/index.mjs",
   "exports": {
     ".": "./src/index.mjs",
+    "./embedder": "./src/embedder.mjs",
     "./gemini": "./src/gemini.mjs",
     "./openai": "./src/openai.mjs",
     "./reranker-ettin": "./src/reranker-ettin.mjs",
@@ -16,6 +17,7 @@
   "files": [
     "src/brain.mjs",
     "src/dialogue-evidence.mjs",
+    "src/embedder.mjs",
     "src/gemini.mjs",
     "src/index.mjs",
     "src/longmemeval.mjs",
@@ -46,8 +48,8 @@
     "node": ">=22.5"
   },
   "scripts": {
-    "test": "node --test tests/alpha-memory-debug.contract.test.mjs",
-    "alpha:check": "node --test tests/alpha-memory-debug.contract.test.mjs",
+    "test": "node --test tests/alpha-memory-debug.contract.test.mjs tests/embedder-chunked.contract.test.mjs",
+    "alpha:check": "node --test tests/alpha-memory-debug.contract.test.mjs tests/embedder-chunked.contract.test.mjs",
     "alpha:debug": "node evals/run-alpha-memory-debug.mjs",
     "test:legacy": "node --test",
     "quickstart": "node examples/quickstart.mjs",

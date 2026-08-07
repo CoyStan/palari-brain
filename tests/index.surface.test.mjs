@@ -89,6 +89,11 @@ test('the package includes every module loaded by its public entry point',
       'utf8',
     ))
     assert.equal(
+      packageJson.exports['./embedder'],
+      './src/embedder.mjs',
+      'the chunking adapter must use a dedicated provider-neutral subpath',
+    )
+    assert.equal(
       packageJson.exports['./gemini'],
       './src/gemini.mjs',
       'the Gemini adapter must use a dedicated provider subpath',
@@ -98,6 +103,7 @@ test('the package includes every module loaded by its public entry point',
       'installed tarballs must include the exploration module exported by index.mjs',
     )
     for (const path of [
+      'src/embedder.mjs',
       'src/gemini.mjs',
       'src/memory-graph.mjs',
       'src/memory-search.mjs',

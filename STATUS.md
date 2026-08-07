@@ -18,7 +18,10 @@ retrieval call. The first diagnostic attempt exposed a gitignored-adapter bug:
 messages longer than Gemini's 8,000-character embedding limit were not chunked.
 Adding the already-proven chunk-and-normalized-mean compatibility wrapper made
 the corrected attempt complete. This is an alpha diagnostic, not a benchmark
-grade, and no product source changed.
+grade. The wrapper now lives at the dedicated provider-neutral
+`palari-brain/embedder` package subpath; it keeps canonical text whole while
+chunking only derived embedding requests. Focused tests pass 17/17, quickstart
+passes 6/6, and the complete legacy tier passes 839 with 3 optional skips.
 
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
@@ -43,10 +46,9 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Move only the long-text embedding compatibility wrapper from the local adapter
-into one reusable composition boundary, then exercise the next end-to-end
-question. Do not add benchmark or governance machinery while this alpha loop is
-still finding product-path bugs.
+Exercise question `19b5f2b3` through the reusable wrapper if its conservative
+reservation fits inside the remaining alpha cap. Do not add benchmark or
+governance machinery while this loop is still finding product-path bugs.
 
 ## Product check
 
