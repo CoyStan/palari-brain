@@ -2,13 +2,15 @@
 
 ## Current State
 
-Implementation commit `9220d80622d6fba473fd920c1ea656afa31e68b8` is
-complete, pushed, provider-free, and ready for independent read-only review.
+Corrected review head `a4b91ecb3ef5c92d06c1045a9061a665b317b48c` is
+complete, pushed, provider-free, and ready for fresh independent read-only
+review. Correction one removed raw dependency invokes from stage contexts;
+correction two confines logs and persists conservative aggregate CLI budget.
 
 ## Evidence
 
-- default gate: 825 tests / 19.04 s before; 10 / 0.40 s after;
-- legacy: 820 pass, 15 optional skips, zero fail across 835;
+- default gate: 825 tests / 19.04 s before; 13 / 1.04 s after corrections;
+- legacy: 823 pass, 15 optional skips, zero fail across 838;
 - quickstart: 6/6;
 - official repository checks: 20/20;
 - recovery tag: annotated, target `332b133`;
@@ -17,8 +19,10 @@ complete, pushed, provider-free, and ready for independent read-only review.
 
 ## Review Instructions
 
-Inspect the committed diff against `main`, runner cap/retry/error paths,
-diagnostic log shape, dependency injection, scripts, exactly-20 research table,
+Inspect the committed diff against `main`, both correction commits, runner
+cap/retry/error paths, cross-invocation budget persistence and failure
+retention, log namespace confinement, diagnostic log shape, dependency
+injection, scripts, exactly-20 research table,
 concise policy, scope, and recovery tag. Rerun focused, legacy, and quickstart
 commands. Review only; do not implement fixes in the review turn.
 
