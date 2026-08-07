@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0033
 children: []
-status: claimed
+status: in-review
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-08-07T13:43:14Z
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0033-record-v5-review-attestation-terminal-failure"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0033-record-v5-review-attestation-terminal-failure"
