@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0031
 children: []
-status: open
+status: claimed
 risk: R2
 priority: P1
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-07T13:03:02Z
 target_branch: "main"
 branch: "ticket/BRN-0031-update-frozen-v6-drift-sentinel"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0031-update-frozen-v6-drift-sentinel"
