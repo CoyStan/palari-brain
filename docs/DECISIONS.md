@@ -3228,3 +3228,17 @@ here with dates. Agents record; the founder decides.
   no P0-P3 issue. Merge under the founder's standing delegation for clean
   independently reviewed tickets. Acceptance grants no retry, repair, post-hoc
   seal, provider call, replacement identity, or publication authority.
+
+- 2026-08-07 (BRN-0026 repair boundary)
+  **Treat input counting as an endpoint-specific projection and terminal
+  sealing as a recursive tree operation.** Official OpenAI Count input tokens
+  documentation and OpenAPI define a distinct request schema; BRN-0025 proved
+  the generation-only `include` field is rejected. Preserve the exact
+  generation body, derive a separately hashed documented count body, reject
+  unknown fields, and never call the provider during repair. Replace flat
+  top-level artifact enumeration with deterministic recursive custody of
+  mode-0600 files and mode-0700 directories. Freeze new identity
+  `j4-luna-ettin-unexecuted11to20-v3` at `$7.85549929` opening and proposed
+  `$5.00` fresh / `$12.85549929` cumulative caps. Consumed BRN-0024/25 bytes,
+  historical `6/10`, and sealed U8 remain immutable; live use requires fresh
+  independent review and exact founder authority.

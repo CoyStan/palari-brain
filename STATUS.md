@@ -1,7 +1,8 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0025 TERMINAL FAILURE ACCEPTED, MERGED, AND PUSHED; BRN-0026
-COUNT-WIRE AND DIRECTORY-WALKER REPAIR CONTRACT NEXT. Founder-authorized
+COUNT-WIRE AND DIRECTORY-WALKER REPAIR CONTRACT OPEN; OFFLINE IMPLEMENTATION
+NEXT. Founder-authorized
 identity `j4-luna-ettin-unexecuted11to20-v2` was
 reserved at `2026-08-07T03:18:45.492Z`, launched at `.497Z`, and consumed at
 `.627Z` exactly once at reviewed head
@@ -52,6 +53,16 @@ founder's standing delegation for clean independently reviewed tickets,
 BRN-0025 was accepted, merged, and pushed at `01ee20b`. Any fix or successor
 requires a separate governed ticket, new identity, new predictions, fresh
 review, and fresh founder authorization.
+
+BRN-0026 is bounded to the two observed failures. It will project the immutable
+Responses generation body into the separately documented input-count schema,
+bind both hashes, and add deterministic recursive sealing for nested mode-0600
+files and mode-0700 directories. New identity
+`j4-luna-ettin-unexecuted11to20-v3` preserves the same evaluation treatment
+under FINAL P-set 37 with `$7.85549929` opening accounting and proposed `$5.00`
+fresh / `$12.85549929` cumulative caps. The existing OpenAI credential was
+confirmed present without reading its value, following the founder's prior
+reuse choice. This ticket is provider-free and stops at a fresh founder gate.
 
 Product stop rule: (1) yes, quickstart remains green; (2) no user-facing memory
 behavior improved because the run stopped during answer compatibility; (3)
