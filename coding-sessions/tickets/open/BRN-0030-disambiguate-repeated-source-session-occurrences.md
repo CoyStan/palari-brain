@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0030
 children: []
-status: open
+status: claimed
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-07T12:43:26Z
 target_branch: "main"
 branch: "ticket/BRN-0030-disambiguate-repeated-source-session-occurrences"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0030-disambiguate-repeated-source-session-occurrences"
