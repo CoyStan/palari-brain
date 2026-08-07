@@ -153,3 +153,20 @@ authorization naming identity, caps, reviewed head, hashes, and ACCEPT.
 - Stop if work needs a path outside `allowed_paths`, touches `forbidden_paths`,
   reads credentials/selected content, calls a provider, creates a live result,
   mutates predecessor evidence, or changes benchmark treatment.
+
+## Specialist Closeout
+
+The verifier now supports a bounded caller-selected marker namespace while
+retaining the BRN-0025 legacy default. Exhaustive positive and fail-closed
+tests cover legacy/generic acceptance, malformed namespaces, missing or
+duplicate markers, mismatched bound values, and cross-namespace confusion.
+
+FINAL P-set 40 and exact private v6 bytes are frozen. Launcher/runtime are
+mode 0600 with SHA-256
+`b287f7c20af4c7df7159b785b6723693b74289be93c45dc01aa8d3e263bde15f` /
+`e68e13450c6f20a838dfa19ec23498dfc17d76fec9e407ca814083c356cae6f2`.
+Actual provider-free verification passed all gates with telemetry 0/0/0/0;
+v6 result/semantic namespaces are absent; v1-v5 evidence and v5 namespace
+absence are preserved. Focused tests passed 18/18, full suite 810/15/0 across
+825, and quickstart 6/6. Ready for fresh independent review. No live authority
+is created.

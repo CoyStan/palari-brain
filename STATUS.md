@@ -1,5 +1,47 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0034 GENERIC REVIEW ATTESTATION IMPLEMENTED; FINAL P-SET 40
+AND PRIVATE V6 FROZEN PROVIDER-FREE; READY FOR INDEPENDENT REVIEW. No
+credential read, selected-data read, provider call, result write, spend, or
+live v6 invocation occurred.
+
+`assertReviewAttestation` now accepts a caller-selected marker namespace that
+must be an uppercase identifier of 1-64 characters. It still defaults to
+legacy `BRN0025_REVIEW`, while v6 selects ticket-neutral `PALARI_REVIEW`.
+Every namespace requires exactly one identity, launcher hash, runtime hash,
+and `ACCEPT` marker; malformed namespaces, missing/duplicated markers,
+mismatched values, and cross-namespace substitution fail closed. Free-form
+review prose remains insufficient.
+
+FINAL P-set 40 freezes fresh unconsumed identity
+`j4-luna-ettin-unexecuted11to20-v6` with the same ten questions, order,
+models, prompts, source-occurrence repair, retrieval/ranking/answer treatment,
+and at-least-8/10 prediction as v5. Opening accounted spend is
+`$8.00840072`; proposed caps remain `$5.00` fresh / `$13.00840072`
+cumulative. Administratively consumed v5 and every v1-v5 artifact remain
+immutable; historical `6/10` and sealed U8 remain unchanged.
+
+The actual private mode-0600 launcher/runtime SHA-256 values are
+`b287f7c20af4c7df7159b785b6723693b74289be93c45dc01aa8d3e263bde15f` /
+`e68e13450c6f20a838dfa19ec23498dfc17d76fec9e407ca814083c356cae6f2`.
+Provider-free verification of those exact bytes passed the generic accepted
+marker shape, cached Ettin and answer smoke, exact count projection, canonical
+settlement, one-shot custody/reuse refusal, recursive seal/reseal refusal,
+duplicate occurrence ingest/replay/mutation, and cleanup. Telemetry was zero
+credential reads, zero dataset reads, zero provider calls, and zero result
+writes. Both v6 namespaces remain absent; v5 namespaces remain absent.
+
+Verification is green: focused tests passed 18/18; `npm test` passed 810 with
+15 optional skips and zero failures across 825; quickstart passed 6/6; scope
+and diff checks pass. Product stop rule: (1) yes, quickstart is green; (2) yes,
+the live journey can now consume independently accepted review evidence
+without a historical ticket-name dependency; (3) provider SDKs do not provide
+Palari's exact independent-review/custody gate; (4) yes, the founder asked for
+autonomous repair after the measured pre-custody failure; (5) deleting this
+change restores the attestation failure before memory evaluation. Next is
+fresh independent read-only review. Acceptance will not authorize v6; any
+invocation needs a new exact founder authorization.
+
 Loop state: BRN-0032 LIVE V5 IDENTITY ADMINISTRATIVELY CONSUMED; TERMINAL
 REVIEW-ATTESTATION COMPATIBILITY FAILURE RECORDED BY BRN-0033. No durable
 custody, credential read, dataset read, provider call, result write, semantic
