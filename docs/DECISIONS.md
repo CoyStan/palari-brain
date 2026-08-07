@@ -3282,3 +3282,24 @@ here with dates. Agents record; the founder decides.
   issue. Acceptance preserves historical `6/10`, U8, and the absent semantic
   overlay. It grants no repair, retry, successor identity, provider call, or
   live authority.
+
+- 2026-08-07 (BRN-0028 canonical Standard usage settlement)
+  **Use the reservation boundary's public `short`/`long` vocabulary all the
+  way through measured settlement.** Measured Luna/Sol Standard rates now live
+  with the pinned reservation policies and one tracked pure helper validates
+  raw Responses usage before computing exact picodollars. Legacy internal
+  `shortContext`/`longContext` labels fail closed. The exact sanitized v3 shape
+  settles offline to `$0.0004764`, but consumed v3 remains historically
+  unsettled at `$7.90712669` cumulative accounted spend. Freeze successor
+  `j4-luna-ettin-unexecuted11to20-v4` under FINAL P-set 38 at proposed `$5.00`
+  fresh / `$12.90712669` cumulative caps. This decision grants no credential
+  read, provider request, result namespace, retry, score, or live authority.
+
+- 2026-08-07 (BRN-0028 offline acceptance)
+  **Accept the canonical settlement repair and v4 freeze after clean
+  independent review.** Exact implementation head `474b84d` passed 31 focused
+  contracts, 802 full-suite tests with 15 optional skips, quickstart 6/6, and
+  actual final-runtime provider-free verification. The reviewer found no
+  P0-P3 issue and rehashed the exact mode-0600 private bytes and 50-file import
+  closure. Acceptance preserves consumed v3's uncertain spend and grants no
+  credential read, provider call, result namespace, spend, or live v4 use.

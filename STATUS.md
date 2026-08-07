@@ -1,5 +1,53 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0028 CANONICAL OPENAI STANDARD SETTLEMENT IMPLEMENTED OFFLINE;
+FINAL P-SET 38 AND PRIVATE V4 INDEPENDENTLY REVIEWED AND ACCEPTED. No
+credential read, provider call, selected-data inspection, result namespace,
+spend, retry, resume, reroll, regrade, or live successor use is authorized.
+
+The tracked settlement boundary now accepts only the counted reservation's
+public `short`/`long` context bands and reads measured Luna/Sol Standard rates
+from the same pinned policies used for reservation. It validates plain raw
+input, cache-write, cached-input, output, reasoning, and total token metadata,
+rejects impossible relationships and legacy `shortContext`/`longContext`
+labels, and returns exact picodollars plus decimal USD without mutating input.
+The sanitized successful BRN-0026 usage shape (2,142 input, 2,139 cache-write,
+zero cached, 40 output, 8 reasoning) settles through Luna `short` to exactly
+`$0.0004764` offline. Consumed v3 remains unsettled: its `$0.0011499`
+reservation stays uncertain and cumulative accounted spend remains
+`$7.90712669`.
+
+FINAL P-set 38 freezes `j4-luna-ettin-unexecuted11to20-v4` over the unchanged
+P-set 37 population/order/treatment, with historical `6/10` and sealed U8
+unchanged. Opening cumulative accounted spend is `$7.90712669`; proposed caps
+are `$5.00` fresh and `$12.90712669` cumulative. Private mode-0600
+launcher/runtime hash to
+`db388a28bf9568d869bda4bad011a0103f88b08b871ec3bdb65de4940fd70a02`
+and
+`83c2efe7324a3a10f432c8ce1844abff561207d95460621cdb4b064d7db93053`.
+The clean pushed import closure contains 50 files / 749,556 bytes and hashes
+to `616b66acf64a62c8990c9bf26ef51a1d78eb3a671161f65599c47b460855102b`.
+
+Provider-free verification from the actual final-runtime bytes passed cached
+Ettin (titanium first, four finite scores), one exact 11,488-byte projected
+count and untouched 11,593-byte full generation, the exact usage settlement,
+durable `reserved -> launched -> consumed` custody with reuse refusal, nested
+seal/verify/reseal refusal, and temporary cleanup. Credential reads, dataset
+reads, provider calls, and result writes were exactly `0 / 0 / 0 / 0`. The v4
+result and semantic-review namespaces remain absent. All six v1-v3 private
+launcher/runtime hashes and complete 6/21/24-entry result-tree snapshots were
+identical before/after. This ticket grants no live authority. Next is an exact
+founder gate for v4.
+
+Product stop rule: (1) yes, quickstart remains green 6/6; (2) no end-user memory
+behavior changes because this is an evaluation harness repair; (3) provider
+SDKs expose usage but do not enforce Palari's pinned policy, public-band
+contract, one-shot custody, or evidence seal; (4) yes, the founder requested
+autonomous Luna+Ettin repair; (5) deleting it would repeat the accepted-HTTP-200
+local settlement failure and consume another identity without a benchmark row.
+This is one infrastructure unit after the BRN-0027 measurement record, so it
+does not trigger consecutive-infrastructure drift.
+
 Loop state: BRN-0026 LIVE IDENTITY CONSUMED; TERMINAL COMPATIBILITY FAILURE
 SEALED; BRN-0027 TERMINAL RECORD INDEPENDENTLY REVIEWED AND ACCEPTED. No retry,
 resume, reroll, regrade, provider call, or successor identity is authorized.
