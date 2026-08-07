@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0028 CANONICAL OPENAI STANDARD SETTLEMENT IMPLEMENTED OFFLINE;
-FINAL P-SET 38 FROZEN; PRIVATE V4 VERIFICATION AND INDEPENDENT REVIEW NEXT. No
+FINAL P-SET 38 AND PRIVATE V4 FROZEN; INDEPENDENT REVIEW NEXT. No
 credential read, provider call, selected-data inspection, result namespace,
 spend, retry, resume, reroll, regrade, or live successor use is authorized.
 
@@ -20,11 +20,25 @@ reservation stays uncertain and cumulative accounted spend remains
 FINAL P-set 38 freezes `j4-luna-ettin-unexecuted11to20-v4` over the unchanged
 P-set 37 population/order/treatment, with historical `6/10` and sealed U8
 unchanged. Opening cumulative accounted spend is `$7.90712669`; proposed caps
-are `$5.00` fresh and `$12.90712669` cumulative. Private launcher/runtime
-hashes and final provider-free evidence are pending the first clean pushed
-tracked cut. This ticket grants no live authority.
+are `$5.00` fresh and `$12.90712669` cumulative. Private mode-0600
+launcher/runtime hash to
+`db388a28bf9568d869bda4bad011a0103f88b08b871ec3bdb65de4940fd70a02`
+and
+`83c2efe7324a3a10f432c8ce1844abff561207d95460621cdb4b064d7db93053`.
+The clean pushed import closure contains 50 files / 749,556 bytes and hashes
+to `616b66acf64a62c8990c9bf26ef51a1d78eb3a671161f65599c47b460855102b`.
 
-Product stop rule: (1) pending final quickstart rerun; (2) no end-user memory
+Provider-free verification from the actual final-runtime bytes passed cached
+Ettin (titanium first, four finite scores), one exact 11,488-byte projected
+count and untouched 11,593-byte full generation, the exact usage settlement,
+durable `reserved -> launched -> consumed` custody with reuse refusal, nested
+seal/verify/reseal refusal, and temporary cleanup. Credential reads, dataset
+reads, provider calls, and result writes were exactly `0 / 0 / 0 / 0`. The v4
+result and semantic-review namespaces remain absent. All six v1-v3 private
+launcher/runtime hashes and complete 6/21/24-entry result-tree snapshots were
+identical before/after. This ticket grants no live authority.
+
+Product stop rule: (1) yes, quickstart remains green 6/6; (2) no end-user memory
 behavior changes because this is an evaluation harness repair; (3) provider
 SDKs expose usage but do not enforce Palari's pinned policy, public-band
 contract, one-shot custody, or evidence seal; (4) yes, the founder requested

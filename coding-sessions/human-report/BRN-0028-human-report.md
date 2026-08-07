@@ -20,6 +20,10 @@ shape now reproduces `$0.0004764` offline; the old internal names are rejected.
 - Proposed caps are `$5.00` fresh / `$12.90712669` cumulative.
 - The old v3 reservation remains uncertain; this does not rewrite history.
 - Historical `6/10` and sealed U8 remain unchanged.
+- Provider-free verification passed cached Ettin, exact fake count/generation
+  wires, exact settlement, one-shot custody, recursive seal, and cleanup with
+  zero external telemetry.
+- Private launcher/runtime hashes are `db388a28...a02` / `83c2efe7...053`.
 
 ## What To Check
 
@@ -30,5 +34,5 @@ import closure.
 
 ## Recommended Next Move
 
-Complete provider-free verification from the clean pushed bytes, then obtain a
-fresh independent review. Acceptance stops at a founder gate.
+Obtain a fresh independent read-only review of the clean pushed tracked head
+and exact private hashes. Acceptance stops at a founder gate.
