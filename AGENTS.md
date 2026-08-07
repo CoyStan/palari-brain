@@ -36,8 +36,9 @@ inner-loop gate.
 - Never weaken user/workspace isolation.
 - Never perform destructive or hard-to-recover operations beyond explicit
   scope.
-- Never call a paid provider without a founder-approved maximum dollar cap;
-  stop before the next reserved call would cross it.
+- Never call a paid provider without a founder-approved aggregate dollar cap;
+  carry conservative spend across debug reruns and stop before the next
+  reserved call would cross it.
 - Datasets stay gitignored; do not download unclear-licence data.
 - U8 stays sealed: never execute question `1568498a`.
 

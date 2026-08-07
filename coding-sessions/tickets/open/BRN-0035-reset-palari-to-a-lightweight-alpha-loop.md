@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0035
 children: []
-status: in-review
+status: claimed
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-07T16:53:04Z
 target_branch: "main"
 branch: "ticket/BRN-0035-reset-palari-to-a-lightweight-alpha-loop"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0035-reset-palari-to-a-lightweight-alpha-loop"

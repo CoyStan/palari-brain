@@ -41,9 +41,11 @@ npm run alpha:debug -- \
 The adapter exports `createAlphaRun()` and injects questions plus writer,
 answer, and optional embedder/reranker components. `.palari-alpha/` is
 gitignored. Its JSONL files are mutable diagnostic logs and never update a
-historical benchmark grade. The runner continues after a broken row by
-default, bounds retries to three, and reserves each component's declared
-worst-case cost before calling it.
+historical benchmark grade. File-backed logs cannot escape that namespace.
+The runner continues after a broken row by default and bounds retries to
+three. CLI runs persist each component's conservative reservation to
+`.palari-alpha/budget.json` before calling it, so reruns share one aggregate
+cap. Run only one alpha CLI process at a time.
 
 See [the alpha architecture](docs/ALPHA-ARCHITECTURE.md) for the component
 contract and [the 20-repository survey](docs/ALPHA-FRAMEWORK-RESEARCH.md) for

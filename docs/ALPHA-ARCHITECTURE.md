@@ -31,11 +31,18 @@ Each component is either a zero-cost function or:
 }
 ```
 
-The runner reserves `maxCostUsd` before invoking a component. It refuses the
-call if the reservation would cross `--max-dollar`, and rejects a component
-that reports more than it reserved. This is deliberately simple approximate
-accounting: enough to enforce a founder-approved ceiling, not a financial
-ledger.
+For CLI runs, the runner persists `maxCostUsd` to
+`.palari-alpha/budget.json` before invoking a component. It refuses the call if
+that reservation would take aggregate debug spend across invocations above
+`--max-dollar`. After a successful bounded settlement it refunds only the
+unused reservation; failure or process interruption retains the full amount.
+Starting with a cap below the already-accounted amount is rejected. This is
+deliberately simple conservative accounting, not a token ledger.
+
+The budget file assumes one alpha runner process at a time. Concurrent CLI
+runs are unsupported; wait for one to finish before starting another. Reset or
+edit the mutable budget only when deliberately beginning a new founder-approved
+debug budget, and retain the old file when continuing the same authorization.
 
 ## Command
 
@@ -47,8 +54,10 @@ npm run alpha:debug -- \
   --max-dollar 0.50
 ```
 
-The adapter and logs live under `.palari-alpha/` and are gitignored. Retries
-are explicit and capped at three. The default is no retry and
+The adapter, budget state, and logs live under `.palari-alpha/` and are
+gitignored. Every file-backed log path is rejected unless it resolves inside
+the current working directory's `.palari-alpha/` namespace. Retries are
+explicit and capped at three. The default is no retry and
 continue-on-error so one broken row does not hide later diagnoses. Add
 `--stop-on-error` when a shared failure makes later rows meaningless.
 

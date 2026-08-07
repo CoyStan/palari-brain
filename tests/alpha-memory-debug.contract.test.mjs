@@ -162,18 +162,16 @@ test('a failed stage consumes its reservation before a retry', async () => {
   assert.equal(summary.stoppedForBudget, true)
 })
 
-test('default JSONL log is mutable diagnostic evidence with no benchmark grade', async () => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-alpha-'))
-  const logPath = path.join(directory, 'debug.jsonl')
+test('diagnostic log shape has no benchmark grade', async () => {
+  const records = []
   await runAlphaMemoryDebug({
     questions: questions.slice(0, 1),
     dependencies: dependencies(),
     maxDollar: 1,
-    logPath,
+    appendLog: async (record) => records.push(record),
     runId: 'log-shape',
     clock: () => '2026-08-07T00:00:00.000Z',
   })
-  const records = (await readFile(logPath, 'utf8')).trim().split('\n').map(JSON.parse)
   assert.ok(records.length >= 3)
   assert.ok(records.every(({ schema }) => schema === 'palari-alpha-debug/v1'))
   assert.ok(records.every(({ mode }) => mode === 'diagnostic-not-a-benchmark'))
@@ -183,7 +181,7 @@ test('default JSONL log is mutable diagnostic evidence with no benchmark grade',
 test('CLI loads one injected adapter and prints a diagnostic summary', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-alpha-cli-'))
   const adapterPath = path.join(directory, 'adapter.mjs')
-  const logPath = path.join(directory, 'debug.jsonl')
+  const logPath = '.palari-alpha/debug.jsonl'
   await writeFile(adapterPath, `
     export function createAlphaRun() {
       return {
@@ -201,7 +199,7 @@ test('CLI loads one injected adapter and prints a diagnostic summary', async () 
     '--questions', '2',
     '--max-dollar', '0',
     '--log', logPath,
-  ], { encoding: 'utf8' })
+  ], { cwd: directory, encoding: 'utf8' })
   assert.equal(result.status, 0, result.stderr)
   assert.deepEqual(JSON.parse(result.stdout), {
     mode: 'diagnostic-not-a-benchmark',
@@ -209,9 +207,13 @@ test('CLI loads one injected adapter and prints a diagnostic summary', async () 
     completed: 1,
     failed: 0,
     stoppedForBudget: false,
+    openingAccountedUsd: 0,
+    freshAccountedUsd: 0,
     spentUsd: 0,
     capUsd: 0,
   })
+  const records = (await readFile(path.join(directory, logPath), 'utf8')).trim().split('\n').map(JSON.parse)
+  assert.ok(records.every(({ mode }) => mode === 'diagnostic-not-a-benchmark'))
 })
 
 test('CLI refuses to run without an explicit adapter and dollar cap', () => {
@@ -219,4 +221,89 @@ test('CLI refuses to run without an explicit adapter and dollar cap', () => {
   const missingAdapter = spawnSync(process.execPath, [runner, '--max-dollar', '1'], { encoding: 'utf8' })
   assert.notEqual(missingAdapter.status, 0)
   assert.match(missingAdapter.stderr, /--adapter/)
+})
+
+test('every file-backed log path stays inside cwd .palari-alpha', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-alpha-path-'))
+  const adapterPath = path.join(directory, 'adapter.mjs')
+  await writeFile(adapterPath, `
+    export function createAlphaRun() {
+      return {
+        questions: [{ id: 'q1' }],
+        dependencies: { writer: () => 'memory', answer: () => 'answer' },
+        logPath: '../adapter-outside.jsonl',
+      }
+    }
+  `)
+  const runner = new URL('../evals/run-alpha-memory-debug.mjs', import.meta.url).pathname
+  for (const args of [
+    ['--adapter', adapterPath, '--max-dollar', '0'],
+    ['--adapter', adapterPath, '--max-dollar', '0', '--log', '../cli-outside.jsonl'],
+    ['--adapter', adapterPath, '--max-dollar', '0', '--log', path.join(directory, 'absolute-outside.jsonl')],
+  ]) {
+    const result = spawnSync(process.execPath, [runner, ...args], { cwd: directory, encoding: 'utf8' })
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /must stay inside/)
+  }
+})
+
+test('CLI budget persists across two invocations and stops at the aggregate cap', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-alpha-budget-'))
+  const adapterPath = path.join(directory, 'adapter.mjs')
+  await writeFile(adapterPath, `
+    export function createAlphaRun() {
+      return {
+        questions: [{ id: 'q1' }],
+        dependencies: {
+          writer: { maxCostUsd: 0.02, invoke: () => ({ output: 'memory', costUsd: 0.02 }) },
+          answer: { maxCostUsd: 0.02, invoke: () => ({ output: 'answer', costUsd: 0.02 }) },
+        },
+      }
+    }
+  `)
+  const runner = new URL('../evals/run-alpha-memory-debug.mjs', import.meta.url).pathname
+  const args = [runner, '--adapter', adapterPath, '--max-dollar', '0.05']
+  const first = spawnSync(process.execPath, args, { cwd: directory, encoding: 'utf8' })
+  assert.equal(first.status, 0, first.stderr)
+  assert.equal(JSON.parse(first.stdout).spentUsd, 0.04)
+  const second = spawnSync(process.execPath, args, { cwd: directory, encoding: 'utf8' })
+  assert.notEqual(second.status, 0)
+  assert.deepEqual(
+    (({ openingAccountedUsd, freshAccountedUsd, spentUsd, stoppedForBudget }) =>
+      ({ openingAccountedUsd, freshAccountedUsd, spentUsd, stoppedForBudget }))(JSON.parse(second.stdout)),
+    { openingAccountedUsd: 0.04, freshAccountedUsd: 0, spentUsd: 0.04, stoppedForBudget: true },
+  )
+  const state = JSON.parse(await readFile(path.join(directory, '.palari-alpha/budget.json'), 'utf8'))
+  assert.equal(state.accountedUsd, 0.04)
+})
+
+test('failed CLI stage retains reservation and later caps use it', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-alpha-failure-budget-'))
+  const adapterPath = path.join(directory, 'adapter.mjs')
+  await writeFile(adapterPath, `
+    export function createAlphaRun() {
+      return {
+        questions: [{ id: 'q1' }],
+        dependencies: {
+          writer: { maxCostUsd: 0.03, invoke: () => { throw new Error('dispatched then failed') } },
+          answer: () => 'answer',
+        },
+      }
+    }
+  `)
+  const runner = new URL('../evals/run-alpha-memory-debug.mjs', import.meta.url).pathname
+  const args = [runner, '--adapter', adapterPath, '--max-dollar', '0.05']
+  const first = spawnSync(process.execPath, args, { cwd: directory, encoding: 'utf8' })
+  assert.notEqual(first.status, 0)
+  assert.equal(JSON.parse(first.stdout).spentUsd, 0.03)
+  const second = spawnSync(process.execPath, args, { cwd: directory, encoding: 'utf8' })
+  assert.notEqual(second.status, 0)
+  assert.equal(JSON.parse(second.stdout).stoppedForBudget, true)
+  const belowPrior = spawnSync(process.execPath, [
+    runner, '--adapter', adapterPath, '--max-dollar', '0.02',
+  ], { cwd: directory, encoding: 'utf8' })
+  assert.notEqual(belowPrior.status, 0)
+  assert.match(belowPrior.stderr, /below prior accounted spend/)
+  const state = JSON.parse(await readFile(path.join(directory, '.palari-alpha/budget.json'), 'utf8'))
+  assert.equal(state.accountedUsd, 0.03)
 })

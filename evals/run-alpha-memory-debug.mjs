@@ -1,8 +1,10 @@
-import { appendFile, mkdir } from 'node:fs/promises'
+import { appendFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import path from 'node:path'
 
 const DEFAULT_LOG_PATH = '.palari-alpha/memory-debug.jsonl'
+const DEFAULT_BUDGET_PATH = '.palari-alpha/budget.json'
+const BUDGET_SCHEMA = 'palari-alpha-budget/v1'
 const STAGES = ['writer', 'embedder', 'reranker', 'answer']
 
 function finiteNonnegative(value, label) {
@@ -37,6 +39,81 @@ function normalizeResult(result, reservedUsd, name) {
     throw new Error(`${name} reported $${costUsd} after reserving only $${reservedUsd}.`)
   }
   return { output: wrapped.output, costUsd }
+}
+
+export function resolveAlphaFilePath(candidate, label = 'logPath') {
+  if (typeof candidate !== 'string' || candidate.trim() === '') {
+    throw new Error(`${label} must be a non-empty path.`)
+  }
+  const root = path.resolve(process.cwd(), '.palari-alpha')
+  const absolute = path.resolve(process.cwd(), candidate)
+  if (absolute === root || !absolute.startsWith(`${root}${path.sep}`)) {
+    throw new Error(`${label} must stay inside ${root}.`)
+  }
+  return absolute
+}
+
+async function readBudgetState(absolute) {
+  try {
+    const state = JSON.parse(await readFile(absolute, 'utf8'))
+    if (state?.schema !== BUDGET_SCHEMA) throw new Error('budget state has an unknown schema.')
+    return finiteNonnegative(state.accountedUsd, 'budget accountedUsd')
+  } catch (error) {
+    if (error?.code === 'ENOENT') return 0
+    if (error instanceof SyntaxError) throw new Error('budget state is not valid JSON.')
+    throw error
+  }
+}
+
+async function writeBudgetState(absolute, accountedUsd) {
+  await mkdir(path.dirname(absolute), { recursive: true })
+  const temporary = `${absolute}.tmp-${process.pid}`
+  await writeFile(temporary, `${JSON.stringify({ schema: BUDGET_SCHEMA, accountedUsd })}\n`, {
+    encoding: 'utf8',
+    mode: 0o600,
+  })
+  await rename(temporary, absolute)
+}
+
+export function createFileBudgetStore(budgetPath = DEFAULT_BUDGET_PATH) {
+  const absolute = resolveAlphaFilePath(budgetPath, 'budgetPath')
+  return {
+    async load() {
+      return readBudgetState(absolute)
+    },
+    async reserve(amountUsd, capUsd) {
+      const current = await readBudgetState(absolute)
+      if (current + amountUsd > capUsd + Number.EPSILON) return null
+      const accountedUsd = current + amountUsd
+      await writeBudgetState(absolute, accountedUsd)
+      return accountedUsd
+    },
+    async settle(reservedUsd, actualUsd) {
+      const current = await readBudgetState(absolute)
+      if (current + Number.EPSILON < reservedUsd) {
+        throw new Error('budget state is smaller than the active reservation.')
+      }
+      const accountedUsd = Math.max(0, current - reservedUsd + actualUsd)
+      await writeBudgetState(absolute, accountedUsd)
+      return accountedUsd
+    },
+  }
+}
+
+function createMemoryBudgetStore() {
+  let accountedUsd = 0
+  return {
+    async load() { return accountedUsd },
+    async reserve(amountUsd, capUsd) {
+      if (accountedUsd + amountUsd > capUsd + Number.EPSILON) return null
+      accountedUsd += amountUsd
+      return accountedUsd
+    },
+    async settle(reservedUsd, actualUsd) {
+      accountedUsd = Math.max(0, accountedUsd - reservedUsd + actualUsd)
+      return accountedUsd
+    },
+  }
 }
 
 export function selectAlphaQuestions(questions, selection) {
@@ -105,6 +182,7 @@ export async function runAlphaMemoryDebug({
   maxDollar = 0,
   logPath = DEFAULT_LOG_PATH,
   appendLog,
+  budgetStore = createMemoryBudgetStore(),
   clock = defaultClock,
   runId = `alpha-${Date.now()}`,
 } = {}) {
@@ -124,12 +202,20 @@ export async function runAlphaMemoryDebug({
   }
   const selected = selectAlphaQuestions(questions, selection)
   const writeLog = appendLog ?? (async (record) => {
-    const absolute = path.resolve(logPath)
+    const absolute = resolveAlphaFilePath(logPath)
     await mkdir(path.dirname(absolute), { recursive: true })
     await appendFile(absolute, `${JSON.stringify(record)}\n`, { encoding: 'utf8', mode: 0o600 })
   })
 
-  let spentUsd = 0
+  if (!budgetStore || typeof budgetStore.load !== 'function' ||
+      typeof budgetStore.reserve !== 'function' || typeof budgetStore.settle !== 'function') {
+    throw new Error('budgetStore must provide load, reserve, and settle.')
+  }
+  const openingAccountedUsd = finiteNonnegative(await budgetStore.load(), 'opening accounted spend')
+  if (openingAccountedUsd > capUsd + Number.EPSILON) {
+    throw new Error(`maxDollar $${capUsd} is below prior accounted spend $${openingAccountedUsd}.`)
+  }
+  let spentUsd = openingAccountedUsd
   const results = []
   let stoppedForBudget = false
   const emit = async (record) => writeLog({
@@ -140,7 +226,10 @@ export async function runAlphaMemoryDebug({
     ...record,
   })
 
-  await emit({ type: 'run-start', selected: selected.map(({ id }) => id), capUsd, maxRetries: retries })
+  await emit({
+    type: 'run-start', selected: selected.map(({ id }) => id), capUsd,
+    openingAccountedUsd, maxRetries: retries,
+  })
 
   questionLoop: for (const question of selected) {
     for (let attempt = 1; attempt <= retries + 1; attempt += 1) {
@@ -150,7 +239,8 @@ export async function runAlphaMemoryDebug({
         for (const name of STAGES) {
           const dependency = stages[name]
           if (!dependency) continue
-          if (spentUsd + dependency.maxCostUsd > capUsd + Number.EPSILON) {
+          const reservedAccountedUsd = await budgetStore.reserve(dependency.maxCostUsd, capUsd)
+          if (reservedAccountedUsd == null) {
             stoppedForBudget = true
             const budget = {
               type: 'budget-stop', questionId: question.id, ordinal: question.ordinal,
@@ -160,6 +250,7 @@ export async function runAlphaMemoryDebug({
             results.push({ id: question.id, ordinal: question.ordinal, status: 'budget-stopped', attempts: attempt })
             break questionLoop
           }
+          spentUsd = finiteNonnegative(reservedAccountedUsd, 'reserved accounted spend')
           let settled
           try {
             const raw = await dependency.invoke({
@@ -169,12 +260,14 @@ export async function runAlphaMemoryDebug({
             })
             settled = normalizeResult(raw, dependency.maxCostUsd, name)
           } catch (error) {
-            // A failed transport may still be billed. Charge its full declared
-            // reservation so retries can never walk past the hard cap.
-            spentUsd += dependency.maxCostUsd
+            // The reservation was persisted before dispatch. A failed or
+            // interrupted transport keeps the full conservative amount.
             throw error
           }
-          spentUsd += settled.costUsd
+          spentUsd = finiteNonnegative(
+            await budgetStore.settle(dependency.maxCostUsd, settled.costUsd),
+            'settled accounted spend',
+          )
           stageOutputs[name] = settled.output
           await emit({
             type: 'stage-complete', questionId: question.id, ordinal: question.ordinal,
@@ -210,6 +303,8 @@ export async function runAlphaMemoryDebug({
     completed: results.filter(({ status }) => status === 'completed').length,
     failed: results.filter(({ status }) => status === 'failed').length,
     stoppedForBudget,
+    openingAccountedUsd,
+    freshAccountedUsd: spentUsd - openingAccountedUsd,
     spentUsd,
     capUsd,
     results,
@@ -257,13 +352,20 @@ async function main() {
     throw new Error('The adapter module must export createAlphaRun().')
   }
   const injected = await adapter.createAlphaRun()
-  const summary = await runAlphaMemoryDebug({ ...injected, ...options })
+  const summary = await runAlphaMemoryDebug({
+    ...injected,
+    ...options,
+    appendLog: undefined,
+    budgetStore: createFileBudgetStore(),
+  })
   process.stdout.write(`${JSON.stringify({
     mode: summary.mode,
     selected: summary.selected,
     completed: summary.completed,
     failed: summary.failed,
     stoppedForBudget: summary.stoppedForBudget,
+    openingAccountedUsd: summary.openingAccountedUsd,
+    freshAccountedUsd: summary.freshAccountedUsd,
     spentUsd: summary.spentUsd,
     capUsd: summary.capUsd,
   }, null, 2)}\n`)
