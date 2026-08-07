@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0026 LIVE IDENTITY CONSUMED; TERMINAL COMPATIBILITY FAILURE
-SEALED; BRN-0027 TERMINAL RECORD READY FOR INDEPENDENT REVIEW. No retry,
+SEALED; BRN-0027 TERMINAL RECORD INDEPENDENTLY REVIEWED AND ACCEPTED. No retry,
 resume, reroll, regrade, provider call, or successor identity is authorized.
 
 Founder-authorized identity `j4-luna-ettin-unexecuted11to20-v3` ran exactly
@@ -56,9 +56,8 @@ evidence seal; (4) yes, the founder authorized the invocation and requires the
 result recorded whatever it is; (5) deleting this record could hide spend,
 misstate accepted provider wires as a model failure, or invite reuse of a
 consumed identity. This is a measurement record after one infrastructure unit,
-so it does not trigger consecutive-infrastructure drift. Next: independent
-read-only terminal review. Any repair or successor is a separate governed
-ticket and fresh founder gate.
+so it does not trigger consecutive-infrastructure drift. Next: a separate
+offline repair ticket. Any successor invocation remains a fresh founder gate.
 
 Loop state: BRN-0026 COUNT PROJECTION AND RECURSIVE SEAL IMPLEMENTED OFFLINE;
 FINAL P-SET 37 FROZEN; INDEPENDENT REVIEW NEXT. No live action is authorized.

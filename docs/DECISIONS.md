@@ -3272,3 +3272,13 @@ here with dates. Agents record; the founder decides.
   semantic overlay. Historical `6/10` and U8 remain unchanged. The identity is
   consumed; any repair or successor requires a separate governed ticket,
   review, and fresh exact founder authorization.
+
+- 2026-08-07 (BRN-0027 terminal-record acceptance)
+  **Accept the sealed compatibility-failure record after clean independent
+  review.** Exact pushed implementation head `a83fc1b` and the appended
+  read-only reviewer note reconcile the 23-entry immutable seal, both accepted
+  OpenAI HTTP-200 wires, the local context-band mismatch, zero question rows,
+  and `$7.90712669` cumulative accounted spend. The reviewer found no P0-P3
+  issue. Acceptance preserves historical `6/10`, U8, and the absent semantic
+  overlay. It grants no repair, retry, successor identity, provider call, or
+  live authority.
