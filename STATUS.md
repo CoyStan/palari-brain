@@ -1,9 +1,9 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0034 GENERIC REVIEW ATTESTATION IMPLEMENTED; FINAL P-SET 40
-AND PRIVATE V6 FROZEN PROVIDER-FREE; READY FOR INDEPENDENT REVIEW. No
-credential read, selected-data read, provider call, result write, spend, or
-live v6 invocation occurred.
+Loop state: BRN-0034 GENERIC REVIEW ATTESTATION AND FINAL P-SET 40
+INDEPENDENTLY ACCEPTED, MERGED, AND PUSHED AT `e5d3865`. No credential read,
+selected-data read, provider call, result write, spend, or live v6 invocation
+occurred.
 
 `assertReviewAttestation` now accepts a caller-selected marker namespace that
 must be an uppercase identifier of 1-64 characters. It still defaults to
@@ -31,6 +31,9 @@ duplicate occurrence ingest/replay/mutation, and cleanup. Telemetry was zero
 credential reads, zero dataset reads, zero provider calls, and zero result
 writes. Both v6 namespaces remain absent; v5 namespaces remain absent.
 
+Independent review accepted source head
+`d2bce4c2d10498b8fe0879802bdd09da62756391` with no P0-P3 findings and issued
+the exact four `PALARI_REVIEW_*` markers consumed by the live gate.
 Verification is green: focused tests passed 18/18; `npm test` passed 810 with
 15 optional skips and zero failures across 825; quickstart passed 6/6; scope
 and diff checks pass. Product stop rule: (1) yes, quickstart is green; (2) yes,
@@ -38,9 +41,9 @@ the live journey can now consume independently accepted review evidence
 without a historical ticket-name dependency; (3) provider SDKs do not provide
 Palari's exact independent-review/custody gate; (4) yes, the founder asked for
 autonomous repair after the measured pre-custody failure; (5) deleting this
-change restores the attestation failure before memory evaluation. Next is
-fresh independent read-only review. Acceptance will not authorize v6; any
-invocation needs a new exact founder authorization.
+change restores the attestation failure before memory evaluation. Next is one
+exact founder authorization for the frozen v6 invocation. No live v6 run is
+currently authorized.
 
 Loop state: BRN-0032 LIVE V5 IDENTITY ADMINISTRATIVELY CONSUMED; TERMINAL
 REVIEW-ATTESTATION COMPATIBILITY FAILURE RECORDED BY BRN-0033. No durable
