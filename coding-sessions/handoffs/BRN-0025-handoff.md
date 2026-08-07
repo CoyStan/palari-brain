@@ -2,9 +2,9 @@
 
 ## Blocker
 
-Independent terminal review is pending. The authorized identity is consumed
-and its terminal namespace is unsealed; neither retry nor post-hoc sealing is
-permitted.
+Terminal review is complete and recommends ACCEPT. The authorized identity is
+consumed and its terminal namespace is unsealed; neither retry nor post-hoc
+sealing is permitted. A successor remains separately governed.
 
 ## Evidence
 
@@ -51,9 +51,8 @@ was part of this verification.
 
 ## Recommendation
 
-Perform fresh terminal read-only review of the exact pushed head and supplied
-private snapshot hashes. Do not inspect selected benchmark content, access
-credentials, create semantic labels, mutate the namespace, or seal it.
+Accept and merge the honest terminal record. Then open a separate repair ticket
+for the count-wire and directory-walker defects; do not mutate this namespace.
 
 ## Authority Needed
 

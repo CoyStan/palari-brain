@@ -1,13 +1,13 @@
 # BRN-0025 Reviewer Note
 
-Reviewer: PENDING terminal reviewer
-Reviewed commit(s): predispatch `782dc2212a7bc0b64c416dafeceebafefc41236f`
+Reviewer: independent terminal reviewer
+Reviewed commit(s): predispatch `782dc2212a7bc0b64c416dafeceebafefc41236f`;
+terminal record `5e7fd0711efccef1b4425cc979af24b4725d3660`
 Target branch: `main`
 
 ## Review Result
 
-Predispatch review was ACCEPT. Independent review of the consumed terminal
-result and tracked record is PENDING.
+ACCEPT the consumed terminal result and tracked record. No P0-P3 findings.
 
 ## Findings
 
@@ -43,16 +43,18 @@ result and tracked record is PENDING.
 
 ## Verification Reviewed
 
-The specialist did not review, accept, or merge the terminal result and did not
-execute or retry it. A fresh read-only terminal reviewer must inspect the exact
-pushed record and reconcile the supplied immutable snapshot, one-shot custody,
-provider/accounting facts, missing manifest, historical `6/10`, and U8 state.
-The reviewer must not mutate or seal private artifacts, inspect benchmark
-content, access credentials, create judged labels, or call a provider.
+Fresh read-only terminal review independently reconciled the exact authority,
+one consumed attempt, both provider calls, HTTP statuses and usage, missing
+generation/question rows, meter arithmetic, failed manifest walk, and every
+material artifact hash. It reproduced exactly 12 mode-0600 files and 8
+mode-0700 directories with no symlinks or special entries. Focused contracts
+passed 13/13; the full suite passed 788 / skipped 15 / failed 0 across 803;
+quickstart passed 6/6; ticket, report, scope, diff, clean-head, and pushed-head
+checks passed. No private byte or external state was changed.
 
 ## Required Changes
 
-- PENDING independent terminal review.
+- None.
 
 Required final markers remain intentionally non-authorizing:
 
@@ -66,8 +68,6 @@ BRN0025_REVIEW_RECOMMENDATION: ACCEPT
 
 ## Recommendation
 
-PENDING. This specialist-authored terminal placeholder does not recommend
-acceptance, reopen the ticket, or request human action.
-
-No retry, repair, seal, provider call, or successor action is authorized by
-this note.
+ACCEPT exact clean pushed terminal-record head `5e7fd07`. This accepts the
+honest unsealed failure record only. No retry, repair, seal, provider call, or
+successor action is authorized by this note.

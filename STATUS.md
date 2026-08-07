@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0025 TERMINAL FAILURE RECORDED; INDEPENDENT TERMINAL REVIEW
-NEXT. Founder-authorized identity `j4-luna-ettin-unexecuted11to20-v2` was
+Loop state: BRN-0025 TERMINAL FAILURE INDEPENDENTLY ACCEPTED; MERGE NEXT.
+Founder-authorized identity `j4-luna-ettin-unexecuted11to20-v2` was
 reserved at `2026-08-07T03:18:45.492Z`, launched at `.497Z`, and consumed at
 `.627Z` exactly once at reviewed head
 `782dc2212a7bc0b64c416dafeceebafefc41236f`. The launcher/runtime hashes were
@@ -44,11 +44,12 @@ so no semantic-review overlay exists or may be created.
 
 Verification after this tracked record passes: focused contracts 13/13; full
 tests 788 pass / 15 skip / 0 fail across 803; quickstart 6/6; ticket, report,
-governed scope, and diff checks green. Independent terminal review remains
-PENDING and must reconcile the immutable unsealed snapshot and exact accounting
-without reading benchmark content, creating semantic labels, mutating private
-bytes, or attempting a seal. Any fix or successor requires a separate governed
-ticket, new identity, new predictions, fresh review, and fresh founder
+governed scope, and diff checks green. Independent terminal review of exact
+clean pushed head `5e7fd07` found no P0-P3 issue and recommends ACCEPT after
+rehashing the immutable unsealed snapshot and exact accounting. Under the
+founder's standing delegation for clean independently reviewed tickets,
+BRN-0025 is accepted for merge. Any fix or successor requires a separate
+governed ticket, new identity, new predictions, fresh review, and fresh founder
 authorization.
 
 Product stop rule: (1) yes, quickstart remains green; (2) no user-facing memory

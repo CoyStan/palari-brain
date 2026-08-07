@@ -3218,3 +3218,13 @@ here with dates. Agents record; the founder decides.
   semantic overlay applies. Any compatibility or directory-walk repair needs
   a separate governed ticket, new identity, new predictions, review, and exact
   founder authorization.
+
+- 2026-08-07 (BRN-0025 terminal acceptance)
+  **Accept the honest unsealed failure record after clean independent
+  review.** Exact pushed head `5e7fd07` reconciles one consumed attempt, one
+  successful Gemini writer call, one failed Luna count call, zero generation
+  or question rows, `$0.0504775` fresh / `$7.85549929` cumulative accounting,
+  and the immutable 12-file/8-directory unsealed snapshot. The reviewer found
+  no P0-P3 issue. Merge under the founder's standing delegation for clean
+  independently reviewed tickets. Acceptance grants no retry, repair, post-hoc
+  seal, provider call, replacement identity, or publication authority.

@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0025
 children: []
-status: in-review
+status: accepted
 risk: R4
 priority: P0
 agents_allowed: 1
@@ -214,7 +214,8 @@ Do not obtain a score, improve answer quality, or authorize the live successor.
 - Provider, credential, dataset, result-namespace, semantic-judgment, and spend
   activity: `0 / 0 / 0 / 0 / 0 / $0.00`.
 - Predispatch review: ACCEPT at exact head `782dc2212a7bc0b64c416dafeceebafefc41236f`.
-  The one authorized invocation is now consumed; terminal review is PENDING.
+  The one authorized invocation is now consumed; terminal review ACCEPTed
+  exact clean pushed record head `5e7fd07` with no P0-P3 finding.
 
 ## Terminal Invocation Record
 
@@ -260,8 +261,11 @@ replacement, or post-hoc seal is authorized.
 
 Post-terminal tracked verification passes: focused contracts 13/13; full tests
 788 pass / 15 skip / 0 fail across 803; quickstart 6/6; ticket, report,
-governed scope, and diff checks green. Independent terminal review remains
-PENDING.
+governed scope, and diff checks green. Independent terminal review of exact
+clean pushed record head `5e7fd07` found no P0-P3 issue and recommends ACCEPT.
+Under the founder's standing delegation for clean independently reviewed
+tickets, BRN-0025 is accepted. This grants no retry, repair, post-hoc seal,
+provider call, replacement identity, or successor authority.
 
 Historical independent review of `f6bc40b` reopened P0 one-shot state, P1
 mixed/incomplete closure, and P2 lexical-symbol evidence. Cumulative review of

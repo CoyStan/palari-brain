@@ -39,14 +39,13 @@ used twice.
 
 ## What To Check
 
-Independent terminal review should reconcile the immutable unsealed snapshot,
-the one writer call, the failed Luna count call, and exact accounting. It must
-not inspect benchmark content, create judged labels, change private bytes, or
-try to seal the result after the fact.
+Independent terminal review reconciled the immutable unsealed snapshot, the
+one writer call, failed Luna count call, and exact accounting with no P0-P3
+finding. It changed no private byte and did not try to seal the result.
 
 ## Recommended Next Move
 
-Accept this as an honest terminal compatibility-plus-harness failure after
-clean independent review. Open a separate governed repair ticket for both the
+This is accepted as an honest terminal compatibility-plus-harness failure.
+Open a separate governed repair ticket for both the
 unsupported `include` parameter and directory-aware artifact sealing before
 freezing any new identity. Do not retry BRN-0025.
