@@ -1101,7 +1101,8 @@ test('optional completeness guidance is bounded and provider-neutral',
       question: 'How long have I lived here?',
     })
     assert.ok(observed.startsWith(MEMORY_RETRIEVAL_INSTRUCTIONS))
-    assert.match(observed, /latest direct user statement/)
+    assert.match(observed, /second targeted retrieval/)
+    assert.match(observed, /both the current situational constraints/)
     assert.match(observed, /one relevance-ranked result is not exhaustive/)
     assert.match(observed, /mismatched named people, places, objects, or relationships/)
     assert.match(observed, /each canonical evidence ID at most once/)

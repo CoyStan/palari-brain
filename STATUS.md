@@ -54,11 +54,29 @@ totals, named-entity mismatches, and unique commitment evidence IDs. Its focused
 contracts pass 74/74 and the complete legacy tier passes 841 with 3 optional
 skips. These are alpha findings, not benchmark grades.
 
+The targeted repeat of questions 14, 15, 19, and 20 completed without an
+infrastructure failure. Question 20 improved to the complete `$2,500` total,
+question 15 correctly distinguished unsupported Shinjuku from the retrieved
+Harajuku duration, and question 19's duplicate commitment was eliminated.
+Two answer-quality findings remain: question 14 still stopped at an older
+one-month statement and extrapolated seven months instead of using the later
+direct three-month update; question 19 retrieved only current-city context and
+never retrieved the user's language/cultural preferences. Offline inspection
+confirmed that both missing direct user statements were already available to
+the retrieval surfaces. The active-only guidance now operationalizes the
+general remedies: a second same-entity retrieval before temporal inference,
+and both situational and preference facets before a personalized
+recommendation. Each gitignored diagnostic now records its question, reference,
+workspace, and full retrieval transcript so question 14 can be assessed from
+one artifact instead of repeatedly reopening its store. Focused tests pass
+17/17, quickstart passes 6/6, and the complete legacy tier passes 841 with 3
+optional skips.
+
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
-`$8.00840072`; the alpha ledger now accounts `$1.32095830`, for cumulative
-accounted spend of `$9.32935902`. Known alpha provider usage was approximately
-`$0.95505073`; the higher ledger value conservatively retains failed
+`$8.00840072`; the alpha ledger now accounts `$1.62690778`, for cumulative
+accounted spend of `$9.63530850`. Known alpha provider usage was approximately
+`$1.26100021`; the higher ledger value conservatively retains failed
 answer-stage reservations.
 
 ## Active commands
@@ -77,18 +95,21 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Retest only questions 14, 15, 19, and 20 with the general completeness guidance,
-then make the smallest host-level change only if a failure repeats. Continue
-under the approved `$2.00` rolling cap; do not add benchmark or governance
-machinery while this loop is still finding product-path bugs.
+Run one targeted repeat of questions 14 and 19 with the operational planning
+guidance. The two answer reservations fit the `$0.37309222` remaining under the
+approved `$2.00` rolling cap. Treat the outcome as an alpha finding, not a
+benchmark regrade, and do not add benchmark or governance machinery while this
+loop is still finding product-path bugs.
 
 ## Product check
 
 1. Basic journey runnable: yes, quickstart passed 6/6.
-2. Measurable improvement: one real 436-turn path now answers correctly with a
-   cited canonical user quote.
+2. Measurable improvement: the rolling live path now completes without its
+   prior commitment failures and the exhaustive-total case improved from
+   `$1,700` to the supported `$2,500`.
 3. Existing framework: the survey found useful patterns, but adding a full
    framework would add more surface than Palari needs.
 4. Founder request: yes, simplify the overbuilt prototype workflow.
-5. If removed: routine debugging returns to the 825-test, per-run governance
-   path that repeatedly failed before reaching memory behavior.
+5. If removed: active answers can stop at stale evidence or personalize from
+   situational context alone, and diagnostics again require manual store
+   reopening to explain the miss.
