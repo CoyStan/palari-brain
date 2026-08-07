@@ -3242,3 +3242,16 @@ here with dates. Agents record; the founder decides.
   `$5.00` fresh / `$12.85549929` cumulative caps. Consumed BRN-0024/25 bytes,
   historical `6/10`, and sealed U8 remain immutable; live use requires fresh
   independent review and exact founder authority.
+
+- 2026-08-07 (BRN-0026 offline successor freeze)
+  **Freeze the v3 successor only after exercising both repaired boundaries in
+  its final runtime.** The count transport now receives a separately hashed
+  allowlisted projection and the generation transport receives the unchanged
+  full body once. The recursive sealer records mode-0700 directories and
+  mode-0600 files, rejects links/special entries/escapes, excludes itself, and
+  refuses reseal. Permanent contracts and the final provider-free runtime
+  reproduce the rejected `include` shape, paired fake wires, BRN-0025-shaped
+  nested terminal tree, actual cached-Ettin smoke, and one-shot custody. The
+  v3 result and semantic-review namespaces remain absent; telemetry is zero.
+  P-set 37 is FINAL at `$7.85549929` opening and proposed `$5.00` fresh /
+  `$12.85549929` cumulative caps. This decision grants no live authority.

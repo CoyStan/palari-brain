@@ -192,6 +192,25 @@ Do not obtain a score, repair a consumed namespace, or authorize live spend.
 - `npm run ticket -- scope-check --committed-plus-dirty --target main BRN-0026`
 - `git diff --check`
 
+## Specialist Closeout
+
+- Result: implementation complete offline; independent review pending.
+- Count projection: explicit seven-field allowlist, four classified
+  generation-only exclusions, unknown-field refusal, immutable paired hashes,
+  one count and one generation contract.
+- Recursive seal: deterministic file/directory custody, no-follow/mode/path
+  enforcement, durable no-overwrite seal, verification, and reseal refusal.
+- Private mode-0600 launcher/runtime SHA-256:
+  `e8bf8d79f7b13cbaf28ee8e9e580638b04214590a2d47bf20c42cb2202d0543e` /
+  `a1c2e9f006065534f7283eed54720137119a0cfb8e1e313e92a222314368d81e`.
+- Provider-free final runtime: actual cached Ettin, projected fake count/full
+  fake generation, nested seal, one-shot custody, cleanup, and zero external
+  telemetry PASS. Both v3 namespaces remain absent.
+- Tests: focused 21/21; full 796 pass / 15 skip / 0 fail across 811;
+  quickstart 6/6; ticket/report/scope/diff/private syntax-mode-hash checks pass.
+- Consumed BRN-0024/25 bytes, unsealed status, accounting, historical `6/10`,
+  and U8 remain unchanged. No credential/provider/dataset/result/spend action.
+
 ## Stop Conditions
 
 - Stop if work needs a tracked path outside `allowed_paths`, touches a forbidden

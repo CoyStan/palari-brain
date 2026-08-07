@@ -102,6 +102,53 @@ input with `$30/M` and `$45/M` output. Long context begins above 272,000 exact
 input tokens. Fast, Flex, Batch, regional, aliases, and cache discounts are not
 accepted by this boundary.
 
+BRN-0026 corrects the endpoint boundary exposed by BRN-0025. The official
+[token-counting guide](https://developers.openai.com/api/docs/guides/token-counting)
+describes the same structured input format, while the official
+[Count input tokens reference](https://developers.openai.com/api/reference/python/resources/responses/subresources/input_tokens/methods/count)
+and OpenAPI operation `POST /v1/responses/input_tokens` define the count
+endpoint's accepted top-level parameters. BRN-0025's real HTTP 400 confirms
+that the broader Responses `include` control is rejected there.
+
+`projectOpenAIResponsesInputCountBody(...)` therefore snapshots the full
+generation body, retains the documented token-affecting fields used by this
+evaluation (`input`, `instructions`, `model`, `parallel_tool_calls`,
+`reasoning`, `tool_choice`, and `tools`), and omits only explicitly classified
+generation-only controls (`include`, `max_output_tokens`, `service_tier`, and
+`store`). Any other top-level field fails closed. Nested values and ordering
+survive the JSON snapshot exactly. The generation body is never mutated and
+keeps its own SHA-256; the count body receives a distinct SHA-256. Count plan,
+generation plan, both transports, and final audit carry the pair. This is an
+explicit projection contract, not a claim of byte identity between two
+endpoint-specific schemas.
+
+## Recursive terminal evidence sealing
+
+`sealTerminalArtifactDirectory(...)` walks a terminal evidence tree in sorted
+order. The root and every nested directory must be physical mode 0700; every
+file must be a no-follow mode-0600 regular file. Symlinks, special entries,
+physical escapes, invalid manifest paths, and wrong modes are terminal. The
+manifest records directory custody plus every file's path, size, mode, and
+SHA-256, while excluding only the manifest itself.
+
+Sealing uses a synced mode-0600 temporary file and an atomic no-overwrite hard
+link, removes the temporary name, then syncs the containing directory. An
+existing manifest refuses reseal or overwrite. Verification repeats the
+recursive walk and requires exact entry equality. The BRN-0026 permanent
+fixture reproduces BRN-0025's nested `transcripts/` and `workspace/` shape and
+also covers deterministic ordering, symlinks, special entries, path escapes,
+mode failures, content drift, self-exclusion, and reseal refusal.
+
+Successor identity `j4-luna-ettin-unexecuted11to20-v3` uses both boundaries.
+Its provider-free final-runtime verification performs a real cached-Ettin
+synthetic rank, a fake projected count followed by one untouched fake
+generation, a durable one-shot custody sequence, and a real nested seal and
+verification before deleting all temporary state. It opens no credential or
+dataset, sends no provider request, creates no successor namespace, and spends
+nothing. P-set 37 preserves the P-set 36 population and treatment; live use
+still requires an independently reviewed clean pushed head and fresh exact
+founder authorization.
+
 ## Sealed SQLite inspection
 
 Opening a copied SQLite database in place is not read-only at the physical

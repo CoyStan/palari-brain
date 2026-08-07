@@ -1,5 +1,70 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0026 COUNT PROJECTION AND RECURSIVE SEAL IMPLEMENTED OFFLINE;
+FINAL P-SET 37 FROZEN; INDEPENDENT REVIEW NEXT. No live action is authorized.
+
+The repaired counted Responses boundary keeps the exact immutable generation
+body and derives a distinct endpoint-specific input-count body. The count
+allowlist retains `input`, `instructions`, `model`, `parallel_tool_calls`,
+`reasoning`, `tool_choice`, and `tools`; explicit generation-only exclusions
+are `include`, `max_output_tokens`, `service_tier`, and `store`. Every other
+top-level field fails closed. Count reservation, count transport, generation
+reservation, generation transport, and audit carry separate paired SHA-256
+values. Permanent regression contracts reproduce BRN-0025's full body and
+observed rejected `include` shape, preserve nested values, prove no mutation,
+and execute one projected count plus one untouched generation in order.
+
+The new terminal-artifact boundary recursively sorts and records a physical
+mode-0700 root/directories plus no-follow mode-0600 regular files with byte
+length and SHA-256. It rejects links, special entries, physical escapes,
+invalid manifest paths, wrong modes, later drift, and reseal. The write-once
+manifest excludes itself, uses a synced mode-0600 temporary file plus atomic
+no-overwrite hard link, removes the temporary name, and syncs the directory.
+The permanent BRN-0025-shaped nested fixture and adversarial cases pass.
+
+New successor `j4-luna-ettin-unexecuted11to20-v3` preserves the P-set 36
+population, order, architecture, models, prompts, four-call evidence ceiling,
+historical grades, and previously-profiled disclosure under FINAL P-set 37.
+Sealed U8 `1568498a` is excluded. Opening cumulative accounted spend is exactly
+`$7.85549929`; proposed caps are `$5.00` fresh and `$12.85549929` cumulative.
+No selected session/question/answer or expected route was inspected.
+
+New gitignored launcher/runtime are mode 0600 at SHA-256
+`e8bf8d79f7b13cbaf28ee8e9e580638b04214590a2d47bf20c42cb2202d0543e`
+and
+`a1c2e9f006065534f7283eed54720137119a0cfb8e1e313e92a222314368d81e`.
+Provider-free verification executed the actual final-runtime cached-Ettin
+smoke (titanium first, answer `It is titanium.`, four finite scores), one fake
+projected count and full generation, durable `reserved -> launched ->
+consumed` custody with reuse rejection, and an actual nested seal/verify/reseal
+refusal. Temporary state was removed. Credential reads, dataset reads,
+provider calls, and result writes are exactly `0 / 0 / 0 / 0`; both v3
+namespaces remain absent; fresh spend is `$0.00`.
+
+The clean pushed import closure contains 49 files / 742,374 bytes and hashes
+to `1c0a634ef908059abe68f8626656b54b1cc1e33e4ec0f0257e8afcd07f132776`.
+Consumed BRN-0025 launcher/runtime and all 12 mode-0600 result files plus root
+and 8 nested mode-0700 directories rehash identically before/after. Its
+namespace remains honestly unsealed; BRN-0024 is also untouched. Historical
+`6/10` remains unchanged.
+
+Verification at implementation closeout: focused contracts 21/21; full suite
+796 pass / 15 optional skip / 0 fail across 811; quickstart and governance
+checks are rerun at final handoff. Independent cumulative review of the exact
+clean pushed head/private hashes remains required. Acceptance would freeze the
+offline candidate only. Any live invocation still requires exact founder
+authorization naming identity, `$5.00` fresh, `$12.85549929` cumulative,
+reviewed head, launcher/runtime hashes, and ACCEPT.
+
+Product stop rule: (1) yes, quickstart remains green; (2) no end-user memory
+behavior changes because this is an offline evaluation repair; (3) OpenAI
+documents endpoint schemas and Node supplies filesystem primitives, but
+neither provides this fail-closed paired-hash/custody policy; (4) yes, the
+founder requested autonomous repair and a defensible Luna+Ettin evaluation;
+(5) deleting it would resend an incompatible count body or lose nested
+terminal evidence. This is one infrastructure unit after a measurement, so it
+does not trigger consecutive-infrastructure drift.
+
 Loop state: BRN-0025 TERMINAL FAILURE ACCEPTED, MERGED, AND PUSHED; BRN-0026
 COUNT-WIRE AND DIRECTORY-WALKER REPAIR CONTRACT OPEN; OFFLINE IMPLEMENTATION
 NEXT. Founder-authorized
