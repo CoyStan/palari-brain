@@ -5,11 +5,19 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import {
+  createPalariBrain,
+  ingestLongMemEvalInstance,
+} from '../src/index.mjs'
+import {
   assertExactExtractionEnvelope,
   assertValidatedJ4GeminiResponse,
   buildJ4WriterRepairBody,
   callJ4RepairingWriter,
+  chronologicalJ4SessionOccurrences,
   chronologicalJ4Sessions,
+  j4SourceMessageId,
+  j4SourceSessionOccurrenceId,
+  j4SourceSessionId,
   runKernelLongMemEvalQuestion,
 } from '../evals/arms/kernel-longmemeval-live-arm.mjs'
 import { buildMemoryExtractionRequest } from '../src/memory-extraction.mjs'
@@ -163,6 +171,51 @@ test('J4 replay order is stable chronological with original-order ties', () => {
   )
 })
 
+test('J4 source identity is occurrence-aware and reversibly preserves arbitrary session IDs', () => {
+  const sessionId = 'source:with:colons/j4-source-message:v1:%/雪:007'
+  const first = j4SourceMessageId({
+    occurrenceOrdinal: 4,
+    sessionId,
+    turnIndex: 0,
+  })
+  assert.equal(first, j4SourceMessageId({
+    occurrenceOrdinal: 4,
+    sessionId,
+    turnIndex: 0,
+  }))
+  assert.notEqual(first, j4SourceMessageId({
+    occurrenceOrdinal: 5,
+    sessionId,
+    turnIndex: 0,
+  }))
+  assert.notEqual(first, j4SourceMessageId({
+    occurrenceOrdinal: 4,
+    sessionId,
+    turnIndex: 1,
+  }))
+  assert.equal(j4SourceSessionId(first), sessionId)
+  assert.equal(
+    `${j4SourceSessionOccurrenceId({ occurrenceOrdinal: 4, sessionId })}:0`,
+    first,
+  )
+  assert.equal(j4SourceSessionId(`${first}:extra`), '')
+  assert.equal(j4SourceSessionId('legacy-session:0'), '')
+})
+
+test('J4 occurrence provenance remains the original ordinal after chronology sorting', () => {
+  const ordered = chronologicalJ4SessionOccurrences({
+    sessions: [
+      { eventAt: '2026-07-03T00:00:00Z', sessionId: 'shared' },
+      { eventAt: '2026-07-01T00:00:00Z', sessionId: 'shared' },
+      { eventAt: '2026-07-02T00:00:00Z', sessionId: 'shared' },
+    ],
+  })
+  assert.deepEqual(
+    ordered.map(({ occurrenceOrdinal }) => occurrenceOrdinal),
+    [1, 2, 0],
+  )
+})
+
 test('J4 arm requires the meter validated model/finish/text/usage contract', () => {
   assert.equal(
     assertValidatedJ4GeminiResponse(validatedGemini('okay'), 'writer').text,
@@ -219,6 +272,11 @@ test('J4 arm uses one gated workspace, exact source IDs, and the official answer
     assert.equal(result.answer, 'The user prefers coffee.')
     assert.equal(result.ingest.turns, 2)
     assert.equal(result.ingest.sessions, 2)
+    assert.deepEqual(
+      result.ingest.turnResults.map(({ sourceMessageId }) =>
+        j4SourceSessionId(sourceMessageId)),
+      ['early-session', 'late-session'],
+    )
     assert.ok(result.ingest.memoriesWritten >= 1)
     assert.ok(result.ingest.storedSourceSessionIds.every((id) =>
       ['early-session', 'late-session'].includes(id)))
@@ -227,6 +285,115 @@ test('J4 arm uses one gated workspace, exact source IDs, and the official answer
     assert.match(result.promptSha256, /^[a-f0-9]{64}$/)
     assert.equal(result.retrieval.at10.expected, 1)
   } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('J4 duplicate source-session occurrences ingest distinctly, replay idempotently, and reject mutation before writer work', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'palari-j4-arm-duplicate-'))
+  const scope = {
+    palariId: 'palari-j4-duplicate-test',
+    userId: 'user-j4-duplicate-test',
+  }
+  const instance = {
+    answer: 'tea and coffee',
+    answerSessionIds: ['shared-session'],
+    isAbstention: false,
+    question: 'Which drinks were mentioned?',
+    questionDate: '2026-07-03T00:00:00Z',
+    questionId: 'j4-test-duplicate-session',
+    questionType: 'multi-session-preference',
+    sessions: [
+      {
+        eventAt: '2026-07-02T00:00:00Z',
+        sessionId: 'shared-session',
+        turns: [
+          { content: 'I prefer coffee.', role: 'user' },
+          { content: 'Understood.', role: 'assistant' },
+        ],
+      },
+      {
+        eventAt: '2026-07-01T00:00:00Z',
+        sessionId: 'shared-session',
+        turns: [
+          { content: 'I prefer tea.', role: 'user' },
+          { content: 'Understood.', role: 'assistant' },
+        ],
+      },
+    ],
+  }
+  const occurrenceAware = (value) => ({
+    ...value,
+    sessions: chronologicalJ4SessionOccurrences(value).map(({
+      occurrenceOrdinal,
+      session,
+    }) => ({
+      ...session,
+      sessionId: j4SourceSessionOccurrenceId({
+        occurrenceOrdinal,
+        sessionId: session.sessionId,
+      }),
+    })),
+  })
+  const brain = await createPalariBrain({
+    memoryEnabled: true,
+    statePath: join(root, 'brain.json'),
+    workspaceId: 'j4-duplicate-test',
+  })
+  try {
+    const first = await ingestLongMemEvalInstance(
+      brain,
+      occurrenceAware(instance),
+      scope,
+    )
+    const firstRows = brain.listStatements(scope)
+    const firstSourceIds = [...new Set(
+      firstRows.map((row) => row.source_message_id),
+    )]
+    assert.equal(first.sessions, 2)
+    assert.ok(firstRows.length >= 2)
+    const expectedExchangeIds = [
+      j4SourceMessageId({
+        occurrenceOrdinal: 1,
+        sessionId: 'shared-session',
+        turnIndex: 0,
+      }),
+      j4SourceMessageId({
+        occurrenceOrdinal: 0,
+        sessionId: 'shared-session',
+        turnIndex: 0,
+      }),
+    ]
+    assert.deepEqual(firstSourceIds, expectedExchangeIds.flatMap((id) => [
+      `${id}:user`,
+      `${id}:assistant`,
+    ]))
+    assert.deepEqual(
+      firstSourceIds.map((id) => j4SourceSessionId(id)),
+      [
+        'shared-session',
+        'shared-session',
+        'shared-session',
+        'shared-session',
+      ],
+    )
+
+    await ingestLongMemEvalInstance(
+      brain,
+      occurrenceAware(structuredClone(instance)),
+      scope,
+    )
+    assert.equal(brain.listStatements(scope).length, firstRows.length)
+
+    const mutated = structuredClone(instance)
+    mutated.sessions[1].turns[0].content = 'I prefer cocoa.'
+    await assert.rejects(
+      ingestLongMemEvalInstance(brain, occurrenceAware(mutated), scope),
+      (error) => error?.code === 'SOURCE_MESSAGE_CONFLICT',
+    )
+  }
+  finally {
+    brain.close()
     await rm(root, { recursive: true, force: true })
   }
 })

@@ -211,6 +211,23 @@ retrieval, or answer behavior. Repair must preserve stable replay identity and
 the gate's fail-closed semantics; this terminal-record ticket does not choose
 or implement that repair.
 
+BRN-0032 implements that repair without changing the immutable gate. The J4
+adapter wraps the UTF-8 source session ID in a versioned reversible base64url
+envelope, then appends the original instance occurrence ordinal and exchange
+turn index. The product dialogue boundary continues to append `user` or
+`assistant` to its canonical rows. This is provenance encoding, not a content
+fingerprint: question text, answer text, message text, and their hashes never
+participate.
+
+Replay sorts occurrences by event time and uses the original occurrence
+ordinal only as a deterministic tie-breaker, so chronology does not renumber
+identity. Metric attribution accepts only the complete governed envelope
+(plus the product role suffix), decodes it canonically, and recovers the exact
+original source session ID. A second occurrence with the same source session
+therefore receives a distinct key; exact replay preserves the same keys and
+rows; mutation within one occurrence still reaches the unchanged dialogue
+manifest and fails `SOURCE_MESSAGE_CONFLICT` before writer work.
+
 ## Sealed SQLite inspection
 
 Opening a copied SQLite database in place is not read-only at the physical

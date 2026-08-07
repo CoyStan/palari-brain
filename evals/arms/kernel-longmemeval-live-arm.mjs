@@ -5,6 +5,7 @@
 // chronological replay, official fact-memory answer prompt, and source-session
 // diagnostics.
 
+import { Buffer } from 'node:buffer'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -44,24 +45,71 @@ function validDate(value, label) {
   return date
 }
 
-export function chronologicalJ4Sessions(instance = {}) {
+export function chronologicalJ4SessionOccurrences(instance = {}) {
   return (instance.sessions ?? [])
-    .map((session, originalIndex) => ({ originalIndex, session }))
+    .map((session, occurrenceOrdinal) => ({ occurrenceOrdinal, session }))
     .sort((left, right) => {
       const dateDelta =
         validDate(left.session.eventAt, 'session eventAt').getTime() -
         validDate(right.session.eventAt, 'session eventAt').getTime()
-      return dateDelta || left.originalIndex - right.originalIndex
+      return dateDelta || left.occurrenceOrdinal - right.occurrenceOrdinal
     })
+}
+
+export function chronologicalJ4Sessions(instance = {}) {
+  return chronologicalJ4SessionOccurrences(instance)
     .map(({ session }) => session)
 }
 
-function sourceSessionId(value) {
+const J4_SOURCE_MESSAGE_PREFIX = 'j4-source-message:v1:'
+
+export function j4SourceSessionOccurrenceId({
+  occurrenceOrdinal,
+  sessionId,
+} = {}) {
+  if (typeof sessionId !== 'string' || !sessionId ||
+    !Number.isSafeInteger(occurrenceOrdinal) || occurrenceOrdinal < 0) {
+    throw new J4LiveError(
+      'SOURCE_ID_INVALID',
+      'J4 source identity requires a session ID and non-negative occurrence ordinal.',
+    )
+  }
+  const encodedSessionId = Buffer.from(sessionId, 'utf8').toString('base64url')
+  return `${J4_SOURCE_MESSAGE_PREFIX}${encodedSessionId}:${occurrenceOrdinal}`
+}
+
+export function j4SourceMessageId({
+  occurrenceOrdinal,
+  sessionId,
+  turnIndex,
+} = {}) {
+  if (!Number.isSafeInteger(turnIndex) || turnIndex < 0) {
+    throw new J4LiveError(
+      'SOURCE_ID_INVALID',
+      'J4 source identity requires a non-negative turn ordinal.',
+    )
+  }
+  return `${j4SourceSessionOccurrenceId({
+    occurrenceOrdinal,
+    sessionId,
+  })}:${turnIndex}`
+}
+
+export function j4SourceSessionId(value) {
   const text = String(value ?? '')
-  const separator = text.lastIndexOf(':')
-  return separator > 0 && /^\d+$/.test(text.slice(separator + 1))
-    ? text.slice(0, separator)
-    : ''
+  if (!text.startsWith(J4_SOURCE_MESSAGE_PREFIX)) return ''
+  const envelope = text.slice(J4_SOURCE_MESSAGE_PREFIX.length)
+  const match = /^([A-Za-z0-9_-]+):(0|[1-9]\d*):(0|[1-9]\d*)(?::(?:user|assistant))?$/.exec(envelope)
+  if (!match) return ''
+  try {
+    const sessionId = Buffer.from(match[1], 'base64url').toString('utf8')
+    return sessionId &&
+      Buffer.from(sessionId, 'utf8').toString('base64url') === match[1]
+      ? sessionId
+      : ''
+  } catch {
+    return ''
+  }
 }
 
 function orderedUnique(values) {
@@ -306,7 +354,7 @@ function recallCoverage(sourceSessionIds, answerSessionIds, limit) {
 function assertSourceIsolation(rows, allowedSessionIds, questionId) {
   const sourceSessionIds = []
   for (const row of rows) {
-    const sessionId = sourceSessionId(row?.source_message_id)
+    const sessionId = j4SourceSessionId(row?.source_message_id)
     if (!sessionId || !allowedSessionIds.has(sessionId)) {
       throw new J4LiveError(
         'SOURCE_ISOLATION_FAILURE',
@@ -359,13 +407,20 @@ export async function runKernelLongMemEvalQuestion({
   }
 
   try {
-    for (const session of chronologicalJ4Sessions(instance)) {
+    for (const {
+      occurrenceOrdinal,
+      session,
+    } of chronologicalJ4SessionOccurrences(instance)) {
       replayClock = validDate(session.eventAt, 'session eventAt')
       ingest.sessions += 1
       const turns = session.turns ?? []
       for (let index = 0; index < turns.length; index += 1) {
         if (turns[index]?.role !== 'user') continue
-        const sourceMessageId = `${session.sessionId}:${index}`
+        const sourceMessageId = j4SourceMessageId({
+          occurrenceOrdinal,
+          sessionId: session.sessionId,
+          turnIndex: index,
+        })
         const assistantMessage = turns[index + 1]?.role === 'assistant'
           ? turns[index + 1].content
           : ''

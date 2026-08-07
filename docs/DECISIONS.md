@@ -3325,3 +3325,18 @@ here with dates. Agents record; the founder decides.
   diagnosis. The prior P2 composition wording and P3 whitespace findings are
   resolved; final review reports no P0-P3. Acceptance grants no repair, retry,
   provider call, successor identity, or live authority.
+
+- 2026-08-07 (BRN-0032 occurrence-aware source identity)
+  **Disambiguate repeated source-session occurrences with reversible
+  provenance, never content.** Canonical J4 source identity now uses the
+  original source session ID, stable original-instance occurrence ordinal,
+  and exchange turn index under a versioned base64url envelope; product rows
+  retain their user/assistant suffix. Chronology may reorder replay but never
+  renumbers occurrence identity. Isolation and retrieval metrics recover the
+  exact original session ID. Exact replay remains idempotent, while changed
+  bytes or metadata under one occurrence still fail the unchanged immutable
+  dialogue gate with `SOURCE_MESSAGE_CONFLICT`. Freeze provider-free successor
+  `j4-luna-ettin-unexecuted11to20-v5` under FINAL P-set 39 at `$8.00840072`
+  opening and proposed `$5.00` fresh / `$13.00840072` cumulative caps. This
+  decision grants no credential read, provider call, result namespace, spend,
+  score, or live v5 authority.

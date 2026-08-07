@@ -1,5 +1,53 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0032 OCCURRENCE-AWARE SOURCE IDENTITY AND V6 SENTINEL
+INTEGRATED OFFLINE; READY FOR INDEPENDENT REVIEW. No credential read, dataset
+read, provider call, result write, spend, or live v5 invocation occurred.
+
+The LongMemEval live arm now gives each source message a versioned, reversible
+identity containing the original source-session occurrence ordinal and turn
+index. Original occurrence is assigned before chronological replay, so two
+source sessions with the same source ID remain distinct without changing their
+event order. Metrics and source isolation recover the original source-session
+ID from the envelope. Exact replay remains storage-idempotent, while mutation
+of the same occurrence still raises `SOURCE_MESSAGE_CONFLICT` before writer
+work. The admission gate was not weakened and content is not used as identity.
+
+BRN-0032 atomically includes the one-line historical-v6 sentinel adjustment:
+the expected deterministic first changed artifact is now the earlier kernel
+arm. The complete drift set and all frozen v6 JSON bytes are unchanged. The
+red intermediate BRN-0030 and BRN-0031 implementation branches were not
+merged and are superseded by this integration.
+
+FINAL P-set 39 freezes unconsumed identity
+`j4-luna-ettin-unexecuted11to20-v5` at opening accounted spend
+`$8.00840072`, with proposed `$5.00` fresh / `$13.00840072` cumulative caps.
+The actual private mode-0600 launcher/runtime SHA-256 values are
+`d149ee3e145789cc97b0e92caa22e23a719e7125cd1435f028cb90899eec83ef` and
+`c013d8a32efd408094dd5881acbc4c7d5e96104661883b519e98618996efabd7`.
+Provider-free verification of those exact bytes passed cached Ettin, answer
+smoke, exact count projection, canonical settlement, one-shot custody,
+recursive seal/reseal refusal, duplicate occurrence ingest/replay/mutation,
+cleanup, and namespace absence. Telemetry was zero credential reads, zero
+dataset reads, zero provider calls, and zero result writes. The v5 result and
+semantic-review namespaces remain absent; v1-v4 evidence is unchanged.
+
+Offline verification is green: focused contracts passed 19/19; `npm test`
+passed 805 with 15 optional skips and zero failures across 820; quickstart
+passed 6/6; ticket scope and diff checks pass. Historical `6/10`, sealed U8,
+and cumulative accounted spend remain unchanged. Acceptance of BRN-0032 will
+not authorize v5: one exact founder authorization at the accepted head and
+the hashes above is required before any live invocation.
+
+Product stop rule: (1) yes, quickstart is green; (2) yes, repeated source
+sessions can now be ingested without aliasing, so the memory journey reaches
+retrieval instead of failing at its first row; (3) provider SDKs do not supply
+Palari's durable source provenance or immutable admission identity; (4) yes,
+the founder asked to repair the measured BRN-0028 failure and continue the
+benchmark; (5) deleting this change restores the canonical-key collision and
+prevents valid repeated sessions from entering memory. Next is fresh,
+read-only independent review. No live run is authorized.
+
 Loop state: BRN-0028 LIVE IDENTITY CONSUMED; TERMINAL SOURCE-IDENTITY FAILURE
 SEALED; BRN-0029 TERMINAL RECORD INDEPENDENTLY REVIEWED AND ACCEPTED. No retry,
 resume, reroll, regrade, provider call, repair, or successor is authorized.
