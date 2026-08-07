@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0035
 children: []
-status: claimed
+status: in-review
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-08-07T16:35:33Z
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0035-reset-palari-to-a-lightweight-alpha-loop"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0035-reset-palari-to-a-lightweight-alpha-loop"
@@ -164,3 +164,23 @@ does not authorize any provider spend.
   adds a framework dependency, changes product memory behavior, performs live
   or secret/data activity, or deletes the legacy system instead of deactivating
   it.
+
+## Specialist Closeout
+
+Implementation head `9220d80622d6fba473fd920c1ea656afa31e68b8` replaces the
+default governance-heavy loop with one injected alpha runner and ten focused
+provider-free contracts. The old default measured 825 tests in 19.04 seconds;
+the new default measured 10 tests in 0.40 seconds. The full historical tier
+still passes 818 with 15 optional skips and zero failures across 833, including
+all 825 pre-existing tests. Quickstart passes 6/6.
+
+Exactly 20 official repositories were source-checked and recorded with
+adopt/avoid lessons. No framework dependency, product-memory change, mass
+legacy deletion, provider call, credential/data read, spend, score, or
+historical evidence mutation occurred. The annotated recovery tag exists and
+resolves to `332b133db40e6e790734e25dbef3e8e6436c9377`.
+
+Focused/default, legacy, quickstart, official-repository link checks,
+committed-plus-dirty scope, ticket checks, tag verification, and diff checks
+are green. Technical, human, and handoff reports carry the exact evidence for
+fresh read-only review.

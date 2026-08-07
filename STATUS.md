@@ -2,9 +2,10 @@
 
 ## Current state
 
-BRN-0035 is implementing the lightweight alpha reset. The product kernel and
-historical evidence are unchanged. The full pre-reset repository is preserved
-at annotated tag `pre-alpha-governance-reset-2026-08-07`.
+BRN-0035 implemented the lightweight alpha reset at `9220d80` and is ready for
+independent review. The product kernel and historical evidence are unchanged.
+The full pre-reset repository is preserved at annotated tag
+`pre-alpha-governance-reset-2026-08-07` (target `332b133`).
 
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Accounted historical provider spend remains
@@ -26,14 +27,14 @@ mutable, gitignored diagnostics, not benchmark grades.
 
 ## Next
 
-Complete BRN-0035 verification and independent review. After acceptance, use
+Complete independent review of BRN-0035. After acceptance, use
 the reusable debug runner to repair the first broken end-to-end memory path
 under one explicit aggregate budget. Do not freeze another benchmark identity
 until the full path works.
 
 ## Product check
 
-1. Basic journey runnable: pending final BRN-0035 quickstart verification.
+1. Basic journey runnable: yes, quickstart passed 6/6.
 2. Measurable improvement: default feedback targets the active alpha loop.
 3. Existing framework: the survey found useful patterns, but adding a full
    framework would add more surface than Palari needs.
