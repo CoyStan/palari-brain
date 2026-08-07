@@ -1,12 +1,13 @@
 # BRN-0025 Reviewer Note
 
-Reviewer: PENDING
-Reviewed commit(s): PENDING
+Reviewer: PENDING terminal reviewer
+Reviewed commit(s): predispatch `782dc2212a7bc0b64c416dafeceebafefc41236f`
 Target branch: `main`
 
 ## Review Result
 
-PENDING independent review.
+Predispatch review was ACCEPT. Independent review of the consumed terminal
+result and tracked record is PENDING.
 
 ## Findings
 
@@ -27,17 +28,31 @@ PENDING independent review.
 - The second cumulative repair is now submitted with PENDING markers. Fresh
   implementation review, a later marker-only attestation commit, and final
   out-of-band exact-head rereview remain required in that order.
+- Those predispatch gates completed at exact head
+  `782dc2212a7bc0b64c416dafeceebafefc41236f`; the founder then authorized one
+  invocation, which is now consumed.
+- Terminal facts awaiting independent reconciliation: cached Ettin passed;
+  Gemini writer compatibility passed one measured call; the first Luna
+  input-count request failed HTTP 400 on unknown parameter `include`; no
+  generation or question row followed; and accounted spend is `$0.0504775`
+  fresh / `$7.85549929` cumulative.
+- The launcher produced no manifest because its terminal walker rejected the
+  top-level `transcripts/` directory as not being a mode-0600 file. The
+  namespace is unsealed and must never be sealed post hoc. With zero question
+  rows, no semantic-review overlay applies.
 
 ## Verification Reviewed
 
-The specialist did not review, accept, merge, or execute the successor. A
-fresh read-only reviewer must inspect the exact pushed head, replay the final-
-runtime contracts, run the private provider-free verification, and rehash all
-private artifacts.
+The specialist did not review, accept, or merge the terminal result and did not
+execute or retry it. A fresh read-only terminal reviewer must inspect the exact
+pushed record and reconcile the supplied immutable snapshot, one-shot custody,
+provider/accounting facts, missing manifest, historical `6/10`, and U8 state.
+The reviewer must not mutate or seal private artifacts, inspect benchmark
+content, access credentials, create judged labels, or call a provider.
 
 ## Required Changes
 
-- PENDING independent review.
+- PENDING independent terminal review.
 
 Required final markers remain intentionally non-authorizing:
 
@@ -51,7 +66,8 @@ BRN0025_REVIEW_RECOMMENDATION: ACCEPT
 
 ## Recommendation
 
-PENDING. This specialist-authored placeholder does not recommend acceptance,
-reopen the ticket, or request human action.
+PENDING. This specialist-authored terminal placeholder does not recommend
+acceptance, reopen the ticket, or request human action.
 
-No live action is authorized by this note.
+No retry, repair, seal, provider call, or successor action is authorized by
+this note.

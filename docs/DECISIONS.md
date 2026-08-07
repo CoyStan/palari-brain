@@ -3203,3 +3203,18 @@ here with dates. Agents record; the founder decides.
   temporary custody case. Required-function instrumentation proves that exact
   binding executes and rejects reuse. No provider, credential, dataset,
   successor namespace, or spend is authorized or reached.
+
+- 2026-08-07 (BRN-0025 terminal compatibility and unsealed-artifact failure)
+  **Preserve the consumed result exactly; never retry or seal it post hoc.**
+  The authorized invocation passed cached Ettin and one Gemini writer smoke,
+  then its first Luna answer-smoke count request failed HTTP 400 because
+  `include` is an unknown parameter. No generation or benchmark row followed.
+  Account `$0.0004775` measured Gemini spend plus the `$0.05` uncertain Luna
+  count attempt: `$0.0504775` fresh and `$7.85549929` cumulative. The launcher
+  subsequently rejected the expected `transcripts/` directory as though it
+  had to be a mode-0600 file, so no manifest exists. Preserve the immutable
+  unsealed 12-file/8-directory snapshot and record the failed seal honestly.
+  Historical `6/10` and U8 remain unchanged; with zero question rows no judged
+  semantic overlay applies. Any compatibility or directory-walk repair needs
+  a separate governed ticket, new identity, new predictions, review, and exact
+  founder authorization.

@@ -17,7 +17,8 @@ New private, gitignored mode-0600 artifacts:
 - `/home/quetza/palari-brain-private/luna-ettin-unexecuted11to20-v2-live.runtime.mjs`
   — SHA-256 `8b1846493ca9835e21a91464a4885794a0b756ccaf33063ea3478fa197129dc6`.
 
-The successor result and semantic-review namespaces are absent.
+The successor result namespace now exists, is consumed, and is unsealed after
+the one authorized invocation. The semantic-review namespace remains absent.
 The launcher derives and rehashes the complete transitive static import and
 reexport closure from one exact clean ticket root: 48 files, 732,601 bytes,
 SHA-256 `021cf118dec74f5611f5578488dbf86c5b11f996c0cec1a25ba6a680a8e2960d`.
@@ -70,8 +71,10 @@ The tracked verifier executed those final private runtime bytes with a
 }
 ```
 
-No `.env`, credential, dataset content, selected session/question/answer,
-provider, result namespace, semantic judgment, or spend was accessed.
+At the offline-freeze cut point, no `.env`, credential, dataset content,
+selected session/question/answer, provider, result namespace, semantic
+judgment, or spend was accessed. The later terminal invocation is recorded
+separately below.
 
 ## Immutable BRN-0024 Evidence
 
@@ -85,9 +88,66 @@ Before and after implementation/verification, the exact SHA-256 values are:
 - meter: `14db06670a77a177f173b58ac7b3758aee1ee9ef4030b8a5b834471e83429496`
 - started marker: `54250027459b7c4ef01cfcaf5a1c9d8c62235f8e0ab4119081c658df8b2f8ef0`
 
-Every listed private file remains exact mode 0600. P-set 35 terminal grading,
-historical `6/10`, cumulative accounted `$7.80502179`, and sealed U8 are
-unchanged.
+Every listed BRN-0024 private file remains exact mode 0600. P-set 35 terminal
+grading, historical `6/10`, and sealed U8 are unchanged.
+
+## Terminal Invocation
+
+The founder authorized identity `j4-luna-ettin-unexecuted11to20-v2` once under
+the `$5.00` fresh / `$12.80502179` cumulative caps at exact reviewed head
+`782dc2212a7bc0b64c416dafeceebafefc41236f`, launcher SHA-256
+`122de407ad22fd8ee720023b0bbf7aad03dd716a865d6b283968688e30560373`,
+runtime SHA-256
+`8b1846493ca9835e21a91464a4885794a0b756ccaf33063ea3478fa197129dc6`,
+and review `ACCEPT`. The attempt was reserved at
+`2026-08-07T03:18:45.492Z`, launched at `.497Z`, and consumed at `.627Z`.
+That identity cannot be reused.
+
+The real cached-Ettin smoke passed: titanium ranked first, four scores were
+finite, and provider telemetry was zero. The credential environment loaded.
+The Gemini writer smoke then passed one HTTP 200
+`gemini-3.5-flash-lite` request using 525 input and 128 output tokens, for
+measured spend `$0.0004775`. The first Luna answer-smoke input-count request was
+made once and returned HTTP 400 before generation:
+`Unknown parameter: 'include'.` The provider identified parameter `include`
+and code `unknown_parameter`. The runtime exited 1. No generation, successful
+answer smoke, question, judge, score, semantic label, or retry followed. The
+terminal report is `failed`, with `questions: []` and `compatibility: null`.
+
+The meter records `$0.0004775` measured plus `$0.05` uncertain count-attempt
+spend. Fresh accounted is `$0.0504775`; cumulative accounted advances from
+`$7.80502179` to exactly `$7.85549929`. Both caps held.
+
+After the runtime failure, the launcher failed terminal artifact enumeration:
+it treated the expected top-level `transcripts/` directory as a candidate file
+and rejected it for not having file mode 0600. No manifest was produced. The
+terminal namespace is therefore **UNSEALED** and must not be sealed after the
+fact. The immutable snapshot has 12 files at mode 0600 and 8 directories at
+mode 0700. File-list SHA-256 is
+`1785c7876fad8b3c01092e4c6649ac34371364a5b0365f511aa47c681cbc8b87` and
+directory-list SHA-256 is
+`0667cf1f4354d7f3f618b2605e851591996a9043711da22807e13f4259fe878f`.
+
+Key immutable hashes supplied for terminal reconciliation are:
+
+- meter:
+  `deffd6c921c973f9c5cbdf5569bbc380789f8385fb5e913134607a1300c9d4e6`
+- report:
+  `a0328794a29d3c1a8cc3576fee7ad190301c3b2f5fbd870ea859a540ef4c1214`
+- attempt:
+  `59fef1f5fe5a92b6ffa9c5b23f11b642b89ce03ccd548ef80f5fa5be22945a39`
+- launcher result:
+  `fcda16576b70948533191a122672881319be8edec4ac0a5d5509f663617591cb`
+- OpenAI transcript:
+  `1aa4e36c8cfb15713fd41724c084d7403fc47de10987a813216647507cf9b24e`
+- Gemini transcript:
+  `2979a07c685d6ce311a3213e00e6f21a59ecc2a88ec22d3366748baaf140e286`
+
+P-set 36 grades all numeric and question-level behavioral categories NOT
+REACHED / FAIL. Execution/accounting passes the first-failure stop and cap-hold
+branches but fails its seal requirement. Writer compatibility alone passed.
+Zero rows mean materially-used and equivalent-fact judgments are inapplicable;
+no overlay is created. Historical `6/10` and U8 remain unchanged.
 
 ## Verification
 
@@ -100,11 +160,16 @@ unchanged.
 - `npm run quickstart`: PASS, 6/6.
 - `node --check` for launcher/runtime/verifier: PASS.
 - ticket, report, committed-plus-dirty scope, and diff checks: PASS at handoff.
+- post-terminal tracked-record verification: focused contracts 13/13; full
+  tests 788 pass / 15 skip / 0 fail across 803; quickstart 6/6; ticket, report,
+  governed scope, and diff checks PASS. No provider or private-runtime command
+  was executed during this verification.
 
 ## Risks / Follow-Ups
 
-The offline smoke validates composition and cached-Ettin compatibility only.
-It predicts no P-set 36 score. Independent review remains PENDING. Even after
-acceptance, the proposed `$5.00` fresh / `$12.80502179` cumulative boundary is
-not authority. One live successor invocation requires a new exact founder GO
-naming identity, numeric caps, reviewed head, both private hashes, and ACCEPT.
+Independent terminal review remains PENDING. It must treat the unsealed state
+as terminal truth, reconcile the exact snapshot and accounting, and must not
+inspect benchmark content, mutate private bytes, add semantic labels, or seal
+the namespace after the fact. The answer-count compatibility failure and the
+directory-walk sealing defect require a new governed ticket and a separately
+identified successor; this consumed invocation cannot be retried or repaired.

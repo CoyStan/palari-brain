@@ -1,70 +1,64 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0025 CUMULATIVE REVIEW REPAIR IMPLEMENTED OFFLINE;
-FRESH INDEPENDENT REREVIEW NEXT. Independent review of `f6bc40b` reopened one
-P0, one P1, and one P2: launcher/runtime attempt states contradicted, the
-claimed 19-file source list was incomplete and mixed roots, and lexical helper
-matching could be fooled without proving execution.
-
-Cumulative review of `c83a664` then reopened two more issues: the review note
-could not attest its own final HEAD without changing that HEAD, and launcher
-verification simulated custody while using lexical source checks to claim the
-real runtime consumed an attempt. The second repair follows the proven marker-
-only sequence: the tracked note binds identity/private hashes/disposition but
-never its own HEAD; founder authority separately requires the current clean
-pushed HEAD to equal the supplied reviewed head. Implementation review is
-followed by a marker-only ACCEPT commit and a final out-of-band exact-head
-rereview before any founder gate can open.
-
-The final runtime now owns one `consumeLaunchedAttempt(path)` function. Live
-`run()` calls it, and provider-free verification executes that same function
-twice against a temporary reserved/launched attempt: the first call durably
-consumes it, the second proves reuse rejection, and cleanup removes all state.
-The launcher durably writes `reserved`, atomically
-replaces it with `launched` before spawn, and lets the runtime require then
-atomically consume that state before preflight. Offline custody proves
-`reserved -> launched -> consumed`, rejects reuse, and cleans its temporary
-state. The generated runtime imports one exact clean ticket root; Node's module
-parser derives its complete 48-file / 732,601-byte static import/reexport
-closure at SHA-256
-`021cf118dec74f5611f5578488dbf86c5b11f996c0cec1a25ba6a680a8e2960d`.
-The final-runtime verifier now executes a nonce-instrumented same-directory
-copy and requires each named module-scope helper to exist and run. Comments,
-strings, duplicate declarations, hard-coded pass output, timeout/signal/
-nonzero exits, invalid/oversized output, and nonzero external telemetry fail
-closed. Focused contracts pass 13/13, including dead-branch rearrangement and
-marker-only attestation regressions.
-
-New identity `j4-luna-ettin-unexecuted11to20-v2` and FINAL P-set 36 preserve
-the same disclosed population, architecture, treatment, predictions,
-historical `6/10`, U8 exclusion, `$7.80502179` opening accounting, and proposed
-`$5.00` fresh / `$12.80502179` cumulative caps. The mode-0600 private launcher
-SHA-256 is `122de407ad22fd8ee720023b0bbf7aad03dd716a865d6b283968688e30560373`;
-the mode-0600 final runtime SHA-256 is
+Loop state: BRN-0025 TERMINAL FAILURE RECORDED; INDEPENDENT TERMINAL REVIEW
+NEXT. Founder-authorized identity `j4-luna-ettin-unexecuted11to20-v2` was
+reserved at `2026-08-07T03:18:45.492Z`, launched at `.497Z`, and consumed at
+`.627Z` exactly once at reviewed head
+`782dc2212a7bc0b64c416dafeceebafefc41236f`. The launcher/runtime hashes were
+`122de407ad22fd8ee720023b0bbf7aad03dd716a865d6b283968688e30560373` and
 `8b1846493ca9835e21a91464a4885794a0b756ccaf33063ea3478fa197129dc6`.
-Provider-free verification executed one real cached-Ettin rank through a
-temporary synthetic Palari brain: the titanium memory ranked first, the answer
-was `It is titanium.`, scores were finite 4/4, and temporary state was removed.
-Telemetry is exactly zero provider calls, credential reads, dataset reads, and
-result writes. The successor result and semantic-review namespaces remain
-absent; fresh spend is `$0.00` and cumulative accounted stays `$7.80502179`.
+It cannot be retried, resumed, rerolled, regraded, or post-hoc sealed.
 
-All seven BRN-0024 private launcher/runtime/terminal hashes and mode-0600 bytes
-rehash unchanged before and after. Focused contracts pass 13/13; full tests pass
-788 / fail 0 / skip 15 across 803; quickstart passes 6/6; syntax, ticket,
-report, governed scope, and diff checks pass. Independent review is PENDING.
-No live successor is authorized; an accepted freeze must stop for a new exact
-founder GO binding identity, both caps, reviewed head, launcher/runtime hashes,
-and ACCEPT.
+The cached-Ettin smoke passed with titanium first, four finite scores, and zero
+provider activity. The credential environment then loaded. The Gemini writer
+smoke passed one HTTP 200 `gemini-3.5-flash-lite` call with 525 input and 128
+output tokens, measuring `$0.0004775`. The first Luna answer-smoke input-count
+request was made exactly once and returned HTTP 400 before generation:
+`Unknown parameter: 'include'.` The provider classified `include` / `code` as
+`unknown_parameter`. The runtime exited 1. No generation, successful answer
+smoke, benchmark question, judge, score, semantic label, or retry occurred.
+The report is terminal `failed`, with `questions: []` and `compatibility: null`.
 
-Product stop rule: (1) yes, quickstart remains green; (2) yes, the next
-evaluation cannot consume an identity without executing the real local smoke;
-(3) Node syntax/child-process primitives exist, but frameworks do not bind
-generated evaluation custody and zero-activity telemetry; (4) yes, the
-founder explicitly asked to repair the failed evaluation autonomously; (5)
-deleting this unit would restore the exact class that consumed BRN-0024 before
-measurement. This is one infrastructure reliability unit after a measurement,
-not consecutive drift.
+Meter accounting is `$0.0004775` measured plus `$0.05` uncertain for the Luna
+count attempt, so fresh accounted spend is `$0.0504775` and cumulative
+accounted spend is now exactly `$7.85549929`, within the `$5.00` fresh /
+`$12.80502179` cumulative caps. Historical `6/10` and sealed U8 are unchanged.
+
+The launcher then failed its terminal-artifact walk because it treated the
+expected top-level `transcripts/` directory as though it had to be a mode-0600
+file. It therefore produced no manifest. The consumed terminal namespace is
+**UNSEALED** and must remain so; post-hoc sealing would rewrite history. Its
+immutable snapshot contains 12 mode-0600 files and 8 mode-0700 directories.
+The file-list SHA-256 is
+`1785c7876fad8b3c01092e4c6649ac34371364a5b0365f511aa47c681cbc8b87`; the
+directory-list SHA-256 is
+`0667cf1f4354d7f3f618b2605e851591996a9043711da22807e13f4259fe878f`.
+
+P-set 36 grades failing-first: writer compatibility PASS; OFFICIAL ACCURACY,
+SESSION RECALL, EXACT-SPAN RECALL, SELECTED EVIDENCE, MATERIALLY USED EVIDENCE,
+EQUIVALENT-FACT RECALL, ARCHITECTURE, and RERANK/BOUNDARY are NOT REACHED and
+fail their numeric or behavioral predictions. EXECUTION/ACCOUNTING passes the
+first-failure stop and cap-hold branches but fails the required seal. With zero
+question rows there is no judged equivalent-fact or materially-used surface,
+so no semantic-review overlay exists or may be created.
+
+Verification after this tracked record passes: focused contracts 13/13; full
+tests 788 pass / 15 skip / 0 fail across 803; quickstart 6/6; ticket, report,
+governed scope, and diff checks green. Independent terminal review remains
+PENDING and must reconcile the immutable unsealed snapshot and exact accounting
+without reading benchmark content, creating semantic labels, mutating private
+bytes, or attempting a seal. Any fix or successor requires a separate governed
+ticket, new identity, new predictions, fresh review, and fresh founder
+authorization.
+
+Product stop rule: (1) yes, quickstart remains green; (2) no user-facing memory
+behavior improved because the run stopped during answer compatibility; (3)
+provider SDKs expose request errors, but they do not provide this evaluation's
+one-shot custody, accounting, or artifact policy; (4) yes, the founder exactly
+authorized this invocation and requires an honest terminal record; (5) deleting
+this record would risk retrying a consumed identity, hiding accounted spend, or
+claiming ten questions ran. This measurement follows one infrastructure repair,
+so it is not consecutive infrastructure drift.
 
 BRN-0024 is accepted and terminal. Its founder-authorized
 identity
@@ -117,9 +111,9 @@ the exact helper-deletion regression, and a new mode-0600 successor freeze
 whose synthetic cached-Ettin smoke actually executes during verification. It
 preserves the same disclosed population and treatment under new identity
 `j4-luna-ettin-unexecuted11to20-v2`, proposed `$5.00` fresh /
-`$12.80502179` cumulative caps, and new P-set 36. No live successor is
-authorized; implementation must make zero provider calls and stop at a fresh
-founder gate after independent review.
+`$12.80502179` cumulative caps, and new P-set 36. That offline freeze later
+passed review and received the exact one-invocation authority now consumed and
+recorded at the top of this file; it grants no retry or further live action.
 
 BRN-0023 now composes one immutable structured Responses body through durable
 unknown-billing count-attempt reservation, one injected exact count, pinned

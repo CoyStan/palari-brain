@@ -52,7 +52,7 @@ verification:
   - "npm test"
   - "npm run quickstart"
 created: 2026-08-06
-updated: 2026-08-06
+updated: 2026-08-07
 ---
 
 # BRN-0025 Repair generated runtime smoke custody
@@ -213,7 +213,55 @@ Do not obtain a score, improve answer quality, or authorize the live successor.
 - Full tests: 788 pass / 15 skip / 0 fail across 803. Quickstart: 6/6.
 - Provider, credential, dataset, result-namespace, semantic-judgment, and spend
   activity: `0 / 0 / 0 / 0 / 0 / $0.00`.
-- Independent review: PENDING. Live successor authority: ABSENT.
+- Predispatch review: ACCEPT at exact head `782dc2212a7bc0b64c416dafeceebafefc41236f`.
+  The one authorized invocation is now consumed; terminal review is PENDING.
+
+## Terminal Invocation Record
+
+The founder authorized one invocation of
+`j4-luna-ettin-unexecuted11to20-v2` under `$5.00` fresh /
+`$12.80502179` cumulative at reviewed head
+`782dc2212a7bc0b64c416dafeceebafefc41236f`, launcher SHA-256
+`122de407ad22fd8ee720023b0bbf7aad03dd716a865d6b283968688e30560373`,
+runtime SHA-256
+`8b1846493ca9835e21a91464a4885794a0b756ccaf33063ea3478fa197129dc6`,
+and review ACCEPT. The attempt was reserved at
+`2026-08-07T03:18:45.492Z`, launched at `.497Z`, and consumed at `.627Z`.
+
+Cached Ettin passed with titanium first, 4/4 finite scores, and zero provider
+activity. The credential environment loaded. Gemini writer compatibility
+passed one HTTP 200 `gemini-3.5-flash-lite` call at 525 input / 128 output
+tokens and `$0.0004775` measured spend. The first Luna answer-smoke input-count
+request was made once and failed HTTP 400: `Unknown parameter: 'include'.`
+Parameter/code were `include` / `unknown_parameter`. No generation, successful
+answer smoke, question, judge, score, semantic label, or retry occurred. The
+runtime exited 1; report state is `failed`, `questions: []`, and
+`compatibility: null`.
+
+The Luna count attempt retains `$0.05` uncertain, making fresh accounted spend
+`$0.0504775` and cumulative accounted spend `$7.85549929`. Both caps held.
+Historical `6/10` and U8 remain unchanged.
+
+The launcher then failed terminal artifact enumeration because the expected
+top-level `transcripts/` directory was rejected as not being a mode-0600 file.
+No manifest was produced. The consumed namespace is UNSEALED and must never be
+sealed post hoc. Its immutable snapshot contains 12 files at mode 0600 and 8
+directories at mode 0700; file-list SHA-256 is
+`1785c7876fad8b3c01092e4c6649ac34371364a5b0365f511aa47c681cbc8b87` and
+directory-list SHA-256 is
+`0667cf1f4354d7f3f618b2605e851591996a9043711da22807e13f4259fe878f`.
+
+P-set 36 grades writer compatibility PASS. All numeric and question-level
+behavioral predictions are NOT REACHED / FAIL. Execution/accounting passes the
+first-failure stop and cap-hold branches but fails the required seal. No
+semantic-review overlay exists because there are zero question rows. This
+identity is consumed permanently; no retry, resume, reroll, regrade, repair,
+replacement, or post-hoc seal is authorized.
+
+Post-terminal tracked verification passes: focused contracts 13/13; full tests
+788 pass / 15 skip / 0 fail across 803; quickstart 6/6; ticket, report,
+governed scope, and diff checks green. Independent terminal review remains
+PENDING.
 
 Historical independent review of `f6bc40b` reopened P0 one-shot state, P1
 mixed/incomplete closure, and P2 lexical-symbol evidence. Cumulative review of

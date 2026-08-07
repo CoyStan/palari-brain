@@ -2615,3 +2615,47 @@ namespace absent. Passing that local compatibility gate is not evidence for
 any numeric or behavioral prediction above. A live invocation remains blocked
 until independent review and a new exact founder authorization bind the
 identity, both caps, reviewed head, launcher hash, runtime hash, and ACCEPT.
+
+Post-run grade (2026-08-07; does not alter the FINAL predictions): the exact
+founder-authorized invocation was consumed once. The cached-Ettin smoke passed
+with titanium first, four finite scores, and zero provider activity. The Gemini
+writer smoke passed one HTTP 200 call. The first Luna answer-smoke input-count
+request then returned HTTP 400 `Unknown parameter: 'include'.` for parameter
+`include` / code `unknown_parameter`, before any generation. No answer-smoke
+success, question, judge, score, semantic label, retry, reroll, resume, regrade,
+or replacement occurred. The terminal report is `failed`, with `questions: []`
+and `compatibility: null`.
+
+Failing-first grading:
+
+1. OFFICIAL ACCURACY: **NOT REACHED / FAIL**. Zero question rows cannot meet
+   `8/10`.
+2. SESSION RECALL: **NOT REACHED / FAIL**. No answer-bearing row was reached.
+3. EXACT-SPAN RECALL: **NOT REACHED / FAIL**. No supporting-span surface was
+   reached.
+4. SELECTED EVIDENCE: **NOT REACHED / FAIL**. No commitment surface exists.
+5. MATERIALLY USED EVIDENCE: **NOT REACHED / FAIL**. With zero question rows,
+   there is nothing for an independent reviewer to label.
+6. EQUIVALENT-FACT RECALL: **NOT REACHED / FAIL**. The judged pending/null
+   surface does not exist, so no semantic-review overlay is created.
+7. ARCHITECTURE: **NOT REACHED / FAIL**. No temporal/relational plan,
+   commitment, or cross-context inference was exercised.
+8. RERANK/BOUNDARY: **NOT REACHED / FAIL**. The local Ettin smoke and
+   writer-before-answer order passed, but no benchmark row or answer generation
+   reached the predicted end-to-end boundary.
+9. EXECUTION/ACCOUNTING: **PARTIAL PASS / OVERALL FAIL**. The first terminal
+   failure stopped the invocation, no retry occurred, and the caps held. The
+   Gemini writer call measured `$0.0004775`; the Luna count attempt retains
+   `$0.05` uncertain, making fresh accounted `$0.0504775` and cumulative
+   accounted `$7.85549929`. The launcher then rejected the expected top-level
+   `transcripts/` directory as not being a mode-0600 file, produced no manifest,
+   and left the consumed namespace unsealed. That fails the required seal.
+   Historical `6/10` and U8 remain unchanged.
+
+The unsealed terminal snapshot contains 12 mode-0600 files and 8 mode-0700
+directories. File-list SHA-256 is
+`1785c7876fad8b3c01092e4c6649ac34371364a5b0365f511aa47c681cbc8b87`; directory-
+list SHA-256 is
+`0667cf1f4354d7f3f618b2605e851591996a9043711da22807e13f4259fe878f`.
+It must not be sealed post hoc. This is a compatibility-plus-harness failure,
+not evidence about the ten-question score or memory quality.
