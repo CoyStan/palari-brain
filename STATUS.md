@@ -97,6 +97,18 @@ workspace at `.palari-alpha/current-palari-e2e-2133c1b5.json`; no store reopen
 is needed to diagnose this case again. Live work stopped after this invocation
 as planned. Historical LongMemEval remains 6/10 and was not regraded.
 
+The host-enforced successor is now prepared without another provider call.
+`answerWithRetrieval()` accepts an optional trusted retrieval time range; when
+present, its host-owned bounds override provider-authored bounds for exact,
+hybrid, and timeline navigation, while omitted configuration preserves every
+historical caller. The active gitignored adapter supplies an explicitly
+unbounded trusted range. An offline replay against Q14's persisted canonical
+store proved that the exact original user statement (“living in Harajuku for
+3 months”) is now returned even when the provider requests the bad `08:39`
+cutoff; the returned result exposes the effective host range. Contracts pass
+35/35, focused tests pass 17/17, quickstart passes 6/6, and the complete legacy
+tier passes 842 with 3 optional skips. No live result is claimed yet.
+
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
 `$8.00840072`; the alpha ledger now accounts `$1.85372398`, for cumulative
@@ -120,23 +132,19 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Replace advisory timestamp behavior with a host-enforced boundary: preserve
-question time for host-computed relative-time metadata, but do not let a
-provider turn that metadata into retrieval authority unless the user's
-question explicitly supplies a temporal bound. Keep the change provider- and
-benchmark-neutral, verify it offline, and prepare (do not execute) one Q14
-confirmation. Only `$0.14627602` remains under the approved rolling cap, less
-than the current `$0.15` answer reservation.
+FOUNDER GATE: one Q14 confirmation is prepared with the host-owned unbounded
+range. Run it once with no reroll only after the founder raises the aggregate
+alpha cap from `$2.00` to at least `$2.10`; the current accounted spend is
+`$1.85372398`. Record whatever answer occurs and stop live work afterward.
 
 ## Product check
 
 1. Basic journey runnable: yes, quickstart passed 6/6.
 2. Measurable improvement: question 19 now retrieves and uses the direct
-   language preference, but the final advisory-only timestamp change did not
-   improve question 14.
+   language preference; offline Q14 navigation now returns the exact missing
+   direct statement despite the model's bad cutoff.
 3. Existing framework: the survey found useful patterns, but adding a full
    framework would add more surface than Palari needs.
 4. Founder request: yes, simplify the overbuilt prototype workflow.
-5. If removed: question 19 regresses to generic recommendations and diagnostics
-   again require manual store reopening; the timestamp instruction itself is
-   not sufficient and must not be mistaken for enforcement.
+5. If removed: question 19 regresses to generic recommendations, and a model
+   can again hide canonical memories by inventing retrieval time bounds.

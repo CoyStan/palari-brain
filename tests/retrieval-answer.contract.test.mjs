@@ -1118,6 +1118,51 @@ test('optional completeness guidance is bounded and provider-neutral',
     )
   })
 
+test('trusted retrieval time range overrides provider-authored search bounds',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [
+      { user: 'I had lived in the apartment for one month.' },
+      { user: 'I have now lived in the apartment for three months.' },
+    ])
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider({ retrieve }) {
+        const found = await retrieve({
+          input: {
+            before: '2025-01-01T12:00:00.000Z',
+            phrase: 'lived apartment months',
+          },
+          tool: 'memory_search',
+        })
+        assert.deepEqual(found.effectiveTimeRange, {
+          after: null,
+          before: null,
+        })
+        assert.ok(found.matches.some((row) =>
+          row.text.includes('three months')))
+        return { text: 'Three months.' }
+      },
+      question: 'How long have I lived in the apartment?',
+      questionDate: '2025-01-01T12:00:00.000Z',
+      trustedRetrievalTimeRange: { after: null, before: null },
+    })
+    assert.equal(result.answer, 'Three months.')
+
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        provider: async () => ({ text: 'unused' }),
+        question: 'unused',
+        trustedRetrievalTimeRange: {
+          after: '2025-02-01',
+          before: '2025-01-01',
+        },
+      }),
+      /must not exceed before/,
+    )
+  })
+
 test('evidence-use instructions cover relevant, irrelevant, corrected, and empty retrieval',
   async (t) => {
     const brain = await openBrain(t)

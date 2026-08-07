@@ -424,6 +424,15 @@ export function normalizeRetrievalPlan(value) {
   })
 }
 
+function normalizeTrustedRetrievalTimeRange(value) {
+  return normalizeRetrievalPlan({
+    anchor_event: 'host-authorized retrieval range',
+    category: 'host retrieval boundary',
+    relation: 'unspecified',
+    time_range: value,
+  }).time_range
+}
+
 export const MEMORY_RETRIEVAL_PLAN_TOOL = deepFreeze({
   description: [
     'Register one temporary retrieval plan before navigating a temporal or relational memory question.',
@@ -892,6 +901,7 @@ export async function answerWithRetrieval(brain, {
   provider,
   question,
   questionDate,
+  trustedRetrievalTimeRange,
   userId,
 } = {}) {
   if (typeof provider !== 'function') {
@@ -920,6 +930,9 @@ export async function answerWithRetrieval(brain, {
     MEMORY_RETRIEVAL_INSTRUCTIONS,
     additionalInstructions.trim(),
   ].filter(Boolean).join('\n\n')
+  const trustedTimeRange = trustedRetrievalTimeRange === undefined
+    ? null
+    : normalizeTrustedRetrievalTimeRange(trustedRetrievalTimeRange)
 
   const scope = normalizedScope({ palariId, userId })
   const capabilities = capabilitiesOf(brain)
@@ -1155,12 +1168,22 @@ export async function answerWithRetrieval(brain, {
 
   let retrievalPlan = null
   let planningCalls = 0
+  const applyTrustedTimeRange = (input) => trustedTimeRange
+    ? {
+        ...input,
+        after: trustedTimeRange.after,
+        before: trustedTimeRange.before,
+      }
+    : input
   const tools = {
     memory_find(input) {
-      const found = brain.exploreFind(scope, input)
+      const found = brain.exploreFind(scope, applyTrustedTimeRange(input))
       consultRows(found.matches)
       return registerEvidence({
         ...found,
+        ...(trustedTimeRange
+          ? { effectiveTimeRange: trustedTimeRange }
+          : {}),
         matches: decorateAnswerRows(found.matches, referenceTime),
       })
     },
@@ -1204,14 +1227,25 @@ export async function answerWithRetrieval(brain, {
         brain,
         scope,
         capabilities,
-        input,
+        applyTrustedTimeRange(input),
         referenceTime,
       )
       consultRows(result.matches)
-      return registerEvidence(result)
+      return registerEvidence({
+        ...result,
+        ...(trustedTimeRange
+          ? { effectiveTimeRange: trustedTimeRange }
+          : {}),
+      })
     },
     memory_timeline(input) {
-      return brain.exploreTimeline(scope, input)
+      const result = brain.exploreTimeline(
+        scope,
+        applyTrustedTimeRange(input),
+      )
+      return trustedTimeRange
+        ? deepFreeze({ ...result, effectiveTimeRange: trustedTimeRange })
+        : result
     },
   }
 
