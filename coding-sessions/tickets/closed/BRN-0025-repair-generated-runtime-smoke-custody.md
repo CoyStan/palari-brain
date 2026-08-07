@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0025
 children: []
-status: open
+status: accepted
 risk: R4
 priority: P0
 agents_allowed: 1
@@ -52,7 +52,7 @@ verification:
   - "npm test"
   - "npm run quickstart"
 created: 2026-08-06
-updated: 2026-08-06
+updated: 2026-08-07
 ---
 
 # BRN-0025 Repair generated runtime smoke custody
@@ -185,3 +185,90 @@ Do not obtain a score, improve answer quality, or authorize the live successor.
 - Stop if the work needs a tracked path outside `allowed_paths`, touches a
   forbidden path, reads a credential or selected benchmark content, creates a
   successor result namespace, mutates BRN-0024 evidence, or needs live spend.
+
+## Specialist Evidence
+
+- FINAL P-set 36 registered before any possible live access.
+- Focused verifier contracts: 13/13 PASS, including exact helper deletion,
+  comment/string bait, hard-coded pass, dead-branch rearrangement,
+  transitive-closure mutation, invalid one-shot transition reproductions,
+  and marker-only review-attestation regressions.
+- Private successor `--verify`: PASS with expected titanium ordering/answer,
+  finite 4/4 scores, temporary cleanup, and zero provider/credential/dataset/
+  result telemetry.
+- Successor launcher/runtime are mode 0600 at SHA-256
+  `122de407ad22fd8ee720023b0bbf7aad03dd716a865d6b283968688e30560373` /
+  `8b1846493ca9835e21a91464a4885794a0b756ccaf33063ea3478fa197129dc6`.
+- Complete same-ticket-root static import/reexport closure: 48 files / 732,601
+  bytes / SHA-256
+  `021cf118dec74f5611f5578488dbf86c5b11f996c0cec1a25ba6a680a8e2960d`.
+- Attempt custody: durable `reserved -> launched` before spawn; the runtime's
+  actual `consumeLaunchedAttempt` function performs atomic
+  `launched -> consumed`; live `run()` and offline verification call that same
+  function, and the latter proves a second call rejects reuse.
+- Review attestation uses immutable identity/launcher/runtime/disposition
+  markers only, avoiding a self-referential tracked HEAD. Founder authority
+  separately binds the exact current clean pushed HEAD at launch.
+- All seven BRN-0024 private hashes/modes rechecked unchanged before and after.
+- Full tests: 788 pass / 15 skip / 0 fail across 803. Quickstart: 6/6.
+- Provider, credential, dataset, result-namespace, semantic-judgment, and spend
+  activity: `0 / 0 / 0 / 0 / 0 / $0.00`.
+- Predispatch review: ACCEPT at exact head `782dc2212a7bc0b64c416dafeceebafefc41236f`.
+  The one authorized invocation is now consumed; terminal review ACCEPTed
+  exact clean pushed record head `5e7fd07` with no P0-P3 finding.
+
+## Terminal Invocation Record
+
+The founder authorized one invocation of
+`j4-luna-ettin-unexecuted11to20-v2` under `$5.00` fresh /
+`$12.80502179` cumulative at reviewed head
+`782dc2212a7bc0b64c416dafeceebafefc41236f`, launcher SHA-256
+`122de407ad22fd8ee720023b0bbf7aad03dd716a865d6b283968688e30560373`,
+runtime SHA-256
+`8b1846493ca9835e21a91464a4885794a0b756ccaf33063ea3478fa197129dc6`,
+and review ACCEPT. The attempt was reserved at
+`2026-08-07T03:18:45.492Z`, launched at `.497Z`, and consumed at `.627Z`.
+
+Cached Ettin passed with titanium first, 4/4 finite scores, and zero provider
+activity. The credential environment loaded. Gemini writer compatibility
+passed one HTTP 200 `gemini-3.5-flash-lite` call at 525 input / 128 output
+tokens and `$0.0004775` measured spend. The first Luna answer-smoke input-count
+request was made once and failed HTTP 400: `Unknown parameter: 'include'.`
+Parameter/code were `include` / `unknown_parameter`. No generation, successful
+answer smoke, question, judge, score, semantic label, or retry occurred. The
+runtime exited 1; report state is `failed`, `questions: []`, and
+`compatibility: null`.
+
+The Luna count attempt retains `$0.05` uncertain, making fresh accounted spend
+`$0.0504775` and cumulative accounted spend `$7.85549929`. Both caps held.
+Historical `6/10` and U8 remain unchanged.
+
+The launcher then failed terminal artifact enumeration because the expected
+top-level `transcripts/` directory was rejected as not being a mode-0600 file.
+No manifest was produced. The consumed namespace is UNSEALED and must never be
+sealed post hoc. Its immutable snapshot contains 12 files at mode 0600 and 8
+directories at mode 0700; file-list SHA-256 is
+`1785c7876fad8b3c01092e4c6649ac34371364a5b0365f511aa47c681cbc8b87` and
+directory-list SHA-256 is
+`0667cf1f4354d7f3f618b2605e851591996a9043711da22807e13f4259fe878f`.
+
+P-set 36 grades writer compatibility PASS. All numeric and question-level
+behavioral predictions are NOT REACHED / FAIL. Execution/accounting passes the
+first-failure stop and cap-hold branches but fails the required seal. No
+semantic-review overlay exists because there are zero question rows. This
+identity is consumed permanently; no retry, resume, reroll, regrade, repair,
+replacement, or post-hoc seal is authorized.
+
+Post-terminal tracked verification passes: focused contracts 13/13; full tests
+788 pass / 15 skip / 0 fail across 803; quickstart 6/6; ticket, report,
+governed scope, and diff checks green. Independent terminal review of exact
+clean pushed record head `5e7fd07` found no P0-P3 issue and recommends ACCEPT.
+Under the founder's standing delegation for clean independently reviewed
+tickets, BRN-0025 is accepted. This grants no retry, repair, post-hoc seal,
+provider call, replacement identity, or successor authority.
+
+Historical independent review of `f6bc40b` reopened P0 one-shot state, P1
+mixed/incomplete closure, and P2 lexical-symbol evidence. Cumulative review of
+`c83a664` then reopened P1 self-referential HEAD attestation and P2 simulated
+rather than runtime-owned custody. The evidence above is the second cumulative
+specialist repair; fresh exact-head rereview is required.

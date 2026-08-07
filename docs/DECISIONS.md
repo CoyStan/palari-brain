@@ -3161,3 +3161,70 @@ here with dates. Agents record; the founder decides.
   overlay, historical `6/10`, and U8 custody. Merge under the founder's
   standing delegation for clean independently reviewed tickets. Acceptance
   grants no repair, retry, replacement identity, provider call, or spend.
+
+- 2026-08-06 (BRN-0025 offline repair boundary)
+  **Execute required helpers from final generated runtime bytes before opening
+  a live identity.** Static syntax checking cannot detect a retained call whose
+  helper definition was deleted by an overlapping later transformation. Add a
+  reusable bounded child verifier, permanently reproduce that exact defect,
+  and freeze new identity `j4-luna-ettin-unexecuted11to20-v2`. Its offline mode
+  must run one real cached-Ettin synthetic Palari smoke with exact zero
+  provider/credential/dataset/result telemetry and remove temporary state.
+  Preserve consumed BRN-0024 bytes, P-set 35 grading, historical `6/10`, U8,
+  the `$7.80502179` opening ledger, and proposed `$5.00` / `$12.80502179` caps.
+  This ticket authorizes no credential access, provider call, result namespace,
+  score, semantic judgment, or spend; a reviewed successor stops at a fresh
+  founder gate.
+
+- 2026-08-06 (BRN-0025 cumulative review repair)
+  **Bind execution, one-shot state, and the complete same-root source closure.**
+  Independent review of submitted head `f6bc40b` found that the launcher wrote
+  `consumed` before spawning a runtime that required `launched`, the claimed
+  19-file list omitted transitive imports and mixed ticket/canonical roots, and
+  lexical symbol counting admitted comments/strings without proving a helper
+  ran. Repair all three offline: reserve then durably launch before spawn;
+  atomically consume in the runtime; derive a 48-file static import/reexport
+  closure from exact clean ticket-root bytes; and execute a nonce-instrumented
+  same-directory copy that proves every required helper binding ran. Keep the
+  successor namespaces absent and require fresh cumulative review. No live
+  authority, credential access, dataset access, provider call, or spend follows
+  from this repair.
+
+- 2026-08-06 (BRN-0025 second cumulative review repair)
+  **Use marker-only review attestation and execute the runtime's real consume
+  function offline.** Review of `c83a664` found that requiring a note to name
+  its own current HEAD created an unsatisfiable tracked self-reference, while
+  launcher-side lexical checks and a simulated state sequence did not prove
+  live `run()` used the reviewed custody function. The note now carries only
+  identity, private hashes, and PENDING/ACCEPT disposition; exact final HEAD is
+  bound separately by clean pushed checkout plus founder authority after a
+  final out-of-band rereview. The generated runtime owns one durable
+  `consumeLaunchedAttempt` function used by both live `run()` and the offline
+  temporary custody case. Required-function instrumentation proves that exact
+  binding executes and rejects reuse. No provider, credential, dataset,
+  successor namespace, or spend is authorized or reached.
+
+- 2026-08-07 (BRN-0025 terminal compatibility and unsealed-artifact failure)
+  **Preserve the consumed result exactly; never retry or seal it post hoc.**
+  The authorized invocation passed cached Ettin and one Gemini writer smoke,
+  then its first Luna answer-smoke count request failed HTTP 400 because
+  `include` is an unknown parameter. No generation or benchmark row followed.
+  Account `$0.0004775` measured Gemini spend plus the `$0.05` uncertain Luna
+  count attempt: `$0.0504775` fresh and `$7.85549929` cumulative. The launcher
+  subsequently rejected the expected `transcripts/` directory as though it
+  had to be a mode-0600 file, so no manifest exists. Preserve the immutable
+  unsealed 12-file/8-directory snapshot and record the failed seal honestly.
+  Historical `6/10` and U8 remain unchanged; with zero question rows no judged
+  semantic overlay applies. Any compatibility or directory-walk repair needs
+  a separate governed ticket, new identity, new predictions, review, and exact
+  founder authorization.
+
+- 2026-08-07 (BRN-0025 terminal acceptance)
+  **Accept the honest unsealed failure record after clean independent
+  review.** Exact pushed head `5e7fd07` reconciles one consumed attempt, one
+  successful Gemini writer call, one failed Luna count call, zero generation
+  or question rows, `$0.0504775` fresh / `$7.85549929` cumulative accounting,
+  and the immutable 12-file/8-directory unsealed snapshot. The reviewer found
+  no P0-P3 issue. Merge under the founder's standing delegation for clean
+  independently reviewed tickets. Acceptance grants no retry, repair, post-hoc
+  seal, provider call, replacement identity, or publication authority.

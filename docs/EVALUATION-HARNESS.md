@@ -143,3 +143,51 @@ oracle. It is not a measured provider count, live spend result, or replay of a
 private request. Its SQLite cases are synthetic temporary fixtures, not reads
 of BRN-0020. Historical BRN-0017 remains 6/10 and BRN-0020 remains consumed and
 incomplete.
+
+## Generated runtime execution verification
+
+`verifyGeneratedRuntime(...)` protects a final generated Node byte sequence,
+not merely its composer or syntax. It writes one mode-0600 ephemeral copy in
+the runtime's own directory, wraps each required module-scope function with a
+nonce-named call counter, then executes the caller's provider-free child mode.
+The original report and nonce-bound structural record must prove every binding
+exists and actually ran. The copy is removed in `finally`. Comments, strings,
+duplicate declarations, and a hard-coded pass report therefore cannot satisfy
+the boundary. Signals, nonzero exits, timeouts, oversized output, stderr,
+invalid JSON, and nonzero provider/credential/dataset/result telemetry fail
+closed.
+
+`hashStaticModuleClosure(...)` asks Node's module parser for every static
+import/reexport and walks relative dependencies under one canonical root. It
+rejects symlinks and escapes and freezes sorted per-file hashes plus external
+`node:` specifiers. BRN-0025's reviewed runtime imports from the same clean
+ticket-root bytes that this closure hashes: 48 files, 732,601 bytes, SHA-256
+`021cf118dec74f5611f5578488dbf86c5b11f996c0cec1a25ba6a680a8e2960d`.
+
+Live one-shot custody has exactly three durable transitions: absent to
+reserved, reserved to launched before spawn, then launched to consumed
+atomically inside the runtime before preflight. One runtime function owns the
+last transition. Both live `run()` and provider-free offline verification call
+that function; offline verification proves the durable consumed bytes and
+rejects a second call before cleaning temporary state. No other transition is
+valid; any live failure leaves the new identity used and terminal rather than
+reusable.
+
+Review attestation deliberately does not contain its own final Git HEAD. A
+specialist submits PENDING identity/private-hash/disposition markers. After a
+clean implementation review, one marker-only commit changes disposition to
+ACCEPT. A final out-of-band rereview validates that exact marker head. At live
+dispatch, the launcher requires those exact ACCEPT/identity/private-hash
+markers and separately requires the current clean pushed head to equal the
+founder-supplied reviewed head. This removes the self-hash cycle without
+weakening exact-head authority.
+
+BRN-0025 uses this boundary for successor identity
+`j4-luna-ettin-unexecuted11to20-v2`. Its final mode-0600 runtime executes the
+real cached Ettin ranker through a temporary synthetic Palari brain and proves
+the expected travel-mug ordering, answer, and finite score telemetry. The
+temporary workspace is removed. Verification does not open the benchmark,
+load `.env`, inspect a credential, create a result/semantic-review namespace,
+or predict a benchmark score. P-set 36 and the successor freeze preserve the
+P-set 35 population/treatment/accounting but form a new evaluation. Any live
+invocation requires fresh exact founder authority after independent review.

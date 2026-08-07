@@ -1,7 +1,67 @@
 # STATUS — single source of truth for the loop
 
-Loop state: BRN-0025 GENERATED-RUNTIME SMOKE-CUSTODY CONTRACT OPEN; OFFLINE
-IMPLEMENTATION NEXT. BRN-0024 is accepted and terminal. Its founder-authorized
+Loop state: BRN-0025 TERMINAL FAILURE INDEPENDENTLY ACCEPTED; MERGE NEXT.
+Founder-authorized identity `j4-luna-ettin-unexecuted11to20-v2` was
+reserved at `2026-08-07T03:18:45.492Z`, launched at `.497Z`, and consumed at
+`.627Z` exactly once at reviewed head
+`782dc2212a7bc0b64c416dafeceebafefc41236f`. The launcher/runtime hashes were
+`122de407ad22fd8ee720023b0bbf7aad03dd716a865d6b283968688e30560373` and
+`8b1846493ca9835e21a91464a4885794a0b756ccaf33063ea3478fa197129dc6`.
+It cannot be retried, resumed, rerolled, regraded, or post-hoc sealed.
+
+The cached-Ettin smoke passed with titanium first, four finite scores, and zero
+provider activity. The credential environment then loaded. The Gemini writer
+smoke passed one HTTP 200 `gemini-3.5-flash-lite` call with 525 input and 128
+output tokens, measuring `$0.0004775`. The first Luna answer-smoke input-count
+request was made exactly once and returned HTTP 400 before generation:
+`Unknown parameter: 'include'.` The provider classified `include` / `code` as
+`unknown_parameter`. The runtime exited 1. No generation, successful answer
+smoke, benchmark question, judge, score, semantic label, or retry occurred.
+The report is terminal `failed`, with `questions: []` and `compatibility: null`.
+
+Meter accounting is `$0.0004775` measured plus `$0.05` uncertain for the Luna
+count attempt, so fresh accounted spend is `$0.0504775` and cumulative
+accounted spend is now exactly `$7.85549929`, within the `$5.00` fresh /
+`$12.80502179` cumulative caps. Historical `6/10` and sealed U8 are unchanged.
+
+The launcher then failed its terminal-artifact walk because it treated the
+expected top-level `transcripts/` directory as though it had to be a mode-0600
+file. It therefore produced no manifest. The consumed terminal namespace is
+**UNSEALED** and must remain so; post-hoc sealing would rewrite history. Its
+immutable snapshot contains 12 mode-0600 files and 8 mode-0700 directories.
+The file-list SHA-256 is
+`1785c7876fad8b3c01092e4c6649ac34371364a5b0365f511aa47c681cbc8b87`; the
+directory-list SHA-256 is
+`0667cf1f4354d7f3f618b2605e851591996a9043711da22807e13f4259fe878f`.
+
+P-set 36 grades failing-first: writer compatibility PASS; OFFICIAL ACCURACY,
+SESSION RECALL, EXACT-SPAN RECALL, SELECTED EVIDENCE, MATERIALLY USED EVIDENCE,
+EQUIVALENT-FACT RECALL, ARCHITECTURE, and RERANK/BOUNDARY are NOT REACHED and
+fail their numeric or behavioral predictions. EXECUTION/ACCOUNTING passes the
+first-failure stop and cap-hold branches but fails the required seal. With zero
+question rows there is no judged equivalent-fact or materially-used surface,
+so no semantic-review overlay exists or may be created.
+
+Verification after this tracked record passes: focused contracts 13/13; full
+tests 788 pass / 15 skip / 0 fail across 803; quickstart 6/6; ticket, report,
+governed scope, and diff checks green. Independent terminal review of exact
+clean pushed head `5e7fd07` found no P0-P3 issue and recommends ACCEPT after
+rehashing the immutable unsealed snapshot and exact accounting. Under the
+founder's standing delegation for clean independently reviewed tickets,
+BRN-0025 is accepted for merge. Any fix or successor requires a separate
+governed ticket, new identity, new predictions, fresh review, and fresh founder
+authorization.
+
+Product stop rule: (1) yes, quickstart remains green; (2) no user-facing memory
+behavior improved because the run stopped during answer compatibility; (3)
+provider SDKs expose request errors, but they do not provide this evaluation's
+one-shot custody, accounting, or artifact policy; (4) yes, the founder exactly
+authorized this invocation and requires an honest terminal record; (5) deleting
+this record would risk retrying a consumed identity, hiding accounted spend, or
+claiming ten questions ran. This measurement follows one infrastructure repair,
+so it is not consecutive infrastructure drift.
+
+BRN-0024 is accepted and terminal. Its founder-authorized
 identity
 `j4-luna-ettin-unexecuted11to20-v1` was
 consumed exactly once under `$5.00` fresh / `$12.80502179` cumulative authority
@@ -52,9 +112,9 @@ the exact helper-deletion regression, and a new mode-0600 successor freeze
 whose synthetic cached-Ettin smoke actually executes during verification. It
 preserves the same disclosed population and treatment under new identity
 `j4-luna-ettin-unexecuted11to20-v2`, proposed `$5.00` fresh /
-`$12.80502179` cumulative caps, and new P-set 36. No live successor is
-authorized; implementation must make zero provider calls and stop at a fresh
-founder gate after independent review.
+`$12.80502179` cumulative caps, and new P-set 36. That offline freeze later
+passed review and received the exact one-invocation authority now consumed and
+recorded at the top of this file; it grants no retry or further live action.
 
 BRN-0023 now composes one immutable structured Responses body through durable
 unknown-billing count-attempt reservation, one injected exact count, pinned
