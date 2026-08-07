@@ -8,6 +8,7 @@ import {
   answerWithRetrieval,
   createPalariBrain,
   ingestChatTurn,
+  normalizeRetrievalPlan,
 } from '../src/index.mjs'
 
 const SCOPE = Object.freeze({
@@ -73,6 +74,15 @@ function keepNothing({ request }) {
     })),
   }
 }
+
+test('between is a general temporal relation, not a benchmark-only value', () => {
+  assert.equal(normalizeRetrievalPlan({
+    anchor_event: 'two independently observed events',
+    category: 'event dates',
+    relation: 'between',
+    time_range: { after: null, before: null },
+  }).relation, 'between')
+})
 
 test('host time authority generalizes across six unrelated memory domains',
   async (t) => {

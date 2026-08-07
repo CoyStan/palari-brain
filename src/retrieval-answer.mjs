@@ -39,6 +39,10 @@ export const MEMORY_RETRIEVAL_PLAN_RELATIONS = Object.freeze([
   'during',
   'unspecified',
 ])
+const MEMORY_RETRIEVAL_PLAN_ACCEPTED_RELATIONS = Object.freeze([
+  ...MEMORY_RETRIEVAL_PLAN_RELATIONS,
+  'between',
+])
 
 const MAX_RETRIEVAL_PLAN_ANCHOR_CHARS = 500
 const MAX_RETRIEVAL_PLAN_CATEGORY_CHARS = 200
@@ -396,8 +400,10 @@ export function normalizeRetrievalPlan(value) {
   }
   const relation = snapshot.relation
   let supported = false
-  for (let index = 0; index < MEMORY_RETRIEVAL_PLAN_RELATIONS.length; index += 1) {
-    if (MEMORY_RETRIEVAL_PLAN_RELATIONS[index] === relation) {
+  for (let index = 0;
+    index < MEMORY_RETRIEVAL_PLAN_ACCEPTED_RELATIONS.length;
+    index += 1) {
+    if (MEMORY_RETRIEVAL_PLAN_ACCEPTED_RELATIONS[index] === relation) {
       supported = true
       break
     }
