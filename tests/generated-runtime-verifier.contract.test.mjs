@@ -261,13 +261,28 @@ test('one-shot attempt states allow only absent-reserved-launched-consumed', () 
   }
 })
 
-test('review attestation is marker-only while founder authority owns final head', () => {
-  const accepted = [
-    'BRN0025_REVIEW_IDENTITY: successor-v2',
-    'BRN0025_REVIEW_LAUNCHER_SHA256: launcher-sha',
-    'BRN0025_REVIEW_RUNTIME_SHA256: runtime-sha',
-    'BRN0025_REVIEW_RECOMMENDATION: ACCEPT',
-  ].join('\n')
+const reviewValues = Object.freeze({
+  identity: 'successor-v2',
+  launcherSha256: 'launcher-sha',
+  runtimeSha256: 'runtime-sha',
+})
+
+function reviewNote(namespace, overrides = {}, omissions = []) {
+  const values = {
+    IDENTITY: reviewValues.identity,
+    LAUNCHER_SHA256: reviewValues.launcherSha256,
+    RECOMMENDATION: 'ACCEPT',
+    RUNTIME_SHA256: reviewValues.runtimeSha256,
+    ...overrides,
+  }
+  return Object.entries(values)
+    .filter(([field]) => !omissions.includes(field))
+    .map(([field, value]) => `${namespace}_${field}: ${value}`)
+    .join('\n')
+}
+
+test('review attestation preserves the legacy namespace by default', () => {
+  const accepted = reviewNote('BRN0025_REVIEW')
   assert.deepEqual(assertReviewAttestation({
     identity: 'successor-v2',
     launcherSha256: 'launcher-sha',
@@ -280,16 +295,105 @@ test('review attestation is marker-only while founder authority owns final head'
     runtimeSha256: 'runtime-sha',
   })
   assert.equal(accepted.includes('REVIEW_HEAD'), false)
+})
+
+test('review attestation accepts one caller-selected generic namespace', () => {
+  assert.deepEqual(assertReviewAttestation({
+    ...reviewValues,
+    markerNamespace: 'PALARI_REVIEW',
+    note: reviewNote('PALARI_REVIEW'),
+  }), {
+    ...reviewValues,
+    recommendation: 'ACCEPT',
+  })
+})
+
+test('review attestation rejects malformed marker namespaces', () => {
+  for (const markerNamespace of [
+    '',
+    'lowercase',
+    'PALARI-REVIEW',
+    '1PALARI_REVIEW',
+    '_PALARI_REVIEW',
+    'PALARI REVIEW',
+    'A'.repeat(65),
+    null,
+    42,
+  ]) {
+    assert.throws(() => assertReviewAttestation({
+      ...reviewValues,
+      markerNamespace,
+      note: reviewNote('PALARI_REVIEW'),
+    }), /uppercase identifier of 1-64 characters/u)
+  }
+  assert.doesNotThrow(() => assertReviewAttestation({
+    ...reviewValues,
+    markerNamespace: 'A'.repeat(64),
+    note: reviewNote('A'.repeat(64)),
+  }))
+})
+
+test('review attestation requires every selected marker exactly once', () => {
+  for (const field of [
+    'IDENTITY',
+    'LAUNCHER_SHA256',
+    'RUNTIME_SHA256',
+    'RECOMMENDATION',
+  ]) {
+    const missing = reviewNote('PALARI_REVIEW', {}, [field])
+    assert.throws(() => assertReviewAttestation({
+      ...reviewValues,
+      markerNamespace: 'PALARI_REVIEW',
+      note: missing,
+    }), new RegExp(`one exact PALARI_REVIEW_${field} marker`, 'u'))
+
+    const duplicated = [
+      reviewNote('PALARI_REVIEW'),
+      `PALARI_REVIEW_${field}: duplicate`,
+    ].join('\n')
+    assert.throws(() => assertReviewAttestation({
+      ...reviewValues,
+      markerNamespace: 'PALARI_REVIEW',
+      note: duplicated,
+    }), new RegExp(`one exact PALARI_REVIEW_${field} marker`, 'u'))
+  }
+})
+
+test('review attestation rejects every mismatched bound value', () => {
+  for (const [field, value] of [
+    ['IDENTITY', 'other-identity'],
+    ['LAUNCHER_SHA256', 'other-launcher'],
+    ['RUNTIME_SHA256', 'other-runtime'],
+    ['RECOMMENDATION', 'PENDING'],
+  ]) {
+    assert.throws(() => assertReviewAttestation({
+      ...reviewValues,
+      markerNamespace: 'PALARI_REVIEW',
+      note: reviewNote('PALARI_REVIEW', { [field]: value }),
+    }), /not ACCEPT/u)
+  }
+})
+
+test('review attestation fails closed across marker namespaces', () => {
   assert.throws(() => assertReviewAttestation({
-    identity: 'successor-v2',
-    launcherSha256: 'launcher-sha',
-    note: accepted.replace('ACCEPT', 'PENDING'),
-    runtimeSha256: 'runtime-sha',
-  }), /not ACCEPT/u)
+    ...reviewValues,
+    markerNamespace: 'PALARI_REVIEW',
+    note: reviewNote('BRN0025_REVIEW'),
+  }), /one exact PALARI_REVIEW_IDENTITY marker/u)
   assert.throws(() => assertReviewAttestation({
-    identity: 'successor-v2',
-    launcherSha256: 'launcher-sha',
-    note: `${accepted}\nBRN0025_REVIEW_RECOMMENDATION: ACCEPT`,
-    runtimeSha256: 'runtime-sha',
-  }), /one exact BRN0025_REVIEW_RECOMMENDATION marker/u)
+    ...reviewValues,
+    note: reviewNote('PALARI_REVIEW'),
+  }), /one exact BRN0025_REVIEW_IDENTITY marker/u)
+
+  const mixed = [
+    'PALARI_REVIEW_IDENTITY: successor-v2',
+    'BRN0025_REVIEW_LAUNCHER_SHA256: launcher-sha',
+    'BRN0025_REVIEW_RUNTIME_SHA256: runtime-sha',
+    'BRN0025_REVIEW_RECOMMENDATION: ACCEPT',
+  ].join('\n')
+  assert.throws(() => assertReviewAttestation({
+    ...reviewValues,
+    markerNamespace: 'PALARI_REVIEW',
+    note: mixed,
+  }), /one exact PALARI_REVIEW_LAUNCHER_SHA256 marker/u)
 })

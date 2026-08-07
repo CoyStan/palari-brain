@@ -3004,3 +3004,78 @@ uncertain, and accounted spend are `$0`; cumulative accounted spend remains
 `1568498a` remain unchanged. This terminal result measures a generic
 review-attestation interface defect only; it supplies no Luna, Ettin,
 retrieval, ranking, memory, or answer-quality evidence.
+
+## P-set 40 — Generic-attestation Luna + Ettin S60 ordinals 11-20
+
+### P-set 40 (FINAL)
+
+Status: **FINAL before credential read, provider call, inference, selected-data
+inspection, result creation, or live namespace creation.**
+
+Identity: `j4-luna-ettin-unexecuted11to20-v6`
+
+This is a fresh successor freeze, not a retry, resume, reroll, regrade, or
+reuse of administratively consumed v5. It inherits P-set 39's exact ten
+never-completed ordinals, order, answer/reducer architecture, models, prompts,
+four-evidence-call ceiling, source-occurrence provenance, treatment, and
+predictions: `18bc8abd`, `19b5f2b3`, `1a1907b4`, `2133c1b5`,
+`2133c1b5_abs`, `25e5aa4f`, `2698e78f_abs`, `32260d93`, `35a27287`,
+`36b9f61e`. No selected session, question, answer, supporting span, expected
+route, or official label was inspected. Sealed U8 `1568498a` remains excluded
+and historical `6/10` remains immutable.
+
+The only harness change is generic review attestation. The v6 launcher selects
+the ticket-neutral `PALARI_REVIEW` marker namespace. The shared verifier
+requires exactly one identity, launcher SHA-256, runtime SHA-256, and `ACCEPT`
+recommendation marker under that validated namespace. Legacy callers retain
+the default `BRN0025_REVIEW` namespace. This changes no benchmark treatment.
+
+Opening cumulative accounted spend is exactly `$8.00840072`. Proposed caps
+are `$5.00` fresh and `$13.00840072` cumulative. V5 remains administratively
+consumed with zero spend and absent result/semantic namespaces. All v1-v5
+evidence and prior accounting remain immutable. These boundaries are not live
+authority.
+
+Predictions, failing categories first:
+
+1. OFFICIAL ACCURACY: at least `8/10` unchanged official
+   `gpt-4o-2024-08-06` judge labels pass.
+2. SESSION RECALL: at least 90% of required original answer-bearing sessions
+   are returned on reached non-abstention rows.
+3. EXACT-SPAN RECALL: at least 80% of dataset-marked supporting canonical
+   role-specific messages are returned where exact spans exist. Equivalent
+   facts never substitute for this metric.
+4. SELECTED EVIDENCE: at least 8/10 reached rows select answer-relevant
+   evidence through a host-accepted commitment, or correctly select none for
+   an abstention. Retrieved evidence need not be forced into the answer.
+5. MATERIALLY USED EVIDENCE: independent terminal review labels at least 8/10
+   rows PASS for actual answer use or correct abstention. This judged label is
+   distinct from model-declared `consequence_for_answer` and canonical truth.
+6. EQUIVALENT-FACT RECALL: one independent terminal reviewer labels the
+   separately sealed pending/null surface exactly once. It may explain an
+   exact-span miss but never changes exact recall or official grade.
+7. ARCHITECTURE: temporal/relational planning remains general and records
+   anchor, relation, category, and time range; commitments support consequence
+   or `not_used_reason`; cross-context inference remains provenance-linked,
+   revisable, trace-only, and never a canonical fact.
+8. RERANK/BOUNDARY: every reached native Ettin score is finite without input
+   mutation; evidence calls never exceed four; writer smoke precedes answer
+   smoke; every Luna operation has one projected count and at most one exact
+   full-body generation after durable reservations. No retry, byte fallback,
+   resume, reroll, replacement, selective regrade, or cap top-up.
+9. EXECUTION/ACCOUNTING: one invocation either recursively seals both smokes
+   and all ten cells or recursively seals the first terminal failure. Every
+   physical call is accounted before transport; count uncertainty stays
+   separate; credential matches are zero; historical `6/10`, prior
+   accounting, and U8 remain unchanged.
+
+Offline freeze note: BRN-0034 must run the exact mode-0600 final-runtime bytes
+through cached Ettin, answer smoke, count projection, canonical settlement,
+one-shot custody/reuse refusal, recursive seal/reseal refusal, the
+duplicate-occurrence ingest/replay/mutation regression, and cleanup. It must
+also prove one exact generic accepted marker set, preserve all v1-v5 evidence,
+leave v6 result and semantic namespaces absent, and report zero credential,
+dataset, provider, and result activity. Passing provider-free gates predicts
+no live score. Any invocation requires fresh independent review and exact
+founder authorization naming identity, both caps, reviewed head, mode-0600
+launcher/runtime hashes, and ACCEPT.

@@ -3355,3 +3355,16 @@ here with dates. Agents record; the founder decides.
   evidence. Do not retry v5. Any generic marker-schema repair is separate
   offline governed work; any live successor requires a new identity, freeze,
   independent review, and exact founder authorization.
+
+- 2026-08-07 (BRN-0034 generic review attestation and v6 freeze)
+  **Select a validated marker namespace without weakening exact binding.**
+  `assertReviewAttestation` now accepts one caller-selected uppercase
+  identifier of at most 64 characters and composes the four exact marker names
+  beneath it. Legacy callers default to `BRN0025_REVIEW`; v6 explicitly uses
+  ticket-neutral `PALARI_REVIEW`. Missing, duplicate, mismatched, malformed,
+  and cross-namespace attestations fail closed. Freeze fresh identity
+  `j4-luna-ettin-unexecuted11to20-v6` under FINAL P-set 40 at `$8.00840072`
+  opening and proposed `$5.00` fresh / `$13.00840072` cumulative caps. Preserve
+  v5 as administratively consumed, all v1-v5 evidence, benchmark treatment,
+  historical `6/10`, and sealed U8. This decision grants no credential or
+  dataset read, provider request, live namespace, spend, score, or v6 use.
