@@ -153,6 +153,24 @@ complete legacy tier passes 850 with 3 optional skips. No clothing-specific or
 benchmark-specific retrieval rule was added, and no second held-out invocation
 was made.
 
+The aggregation successor is now implemented and proven offline without a
+provider call. Product callers can opt into planned-search expansion: one
+ordinary semantic query is complemented by local ranked queries derived from
+the original question plus the registered plan's anchor and category. The host
+deduplicates the candidate pool, runs Ettin once, then fuses semantic/ranked
+coverage, reranker order, and original-user provenance so verbose prior Palari
+responses cannot crowd every direct user statement out of the returned window.
+No answer keyword, benchmark ID, clothing rule, extra embedding request, or
+extra generation dispatch is involved. Provider-free controls demonstrate the
+same behavior for instrument, document, and equipment collection/return tasks,
+including a deliberately weak reranker. On the exact persisted failed held-out
+store, the same search now returns both original boots statements at ranks 1
+and 2 and the missing original navy-blazer statement at rank 4; previously the
+blazer was outside the returned window. This satisfies the retrieval-side
+acceptance offline but is not a new answer result. Targeted retrieval contracts
+pass 40/40, focused tests pass 25/25, quickstart passes 6/6, and the complete
+legacy tier passes 855 with 3 optional skips.
+
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
 `$8.00840072`; the alpha ledger now accounts `$2.30580607`, for cumulative
@@ -179,21 +197,23 @@ benchmark grades. Run only one alpha CLI process at a time.
 ## Next
 
 Do not spend again under the current cap: its remaining accounted headroom is
-below one answer reservation. The next smallest product unit is provider-
-neutral host support for exhaustive aggregation across complementary evidence,
-because prompt guidance alone let Luna stop after the first matching item.
-After that change is proven offline, a new founder-approved aggregate cap can
-cover the temporal retry, untouched abstention case, and aggregation
-confirmation. Record them as alpha diagnostics; do not modify the historical
-6/10.
+below one answer reservation. The next smallest unit is one live aggregation
+confirmation on `0a995998`, now that its exact persisted store passes the
+retrieval acceptance offline. A new aggregate cap of `$2.55` would cover its
+`$0.05` writer and `$0.15` answer reservations above the current
+`$2.30580607` accounting. A broader retry including the temporal and untouched
+abstention cases should instead use a cap of at least `$2.95`. Record any run
+as an alpha diagnostic; do not modify the historical 6/10.
 
 ## Product check
 
 1. Basic journey runnable: yes, quickstart passed 6/6.
 2. Measurable improvement: live Q14 and Q19 improved, the same temporal
    authority passes current/historical counterexamples across six unrelated
-   domains, and two held-out answer cases transferred. Held-out aggregation
-   remains incomplete, so broad generalization is not yet established.
+   domains, two held-out answer cases transferred, and the held-out aggregation
+   evidence failure is corrected on its exact store offline. Live aggregation
+   confirmation remains outstanding, so broad generalization is not yet
+   established.
 3. Existing framework: the survey found useful patterns, but adding a full
    framework would add more surface than Palari needs.
 4. Founder request: yes, simplify the overbuilt prototype workflow.

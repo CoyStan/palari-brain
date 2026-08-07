@@ -1118,6 +1118,152 @@ test('optional completeness guidance is bounded and provider-neutral',
     )
   })
 
+test('planned search expansion gathers complementary evidence across domains',
+  async (t) => {
+    const cases = [
+      {
+        category: 'musical instruments and store errands',
+        first: 'I need to collect my repaired violin from Bell Music.',
+        name: 'instruments',
+        primary: 'repaired violin Bell Music',
+        question: 'Which musical items must I collect or return from a store?',
+        second: 'I must return my rented cello to Northside Instruments.',
+      },
+      {
+        category: 'documents and office errands',
+        first: 'I need to collect my renewed passport from City Hall.',
+        name: 'documents',
+        primary: 'renewed passport City Hall',
+        question: 'Which documents must I collect or return from an office?',
+        second: 'I must return my expired access badge to the security office.',
+      },
+      {
+        category: 'equipment and shop errands',
+        first: 'I need to collect my repaired camera from the workshop.',
+        name: 'equipment',
+        primary: 'repaired camera workshop',
+        question: 'Which equipment must I collect or return from a shop?',
+        second: 'I must return the rented tripod to the equipment shop.',
+      },
+    ]
+
+    for (const entry of cases) {
+      await t.test(entry.name, async (t) => {
+        const brain = await openBrain(t)
+        await seed(brain, [
+          { user: entry.first },
+          { user: entry.second },
+          { user: 'I bought coffee beans during an unrelated grocery trip.' },
+        ])
+
+        const search = async (expandPlannedSearches) => {
+          let found
+          await answerWithRetrieval(brain, {
+            ...SCOPE,
+            expandPlannedSearches,
+            async provider({ retrieve }) {
+              await retrieve({
+                input: {
+                  anchor_event: 'outstanding collections and returns',
+                  category: entry.category,
+                  relation: 'current',
+                  time_range: { after: null, before: null },
+                },
+                tool: 'memory_plan',
+              })
+              found = await retrieve({
+                input: { phrase: entry.primary },
+                tool: 'memory_search',
+              })
+              return { text: 'Consulted.' }
+            },
+            question: entry.question,
+          })
+          return found
+        }
+
+        const baseline = await search(false)
+        assert.equal(
+          baseline.matches.some((row) => row.text === entry.second),
+          false,
+        )
+        assert.equal(baseline.supplementalRankedCandidates, 0)
+        assert.deepEqual(baseline.supplementalRankedQueries, [])
+
+        const expanded = await search(true)
+        const first = expanded.matches.find((row) => row.text === entry.first)
+        const second = expanded.matches.find((row) => row.text === entry.second)
+        assert.ok(first)
+        assert.ok(second)
+        assert.ok(second.surfaces.some((surface) =>
+          surface.startsWith('ranked:')))
+        assert.ok(expanded.supplementalRankedCandidates >= 2)
+        assert.ok(expanded.supplementalRankedQueries.some(({ surface }) =>
+          surface === 'ranked:question'))
+        assert.ok(expanded.supplementalRankedQueries.some(({ surface }) =>
+          surface === 'ranked:plan-category'))
+      })
+    }
+
+    await t.test('original user evidence survives a weak reranker', async (t) => {
+      const reranker = async (_query, texts) => texts.map((text) =>
+        text.includes('navy blazer') ? -10 : 10)
+      const brain = await openBrain(t, { reranker })
+      await seed(brain, [
+        {
+          assistant:
+            'Use a checklist to remember store pickups and clothing returns.',
+          user: 'I still need to pick up the replacement boots from Zara.',
+        },
+        {
+          assistant:
+            'Dry cleaning is one part of keeping a wardrobe organized.',
+          user:
+            'I still need to pick up my dry cleaning for the navy blazer.',
+        },
+        { user: 'I also need to buy coffee beans at the grocery store.' },
+      ])
+      let found
+      await answerWithRetrieval(brain, {
+        ...SCOPE,
+        expandPlannedSearches: true,
+        async provider({ retrieve }) {
+          await retrieve({
+            input: {
+              anchor_event: 'outstanding clothing pickups and returns',
+              category: 'clothing and store errands',
+              relation: 'current',
+              time_range: { after: null, before: null },
+            },
+            tool: 'memory_plan',
+          })
+          found = await retrieve({
+            input: { limit: 3, phrase: 'replacement boots Zara' },
+            tool: 'memory_search',
+          })
+          return { text: 'Consulted.' }
+        },
+        question:
+          'Which clothing items do I still need to pick up or return?',
+      })
+      const blazer = found.matches.find((row) =>
+        row.text.includes('navy blazer'))
+      assert.ok(blazer)
+      assert.equal(blazer.rerankScore, -10)
+      assert.ok(blazer.completionSurfaceRanks['original-user-evidence'])
+    })
+
+    await assert.rejects(
+      answerWithRetrieval({}, {
+        ...SCOPE,
+        expandPlannedSearches: 'yes',
+        provider: async () => ({ text: 'unused' }),
+        question: 'unused',
+      }),
+      /expandPlannedSearches must be boolean/,
+    )
+  })
+
 test('trusted retrieval time range overrides provider-authored search bounds',
   async (t) => {
     const brain = await openBrain(t)

@@ -779,6 +779,7 @@ async function hybridSearch(
   capabilities,
   input = {},
   referenceTime = null,
+  supplementalRankedQueries = [],
 ) {
   const phrase = searchPhrase(input.phrase)
   const limit = boundedInteger(
@@ -816,6 +817,35 @@ async function hybridSearch(
     rows: ranked.matches,
     surface: 'ranked',
   }]
+  const supplementalQueries = []
+  // Completeness expansion stays local: semantic retrieval and the reranker
+  // still run once, while cheap ranked facets widen their shared candidate set.
+  const seenRankedPhrases = new setConstructor([rankedPhrase(phrase)])
+  let supplementalRankedCandidates = 0
+  for (let index = 0; index < supplementalRankedQueries.length; index += 1) {
+    const query = supplementalRankedQueries[index]
+    const candidatePhrase = rankedPhrase(
+      stringTrim(stringFrom(query?.phrase ?? '')),
+    )
+    if (!candidatePhrase || setHas(seenRankedPhrases, candidatePhrase)) continue
+    setAdd(seenRankedPhrases, candidatePhrase)
+    const supplemental = brain.exploreFind(scope, {
+      after: after || undefined,
+      before: before || undefined,
+      limit: candidateLimit,
+      maxChars: MAX_HYBRID_MAX_CHARS,
+      phrase: candidatePhrase,
+      ranked: true,
+    })
+    const surface = `ranked:${stringFrom(query?.surface ?? index + 1)}`
+    rankings.push({ rows: supplemental.matches, surface })
+    supplementalRankedCandidates += supplemental.matches.length
+    supplementalQueries.push({
+      candidates: supplemental.matches.length,
+      phrase: candidatePhrase,
+      surface,
+    })
+  }
   let semantic = []
   if (capabilities.semantic) {
     semantic = (await brain.exploreSemantic(scope, {
@@ -870,6 +900,39 @@ async function hybridSearch(
       right.rerankScore - left.rerankScore ||
       right.rrfScore - left.rrfScore ||
       left.evidenceId.localeCompare(right.evidenceId))
+    if (supplementalQueries.length > 0) {
+      // A relevance-only reranker can collapse a complete result into several
+      // near-duplicate assistant answers. Blend it with retrieval coverage and
+      // direct-user provenance; no candidate is invented or treated as proof.
+      const scoredById = new Map()
+      for (let index = 0; index < ordered.length; index += 1) {
+        mapSet(scoredById, ordered[index].evidenceId, ordered[index])
+      }
+      const coverageOrder = candidates.map(({ evidenceId }) => ({ evidenceId }))
+      const rerankOrder = ordered.map(({ evidenceId }) => ({ evidenceId }))
+      const originalUserOrder = ordered
+        .filter(({ speaker }) => speaker === 'user')
+        .map(({ evidenceId }) => ({ evidenceId }))
+      const completionRankings = [
+        { rows: coverageOrder, surface: 'retrieval-coverage' },
+        { rows: rerankOrder, surface: 'reranker' },
+      ]
+      if (originalUserOrder.length > 0) {
+        completionRankings.push({
+          rows: originalUserOrder,
+          surface: 'original-user-evidence',
+        })
+      }
+      const blended = reciprocalRankFuse(
+        completionRankings,
+        { limit: candidates.length },
+      )
+      ordered = blended.map((entry) => ({
+        ...mapGet(scoredById, entry.evidenceId),
+        completionRrfScore: entry.rrfScore,
+        completionSurfaceRanks: entry.surfaceRanks,
+      }))
+    }
   }
 
   const matches = []
@@ -892,6 +955,8 @@ async function hybridSearch(
     reranked: capabilities.reranking,
     semanticCandidates: semantic.length,
     semanticUsed: capabilities.semantic,
+    supplementalRankedCandidates,
+    supplementalRankedQueries: supplementalQueries,
     truncated: matches.length < ordered.length,
   }
 }
@@ -901,6 +966,7 @@ async function hybridSearch(
 // can map MEMORY_RETRIEVAL_TOOLS to their provider's tool schema.
 export async function answerWithRetrieval(brain, {
   additionalInstructions = '',
+  expandPlannedSearches = false,
   maxChars = 100_000,
   maxRetrievalCalls = DEFAULT_RETRIEVAL_CALLS,
   palariId,
@@ -931,6 +997,9 @@ export async function answerWithRetrieval(brain, {
     throw new TypeError(
       'additionalInstructions must be a string of at most 4000 characters.',
     )
+  }
+  if (typeof expandPlannedSearches !== 'boolean') {
+    throw new TypeError('expandPlannedSearches must be boolean.')
   }
   const answerInstructions = [
     MEMORY_RETRIEVAL_INSTRUCTIONS,
@@ -1229,12 +1298,20 @@ export async function answerWithRetrieval(brain, {
       })
     },
     async memory_search(input) {
+      const supplementalRankedQueries = expandPlannedSearches
+        ? [
+            { phrase: question, surface: 'question' },
+            { phrase: retrievalPlan?.anchor_event, surface: 'plan-anchor' },
+            { phrase: retrievalPlan?.category, surface: 'plan-category' },
+          ]
+        : []
       const result = await hybridSearch(
         brain,
         scope,
         capabilities,
         applyTrustedTimeRange(input),
         referenceTime,
+        supplementalRankedQueries,
       )
       consultRows(result.matches)
       return registerEvidence({
