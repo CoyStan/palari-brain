@@ -4,12 +4,81 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 
 import {
+  MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
+  MEMORY_RETRIEVAL_INSTRUCTIONS,
+  MEMORY_RETRIEVAL_TOOLS,
+  memoryAnswerSystemInstruction,
+} from '../src/index.mjs'
+import { createOpenAIRetrievalProvider } from '../src/openai.mjs'
+import {
+  MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
+} from '../src/retrieval-answer.mjs'
+import {
   OpenAICountedResponsesError,
   createExactCountedOpenAIResponsesEvaluator,
+  projectOpenAIResponsesInputCountBody,
 } from '../evals/openai-counted-responses.mjs'
+
+const BRN0025_COMPATIBILITY_TRANSCRIPT_SHA256 =
+  '1aa4e36c8cfb15713fd41724c084d7403fc47de10987a813216647507cf9b24e'
+const BRN0025_COMPATIBILITY_GENERATION_SHA256 =
+  '978a57073547d04b61d5b0813e5db2faef797cc33b6a477b047d1eded41850d8'
+const BRN0025_COMPATIBILITY_COUNT_SHA256 =
+  'd77ba2aaa9521a0c3445ca73e1112955e7bc26fd5eb61a1dd5dd7ce76561838d'
+const BRN0025_COMPATIBILITY_GENERATION_BYTES = 11_593
+const BRN0025_COMPATIBILITY_COUNT_BYTES = 11_488
+const BRN0025_OBSERVED_400 = Object.freeze({
+  bodySha256: BRN0025_COMPATIBILITY_GENERATION_SHA256,
+  error: Object.freeze({
+    code: 'unknown_parameter',
+    message: "Unknown parameter: 'include'.",
+    param: 'include',
+    type: 'invalid_request_error',
+  }),
+  status: 400,
+  transcriptSha256: BRN0025_COMPATIBILITY_TRANSCRIPT_SHA256,
+})
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+async function exactBrn0025CompatibilityBody() {
+  const stop = new Error('captured exact BRN-0025 compatibility body')
+  let captured
+  const provider = createOpenAIRetrievalProvider({
+    async invoke({ body: request }) {
+      captured = { ...request, service_tier: 'default' }
+      throw stop
+    },
+    maxModelDispatches: 7,
+    model: 'gpt-5.6-luna',
+    reasoningEffort: 'low',
+  })
+  await assert.rejects(provider({
+    answerEvidenceCount: () => 0,
+    answerInstructions: MEMORY_RETRIEVAL_INSTRUCTIONS,
+    async commitAnswer() {},
+    memoryText: '',
+    maxRetrievalCalls: 4,
+    maxRetrievalPlanningCalls: 1,
+    questionText: [
+      'Question date: 2026-07-30T00:01:00.000Z',
+      'Question: Use memory_search to find the stored compatibility color. What is it?',
+    ].join('\n'),
+    recommendedMaxOutputTokens: MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
+    retrievalFinalizationInstructions:
+      MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
+    retrievalTools: MEMORY_RETRIEVAL_TOOLS,
+    async retrieve() {},
+    systemInstruction: memoryAnswerSystemInstruction,
+  }), (error) => error === stop)
+  return captured
+}
 
 function body(model = 'gpt-5.6-luna') {
   return {
+    include: ['reasoning.encrypted_content'],
     model,
     instructions: 'Use exact cited memory evidence.',
     input: [{
@@ -28,6 +97,9 @@ function body(model = 'gpt-5.6-luna') {
         additionalProperties: false,
       },
     }],
+    parallel_tool_calls: false,
+    reasoning: { effort: 'low' },
+    tool_choice: 'auto',
     max_output_tokens: 512,
     service_tier: 'default',
     store: false,
@@ -85,9 +157,23 @@ test('durable count and exact generation reservations strictly precede transport
     'reserve-response',
     'response',
   ])
-  assert.equal(JSON.stringify(run.seen.countRequest.body), sourceText)
+  const projectedText = JSON.stringify(
+    projectOpenAIResponsesInputCountBody(source).body,
+  )
+  assert.equal(JSON.stringify(run.seen.countRequest.body), projectedText)
   assert.equal(JSON.stringify(run.seen.responseRequest.body), sourceText)
-  assert.equal(run.seen.countPlan.bodySha256, run.seen.responsePlan.bodySha256)
+  assert.notEqual(
+    run.seen.countPlan.countBodySha256,
+    run.seen.countPlan.generationBodySha256,
+  )
+  assert.equal(
+    run.seen.countPlan.countBodySha256,
+    run.seen.responsePlan.countBodySha256,
+  )
+  assert.equal(
+    run.seen.countPlan.generationBodySha256,
+    run.seen.responsePlan.generationBodySha256,
+  )
   assert.equal(run.seen.countPlan.billingTreatment, 'unknown-uncertain')
   assert.equal(run.seen.countPlan.reservedPicodollars, '50000000000')
   assert.equal(run.seen.responsePlan.exactInputTokens, 1_000)
@@ -112,7 +198,19 @@ test('both transports receive immutable independent snapshots', async () => {
       source.model = 'changed-after-snapshot'
     },
     async invokeCount(request) {
-      assert.equal(JSON.stringify(request.body), original)
+      assert.deepEqual(Object.keys(request.body), [
+        'model',
+        'instructions',
+        'input',
+        'tools',
+        'parallel_tool_calls',
+        'reasoning',
+        'tool_choice',
+      ])
+      assert.equal(request.body.include, undefined)
+      assert.equal(request.body.max_output_tokens, undefined)
+      assert.equal(request.body.service_tier, undefined)
+      assert.equal(request.body.store, undefined)
       assert.throws(() => { request.body.model = 'changed' }, TypeError)
       return { object: 'response.input_tokens', input_tokens: 1_000 }
     },
@@ -130,6 +228,172 @@ test('both transports receive immutable independent snapshots', async () => {
     countAttemptPicodollars: '1',
     operationId: 'immutable-operation',
   })
+})
+
+test('BRN-0025 body projects only documented count fields without nested drift', () => {
+  const source = body()
+  const original = JSON.stringify(source)
+  const wire = projectOpenAIResponsesInputCountBody(source)
+
+  assert.deepEqual(Object.keys(wire.body), [
+    'model',
+    'instructions',
+    'input',
+    'tools',
+    'parallel_tool_calls',
+    'reasoning',
+    'tool_choice',
+  ])
+  for (const key of [
+    'input',
+    'instructions',
+    'model',
+    'parallel_tool_calls',
+    'reasoning',
+    'tool_choice',
+    'tools',
+  ]) {
+    assert.equal(JSON.stringify(wire.body[key]), JSON.stringify(source[key]))
+  }
+  for (const key of [
+    'include',
+    'max_output_tokens',
+    'service_tier',
+    'store',
+  ]) {
+    assert.equal(Object.hasOwn(wire.body, key), false)
+  }
+  assert.equal(JSON.stringify(source), original)
+  assert.equal(Object.isFrozen(wire.body), true)
+  assert.equal(Object.isFrozen(wire.body.input[0].content), true)
+})
+
+test('observed include 400 is repaired while unknown fields fail closed', async () => {
+  const observedError = {
+    error: {
+      code: 'unknown_parameter',
+      message: "Unknown parameter: 'include'.",
+      param: 'include',
+      type: 'invalid_request_error',
+    },
+  }
+  const run = create({
+    async invokeCount(request) {
+      assert.equal(Object.hasOwn(request.body, observedError.error.param), false)
+      return { object: 'response.input_tokens', input_tokens: 1_000 }
+    },
+  })
+  await run.invoke({
+    body: body(),
+    countAttemptPicodollars: '1',
+    operationId: 'repaired-include-400',
+  })
+
+  const unknown = create()
+  await assert.rejects(
+    unknown.invoke({
+      body: { ...body(), undocumented_future_field: true },
+      countAttemptPicodollars: '1',
+      operationId: 'unknown-count-field',
+    }),
+    (error) => error instanceof OpenAICountedResponsesError &&
+      error.code === 'COUNT_FIELD_UNKNOWN',
+  )
+  assert.deepEqual(unknown.events, [])
+})
+
+test('exact consumed BRN-0025 compatibility body projects and generates once', async () => {
+  const source = await exactBrn0025CompatibilityBody()
+  const generationText = JSON.stringify(source)
+  const projection = projectOpenAIResponsesInputCountBody(source)
+  const original = structuredClone(source)
+
+  assert.equal(Buffer.byteLength(generationText),
+    BRN0025_COMPATIBILITY_GENERATION_BYTES)
+  assert.equal(sha256(generationText),
+    BRN0025_COMPATIBILITY_GENERATION_SHA256)
+  assert.equal(Buffer.byteLength(projection.bodyText),
+    BRN0025_COMPATIBILITY_COUNT_BYTES)
+  assert.equal(sha256(projection.bodyText), BRN0025_COMPATIBILITY_COUNT_SHA256)
+  assert.equal(source.tools.length, 7)
+  assert.deepEqual(source.tools.map(({ name }) => name), [
+    'memory_timeline',
+    'memory_read',
+    'memory_find',
+    'memory_plan',
+    'memory_search',
+    'memory_graph',
+    'palari_answer_commit',
+  ])
+  assert.deepEqual(BRN0025_OBSERVED_400, {
+    bodySha256: BRN0025_COMPATIBILITY_GENERATION_SHA256,
+    error: {
+      code: 'unknown_parameter',
+      message: "Unknown parameter: 'include'.",
+      param: 'include',
+      type: 'invalid_request_error',
+    },
+    status: 400,
+    transcriptSha256: BRN0025_COMPATIBILITY_TRANSCRIPT_SHA256,
+  })
+  for (const key of [
+    'input',
+    'instructions',
+    'model',
+    'parallel_tool_calls',
+    'reasoning',
+    'tool_choice',
+    'tools',
+  ]) {
+    assert.equal(
+      JSON.stringify(projection.body[key]),
+      JSON.stringify(source[key]),
+      key,
+    )
+  }
+  for (const key of [
+    'include',
+    'max_output_tokens',
+    'service_tier',
+    'store',
+  ]) {
+    assert.equal(Object.hasOwn(projection.body, key), false, key)
+  }
+
+  let countCalls = 0
+  let generationCalls = 0
+  const run = create({
+    async invokeCount(request) {
+      countCalls += 1
+      assert.equal(JSON.stringify(request.body), projection.bodyText)
+      assert.equal(request.countBodySha256,
+        BRN0025_COMPATIBILITY_COUNT_SHA256)
+      assert.equal(request.generationBodySha256,
+        BRN0025_COMPATIBILITY_GENERATION_SHA256)
+      return { object: 'response.input_tokens', input_tokens: 2_766 }
+    },
+    async invokeResponse(request) {
+      generationCalls += 1
+      assert.equal(JSON.stringify(request.body), generationText)
+      assert.equal(request.countBodySha256,
+        BRN0025_COMPATIBILITY_COUNT_SHA256)
+      assert.equal(request.generationBodySha256,
+        BRN0025_COMPATIBILITY_GENERATION_SHA256)
+      return { id: 'exact-compatibility-generation' }
+    },
+  })
+  const terminal = await run.invoke({
+    body: source,
+    countAttemptPicodollars: '50000000000',
+    operationId: 'exact-brn0025-compatibility',
+  })
+  assert.equal(countCalls, 1)
+  assert.equal(generationCalls, 1)
+  assert.equal(terminal.audit.countBodySha256,
+    BRN0025_COMPATIBILITY_COUNT_SHA256)
+  assert.equal(terminal.audit.generationBodySha256,
+    BRN0025_COMPATIBILITY_GENERATION_SHA256)
+  assert.deepEqual(source, original)
 })
 
 test('operation IDs are consumed before reservation and cannot be reused', async () => {
@@ -258,6 +522,9 @@ test('captured crypto methods keep body hashes authentic after prototype poisoni
   const expected = createHash('sha256')
     .update(JSON.stringify(source))
     .digest('hex')
+  const expectedCount = createHash('sha256')
+    .update(projectOpenAIResponsesInputCountBody(source).bodyText)
+    .digest('hex')
   const hashPrototype = Object.getPrototypeOf(createHash('sha256'))
   const originalUpdate = hashPrototype.update
   const originalDigest = hashPrototype.digest
@@ -270,10 +537,11 @@ test('captured crypto methods keep body hashes authentic after prototype poisoni
       countAttemptPicodollars: '1',
       operationId: 'authentic-hash',
     })
-    assert.equal(terminal.audit.bodySha256, expected)
-    assert.notEqual(terminal.audit.bodySha256, 'a'.repeat(64))
-    assert.equal(run.seen.countPlan.bodySha256, expected)
-    assert.equal(run.seen.responsePlan.bodySha256, expected)
+    assert.equal(terminal.audit.generationBodySha256, expected)
+    assert.equal(terminal.audit.countBodySha256, expectedCount)
+    assert.notEqual(terminal.audit.generationBodySha256, 'a'.repeat(64))
+    assert.equal(run.seen.countPlan.generationBodySha256, expected)
+    assert.equal(run.seen.responsePlan.generationBodySha256, expected)
   } finally {
     hashPrototype.update = originalUpdate
     hashPrototype.digest = originalDigest

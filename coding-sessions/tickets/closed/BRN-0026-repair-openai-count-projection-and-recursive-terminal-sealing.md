@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0026
 children: []
-status: open
+status: accepted
 risk: R4
 priority: P0
 agents_allowed: 1
@@ -191,6 +191,30 @@ Do not obtain a score, repair a consumed namespace, or authorize live spend.
 - `npm run ticket -- check BRN-0026`
 - `npm run ticket -- scope-check --committed-plus-dirty --target main BRN-0026`
 - `git diff --check`
+
+## Specialist Closeout
+
+- Result: implementation complete offline; independent review pending.
+- Count projection: explicit seven-field allowlist, four classified
+  generation-only exclusions, unknown-field refusal, immutable paired hashes,
+  one count and one generation contract.
+- Recursive seal: deterministic file/directory custody, no-follow/mode/path
+  enforcement, durable no-overwrite seal, verification, and reseal refusal.
+- Private mode-0600 launcher/runtime SHA-256:
+  `13700b4edb0a8a95e00c86bdfa45186410818ad0cbf740c9550d3667be57ea5e` /
+  `9a821916e16dd1c731e34fe2882b1364303e14da21475aca588097aa40903189`.
+- Provider-free final runtime: actual cached Ettin, exact hash-bound BRN-0025
+  compatibility reconstruction through projected count/untouched generation,
+  nested seal, one-shot custody, cleanup, and zero external telemetry PASS.
+  Both v3 namespaces remain absent.
+- Initial review of `8ce7d44`: REOPEN, one P2; reduced fixtures did not satisfy
+  AC3's exact BRN-0025 compatibility-body reproduction.
+- Cumulative repair: exact 11,593-byte full body / 11,488-byte projection,
+  seven tools, literal 400 provenance, and both hashes pass permanent/private
+  verification. Focused 22/22; full suite 797 pass / 15 skip / 0 fail across
+  812.
+- Consumed BRN-0024/25 bytes, unsealed status, accounting, historical `6/10`,
+  and U8 remain unchanged. No credential/provider/dataset/result/spend action.
 
 ## Stop Conditions
 

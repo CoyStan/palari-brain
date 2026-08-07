@@ -20,6 +20,7 @@ const numberIsSafeInteger = Number.isSafeInteger
 const objectFreeze = Object.freeze
 const objectGetPrototypeOf = Object.getPrototypeOf
 const objectHasOwn = Object.hasOwn
+const objectKeys = Object.keys
 const bindCall = functionCall.bind(functionBind, functionCall)
 const hashPrototype = objectGetPrototypeOf(createHash('sha256'))
 const hashDigest = bindCall(hashPrototype.digest)
@@ -34,6 +35,29 @@ const POSITIVE_DECIMAL_PATTERN = /^[1-9][0-9]*$/u
 const SUPPORTED_MODELS = objectFreeze(new Set([
   'gpt-5.6-luna',
   'gpt-5.6-sol',
+]))
+
+// POST /v1/responses/input_tokens has an endpoint-specific request schema.
+// These are the documented count fields used by the frozen evaluation body.
+// Do not expand this list from the broader Responses create schema.
+const COUNT_BODY_FIELDS = objectFreeze(new Set([
+  'input',
+  'instructions',
+  'model',
+  'parallel_tool_calls',
+  'reasoning',
+  'tool_choice',
+  'tools',
+]))
+
+// These fields affect generation or response handling, but are not accepted
+// by the frozen input-count endpoint contract. Every other top-level field is
+// rejected so provider schema drift cannot silently change what is counted.
+const GENERATION_ONLY_FIELDS = objectFreeze(new Set([
+  'include',
+  'max_output_tokens',
+  'service_tier',
+  'store',
 ]))
 
 export class OpenAICountedResponsesError extends Error {
@@ -113,15 +137,41 @@ function validateBody(body) {
   return wire
 }
 
+export function projectOpenAIResponsesInputCountBody(body) {
+  const generationWire = snapshotOpenAIResponseBody(body)
+  const projected = Object.create(null)
+  for (const key of objectKeys(generationWire.body)) {
+    if (setHas(COUNT_BODY_FIELDS, key)) {
+      projected[key] = generationWire.body[key]
+    } else if (!setHas(GENERATION_ONLY_FIELDS, key)) {
+      fail(
+        'COUNT_FIELD_UNKNOWN',
+        `body.${key} is not classified for the input-count endpoint.`,
+      )
+    }
+  }
+  for (const required of ['input', 'instructions', 'model']) {
+    if (!objectHasOwn(projected, required)) {
+      fail(
+        'COUNT_FIELD_REQUIRED',
+        `body.${required} is required by the frozen count projection.`,
+      )
+    }
+  }
+  return snapshotOpenAIResponseBody(projected)
+}
+
 function countAttemptPlan({
-  bodySha256,
+  countBodySha256,
   countAttemptPicodollars,
+  generationBodySha256,
   model,
   operationId,
 }) {
   return objectFreeze({
     billingTreatment: 'unknown-uncertain',
-    bodySha256,
+    countBodySha256,
+    generationBodySha256,
     model,
     operationId,
     reservedPicodollars: countAttemptPicodollars,
@@ -129,11 +179,18 @@ function countAttemptPlan({
   })
 }
 
-function responsePlan({ bodySha256, count, operationId, reservation }) {
+function responsePlan({
+  countBodySha256,
+  count,
+  generationBodySha256,
+  operationId,
+  reservation,
+}) {
   return objectFreeze({
-    bodySha256,
+    countBodySha256,
     contextBand: reservation.contextBand,
     exactInputTokens: count.inputTokens,
+    generationBodySha256,
     maxOutputTokens: reservation.maxOutputTokens,
     model: reservation.model,
     operationId,
@@ -174,15 +231,18 @@ export function createExactCountedOpenAIResponsesEvaluator({
     }
 
     const wire = validateBody(body)
+    const countWire = projectOpenAIResponsesInputCountBody(wire.body)
     const acceptedCountAllowance = positivePicodollars(
       countAttemptPicodollars,
     )
     setAdd(consumedOperations, acceptedOperation)
 
-    const bodySha256 = sha256(wire.bodyText)
+    const generationBodySha256 = sha256(wire.bodyText)
+    const countBodySha256 = sha256(countWire.bodyText)
     const countPlan = countAttemptPlan({
-      bodySha256,
+      countBodySha256,
       countAttemptPicodollars: acceptedCountAllowance,
+      generationBodySha256,
       model: wire.body.model,
       operationId: acceptedOperation,
     })
@@ -193,28 +253,31 @@ export function createExactCountedOpenAIResponsesEvaluator({
       invoke: async (countBody) => {
         countInvocations += 1
         if (countInvocations !== 1 ||
-          jsonStringify(countBody) !== wire.bodyText) {
+          jsonStringify(countBody) !== countWire.bodyText ||
+          sha256(wire.bodyText) !== generationBodySha256) {
           fail(
             'COUNT_WIRE_INVALID',
-            'count transport must receive the exact body exactly once.',
+            'count transport must receive the projected body exactly once.',
           )
         }
         return countTransport(objectFreeze({
           body: countBody,
-          bodySha256,
+          countBodySha256,
+          generationBodySha256,
           operationId: acceptedOperation,
         }))
       },
     })
-    const count = await counter(wire.body)
+    const count = await counter(countWire.body)
     const reservation = reserveOpenAIStandardResponseFromExactCount({
       count,
       maxOutputTokens: wire.body.max_output_tokens,
       model: wire.body.model,
     })
     const generationPlan = responsePlan({
-      bodySha256,
+      countBodySha256,
       count,
+      generationBodySha256,
       operationId: acceptedOperation,
       reservation,
     })
@@ -222,19 +285,24 @@ export function createExactCountedOpenAIResponsesEvaluator({
 
     let responseInvocations = 0
     responseInvocations += 1
+    if (sha256(wire.bodyText) !== generationBodySha256) {
+      fail('GENERATION_WIRE_DRIFT', 'generation body changed after counting.')
+    }
     const response = await responseTransport(objectFreeze({
       body: wire.body,
-      bodySha256,
+      countBodySha256,
       exactInputTokens: count.inputTokens,
+      generationBodySha256,
       operationId: acceptedOperation,
       reservation,
     }))
 
     const audit = objectFreeze({
-      bodySha256,
+      countBodySha256,
       countAttempt: countPlan,
       countInvocations,
       exactInputTokens: count.inputTokens,
+      generationBodySha256,
       generation: generationPlan,
       operationId: acceptedOperation,
       responseInvocations,

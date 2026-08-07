@@ -1,5 +1,82 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0026 COUNT PROJECTION AND RECURSIVE SEAL IMPLEMENTED OFFLINE;
+FINAL P-SET 37 FROZEN; INDEPENDENT REVIEW NEXT. No live action is authorized.
+
+The repaired counted Responses boundary keeps the exact immutable generation
+body and derives a distinct endpoint-specific input-count body. The count
+allowlist retains `input`, `instructions`, `model`, `parallel_tool_calls`,
+`reasoning`, `tool_choice`, and `tools`; explicit generation-only exclusions
+are `include`, `max_output_tokens`, `service_tier`, and `store`. Every other
+top-level field fails closed. Count reservation, count transport, generation
+reservation, generation transport, and audit carry separate paired SHA-256
+values. Permanent regression contracts reproduce BRN-0025's full body and
+observed rejected `include` shape, preserve nested values, prove no mutation,
+and execute one projected count plus one untouched generation in order.
+
+The new terminal-artifact boundary recursively sorts and records a physical
+mode-0700 root/directories plus no-follow mode-0600 regular files with byte
+length and SHA-256. It rejects links, special entries, physical escapes,
+invalid manifest paths, wrong modes, later drift, and reseal. The write-once
+manifest excludes itself, uses a synced mode-0600 temporary file plus atomic
+no-overwrite hard link, removes the temporary name, and syncs the directory.
+The permanent BRN-0025-shaped nested fixture and adversarial cases pass.
+
+New successor `j4-luna-ettin-unexecuted11to20-v3` preserves the P-set 36
+population, order, architecture, models, prompts, four-call evidence ceiling,
+historical grades, and previously-profiled disclosure under FINAL P-set 37.
+Sealed U8 `1568498a` is excluded. Opening cumulative accounted spend is exactly
+`$7.85549929`; proposed caps are `$5.00` fresh and `$12.85549929` cumulative.
+No selected session/question/answer or expected route was inspected.
+
+New gitignored launcher/runtime are mode 0600 at SHA-256
+`13700b4edb0a8a95e00c86bdfa45186410818ad0cbf740c9550d3667be57ea5e`
+and
+`9a821916e16dd1c731e34fe2882b1364303e14da21475aca588097aa40903189`.
+Provider-free verification executed the actual final-runtime cached-Ettin
+smoke (titanium first, answer `It is titanium.`, four finite scores), the exact
+11,593-byte BRN-0025 compatibility-body reconstruction through a projected
+11,488-byte count and untouched full generation, durable `reserved -> launched ->
+consumed` custody with reuse rejection, and an actual nested seal/verify/reseal
+refusal. Temporary state was removed. Credential reads, dataset reads,
+provider calls, and result writes are exactly `0 / 0 / 0 / 0`; both v3
+namespaces remain absent; fresh spend is `$0.00`.
+
+The clean pushed import closure contains 49 files / 742,374 bytes and hashes
+to `1c0a634ef908059abe68f8626656b54b1cc1e33e4ec0f0257e8afcd07f132776`.
+Consumed BRN-0025 launcher/runtime and all 12 mode-0600 result files plus root
+and 8 nested mode-0700 directories rehash identically before/after. Its
+namespace remains honestly unsealed; BRN-0024 is also untouched. Historical
+`6/10` remains unchanged.
+
+Initial review of exact head `8ce7d44` returned one P2: permanent and private
+verification used a reduced synthetic request rather than AC3's exact consumed
+BRN-0025 compatibility body. The cumulative repair reconstructs that
+non-sensitive synthetic smoke from tracked product builders and pins its exact
+11,593 bytes / generation SHA-256
+`978a57073547d04b61d5b0813e5db2faef797cc33b6a477b047d1eded41850d8`,
+11,488-byte projected-count SHA-256
+`d77ba2aaa9521a0c3445ca73e1112955e7bc26fd5eb61a1dd5dd7ce76561838d`,
+seven tools, and consumed transcript provenance SHA-256
+`1aa4e36c8cfb15713fd41724c084d7403fc47de10987a813216647507cf9b24e`.
+
+Verification at cumulative-repair closeout: focused contracts 22/22; full
+suite 797 pass / 15 optional skip / 0 fail across 812; quickstart and governance
+checks are rerun at final handoff. Independent cumulative review of the exact
+clean pushed head/private hashes remains required. Acceptance would freeze the
+offline candidate only. Any live invocation still requires exact founder
+authorization naming identity, `$5.00` fresh, `$12.85549929` cumulative,
+reviewed head, launcher/runtime hashes, and ACCEPT.
+
+Product stop rule: (1) yes, quickstart remains green; (2) no end-user memory
+behavior changes because this is an offline evaluation repair; (3) OpenAI
+documents endpoint schemas and Node supplies filesystem primitives, but
+neither provides this fail-closed paired-hash/custody policy; (4) yes, the
+founder requested autonomous repair and a defensible Luna+Ettin evaluation;
+(5) deleting it would resend an incompatible count body or lose nested
+terminal evidence. This is one infrastructure unit after a measurement, so it
+does not trigger consecutive-infrastructure drift.
+
 Loop state: BRN-0025 TERMINAL FAILURE ACCEPTED, MERGED, AND PUSHED; BRN-0026
 COUNT-WIRE AND DIRECTORY-WALKER REPAIR CONTRACT OPEN; OFFLINE IMPLEMENTATION
 NEXT. Founder-authorized

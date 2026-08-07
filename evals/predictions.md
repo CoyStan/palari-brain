@@ -2659,3 +2659,74 @@ list SHA-256 is
 `0667cf1f4354d7f3f618b2605e851591996a9043711da22807e13f4259fe878f`.
 It must not be sealed post hoc. This is a compatibility-plus-harness failure,
 not evidence about the ten-question score or memory quality.
+
+## P-set 37 — Projected-count, recursively sealed Luna + Ettin S60 ordinals 11-20
+
+Status: **FINAL before credential read, provider call, inference, selected-data
+inspection, or result creation.**
+
+Identity: `j4-luna-ettin-unexecuted11to20-v3`
+
+This is a new evaluation freeze, not a retry, resume, reroll, regrade, repair,
+or post-hoc seal of consumed P-set 36. The population, order, architecture,
+models, prompts, four-evidence-call ceiling, and treatment remain unchanged:
+`18bc8abd`, `19b5f2b3`, `1a1907b4`, `2133c1b5`, `2133c1b5_abs`, `25e5aa4f`,
+`2698e78f_abs`, `32260d93`, `35a27287`, `36b9f61e`. These ten rows remain
+never completed and previously profiled by P-set 20. No selected session,
+question, answer, supporting span, or expected route was inspected for this
+freeze. Sealed U8 `1568498a` remains excluded. Historical `6/10` is immutable.
+
+Opening cumulative accounted spend is exactly `$7.85549929`. Proposed caps
+are `$5.00` fresh and `$12.85549929` cumulative. Each Luna operation keeps a
+separate `$0.05` uncertain input-count attempt, then reserves Standard/default
+generation from the returned exact count. The immutable full generation body
+and endpoint-specific count projection have separate hashes. The projection
+retains `input`, `instructions`, `model`, `parallel_tool_calls`, `reasoning`,
+`tool_choice`, and `tools`; it omits only classified generation-only
+`include`, `max_output_tokens`, `service_tier`, and `store`. Unknown top-level
+fields fail before dispatch. These proposed boundaries are not live authority.
+
+Predictions, failing categories first:
+
+1. OFFICIAL ACCURACY: at least `8/10` unchanged official
+   `gpt-4o-2024-08-06` judge labels pass.
+2. SESSION RECALL: at least 90% of required answer-bearing sessions are
+   returned on reached non-abstention rows.
+3. EXACT-SPAN RECALL: at least 80% of dataset-marked supporting canonical
+   messages are returned where the dataset structurally supplies exact spans.
+   Equivalent facts never substitute for this metric.
+4. SELECTED EVIDENCE: at least 8/10 reached rows select answer-relevant
+   evidence through a host-accepted commitment, or correctly select none for
+   an abstention. Retrieved evidence need not be forced into the answer.
+5. MATERIALLY USED EVIDENCE: independent terminal review labels at least 8/10
+   rows PASS for actual answer use or correct abstention. This judged label is
+   distinct from model-declared `consequence_for_answer` and canonical truth.
+6. EQUIVALENT-FACT RECALL: one independent terminal reviewer labels the
+   separately sealed pending/null surface exactly once. This judged label may
+   explain an exact-span miss but never changes exact recall or official grade.
+7. ARCHITECTURE: any temporal/relational plan is general and records anchor,
+   relation, category, and time range; commitments support consequence or
+   `not_used_reason`; cross-context inference is provenance-linked,
+   `revisable: true`, trace-only, and never persisted as canonical fact.
+8. RERANK/BOUNDARY: every reached native Ettin score is finite without input
+   mutation; evidence calls never exceed four; writer smoke precedes answer
+   smoke; each Luna operation has one projected count and at most one exact
+   full-body generation after durable reservations. No retry, byte fallback,
+   resume, reroll, replacement, selective regrade, or cap top-up occurs.
+9. EXECUTION/ACCOUNTING: one invocation either recursively seals both smokes
+   and all ten cells, or recursively seals the first terminal failure. Every
+   physical call is accounted before transport; exact Standard settlement and
+   count uncertainty remain separate; the manifest includes every nested
+   mode-0600 file and mode-0700 directory, excludes itself, and seals once;
+   credential matches are zero; historical `6/10` and U8 remain unchanged.
+
+Offline freeze note (does not rewrite these FINAL predictions): BRN-0026
+executes the actual final-runtime cached-Ettin synthetic smoke, the exact
+hash-bound BRN-0025 compatibility-body reconstruction through one projected
+count plus untouched full generation, one durable custody sequence with
+reuse refusal, and one recursively sealed BRN-0025-shaped nested fixture. It
+removes temporary state and reports zero credential, dataset, provider, and
+result activity. Passing these provider-free gates predicts no live score.
+Any live invocation requires a clean pushed import closure, independent
+review, and exact founder authorization naming this identity, both caps,
+reviewed head, launcher/runtime hashes, and ACCEPT.
