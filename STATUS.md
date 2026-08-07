@@ -183,6 +183,26 @@ store pickup plus the blazer separately. This is now an answer-interpretation
 finding, not a retrieval miss. No further retrieval tuning or provider call was
 made, and the historical LongMemEval result remains 6/10.
 
+The general answer-composition successor is now implemented and proven
+offline. `answerWithRetrieval()` keeps its historical standard mode unchanged,
+while product callers may select `auto` or `enumerate`. High-confidence count
+and complete-list questions receive a strict structured commitment: every
+directly evidenced candidate retains its label, action, evidence ID, exact
+quote, included/excluded/ambiguous disposition, and reason. The host verifies
+all evidence links and recomputes referenced, included, and ambiguous counts;
+it does not force uncertain evidence into a definite answer or persist an
+answer-time inference. The OpenAI adapter exposes this schema only for an
+enumeration session, so the default and frozen historical request wires remain
+byte-identical. Provider-free contracts cover documents, instruments,
+medication, travel, scalar-duration exclusions, malformed counts, and the
+default wire. On the exact persisted `0a995998` store, local Ettin returned all
+three original user statements and the host accepted an honest composition of
+two definite pickups plus one ambiguous old-boots return. This is not a new
+Luna result and does not regrade the historical 6/10. Focused tests pass 25/25,
+the answer/OpenAI contracts pass 73/73, quickstart passes 6/6, and the complete
+legacy tier passes 859 with 3 optional skips. No provider was called and spend
+did not change.
+
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
 `$8.00840072`; the alpha ledger now accounts `$2.38366359`, for cumulative
@@ -209,15 +229,13 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Do not spend again under the current cap. Do not tune retrieval further for
-`0a995998`: all relevant original statements were returned. The next smallest
-unit is an offline answer-composition contract for complete count/list
-questions: enumerate each directly stated candidate action, keep its identity
-and status distinct, then collapse it only when direct canonical evidence
-unambiguously proves it is the same completed action. The contract must use
-unrelated domains and must preserve honest conflict reporting rather than
-forcing a benchmark count. Only after that general rule passes offline should
-one fresh live confirmation be considered under a new founder-approved cap.
+The offline architecture work is complete. Do not tune retrieval further for
+`0a995998`: all relevant original statements were returned. The next useful
+step is one fresh live Luna confirmation with the active gitignored adapter's
+`compositionMode: 'auto'`. That call is blocked until the founder approves a
+new aggregate cap with at least `$0.20` of headroom; the current `$2.55` cap has
+only `$0.16633641` left, below the conservative `$0.05` writer plus `$0.15`
+answer reservation. Do not spend under the current cap.
 
 ## Product check
 

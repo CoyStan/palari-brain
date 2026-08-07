@@ -16,6 +16,7 @@ import {
   ingestChatTurn,
   memoryAnswerSystemInstruction,
   reciprocalRankFuse,
+  resolveMemoryAnswerCompositionMode,
 } from '../src/index.mjs'
 import { deriveQuestionRelativeTime } from '../src/retrieval-answer.mjs'
 
@@ -1115,6 +1116,173 @@ test('optional completeness guidance is bounded and provider-neutral',
         question: 'unused',
       }),
       /at most 4000 characters/,
+    )
+  })
+
+test('answer composition auto-detection is general and avoids scalar duration questions', () => {
+  for (const question of [
+    'How many store errands do I still have?',
+    'List all medications I need to refill.',
+    'Which documents must I collect or return from an office?',
+    'What travel items are still outstanding?',
+  ]) {
+    assert.equal(resolveMemoryAnswerCompositionMode(question), 'enumerate')
+  }
+  for (const question of [
+    'How many months have I lived here?',
+    'How many miles is the route?',
+    'Where is my passport?',
+  ]) {
+    assert.equal(resolveMemoryAnswerCompositionMode(question), 'standard')
+  }
+  assert.equal(
+    resolveMemoryAnswerCompositionMode('Where is my passport?', 'enumerate'),
+    'enumerate',
+  )
+  assert.throws(
+    () => resolveMemoryAnswerCompositionMode('Anything?', 'unknown'),
+    /compositionMode must be one of/,
+  )
+})
+
+test('enumeration commitment preserves exhaustive candidates, ambiguity, and exact counts',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, [
+      { id: 'passport-pickup:0', user: 'I need to pick up my renewed passport from city hall.' },
+      { id: 'keyboard-return:0', user: 'I may still need to return the rented keyboard to the music shop.' },
+      { id: 'prescription-pickup:0', user: 'I need to collect my prescription from the pharmacy.' },
+    ])
+    const provider = requireEvidenceCommitment(async ({
+      answerEnumerationRequired,
+      commitAnswer,
+      retrieve,
+    }) => {
+      assert.equal(answerEnumerationRequired, true)
+      const passportResult = await retrieve({
+        input: { phrase: 'renewed passport' },
+        tool: 'memory_find',
+      })
+      const keyboardResult = await retrieve({
+        input: { phrase: 'rented keyboard' },
+        tool: 'memory_find',
+      })
+      const prescriptionResult = await retrieve({
+        input: { phrase: 'prescription' },
+        tool: 'memory_find',
+      })
+      const [passport] = passportResult.matches
+      const [keyboard] = keyboardResult.matches
+      const [prescription] = prescriptionResult.matches
+      assert.ok(passport && keyboard && prescription)
+      const candidates = [
+        [passport, 'I need to pick up my renewed passport from city hall.'],
+        [keyboard, 'I may still need to return the rented keyboard to the music shop.'],
+        [prescription, 'I need to collect my prescription from the pharmacy.'],
+      ]
+      const bases = candidates.map(([row, quote]) => ({
+        consequence_for_answer: 'This is a candidate store errand.',
+        evidenceId: row.evidenceId,
+        not_used_reason: '',
+        quote,
+      }))
+      return commitAnswer({
+        abstained: false,
+        bases,
+        enumeration: {
+          items: [
+            {
+              action: 'pick up',
+              disposition: 'included',
+              evidenceId: passport.evidenceId,
+              label: 'renewed passport',
+              quote: candidates[0][1],
+              reason: 'The pickup is explicitly outstanding.',
+            },
+            {
+              action: 'return',
+              disposition: 'ambiguous',
+              evidenceId: keyboard.evidenceId,
+              label: 'rented keyboard',
+              quote: candidates[1][1],
+              reason: 'The user said this may still be needed.',
+            },
+            {
+              action: 'collect',
+              disposition: 'included',
+              evidenceId: prescription.evidenceId,
+              label: 'prescription',
+              quote: candidates[2][1],
+              reason: 'The collection is explicitly outstanding.',
+            },
+          ],
+          referencedCount: 3,
+          includedCount: 2,
+          ambiguousCount: 1,
+        },
+        temporaryInferences: [],
+        text: 'Two errands are definite; one keyboard return remains ambiguous.',
+      })
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      compositionMode: 'auto',
+      provider,
+      question: 'How many errands do I still have?',
+    })
+    assert.equal(result.answerCompositionMode, 'enumerate')
+    assert.equal(result.answerEnumeration.referencedCount, 3)
+    assert.equal(result.answerEnumeration.includedCount, 2)
+    assert.equal(result.answerEnumeration.ambiguousCount, 1)
+    assert.ok(Object.isFrozen(result.answerEnumeration))
+    assert.ok(Object.isFrozen(result.answerEnumeration.items))
+  })
+
+test('enumeration commitment rejects omitted candidates and host-inconsistent counts',
+  async (t) => {
+    const brain = await openBrain(t)
+    const canonical = 'I need to return the rented keyboard to the music shop.'
+    await seed(brain, [{ id: 'keyboard-return:0', user: canonical }])
+    const provider = requireEvidenceCommitment(async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { phrase: 'keyboard' },
+        tool: 'memory_find',
+      })
+      const [row] = found.matches
+      return commitAnswer({
+        abstained: false,
+        bases: [{
+          consequence_for_answer: 'This is an outstanding return.',
+          evidenceId: row.evidenceId,
+          not_used_reason: '',
+          quote: canonical,
+        }],
+        enumeration: {
+          ambiguousCount: 0,
+          includedCount: 0,
+          items: [{
+            action: 'return',
+            disposition: 'included',
+            evidenceId: row.evidenceId,
+            label: 'rented keyboard',
+            quote: canonical,
+            reason: 'The return is explicit.',
+          }],
+          referencedCount: 1,
+        },
+        temporaryInferences: [],
+        text: 'One return.',
+      })
+    })
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        compositionMode: 'enumerate',
+        provider,
+        question: 'List all music shop errands.',
+      }),
+      /includedCount must equal 1/,
     )
   })
 

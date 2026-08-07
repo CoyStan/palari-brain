@@ -26,7 +26,12 @@ import {
 import {
   DEFAULT_RETRIEVAL_CALLS,
   MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS,
+  MEMORY_ANSWER_ENUMERATION_DISPOSITIONS,
   MEMORY_ANSWER_MAX_INFERENCE_CHARS,
+  MEMORY_ANSWER_MAX_ENUMERATION_ACTION_CHARS,
+  MEMORY_ANSWER_MAX_ENUMERATION_ITEMS,
+  MEMORY_ANSWER_MAX_ENUMERATION_LABEL_CHARS,
+  MEMORY_ANSWER_MAX_ENUMERATION_REASON_CHARS,
   MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
   MEMORY_ANSWER_MAX_BASES,
   MEMORY_ANSWER_MAX_QUOTE_CHARS,
@@ -524,6 +529,90 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
   type: 'function',
 })
 
+const OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL = deepFreeze({
+  ...clone(OPENAI_ANSWER_COMMIT_TOOL),
+  description: [
+    OPENAI_ANSWER_COMMIT_TOOL.description,
+    'For this exhaustive question, enumerate every distinct candidate supported by direct canonical evidence; classify it included, excluded, or ambiguous and report exact counts.',
+  ].join(' '),
+  parameters: {
+    ...clone(OPENAI_ANSWER_COMMIT_TOOL.parameters),
+    properties: {
+      ...clone(OPENAI_ANSWER_COMMIT_TOOL.parameters.properties),
+      enumeration: {
+        additionalProperties: false,
+        properties: {
+          items: {
+            items: {
+              additionalProperties: false,
+              properties: {
+                label: {
+                  maxLength: MEMORY_ANSWER_MAX_ENUMERATION_LABEL_CHARS,
+                  minLength: 1,
+                  type: 'string',
+                },
+                action: {
+                  maxLength: MEMORY_ANSWER_MAX_ENUMERATION_ACTION_CHARS,
+                  minLength: 1,
+                  type: 'string',
+                },
+                evidenceId: {
+                  maxLength: 500,
+                  minLength: 1,
+                  type: 'string',
+                },
+                quote: {
+                  maxLength: MEMORY_ANSWER_MAX_QUOTE_CHARS,
+                  minLength: 1,
+                  type: 'string',
+                },
+                disposition: {
+                  enum: [...MEMORY_ANSWER_ENUMERATION_DISPOSITIONS],
+                  type: 'string',
+                },
+                reason: {
+                  maxLength: MEMORY_ANSWER_MAX_ENUMERATION_REASON_CHARS,
+                  minLength: 1,
+                  type: 'string',
+                },
+              },
+              required: [
+                'label',
+                'action',
+                'evidenceId',
+                'quote',
+                'disposition',
+                'reason',
+              ],
+              type: 'object',
+            },
+            maxItems: MEMORY_ANSWER_MAX_ENUMERATION_ITEMS,
+            minItems: 1,
+            type: 'array',
+          },
+          referencedCount: { minimum: 0, type: 'integer' },
+          includedCount: { minimum: 0, type: 'integer' },
+          ambiguousCount: { minimum: 0, type: 'integer' },
+        },
+        required: [
+          'items',
+          'referencedCount',
+          'includedCount',
+          'ambiguousCount',
+        ],
+        type: 'object',
+      },
+    },
+    required: [
+      'abstained',
+      'bases',
+      'temporaryInferences',
+      'text',
+      'enumeration',
+    ],
+  },
+})
+
 const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
   'Return the final answer only by calling palari_answer_commit.',
   'Use only evidence IDs and exact contiguous quotes from memory results already returned in this answer session.',
@@ -533,8 +622,10 @@ const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
   'No memory tool is available during this repair.',
 ].join(' ')
 
-function answerCommitTool() {
-  return clone(OPENAI_ANSWER_COMMIT_TOOL)
+function answerCommitTool(enumerationRequired = false) {
+  return clone(enumerationRequired
+    ? OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL
+    : OPENAI_ANSWER_COMMIT_TOOL)
 }
 
 function commitmentEvidenceCount(session) {
@@ -612,7 +703,8 @@ export function createOpenAIRetrievalProvider({
       )
     }
     const memoryTools = buildOpenAIFunctionTools(session.retrievalTools)
-    const commitTool = answerCommitTool()
+    const enumerationRequired = session.answerEnumerationRequired === true
+    const commitTool = answerCommitTool(enumerationRequired)
     const tools = [...memoryTools, commitTool]
     const allowedNames = new Set(tools.map(({ name }) => name))
     const maxOutputTokens = configuredMaxOutputTokens ?? positiveInteger(
@@ -661,6 +753,9 @@ export function createOpenAIRetrievalProvider({
             ? finalizationInstructions(session)
             : answerInstructions(session),
           commitOnly ? ANSWER_COMMIT_REPAIR_INSTRUCTIONS : '',
+          commitOnly && enumerationRequired
+            ? 'The commitment must enumerate every evidence-supported candidate and its included, excluded, or ambiguous disposition with exact counts.'
+            : '',
         ].filter(Boolean).join('\n\n'),
         max_output_tokens: maxOutputTokens,
         model: modelId,
@@ -672,7 +767,7 @@ export function createOpenAIRetrievalProvider({
           : toolDisabled ? 'none' : 'auto',
         ...(toolDisabled
           ? {}
-          : { tools: commitOnly ? [answerCommitTool()] : clone(tools) }),
+          : { tools: commitOnly ? [clone(commitTool)] : clone(tools) }),
       }
       const response = await invoke({
         body,

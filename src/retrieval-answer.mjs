@@ -30,6 +30,20 @@ export const MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS = 2_000
 export const MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS = 2_000
 export const MEMORY_ANSWER_MAX_TEMPORARY_INFERENCES = 10
 export const MEMORY_ANSWER_MAX_INFERENCE_CHARS = 2_000
+export const MEMORY_ANSWER_MAX_ENUMERATION_ITEMS = 50
+export const MEMORY_ANSWER_MAX_ENUMERATION_LABEL_CHARS = 500
+export const MEMORY_ANSWER_MAX_ENUMERATION_ACTION_CHARS = 200
+export const MEMORY_ANSWER_MAX_ENUMERATION_REASON_CHARS = 1_000
+export const MEMORY_ANSWER_ENUMERATION_DISPOSITIONS = Object.freeze([
+  'included',
+  'excluded',
+  'ambiguous',
+])
+export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
+  'auto',
+  'standard',
+  'enumerate',
+])
 export const MEMORY_RETRIEVAL_PLAN_TOOL_NAME = 'memory_plan'
 export const MEMORY_RETRIEVAL_PLAN_RELATIONS = Object.freeze([
   'after',
@@ -64,6 +78,11 @@ const DEFAULT_HYBRID_MAX_CHARS = 20_000
 const MAX_HYBRID_MAX_CHARS = 100_000
 const MAX_SEARCH_PHRASE_CHARS = 500
 const MAX_RANKED_PHRASE_CHARS = 200
+const ENUMERATION_COUNT_QUESTION = /^\s*how\s+many\s+(.{1,120}?)\s+(?:do|does|did|are|were|have|has|had|should|must|can|could|will|would)\b/iu
+const ENUMERATION_LIST_QUESTION = /\b(?:list|enumerate)\s+(?:all|every|each)\b/iu
+const ENUMERATION_NAMED_COLLECTION_QUESTION = /^\s*(?:which|what)\s+.{0,120}\b(?:items|things|tasks|actions|events|entries|records)\b/iu
+const ENUMERATION_RELATIONAL_QUESTION = /^\s*(?:which|what)\s+.{1,120}\s+(?:do|does|did|are|were|have|has|had|should|must|can|could|will|would)\b/iu
+const SCALAR_MEASUREMENT_UNIT = /^(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?|meters?|metres?|kilometers?|kilometres?|miles?|feet|inches?|grams?|kilograms?|pounds?|ounces?|liters?|litres?|gallons?|degrees?|percent|percentage|dollars?|euros?|pounds?\s+sterling|tokens?|characters?|words?)\b/iu
 
 // Capture the small set of intrinsics used by the answer-commit boundary
 // before provider code can run in this realm. Provider adapters are local
@@ -78,6 +97,7 @@ const dateToISOString = Function.call.bind(Date.prototype.toISOString)
 const mapGet = Function.call.bind(Map.prototype.get)
 const mapSet = Function.call.bind(Map.prototype.set)
 const numberConstructor = Number
+const numberIsSafeInteger = Number.isSafeInteger
 const numberIsNaN = Number.isNaN
 const objectDefineProperty = Object.defineProperty
 const objectFreeze = Object.freeze
@@ -142,6 +162,35 @@ function answerCommitmentError(message) {
   return error
 }
 
+export function resolveMemoryAnswerCompositionMode(question, mode = 'auto') {
+  const requested = stringTrim(stringFrom(mode ?? ''))
+  let supported = false
+  for (let index = 0; index < MEMORY_ANSWER_COMPOSITION_MODES.length; index += 1) {
+    if (MEMORY_ANSWER_COMPOSITION_MODES[index] === requested) {
+      supported = true
+      break
+    }
+  }
+  if (!supported) {
+    throw new TypeError(
+      `compositionMode must be one of ${MEMORY_ANSWER_COMPOSITION_MODES.join(', ')}.`,
+    )
+  }
+  if (requested !== 'auto') return requested
+
+  const text = stringTrim(stringFrom(question ?? ''))
+  const countMatch = regexpExec(ENUMERATION_COUNT_QUESTION, text)
+  if (countMatch && !regexpExec(SCALAR_MEASUREMENT_UNIT, countMatch[1])) {
+    return 'enumerate'
+  }
+  if (regexpExec(ENUMERATION_LIST_QUESTION, text) ||
+    regexpExec(ENUMERATION_NAMED_COLLECTION_QUESTION, text) ||
+    regexpExec(ENUMERATION_RELATIONAL_QUESTION, text)) {
+    return 'enumerate'
+  }
+  return 'standard'
+}
+
 function snapshotCommitment(value) {
   try {
     return structuredCloneValue(value)
@@ -170,26 +219,41 @@ function exactDataProperties(value, expected, label) {
   }
 }
 
-function assertCommitmentDataShape(proposal) {
+function assertDenseDataArray(value, label) {
+  if (!arrayIsArray(value) || objectGetPrototypeOf(value) !== arrayPrototype) {
+    throw answerCommitmentError(`${label} must be an array.`)
+  }
+  const keys = reflectOwnKeys(value)
+  if (keys.length !== value.length + 1 || !objectHasOwn(value, 'length')) {
+    throw answerCommitmentError(
+      `${label} must contain only dense indexed items.`,
+    )
+  }
+  for (let index = 0; index < value.length; index += 1) {
+    const descriptor = objectGetOwnPropertyDescriptor(value, stringFrom(index))
+    if (!descriptor || !objectHasOwn(descriptor, 'value') ||
+      descriptor.enumerable !== true) {
+      throw answerCommitmentError(
+        `${label} must contain only dense indexed items.`,
+      )
+    }
+  }
+}
+
+function assertCommitmentDataShape(proposal, { enumerationRequired = false } = {}) {
   const modern = plainObject(proposal) &&
     objectHasOwn(proposal, 'temporaryInferences')
   exactDataProperties(
     proposal,
-    modern
-      ? ['abstained', 'bases', 'temporaryInferences', 'text']
+    modern && enumerationRequired
+      ? ['abstained', 'bases', 'enumeration', 'temporaryInferences', 'text']
+      : modern
+        ? ['abstained', 'bases', 'temporaryInferences', 'text']
       : ['abstained', 'bases', 'text'],
     'Answer commitment',
   )
   const bases = proposal.bases
-  if (!arrayIsArray(bases) || objectGetPrototypeOf(bases) !== arrayPrototype) {
-    throw answerCommitmentError('Answer commitment bases must be an array.')
-  }
-  const keys = reflectOwnKeys(bases)
-  if (keys.length !== bases.length + 1 || !objectHasOwn(bases, 'length')) {
-    throw answerCommitmentError(
-      'Answer commitment bases must contain only dense indexed items.',
-    )
-  }
+  assertDenseDataArray(bases, 'Answer commitment bases')
   for (let index = 0; index < bases.length; index += 1) {
     const descriptor = objectGetOwnPropertyDescriptor(bases, stringFrom(index))
     if (!descriptor || !objectHasOwn(descriptor, 'value') ||
@@ -213,19 +277,10 @@ function assertCommitmentDataShape(proposal) {
   }
   if (!modern) return
   const inferences = proposal.temporaryInferences
-  if (!arrayIsArray(inferences) ||
-    objectGetPrototypeOf(inferences) !== arrayPrototype) {
-    throw answerCommitmentError(
-      'Answer commitment temporaryInferences must be an array.',
-    )
-  }
-  const inferenceKeys = reflectOwnKeys(inferences)
-  if (inferenceKeys.length !== inferences.length + 1 ||
-    !objectHasOwn(inferences, 'length')) {
-    throw answerCommitmentError(
-      'Answer commitment temporaryInferences must contain only dense indexed items.',
-    )
-  }
+  assertDenseDataArray(
+    inferences,
+    'Answer commitment temporaryInferences',
+  )
   for (let index = 0; index < inferences.length; index += 1) {
     const descriptor = objectGetOwnPropertyDescriptor(
       inferences,
@@ -268,6 +323,28 @@ function assertCommitmentDataShape(proposal) {
         )
       }
     }
+  }
+  if (!enumerationRequired) return
+  const enumeration = proposal.enumeration
+  exactDataProperties(enumeration, [
+    'items',
+    'referencedCount',
+    'includedCount',
+    'ambiguousCount',
+  ], 'Answer commitment enumeration')
+  assertDenseDataArray(
+    enumeration.items,
+    'Answer commitment enumeration items',
+  )
+  for (let index = 0; index < enumeration.items.length; index += 1) {
+    exactDataProperties(enumeration.items[index], [
+      'label',
+      'action',
+      'evidenceId',
+      'quote',
+      'disposition',
+      'reason',
+    ], `Answer commitment enumeration item ${index}`)
   }
 }
 
@@ -527,7 +604,7 @@ function evidenceTexts(result) {
 function boundedInteger(value, fallback, maximum, label) {
   if (value === undefined || value === null) return fallback
   const parsed = Number(value)
-  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+  if (!numberIsSafeInteger(parsed) || parsed < 1) {
     throw new TypeError(`${label} must be a positive integer.`)
   }
   return Math.min(parsed, maximum)
@@ -966,6 +1043,7 @@ async function hybridSearch(
 // can map MEMORY_RETRIEVAL_TOOLS to their provider's tool schema.
 export async function answerWithRetrieval(brain, {
   additionalInstructions = '',
+  compositionMode = 'standard',
   expandPlannedSearches = false,
   maxChars = 100_000,
   maxRetrievalCalls = DEFAULT_RETRIEVAL_CALLS,
@@ -985,7 +1063,7 @@ export async function answerWithRetrieval(brain, {
   const requiresEvidenceCommitment =
     provider.requiresEvidenceCommitment === true
   const budget = Number(maxRetrievalCalls)
-  if (!Number.isSafeInteger(budget) || budget < 0 ||
+  if (!numberIsSafeInteger(budget) || budget < 0 ||
     budget > DEFAULT_RETRIEVAL_CALLS) {
     throw new TypeError(
       `maxRetrievalCalls must be an integer from 0 to ` +
@@ -1001,8 +1079,23 @@ export async function answerWithRetrieval(brain, {
   if (typeof expandPlannedSearches !== 'boolean') {
     throw new TypeError('expandPlannedSearches must be boolean.')
   }
+  const resolvedCompositionMode = resolveMemoryAnswerCompositionMode(
+    question,
+    compositionMode,
+  )
+  const enumerationRequired = resolvedCompositionMode === 'enumerate'
+  const enumerationInstructions = enumerationRequired
+    ? [
+        'This question requires exhaustive answer composition from returned evidence.',
+        'Before writing final prose, enumerate every distinct candidate unit supported by direct canonical evidence.',
+        'Classify each candidate as included, excluded, or ambiguous; give a reason for excluded or ambiguous candidates.',
+        'Do not silently drop a candidate, force ambiguity into a definite count, or save an answer-time inference as canonical memory.',
+        'Report referenced, included, and ambiguous counts exactly as committed.',
+      ].join(' ')
+    : ''
   const answerInstructions = [
     MEMORY_RETRIEVAL_INSTRUCTIONS,
+    enumerationInstructions,
     additionalInstructions.trim(),
   ].filter(Boolean).join('\n\n')
   const trustedTimeRange = trustedRetrievalTimeRange === undefined
@@ -1033,14 +1126,23 @@ export async function answerWithRetrieval(brain, {
     // Provider objects are outside the host trust boundary. Read them once
     // into a private structured snapshot, then use only host-owned iteration;
     // never invoke provider-overridable Array methods during validation.
-    assertCommitmentDataShape(proposal)
+    assertCommitmentDataShape(proposal, { enumerationRequired })
     const candidate = snapshotCommitment(proposal)
-    const modern = hasExactKeys(candidate, [
-      'abstained',
-      'bases',
-      'temporaryInferences',
-      'text',
-    ])
+    const modernKeys = enumerationRequired
+      ? [
+          'abstained',
+          'bases',
+          'enumeration',
+          'temporaryInferences',
+          'text',
+        ]
+      : [
+          'abstained',
+          'bases',
+          'temporaryInferences',
+          'text',
+        ]
+    const modern = hasExactKeys(candidate, modernKeys)
     if (!modern && !hasExactKeys(candidate, ['abstained', 'bases', 'text'])) {
       throw answerCommitmentError(
         'Answer commitment has unsupported or missing fields.',
@@ -1224,9 +1326,133 @@ export async function answerWithRetrieval(brain, {
         statement,
       })
     }
+    let enumeration = null
+    if (enumerationRequired) {
+      const proposed = candidate.enumeration
+      if (!arrayIsArray(proposed.items) || proposed.items.length < 1 ||
+        proposed.items.length > MEMORY_ANSWER_MAX_ENUMERATION_ITEMS) {
+        throw answerCommitmentError(
+          `Answer commitment enumeration items must contain 1 to ` +
+            `${MEMORY_ANSWER_MAX_ENUMERATION_ITEMS} items.`,
+        )
+      }
+      const items = []
+      const itemSeen = new setConstructor()
+      let includedCount = 0
+      let ambiguousCount = 0
+      for (let index = 0; index < proposed.items.length; index += 1) {
+        const item = proposed.items[index]
+        const label = boundedCommitmentText(
+          item.label,
+          `Answer commitment enumeration item ${index} label`,
+          MEMORY_ANSWER_MAX_ENUMERATION_LABEL_CHARS,
+          { trim: true },
+        )
+        const action = boundedCommitmentText(
+          item.action,
+          `Answer commitment enumeration item ${index} action`,
+          MEMORY_ANSWER_MAX_ENUMERATION_ACTION_CHARS,
+          { trim: true },
+        )
+        const evidenceId = boundedCommitmentText(
+          item.evidenceId,
+          `Answer commitment enumeration item ${index} evidenceId`,
+          500,
+          { trim: true },
+        )
+        if (!setHas(usedEvidenceIds, evidenceId)) {
+          throw answerCommitmentError(
+            `Answer commitment enumeration item ${index} must link selected used evidence.`,
+          )
+        }
+        const quote = boundedCommitmentText(
+          item.quote,
+          `Answer commitment enumeration item ${index} quote`,
+          MEMORY_ANSWER_MAX_QUOTE_CHARS,
+        )
+        const sources = mapGet(evidenceRegistry, evidenceId)
+        let exact = false
+        for (let sourceIndex = 0; sourceIndex < sources.length; sourceIndex += 1) {
+          if (stringIncludes(sources[sourceIndex], quote)) {
+            exact = true
+            break
+          }
+        }
+        if (!exact) {
+          throw answerCommitmentError(
+            `Answer commitment enumeration item ${index} quote is not exact contiguous returned evidence.`,
+          )
+        }
+        let dispositionSupported = false
+        for (let dispositionIndex = 0;
+          dispositionIndex < MEMORY_ANSWER_ENUMERATION_DISPOSITIONS.length;
+          dispositionIndex += 1) {
+          if (MEMORY_ANSWER_ENUMERATION_DISPOSITIONS[dispositionIndex] ===
+            item.disposition) {
+            dispositionSupported = true
+            break
+          }
+        }
+        if (!dispositionSupported) {
+          throw answerCommitmentError(
+            `Answer commitment enumeration item ${index} disposition is unsupported.`,
+          )
+        }
+        const reason = boundedCommitmentText(
+          item.reason,
+          `Answer commitment enumeration item ${index} reason`,
+          MEMORY_ANSWER_MAX_ENUMERATION_REASON_CHARS,
+          { trim: true },
+        )
+        const identity = `${evidenceId}\u0000${quote}\u0000${label}\u0000${action}`
+        if (setHas(itemSeen, identity)) {
+          throw answerCommitmentError(
+            `Answer commitment enumeration item ${index} duplicates a candidate.`,
+          )
+        }
+        setAdd(itemSeen, identity)
+        if (item.disposition === 'included') includedCount += 1
+        if (item.disposition === 'ambiguous') ambiguousCount += 1
+        arrayPush(items, {
+          action,
+          disposition: item.disposition,
+          evidenceId,
+          label,
+          quote,
+          reason,
+        })
+      }
+      const countNames = [
+        'referencedCount',
+        'includedCount',
+        'ambiguousCount',
+      ]
+      const countValues = [
+        proposed.items.length,
+        includedCount,
+        ambiguousCount,
+      ]
+      for (let index = 0; index < countNames.length; index += 1) {
+        const name = countNames[index]
+        const expected = countValues[index]
+        if (!numberIsSafeInteger(proposed[name]) || proposed[name] < 0 ||
+          proposed[name] !== expected) {
+          throw answerCommitmentError(
+            `Answer commitment enumeration ${name} must equal ${expected}.`,
+          )
+        }
+      }
+      enumeration = {
+        ambiguousCount,
+        includedCount,
+        items,
+        referencedCount: proposed.items.length,
+      }
+    }
     const committed = deepFreeze({
       abstained: candidate.abstained,
       bases,
+      ...(enumerationRequired ? { enumeration } : {}),
       evidenceCommitments,
       temporaryInferences,
       text,
@@ -1392,6 +1618,7 @@ export async function answerWithRetrieval(brain, {
   try {
     response = await provider({
       answerEvidenceCount: () => evidenceCount,
+      answerEnumerationRequired: enumerationRequired,
       answerInstructions,
       briefing,
       memoryText: briefing.text,
@@ -1447,6 +1674,9 @@ export async function answerWithRetrieval(brain, {
   const temporaryInferences = answerCommitted
     ? response.temporaryInferences
     : []
+  const answerEnumeration = answerCommitted && enumerationRequired
+    ? response.enumeration
+    : null
   if (answerCommitted) {
     for (let index = 0; index < response.bases.length; index += 1) {
       const { evidenceId, quote } = response.bases[index]
@@ -1477,6 +1707,8 @@ export async function answerWithRetrieval(brain, {
       ? response.text
       : stringFrom(response?.text ?? response ?? ''),
     answerCommitted,
+    answerCompositionMode: resolvedCompositionMode,
+    answerEnumeration,
     answerEvidence,
     evidenceCommitments,
     briefingMode: briefing.briefingMode,

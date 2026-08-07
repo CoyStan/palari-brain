@@ -387,6 +387,31 @@ test('OpenAI answer commitment wire distinguishes use, non-use, and temporary in
     assert.match(commit.description, /temporary/i)
   })
 
+test('OpenAI adds exhaustive enumeration only for an enumeration answer session',
+  async () => {
+    let body
+    const provider = createOpenAIRetrievalProvider({
+      async invoke(request) {
+        body = request.body
+        return completedText('No stored evidence was found.')
+      },
+    })
+    await provider(answerSession({ answerEnumerationRequired: true }))
+    const commit = body.tools.find((tool) =>
+      tool.name === OPENAI_ANSWER_COMMIT_TOOL_NAME)
+    assert.ok(commit.parameters.required.includes('enumeration'))
+    assert.deepEqual(
+      commit.parameters.properties.enumeration.properties.items.items
+        .properties.disposition.enum,
+      ['included', 'excluded', 'ambiguous'],
+    )
+    assert.deepEqual(
+      commit.parameters.properties.enumeration.required,
+      ['items', 'referencedCount', 'includedCount', 'ambiguousCount'],
+    )
+    assert.match(commit.description, /every distinct candidate/i)
+  })
+
 test('one memory plan preserves all four retrieval calls in the OpenAI loop',
   async () => {
     const bodies = []
