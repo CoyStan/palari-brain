@@ -1,5 +1,54 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0032 LIVE V5 IDENTITY ADMINISTRATIVELY CONSUMED; TERMINAL
+REVIEW-ATTESTATION COMPATIBILITY FAILURE RECORDED BY BRN-0033. No durable
+custody, credential read, dataset read, provider call, result write, semantic
+overlay, or spend occurred. No retry, resume, repair, or successor is
+authorized.
+
+The founder-authorized identity `j4-luna-ettin-unexecuted11to20-v5` was
+invoked exactly once at reviewed head
+`e6320532041fb5028e72e1d19ee9fe529d8d69f5`, with launcher/runtime SHA-256
+`d149ee3e145789cc97b0e92caa22e23a719e7125cd1435f028cb90899eec83ef` /
+`c013d8a32efd408094dd5881acbc4c7d5e96104661883b519e98618996efabd7`
+and `$5.00` fresh / `$13.00840072` cumulative caps. Its provider-free
+preflight completed, then the launcher failed with `Review attestation
+requires one exact BRN0025_REVIEW_IDENTITY marker.`
+
+The failure boundary is before custody or live work. The launcher validates
+the exact founder authority, imports the shared verifier, reads the accepted
+BRN-0032 reviewer note, and calls `assertReviewAttestation`; only after that
+call would it create the result directory, reserve custody, launch the runtime,
+or reach credentials, selected dataset content, and provider transports. The
+shared verifier hard-codes legacy `BRN0025_REVIEW_*` marker names. BRN-0032's
+accepted note contains the correct human-readable identity, hashes, and ACCEPT
+recommendation but not those obsolete exact marker keys. This is a generic
+governance-interface incompatibility, not Luna, Ettin, retrieval, ranking,
+memory, or answer-quality evidence.
+
+Both v5 result and semantic-review namespaces remain absent. All frozen v1-v4
+launcher/runtime hashes remain unchanged. Fresh measured, uncertain, and
+accounted spend are all `$0`; cumulative accounted spend remains exactly
+`$8.00840072`. There are no question rows, benchmark answers, official labels,
+or evidence metrics. FINAL P-set 39 grades every result category **NOT REACHED
+/ FAIL**; execution/accounting preserves the one-shot stop, caps, namespace
+absence, zero calls, and zero spend but fails overall because neither durable
+custody nor a recursively sealed terminal artifact exists. Historical `6/10`
+and sealed U8 `1568498a` remain unchanged. The v5 identity is nevertheless
+administratively consumed and terminal under the no-reroll law.
+
+Product stop rule: (1) yes, quickstart remains green; (2) no end-user memory
+behavior changed because this unit records a pre-custody harness failure; (3)
+provider SDKs do not provide Palari's independent-review attestation, one-shot
+identity, or accounting boundary; (4) yes, the founder authorized this exact
+one-shot invocation and requires every outcome recorded; (5) deleting this
+record could invite an invalid retry or misstate a governance incompatibility
+as model evidence. This measurement record follows an implementation unit, so
+it does not trigger consecutive-infrastructure drift. Next is independent
+read-only review of BRN-0033. Any generic attestation repair must be a separate
+offline ticket, and any live successor needs a new freeze, review, identity,
+and exact founder authorization.
+
 Loop state: BRN-0032 OCCURRENCE-AWARE SOURCE IDENTITY AND V6 SENTINEL
 INDEPENDENTLY ACCEPTED, MERGED, AND PUSHED AT `6495617`. No credential read,
 dataset read, provider call, result write, spend, or live v5 invocation

@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0033
 children: []
-status: open
+status: accepted
 risk: R4
 priority: P0
 agents_allowed: 1
@@ -141,3 +141,20 @@ Fresh read-only review; acceptance grants no repair or live-run authority.
 - Stop if work needs a path outside `allowed_paths`, touches `forbidden_paths`,
   reads a credential or selected dataset content, calls a provider, mutates
   private evidence, implements a repair, or invokes any live identity.
+
+## Specialist Closeout
+
+The exact authorized v5 launcher invocation is recorded as a terminal,
+administratively consumed pre-custody failure. It stopped at
+`assertReviewAttestation` with `Review attestation requires one exact
+BRN0025_REVIEW_IDENTITY marker.` before result-directory creation, durable
+custody, runtime launch, credentials, selected dataset content, providers, or
+spend. Both v5 namespaces are absent; all frozen v1-v4 launcher/runtime hashes
+still match; cumulative accounted spend remains `$8.00840072`.
+
+P-set 39 is graded failing categories first without changing historical
+`6/10`, U8, or any prior evidence. This ticket changes only documentation and
+governance artifacts. It does not repair, retry, freeze a successor, or grant
+live authority. `npm test` passed 805 with 15 optional skips and zero failures
+across 820; quickstart passed 6/6; ticket, report, committed-plus-dirty scope,
+and diff checks pass. Ready for fresh independent read-only review.
