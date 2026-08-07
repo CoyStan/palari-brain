@@ -201,13 +201,18 @@ Do not obtain a score, repair a consumed namespace, or authorize live spend.
 - Recursive seal: deterministic file/directory custody, no-follow/mode/path
   enforcement, durable no-overwrite seal, verification, and reseal refusal.
 - Private mode-0600 launcher/runtime SHA-256:
-  `eaeca021fe0998ed027eedc072ade9ccedd28704996413ae5913f135a39856e7` /
-  `a1c2e9f006065534f7283eed54720137119a0cfb8e1e313e92a222314368d81e`.
-- Provider-free final runtime: actual cached Ettin, projected fake count/full
-  fake generation, nested seal, one-shot custody, cleanup, and zero external
-  telemetry PASS. Both v3 namespaces remain absent.
-- Tests: focused 21/21; full 796 pass / 15 skip / 0 fail across 811;
-  quickstart 6/6; ticket/report/scope/diff/private syntax-mode-hash checks pass.
+  `13700b4edb0a8a95e00c86bdfa45186410818ad0cbf740c9550d3667be57ea5e` /
+  `9a821916e16dd1c731e34fe2882b1364303e14da21475aca588097aa40903189`.
+- Provider-free final runtime: actual cached Ettin, exact hash-bound BRN-0025
+  compatibility reconstruction through projected count/untouched generation,
+  nested seal, one-shot custody, cleanup, and zero external telemetry PASS.
+  Both v3 namespaces remain absent.
+- Initial review of `8ce7d44`: REOPEN, one P2; reduced fixtures did not satisfy
+  AC3's exact BRN-0025 compatibility-body reproduction.
+- Cumulative repair: exact 11,593-byte full body / 11,488-byte projection,
+  seven tools, literal 400 provenance, and both hashes pass permanent/private
+  verification. Focused 22/22; full suite 797 pass / 15 skip / 0 fail across
+  812.
 - Consumed BRN-0024/25 bytes, unsealed status, accounting, historical `6/10`,
   and U8 remain unchanged. No credential/provider/dataset/result/spend action.
 

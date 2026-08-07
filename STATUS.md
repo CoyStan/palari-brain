@@ -30,12 +30,13 @@ Sealed U8 `1568498a` is excluded. Opening cumulative accounted spend is exactly
 No selected session/question/answer or expected route was inspected.
 
 New gitignored launcher/runtime are mode 0600 at SHA-256
-`eaeca021fe0998ed027eedc072ade9ccedd28704996413ae5913f135a39856e7`
+`13700b4edb0a8a95e00c86bdfa45186410818ad0cbf740c9550d3667be57ea5e`
 and
-`a1c2e9f006065534f7283eed54720137119a0cfb8e1e313e92a222314368d81e`.
+`9a821916e16dd1c731e34fe2882b1364303e14da21475aca588097aa40903189`.
 Provider-free verification executed the actual final-runtime cached-Ettin
-smoke (titanium first, answer `It is titanium.`, four finite scores), one fake
-projected count and full generation, durable `reserved -> launched ->
+smoke (titanium first, answer `It is titanium.`, four finite scores), the exact
+11,593-byte BRN-0025 compatibility-body reconstruction through a projected
+11,488-byte count and untouched full generation, durable `reserved -> launched ->
 consumed` custody with reuse rejection, and an actual nested seal/verify/reseal
 refusal. Temporary state was removed. Credential reads, dataset reads,
 provider calls, and result writes are exactly `0 / 0 / 0 / 0`; both v3
@@ -48,8 +49,19 @@ and 8 nested mode-0700 directories rehash identically before/after. Its
 namespace remains honestly unsealed; BRN-0024 is also untouched. Historical
 `6/10` remains unchanged.
 
-Verification at implementation closeout: focused contracts 21/21; full suite
-796 pass / 15 optional skip / 0 fail across 811; quickstart and governance
+Initial review of exact head `8ce7d44` returned one P2: permanent and private
+verification used a reduced synthetic request rather than AC3's exact consumed
+BRN-0025 compatibility body. The cumulative repair reconstructs that
+non-sensitive synthetic smoke from tracked product builders and pins its exact
+11,593 bytes / generation SHA-256
+`978a57073547d04b61d5b0813e5db2faef797cc33b6a477b047d1eded41850d8`,
+11,488-byte projected-count SHA-256
+`d77ba2aaa9521a0c3445ca73e1112955e7bc26fd5eb61a1dd5dd7ce76561838d`,
+seven tools, and consumed transcript provenance SHA-256
+`1aa4e36c8cfb15713fd41724c084d7403fc47de10987a813216647507cf9b24e`.
+
+Verification at cumulative-repair closeout: focused contracts 22/22; full
+suite 797 pass / 15 optional skip / 0 fail across 812; quickstart and governance
 checks are rerun at final handoff. Independent cumulative review of the exact
 clean pushed head/private hashes remains required. Acceptance would freeze the
 offline candidate only. Any live invocation still requires exact founder

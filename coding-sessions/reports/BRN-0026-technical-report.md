@@ -21,10 +21,10 @@ New gitignored private artifacts, both exact mode 0600:
 
 - `/home/quetza/palari-brain-private/luna-ettin-unexecuted11to20-v3-live-launcher.mjs`
   — SHA-256
-  `eaeca021fe0998ed027eedc072ade9ccedd28704996413ae5913f135a39856e7`.
+  `13700b4edb0a8a95e00c86bdfa45186410818ad0cbf740c9550d3667be57ea5e`.
 - `/home/quetza/palari-brain-private/luna-ettin-unexecuted11to20-v3-live.runtime.mjs`
   — SHA-256
-  `a1c2e9f006065534f7283eed54720137119a0cfb8e1e313e92a222314368d81e`.
+  `9a821916e16dd1c731e34fe2882b1364303e14da21475aca588097aa40903189`.
 
 The v3 result and semantic-review namespaces are absent. U8 is excluded. No
 credential environment, credential value, selected dataset, provider,
@@ -43,13 +43,20 @@ The repair retains the seven documented count fields used by the body:
 `input`, `instructions`, `model`, `parallel_tool_calls`, `reasoning`,
 `tool_choice`, and `tools`. It explicitly classifies and omits only `include`,
 `max_output_tokens`, `service_tier`, and `store`; all other top-level fields
-fail closed. The generation snapshot is not mutated. The provider-free final
-runtime's synthetic generation SHA-256 is
-`50acb6893603bb0fb0927aadf4ec6b2037e7b131b47a5fce3469fd76d353cf70`;
-its distinct projected-count SHA-256 is
-`69909ba29b4bf7973075e86e509cd06a35f00737754e41349adcdf4b6a0a5271`.
-The event sequence was exactly reserve count, count once, reserve generation,
-generation once.
+fail closed. The generation snapshot is not mutated.
+
+Initial review of exact pushed head `8ce7d44` found one P2: the permanent and
+private checks used a reduced synthetic body instead of AC3's exact consumed
+compatibility request. The cumulative repair reconstructs that non-sensitive
+synthetic smoke deterministically through tracked product builders. It pins
+the exact 11,593-byte generation body SHA-256
+`978a57073547d04b61d5b0813e5db2faef797cc33b6a477b047d1eded41850d8`,
+seven ordered tools, and literal HTTP-400 shape to consumed transcript SHA-256
+`1aa4e36c8cfb15713fd41724c084d7403fc47de10987a813216647507cf9b24e`.
+Its 11,488-byte projected count body hashes to
+`d77ba2aaa9521a0c3445ca73e1112955e7bc26fd5eb61a1dd5dd7ce76561838d`.
+The event sequence is exactly reserve count, count once, reserve generation,
+untouched full generation once.
 
 ## Recursive Terminal Seal
 
@@ -71,7 +78,8 @@ Provider-free verification executed these actual final-runtime bindings:
 
 - cached Ettin through a real synthetic Palari brain: titanium ranked first,
   `It is titanium.`, four finite scores, zero provider calls;
-- projected fake count and untouched fake generation, each exactly once;
+- exact hash-bound compatibility-body projection and untouched full
+  generation, each exactly once;
 - durable `reserved -> launched -> consumed` attempt and reuse refusal;
 - recursive nested fixture seal, verification, and reseal refusal;
 - complete temporary cleanup.
@@ -100,9 +108,9 @@ sealed U8 are unchanged. BRN-0024 bytes were not touched.
 
 ## Verification
 
-- Focused contracts: PASS, 21/21.
-- `npm test`: PASS, 796 passed / 15 skipped / 0 failed across 811 tests.
-- Private v3 launcher `--verify`: PASS with actual Ettin, fake paired wires,
+- Focused contracts: PASS, 22/22.
+- `npm test`: PASS, 797 passed / 15 skipped / 0 failed across 812 tests.
+- Private v3 launcher `--verify`: PASS with actual Ettin, exact paired wires,
   nested seal, one-shot custody, cleanup, zero telemetry, absent namespaces,
   and unchanged predecessor snapshots.
 - Private launcher/runtime syntax and mode checks: PASS.

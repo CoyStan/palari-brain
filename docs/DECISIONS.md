@@ -3250,7 +3250,8 @@ here with dates. Agents record; the founder decides.
   full body once. The recursive sealer records mode-0700 directories and
   mode-0600 files, rejects links/special entries/escapes, excludes itself, and
   refuses reseal. Permanent contracts and the final provider-free runtime
-  reproduce the rejected `include` shape, paired fake wires, BRN-0025-shaped
+  reproduce the exact 11,593-byte rejected-`include` compatibility body and
+  its 11,488-byte projection, paired offline wires, BRN-0025-shaped
   nested terminal tree, actual cached-Ettin smoke, and one-shot custody. The
   v3 result and semantic-review namespaces remain absent; telemetry is zero.
   P-set 37 is FINAL at `$7.85549929` opening and proposed `$5.00` fresh /

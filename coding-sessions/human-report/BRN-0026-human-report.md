@@ -16,7 +16,8 @@ than being guessed away.
 Terminal evidence is now sealed as a recursive tree. Files must be private
 mode 0600, directories mode 0700, and links, special files, escapes, changes,
 or a second seal are rejected. The final runtime actually exercised this with
-a nested fixture, plus a fake count/generation pair, real cached Ettin, and
+a nested fixture, plus the exact hash-bound BRN-0025 compatibility request
+through a projected count and untouched generation, real cached Ettin, and
 one-shot attempt custody.
 
 ## What I Should Know
@@ -34,8 +35,8 @@ one-shot attempt custody.
 ## What To Check
 
 An independent reviewer should replay the rejected `include` case, compare the
-projected and full fake wires, attack recursive sealing, rehash the complete
-import closure and predecessor snapshot, and rerun all verification against
+projected and full exact compatibility wires, attack recursive sealing, rehash
+the complete import closure and predecessor snapshot, and rerun all verification against
 the exact pushed head.
 
 ## Recommended Next Move

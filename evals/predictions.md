@@ -2721,8 +2721,9 @@ Predictions, failing categories first:
    credential matches are zero; historical `6/10` and U8 remain unchanged.
 
 Offline freeze note (does not rewrite these FINAL predictions): BRN-0026
-executes the actual final-runtime cached-Ettin synthetic smoke, one projected
-fake count plus untouched fake generation, one durable custody sequence with
+executes the actual final-runtime cached-Ettin synthetic smoke, the exact
+hash-bound BRN-0025 compatibility-body reconstruction through one projected
+count plus untouched full generation, one durable custody sequence with
 reuse refusal, and one recursively sealed BRN-0025-shaped nested fixture. It
 removes temporary state and reports zero credential, dataset, provider, and
 result activity. Passing these provider-free gates predicts no live score.

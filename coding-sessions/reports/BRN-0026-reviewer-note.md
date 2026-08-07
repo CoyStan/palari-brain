@@ -1,7 +1,7 @@
 # BRN-0026 Reviewer Note
 
-Reviewer: pending independent reviewer
-Reviewed commit(s): pending
+Reviewer: independent cumulative reviewer; fresh rereview pending
+Reviewed commit(s): `8ce7d4400b5afde262e40d55a7d5d1513bdb67a4`; repaired head pending
 Target branch: `main`
 
 ## Review Result
@@ -10,7 +10,13 @@ PENDING. The specialist may not accept this R4 ticket.
 
 ## Findings
 
-- Fresh read-only cumulative review is required.
+- Review of exact clean pushed head `8ce7d44` returned one P2: AC3 required
+  reproducing the exact frozen BRN-0025 compatibility request, but permanent
+  and private verification used a materially reduced synthetic request body.
+- The cumulative repair now reconstructs the exact non-sensitive compatibility
+  smoke and pins its 11,593-byte full hash, 11,488-byte projection/hash, seven
+  ordered tools, literal 400 shape, and consumed transcript provenance. Fresh
+  read-only cumulative rereview is required.
 
 ## Verification Reviewed
 
@@ -28,9 +34,9 @@ non-authorizing until an independent reviewer changes disposition to ACCEPT.
 
 BRN0025_REVIEW_IDENTITY: j4-luna-ettin-unexecuted11to20-v3
 
-BRN0025_REVIEW_LAUNCHER_SHA256: eaeca021fe0998ed027eedc072ade9ccedd28704996413ae5913f135a39856e7
+BRN0025_REVIEW_LAUNCHER_SHA256: 13700b4edb0a8a95e00c86bdfa45186410818ad0cbf740c9550d3667be57ea5e
 
-BRN0025_REVIEW_RUNTIME_SHA256: a1c2e9f006065534f7283eed54720137119a0cfb8e1e313e92a222314368d81e
+BRN0025_REVIEW_RUNTIME_SHA256: 9a821916e16dd1c731e34fe2882b1364303e14da21475aca588097aa40903189
 
 BRN0025_REVIEW_RECOMMENDATION: PENDING
 

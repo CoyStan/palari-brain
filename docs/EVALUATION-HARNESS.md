@@ -141,9 +141,10 @@ mode failures, content drift, self-exclusion, and reseal refusal.
 
 Successor identity `j4-luna-ettin-unexecuted11to20-v3` uses both boundaries.
 Its provider-free final-runtime verification performs a real cached-Ettin
-synthetic rank, a fake projected count followed by one untouched fake
-generation, a durable one-shot custody sequence, and a real nested seal and
-verification before deleting all temporary state. It opens no credential or
+synthetic rank, the exact 11,593-byte hash-bound BRN-0025 compatibility-body
+reconstruction through its 11,488-byte projected count followed by one
+untouched full generation, a durable one-shot custody sequence, and a real
+nested seal and verification before deleting all temporary state. It opens no credential or
 dataset, sends no provider request, creates no successor namespace, and spends
 nothing. P-set 37 preserves the P-set 36 population and treatment; live use
 still requires an independently reviewed clean pushed head and fresh exact
