@@ -3317,3 +3317,11 @@ here with dates. Agents record; the founder decides.
   retrieval, ranking, or memory-quality conclusion. Historical `6/10` and U8
   remain unchanged. Any identity repair or successor is a separate governed
   ticket and founder gate.
+
+- 2026-08-07 (BRN-0029 terminal-record acceptance)
+  **Accept the sealed v4 terminal record after cumulative independent review.**
+  The final record reconciles the 28 manifest entries, seven-call accounting,
+  complete compatibility pass, zero question rows, and source-key aliasing
+  diagnosis. The prior P2 composition wording and P3 whitespace findings are
+  resolved; final review reports no P0-P3. Acceptance grants no repair, retry,
+  provider call, successor identity, or live authority.

@@ -1,7 +1,7 @@
 # STATUS — single source of truth for the loop
 
 Loop state: BRN-0028 LIVE IDENTITY CONSUMED; TERMINAL SOURCE-IDENTITY FAILURE
-SEALED; BRN-0029 TERMINAL RECORD READY FOR INDEPENDENT REVIEW. No retry,
+SEALED; BRN-0029 TERMINAL RECORD INDEPENDENTLY REVIEWED AND ACCEPTED. No retry,
 resume, reroll, regrade, provider call, repair, or successor is authorized.
 
 Founder-authorized identity `j4-luna-ettin-unexecuted11to20-v4` ran exactly
