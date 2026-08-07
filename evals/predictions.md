@@ -2730,3 +2730,48 @@ result activity. Passing these provider-free gates predicts no live score.
 Any live invocation requires a clean pushed import closure, independent
 review, and exact founder authorization naming this identity, both caps,
 reviewed head, launcher/runtime hashes, and ACCEPT.
+
+### P-set 37 terminal result — 2026-08-07
+
+The one authorized identity is consumed. Grade failing categories first:
+
+1. OFFICIAL ACCURACY: **NOT REACHED / FAIL.** The report has zero question
+   rows and no judge labels; the predicted `>=8/10` surface does not exist.
+2. SESSION RECALL: **NOT REACHED / FAIL.** No benchmark retrieval ran, so no
+   answer-bearing session denominator or numerator exists.
+3. EXACT-SPAN RECALL: **NOT REACHED / FAIL.** No dataset-marked supporting
+   message was evaluated. Equivalent facts do not substitute for this metric.
+4. SELECTED EVIDENCE: **NOT REACHED / FAIL.** No host-accepted benchmark
+   commitment exists.
+5. MATERIALLY USED EVIDENCE: **NOT REACHED / FAIL.** With zero question rows
+   there is nothing for a reviewer to label and no judged surface is created.
+6. EQUIVALENT-FACT RECALL: **NOT REACHED / FAIL.** With zero question rows
+   there is nothing to label. The semantic-review namespace remains absent;
+   no overlay is created.
+7. ARCHITECTURE: **NOT REACHED / FAIL.** No benchmark temporal/relational plan,
+   commitment, cross-context inference, or canonical-memory decision ran.
+8. RERANK/BOUNDARY: **PARTIAL PASS / OVERALL FAIL.** Cached Ettin returned four
+   finite scores with the expected item first, writer smoke preceded answer
+   smoke, and the answer operation made one projected count plus one exact
+   full-body generation without retry. The generation returned HTTP 200, but
+   a local context-band representation mismatch stopped settlement before a
+   successful answer smoke or benchmark row.
+9. EXECUTION/ACCOUNTING: **PARTIAL PASS / OVERALL FAIL.** First-failure stop,
+   one-shot custody, reservations before transport, cap hold, recursive seal,
+   and measured/uncertain separation passed. Exact Standard settlement failed:
+   the reservation exposed `short`, while the spend helper accepted only
+   `shortContext`/`longContext`, so the full `$0.0011499` generation reservation
+   remains uncertain. Measured spend is `$0.0004775`; uncertain spend is
+   `$0.0511499`; fresh accounted is `$0.0516274`; cumulative accounted is
+   `$7.90712669`. The sealed manifest has 23 entries at SHA-256
+   `df649931886a50341e03be62161f83ba50abe5ba7b832009840866808cd73b4b`,
+   terminal metadata `failed`, and zero credential-shaped artifact matches.
+   Historical `6/10` and U8 remain unchanged.
+
+The provider accepted both endpoint-specific wires: count HTTP 200 returned
+2,142 input tokens; Luna generation HTTP 200 returned completed usage metadata
+for 2,142 input and 40 output tokens. The runtime classified the generation
+call `invalid_response` only because its local settlement helper rejected the
+generic `short` label. This result does not characterize Luna answer quality,
+Ettin ranking quality, retrieval quality, or the ten-question score, and it
+authorizes no retry, regrade, semantic overlay, or successor.

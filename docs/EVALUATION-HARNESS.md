@@ -150,6 +150,31 @@ nothing. P-set 37 preserves the P-set 36 population and treatment; live use
 still requires an independently reviewed clean pushed head and fresh exact
 founder authorization.
 
+The founder-authorized v3 invocation is now consumed. Both repaired provider
+wires were accepted: the projected input-count request returned HTTP 200 and
+2,142 input tokens, then the unchanged full Responses body returned HTTP 200
+with completed usage metadata. The next local step failed before successful
+answer smoke because two internal context-band vocabularies were composed
+without normalization. `reserveOpenAIResponseFromExactCount(...)` exposes
+`short` or `long`; the generated runtime forwarded that value to
+`measuredOpenAISpend(...)`, which accepts only `shortContext` or `longContext`.
+
+This is a harness response-boundary failure, not a provider rejection. The
+meter's `invalid_response` label is the generic terminal state produced after
+the local helper threw; it must not be used to characterize Luna. Because
+settlement did not complete, the full `$0.0011499` generation reservation stays
+uncertain rather than being reconstructed from the transcript. Together with
+the `$0.05` count allowance and `$0.0004775` measured Gemini writer call, fresh
+accounted spend is `$0.0516274` and cumulative accounted is `$7.90712669`.
+
+The terminal report has zero question rows. No retrieval, official grade,
+session recall, exact-span recall, selected evidence, equivalent-fact label,
+or materially-used label exists, and no semantic overlay is created. Recursive
+verification binds 23 entries (13 files and 10 directories including the
+root), terminal status `failed`, and manifest SHA-256
+`df649931886a50341e03be62161f83ba50abe5ba7b832009840866808cd73b4b`.
+The identity cannot be retried or resumed.
+
 ## Sealed SQLite inspection
 
 Opening a copied SQLite database in place is not read-only at the physical
