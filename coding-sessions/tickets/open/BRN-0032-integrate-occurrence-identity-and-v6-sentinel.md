@@ -10,8 +10,8 @@ status: in-review
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by: 
-claimed_at: 
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0032-integrate-occurrence-identity-and-v6-sentinel"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0032-integrate-occurrence-identity-and-v6-sentinel"
