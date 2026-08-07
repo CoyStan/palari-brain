@@ -34,13 +34,18 @@ but failed because Luna returned an invalid evidence commitment after its one
 internal repair. This is an answer-boundary finding, not a retrieval miss. The
 gitignored adapter now preserves safe per-dispatch commitment output and
 preloads questions `1a1907b4` through `36b9f61e` for a bounded rolling debug
-batch; no product change or benchmark regrade follows from the failure.
+batch. An instrumented repeat isolated the cause: Luna's otherwise valid
+two-evidence recommendation commitment was truncated at the legacy 512-token
+ceiling. The OpenAI retrieval provider now supports an explicit bounded answer
+ceiling override; active alpha uses 1,024 while historical request bytes keep
+their 512 default. Relevant contracts pass 78/78 and the complete legacy tier
+passes 840 with 3 optional skips. No benchmark regrade follows from the failure.
 
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
-`$8.00840072`; the alpha ledger now accounts `$0.49641132`, for cumulative
-accounted spend of `$8.50481204`. Known alpha provider usage was approximately
-`$0.27579692`; the higher ledger value conservatively retains failed
+`$8.00840072`; the alpha ledger now accounts `$0.64641132`, for cumulative
+accounted spend of `$8.65481204`. Known alpha provider usage was approximately
+`$0.35284606`; the higher ledger value conservatively retains failed
 answer-stage reservations.
 
 ## Active commands
@@ -59,10 +64,10 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Capture the rejected `1a1907b4` commitment, make the smallest general fix, then
-continue through questions `2133c1b5` to `36b9f61e` under one explicitly
-approved rolling cap. Do not add benchmark or governance machinery while this
-loop is still finding product-path bugs.
+Retry `1a1907b4` with the bounded active answer ceiling, then continue through
+questions `2133c1b5` to `36b9f61e` under the approved `$2.00` rolling cap. Do
+not add benchmark or governance machinery while this loop is still finding
+product-path bugs.
 
 ## Product check
 

@@ -572,6 +572,7 @@ function appendCommitmentRepair(input, output, rejection) {
 export function createOpenAIRetrievalProvider({
   invoke,
   maxModelDispatches = OPENAI_DEFAULT_MAX_MODEL_DISPATCHES,
+  maxOutputTokens: rawMaxOutputTokens = null,
   model = OPENAI_LUNA_MODEL,
   reasoningEffort: rawEffort = OPENAI_DEFAULT_REASONING_EFFORT,
 } = {}) {
@@ -590,6 +591,12 @@ export function createOpenAIRetrievalProvider({
     )
   }
   const effort = reasoningEffort(rawEffort)
+  const configuredMaxOutputTokens = rawMaxOutputTokens === null
+    ? null
+    : positiveInteger(rawMaxOutputTokens, 'maxOutputTokens')
+  if (configuredMaxOutputTokens !== null && configuredMaxOutputTokens > 4_096) {
+    throw new TypeError('maxOutputTokens cannot exceed 4096.')
+  }
 
   const provider = async function openAIRetrievalProvider(session = {}) {
     if (typeof session.retrieve !== 'function') {
@@ -607,7 +614,7 @@ export function createOpenAIRetrievalProvider({
     const commitTool = answerCommitTool()
     const tools = [...memoryTools, commitTool]
     const allowedNames = new Set(tools.map(({ name }) => name))
-    const maxOutputTokens = positiveInteger(
+    const maxOutputTokens = configuredMaxOutputTokens ?? positiveInteger(
       session.recommendedMaxOutputTokens,
       'recommendedMaxOutputTokens',
     )

@@ -160,6 +160,31 @@ test('OpenAI function mapping preserves provider-neutral schemas', () => {
   assert.throws(() => buildOpenAIFunctionTools([]), /non-empty array/)
 })
 
+test('retrieval provider accepts one bounded active answer ceiling override',
+  async () => {
+    let observed
+    const provider = createOpenAIRetrievalProvider({
+      maxOutputTokens: 1_024,
+      async invoke({ body }) {
+        observed = body.max_output_tokens
+        return completedText('A concise recommendation.')
+      },
+    })
+
+    assert.deepEqual(
+      await provider(answerSession()),
+      { abstained: false, text: 'A concise recommendation.' },
+    )
+    assert.equal(observed, 1_024)
+    assert.throws(
+      () => createOpenAIRetrievalProvider({
+        invoke: async () => completedText('unused'),
+        maxOutputTokens: 4_097,
+      }),
+      /cannot exceed 4096/,
+    )
+  })
+
 test('OpenAI request keeps the key in one header and enforces no-store', () => {
   const apiKey = 'offline-openai-key-value'
   const body = {
