@@ -2968,3 +2968,10 @@ dataset, provider, and result activity. Passing provider-free gates predicts
 no score. Any invocation requires independent review and exact founder
 authorization naming identity, both caps, reviewed head, mode-0600 launcher
 and runtime hashes, and ACCEPT.
+
+Freeze evidence: the private mode-0600 launcher/runtime SHA-256 values are
+`927cd391a6799ae0d273cc5e1a223dcd029ff21d07346d0957a3f64e3e364437` /
+`db55e9999df206f0b8790f597d0acf95a3336537d994b9b7680bd7dd8f329868`.
+The clean implementation import closure is 50 files / 751,199 bytes /
+`77838578b96a384a63bd767be9ea0476b09f1d7f457fc6d771136415cae98390`.
+The v5 result and semantic-review namespaces were absent.

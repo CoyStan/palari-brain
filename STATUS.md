@@ -1,5 +1,61 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0030 OCCURRENCE-AWARE SOURCE IDENTITY IMPLEMENTED OFFLINE;
+FINAL P-SET 39 AND PRIVATE V5 PRESERVED; FULL VERIFICATION PAUSED ON ONE
+OUT-OF-SCOPE HISTORICAL TEST EXPECTATION. No credential read,
+provider call, selected-data inspection, v5 result namespace, spend, score, or
+live invocation is authorized.
+
+J4 source identity is now derived reversibly from the original source session
+ID, stable original-instance occurrence ordinal, and exchange turn index under
+a versioned base64url envelope. Product rows keep their user/assistant suffix.
+Chronological replay uses event time with original ordinal as tie-breaker and
+never renumbers identity. Isolation, session recall, and role-specific exact-
+span calculation recover the exact original source session. No question,
+answer, message text, keyword, or content hash participates.
+
+Synthetic product-brain regressions prove duplicate source-session occurrences
+ingest distinctly in chronology, arbitrary IDs round-trip, exact replay leaves
+canonical rows unchanged, and mutation within one occurrence still raises
+`SOURCE_MESSAGE_CONFLICT` before writer/provider work. The immutable dialogue
+gate is unchanged.
+
+FINAL P-set 39 freezes `j4-luna-ettin-unexecuted11to20-v5` over unchanged
+P-set 38 population/order/architecture/models/prompts/four-call ceiling.
+Opening accounted spend is `$8.00840072`; proposed caps are `$5.00` fresh /
+`$13.00840072` cumulative. Historical `6/10`, prior accounting, and U8 remain
+unchanged. Private mode-0600 launcher/runtime SHA-256 are
+`927cd391a6799ae0d273cc5e1a223dcd029ff21d07346d0957a3f64e3e364437` /
+`db55e9999df206f0b8790f597d0acf95a3336537d994b9b7680bd7dd8f329868`.
+The clean implementation import closure is 50 files / 751,199 bytes /
+`77838578b96a384a63bd767be9ea0476b09f1d7f457fc6d771136415cae98390`.
+
+Actual final-runtime provider-free verification passed the duplicate/replay/
+mutation and role-specific exact-span regression, cached Ettin with four finite
+scores, exact count/full-generation fake wires, canonical `$0.0004764`
+Standard settlement, one-shot custody/reuse refusal, recursive seal/reseal
+refusal, cleanup, and immutable v1-v4 evidence. Credential reads, dataset
+reads, provider calls, and result writes were `0 / 0 / 0 / 0`; both v5
+namespaces remain absent.
+
+Product stop rule: (1) yes, quickstart remains required green; (2) yes, the
+evaluation journey can now admit repeated source occurrences without aliasing;
+(3) provider SDKs do not provide Palari's provenance identity or immutable
+dialogue boundary; (4) yes, the founder requested autonomous repair and a
+defensible successor; (5) deleting this unit would restore first-row aliasing
+and prevent the live journey from reaching retrieval. This is a targeted
+evaluation-path repair after a measurement record, not infrastructure drift.
+Focused contracts pass 10/10, quickstart passes 6/6, and private verification
+passes. Full suite is 804 passed / 15 optional skipped / 1 failed across 820.
+The exact failure is `J4 v6 freezes five predecessors, one repair, and the $5
+fresh cap`: its predicate expects the first terminal artifact drift to name
+`evals/run-longmemeval-live.mjs`, but the authorized kernel change now makes
+`evals/arms/kernel-longmemeval-live-arm.mjs` the earlier correct drift. The
+required assertion lives in `tests/longmemeval-live-config.contract.test.mjs`,
+outside BRN-0030 scope. Do not mutate the historical v6 config. Next is a
+separate test-only prerequisite, then full verification and fresh independent
+cumulative review. Acceptance grants no live action.
+
 Loop state: BRN-0028 LIVE IDENTITY CONSUMED; TERMINAL SOURCE-IDENTITY FAILURE
 SEALED; BRN-0029 TERMINAL RECORD INDEPENDENTLY REVIEWED AND ACCEPTED. No retry,
 resume, reroll, regrade, provider call, repair, or successor is authorized.

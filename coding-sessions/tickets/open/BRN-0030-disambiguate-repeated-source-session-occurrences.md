@@ -156,3 +156,25 @@ Do not tune answers or obtain a score.
 - Stop if work needs a path outside `allowed_paths`, touches forbidden paths,
   calls a provider, reads credentials or selected text, weakens the immutable
   gate, mutates prior evidence, or creates a v5 result namespace.
+
+## Specialist Closeout
+
+Implementation head `96eb3e7b5acb2d99a1e2e7a7ede1e3422b53ae69` adds the
+generic reversible occurrence envelope and synthetic duplicate/replay/mutation
+proofs. Private mode-0600 launcher/runtime SHA-256 are
+`927cd391a6799ae0d273cc5e1a223dcd029ff21d07346d0957a3f64e3e364437` /
+`db55e9999df206f0b8790f597d0acf95a3336537d994b9b7680bd7dd8f329868`.
+Provider-free final-runtime verification passed duplicate occurrence ingest,
+exact replay, mutation refusal, role-specific exact-span mapping, cached
+Ettin, count/full-generation fake wires, Standard settlement, custody,
+recursive seal, cleanup, predecessor immutability, absent v5 namespaces, and
+zero credential/dataset/provider/result telemetry. Focused contracts and
+quickstart pass, but full verification is intentionally paused: frozen J4-v6
+test `J4 v6 freezes five predecessors, one repair, and the $5 fresh cap`
+expects the first tracked artifact drift at `evals/run-longmemeval-live.mjs`,
+while this authorized kernel repair correctly moves the first drift to
+`evals/arms/kernel-longmemeval-live-arm.mjs`. Updating that assertion requires
+`tests/longmemeval-live-config.contract.test.mjs`, outside this ticket's
+allowed paths. A separate prerequisite ticket must update only the test
+expectation; the frozen v6 config must not be mutated. BRN-0030 remains
+claimed, not in review. No live authority is granted.
