@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0029
 children: []
-status: claimed
+status: in-review
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-08-07T12:20:48Z
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0029-record-brn-0028-terminal-source-identity-failure"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0029-record-brn-0028-terminal-source-identity-failure"
@@ -149,3 +149,15 @@ Do not fix the collision or obtain a benchmark score.
 - Stop if work needs a path outside `allowed_paths`, touches `forbidden_paths`,
   calls a provider, reads credentials or selected benchmark content, mutates
   private evidence, or implements the repair.
+
+## Specialist Closeout
+
+The immutable v4 result is reconciled and recorded without provider activity,
+credential access, selected-text inspection, private mutation, repair, or
+successor work. The 28-entry manifest, terminal report, seven-call meter,
+custody, caps, absent semantic overlay, and source/schema identity boundary
+were verified read-only. P-set 38 is graded failing-first with all five memory
+metrics kept distinct and historical `6/10` unchanged. Technical/human reports
+and handoff are present. Full tests passed 802 with 15 optional skips and zero
+failures across 817; quickstart passed 6/6; ticket/report, scope, and diff
+checks pass. Ready to transition to `in-review`.

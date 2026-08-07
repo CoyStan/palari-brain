@@ -2850,3 +2850,43 @@ provider, and result activity. Passing these provider-free gates predicts no
 live score. Any invocation requires independent review and exact founder
 authorization naming identity, both caps, reviewed head, launcher/runtime
 hashes, and ACCEPT.
+
+Post-run grade (2026-08-07; does not alter the FINAL predictions): the exact
+founder-authorized v4 invocation was consumed once. Cached Ettin, Gemini
+writer, two projected OpenAI count calls, two Luna generations with canonical
+Standard settlement, semantic embedding, native reranking, and committed
+answer smoke passed. First-question ingestion then failed closed with
+`SOURCE_MESSAGE_CONFLICT` at `sharegpt_vyHqfrX_0:0`. The terminal report is
+`failed` with `questions: []`; no retry, resume, reroll, regrade, replacement,
+semantic overlay, or post-hoc result mutation occurred.
+
+Failing-first grading:
+
+1. OFFICIAL ACCURACY: **NOT REACHED / FAIL**. Zero official rows cannot meet
+   `8/10`.
+2. SESSION RECALL: **NOT REACHED / FAIL**. No benchmark retrieval surface was
+   reached.
+3. EXACT-SPAN RECALL: **NOT REACHED / FAIL**. No supporting-span surface was
+   reached; equivalent facts do not substitute.
+4. SELECTED EVIDENCE: **NOT REACHED / FAIL**. No benchmark commitment exists.
+5. MATERIALLY USED EVIDENCE: **NOT REACHED / FAIL**. No answer-bearing row
+   exists for independent judgment.
+6. EQUIVALENT-FACT RECALL: **NOT REACHED / FAIL**. With zero rows, no pending
+   judged surface or semantic-review overlay exists.
+7. ARCHITECTURE: **NOT REACHED / FAIL**. No benchmark temporal/relational plan,
+   commitment, or cross-context inference was exercised.
+8. RERANK/BOUNDARY: **PARTIAL PASS / OVERALL FAIL**. Cached Ettin had finite
+   scores without input mutation; writer preceded answer; semantic retrieval,
+   one rerank, two Luna dispatches, and committed answer all passed inside the
+   compatibility smoke. No benchmark answer boundary was reached.
+9. EXECUTION/ACCOUNTING: **PARTIAL PASS / OVERALL FAIL**. First-failure stop,
+   one-shot custody, both caps, canonical settlement, recursive 28-entry seal,
+   and zero credential matches passed. Ten-row completion failed.
+
+Measured `$0.00126188` plus uncertain `$0.10001215` equals `$0.10127403`
+fresh accounted and `$8.00840072` cumulative accounted. Historical `6/10`,
+P-set 37 accounting, and sealed U8 remain unchanged. The generic source-level
+diagnosis is canonical-key aliasing: runtime identity uses only source session
+ID plus turn index, while the gate correctly rejects different immutable
+snapshots under the same `(palariId, userId, sourceMessageId)` key. This is not
+evidence about Luna, Ettin, retrieval, ranking, or memory quality.

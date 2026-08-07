@@ -1,5 +1,86 @@
 # STATUS — single source of truth for the loop
 
+Loop state: BRN-0028 LIVE IDENTITY CONSUMED; TERMINAL SOURCE-IDENTITY FAILURE
+SEALED; BRN-0029 TERMINAL RECORD READY FOR INDEPENDENT REVIEW. No retry,
+resume, reroll, regrade, provider call, repair, or successor is authorized.
+
+Founder-authorized identity `j4-luna-ettin-unexecuted11to20-v4` ran exactly
+once at reviewed head `33ab0d87ef197c704906fcd932683e3dc2a1b485` with
+launcher/runtime SHA-256
+`db388a28bf9568d869bda4bad011a0103f88b08b871ec3bdb65de4940fd70a02`
+and
+`83c2efe7324a3a10f432c8ce1844abff561207d95460621cdb4b064d7db93053`.
+Custody progressed `reserved -> launched -> consumed` once. Cached Ettin,
+Gemini writer, both projected OpenAI counts, both Luna generations and their
+canonical Standard settlements, semantic embedding, native reranking, and the
+committed answer smoke all passed.
+
+The first benchmark row then failed during ingestion, before any answer or
+judge call, with `SOURCE_MESSAGE_CONFLICT` at canonical source identity
+`sharegpt_vyHqfrX_0:0`. The generic boundary is precise: LongMemEval intake
+preserves source session IDs but does not require them to be unique within an
+instance; the live runtime derives each turn identity only as
+`session.sessionId:turnIndex`; and the dialogue gate correctly treats
+`(palariId, userId, sourceMessageId)` as one immutable snapshot. A repeated
+session ID at the same turn index therefore aliases a prior snapshot and the
+gate rejects differing event/presence/content hashes. The question ID and
+session occurrence are absent from that canonical key. This diagnosis uses
+only source/schema metadata, not selected dialogue text. It is an ingestion
+identity collision, not evidence about Luna, Ettin, retrieval, ranking, or
+answer quality.
+
+The terminal report is `failed` with `questions: []`. Compatibility is
+`passed`: the answer smoke made two model dispatches, committed its answer,
+used semantic retrieval, and recorded one finite native-Ettin rerank. No
+benchmark answer, official judge label, session recall, exact-span recall,
+selected-evidence result, equivalent-fact label, materially-used label, or
+architecture observation exists. No semantic-review overlay is created.
+
+P-set 38 grades OFFICIAL ACCURACY, SESSION RECALL, EXACT-SPAN RECALL,
+SELECTED EVIDENCE, MATERIALLY USED EVIDENCE, EQUIVALENT-FACT RECALL, and
+ARCHITECTURE **NOT REACHED / FAIL**. RERANK/BOUNDARY is a partial pass but
+overall fail: all compatibility surfaces and the four-call ceiling passed,
+but no benchmark answer boundary was reached. EXECUTION/ACCOUNTING is a
+partial pass but overall fail: one-shot stop, custody, both caps, canonical
+settlement, recursive seal, and zero credential matches passed, while ten-row
+completion failed.
+
+Seven physical calls were accounted. Measured spend is `$0.00126188`: Gemini
+writer `$0.0004775`, first Luna generation `$0.0004764`, and second Luna
+generation `$0.00030798`. Uncertain spend is `$0.10001215`: two separate
+`$0.05` input-count allowances plus `$0.00000825` and `$0.0000039` for Gemini
+embedding usage that the provider did not report. Fresh accounted spend is
+`$0.10127403`; cumulative accounted spend advances exactly from
+`$7.90712669` to `$8.00840072`, within the `$5.00` fresh / `$12.90712669`
+cumulative caps.
+
+Read-only recursive verification rehashed all 28 entries in the immutable
+mode-0700 tree. Manifest SHA-256 is
+`d4fc3f39006df122d4439ab42358a8852fbcb2e249ef463f66bd1c4e6c7df472`;
+metadata remains terminal `failed`. The 17 manifested files are mode 0600 and
+the 11 directories including root are mode 0700. Report/meter hashes are
+`5213df85d4bdc3bf3ef9fc98907c163454988cc897a5c304a47acdaad7d530c4`
+and
+`991b0a21d2c81eaaff4d1bce0cc4a34194d69f1a3c5f494790ecac97ee7f8b05`.
+A value-free credential-shaped scan found zero matches, and the semantic-
+review namespace is absent. Historical `6/10` and sealed U8 `1568498a`
+remain unchanged.
+
+Offline verification is green: `npm test` passed 802 with 15 optional skips
+and zero failures across 817 tests; quickstart passed 6/6; ticket/report,
+committed-plus-dirty scope, and diff checks pass.
+
+Product stop rule: (1) yes, quickstart remains green; (2) no end-user memory
+behavior changed because this unit records a first-row ingestion failure; (3)
+provider SDKs do not provide Palari's canonical source-identity gate,
+one-shot accounting, or immutable seal; (4) yes, the founder authorized this
+one invocation and requires the result recorded whatever it is; (5) deleting
+this record could hide spend, misattribute a source-key collision to model
+quality, or invite reuse of a consumed identity. This measurement record
+follows one infrastructure unit, so it does not trigger consecutive-
+infrastructure drift. Next is fresh independent read-only terminal review.
+Any repair or successor requires a separate governed ticket and founder gate.
+
 Loop state: BRN-0028 CANONICAL OPENAI STANDARD SETTLEMENT IMPLEMENTED OFFLINE;
 FINAL P-SET 38 AND PRIVATE V4 INDEPENDENTLY REVIEWED AND ACCEPTED. No
 credential read, provider call, selected-data inspection, result namespace,

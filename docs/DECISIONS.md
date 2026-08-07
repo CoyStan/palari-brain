@@ -3303,3 +3303,17 @@ here with dates. Agents record; the founder decides.
   P0-P3 issue and rehashed the exact mode-0600 private bytes and 50-file import
   closure. Acceptance preserves consumed v3's uncertain spend and grants no
   credential read, provider call, result namespace, spend, or live v4 use.
+
+- 2026-08-07 (BRN-0028 terminal source-identity failure)
+  **Preserve the sealed first-row failure and never reuse v4.** The one
+  authorized invocation passed every compatibility surface, including two
+  canonically settled Luna generations, then failed closed before a benchmark
+  answer because source session ID plus turn index aliased two immutable
+  snapshots under one canonical dialogue key. Record `$0.00126188` measured +
+  `$0.10001215` uncertain = `$0.10127403` fresh and `$8.00840072` cumulative.
+  Preserve the 28-entry seal at manifest SHA-256
+  `d4fc3f39006df122d4439ab42358a8852fbcb2e249ef463f66bd1c4e6c7df472`.
+  With `questions: []`, create no judged overlay and draw no Luna, Ettin,
+  retrieval, ranking, or memory-quality conclusion. Historical `6/10` and U8
+  remain unchanged. Any identity repair or successor is a separate governed
+  ticket and founder gate.
