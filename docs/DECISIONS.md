@@ -3340,3 +3340,18 @@ here with dates. Agents record; the founder decides.
   opening and proposed `$5.00` fresh / `$13.00840072` cumulative caps. This
   decision grants no credential read, provider call, result namespace, spend,
   score, or live v5 authority.
+
+- 2026-08-07 (BRN-0033 v5 terminal attestation record)
+  **Consume the invoked v5 identity administratively even though it failed
+  before durable custody.** The exact authorized invocation passed its
+  provider-free preflight and exact authority check, then failed at
+  `assertReviewAttestation` because the shared verifier requires legacy
+  `BRN0025_REVIEW_*` exact markers while BRN-0032's accepted reviewer note uses
+  human-readable attestation without those keys. Source ordering proves this
+  precedes result-directory creation, custody reservation, runtime launch,
+  credential or selected-data access, and provider transport. Both v5
+  namespaces are absent; fresh spend is zero and cumulative accounted spend
+  remains `$8.00840072`. Preserve historical `6/10`, U8, and all prior
+  evidence. Do not retry v5. Any generic marker-schema repair is separate
+  offline governed work; any live successor requires a new identity, freeze,
+  independent review, and exact founder authorization.

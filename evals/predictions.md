@@ -2968,3 +2968,39 @@ dataset, provider, and result activity. Passing provider-free gates predicts
 no score. Any invocation requires independent review and exact founder
 authorization naming identity, both caps, reviewed head, mode-0600 launcher
 and runtime hashes, and ACCEPT.
+
+### P-set 39 terminal grade — pre-custody review-attestation failure
+
+The exact founder-authorized v5 launcher was invoked once. Its provider-free
+preflight passed, but `assertReviewAttestation` failed before result-directory
+creation and durable custody with `Review attestation requires one exact
+BRN0025_REVIEW_IDENTITY marker.` The shared verifier requires legacy
+`BRN0025_REVIEW_*` marker keys that the accepted BRN-0032 human-readable
+reviewer note does not contain. The identity is administratively consumed and
+terminal; it is not eligible for retry, resume, reroll, or regrade.
+
+Failing categories first:
+
+1. OFFICIAL ACCURACY: **NOT REACHED / FAIL**. No question or judge call exists.
+2. SESSION RECALL: **NOT REACHED / FAIL**. No benchmark retrieval exists.
+3. EXACT-SPAN RECALL: **NOT REACHED / FAIL**. No selected canonical span exists.
+4. SELECTED EVIDENCE: **NOT REACHED / FAIL**. No host commitment exists.
+5. MATERIALLY USED EVIDENCE: **NOT REACHED / FAIL**. No answer or judged label
+   exists.
+6. EQUIVALENT-FACT RECALL: **NOT REACHED / FAIL**. No pending/null surface or
+   independent semantic label exists.
+7. ARCHITECTURE: **NOT REACHED / FAIL**. No benchmark planner, commitment, or
+   temporary cross-context inference ran.
+8. RERANK/BOUNDARY: **NOT REACHED / FAIL**. No native Ettin score, evidence
+   call, writer smoke, answer smoke, count, or generation occurred.
+9. EXECUTION/ACCOUNTING: **PARTIAL PASS / OVERALL FAIL**. The single-invocation
+   stop, exact caps, namespace absence, zero provider calls, zero credential
+   and selected-data reads, and zero spend held. Durable custody and the
+   recursively sealed first-terminal-failure artifact were not reached.
+
+The v5 result and semantic-review namespaces are absent. Fresh measured,
+uncertain, and accounted spend are `$0`; cumulative accounted spend remains
+`$8.00840072`. Historical `6/10`, all v1-v4 evidence/accounting, and sealed U8
+`1568498a` remain unchanged. This terminal result measures a generic
+review-attestation interface defect only; it supplies no Luna, Ettin,
+retrieval, ranking, memory, or answer-quality evidence.

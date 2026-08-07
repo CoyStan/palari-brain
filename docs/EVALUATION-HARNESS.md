@@ -317,3 +317,27 @@ load `.env`, inspect a credential, create a result/semantic-review namespace,
 or predict a benchmark score. P-set 36 and the successor freeze preserve the
 P-set 35 population/treatment/accounting but form a new evaluation. Any live
 invocation requires fresh exact founder authority after independent review.
+
+## Review-attestation compatibility before custody
+
+The frozen v5 launcher performs its gates in this order: provider-free
+preflight, exact founder-authority comparison, shared-verifier import,
+reviewer-note read, `assertReviewAttestation`, result-directory creation,
+one-shot custody reservation, and runtime launch. Credential and selected
+dataset access plus all provider transports live behind runtime launch.
+
+The shared `assertReviewAttestation` implementation currently requires exactly
+one line for each legacy `BRN0025_REVIEW_IDENTITY`,
+`BRN0025_REVIEW_LAUNCHER_SHA256`, `BRN0025_REVIEW_RUNTIME_SHA256`, and
+`BRN0025_REVIEW_RECOMMENDATION` marker. A later ticket's independently accepted
+review can state the same attestation in human-readable form without those
+ticket-specific keys. In v5 that schema mismatch threw `Review attestation
+requires one exact BRN0025_REVIEW_IDENTITY marker.` before `mkdir(resultPath)`.
+
+This pre-custody boundary creates no durable launcher-attempt record or sealed
+terminal result. Governance therefore treats the authorized invocation's
+identity as administratively consumed while recording namespace absence and
+zero activity/accounting from source ordering. It must not be retried and must
+not be interpreted as provider, reranker, retrieval, or memory evidence. A
+repair should make the attestation schema ticket-neutral while remaining exact
+and fail-closed; that repair and any successor freeze are outside this record.
