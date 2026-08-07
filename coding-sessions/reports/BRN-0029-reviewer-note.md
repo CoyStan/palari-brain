@@ -1,5 +1,9 @@
 # BRN-0029 Reviewer Note
 
+Reviewer: `/root/brn0029_reviewer` — fresh independent read-only agent
+Reviewed commit(s): `8822ea41017aa72977279fa594a8429eda7d865a`
+Target branch: `main`
+
 ## Review Boundary
 
 Fresh read-only review was performed at exact clean pushed head
@@ -62,3 +66,52 @@ remain valid.
 
 **REOPEN**. Correct only the two inaccurate composition statements and
 resubmit for read-only review.
+
+## Final Cumulative Rereview Addendum
+
+Fresh cumulative read-only rereview was performed at exact clean pushed head
+`8822ea41017aa72977279fa594a8429eda7d865a`.
+
+The P2 manifest-composition finding is resolved: the manifest tracks 28
+entries comprising 16 non-manifest mode-0600 files and 12 mode-0700
+directories including root; the physical tree also contains the mode-0600
+manifest itself, for 17 files total. The later P3 trailing-whitespace finding
+is also resolved. No evidence, accounting, diagnosis, grade, code, runtime, or
+private artifact changed.
+
+Verification: clean pushed HEAD; `git diff --check` passes for the final delta
+and complete ticket branch; governed scope passes for all nine paths; no
+provider, credential, private artifact, or selected benchmark content was
+accessed.
+
+Final severity: P0 none; P1 none; P2 none; P3 none.
+
+Final recommendation: **ACCEPT** the immutable terminal record. This grants no
+repair, retry, provider call, successor identity, or live-run authority.
+
+## Review Result
+
+Pass after cumulative repair and rereview.
+
+## Findings
+
+- P0: none.
+- P1: none.
+- P2: none; prior composition finding resolved.
+- P3: none; prior whitespace finding resolved.
+
+## Verification Reviewed
+
+The immutable seal, exact accounting, compatibility passes, zero-row grade,
+sanitized source-identity diagnosis, historical result custody, clean pushed
+head, governed scope, tests, quickstart, and diff checks all pass as detailed
+above.
+
+## Required Changes
+
+- none.
+
+## Recommendation
+
+Recommend `accept` for the terminal record only. No repair or live authority
+is granted.
