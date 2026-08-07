@@ -21,7 +21,7 @@ New gitignored private artifacts, both exact mode 0600:
 
 - `/home/quetza/palari-brain-private/luna-ettin-unexecuted11to20-v3-live-launcher.mjs`
   — SHA-256
-  `e8bf8d79f7b13cbaf28ee8e9e580638b04214590a2d47bf20c42cb2202d0543e`.
+  `eaeca021fe0998ed027eedc072ade9ccedd28704996413ae5913f135a39856e7`.
 - `/home/quetza/palari-brain-private/luna-ettin-unexecuted11to20-v3-live.runtime.mjs`
   — SHA-256
   `a1c2e9f006065534f7283eed54720137119a0cfb8e1e313e92a222314368d81e`.

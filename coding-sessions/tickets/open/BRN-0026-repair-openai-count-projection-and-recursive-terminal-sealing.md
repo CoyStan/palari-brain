@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0026
 children: []
-status: in-review
+status: claimed
 risk: R4
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-07T03:56:10Z
 target_branch: "main"
 branch: "ticket/BRN-0026-repair-openai-count-projection-and-recursive-terminal-sealing"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0026-repair-openai-count-projection-and-recursive-terminal-sealing"
@@ -201,7 +201,7 @@ Do not obtain a score, repair a consumed namespace, or authorize live spend.
 - Recursive seal: deterministic file/directory custody, no-follow/mode/path
   enforcement, durable no-overwrite seal, verification, and reseal refusal.
 - Private mode-0600 launcher/runtime SHA-256:
-  `e8bf8d79f7b13cbaf28ee8e9e580638b04214590a2d47bf20c42cb2202d0543e` /
+  `eaeca021fe0998ed027eedc072ade9ccedd28704996413ae5913f135a39856e7` /
   `a1c2e9f006065534f7283eed54720137119a0cfb8e1e313e92a222314368d81e`.
 - Provider-free final runtime: actual cached Ettin, projected fake count/full
   fake generation, nested seal, one-shot custody, cleanup, and zero external

@@ -22,7 +22,7 @@ zero external telemetry.
 Private mode-0600 hashes:
 
 - launcher:
-  `e8bf8d79f7b13cbaf28ee8e9e580638b04214590a2d47bf20c42cb2202d0543e`;
+  `eaeca021fe0998ed027eedc072ade9ccedd28704996413ae5913f135a39856e7`;
 - runtime:
   `a1c2e9f006065534f7283eed54720137119a0cfb8e1e313e92a222314368d81e`.
 
