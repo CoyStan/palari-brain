@@ -86,11 +86,22 @@ bound retrieval. This is a general temporal rule, not a question-specific
 keyword. Relevant contracts pass 34/34; focused tests and quickstart remain
 17/17 and 6/6 respectively.
 
+The final authorized question-14 repeat completed for `$0.07540561` but still
+answered about six months rather than the reference three months. Luna again
+invented the same question-time `before` bound and stopped after one search,
+despite the active instructions requiring open inferred bounds and a second
+same-entity retrieval. This establishes that prompt guidance is not an
+enforcement boundary. The self-contained diagnostic records the complete
+question, reference, plan, search results, commitment, provider calls, and
+workspace at `.palari-alpha/current-palari-e2e-2133c1b5.json`; no store reopen
+is needed to diagnose this case again. Live work stopped after this invocation
+as planned. Historical LongMemEval remains 6/10 and was not regraded.
+
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
-`$8.00840072`; the alpha ledger now accounts `$1.77831837`, for cumulative
-accounted spend of `$9.78671909`. Known alpha provider usage was approximately
-`$1.41241080`; the higher ledger value conservatively retains failed
+`$8.00840072`; the alpha ledger now accounts `$1.85372398`, for cumulative
+accounted spend of `$9.86212470`. Known alpha provider usage was approximately
+`$1.48781641`; the higher ledger value conservatively retains failed
 answer-stage reservations.
 
 ## Active commands
@@ -109,20 +120,23 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Run one final targeted question-14 repeat with open inferred bounds. Its one
-answer reservation fits the `$0.22168163` remaining under the approved `$2.00`
-rolling cap. Treat the outcome as an alpha finding, not a benchmark regrade,
-and stop live work afterward regardless of the answer.
+Replace advisory timestamp behavior with a host-enforced boundary: preserve
+question time for host-computed relative-time metadata, but do not let a
+provider turn that metadata into retrieval authority unless the user's
+question explicitly supplies a temporal bound. Keep the change provider- and
+benchmark-neutral, verify it offline, and prepare (do not execute) one Q14
+confirmation. Only `$0.14627602` remains under the approved rolling cap, less
+than the current `$0.15` answer reservation.
 
 ## Product check
 
 1. Basic journey runnable: yes, quickstart passed 6/6.
-2. Measurable improvement: the rolling live path now completes without its
-   prior commitment failures and the exhaustive-total case improved from
-   `$1,700` to the supported `$2,500`.
+2. Measurable improvement: question 19 now retrieves and uses the direct
+   language preference, but the final advisory-only timestamp change did not
+   improve question 14.
 3. Existing framework: the survey found useful patterns, but adding a full
    framework would add more surface than Palari needs.
 4. Founder request: yes, simplify the overbuilt prototype workflow.
-5. If removed: active answers can stop at stale evidence or personalize from
-   situational context alone, and diagnostics again require manual store
-   reopening to explain the miss.
+5. If removed: question 19 regresses to generic recommendations and diagnostics
+   again require manual store reopening; the timestamp instruction itself is
+   not sufficient and must not be mistaken for enforcement.
