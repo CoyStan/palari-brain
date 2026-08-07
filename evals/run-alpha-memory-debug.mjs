@@ -166,7 +166,6 @@ export async function runAlphaMemoryDebug({
               question,
               attempt,
               stageOutputs: { ...stageOutputs },
-              dependencies: { embedder: stages.embedder?.invoke, reranker: stages.reranker?.invoke },
             })
             settled = normalizeResult(raw, dependency.maxCostUsd, name)
           } catch (error) {

@@ -171,7 +171,7 @@ Implementation head `9220d80622d6fba473fd920c1ea656afa31e68b8` replaces the
 default governance-heavy loop with one injected alpha runner and ten focused
 provider-free contracts. The old default measured 825 tests in 19.04 seconds;
 the new default measured 10 tests in 0.40 seconds. The full historical tier
-still passes 818 with 15 optional skips and zero failures across 833, including
+still passes 820 with 15 optional skips and zero failures across 835, including
 all 825 pre-existing tests. Quickstart passes 6/6.
 
 Exactly 20 official repositories were source-checked and recorded with

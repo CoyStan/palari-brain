@@ -8,7 +8,7 @@ complete, pushed, provider-free, and ready for independent read-only review.
 ## Evidence
 
 - default gate: 825 tests / 19.04 s before; 10 / 0.40 s after;
-- legacy: 818 pass, 15 optional skips, zero fail across 833;
+- legacy: 820 pass, 15 optional skips, zero fail across 835;
 - quickstart: 6/6;
 - official repository checks: 20/20;
 - recovery tag: annotated, target `332b133`;

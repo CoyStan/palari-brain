@@ -35,10 +35,19 @@ test('selectAlphaQuestions supports ordinals, ranges, ids, and preserves source 
 })
 
 test('injected stages compose without provider or product imports', async () => {
+  let answerContext
   const summary = await runAlphaMemoryDebug({
     questions,
     selection: '2',
-    dependencies: dependencies(),
+    dependencies: dependencies({
+      answer: {
+        maxCostUsd: 0.01,
+        invoke: (context) => {
+          answerContext = context
+          return { output: `answer:${context.stageOutputs.reranker}`, costUsd: 0.01 }
+        },
+      },
+    }),
     maxDollar: 1,
     appendLog: async () => {},
     runId: 'injection',
@@ -47,6 +56,7 @@ test('injected stages compose without provider or product imports', async () => 
   assert.equal(summary.spentUsd, 0.04)
   assert.equal(summary.results[0].output, 'answer:ranked:vector:memory:q2')
   assert.equal(summary.mode, 'diagnostic-not-a-benchmark')
+  assert.equal(Object.hasOwn(answerContext, 'dependencies'), false)
 })
 
 test('explicit bounded retries recover and record every attempt', async () => {

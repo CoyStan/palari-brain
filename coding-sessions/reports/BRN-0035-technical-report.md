@@ -43,8 +43,8 @@ historical suite was retained rather than deleted.
 
 - `npm run alpha:check`: PASS, 10/10.
 - `npm test`: PASS, 10/10, measured 0.40 seconds.
-- `npm run test:legacy`: PASS, 818 passed / 15 optional skipped / 0 failed
-  across 833; all 825 prior tests remain.
+- `npm run test:legacy`: PASS, 820 passed / 15 optional skipped / 0 failed
+  across 835; all 825 prior tests remain.
 - `npm run quickstart`: PASS, 6/6.
 - 20 official GitHub repository `HEAD` checks: PASS, 20/20.
 - annotated tag `pre-alpha-governance-reset-2026-08-07`: PASS; target
