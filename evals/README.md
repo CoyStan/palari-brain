@@ -30,10 +30,11 @@ retrieval, rather than treating any row from an answer-bearing session as a
 hit. Its gitignored report contains IDs, counts, the dataset SHA-256, and stage
 outcomes but no dataset text.
 
-The replay uses a deterministic local concept embedder and a generous bounded
-retrieval window to test structural storage/retrieval plumbing. It makes zero
-provider or network calls and does not grade final answers, production
-embedding quality, live reranking quality, latency, or cost.
+The replay uses a deterministic local concept embedder with broad category
+terms but no literal reference-answer terms, plus a generous bounded retrieval
+window, to test structural storage/retrieval plumbing. It makes zero provider
+or network calls and does not grade final answers, production embedding
+quality, live reranking quality, latency, or cost.
 
 ## Provider-free memory-stage audit
 

@@ -299,6 +299,45 @@ The exact-span regression contracts pass 4/4, focused tests pass 32/32,
 quickstart passes 6/6, and the complete legacy tier passes 869 with 3 optional
 skips.
 
+The founder-approved `$1.05` fresh live answer diagnostic then replayed those
+exact five former misses once each through fresh current canonical journals,
+Gemini embeddings, local Ettin reranking, Luna retrieval/answers, and the
+pinned GPT-4o LongMemEval-compatible judge. All five completed with committed
+answers, no retry, infrastructure failure, or budget stop. The official judge
+accepted 3/5: the Fitbit duration, remembered beer recommendation, and
+photography-workshop interval. It rejected the phone-battery preference answer
+and the earlier-kitchen-gadget answer.
+
+The two rejections have different meanings. The phone-battery answer retrieved,
+selected, and materially used the exact portable-power-bank memory and explicitly
+tailored charging guidance to it. Manual application of the published preference
+rubric therefore accepts it, producing a separately labelled 4/5 rubric review;
+the official 3/5 remains the primary reported score and is not overwritten. The
+kitchen-gadget case is a real retrieval failure: both the earlier Instant Pot
+statement and later Air Fryer statement were canonical, but four live retrieval
+operations returned only the Air Fryer statement. Luna honestly abstained. Across
+all five cases, 7/7 exact answer-bearing spans were canonical, 6/7 were returned,
+and the provider-free stage audit reports success 3, retrieval 1, utilization 1,
+with zero write, composition, ambiguity, or ungraded cases. The utilization label
+is the official-judge view of the disputed preference case.
+
+The campaign used 45 Gemini calls / 2,439,729 conservatively estimated tokens,
+18 Luna dispatches, and five judge calls. Fresh accounted spend was
+`$0.38219073`: `$0.36595935` Gemini, `$0.01336138` Luna, and `$0.00287` judge.
+Because semantic indexing is lazy, the generic runner initially omitted Gemini
+usage that occurred during answer retrieval; that exact measured amount was
+reconciled into the durable ledger before reporting. Alpha accounted spend is
+now `$3.32449828`, below the approved `$3.99230755` aggregate ceiling with
+`$0.66780927` headroom. Historical LongMemEval remains 6/10 and sealed U8 was
+not included.
+
+Review also found that the provider-free concept stand-in literally contained
+answer-derived terms. Those terms were removed and guarded by contract; the
+broad-concept structural replay still passes 5/5 with 7/7 exact spans. That
+control remains useful for canonical plumbing, but the live miss confirms it
+does not predict production ranking under the real candidate and context
+budgets.
+
 ## Active commands
 
 ```bash
@@ -321,11 +360,13 @@ were returned and enumerated. The general policy now treats an action phrased
 as both outstanding and resolved as ambiguous rather than forcing either the
 model's prior 2 or the benchmark's 3. No new live answer is claimed. Continue
 collecting explicitly labelled current-product cases with the stage audit.
-Do not add a Python learning lab unless current canonical cases—not the old
-digest-only v6 arm—establish retrieval as a repeated bottleneck at equal
-candidate and context budgets. A final-answer replay of the five former misses
-would require a fresh founder-approved aggregate provider cap and must use a
-new diagnostic identity; it must not mutate or regrade the sealed v6 result.
+The five-case final-answer replay is complete and must not be repeated or used
+to regrade sealed v6. The next smallest unit is provider-free: add unrelated
+temporal-predecessor controls and test whether general query diversification can
+recover an earlier entity without knowing its answer term, at the same candidate
+and context budgets. Do not add a Python learning lab unless this live retrieval
+failure repeats across current canonical cases and a simpler hybrid-search
+successor stops improving it.
 
 ## Product check
 

@@ -49,8 +49,8 @@ test('the reached-prefix regression is import-inert and fixed to the evidence',
 test('the local stand-in is deterministic and maps concepts, not answers',
   async () => {
     const input = [
-      'Keep the portable power bank charged.',
-      'Use the Instant Pot for pressure cooking.',
+      'Keep the charging accessory ready.',
+      'Use the countertop appliance for pressure cooking.',
     ]
     const first = await deterministicRegressionEmbedder(input)
     const second = await deterministicRegressionEmbedder(input)
@@ -59,6 +59,21 @@ test('the local stand-in is deterministic and maps concepts, not answers',
     assert.ok(first[1].some((value) => value > 0))
     assert.ok(first.every((vector) =>
       vector.every(Number.isFinite)))
+    const source = await readFile(
+      new URL(
+        '../evals/run-reached-prefix-retrieval-regression.mjs',
+        import.meta.url,
+      ),
+      'utf8',
+    )
+    for (const answerDerivedTerm of [
+      "'instant pot'",
+      "'lager'",
+      "'pilsner'",
+      "'power bank'",
+    ]) {
+      assert.equal(source.toLowerCase().includes(answerDerivedTerm), false)
+    }
   })
 
 test('exact answer-bearing spans are measured independently at write and retrieval', () => {

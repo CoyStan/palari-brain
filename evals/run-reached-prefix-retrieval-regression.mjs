@@ -61,15 +61,14 @@ const SCOPE = Object.freeze({
 // without a network call.
 const CONCEPTS = Object.freeze([
   ['fitbit', 'wearable', 'fitness tracker', 'charge 3', 'months'],
-  ['battery', 'phone', 'power bank', 'charging', 'charger'],
-  ['beer', 'lager', 'pilsner', 'recipe', 'stew', 'cordero'],
+  ['battery', 'phone', 'charging', 'charger', 'accessory'],
+  ['beer', 'recipe', 'stew', 'cordero'],
   ['photo', 'photography', 'workshop', 'camera', 'months'],
   ['museum', 'gallery', 'art', 'visit', 'december'],
   [
     'kitchen',
     'gadget',
     'appliance',
-    'instant pot',
     'air fryer',
     'pressure cooking',
   ],
