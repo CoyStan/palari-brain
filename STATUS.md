@@ -762,6 +762,29 @@ spend. The mutable aggregate ledger was therefore corrected upward to
 must include the worst-case lazy corpus-embedding backfill in their
 pre-dispatch reservation or fail provider-free before dispatch.
 
+A five-case fresh memory matrix now broadens that live evidence without tuning
+the successful path. Untouched, hash-verified stores covered remote-colleague
+personalization (`54026fce`), Rachel's current employer (`5a4f22c0`), relative
+meeting order (`gpt4_88806d6e`), the jointly chosen Fissionator name
+(`561fabcd`), and a two-session gift total (`a3332713`). All five completed
+once with no retries and no paid judge. The provider-free stage audit reports
+success 5 and every failure stage 0. All 8/8 dataset-marked spans were returned;
+the only unselected marked span was Rachel's older conference context, while
+the later TechCorp statement correctly controlled the answer. The smallest
+decisive sets were 7/7 returned, selected, and materially used, and all five
+answers matched their references. Fissionator used one relevant scoped
+`memory_read`; the other four cases needed one search, and no case used
+`memory_bridge`.
+
+The new per-provider-call guard kept every case inside its `$0.14` reservation.
+Fresh measured spend was `$0.37911228` against a `$0.70` cap, bringing the
+aggregate ledger to `$4.35556818`. Forty-five Gemini calls embedded 2,461,582
+tokens for `$0.36923730`; sixteen Luna dispatches cost `$0.00987498`.
+All five pristine source hashes remained unchanged. This matrix is diagnostic,
+not a benchmark regrade. It supports the current hybrid retrieval and scoped
+session-read design, but because no bridge was needed it supplies no evidence
+yet for learned co-use edges.
+
 ## Active commands
 
 ```bash
@@ -797,9 +820,13 @@ only scoped returned-ID provenance checks. Do not replay either recommendation
 case. The fresh Tokyo store proves provider-free that a returned prior Palari
 answer can route through its exact source session, and the distinct live
 photography case confirms that Luna follows that route and uses evidence it
-adds. Do not replay either case merely to tune the successful prompt. Before
-another fresh-store diagnostic, bound the one-time embedding backfill from the
-canonical corpus and reserve it along with answer and judge calls.
+adds. The five-case fresh matrix then passed personalization, update, temporal,
+prior-conversation, and multi-session composition cases without a product
+change. Do not replay these successes merely to tune their prompts. The next
+useful cases should be genuinely alias- or multi-hop-shaped cases where the
+first search does not already return every decisive span, selected
+provider-free before requesting a new cap. Continue bounding the one-time
+embedding backfill and every provider call before dispatch.
 Make no provider call without a new explicit founder-approved cap. Continue
 collecting distinct real relationship cases, recording bridge use, candidate
 rank,
@@ -823,9 +850,11 @@ this simpler bridge-search path stops improving them.
 2. Measurable improvement: live Q14 and Q19 improved, the same temporal
    authority passes current/historical counterexamples across six unrelated
    domains, two held-out answer cases transferred, and the held-out aggregation
-   evidence failure is corrected live. The live answer still interpreted the
-   complete evidence differently from the reference, so broad answer-quality
-   generalization is not yet established.
+   evidence failure is corrected live. A subsequent five-case fresh matrix
+   passed personalization, knowledge update, temporal reasoning, prior-dialogue
+   recall, and multi-session composition with 7/7 decisive-span use. This is
+   broader diagnostic evidence, not a release benchmark or a reliability
+   guarantee.
 3. Existing framework: the survey found useful patterns, but adding a full
    framework would add more surface than Palari needs.
 4. Founder request: yes, simplify the overbuilt prototype workflow.
