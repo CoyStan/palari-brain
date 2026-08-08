@@ -498,8 +498,10 @@ const result = await answerWithRetrieval(brain, {
     memoryText,
     maxRetrievalCalls,
     maxRetrievalPlanningCalls,
+    markRetrievalAnchors,
     recommendedMaxOutputTokens,
     retrievalFinalizationInstructions,
+    retrievalFrontier,
     retrievalTools,
     retrieve,
   }) {
@@ -508,6 +510,10 @@ const result = await answerWithRetrieval(brain, {
     const tools = buildGeminiFunctionTools(retrievalTools)
     // Route each requested call through retrieve. One memory_plan may register
     // ephemeral navigation metadata without consuming maxRetrievalCalls.
+    // retrievalFrontier() returns an immutable snapshot of search attempts,
+    // new/repeated raw evidence, remaining calls, anchors, and stagnation.
+    // markRetrievalAnchors(ids) may retain only IDs already returned during
+    // this answer; it cannot create or modify durable memory.
     // Palari executes at most maxRetrievalCalls (never more than 4) across
     // the evidence-retrieval tools.
     // If the budget is spent, perform one tool-disabled response using
@@ -779,6 +785,25 @@ returned to the answer callback. `result.retrievalTranscript` records every
 bounded tool request/result. Search ranking and graph structure locate
 evidence; exact journal messages and verified edge quotes remain the only
 testimony.
+
+`retrievalFrontier()` and `result.retrievalFrontier` expose the immutable
+`palari-retrieval-frontier/v1` state for the current answer. It records unique
+normalized query attempts, repeated attempts, per-round new and repeated raw
+evidence IDs, explicit anchor IDs, selected IDs, remaining calls, budget
+refusals, and consecutive rounds without new evidence. Two consecutive
+no-new-evidence rounds set `stagnant: true`; this is advisory telemetry in the
+first alpha slice and does not itself stop retrieval. `memory_plan` does not
+count as a frontier round because it returns navigation metadata rather than
+evidence. The frontier is discarded after the answer and always reports
+`ephemeral: true` and `durableWrites: 0`.
+
+The provider callback `markRetrievalAnchors(evidenceIds)` adds an ephemeral
+navigation anchor only after that canonical evidence ID has been returned in
+the same answer session. Unknown or provider-invented IDs fail closed. This
+contract prepares iterative bridge retrieval without predefining what
+relations, attributes, or categories are important at write time; it does not
+yet generate bridge queries, rerank candidates from anchors, or reinforce
+durable graph edges.
 
 `result.retrievalPlan` is either null or the one immutable session plan with
 exact fields `anchor_event`, `relation`, `category`, and `time_range`.

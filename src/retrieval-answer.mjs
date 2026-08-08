@@ -44,6 +44,9 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
   'standard',
   'enumerate',
 ])
+export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
+  'palari-retrieval-frontier/v1'
+export const MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS = 2
 export const MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS = [
   'This question requires exhaustive answer composition from returned evidence.',
   'Before writing final prose, enumerate every distinct candidate unit supported by direct canonical evidence.',
@@ -73,6 +76,7 @@ const RETRIEVAL_PLAN_ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})(?:T(?:[01]\d|2[0-3]
 const RETRIEVAL_PLAN_MONTH_DAYS = Object.freeze([
   31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
 ])
+const RETRIEVAL_FRONTIER_WHITESPACE = /\s+/gu
 
 export const MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS = [
   'Memory retrieval is complete. Do not call another memory tool.',
@@ -98,6 +102,7 @@ const SCALAR_MEASUREMENT_UNIT = /^(?:seconds?|minutes?|hours?|days?|weeks?|month
 // code, but their model-originated payloads must not gain authority by
 // temporarily poisoning mutable built-in prototypes.
 const arrayIsArray = Array.isArray
+const arrayJoin = Function.call.bind(Array.prototype.join)
 const arrayPrototype = Array.prototype
 const arrayPush = Function.call.bind(Array.prototype.push)
 const dateConstructor = Date
@@ -105,6 +110,7 @@ const dateGetTime = Function.call.bind(Date.prototype.getTime)
 const dateToISOString = Function.call.bind(Date.prototype.toISOString)
 const mapGet = Function.call.bind(Map.prototype.get)
 const mapSet = Function.call.bind(Map.prototype.set)
+const mathMax = Math.max
 const numberConstructor = Number
 const numberIsSafeInteger = Number.isSafeInteger
 const numberIsNaN = Number.isNaN
@@ -126,6 +132,8 @@ const setHas = Function.call.bind(Set.prototype.has)
 const setConstructor = Set
 const stringFrom = String
 const stringIncludes = Function.call.bind(String.prototype.includes)
+const stringReplace = Function.call.bind(String.prototype.replace)
+const stringToLowerCase = Function.call.bind(String.prototype.toLowerCase)
 const stringTrim = Function.call.bind(String.prototype.trim)
 const structuredCloneValue = globalThis.structuredClone
 const weakSetAdd = Function.call.bind(WeakSet.prototype.add)
@@ -608,6 +616,207 @@ function evidenceTexts(result) {
     if (evidenceId && text) arrayPush(evidence, { evidenceId, text })
   }
   return evidence
+}
+
+function frontierText(value) {
+  if (typeof value !== 'string') return ''
+  return stringReplace(
+    stringToLowerCase(stringTrim(value)),
+    RETRIEVAL_FRONTIER_WHITESPACE,
+    ' ',
+  )
+}
+
+function frontierAttemptKey(tool, input) {
+  const parts = [stringFrom(tool)]
+  const fields = [
+    'phrase',
+    'entity',
+    'session',
+    'after',
+    'before',
+    'mode',
+    'ranked',
+    'hops',
+    'limit',
+    'maxChars',
+  ]
+  for (let index = 0; index < fields.length; index += 1) {
+    const field = fields[index]
+    const value = input?.[field]
+    if (value === undefined || value === null || value === '') continue
+    const normalized = typeof value === 'string'
+      ? frontierText(value)
+      : stringFrom(value)
+    arrayPush(parts, `${field}=${normalized}`)
+  }
+  const evidenceIds = input?.evidenceIds
+  if (arrayIsArray(evidenceIds)) {
+    const normalizedIds = []
+    for (let index = 0; index < evidenceIds.length; index += 1) {
+      const id = stringTrim(stringFrom(evidenceIds[index] ?? ''))
+      if (id) arrayPush(normalizedIds, id)
+    }
+    if (normalizedIds.length) {
+      arrayPush(parts, `evidenceIds=${arrayJoin(normalizedIds, ',')}`)
+    }
+  }
+  return arrayJoin(parts, '|')
+}
+
+function copyFrontierArray(values) {
+  const copied = []
+  for (let index = 0; index < values.length; index += 1) {
+    arrayPush(copied, values[index])
+  }
+  return copied
+}
+
+function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
+  const seenEvidenceSet = new setConstructor()
+  const seenEvidenceIds = []
+  const anchorEvidenceSet = new setConstructor()
+  const anchorEvidenceIds = []
+  const attemptedQuerySet = new setConstructor()
+  const attemptedQueryKeys = []
+  const rounds = []
+  let budgetRefusals = 0
+  let consecutiveNoNewEvidenceRounds = 0
+  let repeatedQueryAttempts = 0
+
+  const noteQuery = (tool, input) => {
+    const queryKey = frontierAttemptKey(tool, input)
+    const repeatedQuery = setHas(attemptedQuerySet, queryKey)
+    if (repeatedQuery) {
+      repeatedQueryAttempts += 1
+    } else {
+      setAdd(attemptedQuerySet, queryKey)
+      arrayPush(attemptedQueryKeys, queryKey)
+    }
+    return { queryKey, repeatedQuery }
+  }
+
+  const record = ({ input, result, tool }) => {
+    const { queryKey, repeatedQuery } = noteQuery(tool, input)
+    const roundEvidenceSet = new setConstructor()
+    const returnedEvidenceIds = []
+    const newEvidenceIds = []
+    const repeatedEvidenceIds = []
+    const evidence = evidenceTexts(result)
+    for (let index = 0; index < evidence.length; index += 1) {
+      const evidenceId = evidence[index].evidenceId
+      if (setHas(roundEvidenceSet, evidenceId)) continue
+      setAdd(roundEvidenceSet, evidenceId)
+      arrayPush(returnedEvidenceIds, evidenceId)
+      if (setHas(seenEvidenceSet, evidenceId)) {
+        arrayPush(repeatedEvidenceIds, evidenceId)
+      } else {
+        setAdd(seenEvidenceSet, evidenceId)
+        arrayPush(seenEvidenceIds, evidenceId)
+        arrayPush(newEvidenceIds, evidenceId)
+      }
+    }
+    if (newEvidenceIds.length) {
+      consecutiveNoNewEvidenceRounds = 0
+    } else {
+      consecutiveNoNewEvidenceRounds += 1
+    }
+    const ordinal = rounds.length + 1
+    const round = {
+      newEvidenceCount: newEvidenceIds.length,
+      newEvidenceIds,
+      ordinal,
+      queryKey,
+      remainingRetrievalCalls: mathMax(
+        0,
+        maxRetrievalCalls - ordinal,
+      ),
+      repeatedEvidenceCount: repeatedEvidenceIds.length,
+      repeatedEvidenceIds,
+      repeatedQuery,
+      returnedEvidenceCount: returnedEvidenceIds.length,
+      returnedEvidenceIds,
+      tool,
+    }
+    arrayPush(rounds, round)
+    return round
+  }
+
+  const refuseForBudget = ({ input, tool }) => {
+    noteQuery(tool, input)
+    budgetRefusals += 1
+  }
+
+  const markAnchors = (values) => {
+    if (!arrayIsArray(values)) {
+      const error = new TypeError(
+        'Retrieval frontier anchors must be an array of returned evidence IDs.',
+      )
+      error.code = 'MEMORY_RETRIEVAL_FRONTIER_ANCHOR_INVALID'
+      throw error
+    }
+    for (let index = 0; index < values.length; index += 1) {
+      const evidenceId = stringTrim(stringFrom(values[index] ?? ''))
+      if (!evidenceId || !setHas(seenEvidenceSet, evidenceId)) {
+        const error = new TypeError(
+          'Retrieval frontier anchors must already exist in returned evidence.',
+        )
+        error.code = 'MEMORY_RETRIEVAL_FRONTIER_ANCHOR_INVALID'
+        throw error
+      }
+      if (setHas(anchorEvidenceSet, evidenceId)) continue
+      setAdd(anchorEvidenceSet, evidenceId)
+      arrayPush(anchorEvidenceIds, evidenceId)
+    }
+    return deepFreeze(copyFrontierArray(anchorEvidenceIds))
+  }
+
+  const snapshot = ({ retrievalOpen, selectedEvidenceIds = [] } = {}) => {
+    const selected = copyFrontierArray(selectedEvidenceIds)
+    const unseenSelectedEvidenceIds = []
+    for (let index = 0; index < selected.length; index += 1) {
+      if (!setHas(seenEvidenceSet, selected[index])) {
+        arrayPush(unseenSelectedEvidenceIds, selected[index])
+      }
+    }
+    const stagnant = consecutiveNoNewEvidenceRounds >=
+      MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS
+    const status = budgetRefusals
+      ? 'budget_exhausted'
+      : stagnant
+        ? 'stagnant'
+        : retrievalOpen
+          ? 'open'
+          : 'closed'
+    return deepFreeze({
+      anchorEvidenceIds: copyFrontierArray(anchorEvidenceIds),
+      attemptedQueryKeys: copyFrontierArray(attemptedQueryKeys),
+      budgetRefusals,
+      consecutiveNoNewEvidenceRounds,
+      durableWrites: 0,
+      ephemeral: true,
+      exhausted: budgetRefusals > 0,
+      exhaustionReason: budgetRefusals
+        ? 'retrieval_budget_exhausted'
+        : null,
+      maxRetrievalCalls,
+      remainingRetrievalCalls: mathMax(
+        0,
+        maxRetrievalCalls - rounds.length,
+      ),
+      repeatedQueryAttempts,
+      roundCount: rounds.length,
+      rounds: copyFrontierArray(rounds),
+      schema: MEMORY_RETRIEVAL_FRONTIER_SCHEMA,
+      seenEvidenceIds: copyFrontierArray(seenEvidenceIds),
+      selectedEvidenceIds: selected,
+      stagnant,
+      status,
+      unseenSelectedEvidenceIds,
+    })
+  }
+
+  return { markAnchors, record, refuseForBudget, snapshot }
 }
 
 function boundedInteger(value, fallback, maximum, label) {
@@ -1562,6 +1771,7 @@ export async function answerWithRetrieval(brain, {
   }
 
   const briefing = recallMemory(brain, scope, { maxChars })
+  const frontier = createEphemeralRetrievalFrontier(budget)
   let calls = 0
   let exhausted = false
   let retrievalOpen = true
@@ -1578,6 +1788,10 @@ export async function answerWithRetrieval(brain, {
       const planning = name === MEMORY_RETRIEVAL_PLAN_TOOL_NAME
       if (!planning && calls >= budget) {
         exhausted = true
+        frontier.refuseForBudget({
+          input: request?.input ?? {},
+          tool: name,
+        })
         return {
           exhausted: true,
           reason: 'retrieval_budget_exhausted',
@@ -1586,6 +1800,7 @@ export async function answerWithRetrieval(brain, {
       if (!planning) calls += 1
       const input = request?.input ?? {}
       const result = await tools[name](input)
+      if (!planning) frontier.record({ input, result, tool: name })
       arrayPush(transcript, { input, result, tool: name })
       return result
     })()
@@ -1627,6 +1842,8 @@ export async function answerWithRetrieval(brain, {
       memoryText: briefing.text,
       maxRetrievalCalls: budget,
       maxRetrievalPlanningCalls: 1,
+      markRetrievalAnchors: (evidenceIds) =>
+        frontier.markAnchors(evidenceIds),
       question,
       questionDate,
       questionText: [
@@ -1638,6 +1855,7 @@ export async function answerWithRetrieval(brain, {
       retrievalCapabilities: capabilities,
       retrievalFinalizationInstructions:
         MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
+      retrievalFrontier: () => frontier.snapshot({ retrievalOpen }),
       retrievalTools: MEMORY_RETRIEVAL_TOOLS,
       commitAnswer,
       retrieve,
@@ -1694,6 +1912,10 @@ export async function answerWithRetrieval(brain, {
     arrayPush(selectedEvidenceIds, evidenceCommitments[index].evidenceId)
   }
   deepFreeze(selectedEvidenceIds)
+  const retrievalFrontier = frontier.snapshot({
+    retrievalOpen: false,
+    selectedEvidenceIds,
+  })
   const uniqueConsulted = []
   const consultedSet = new setConstructor()
   for (let index = 0; index < consulted.length; index += 1) {
@@ -1725,6 +1947,7 @@ export async function answerWithRetrieval(brain, {
     retrievalCalls: calls,
     retrievalCapabilities: capabilities,
     retrievalExhausted: exhausted,
+    retrievalFrontier,
     retrievalTranscript: transcript,
     selectedEvidenceIds,
     temporaryInferences,

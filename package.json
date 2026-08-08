@@ -48,8 +48,8 @@
     "node": ">=22.5"
   },
   "scripts": {
-    "test": "node --test tests/alpha-memory-debug.contract.test.mjs tests/embedder-chunked.contract.test.mjs tests/memory-stage-audit.contract.test.mjs tests/retrieval-time-generalization.contract.test.mjs",
-    "alpha:check": "node --test tests/alpha-memory-debug.contract.test.mjs tests/embedder-chunked.contract.test.mjs tests/memory-stage-audit.contract.test.mjs tests/retrieval-time-generalization.contract.test.mjs",
+    "test": "node --test tests/alpha-memory-debug.contract.test.mjs tests/embedder-chunked.contract.test.mjs tests/memory-stage-audit.contract.test.mjs tests/retrieval-frontier.contract.test.mjs tests/retrieval-time-generalization.contract.test.mjs",
+    "alpha:check": "node --test tests/alpha-memory-debug.contract.test.mjs tests/embedder-chunked.contract.test.mjs tests/memory-stage-audit.contract.test.mjs tests/retrieval-frontier.contract.test.mjs tests/retrieval-time-generalization.contract.test.mjs",
     "alpha:debug": "node evals/run-alpha-memory-debug.mjs",
     "test:legacy": "node --test",
     "quickstart": "node examples/quickstart.mjs",

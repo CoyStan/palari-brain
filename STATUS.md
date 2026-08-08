@@ -338,6 +338,17 @@ control remains useful for canonical plumbing, but the live miss confirms it
 does not predict production ranking under the real candidate and context
 budgets.
 
+The first provider-free successor toward iterative bridge retrieval is now
+implemented: every `answerWithRetrieval()` session maintains an immutable,
+ephemeral retrieval frontier. It records normalized/repeated queries, new and
+repeated raw evidence IDs by round, explicit anchors, selected evidence,
+remaining budget, budget refusals, and two-round stagnation. Planning metadata
+does not count as evidence discovery, anchors must already have been returned,
+and the frontier cannot write durable memory (`durableWrites: 0`). This slice
+adds observability only: it does not yet generate bridge probes, rerank from
+anchors, or reinforce cross-answer edges. Focused tests pass 36/36, quickstart
+passes 6/6, and the complete legacy tier passes 873 with 3 optional skips.
+
 ## Active commands
 
 ```bash
@@ -361,12 +372,14 @@ as both outstanding and resolved as ambiguous rather than forcing either the
 model's prior 2 or the benchmark's 3. No new live answer is claimed. Continue
 collecting explicitly labelled current-product cases with the stage audit.
 The five-case final-answer replay is complete and must not be repeated or used
-to regrade sealed v6. The next smallest unit is provider-free: add unrelated
-temporal-predecessor controls and test whether general query diversification can
-recover an earlier entity without knowing its answer term, at the same candidate
-and context budgets. Do not add a Python learning lab unless this live retrieval
-failure repeats across current canonical cases and a simpler hybrid-search
-successor stops improving it.
+to regrade sealed v6. The retrieval frontier is the completed first slice of
+the successor. Next, add a bounded batched `memory_bridge` operation that lets
+the provider generate multiple on-the-fly relational probes from the question
+and returned anchors, then test it with unrelated temporal-predecessor controls
+at the same candidate and context budgets. Anchor-conditioned reranking and
+durable successful-co-use edges remain later isolated slices. Do not add a
+Python learning lab unless retrieval failures repeat across current canonical
+cases and the simpler bridge-search successor stops improving them.
 
 ## Product check
 
