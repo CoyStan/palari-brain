@@ -227,9 +227,9 @@ alpha accounted spend to `$2.94230755`. Historical LongMemEval remains 6/10.
 
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
-`$8.00840072`; the alpha ledger now accounts `$2.38366359`, for cumulative
-accounted spend of `$10.95070827`. The alpha ledger now accounts `$2.94230755`;
-it conservatively retains failed answer-stage reservations. The answer-only
+`$8.00840072`; the alpha ledger now accounts `$2.94230755`, for cumulative
+accounted spend of `$10.95070827`. It conservatively retains failed
+answer-stage reservations. The answer-only
 campaign stayed below its approved `$3.38366359` alpha cap and left
 `$0.44135604` of accounted headroom. No further live run is needed to diagnose
 the clothing case.
