@@ -380,6 +380,21 @@ four-anchor contract reaches the exact cap without dropping an anchor. The
 default six-tool wire remains unchanged. Focused tests pass 40/40, quickstart
 passes 6/6, and the complete legacy tier passes 878 with 3 optional skips.
 
+The fourth successor slice adds a fixed-budget, provider-free control matrix
+without changing product code. Employment and relocation cases recover one-hop
+temporal predecessors; person-alias and project-codename cases recover a raw
+relationship mapping and then use it as the next anchor to reach the answer
+memory. All four routes pass against plausible wrong-person or wrong-project
+distractors with the same ceiling of three retrieval calls, bridge limit 6,
+2,400 returned characters per call, two probes per hop, and ten canonical
+candidates. Every intended target ranks first, every semantic probe pair is
+batched once, all selected IDs were actually returned, and the answer path
+still reports zero durable writes. The probes, embedder, and reranker are
+deterministic controls, so this establishes cross-domain routing and provenance
+plumbing rather than production model quality. Focused tests pass 45/45,
+quickstart passes 6/6, and the complete legacy tier passes 883 with 3 optional
+skips.
+
 ## Active commands
 
 ```bash
@@ -404,13 +419,13 @@ model's prior 2 or the benchmark's 3. No new live answer is claimed. Continue
 collecting explicitly labelled current-product cases with the stage audit.
 The five-case final-answer replay is complete and must not be repeated or used
 to regrade sealed v6. The retrieval frontier, opt-in batched `memory_bridge`,
-and bounded anchor-conditioned bridge reranker are the completed first three
-successor slices. Next, test the complete iterative route with unrelated
-temporal-predecessor and relationship controls at the same candidate and
-context budgets. Durable successful-co-use edges remain a later isolated
-slice. Do not add a Python learning lab unless retrieval failures repeat across
-current canonical cases and the simpler bridge-search successor stops
-improving them.
+bounded anchor-conditioned bridge reranker, and four-case transfer controls are
+the completed first four successor slices. Next, specify asynchronous
+successful-co-use as scoped, reversible derived metadata with no writes on the
+answer path, then test deletion and non-reinforcement controls before allowing
+it to affect ranking. Do not add a Python learning lab unless retrieval
+failures repeat across current canonical cases and the simpler bridge-search
+successor stops improving them.
 
 ## Product check
 

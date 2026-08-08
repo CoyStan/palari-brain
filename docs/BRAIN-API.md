@@ -896,6 +896,18 @@ Provider-free Phone, Instant Pot, Tokyo, and Miami fixtures exercise this
 general architecture but do not regrade that run. A post-change live comparison
 requires a new preregistered identity, cap, and founder authorization.
 
+The focused iterative-bridge controls use one fixed envelope across four
+unrelated cases: at most three retrieval calls, six returned bridge messages,
+2,400 returned characters per call, two probes per hop, and the same ten-row
+canonical candidate pool. Employment and relocation cases exercise one-hop
+predecessors. Person-alias and project-codename cases exercise two-hop routing
+through an intermediate raw relationship memory. Every hop includes a
+wrong-person or wrong-project candidate, requires the intended raw target at
+rank one, and commits only the evidence needed for the answer. These are
+provider-free plumbing controls with scripted probes and deterministic
+embedding/reranking stubs; they do not measure whether a production model will
+generate good probes or score the same candidates correctly.
+
 ### Host-computed question-relative time
 
 When `answerWithRetrieval` receives a valid `questionDate`, every answer-facing
