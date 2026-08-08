@@ -531,6 +531,31 @@ dispatches. Sealed U8 was absent, the ten source stores remained unchanged, and
 all private inputs, traces, answers, judge labels, and provider-free reports
 remain gitignored under `.palari-alpha/latest-ten-v1-2026-08-08/`.
 
+The first post-retrieval successor is now implemented provider-free. On the
+active `compositionMode: 'auto'` path, a registered `current` plan cannot
+silently commit an answer from older direct-user evidence while later highly
+ranked direct-user memories remain unassessed. The host bounds review to at
+most three later candidates appearing in the top three positions of a returned
+evidence set. Each candidate may control the answer or receive a specific
+`not_used_reason`; recency forces assessment, never truth. An old-only
+commitment crosses the existing one-repair boundary, so a correct first
+commitment adds no dispatch. Historical plans and the default standard mode
+remain unchanged.
+
+This review is answer-session state over canonical raw evidence, not a durable
+semantic fact schema. Its additive `palari-current-evidence-review/v1`
+telemetry records candidate, assessed, and materially used IDs with
+`durableWrites: 0`. Provider-free medication, employment, and subscription
+controls reject old-only current answers and accept the later updates. A
+furniture control accepts an older controlling fact after explicitly dismissing
+a newer but unrelated lamp update; a historical-office control accepts the
+older location without invoking current review. The OpenAI adapter control
+also proves that the ordinary forced commitment repair carries the host
+rejection and accepts the corrected evidence choice. No provider was called,
+spend remains `$3.40368231`, focused tests pass 53/53, quickstart passes 6/6,
+and the complete legacy tier passes 891 with 3 optional skips. This is an
+offline general mechanism, not a new Harajuku answer result.
+
 ## Active commands
 
 ```bash
@@ -557,12 +582,15 @@ The five-case final-answer replay is complete and must not be repeated or used
 to regrade sealed v6. The iterative bridge can now continue through raw alias
 and codename memories, and frontier v2 preserves which intermediate raw
 memories actually routed a selected answer memory. The ten-case diagnostic
-shows that the immediate product work is now after retrieval: make later direct
-updates outrank stale same-entity facts during evidence composition, and make
-a well-supported recommendation answer the task instead of turning into an
-unnecessary clarification. Prove both first with provider-free controls against
-unrelated domains, then spend on a small fresh transfer check only if those
-controls expose a general change. Continue collecting distinct real
+showed that the immediate product work was after retrieval. The first half is
+now implemented: later highly ranked direct-user updates cannot remain silently
+unassessed in an active current-state answer. The next smallest unit is
+recommendation fulfillment: when selected preference evidence supports a safe
+category-level proposal, require at least one evidence-linked proposal instead
+of allowing clarification to replace the requested recommendation. Prove it
+first with provider-free controls across unrelated domains while preserving
+honest abstention and avoiding fabricated live listings. Only then consider a
+small fresh transfer check. Continue collecting distinct real
 relationship cases, recording bridge use, candidate rank, materially used
 answer evidence, routing-only lineage, audited outcome, and unnecessary bridge
 calls. Do not tune from the single ambiguous recommendation case or repeat the

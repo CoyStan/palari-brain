@@ -44,6 +44,10 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
   'standard',
   'enumerate',
 ])
+export const MEMORY_CURRENT_EVIDENCE_REVIEW_SCHEMA =
+  'palari-current-evidence-review/v1'
+export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_CANDIDATES = 3
+export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK = 3
 export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
   'palari-retrieval-frontier/v2'
 export const MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS = 2
@@ -604,13 +608,14 @@ export const MEMORY_RETRIEVAL_PLAN_INSTRUCTIONS = [
 export const MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS = [
   'Treat the question date as context for relative-time descriptions, not as an automatic retrieval cutoff. Keep retrieval bounds open unless the question itself explicitly asks about a bounded period such as before, after, as of, or during an event.',
   'For a current value, duration, correction, or knowledge update, do not stop at an older direct value. Use a second targeted retrieval for a later direct user statement about the same entity before inferring; a later direct value takes precedence over arithmetic extrapolated from an older value.',
+  'For an active current-state plan, explicitly assess later highly ranked direct user memories before committing an answer from an older one. A later memory is not automatically relevant or controlling, but it must be used or given a specific not-used reason instead of being silently ignored.',
   'For a personalized recommendation, retrieve both the current situational constraints and at least one direct user preference relevant to the recommendation category. If no relevant preference is found, say that the result is not personalized rather than inventing one.',
   'For a total, count, or supposedly complete list, one relevance-ranked result is not exhaustive. Use complementary bounded searches inside the planned time range; if completeness is still unproven, report a partial result or insufficient evidence instead of a definitive total.',
   'Do not transfer a value across mismatched named people, places, objects, or relationships. Evidence about a different named entity may justify insufficiency or non-use, but cannot answer the requested entity.',
   'Select each canonical evidence ID at most once in an answer commitment. When one message supports several points, choose one exact quote and combine its consequences in one basis.',
 ].join(' ')
 
-function evidenceTexts(result) {
+function evidenceRows(result) {
   const rows = []
   const rowKeys = ['matches', 'messages', 'edges']
   for (let keyIndex = 0; keyIndex < rowKeys.length; keyIndex += 1) {
@@ -621,6 +626,11 @@ function evidenceTexts(result) {
       arrayPush(rows, values[index])
     }
   }
+  return rows
+}
+
+function evidenceTexts(result) {
+  const rows = evidenceRows(result)
   const evidence = []
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index]
@@ -1765,7 +1775,10 @@ export async function answerWithRetrieval(brain, {
   const consulted = []
   const committedResponses = new WeakSet()
   const evidenceRegistry = new Map()
+  const evidenceReviewIndex = new Map()
+  const evidenceReviewRows = []
   let evidenceCount = 0
+  let acceptedCurrentEvidenceReview = null
   const transcript = []
   const frontier = createEphemeralRetrievalFrontier(budget)
   const referenceTime = questionReferenceTime(questionDate)
@@ -1779,7 +1792,74 @@ export async function answerWithRetrieval(brain, {
       arrayPush(texts, text)
       mapSet(evidenceRegistry, evidenceId, texts)
     }
+    const rows = evidenceRows(result)
+    for (let index = 0; index < rows.length; index += 1) {
+      const row = rows[index]
+      const evidenceId = stringTrim(stringFrom(row?.evidenceId ?? ''))
+      const order = numberConstructor(row?.order)
+      const speaker = stringToLowerCase(
+        stringTrim(stringFrom(row?.speaker ?? '')),
+      )
+      if (!evidenceId || speaker !== 'user' ||
+        !numberIsSafeInteger(order) || order < 0) continue
+      const rank = index + 1
+      const current = mapGet(evidenceReviewIndex, evidenceId)
+      if (current) {
+        if (rank < current.bestRank) current.bestRank = rank
+        continue
+      }
+      const reviewRow = { bestRank: rank, evidenceId, order }
+      arrayPush(evidenceReviewRows, reviewRow)
+      mapSet(evidenceReviewIndex, evidenceId, reviewRow)
+    }
     return deepFreeze(result)
+  }
+
+  const currentEvidenceReview = ({ assessed, used }) => {
+    if (compositionMode !== 'auto' || retrievalPlan?.relation !== 'current') {
+      return null
+    }
+    let earliestUsedOrder = null
+    const materiallyUsedEvidenceIds = []
+    for (let index = 0; index < evidenceReviewRows.length; index += 1) {
+      const row = evidenceReviewRows[index]
+      if (!setHas(used, row.evidenceId)) continue
+      arrayPush(materiallyUsedEvidenceIds, row.evidenceId)
+      if (earliestUsedOrder === null || row.order < earliestUsedOrder) {
+        earliestUsedOrder = row.order
+      }
+    }
+    const candidateEvidenceIds = []
+    const unresolvedEvidenceIds = []
+    if (earliestUsedOrder !== null) {
+      for (let index = 0; index < evidenceReviewRows.length; index += 1) {
+        const row = evidenceReviewRows[index]
+        if (row.bestRank > MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK ||
+          row.order <= earliestUsedOrder ||
+          setHas(used, row.evidenceId)) continue
+        arrayPush(candidateEvidenceIds, row.evidenceId)
+        if (!setHas(assessed, row.evidenceId)) {
+          arrayPush(unresolvedEvidenceIds, row.evidenceId)
+        }
+        if (candidateEvidenceIds.length >=
+          MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_CANDIDATES) break
+      }
+    }
+    const assessedEvidenceIds = []
+    for (let index = 0; index < candidateEvidenceIds.length; index += 1) {
+      if (setHas(assessed, candidateEvidenceIds[index])) {
+        arrayPush(assessedEvidenceIds, candidateEvidenceIds[index])
+      }
+    }
+    return {
+      applied: earliestUsedOrder !== null,
+      assessedEvidenceIds,
+      candidateEvidenceIds,
+      durableWrites: 0,
+      materiallyUsedEvidenceIds,
+      schema: MEMORY_CURRENT_EVIDENCE_REVIEW_SCHEMA,
+      unresolvedEvidenceIds,
+    }
   }
 
   const commitAnswer = (proposal) => {
@@ -2109,6 +2189,21 @@ export async function answerWithRetrieval(brain, {
         referencedCount: proposed.items.length,
       }
     }
+    const review = currentEvidenceReview({
+      assessed: seen,
+      used: usedEvidenceIds,
+    })
+    if (review?.unresolvedEvidenceIds.length) {
+      throw answerCommitmentError(
+        `Current-state commitment left later returned direct-user evidence ` +
+          `unassessed: ${arrayJoin(review.unresolvedEvidenceIds, ', ')}. ` +
+          `Add each as used evidence or with a specific not_used_reason; ` +
+          `later evidence is not automatically controlling.`,
+      )
+    }
+    acceptedCurrentEvidenceReview = review
+      ? deepFreeze(review)
+      : null
     const committed = deepFreeze({
       abstained: candidate.abstained,
       bases,
@@ -2459,6 +2554,9 @@ export async function answerWithRetrieval(brain, {
     answerCompositionMode: resolvedCompositionMode,
     answerEnumeration,
     answerEvidence,
+    ...(acceptedCurrentEvidenceReview
+      ? { currentEvidenceReview: acceptedCurrentEvidenceReview }
+      : {}),
     evidenceCommitments,
     briefingMode: briefing.briefingMode,
     briefingStatus: briefing.status,

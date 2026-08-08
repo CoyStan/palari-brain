@@ -622,6 +622,18 @@ does not claim to independently understand the semantic truth of arbitrary
 prose, so provider-free contracts do not establish live classification
 quality.
 
+The active `compositionMode: 'auto'` path also adds a bounded current-evidence
+review when the provider registers a `memory_plan` with `relation: 'current'`.
+If a commitment materially uses an older direct-user row, up to three later
+direct-user rows appearing within the top three positions of any returned
+evidence set must be assessed. Each may be used or selected with a specific
+`not_used_reason`; recency alone never forces it to control the answer. An
+old-only commitment that silently omits such a candidate fails through the
+ordinary one-repair commitment boundary. Plans for historical relations and
+the default `compositionMode: 'standard'` path are unchanged. This is an
+ephemeral answer-time completeness guard over raw evidence, not a durable fact
+schema or a claim that Palari understands arbitrary semantic equivalence.
+
 A cross-context inference is a separate `temporaryInferences` entry. It must
 cite selected used evidence, set `revisable: true`, state its consequence for
 this answer, and remains only in the returned answer trace. It never crosses
@@ -862,6 +874,11 @@ commitments. `result.answerEvidence` remains the compatibility surface and
 contains only `{ evidenceId, quote }` entries declared used (legacy custom
 providers retain their historical basis behavior). `result.temporaryInferences`
 contains only the validated ephemeral inference envelope described above.
+For an accepted active auto/current commitment, `result.currentEvidenceReview`
+is the immutable `palari-current-evidence-review/v1` trace. It lists the
+bounded candidate IDs, which were explicitly assessed, the materially used
+direct-user IDs, and `durableWrites: 0`. The field is absent from default and
+historical paths.
 
 These are auditable provider declarations: the host proves that IDs and exact
 quotes were returned and that the fields are structurally coherent. A declared
