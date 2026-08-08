@@ -309,6 +309,9 @@ test('missing, throwing, and oversized writers cannot erase canonical evidence',
     assert.equal(oversized.memoriesWritten, 1)
     assert.equal(oversized.indexStatus, 'failed')
     assert.equal(oversized.indexReason, 'invalid_payload')
+    // The rejected payload names its failure category, as every other
+    // indexing failure does.
+    assert.equal(oversized.errorCategory, 'TypeError')
     assert.equal(oversized.indexWritten, 0)
 
     const stored = brain.listStatements(SCOPE)
