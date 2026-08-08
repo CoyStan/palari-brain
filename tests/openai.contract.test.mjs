@@ -409,6 +409,10 @@ test('OpenAI adds exhaustive enumeration only for an enumeration answer session'
       commit.parameters.properties.enumeration.required,
       ['items', 'referencedCount', 'includedCount', 'ambiguousCount'],
     )
+    assert.equal(
+      commit.parameters.properties.enumeration.properties.items.minItems,
+      0,
+    )
     assert.match(commit.description, /every distinct candidate/i)
   })
 

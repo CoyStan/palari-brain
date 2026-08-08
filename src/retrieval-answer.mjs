@@ -1329,10 +1329,10 @@ export async function answerWithRetrieval(brain, {
     let enumeration = null
     if (enumerationRequired) {
       const proposed = candidate.enumeration
-      if (!arrayIsArray(proposed.items) || proposed.items.length < 1 ||
+      if (!arrayIsArray(proposed.items) ||
         proposed.items.length > MEMORY_ANSWER_MAX_ENUMERATION_ITEMS) {
         throw answerCommitmentError(
-          `Answer commitment enumeration items must contain 1 to ` +
+          `Answer commitment enumeration items must contain 0 to ` +
             `${MEMORY_ANSWER_MAX_ENUMERATION_ITEMS} items.`,
         )
       }

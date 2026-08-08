@@ -587,7 +587,7 @@ const OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL = deepFreeze({
               type: 'object',
             },
             maxItems: MEMORY_ANSWER_MAX_ENUMERATION_ITEMS,
-            minItems: 1,
+            minItems: 0,
             type: 'array',
           },
           referencedCount: { minimum: 0, type: 'integer' },

@@ -1286,6 +1286,47 @@ test('enumeration commitment rejects omitted candidates and host-inconsistent co
     )
   })
 
+test('enumeration commitment permits an honest zero-candidate count',
+  async (t) => {
+    const brain = await openBrain(t)
+    const canonical = 'I bake sourdough every Sunday.'
+    await seed(brain, [{ id: 'sourdough:0', user: canonical }])
+    const provider = requireEvidenceCommitment(async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { phrase: 'bake' },
+        tool: 'memory_find',
+      })
+      const [row] = found.matches
+      return commitAnswer({
+        abstained: true,
+        bases: [{
+          consequence_for_answer: '',
+          evidenceId: row.evidenceId,
+          not_used_reason: 'This is sourdough, not the requested egg tarts.',
+          quote: canonical,
+        }],
+        enumeration: {
+          ambiguousCount: 0,
+          includedCount: 0,
+          items: [],
+          referencedCount: 0,
+        },
+        temporaryInferences: [],
+        text: 'I found no stored evidence of baking egg tarts.',
+      })
+    })
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      compositionMode: 'auto',
+      provider,
+      question: 'How many times did I bake egg tarts?',
+    })
+    assert.equal(result.answerEnumeration.referencedCount, 0)
+    assert.equal(result.answerEnumeration.includedCount, 0)
+    assert.equal(result.answerEnumeration.ambiguousCount, 0)
+    assert.deepEqual(result.answerEnumeration.items, [])
+  })
+
 test('planned search expansion gathers complementary evidence across domains',
   async (t) => {
     const cases = [
