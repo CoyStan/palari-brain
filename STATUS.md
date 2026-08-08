@@ -277,6 +277,28 @@ After the session-level audit and ambiguity-policy changes, focused tests pass
 regression passes 7/7, the directly relevant audit/retrieval/OpenAI contracts
 pass 76/76, and the complete legacy tier passes 867 with 3 optional skips.
 
+The requested latest-design replay is now complete without touching the
+sealed v6 result. The first existing diagnostic passed 6/6 reached cases, but
+review found its criterion too coarse: any returned row from an answer-bearing
+session counted as a hit. Version 2 instead uses the dataset's exact
+`has_answer` turn markers and checks them independently in fresh canonical
+journals and returned retrieval. Across the five former v6 misses, all 7
+marked answer-bearing spans were stored byte-for-byte and all 7 were returned:
+5/5 cases, zero write failures, and zero retrieval failures. The prior reached
+success remained correct structurally, the question-7 answer-boundary control
+passed, and provider/network calls stayed 0/0. The gitignored report records
+schema 2 and dataset SHA-256
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`.
+
+This is evidence that canonical-first retention fixes the old extracted-memory
+omissions for these five cases. It is not an answer-quality grade: retrieval
+used a deterministic local concept embedder and a generous bounded candidate
+window, not the live Gemini/Ettin/Luna stack. No product defect or Python
+successor is justified by this replay, so only the diagnostic was tightened.
+The exact-span regression contracts pass 4/4, focused tests pass 32/32,
+quickstart passes 6/6, and the complete legacy tier passes 869 with 3 optional
+skips.
+
 ## Active commands
 
 ```bash
@@ -301,7 +323,9 @@ model's prior 2 or the benchmark's 3. No new live answer is claimed. Continue
 collecting explicitly labelled current-product cases with the stage audit.
 Do not add a Python learning lab unless current canonical cases—not the old
 digest-only v6 arm—establish retrieval as a repeated bottleneck at equal
-candidate and context budgets.
+candidate and context budgets. A final-answer replay of the five former misses
+would require a fresh founder-approved aggregate provider cap and must use a
+new diagnostic identity; it must not mutate or regrade the sealed v6 result.
 
 ## Product check
 

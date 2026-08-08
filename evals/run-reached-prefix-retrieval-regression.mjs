@@ -3,8 +3,8 @@
 // the question-7 answer boundary. This does NOT grade answer quality and does
 // not call a provider. It asks one structural question:
 //
-//   Does the current active retrieval-to-answer path deliver the canonical
-//   answer-bearing sessions to the provider callback?
+//   Does the current active retrieval-to-answer path store and then deliver
+//   the dataset-marked answer-bearing spans to the provider callback?
 //
 // The deterministic concept embedder below is a plumbing stand-in, not a
 // claim about embedding quality. Real Gemini semantic quality was measured
@@ -12,6 +12,7 @@
 // gitignored data/ input; the retained report contains IDs and counts only.
 
 import { pathToFileURL } from 'node:url'
+import { createHash } from 'node:crypto'
 import {
   mkdir,
   mkdtemp,
@@ -30,20 +31,24 @@ import {
   loadLongMemEvalInstances,
 } from '../src/index.mjs'
 
-export const REACHED_PREFIX_QUESTION_IDS = Object.freeze([
+export const HISTORICAL_V6_MISS_QUESTION_IDS = Object.freeze([
   '08e075c7',
   '09d032c9',
   '16c90bf4',
   '5e1b23de',
-  '80ec1f4f_abs',
   '0977f2af',
+])
+export const REACHED_PREFIX_QUESTION_IDS = Object.freeze([
+  ...HISTORICAL_V6_MISS_QUESTION_IDS.slice(0, 4),
+  '80ec1f4f_abs',
+  HISTORICAL_V6_MISS_QUESTION_IDS[4],
 ])
 export const TRUNCATED_QUESTION_ID = '0a34ad58'
 
 const DEFAULT_DATASET =
   'data/longmemeval_s_cleaned.json'
 const DEFAULT_REPORT =
-  '.palari-regression/reached-prefix-retrieval-v1/report.json'
+  '.palari-regression/reached-prefix-retrieval-v2/report.json'
 const SCOPE = Object.freeze({
   palariId: 'palari-reached-prefix-regression',
   userId: 'user-reached-prefix-regression',
@@ -110,6 +115,66 @@ function targetTexts(instance, sessionId) {
     entry.sessionId === sessionId)
   return new Set((session?.turns ?? []).map((turn) =>
     String(turn.content ?? '')))
+}
+
+function countedTexts(values) {
+  const counts = new Map()
+  for (const value of values) {
+    const text = String(value ?? '')
+    if (!text) continue
+    counts.set(text, (counts.get(text) ?? 0) + 1)
+  }
+  return counts
+}
+
+function matchedTextCount(expected, observed) {
+  let matched = 0
+  for (const [text, count] of expected) {
+    matched += Math.min(count, observed.get(text) ?? 0)
+  }
+  return matched
+}
+
+export function measureAnswerBearingEvidence(instance, {
+  canonicalRows = [],
+  returnedRows = [],
+} = {}) {
+  const answerSessionIds = instance.questionId.endsWith('_abs')
+    ? []
+    : instance.answerSessionIds
+  let canonicalMatched = 0
+  let required = 0
+  let returnedMatched = 0
+  for (const sessionId of answerSessionIds) {
+    const session = instance.sessions.find((entry) =>
+      entry.sessionId === sessionId)
+    const expected = countedTexts((session?.turns ?? [])
+      .filter((turn) => turn.hasAnswer === true)
+      .map((turn) => turn.content))
+    const expectedCount = [...expected.values()].reduce(
+      (sum, count) => sum + count,
+      0,
+    )
+    required += expectedCount
+    canonicalMatched += matchedTextCount(
+      expected,
+      countedTexts(canonicalRows
+        .filter((row) => String(row.source_message_id ?? '')
+          .startsWith(`${sessionId}:`))
+        .map((row) => row.content)),
+    )
+    returnedMatched += matchedTextCount(
+      expected,
+      countedTexts(returnedRows
+        .filter((row) => String(row.session ?? '') === sessionId)
+        .map((row) => row.text)),
+    )
+  }
+  return Object.freeze({
+    canonicalMatched,
+    required,
+    returnedMatched,
+  })
 }
 
 function decemberBounds(questionDate) {
@@ -182,9 +247,23 @@ async function runInstance(instance, root) {
         .every((row) => allowed.has(row.text))
     })
     const isAbstention = instance.questionId.endsWith('_abs')
-    const passed = isAbstention
+    const canonicalRows = brain.listStatements(SCOPE)
+    const answerBearingEvidence = measureAnswerBearingEvidence(instance, {
+      canonicalRows,
+      returnedRows: search.matches,
+    })
+    const writePassed = isAbstention || (
+      answerBearingEvidence.required > 0 &&
+      answerBearingEvidence.canonicalMatched === answerBearingEvidence.required
+    )
+    const retrievalPassed = isAbstention
       ? search.matches.length === 0
-      : matched.length === expected.length && exactCanonical
+      : answerBearingEvidence.required > 0 &&
+        answerBearingEvidence.returnedMatched === answerBearingEvidence.required &&
+        exactCanonical
+    const passed = isAbstention
+      ? retrievalPassed
+      : writePassed && retrievalPassed
     const boundaryPassed = instance.questionId !== TRUNCATED_QUESTION_ID ||
       (
         passed &&
@@ -195,8 +274,12 @@ async function runInstance(instance, root) {
     return {
       answerBearingSessionsMatched: matched.length,
       answerBearingSessionsRequired: isAbstention ? 0 : expected.length,
-      canonicalRows: brain.listStatements(SCOPE).length,
+      answerBearingSpansCanonical: answerBearingEvidence.canonicalMatched,
+      answerBearingSpansRequired: answerBearingEvidence.required,
+      answerBearingSpansReturned: answerBearingEvidence.returnedMatched,
+      canonicalRows: canonicalRows.length,
       exactCanonical,
+      ingestRawTurns: ingest.rawTurns,
       ingestTurns: ingest.turns,
       isAbstention,
       passed: passed && boundaryPassed,
@@ -204,6 +287,13 @@ async function runInstance(instance, root) {
       retrievalCalls: result.retrievalCalls,
       returnedMessages: search.matches.length,
       semanticUsed: search.semanticUsed,
+      storageRetrievalStage: !writePassed
+        ? 'write'
+        : !retrievalPassed
+          ? 'retrieval'
+          : 'passed-answer-ungraded',
+      writePassed,
+      retrievalPassed,
       ...(contract ? { answerBoundary: contract } : {}),
     }
   } finally {
@@ -217,6 +307,9 @@ export async function runReachedPrefixRetrievalRegression({
   repoRoot = process.cwd(),
 } = {}) {
   const datasetBytes = await readFile(resolve(repoRoot, datasetPath))
+  const datasetSha256 = createHash('sha256')
+    .update(datasetBytes)
+    .digest('hex')
   const raw = JSON.parse(datasetBytes)
   const wanted = [
     ...REACHED_PREFIX_QUESTION_IDS,
@@ -246,19 +339,30 @@ export async function runReachedPrefixRetrievalRegression({
       REACHED_PREFIX_QUESTION_IDS.includes(entry.questionId))
     const boundary = cases.find((entry) =>
       entry.questionId === TRUNCATED_QUESTION_ID)
+    const historicalMisses = cases.filter((entry) =>
+      HISTORICAL_V6_MISS_QUESTION_IDS.includes(entry.questionId))
     const report = {
       answerQualityGraded: false,
       cases,
       datasetRows: raw.length,
+      datasetSha256,
+      historicalMissesPassed: historicalMisses.filter((entry) =>
+        entry.passed).length,
+      historicalMissesTotal: historicalMisses.length,
+      mode: 'provider-free-structural-diagnostic-not-a-benchmark-grade',
       networkCalls: 0,
       providerCalls: 0,
       reachedPassed: reached.filter((entry) => entry.passed).length,
       reachedTotal: reached.length,
-      schemaVersion: 1,
+      retrievalFailures: reached.filter((entry) =>
+        entry.storageRetrievalStage === 'retrieval').length,
+      schemaVersion: 2,
       status: cases.every((entry) => entry.passed)
         ? 'passed'
         : 'failed',
       truncatedBoundaryPassed: boundary?.passed === true,
+      writeFailures: reached.filter((entry) =>
+        entry.storageRetrievalStage === 'write').length,
     }
     const absoluteReport = resolve(repoRoot, reportPath)
     await mkdir(dirname(absoluteReport), { recursive: true })
@@ -280,8 +384,16 @@ if (isMain) {
     const options = parseArgs(process.argv.slice(2))
     const report = await runReachedPrefixRetrievalRegression(options)
     console.log(
+      `Historical v6 misses, exact marked spans: ${
+        report.historicalMissesPassed}/${report.historicalMissesTotal}`,
+    )
+    console.log(
       `Reached-prefix canonical retrieval: ${
         report.reachedPassed}/${report.reachedTotal}`,
+    )
+    console.log(
+      `Current-stage failures: write=${report.writeFailures}, ` +
+        `retrieval=${report.retrievalFailures}`,
     )
     console.log(
       `Question-7 answer boundary: ${

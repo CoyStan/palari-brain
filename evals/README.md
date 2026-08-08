@@ -20,6 +20,21 @@ This regression does not predict live benchmark accuracy and cannot change the
 sealed terminal result. It carries no private dataset text, credentials,
 provider transport, or expected benchmark answer.
 
+## Latest-design reached-prefix replay
+
+`npm run reached-prefix-regression` replays the five terminal v6 misses, the
+one reached v6 success, and the next truncated-answer control into fresh
+temporary canonical-first journals. Version 2 independently counts the
+dataset's exact `has_answer` spans at canonical storage and at returned
+retrieval, rather than treating any row from an answer-bearing session as a
+hit. Its gitignored report contains IDs, counts, the dataset SHA-256, and stage
+outcomes but no dataset text.
+
+The replay uses a deterministic local concept embedder and a generous bounded
+retrieval window to test structural storage/retrieval plumbing. It makes zero
+provider or network calls and does not grade final answers, production
+embedding quality, live reranking quality, latency, or cost.
+
 ## Provider-free memory-stage audit
 
 `npm run memory-stage-audit -- --input <local.json> [--report <local.json>]`
@@ -87,7 +102,7 @@ evidence. Add new files; never relocate old ones.
 | `offline-memory-bench.mjs`, `run-offline-memory-bench.mjs` | Structural digest bench (`npm run memory-bench`). |
 | `run-answer-interpretation-regression.mjs` | Offline answer-boundary regression (`npm run answer-interpretation-regression`); see the section above. |
 | `memory-stage-audit.mjs`, `run-memory-stage-audit.mjs` | Provider-free stage classifier (`npm run memory-stage-audit -- --input <local.json>`); see the section above. |
-| `run-reached-prefix-retrieval-regression.mjs` | Private-data diagnostic (`npm run reached-prefix-regression`): checks that the six reached S-60 v6 cases still deliver their answer-bearing sessions through `answerWithRetrieval`; deterministic stand-in, zero provider calls. |
+| `run-reached-prefix-retrieval-regression.mjs` | Private-data diagnostic (`npm run reached-prefix-regression`): checks exact dataset-marked answer spans independently at canonical storage and retrieval for the reached S-60 v6 cases; deterministic stand-in, zero provider calls. |
 | `dev-provider-probe.mjs`, `run-dev-provider-probe.mjs` | The ONLY spend-capable tool (`npm run probe`); founder-gated, no run identity, no score. |
 | `provider-deviation-corpus.mjs` | Every observed live model deviation, replayed offline forever. |
 | `arms/lean-memory-reducer-*.mjs` | The live reducer wire contract: grammar, clarified instructions, repair turn, mechanical targets. |
