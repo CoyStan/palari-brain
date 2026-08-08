@@ -1,22 +1,20 @@
-# Recall, Reinforce, Compress
+# Recall, Reinforce, Compress (RRC)
 
-## A discussion proposal for self-organizing conversational memory
+## Relationship-scale attention for self-organizing agent memory
 
 **Status:** Early research idea, written to invite criticism and experimentation.
 
 ## The idea in one paragraph
 
-Long-term memory for an AI assistant should not behave like a static database
-that retrieves whichever stored sentences are closest to the current question.
-It should learn, over the course of a relationship, which memories tend to be
-useful together, which recollections lead to good decisions, and which repeated
-patterns can be compressed into higher-level concepts. Before answering, or
-asynchronously after answering, the system can sample several small views of
-its memory, imagine the answers those views would support, compare them, and
-reinforce the useful paths. After the real interaction produces a consequence,
-that observation corrects the system's earlier introspection. Over time, the
-memory graph reorganizes itself around the particular user and the particular
-relationship.
+An LLM learns how tokens interact within one context window. Recall, Reinforce,
+Compress (RRC) proposes a system that learns how experiences interact across an
+entire relationship. It treats long-term memory as a persistent, sparse,
+asynchronously trained attention layer around a language model. The system
+samples small views of memory, imagines the answers those views would support,
+reinforces useful paths, and compresses repeated structures into higher-level
+memory tokens. After a real interaction produces a consequence, that
+observation corrects the system's earlier introspection. Over time, the memory
+graph reorganizes itself around the particular user and relationship.
 
 ## Why ordinary retrieval is not enough
 
@@ -47,10 +45,11 @@ remember for this relationship.
 
 ## The central hypothesis
 
-> Under a fixed context budget, repeatedly sampling memory subgraphs,
-> comparing the responses they support, reinforcing useful paths, and
-> reversibly compressing repeated structures will produce a hierarchical,
-> personalized memory without requiring a hand-designed ontology of memory
+> Under a fixed context budget, memory-subgraph sampling can act as a sparse
+> Monte Carlo approximation of full-context attention. If response-level
+> consequences train that sampling distribution, and repeatedly useful
+> structures become reversible higher-level nodes, the result should be a
+> hierarchical personalized memory without a hand-designed ontology of memory
 > types.
 
 The proposal has four ingredients:
@@ -67,6 +66,150 @@ The proposal has four ingredients:
 
 No individual ingredient is entirely new. The research question is whether
 their combination creates an effective learning memory system.
+
+## RRC as relationship-scale attention
+
+The resemblance between RRC and a language model is not only metaphorical. In
+an idealized formulation, they perform closely related computations at
+different timescales.
+
+Suppose memory contains \(N\) nodes. Node \(i\) has a key \(k_i\), describing
+when it is relevant, and a value \(v_i\), containing what it contributes. Given
+query vector \(q\), a standard attention head assigns:
+
+\[
+p_i(q)=
+\frac{\exp(q^\top k_i/\sqrt d)}
+{\sum_{j=1}^{N}\exp(q^\top k_j/\sqrt d)}
+\]
+
+and mixes all memory values:
+
+\[
+h(q)=\sum_{i=1}^{N}p_i(q)v_i
+\]
+
+RRC cannot afford to place every remembered experience into every prompt. It
+instead samples memories from a cheaper learned distribution:
+
+\[
+i_s \sim r_\theta(i\mid q,G)
+\]
+
+An idealized importance-sampling estimate of full attention is:
+
+\[
+\hat h_S=
+\frac{1}{S}
+\sum_{s=1}^{S}
+\frac{p_{i_s}}{r_{i_s}}v_{i_s}
+\]
+
+Its expectation is the full attention result:
+
+\[
+\begin{aligned}
+\mathbb E[\hat h_S]
+&=
+\frac{1}{S}
+\sum_{s=1}^{S}
+\sum_i r_i\frac{p_i}{r_i}v_i\\
+&=\sum_i p_i v_i\\
+&=h
+\end{aligned}
+\]
+
+Therefore, in this simplified setting:
+
+\[
+\boxed{
+\mathbb E[\text{sampled memory representation}]
+=
+\text{full attention representation}
+}
+\]
+
+As \(S\) grows, the estimate converges to full attention. If the downstream
+answer computation \(f\) is Lipschitz-continuous, its expected deviation is
+bounded by the sampling variance:
+
+\[
+\mathbb E[\|f(\hat h_S)-f(h)\|]
+\le
+L\sqrt{\operatorname{Var}(\hat h_S)}
+=O\left(\frac{1}{\sqrt S}\right)
+\]
+
+This is an exact result for the idealized estimator, not a claim that a real
+LLM given sampled text will produce exactly the same answer as a transformer
+given every memory token. Real generation is nonlinear, discrete, and
+order-sensitive. The correspondence establishes shared computational logic;
+the practical quality of the approximation remains an empirical question.
+
+### A graph walk is sparse recurrent attention
+
+Let \(P\) be the memory graph's row-normalized transition matrix:
+
+\[
+P_{ij}=\frac{\exp(w_{ij})}{\sum_k\exp(w_{ik})}
+\]
+
+If \(x_0\) is the query-conditioned initial activation, an \(L\)-step walk
+produces:
+
+\[
+x_L=x_0P^L
+\]
+
+A transformer attention matrix is also row-normalized:
+
+\[
+A=\operatorname{softmax}\left(\frac{QK^\top}{\sqrt d}\right)
+\]
+
+and one attention head computes \(H'=AV\). Algebraically, both operations are
+message passing through a transition matrix. Transformer attention normally
+constructs that matrix dynamically for one forward pass. RRC uses a sparse
+graph whose associations persist and learn across interactions.
+
+The analogy can be summarized as:
+
+```text
+Transformer                         RRC
+
+tokens                              experiences
+attention within one inference      recall across interactions
+temporary attention matrix          persistent relationship graph
+backpropagation                     outcome-corrected reinforcement
+hidden representations              reversible memory supernodes
+general population learning         individual relationship learning
+```
+
+### Full-context prompting is the unconstrained special case
+
+RRC can be written as the problem of finding a useful context while paying for
+its size:
+
+\[
+\min_\theta
+\mathbb E_{C\sim\pi_\theta}
+\left[
+\ell(M(q,C),o)
++\lambda\operatorname{tokens}(C)
+\right]
+\]
+
+If \(C=G\) always and \(\lambda=0\), every memory is placed into the model's
+context. That is the ordinary full-context strategy. Full-context prompting is
+therefore an unconstrained special case of RRC. RRC asks whether a learned
+sparse approximation can preserve the useful behavior while avoiding the cost
+and interference of repeatedly processing everything.
+
+This framing also defines the limit of the proposal. Given infinite context,
+free computation, perfect attention, instant personalization, exact deletion
+from model weights, and no provenance requirements, an external RRC layer
+would provide little additional capability. Its benefit comes from the actual
+constraints under which persistent assistants operate.
 
 ## One real action, many imagined alternatives
 
@@ -347,6 +490,14 @@ closed-loop combination:
 > and allow repeated successful combinations to become reversible higher-level
 > memory nodes.
 
+Seen through the attention correspondence, RRC externalizes the part of a
+language model that must change at a different speed. The base model remains
+general, dense, shared, and slowly trained. The relationship-scale attention
+layer becomes personal, sparse, rapidly updateable, persistent, and linked to
+evidence. The claim is not that RRC introduces a completely different form of
+intelligence. It applies familiar learning logic to a timescale and scope that
+ordinary transformer inference does not retain.
+
 The especially unusual parts appear to be:
 
 1. Learning the **recall graph**, rather than only model parameters or stored
@@ -480,3 +631,7 @@ The proposed system asks a different question:
 If the idea works, long-term memory would stop being a passive extension of the
 context window. It would become a learned, evolving part of the agent's
 intelligence.
+
+Transformer attention learns how tokens should interact during one inference.
+Relationship-scale attention learns how experiences should interact over a
+lifetime of conversations.
