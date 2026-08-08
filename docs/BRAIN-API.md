@@ -740,6 +740,17 @@ characters. Anchor text is routing context only: it is not added as evidence
 for a missing fact, and an answer commitment must still cite independently
 returned canonical evidence that supports its claim.
 
+A relevant prior Palari answer is a special navigation anchor, not user
+evidence. If it appears to expose the vocabulary or source session for a
+user-specific resource, preference, goal, relationship, or preparation, the
+provider should spend its next available call on
+`memory_read({ session: anchor.session })`. That exact scoped read can recover
+the direct user messages that produced the old answer without predefining what
+attributes matter. If the session does not contain the needed support, the
+provider can continue through `memory_bridge`. Generic prior Palari advice
+with no user-specific claim relevant to the question is not expanded merely
+because it was retrieved.
+
 The complete batch consumes one retrieval-budget call. Its output includes the
 updated immutable `retrievalFrontier` plus `rerankConditioning` telemetry with
 the mode, anchor IDs, applied state, and query character count; the private
@@ -950,7 +961,8 @@ later tool results as one evidence stream:
   unsupported answer;
 - prior Palari speech may be recalled as Palari's prior advice,
   recommendation, or commitment, but never as something the user said, did,
-  owned, or preferred; and
+  owned, or preferred; when it exposes relevant user-specific context, its
+  source session is read for direct user evidence before answering; and
 - empty or irrelevant evidence still produces honest absence rather than a
   fabricated fact.
 

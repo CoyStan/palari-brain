@@ -716,6 +716,27 @@ including drink, exercise, reading, Miami-shaped, invalid-ID, duplicate-ID,
 unsupported-answer, abstention, and current-context controls. Quickstart passes
 6/6, and the complete legacy tier passes 901 with 3 optional skips.
 
+The fresh Tokyo miss is now reproduced provider-free from an isolated copy of
+its saved canonical store. The original failed search had returned a prior
+Palari Suica answer with three retrieval calls left. Starting from that exact
+anchor, the real answer API used `memory_find` and then
+`memory_read(anchor.session)` to recover both dataset-marked direct user rows:
+the Suica card the user had just obtained and the later Suica-plus-TripIt
+preparation statement. This proves a two-call recovery route within the
+existing four-call budget; it does not claim that Luna will follow it live.
+
+The active agent instructions now treat a relevant prior Palari answer as
+navigation rather than user evidence. When it appears to expose user-specific
+resources, preferences, goals, relationships, or preparations, the agent reads
+that exact scoped source session before answering; if the session is
+insufficient, it continues through `memory_bridge`. The host does not classify
+the prose, expand every Palari answer, or create memory. Provider-free travel,
+kitchen, and legal controls recover their direct user source statements, while
+an unrelated-session control proves that generic museum advice cannot acquire
+a Museum Pass mentioned elsewhere. No provider was called and spend did not
+change. Focused tests pass 68/68, quickstart passes 6/6, and the complete
+legacy tier passes 906 with 3 optional skips.
+
 ## Active commands
 
 ```bash
@@ -748,11 +769,11 @@ successor produced useful content on its original failure, and the fresh Miami
 case confirmed that dual prose/structure generation is brittle. The active
 path now removes the second recommendation surface entirely; the host retains
 only scoped returned-ID provenance checks. Do not replay either recommendation
-case. The next provider-free unit is to reproduce the fresh Tokyo path from its
-saved store and test whether a general “prior Palari answer is a navigation
-anchor; recover its surrounding direct-user context” rule reaches both Suica
-and TripIt within the existing budget. Do not make that rule affect live
-retrieval until unrelated negative controls show it does not flood context.
+case. The fresh Tokyo store now proves provider-free that a returned prior
+Palari answer can route through its exact source session to both marked direct
+user statements in two calls, and unrelated controls do not cross-contaminate
+sessions. The next distinct live relationship case should record whether Luna
+actually follows this route; do not replay Tokyo merely to tune its prompt.
 Make no provider call without a new explicit founder-approved cap. Continue
 collecting distinct real relationship cases, recording bridge use, candidate
 rank,

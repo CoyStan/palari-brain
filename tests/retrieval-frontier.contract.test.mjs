@@ -10,6 +10,7 @@ import {
   MEMORY_BRIDGE_RERANK_MAX_QUERY_CHARS,
   MEMORY_BRIDGE_TOOL,
   MEMORY_ITERATIVE_RETRIEVAL_TOOLS,
+  MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
   MEMORY_RETRIEVAL_FRONTIER_SCHEMA,
   MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS,
   answerWithRetrieval,
@@ -24,7 +25,11 @@ test('iterative routing makes bridge the next call after a raw anchor', () => {
   )
   assert.match(
     MEMORY_BRIDGE_INSTRUCTIONS,
-    /overrides the general memory_search instruction/,
+    /continue from that anchor before issuing another general search/,
+  )
+  assert.match(
+    MEMORY_BRIDGE_INSTRUCTIONS,
+    /prior Palari answer with a source session, first use memory_read/,
   )
   assert.match(
     MEMORY_BRIDGE_INSTRUCTIONS,
@@ -103,12 +108,13 @@ async function openBrain(t, options = {}) {
 }
 
 async function seed(brain, text, {
+  assistantMessage = 'Noted.',
   eventAt = '2025-01-01T00:00:00.000Z',
   sourceMessageId = 'frontier-seed:0',
 } = {}) {
   await ingestChatTurn(brain, {
     ...SCOPE,
-    assistantMessage: 'Noted.',
+    assistantMessage,
     eventAt,
     retention: 'durable',
     sourceMessageId,
@@ -118,6 +124,149 @@ async function seed(brain, text, {
     reducerId: 'retrieval-frontier-test/v1',
   })
 }
+
+const PALARI_SOURCE_RECOVERY_CASES = Object.freeze([
+  {
+    anchorPhrase: 'two travel tools you already prepared',
+    assistant:
+      'Use the two travel tools you already prepared when navigating Tokyo.',
+    domain: 'travel',
+    expected: ['Suica card', 'downloaded TripIt'],
+    user: 'I just got a Suica card and downloaded TripIt for the Tokyo trip.',
+  },
+  {
+    anchorPhrase: 'countertop appliances already in your kitchen',
+    assistant:
+      'Build the cooking plan around the countertop appliances already in your kitchen.',
+    domain: 'kitchen',
+    expected: ['Instant Pot', 'Air Fryer'],
+    user: 'I use an Instant Pot and Air Fryer for weeknight dinners.',
+  },
+  {
+    anchorPhrase: 'usual two-article review pattern',
+    assistant: 'Start with the user’s usual two-article review pattern.',
+    domain: 'legal',
+    expected: ['Article 5', 'Article 12'],
+    user:
+      'For recurring contract reviews, I usually work with Article 5 and Article 12.',
+  },
+])
+
+test('prior Palari anchors recover direct user context across domains',
+  async (t) => {
+    assert.match(
+      MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
+      /prior Palari answer may reveal the vocabulary or source session/,
+    )
+    assert.match(
+      MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
+      /read its source session with memory_read before answering/,
+    )
+    for (const spec of PALARI_SOURCE_RECOVERY_CASES) {
+      await t.test(spec.domain, async (t) => {
+        const brain = await openBrain(t)
+        await seed(brain, spec.user, {
+          assistantMessage: spec.assistant,
+          sourceMessageId: `${spec.domain}-source:0`,
+        })
+        let anchorEvidenceId = null
+        let userEvidenceId = null
+        const result = await answerWithRetrieval(brain, {
+          ...SCOPE,
+          additionalInstructions:
+            MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
+          iterativeRetrieval: true,
+          async provider({ answerInstructions, retrieve }) {
+            assert.match(
+              answerInstructions,
+              /read its source session with memory_read before answering/,
+            )
+            const found = await retrieve({
+              input: { phrase: spec.anchorPhrase },
+              tool: 'memory_find',
+            })
+            const anchor = found.matches.find((row) =>
+              row.speaker === 'Palari')
+            assert.ok(anchor)
+            anchorEvidenceId = anchor.evidenceId
+            const context = await retrieve({
+              input: { session: anchor.session },
+              tool: 'memory_read',
+            })
+            const direct = context.messages.find((row) =>
+              row.speaker === 'user')
+            assert.ok(direct)
+            userEvidenceId = direct.evidenceId
+            for (const expected of spec.expected) {
+              assert.match(direct.text, new RegExp(expected))
+            }
+            return {
+              abstained: false,
+              text: `Recovered direct ${spec.domain} context.`,
+            }
+          },
+          question: `What should I remember about this ${spec.domain} context?`,
+        })
+
+        assert.deepEqual(
+          result.retrievalTranscript.map((entry) => entry.tool),
+          ['memory_find', 'memory_read'],
+        )
+        assert.notEqual(anchorEvidenceId, userEvidenceId)
+        assert.equal(result.retrievalCalls, 2)
+        assert.ok(result.consultedEvidenceIds.includes(anchorEvidenceId))
+        assert.ok(result.consultedEvidenceIds.includes(userEvidenceId))
+      })
+    }
+  })
+
+test('same-session recovery does not attach an unrelated user resource',
+  async (t) => {
+    assert.match(
+      MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
+      /Do not expand a generic prior Palari answer that contains no user-specific claim relevant to the question/,
+    )
+    const brain = await openBrain(t)
+    await seed(brain, 'Could you give me generic ideas for a free afternoon?', {
+      assistantMessage: 'A museum visit could be a relaxing option.',
+      sourceMessageId: 'generic-source:0',
+    })
+    await seed(brain, 'I have a Museum Pass for my work trip.', {
+      assistantMessage: 'I will keep that separate travel resource in mind.',
+      sourceMessageId: 'unrelated-source:0',
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      additionalInstructions: MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
+      async provider({ retrieve }) {
+        const found = await retrieve({
+          input: { phrase: 'museum visit could be a relaxing option' },
+          tool: 'memory_find',
+        })
+        const anchor = found.matches.find((row) => row.speaker === 'Palari')
+        assert.ok(anchor)
+        const context = await retrieve({
+          input: { session: anchor.session },
+          tool: 'memory_read',
+        })
+        assert.ok(context.messages.some((row) =>
+          row.speaker === 'user' && row.text.includes('generic ideas')))
+        assert.ok(!context.messages.some((row) =>
+          row.text.includes('Museum Pass')))
+        return {
+          abstained: false,
+          text: 'The prior answer was generic, not evidence of a saved pass.',
+        }
+      },
+      question: 'What could I do with a free afternoon?',
+    })
+
+    assert.deepEqual(
+      result.retrievalTranscript.map((entry) => entry.tool),
+      ['memory_find', 'memory_read'],
+    )
+  })
 
 test('memory_bridge batches generated semantic probes and returns raw evidence',
   async (t) => {

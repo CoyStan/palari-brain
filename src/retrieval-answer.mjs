@@ -643,6 +643,7 @@ export const MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS = [
   'For a current value, duration, correction, or knowledge update, do not stop at an older direct value. Use a second targeted retrieval for a later direct user statement about the same entity before inferring; a later direct value takes precedence over arithmetic extrapolated from an older value.',
   'For an active current-state plan, explicitly assess later highly ranked direct user memories before committing an answer from an older one. A later memory is not automatically relevant or controlling, but it must be used or given a specific not-used reason instead of being silently ignored.',
   'For a personalized recommendation, retrieve both the current situational constraints and at least one direct user preference relevant to the recommendation category. If no relevant preference is found, say that the result is not personalized rather than inventing one.',
+  'A relevant prior Palari answer may reveal the vocabulary or source session for user-specific resources, preferences, goals, relationships, or preparations, but it is navigation rather than proof. When such a Palari row is returned and retrieval budget remains, read its source session with memory_read before answering so the direct user context can support the answer. If that session does not recover the needed user evidence, continue through memory_bridge. Do not expand a generic prior Palari answer that contains no user-specific claim relevant to the question.',
   'For a total, count, or supposedly complete list, one relevance-ranked result is not exhaustive. Use complementary bounded searches inside the planned time range; if completeness is still unproven, report a partial result or insufficient evidence instead of a definitive total.',
   'Do not transfer a value across mismatched named people, places, objects, or relationships. Evidence about a different named entity may justify insufficiency or non-use, but cannot answer the requested entity.',
   'Select each canonical evidence ID at most once in an answer commitment. When one message supports several points, choose one exact quote and combine its consequences in one basis.',
@@ -1410,7 +1411,7 @@ export const MEMORY_ITERATIVE_RETRIEVAL_TOOLS = deepFreeze([
 ])
 
 export const MEMORY_BRIDGE_INSTRUCTIONS = [
-  'After a returned raw memory gives a plausible anchor but the linked, earlier, later, or otherwise related fact is still missing, the next retrieval call must be memory_bridge; this bridge-first rule overrides the general memory_search instruction.',
+  'After a returned raw memory gives a plausible anchor but the linked, earlier, later, or otherwise related fact is still missing, continue from that anchor before issuing another general search. For a relevant prior Palari answer with a source session, first use memory_read on that session to recover direct user context; otherwise the next retrieval call must be memory_bridge.',
   'Do not issue another memory_search while a plausible returned anchor remains unexplored.',
   'Generate 2 to 4 diverse probes from the question and the anchor text itself; do not guess the missing answer term.',
   'If memory_bridge returns a new plausible raw anchor but not the answer, call memory_bridge again with the new anchor.',
