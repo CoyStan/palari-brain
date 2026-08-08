@@ -421,6 +421,36 @@ unchanged, and historical LongMemEval remains 6/10. This single positive pair
 does not estimate false reinforcement or justify persistent successful-co-use
 edges. The observed weaknesses are bridge tool selection and rank robustness.
 
+The general iterative prompt now resolves the tool-selection ambiguity without
+a kitchen-specific rule: after a returned raw anchor leaves the related fact
+missing, the next retrieval call must be `memory_bridge`, this priority
+overrides ordinary `memory_search`, and ordinary search resumes only when no
+plausible anchor exists or the bridge reports stagnation. A focused contract
+pins that hierarchy, while the existing employment, relocation, person-alias,
+and project-codename controls remain green.
+
+One fresh default-policy kitchen diagnostic then removed the one-off bridge
+override entirely and recorded the tracked product instruction in its private
+manifest. Luna independently chose `memory_plan -> memory_search ->
+memory_bridge`, generated four probes containing no “Instant Pot,” and answered
+“You invested in a new Instant Pot before getting the Air Fryer.” Both exact raw
+memories were selected and materially used. The bridge returned the Instant Pot
+statement at rank 6, so routing transferred but ranking remains variable. The
+first enumeration commitment included an unselected excluded distractor and
+needed the provider's one permitted structural repair; the accepted commitment
+then contained only the supported candidate. The provider-free stage audit
+classifies the case as success with 2/2 exact-span recall and 2/2 material use,
+and the frontier reports two retrieval rounds, eleven new bridge evidence IDs,
+two calls remaining, no stagnation, and `durableWrites: 0`.
+
+This diagnostic cost `$0.00953201`, bringing alpha accounted spend to
+`$3.34280221` under the approved `$3.99230755` aggregate ceiling with
+`$0.64950534` remaining. The original source database still hashes to
+`00573efbc2599e8ececed64ebc3db3f659011209f69bd3e57436cf7e817c8a96`.
+No official judge was called and historical LongMemEval remains 6/10. Focused
+tests pass 46/46, quickstart passes 6/6, and the complete legacy tier passes 884
+with 3 optional skips.
+
 ## Active commands
 
 ```bash
@@ -446,18 +476,18 @@ collecting explicitly labelled current-product cases with the stage audit.
 The five-case final-answer replay is complete and must not be repeated or used
 to regrade sealed v6. The retrieval frontier, opt-in batched `memory_bridge`,
 bounded anchor-conditioned bridge reranker, and four-case transfer controls are
-the completed first four successor slices. The first real bridge-required
-diagnostic recovered the known kitchen miss, but the default iterative policy
-did not choose the bridge unaided and the target ranked fifth. Next, make that
-transition reliable without diagnostic-only forcing and collect repeated real
-success and failure traces containing bridge use, candidate rank, selected raw
-memory pairs, and audited outcome. Do not implement asynchronous co-use edges
-from this one success. Reconsider only after repeated evidence or an offline
-ablation shows that scoped, reversible derived edges improve later queries
-without false reinforcement; deletion and non-reinforcement controls remain
-mandatory before such metadata can affect ranking. Do not add a Python learning
-lab unless retrieval failures repeat across current canonical cases and the
-simpler bridge-search successor stops improving them.
+the completed first four successor slices. The default bridge-first prompt now
+chooses the bridge unaided on the known kitchen miss, but the target ranked
+sixth and only one real relationship case has exercised the policy. Next,
+collect repeated real success and failure traces containing bridge use,
+candidate rank, selected raw memory pairs, audited outcome, and unnecessary
+bridge calls. Do not implement asynchronous co-use edges from these repeated
+runs of one pair. Reconsider only after distinct relationships recur or an
+offline ablation shows that scoped, reversible derived edges improve later
+queries without false reinforcement; deletion and non-reinforcement controls
+remain mandatory before such metadata can affect ranking. Do not add a Python
+learning lab unless retrieval failures repeat across current canonical cases
+and the simpler bridge-search successor stops improving them.
 
 ## Product check
 

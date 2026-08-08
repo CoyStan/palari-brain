@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import {
+  MEMORY_BRIDGE_INSTRUCTIONS,
   MEMORY_BRIDGE_LIMITS,
   MEMORY_BRIDGE_RERANK_MAX_QUERY_CHARS,
   MEMORY_ITERATIVE_RETRIEVAL_TOOLS,
@@ -14,6 +15,25 @@ import {
   createPalariBrain,
   ingestChatTurn,
 } from '../src/index.mjs'
+
+test('iterative routing makes bridge the next call after a raw anchor', () => {
+  assert.match(
+    MEMORY_BRIDGE_INSTRUCTIONS,
+    /next retrieval call must be memory_bridge/,
+  )
+  assert.match(
+    MEMORY_BRIDGE_INSTRUCTIONS,
+    /overrides the general memory_search instruction/,
+  )
+  assert.match(
+    MEMORY_BRIDGE_INSTRUCTIONS,
+    /Do not issue another memory_search while a plausible returned anchor remains unexplored/,
+  )
+  assert.match(
+    MEMORY_BRIDGE_INSTRUCTIONS,
+    /Resume ordinary search only if no plausible raw anchor was returned or memory_bridge reports stagnation/,
+  )
+})
 
 const SCOPE = Object.freeze({
   palariId: 'palari-frontier',

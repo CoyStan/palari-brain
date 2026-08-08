@@ -1299,8 +1299,10 @@ export const MEMORY_ITERATIVE_RETRIEVAL_TOOLS = deepFreeze([
 ])
 
 export const MEMORY_BRIDGE_INSTRUCTIONS = [
-  'When a returned raw memory gives a plausible anchor but the linked, earlier, later, or otherwise related fact is still missing, use memory_bridge.',
+  'After a returned raw memory gives a plausible anchor but the linked, earlier, later, or otherwise related fact is still missing, the next retrieval call must be memory_bridge; this bridge-first rule overrides the general memory_search instruction.',
+  'Do not issue another memory_search while a plausible returned anchor remains unexplored.',
   'Generate 2 to 4 diverse probes from the question and the anchor text itself; do not guess the missing answer term.',
+  'Resume ordinary search only if no plausible raw anchor was returned or memory_bridge reports stagnation.',
   'Inspect its retrievalFrontier and stop reformulating after it reports stagnation.',
 ].join(' ')
 
