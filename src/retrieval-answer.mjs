@@ -1360,9 +1360,9 @@ export async function answerWithRetrieval(brain, {
           500,
           { trim: true },
         )
-        if (!setHas(usedEvidenceIds, evidenceId)) {
+        if (!setHas(seen, evidenceId)) {
           throw answerCommitmentError(
-            `Answer commitment enumeration item ${index} must link selected used evidence.`,
+            `Answer commitment enumeration item ${index} must link selected evidence.`,
           )
         }
         const quote = boundedCommitmentText(

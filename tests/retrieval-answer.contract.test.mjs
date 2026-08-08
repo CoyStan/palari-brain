@@ -1180,10 +1180,14 @@ test('enumeration commitment preserves exhaustive candidates, ambiguity, and exa
         [keyboard, 'I may still need to return the rented keyboard to the music shop.'],
         [prescription, 'I need to collect my prescription from the pharmacy.'],
       ]
-      const bases = candidates.map(([row, quote]) => ({
-        consequence_for_answer: 'This is a candidate store errand.',
+      const bases = candidates.map(([row, quote], index) => ({
+        consequence_for_answer: index === 1
+          ? ''
+          : 'This is a candidate store errand.',
         evidenceId: row.evidenceId,
-        not_used_reason: '',
+        not_used_reason: index === 1
+          ? 'This possible return is excluded from the definite count.'
+          : '',
         quote,
       }))
       return commitAnswer({
@@ -1201,27 +1205,27 @@ test('enumeration commitment preserves exhaustive candidates, ambiguity, and exa
             },
             {
               action: 'return',
-              disposition: 'ambiguous',
+              disposition: 'excluded',
               evidenceId: keyboard.evidenceId,
               label: 'rented keyboard',
               quote: candidates[1][1],
-              reason: 'The user said this may still be needed.',
+              reason: 'The tentative wording excludes it from the definite count.',
             },
             {
               action: 'collect',
-              disposition: 'included',
+              disposition: 'ambiguous',
               evidenceId: prescription.evidenceId,
               label: 'prescription',
               quote: candidates[2][1],
-              reason: 'The collection is explicitly outstanding.',
+              reason: 'The evidence is direct but its current completion status is unresolved.',
             },
           ],
           referencedCount: 3,
-          includedCount: 2,
+          includedCount: 1,
           ambiguousCount: 1,
         },
         temporaryInferences: [],
-        text: 'Two errands are definite; one keyboard return remains ambiguous.',
+        text: 'One errand is definite, one is excluded, and one remains ambiguous.',
       })
     })
 
@@ -1233,7 +1237,7 @@ test('enumeration commitment preserves exhaustive candidates, ambiguity, and exa
     })
     assert.equal(result.answerCompositionMode, 'enumerate')
     assert.equal(result.answerEnumeration.referencedCount, 3)
-    assert.equal(result.answerEnumeration.includedCount, 2)
+    assert.equal(result.answerEnumeration.includedCount, 1)
     assert.equal(result.answerEnumeration.ambiguousCount, 1)
     assert.ok(Object.isFrozen(result.answerEnumeration))
     assert.ok(Object.isFrozen(result.answerEnumeration.items))
