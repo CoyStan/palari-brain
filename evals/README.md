@@ -20,6 +20,53 @@ This regression does not predict live benchmark accuracy and cannot change the
 sealed terminal result. It carries no private dataset text, credentials,
 provider transport, or expected benchmark answer.
 
+## Provider-free memory-stage audit
+
+`npm run memory-stage-audit -- --input <local.json> [--report <local.json>]`
+classifies the earliest observed failure for explicitly labelled cases as
+`write`, `retrieval`, `composition`, `utilization`, `ambiguity`, `success`, or
+`ungraded`. It combines canonical-presence IDs with the existing exact-span,
+selection, and judged-material-use telemetry. Answer correctness and ambiguity
+must be supplied as explicit labelled judgments; missing labels remain
+`ungraded`.
+
+The command only reads local JSON, performs no provider or network call, and
+refuses to run without an explicit input. A case has this shape:
+
+```json
+{
+  "id": "local-case-id",
+  "requiredEvidenceIds": ["evidence-1"],
+  "canonicalEvidenceIds": ["evidence-1"],
+  "trace": {
+    "answerCommitted": true,
+    "retrievalTranscript": [{
+      "tool": "memory_read",
+      "result": { "messages": [{ "evidenceId": "evidence-1" }] }
+    }],
+    "selectedEvidenceIds": ["evidence-1"]
+  },
+  "materialUseJudgments": [{
+    "evidenceId": "evidence-1",
+    "materiallyUsed": true,
+    "rationale": "The answer depends on this evidence."
+  }],
+  "answerJudgment": {
+    "correct": true,
+    "labelAuthority": "human-review",
+    "rationale": "The answer matches the observed outcome."
+  },
+  "ambiguityJudgment": {
+    "ambiguous": false,
+    "labelAuthority": "human-review",
+    "rationale": "The evidence has one supported interpretation."
+  }
+}
+```
+
+This is a diagnostic classification, not a benchmark grade. Keep private
+traces and reports in `.palari-alpha/` or another gitignored local path.
+
 ## ⚠️ The one rule of this directory
 
 **Do not move, rename, or "clean up" files here.** Sealed live-run
@@ -36,6 +83,7 @@ evidence. Add new files; never relocate old ones.
 | `run-scale-probe.mjs` | 5,000-message offline scale measurement (`npm run scale-probe`). Optional `-- --embedder <module>` re-measures both paraphrase columns through the semantic surface; the module must export `createEmbedder()` (write a thin wrapper that wires `arms/embedder-gemini.mjs`'s `createGeminiEmbedder` to a metered transport — see the runner header; spends, so founder-gated like every live dispatch). |
 | `offline-memory-bench.mjs`, `run-offline-memory-bench.mjs` | Structural digest bench (`npm run memory-bench`). |
 | `run-answer-interpretation-regression.mjs` | Offline answer-boundary regression (`npm run answer-interpretation-regression`); see the section above. |
+| `memory-stage-audit.mjs`, `run-memory-stage-audit.mjs` | Provider-free stage classifier (`npm run memory-stage-audit -- --input <local.json>`); see the section above. |
 | `run-reached-prefix-retrieval-regression.mjs` | Private-data diagnostic (`npm run reached-prefix-regression`): checks that the six reached S-60 v6 cases still deliver their answer-bearing sessions through `answerWithRetrieval`; deterministic stand-in, zero provider calls. |
 | `dev-provider-probe.mjs`, `run-dev-provider-probe.mjs` | The ONLY spend-capable tool (`npm run probe`); founder-gated, no run identity, no score. |
 | `provider-deviation-corpus.mjs` | Every observed live model deviation, replayed offline forever. |
@@ -56,6 +104,8 @@ evidence. Add new files; never relocate old ones.
 - "Does the digest machinery stall or overflow?" → `npm run memory-bench`
 - "Does the answer boundary keep speaker/chronology/time semantics?" →
   `npm run answer-interpretation-regression`
+- "Which observed memory stage failed?" →
+  `npm run memory-stage-audit -- --input <local.json>`
 - "Do the reached v6 cases still retrieve their evidence?" →
   `npm run reached-prefix-regression` (needs the gitignored dataset)
 - "How did the historical v0.5 arms compare, offline?" → `npm run bakeoff`

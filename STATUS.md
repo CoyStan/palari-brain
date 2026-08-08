@@ -234,6 +234,22 @@ campaign stayed below its approved `$3.38366359` alpha cap and left
 `$0.44135604` of accounted headroom. No further live run is needed to diagnose
 the clothing case.
 
+The provider-free memory-stage audit is now available without adding a second
+runtime or changing product memory behavior. Given explicit local observations,
+`npm run memory-stage-audit -- --input <local.json>` classifies the earliest
+observed stage as write, retrieval, composition, utilization, ambiguity,
+success, or honestly ungraded. It reuses the existing exact-span, selection,
+and judged-material-use telemetry, refuses to infer an audit without explicit
+input, and performs zero provider or network calls. The RRC discussion paper
+now labels importance sampling as a motivating toy readout rather than evidence
+that prompt-based RRC approximates a full transformer; learned discrete routing
+remains an empirical hypothesis. Focused tests pass 30/30, quickstart passes
+6/6, the provider-free answer-interpretation regression passes 7/7, and its
+directly relevant contracts pass 5/5. A private local audit of the current
+clothing case confirms zero missing canonical, returned, or selected required
+evidence IDs and reports `ungraded`: outcome ambiguity has not yet been judged.
+It does not convert the benchmark reference into product semantics.
+
 ## Active commands
 
 ```bash
@@ -242,6 +258,7 @@ npm run alpha:check      # same explicit focused gate
 npm run quickstart       # six-step product memory journey
 npm run test:legacy      # complete historical suite, on demand
 npm run alpha:debug -- --adapter <module> --questions 11-20 --max-dollar 0.50
+npm run memory-stage-audit -- --input <local.json> # classify observed failure stage
 ```
 
 Alpha debug logs, local adapters, and aggregate budget state belong in
@@ -256,7 +273,9 @@ provider sampling: whether an action phrased as both “need to return” and
 “exchanged” should be reported as ambiguous, excluded as resolved, or counted
 literally. Palari currently chooses excluded/resolved and therefore answers 2.
 Preserve that evidence and do not force the benchmark's 3 without a general
-policy for contradictory action state.
+policy for contradictory action state. Use the stage audit on explicitly
+labelled local cases before adding a Python learning lab; only test a learned
+utility reranker if the report establishes retrieval as a repeated bottleneck.
 
 ## Product check
 

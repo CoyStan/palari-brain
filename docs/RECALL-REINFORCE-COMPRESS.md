@@ -6,15 +6,14 @@
 
 ## The idea in one paragraph
 
-An LLM learns how tokens interact within one context window. Recall, Reinforce,
-Compress (RRC) proposes a system that learns how experiences interact across an
-entire relationship. It treats long-term memory as a persistent, sparse,
-asynchronously trained attention layer around a language model. The system
-samples small views of memory, imagines the answers those views would support,
-reinforces useful paths, and compresses repeated structures into higher-level
-memory tokens. After a real interaction produces a consequence, that
-observation corrects the system's earlier introspection. Over time, the memory
-graph reorganizes itself around the particular user and relationship.
+A transformer uses parameters learned during training to compute transient,
+query-conditioned interactions among tokens during a forward pass. Recall,
+Reinforce, Compress (RRC) proposes an external, persistent routing and
+consolidation mechanism that may learn across interactions which source-bearing
+experiences should be exposed to the model. The system samples small views of
+memory, compares the answers those views support, and may compress repeated
+structures into provenance-linked higher-level nodes. Verified outcomes can
+then train the routing policy without rewriting the shared language model.
 
 ## Why ordinary retrieval is not enough
 
@@ -45,12 +44,11 @@ remember for this relationship.
 
 ## The central hypothesis
 
-> Under a fixed context budget, memory-subgraph sampling can act as a sparse
-> Monte Carlo approximation of full-context attention. If response-level
-> consequences train that sampling distribution, and repeatedly useful
-> structures become reversible higher-level nodes, the result should be a
-> hierarchical personalized memory without a hand-designed ontology of memory
-> types.
+> Under fixed live-context and background-compute budgets, an outcome-trained
+> sparse routing policy over a persistent evidence graph may preserve more of
+> the useful behavior of an oracle full-memory reader than static retrieval.
+> Reversible, provenance-linked routing abstractions may further reduce context
+> cost without increasing decision distortion.
 
 The proposal has four ingredients:
 
@@ -58,8 +56,9 @@ The proposal has four ingredients:
    than always taking one deterministic nearest-neighbor result.
 2. **Introspection:** use a model to imagine and compare the answers supported
    by those different recollections.
-3. **Grounding in outcomes:** after one answer is actually given, use the next
-   real observation to correct the introspective judgment.
+3. **Grounding in outcomes:** after one answer is actually given, use explicit
+   corrections or independently verifiable task outcomes to calibrate the
+   introspective judgment.
 4. **Reversible consolidation:** when several memories repeatedly behave as a
    unit, create a higher-level node that can stand in for them while retaining
    links to the original evidence.
@@ -67,11 +66,14 @@ The proposal has four ingredients:
 No individual ingredient is entirely new. The research question is whether
 their combination creates an effective learning memory system.
 
-## RRC as relationship-scale attention
+## RRC as a structural interpretation of attention
 
-The resemblance between RRC and a language model is not only metaphorical. In
-an idealized formulation, they perform closely related computations at
-different timescales.
+RRC is inspired by attention, but it is not an implementation of transformer
+attention over an external text graph. The following calculation is a narrow
+motivating model, followed by the different objective that an operational RRC
+system would actually optimize.
+
+### Idealized external-attention readout
 
 Suppose memory contains \(N\) nodes. Node \(i\) has a key \(k_i\), describing
 when it is relevant, and a value \(v_i\), containing what it contributes. Given
@@ -129,9 +131,15 @@ Therefore, in this simplified setting:
 }
 \]
 
-As \(S\) grows, the estimate converges to full attention. If the downstream
-answer computation \(f\) is Lipschitz-continuous, its expected deviation is
-bounded by the sampling variance:
+The result is important but limited. Given exact importance correction,
+learning \(r_\theta\) changes sampling efficiency and variance; it does not
+personalize the expected representation, which remains the fixed target
+\(h\). Computing normalized \(p_i\) also requires the denominator over all
+\(N\) memories, eliminating much of the intended saving.
+
+If samples are independent, importance weights have finite variance, and the
+downstream answer computation \(f\) is Lipschitz-continuous, its expected
+deviation is bounded by the sampling variance:
 
 \[
 \mathbb E[\|f(\hat h_S)-f(h)\|]
@@ -140,25 +148,48 @@ L\sqrt{\operatorname{Var}(\hat h_S)}
 =O\left(\frac{1}{\sqrt S}\right)
 \]
 
-This is an exact result for the idealized estimator, not a claim that a real
-LLM given sampled text will produce exactly the same answer as a transformer
-given every memory token. Real generation is nonlinear, discrete, and
-order-sensitive. The correspondence establishes shared computational logic;
-the practical quality of the approximation remains an empirical question.
+Graph walks violate the independent-sample assumption unless their mixing is
+accounted for, and importance weights can have enormous variance when \(r_i\)
+is small where \(p_i\) is large. More fundamentally, prompt-based RRC samples
+correlated, token-budgeted subgraphs, orders source text in a prompt, and asks
+a nonlinear LLM to answer. It never constructs \(\hat h_S\).
 
-### A graph walk is sparse recurrent attention
+This identity motivates sparse sampling, but it does not describe an
+implemented RRC system or establish equivalence to running a transformer over
+the complete relationship history.
 
-Let \(P\) be the memory graph's row-normalized transition matrix:
+The actual outcome-trained routing hypothesis is closer to:
 
 \[
-P_{ij}=\frac{\exp(w_{ij})}{\sum_k\exp(w_{ik})}
+P_\theta(y\mid q,G)
+=
+\sum_C
+\pi_\theta(C\mid q,G)
+P_M(y\mid q,C)
+\]
+
+Here changing \(\pi_\theta\) genuinely changes expected behavior because the
+language model receives different discrete evidence. Whether learning that
+policy improves held-out interactions is an empirical question, not a result
+of the importance-sampling identity.
+
+### Graph walks provide persistent stochastic routing
+
+An attention-like graph router would combine a persistent relationship
+association \(w_{ij}\) with a query-dependent gate \(g_\theta\):
+
+\[
+P_{ij}(q)
+\propto
+\exp\left(w_{ij}+g_\theta(q,k_i,k_j)\right)
 \]
 
 If \(x_0\) is the query-conditioned initial activation, an \(L\)-step walk
-produces:
+produces an activation distribution. With node values collected in \(V\), a
+corresponding retrieved representation would be:
 
 \[
-x_L=x_0P^L
+h_L(q)=x_0(q)P(q)^L V
 \]
 
 A transformer attention matrix is also row-normalized:
@@ -167,10 +198,11 @@ A transformer attention matrix is also row-normalized:
 A=\operatorname{softmax}\left(\frac{QK^\top}{\sqrt d}\right)
 \]
 
-and one attention head computes \(H'=AV\). Algebraically, both operations are
-message passing through a transition matrix. Transformer attention normally
-constructs that matrix dynamically for one forward pass. RRC uses a sparse
-graph whose associations persist and learn across interactions.
+and one attention head computes \(H'=AV\). Both operations can be viewed as
+message passing through row-normalized matrices, but the similarity stops
+there. Transformer attention is recomputed across heads and layers during a
+forward pass. RRC proposes persistent associations combined with a current
+query gate and returns source-bearing text to a separate model.
 
 The analogy can be summarized as:
 
@@ -185,7 +217,7 @@ hidden representations              reversible memory supernodes
 general population learning         individual relationship learning
 ```
 
-### Full-context prompting is the unconstrained special case
+### Full-context prompting is one boundary strategy
 
 RRC can be written as the problem of finding a useful context while paying for
 its size:
@@ -199,11 +231,13 @@ its size:
 \right]
 \]
 
-If \(C=G\) always and \(\lambda=0\), every memory is placed into the model's
-context. That is the ordinary full-context strategy. Full-context prompting is
-therefore an unconstrained special case of RRC. RRC asks whether a learned
-sparse approximation can preserve the useful behavior while avoiding the cost
-and interference of repeatedly processing everything.
+Choosing \(C=G\) places every memory into the model's context. It is one
+boundary strategy in the policy class when complete memory fits and context
+cost is ignored. Setting \(\lambda=0\) does not force an optimizer to choose
+that strategy because irrelevant context may still increase answer loss. RRC
+asks whether a learned sparse policy can outperform static retrieval at a
+fixed context and compute budget, with an oracle full-memory reader serving as
+a comparison when it is feasible.
 
 This framing also defines the limit of the proposal. Given infinite context,
 free computation, perfect attention, instant personalization, exact deletion
@@ -255,7 +289,7 @@ An introspector estimates how well a context and answer are likely to work:
 I_t(C,a) = V_\phi(H_t,q_t,C,a) \approx \mathbb{E}[F_t]
 \]
 
-After the real outcome arrives, the system interprets what happened:
+After a later observation arrives, the system may interpret what happened:
 
 \[
 F_t = J(H_t,q_t,a_t,o_{t+1})
@@ -267,20 +301,22 @@ The prediction error is:
 \delta_t = F_t - I_t(C_t,a_t)
 \]
 
-This error teaches the system two things:
-
-- whether the selected memory paths were useful;
-- whether its own introspection was trustworthy in this kind of situation.
+This prediction error calibrates the introspector. It is not, by itself,
+sufficient credit for the retrieval policy: one answer can depend on several
+retrieved memories, evidence selection, composition, and the answer model's
+use of that evidence. A separate credit-assignment method must establish which
+decision contributed to a verified outcome.
 
 The introspective signal is therefore not a second source of truth. It is a
 forecast of later value. When reality disagrees, the introspector should learn
 from the disagreement.
 
-The observed outcome need not be a clean thumbs-up or reward number. It may be
-a correction, continued use of the answer, a failed tool call, a contradiction,
-a changed decision, or simply the next turn of an ambiguous conversation. A
-model may still need to interpret that event. The interpretation is fallible,
-but it can become calibrated by repeatedly predicting what later happens.
+A later event need not be a clean thumbs-up or reward number. An explicit
+correction, verified tool result, or measured task outcome may provide useful
+feedback. The next user message by itself is only another observation: silence,
+continuation, or agreement does not prove that the preceding answer was
+correct. When no reliable outcome exists, the honest update may be no durable
+update.
 
 ## Sampling memory
 
@@ -400,10 +436,11 @@ recorded episode
   -> propose and test consolidations
 ```
 
-When the next user or environmental observation arrives, it closes the prior
-episode and supplies the factual correction. If background work finishes before
-the next request, the next answer uses the updated graph. If it does not, the
-next request uses the last completed snapshot and does not wait.
+When the next user or environmental observation arrives, it may close the prior
+episode, but only explicit or independently verifiable outcomes should be
+treated as factual correction. If background work finishes before the next
+request, the next answer uses the updated graph. If it does not, the next
+request uses the last completed snapshot and does not wait.
 
 This means the system optimizes future interactions rather than spending an
 unbounded amount of time perfecting the immediate response.
@@ -481,14 +518,22 @@ Several neighboring ideas already exist:
   states representing individual memories or subsets of memories.
 - [Sleep-time Compute](https://arxiv.org/abs/2504.13171) moves useful reasoning
   away from latency-sensitive test-time inference.
+- [Reflective Memory Management](https://arxiv.org/abs/2503.08026) builds
+  memories at several granularities and refines retrieval from cited evidence.
+- [MemRL](https://arxiv.org/abs/2601.03192) combines semantic retrieval with
+  memory utilities learned from environmental feedback.
+- [CoEvo-Mem](https://arxiv.org/abs/2608.01739) explicitly co-evolves a
+  retrieval router and memory bank from task outcomes and trajectory feedback.
+- [RoMeRL](https://arxiv.org/abs/2608.02508) studies the memory-reward trap in
+  which irrelevant co-retrieved memories inherit misleading utility updates.
 
 The proposed contribution is not any one of these mechanisms. It is their
 closed-loop combination:
 
 > Sample different remembered contexts, let their proposed responses compete,
-> use the one observed outcome to calibrate introspection and assign credit,
-> and allow repeated successful combinations to become reversible higher-level
-> memory nodes.
+> use verified outcomes to calibrate introspection, learn a defensible credit
+> assignment over routing decisions, and allow repeatedly successful
+> combinations to become reversible higher-level memory nodes.
 
 Seen through the attention correspondence, RRC externalizes the part of a
 language model that must change at a different speed. The base model remains
@@ -509,8 +554,11 @@ The especially unusual parts appear to be:
    without delaying the current one.
 5. Personalizing the resulting hierarchy to one continuing relationship.
 
-This novelty claim is provisional. A serious literature review may find closer
-precedents, and that would help sharpen the proposal.
+These recent systems make learned memory routing an active research direction,
+not an untouched mechanism. Any RRC novelty claim must therefore rest on a
+specific tested difference—such as relationship-scoped asynchronous routing
+with reversible provenance-linked consolidation—rather than on reinforcement
+of retrieval in general.
 
 ## Main risks
 
@@ -552,56 +600,36 @@ outcome is uninformative, the correct update may be little or no durable
 update. The system should preserve uncertainty rather than manufacture a
 reward.
 
-## A first falsifiable experiment
+## A staged falsification path
 
-The first implementation should be a small Python research harness, not a
-production integration. A synthetic conversational world can provide ground
-truth that real conversations cannot.
+The first experiment should not implement full RRC. It should determine
+whether retrieval is actually the bottleneck. For every labelled case, record:
 
-Construct an environment with:
+1. whether the required evidence was stored canonically;
+2. whether retrieval returned the complete required evidence set;
+3. whether the answer selected that complete set;
+4. whether the selected evidence was materially used;
+5. whether the answer was correct or the case was genuinely ambiguous.
 
-- thousands of noisy memory nodes;
-- a small number of relevant nodes per question;
-- aliases and indirect routing facts;
-- recurring preferences and procedures;
-- temporal updates and contradictions;
-- one external answer and one subsequent observation per turn.
+This separates write, retrieval, composition, utilization, and ambiguity
+failures. If an answer remains wrong when given oracle evidence, learned
+routing cannot solve that case.
 
-Compare six systems:
+Only if conventional hybrid retrieval is a material, repeated bottleneck
+should a small Python research harness test one mechanism: a learned utility
+reranker over the same candidate pool. Compare it with exact search, embedding
+search, hybrid rank fusion, and the existing reranker at the same context-token
+budget. Use chronological held-out interactions rather than a random split.
 
-1. Static top-\(k\) semantic retrieval.
-2. Random-walk sampling without learning.
-3. Learning from introspection only.
-4. Learning from observed outcomes only.
-5. Introspection calibrated by observed outcomes.
-6. The full system with reversible consolidation.
+Continue only if the learned router improves complete evidence-set recall on
+held-out future interactions across several domains without regressing rare
+facts, corrections, or temporal updates. Test it in shadow mode before it can
+change live recall.
 
-Sweep at least these variables:
-
-- memory granularity: full turn, proposition, and learned hierarchy;
-- context budget: 0.5%, 1%, and 2% of total memory tokens;
-- background samples: 1, 4, 8, 16, and 32;
-- exploration rate and walk depth;
-- frequency and aggressiveness of consolidation;
-- strength and bias of the imagination and critic models.
-
-Measure:
-
-- improvement on the next and later interactions;
-- cumulative answer quality;
-- live response latency;
-- background token and compute cost;
-- context tokens consumed;
-- recovery after a correction;
-- calibration of introspective predictions;
-- compression ratio;
-- errors introduced by merging memories;
-- survival of rare but important memories.
-
-The key result is not whether the full system eventually performs well. It is
-whether outcome-calibrated introspection improves future recall more reliably
-than static retrieval, and whether learned consolidation reduces context cost
-without destroying correction recovery.
+Self-generated rewards, online edge updates, random-walk sampling, imagined
+answers, and autonomous consolidation should remain separate later
+experiments. Adding them together first would make both success and failure
+impossible to attribute.
 
 ## Minimal invariants
 
@@ -632,6 +660,7 @@ If the idea works, long-term memory would stop being a passive extension of the
 context window. It would become a learned, evolving part of the agent's
 intelligence.
 
-Transformer attention learns how tokens should interact during one inference.
-Relationship-scale attention learns how experiences should interact over a
-lifetime of conversations.
+Transformer attention computes how tokens interact during one inference using
+parameters learned during training. The RRC hypothesis asks whether an
+external relationship-scale router can learn across interactions how
+source-bearing experiences should be exposed to a continuing agent.
