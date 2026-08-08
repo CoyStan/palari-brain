@@ -33,6 +33,11 @@ import {
   MEMORY_ANSWER_MAX_ENUMERATION_LABEL_CHARS,
   MEMORY_ANSWER_MAX_ENUMERATION_REASON_CHARS,
   MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS,
+  MEMORY_ANSWER_MAX_RECOMMENDATION_CLARIFICATION_CHARS,
+  MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS,
+  MEMORY_ANSWER_MAX_RECOMMENDATION_PROPOSAL_CHARS,
+  MEMORY_ANSWER_MAX_RECOMMENDATION_VERIFICATION_CHARS,
+  MEMORY_ANSWER_RECOMMENDATION_INSTRUCTIONS,
   MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
   MEMORY_ANSWER_MAX_BASES,
   MEMORY_ANSWER_MAX_QUOTE_CHARS,
@@ -614,6 +619,71 @@ const OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL = deepFreeze({
   },
 })
 
+const OPENAI_ANSWER_RECOMMENDATION_COMMIT_TOOL = deepFreeze({
+  ...clone(OPENAI_ANSWER_COMMIT_TOOL),
+  description: [
+    OPENAI_ANSWER_COMMIT_TOOL.description,
+    MEMORY_ANSWER_RECOMMENDATION_INSTRUCTIONS,
+  ].join(' '),
+  parameters: {
+    ...clone(OPENAI_ANSWER_COMMIT_TOOL.parameters),
+    properties: {
+      ...clone(OPENAI_ANSWER_COMMIT_TOOL.parameters.properties),
+      recommendation: {
+        additionalProperties: false,
+        properties: {
+          items: {
+            items: {
+              additionalProperties: false,
+              properties: {
+                proposal: {
+                  maxLength: MEMORY_ANSWER_MAX_RECOMMENDATION_PROPOSAL_CHARS,
+                  minLength: 1,
+                  type: 'string',
+                },
+                evidenceIds: {
+                  items: { maxLength: 500, minLength: 1, type: 'string' },
+                  maxItems: MEMORY_ANSWER_MAX_BASES,
+                  minItems: 1,
+                  type: 'array',
+                },
+                requiresExternalVerification: { type: 'boolean' },
+                verificationNote: {
+                  maxLength: MEMORY_ANSWER_MAX_RECOMMENDATION_VERIFICATION_CHARS,
+                  type: 'string',
+                },
+              },
+              required: [
+                'proposal',
+                'evidenceIds',
+                'requiresExternalVerification',
+                'verificationNote',
+              ],
+              type: 'object',
+            },
+            maxItems: MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS,
+            minItems: 0,
+            type: 'array',
+          },
+          clarificationQuestion: {
+            maxLength: MEMORY_ANSWER_MAX_RECOMMENDATION_CLARIFICATION_CHARS,
+            type: 'string',
+          },
+        },
+        required: ['items', 'clarificationQuestion'],
+        type: 'object',
+      },
+    },
+    required: [
+      'abstained',
+      'bases',
+      'temporaryInferences',
+      'text',
+      'recommendation',
+    ],
+  },
+})
+
 const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
   'Return the final answer only by calling palari_answer_commit.',
   'Use only evidence IDs and exact contiguous quotes from memory results already returned in this answer session.',
@@ -623,10 +693,15 @@ const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
   'No memory tool is available during this repair.',
 ].join(' ')
 
-function answerCommitTool(enumerationRequired = false) {
+function answerCommitTool({
+  enumerationRequired = false,
+  recommendationRequired = false,
+} = {}) {
   return clone(enumerationRequired
     ? OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL
-    : OPENAI_ANSWER_COMMIT_TOOL)
+    : recommendationRequired
+      ? OPENAI_ANSWER_RECOMMENDATION_COMMIT_TOOL
+      : OPENAI_ANSWER_COMMIT_TOOL)
 }
 
 function commitmentEvidenceCount(session) {
@@ -705,7 +780,17 @@ export function createOpenAIRetrievalProvider({
     }
     const memoryTools = buildOpenAIFunctionTools(session.retrievalTools)
     const enumerationRequired = session.answerEnumerationRequired === true
-    const commitTool = answerCommitTool(enumerationRequired)
+    const recommendationRequired =
+      session.answerRecommendationRequired === true
+    if (enumerationRequired && recommendationRequired) {
+      throw new TypeError(
+        'An answer session cannot require enumeration and recommendation commitments together.',
+      )
+    }
+    const commitTool = answerCommitTool({
+      enumerationRequired,
+      recommendationRequired,
+    })
     const tools = [...memoryTools, commitTool]
     const allowedNames = new Set(tools.map(({ name }) => name))
     const maxOutputTokens = configuredMaxOutputTokens ?? positiveInteger(
@@ -756,6 +841,9 @@ export function createOpenAIRetrievalProvider({
           commitOnly ? ANSWER_COMMIT_REPAIR_INSTRUCTIONS : '',
           commitOnly && enumerationRequired
             ? 'The commitment must enumerate every evidence-supported candidate and its included, excluded, or ambiguous disposition with exact counts.'
+            : '',
+          commitOnly && recommendationRequired
+            ? 'The commitment must contain at least one evidence-linked proposal unless it honestly abstains; clarification cannot replace every proposal.'
             : '',
         ].filter(Boolean).join('\n\n'),
         max_output_tokens: maxOutputTokens,
@@ -911,6 +999,10 @@ export function createOpenAIRetrievalProvider({
     }
   }
   Object.defineProperty(provider, 'requiresEvidenceCommitment', {
+    enumerable: true,
+    value: true,
+  })
+  Object.defineProperty(provider, 'requiresRecommendationCommitment', {
     enumerable: true,
     value: true,
   })

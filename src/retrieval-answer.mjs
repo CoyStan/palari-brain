@@ -34,6 +34,10 @@ export const MEMORY_ANSWER_MAX_ENUMERATION_ITEMS = 50
 export const MEMORY_ANSWER_MAX_ENUMERATION_LABEL_CHARS = 500
 export const MEMORY_ANSWER_MAX_ENUMERATION_ACTION_CHARS = 200
 export const MEMORY_ANSWER_MAX_ENUMERATION_REASON_CHARS = 1_000
+export const MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS = 10
+export const MEMORY_ANSWER_MAX_RECOMMENDATION_PROPOSAL_CHARS = 1_000
+export const MEMORY_ANSWER_MAX_RECOMMENDATION_VERIFICATION_CHARS = 1_000
+export const MEMORY_ANSWER_MAX_RECOMMENDATION_CLARIFICATION_CHARS = 1_000
 export const MEMORY_ANSWER_ENUMERATION_DISPOSITIONS = Object.freeze([
   'included',
   'excluded',
@@ -41,6 +45,7 @@ export const MEMORY_ANSWER_ENUMERATION_DISPOSITIONS = Object.freeze([
 ])
 export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
   'auto',
+  'recommend',
   'standard',
   'enumerate',
 ])
@@ -66,6 +71,13 @@ export const MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS = [
   'When evidence simultaneously asserts an outstanding action and language suggesting completion or resolution, or when current state otherwise remains uncertain, classify the candidate as ambiguous instead of inferring that it is resolved.',
   'Do not silently drop a candidate, force ambiguity into a definite count, or save an answer-time inference as canonical memory.',
   'Report referenced, included, and ambiguous counts exactly as committed.',
+].join(' ')
+export const MEMORY_ANSWER_RECOMMENDATION_INSTRUCTIONS = [
+  'This question asks for a recommendation or suggestion grounded in returned memory.',
+  'A non-abstaining answer must include at least one concrete evidence-linked proposal; clarification may follow but cannot replace every useful proposal.',
+  'When exact current inventory, availability, or event listings are not established by returned evidence or another authorized tool, give a safe category-level or strategy-level proposal instead of inventing a live listing.',
+  'A proposal that depends on external current availability must set requiresExternalVerification true and include an explicit verification note in the answer.',
+  'Each proposal and required verification note must appear verbatim in the final answer, and every linked evidence ID must be selected as materially used.',
 ].join(' ')
 export const MEMORY_RETRIEVAL_PLAN_TOOL_NAME = 'memory_plan'
 export const MEMORY_RETRIEVAL_PLAN_RELATIONS = Object.freeze([
@@ -115,6 +127,7 @@ const ENUMERATION_COUNT_QUESTION = /^\s*how\s+many\s+(.{1,120}?)\s+(?:do|does|di
 const ENUMERATION_LIST_QUESTION = /\b(?:list|enumerate)\s+(?:all|every|each)\b/iu
 const ENUMERATION_NAMED_COLLECTION_QUESTION = /^\s*(?:which|what)\s+.{0,120}\b(?:items|things|tasks|actions|events|entries|records)\b/iu
 const ENUMERATION_RELATIONAL_QUESTION = /^\s*(?:which|what)\s+.{1,120}\s+(?:do|does|did|are|were|have|has|had|should|must|can|could|will|would)\b/iu
+const RECOMMENDATION_QUESTION = /\b(?:recommend(?:ation|ations|ed|ing)?|suggest(?:ion|ions|ed|ing)?)\b/iu
 const SCALAR_MEASUREMENT_UNIT = /^(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?|meters?|metres?|kilometers?|kilometres?|miles?|feet|inches?|grams?|kilograms?|pounds?|ounces?|liters?|litres?|gallons?|degrees?|percent|percentage|dollars?|euros?|pounds?\s+sterling|tokens?|characters?|words?)\b/iu
 
 // Capture the small set of intrinsics used by the answer-commit boundary
@@ -224,10 +237,11 @@ export function resolveMemoryAnswerCompositionMode(question, mode = 'auto') {
     return 'enumerate'
   }
   if (regexpExec(ENUMERATION_LIST_QUESTION, text) ||
-    regexpExec(ENUMERATION_NAMED_COLLECTION_QUESTION, text) ||
-    regexpExec(ENUMERATION_RELATIONAL_QUESTION, text)) {
+    regexpExec(ENUMERATION_NAMED_COLLECTION_QUESTION, text)) {
     return 'enumerate'
   }
+  if (regexpExec(RECOMMENDATION_QUESTION, text)) return 'recommend'
+  if (regexpExec(ENUMERATION_RELATIONAL_QUESTION, text)) return 'enumerate'
   return 'standard'
 }
 
@@ -280,13 +294,18 @@ function assertDenseDataArray(value, label) {
   }
 }
 
-function assertCommitmentDataShape(proposal, { enumerationRequired = false } = {}) {
+function assertCommitmentDataShape(proposal, {
+  enumerationRequired = false,
+  recommendationRequired = false,
+} = {}) {
   const modern = plainObject(proposal) &&
     objectHasOwn(proposal, 'temporaryInferences')
   exactDataProperties(
     proposal,
     modern && enumerationRequired
       ? ['abstained', 'bases', 'enumeration', 'temporaryInferences', 'text']
+      : modern && recommendationRequired
+        ? ['abstained', 'bases', 'recommendation', 'temporaryInferences', 'text']
       : modern
         ? ['abstained', 'bases', 'temporaryInferences', 'text']
       : ['abstained', 'bases', 'text'],
@@ -364,27 +383,52 @@ function assertCommitmentDataShape(proposal, { enumerationRequired = false } = {
       }
     }
   }
-  if (!enumerationRequired) return
-  const enumeration = proposal.enumeration
-  exactDataProperties(enumeration, [
+  if (enumerationRequired) {
+    const enumeration = proposal.enumeration
+    exactDataProperties(enumeration, [
+      'items',
+      'referencedCount',
+      'includedCount',
+      'ambiguousCount',
+    ], 'Answer commitment enumeration')
+    assertDenseDataArray(
+      enumeration.items,
+      'Answer commitment enumeration items',
+    )
+    for (let index = 0; index < enumeration.items.length; index += 1) {
+      exactDataProperties(enumeration.items[index], [
+        'label',
+        'action',
+        'evidenceId',
+        'quote',
+        'disposition',
+        'reason',
+      ], `Answer commitment enumeration item ${index}`)
+    }
+    return
+  }
+  if (!recommendationRequired) return
+  const recommendation = proposal.recommendation
+  exactDataProperties(recommendation, [
     'items',
-    'referencedCount',
-    'includedCount',
-    'ambiguousCount',
-  ], 'Answer commitment enumeration')
+    'clarificationQuestion',
+  ], 'Answer commitment recommendation')
   assertDenseDataArray(
-    enumeration.items,
-    'Answer commitment enumeration items',
+    recommendation.items,
+    'Answer commitment recommendation items',
   )
-  for (let index = 0; index < enumeration.items.length; index += 1) {
-    exactDataProperties(enumeration.items[index], [
-      'label',
-      'action',
-      'evidenceId',
-      'quote',
-      'disposition',
-      'reason',
-    ], `Answer commitment enumeration item ${index}`)
+  for (let index = 0; index < recommendation.items.length; index += 1) {
+    const item = recommendation.items[index]
+    exactDataProperties(item, [
+      'proposal',
+      'evidenceIds',
+      'requiresExternalVerification',
+      'verificationNote',
+    ], `Answer commitment recommendation item ${index}`)
+    assertDenseDataArray(
+      item.evidenceIds,
+      `Answer commitment recommendation item ${index} evidenceIds`,
+    )
   }
 }
 
@@ -1732,6 +1776,8 @@ export async function answerWithRetrieval(brain, {
   // weakened after canonical evidence has been returned.
   const requiresEvidenceCommitment =
     provider.requiresEvidenceCommitment === true
+  const requiresRecommendationCommitment =
+    provider.requiresRecommendationCommitment === true
   const budget = Number(maxRetrievalCalls)
   if (!numberIsSafeInteger(budget) || budget < 0 ||
     budget > DEFAULT_RETRIEVAL_CALLS) {
@@ -1757,13 +1803,20 @@ export async function answerWithRetrieval(brain, {
     compositionMode,
   )
   const enumerationRequired = resolvedCompositionMode === 'enumerate'
+  const recommendationRequired =
+    resolvedCompositionMode === 'recommend' &&
+    requiresRecommendationCommitment
   const enumerationInstructions = enumerationRequired
     ? MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS
+    : ''
+  const recommendationInstructions = resolvedCompositionMode === 'recommend'
+    ? MEMORY_ANSWER_RECOMMENDATION_INSTRUCTIONS
     : ''
   const answerInstructions = [
     MEMORY_RETRIEVAL_INSTRUCTIONS,
     iterativeRetrieval ? MEMORY_BRIDGE_INSTRUCTIONS : '',
     enumerationInstructions,
+    recommendationInstructions,
     additionalInstructions.trim(),
   ].filter(Boolean).join('\n\n')
   const trustedTimeRange = trustedRetrievalTimeRange === undefined
@@ -1866,7 +1919,10 @@ export async function answerWithRetrieval(brain, {
     // Provider objects are outside the host trust boundary. Read them once
     // into a private structured snapshot, then use only host-owned iteration;
     // never invoke provider-overridable Array methods during validation.
-    assertCommitmentDataShape(proposal, { enumerationRequired })
+    assertCommitmentDataShape(proposal, {
+      enumerationRequired,
+      recommendationRequired,
+    })
     const candidate = snapshotCommitment(proposal)
     const modernKeys = enumerationRequired
       ? [
@@ -1876,6 +1932,14 @@ export async function answerWithRetrieval(brain, {
           'temporaryInferences',
           'text',
         ]
+      : recommendationRequired
+        ? [
+            'abstained',
+            'bases',
+            'recommendation',
+            'temporaryInferences',
+            'text',
+          ]
       : [
           'abstained',
           'bases',
@@ -2189,6 +2253,116 @@ export async function answerWithRetrieval(brain, {
         referencedCount: proposed.items.length,
       }
     }
+    let recommendation = null
+    if (recommendationRequired) {
+      const proposed = candidate.recommendation
+      if (!arrayIsArray(proposed.items) ||
+        proposed.items.length > MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS ||
+        (!candidate.abstained && proposed.items.length < 1) ||
+        (candidate.abstained && proposed.items.length !== 0)) {
+        throw answerCommitmentError(
+          candidate.abstained
+            ? 'An abstaining recommendation commitment must contain zero recommendation items.'
+            : `A non-abstaining recommendation commitment must contain 1 to ` +
+              `${MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS} recommendation items.`,
+        )
+      }
+      const clarificationQuestion = boundedOptionalCommitmentText(
+        proposed.clarificationQuestion,
+        'Answer commitment recommendation clarificationQuestion',
+        MEMORY_ANSWER_MAX_RECOMMENDATION_CLARIFICATION_CHARS,
+      )
+      if (clarificationQuestion && !stringIncludes(text, clarificationQuestion)) {
+        throw answerCommitmentError(
+          'Answer commitment recommendation clarificationQuestion must appear verbatim in the answer text.',
+        )
+      }
+      const items = []
+      const proposalSeen = new setConstructor()
+      for (let index = 0; index < proposed.items.length; index += 1) {
+        const item = proposed.items[index]
+        const proposal = boundedCommitmentText(
+          item.proposal,
+          `Answer commitment recommendation item ${index} proposal`,
+          MEMORY_ANSWER_MAX_RECOMMENDATION_PROPOSAL_CHARS,
+          { trim: true },
+        )
+        if (setHas(proposalSeen, proposal)) {
+          throw answerCommitmentError(
+            `Answer commitment recommendation item ${index} duplicates a proposal.`,
+          )
+        }
+        if (!stringIncludes(text, proposal)) {
+          throw answerCommitmentError(
+            `Answer commitment recommendation item ${index} proposal must appear verbatim in the answer text.`,
+          )
+        }
+        if (!arrayIsArray(item.evidenceIds) ||
+          item.evidenceIds.length < 1 ||
+          item.evidenceIds.length > MEMORY_ANSWER_MAX_BASES) {
+          throw answerCommitmentError(
+            `Answer commitment recommendation item ${index} evidenceIds ` +
+              `must contain 1 to ${MEMORY_ANSWER_MAX_BASES} items.`,
+          )
+        }
+        const evidenceIds = []
+        const evidenceSeen = new setConstructor()
+        for (let idIndex = 0; idIndex < item.evidenceIds.length; idIndex += 1) {
+          const evidenceId = boundedCommitmentText(
+            item.evidenceIds[idIndex],
+            `Answer commitment recommendation item ${index} evidence ID ${idIndex}`,
+            500,
+            { trim: true },
+          )
+          if (setHas(evidenceSeen, evidenceId)) {
+            throw answerCommitmentError(
+              `Answer commitment recommendation item ${index} duplicates evidence.`,
+            )
+          }
+          if (!setHas(usedEvidenceIds, evidenceId)) {
+            throw answerCommitmentError(
+              `Answer commitment recommendation item ${index} must link materially used evidence.`,
+            )
+          }
+          setAdd(evidenceSeen, evidenceId)
+          arrayPush(evidenceIds, evidenceId)
+        }
+        if (typeof item.requiresExternalVerification !== 'boolean') {
+          throw answerCommitmentError(
+            `Answer commitment recommendation item ${index} ` +
+              `requiresExternalVerification must be boolean.`,
+          )
+        }
+        const verificationNote = boundedOptionalCommitmentText(
+          item.verificationNote,
+          `Answer commitment recommendation item ${index} verificationNote`,
+          MEMORY_ANSWER_MAX_RECOMMENDATION_VERIFICATION_CHARS,
+        )
+        if (item.requiresExternalVerification !== Boolean(verificationNote)) {
+          throw answerCommitmentError(
+            `Answer commitment recommendation item ${index} must include a ` +
+              `verificationNote exactly when external verification is required.`,
+          )
+        }
+        if (verificationNote && !stringIncludes(text, verificationNote)) {
+          throw answerCommitmentError(
+            `Answer commitment recommendation item ${index} verificationNote ` +
+              `must appear verbatim in the answer text.`,
+          )
+        }
+        setAdd(proposalSeen, proposal)
+        arrayPush(items, {
+          evidenceIds,
+          proposal,
+          requiresExternalVerification: item.requiresExternalVerification,
+          verificationNote,
+        })
+      }
+      recommendation = {
+        clarificationQuestion,
+        items,
+      }
+    }
     const review = currentEvidenceReview({
       assessed: seen,
       used: usedEvidenceIds,
@@ -2208,6 +2382,7 @@ export async function answerWithRetrieval(brain, {
       abstained: candidate.abstained,
       bases,
       ...(enumerationRequired ? { enumeration } : {}),
+      ...(recommendationRequired ? { recommendation } : {}),
       evidenceCommitments,
       temporaryInferences,
       text,
@@ -2454,6 +2629,7 @@ export async function answerWithRetrieval(brain, {
     response = await provider({
       answerEvidenceCount: () => evidenceCount,
       answerEnumerationRequired: enumerationRequired,
+      answerRecommendationRequired: recommendationRequired,
       answerInstructions,
       briefing,
       memoryText: briefing.text,
@@ -2517,6 +2693,9 @@ export async function answerWithRetrieval(brain, {
   const answerEnumeration = answerCommitted && enumerationRequired
     ? response.enumeration
     : null
+  const answerRecommendation = answerCommitted && recommendationRequired
+    ? response.recommendation
+    : null
   if (answerCommitted) {
     for (let index = 0; index < response.bases.length; index += 1) {
       const { evidenceId, quote } = response.bases[index]
@@ -2553,6 +2732,7 @@ export async function answerWithRetrieval(brain, {
     answerCommitted,
     answerCompositionMode: resolvedCompositionMode,
     answerEnumeration,
+    answerRecommendation,
     answerEvidence,
     ...(acceptedCurrentEvidenceReview
       ? { currentEvidenceReview: acceptedCurrentEvidenceReview }

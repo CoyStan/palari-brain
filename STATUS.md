@@ -556,6 +556,37 @@ spend remains `$3.40368231`, focused tests pass 53/53, quickstart passes 6/6,
 and the complete legacy tier passes 891 with 3 optional skips. This is an
 offline general mechanism, not a new Harajuku answer result.
 
+The second post-retrieval successor is also implemented provider-free. On the
+active auto path, recommendation and suggestion questions resolve to a
+structured `recommend` composition mode when the provider declares support;
+the bundled OpenAI provider does. A non-abstaining commitment must contain at
+least one concrete proposal linked only to materially used evidence, and the
+proposal must appear verbatim in the final answer. A clarification question
+may follow but cannot replace every proposal. Honest abstention remains
+available with zero proposal items.
+
+The contract separates personalization from external availability. When a
+proposal depends on current inventory, event listings, or availability not
+established by returned evidence or another authorized tool, the provider must
+declare `requiresExternalVerification` and include an exact verification note
+in the answer. The host verifies proposal presence, evidence linkage, and
+caveat presence; it does not claim to semantically prove that the provider
+correctly identified every external dependency. Category- or strategy-level
+proposals remain the safe fallback when live specifics are unavailable.
+
+Provider-free drink, exercise, and reading controls accept preference-linked
+proposals. A cultural-events control reproduces the observed failure shape:
+clarification-only is rejected through the ordinary one-repair boundary, then
+an evidence-linked French/Spanish language-exchange proposal with an explicit
+current-listing caveat is accepted before the location question. Restaurant
+controls reject unused evidence, missing verification notes, and proposals
+absent from final prose; an unrelated clock memory preserves honest
+abstention. Explicit lists/counts still take enumeration priority and explicit
+standard mode remains unchanged. No provider was called, spend remains
+`$3.40368231`, focused tests pass 61/61, quickstart passes 6/6, and the complete
+legacy tier passes 899 with 3 optional skips. This is not a new live
+cultural-events result.
+
 ## Active commands
 
 ```bash
@@ -582,19 +613,19 @@ The five-case final-answer replay is complete and must not be repeated or used
 to regrade sealed v6. The iterative bridge can now continue through raw alias
 and codename memories, and frontier v2 preserves which intermediate raw
 memories actually routed a selected answer memory. The ten-case diagnostic
-showed that the immediate product work was after retrieval. The first half is
-now implemented: later highly ranked direct-user updates cannot remain silently
-unassessed in an active current-state answer. The next smallest unit is
-recommendation fulfillment: when selected preference evidence supports a safe
-category-level proposal, require at least one evidence-linked proposal instead
-of allowing clarification to replace the requested recommendation. Prove it
-first with provider-free controls across unrelated domains while preserving
-honest abstention and avoiding fabricated live listings. Only then consider a
-small fresh transfer check. Continue collecting distinct real
-relationship cases, recording bridge use, candidate rank, materially used
-answer evidence, routing-only lineage, audited outcome, and unnecessary bridge
-calls. Do not tune from the single ambiguous recommendation case or repeat the
-same kitchen/Firefly pair to manufacture recurrence.
+showed that the immediate product work was after retrieval. Both observed
+failures now have provider-free successors: later highly ranked direct-user
+updates cannot remain silently unassessed in an active current-state answer,
+and recalled preferences must produce an evidence-linked recommendation before
+clarification when a safe proposal is possible. The next evidence unit is an
+answer-only live confirmation on the two frozen failed stores under a new
+explicit founder-approved cap, reporting host repair, selected evidence,
+proposal/caveat telemetry, judge result, and cost without rewriting memory.
+Until that cap is approved, make no provider call. Continue collecting
+distinct real relationship cases, recording bridge use, candidate rank,
+materially used answer evidence, routing-only lineage, audited outcome, and
+unnecessary bridge calls. Do not tune from the single ambiguous recommendation
+case or repeat the same kitchen/Firefly pair to manufacture recurrence.
 
 Do not let co-use metadata affect ranking yet. Once distinct successful and
 failed lineages exist, evaluate a provider-free asynchronous edge proposal

@@ -494,6 +494,7 @@ const result = await answerWithRetrieval(brain, {
   async provider({
     answerEvidenceCount,
     answerInstructions,
+    answerRecommendationRequired,
     commitAnswer,
     memoryText,
     maxRetrievalCalls,
@@ -527,6 +528,8 @@ const result = await answerWithRetrieval(brain, {
     // is returned, pass the final proposal through commitAnswer and return
     // that exact callback result. Each basis quote must be an exact
     // contiguous substring of the row returned under that evidenceId.
+    // When answerRecommendationRequired is true, the commitment also carries
+    // at least one evidence-linked proposal unless it honestly abstains.
     if (answerEvidenceCount() > 0) {
       return commitAnswer({
         abstained: false,
@@ -633,6 +636,25 @@ ordinary one-repair commitment boundary. Plans for historical relations and
 the default `compositionMode: 'standard'` path are unchanged. This is an
 ephemeral answer-time completeness guard over raw evidence, not a durable fact
 schema or a claim that Palari understands arbitrary semantic equivalence.
+
+The same auto path resolves recommendation and suggestion questions to
+`compositionMode: 'recommend'` when the provider declares
+`requiresRecommendationCommitment: true`; the bundled OpenAI retrieval
+provider declares this capability. Explicit count and list forms still resolve
+to enumeration first, while explicit `compositionMode: 'standard'` preserves
+the prior wire. A non-abstaining recommendation commitment contains one or
+more items with a proposal, materially used evidence IDs, an
+`requiresExternalVerification` flag, and a verification note when that flag is
+true. Every proposal and required note must appear verbatim in the answer.
+A clarification question may follow but cannot replace every proposal. An
+honest abstention contains zero items.
+
+This boundary proves proposal presence, answer-text presence, and provenance;
+it does not prove that a provider correctly identified every need for external
+verification. The model-facing policy therefore requires category- or
+strategy-level proposals when returned memory does not establish live
+inventory, event listings, or availability, and requires an explicit caveat
+when a proposal depends on checking those external facts.
 
 A cross-context inference is a separate `temporaryInferences` entry. It must
 cite selected used evidence, set `revisable: true`, state its consequence for
@@ -879,6 +901,11 @@ is the immutable `palari-current-evidence-review/v1` trace. It lists the
 bounded candidate IDs, which were explicitly assessed, the materially used
 direct-user IDs, and `durableWrites: 0`. The field is absent from default and
 historical paths.
+For a structured recommendation, `result.answerRecommendation` contains the
+host-validated items and optional clarification question. Each item links only
+materially used evidence, appears in the final answer text, and preserves its
+external-verification declaration and exact caveat. Other composition modes
+return `answerRecommendation: null`.
 
 These are auditable provider declarations: the host proves that IDs and exact
 quotes were returned and that the fields are structurally coherent. A declared
