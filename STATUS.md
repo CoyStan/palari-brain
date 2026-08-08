@@ -395,6 +395,32 @@ plumbing rather than production model quality. Focused tests pass 45/45,
 quickstart passes 6/6, and the complete legacy tier passes 883 with 3 optional
 skips.
 
+Two bounded answer-only diagnostics then reused the frozen real kitchen store
+that had previously missed the canonical Instant Pot statement. In the first,
+the iterative stack answered “Instant Pot” after two retrieval calls, but Luna
+bypassed `memory_bridge` and issued a speculative second `memory_search` that
+included candidate appliance names. This establishes an end-to-end recovery,
+not that the bridge policy caused it. In the second diagnostic, general
+answer-term-neutral instructions required the next retrieval operation to use
+the returned Air Fryer evidence as a bridge anchor and prohibited a second
+ordinary search or guessed answer entities. Luna generated four probes that did
+not contain “Instant Pot”; the batched Gemini search plus local Ettin reranker
+returned the raw Instant Pot statement at rank 5. Luna selected exact quotes
+from both the Instant Pot and Air Fryer memories and answered “You invested in
+an Instant Pot before getting the Air Fryer.”
+
+The provider-free stage audit classifies the bridge-required diagnostic as
+success: both required raw spans were canonical, returned, selected, materially
+used, and the answer matched the exact reference. Its frontier closed after two
+rounds with seven new raw evidence IDs from the bridge, two retrieval calls
+remaining, no stagnation or budget refusal, and `durableWrites: 0`. The two
+diagnostics cost `$0.00419108` and `$0.00458084`; alpha accounted spend is now
+`$3.33327020` under the approved `$3.99230755` aggregate ceiling, leaving
+`$0.65903735`. No official judge was called, the frozen source store remained
+unchanged, and historical LongMemEval remains 6/10. This single positive pair
+does not estimate false reinforcement or justify persistent successful-co-use
+edges. The observed weaknesses are bridge tool selection and rank robustness.
+
 ## Active commands
 
 ```bash
@@ -420,12 +446,18 @@ collecting explicitly labelled current-product cases with the stage audit.
 The five-case final-answer replay is complete and must not be repeated or used
 to regrade sealed v6. The retrieval frontier, opt-in batched `memory_bridge`,
 bounded anchor-conditioned bridge reranker, and four-case transfer controls are
-the completed first four successor slices. Next, specify asynchronous
-successful-co-use as scoped, reversible derived metadata with no writes on the
-answer path, then test deletion and non-reinforcement controls before allowing
-it to affect ranking. Do not add a Python learning lab unless retrieval
-failures repeat across current canonical cases and the simpler bridge-search
-successor stops improving them.
+the completed first four successor slices. The first real bridge-required
+diagnostic recovered the known kitchen miss, but the default iterative policy
+did not choose the bridge unaided and the target ranked fifth. Next, make that
+transition reliable without diagnostic-only forcing and collect repeated real
+success and failure traces containing bridge use, candidate rank, selected raw
+memory pairs, and audited outcome. Do not implement asynchronous co-use edges
+from this one success. Reconsider only after repeated evidence or an offline
+ablation shows that scoped, reversible derived edges improve later queries
+without false reinforcement; deletion and non-reinforcement controls remain
+mandatory before such metadata can affect ranking. Do not add a Python learning
+lab unless retrieval failures repeat across current canonical cases and the
+simpler bridge-search successor stops improving them.
 
 ## Product check
 
