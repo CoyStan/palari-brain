@@ -8,6 +8,7 @@ import {
   MEMORY_BRIDGE_INSTRUCTIONS,
   MEMORY_BRIDGE_LIMITS,
   MEMORY_BRIDGE_RERANK_MAX_QUERY_CHARS,
+  MEMORY_BRIDGE_TOOL,
   MEMORY_ITERATIVE_RETRIEVAL_TOOLS,
   MEMORY_RETRIEVAL_FRONTIER_SCHEMA,
   MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS,
@@ -32,6 +33,34 @@ test('iterative routing makes bridge the next call after a raw anchor', () => {
   assert.match(
     MEMORY_BRIDGE_INSTRUCTIONS,
     /Resume ordinary search only if no plausible raw anchor was returned or memory_bridge reports stagnation/,
+  )
+  assert.match(
+    MEMORY_BRIDGE_INSTRUCTIONS,
+    /If memory_bridge returns a new plausible raw anchor but not the answer, call memory_bridge again with the new anchor/,
+  )
+  assert.match(
+    MEMORY_BRIDGE_INSTRUCTIONS,
+    /Do not stop while retrieval budget remains and a new plausible anchor is unexplored/,
+  )
+  assert.match(
+    MEMORY_BRIDGE_INSTRUCTIONS,
+    /connects the current anchor to a newly named entity, person, event, or term as a plausible next anchor/,
+  )
+  assert.match(
+    MEMORY_BRIDGE_INSTRUCTIONS,
+    /do not reuse only the prior anchor set/,
+  )
+  assert.match(
+    MEMORY_BRIDGE_INSTRUCTIONS,
+    /used only to navigate to answer evidence need not be selected as answer evidence/,
+  )
+  assert.match(
+    MEMORY_BRIDGE_INSTRUCTIONS,
+    /host records its ephemeral routing role separately/,
+  )
+  assert.match(
+    MEMORY_BRIDGE_TOOL.description,
+    /include at least one newly returned relationship memory as an anchor rather than repeating only earlier anchors/,
   )
 })
 
@@ -133,6 +162,7 @@ test('memory_bridge batches generated semantic probes and returns raw evidence',
       'earlier kitchen appliance used for meals',
     ]
     let anchorEvidenceId
+    let earlierEvidenceId
     const provider = requireEvidenceCommitment(async ({
       answerInstructions,
       commitAnswer,
@@ -175,6 +205,7 @@ test('memory_bridge batches generated semantic probes and returns raw evidence',
       const earlier = bridged.matches.find((row) =>
         row.speaker === 'user' && row.text.includes('Instant Pot'))
       assert.ok(earlier)
+      earlierEvidenceId = earlier.evidenceId
       assert.equal(earlier.rank, 1)
       return commitAnswer({
         abstained: false,
@@ -206,8 +237,30 @@ test('memory_bridge batches generated semantic probes and returns raw evidence',
     )
     assert.equal(result.retrievalFrontier.roundCount, 2)
     assert.equal(result.retrievalFrontier.durableWrites, 0)
+    assert.equal(result.retrievalFrontier.bridgeLineage.length, 1)
+    const lineage = result.retrievalFrontier.bridgeLineage[0]
+    assert.deepEqual(lineage.anchorEvidenceIds, [anchorEvidenceId])
+    assert.ok(lineage.discoveredEvidenceIds.includes(earlierEvidenceId))
+    assert.ok(lineage.returnedEvidenceIds.includes(earlierEvidenceId))
+    assert.equal(lineage.ordinal, 1)
+    assert.equal(lineage.retrievalRoundOrdinal, 2)
     assert.equal(result.selectedEvidenceIds.length, 1)
     assert.notEqual(result.selectedEvidenceIds[0], anchorEvidenceId)
+    assert.deepEqual(result.retrievalFrontier.selectedRoutingLineage, [{
+      bridgeOrdinals: [1],
+      routingEvidenceIds: [anchorEvidenceId],
+      selectedEvidenceId: earlierEvidenceId,
+    }])
+    assert.deepEqual(
+      result.retrievalFrontier.routingOnlyEvidenceIds,
+      [anchorEvidenceId],
+    )
+    assert.ok(Object.isFrozen(result.retrievalFrontier.bridgeLineage))
+    assert.ok(Object.isFrozen(result.retrievalFrontier.bridgeLineage[0]))
+    assert.doesNotMatch(
+      JSON.stringify(result.retrievalFrontier.bridgeLineage),
+      /Air Fryer|Instant Pot/,
+    )
     assert.match(result.answerEvidence[0].quote, /Instant Pot/)
     assert.doesNotMatch(result.answerEvidence[0].quote, /Air Fryer/)
     assert.equal(result.answer, 'You bought an Instant Pot before the Air Fryer.')
@@ -436,6 +489,9 @@ test('ephemeral frontier tracks normalized attempts, novelty, anchors, and selec
       assert.equal(initial.durableWrites, 0)
       assert.equal(initial.status, 'open')
       assert.equal(initial.roundCount, 0)
+      assert.deepEqual(initial.bridgeLineage, [])
+      assert.deepEqual(initial.routingOnlyEvidenceIds, [])
+      assert.deepEqual(initial.selectedRoutingLineage, [])
       assert.ok(Object.isFrozen(initial))
 
       const first = await retrieve({
@@ -483,6 +539,13 @@ test('ephemeral frontier tracks normalized attempts, novelty, anchors, and selec
       result.selectedEvidenceIds,
     )
     assert.deepEqual(result.retrievalFrontier.unseenSelectedEvidenceIds, [])
+    assert.deepEqual(result.retrievalFrontier.bridgeLineage, [])
+    assert.deepEqual(result.retrievalFrontier.routingOnlyEvidenceIds, [])
+    assert.deepEqual(result.retrievalFrontier.selectedRoutingLineage, [{
+      bridgeOrdinals: [],
+      routingEvidenceIds: [],
+      selectedEvidenceId: result.selectedEvidenceIds[0],
+    }])
     assert.equal(result.retrievalFrontier.durableWrites, 0)
     assert.ok(Object.isFrozen(result.retrievalFrontier))
     assert.ok(Object.isFrozen(result.retrievalFrontier.rounds))

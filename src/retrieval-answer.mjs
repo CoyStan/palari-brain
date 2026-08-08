@@ -45,7 +45,7 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
   'enumerate',
 ])
 export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
-  'palari-retrieval-frontier/v1'
+  'palari-retrieval-frontier/v2'
 export const MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS = 2
 export const MEMORY_BRIDGE_LIMITS = Object.freeze({
   maxAnchors: 4,
@@ -126,6 +126,7 @@ const dateGetTime = Function.call.bind(Date.prototype.getTime)
 const dateToISOString = Function.call.bind(Date.prototype.toISOString)
 const mapGet = Function.call.bind(Map.prototype.get)
 const mapSet = Function.call.bind(Map.prototype.set)
+const mapConstructor = Map
 const mathFloor = Math.floor
 const mathMax = Math.max
 const numberConstructor = Number
@@ -719,6 +720,8 @@ function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
   const anchorEvidenceIds = []
   const attemptedQuerySet = new setConstructor()
   const attemptedQueryKeys = []
+  const bridgeLineage = []
+  const discoveryByEvidenceId = new mapConstructor()
   const rounds = []
   let budgetRefusals = 0
   let consecutiveNoNewEvidenceRounds = 0
@@ -779,6 +782,24 @@ function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
       tool,
     }
     arrayPush(rounds, round)
+    if (tool === 'memory_bridge') {
+      const bridgeAnchors = copyFrontierArray(result.anchorEvidenceIds)
+      const bridgeOrdinal = bridgeLineage.length + 1
+      const bridge = {
+        anchorEvidenceIds: bridgeAnchors,
+        discoveredEvidenceIds: copyFrontierArray(newEvidenceIds),
+        ordinal: bridgeOrdinal,
+        retrievalRoundOrdinal: ordinal,
+        returnedEvidenceIds: copyFrontierArray(returnedEvidenceIds),
+      }
+      arrayPush(bridgeLineage, bridge)
+      for (let index = 0; index < newEvidenceIds.length; index += 1) {
+        mapSet(discoveryByEvidenceId, newEvidenceIds[index], {
+          anchorEvidenceIds: bridgeAnchors,
+          bridgeOrdinal,
+        })
+      }
+    }
     return round
   }
 
@@ -813,11 +834,54 @@ function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
 
   const snapshot = ({ retrievalOpen, selectedEvidenceIds = [] } = {}) => {
     const selected = copyFrontierArray(selectedEvidenceIds)
+    const selectedSet = new setConstructor()
+    for (let index = 0; index < selected.length; index += 1) {
+      setAdd(selectedSet, selected[index])
+    }
+    const selectedRoutingLineage = []
+    const routingOnlyEvidenceSet = new setConstructor()
+    const routingOnlyEvidenceIds = []
     const unseenSelectedEvidenceIds = []
     for (let index = 0; index < selected.length; index += 1) {
       if (!setHas(seenEvidenceSet, selected[index])) {
         arrayPush(unseenSelectedEvidenceIds, selected[index])
       }
+      const routingEvidenceSet = new setConstructor()
+      const routingEvidenceIds = []
+      const bridgeOrdinalSet = new setConstructor()
+      const bridgeOrdinals = []
+      const visit = (evidenceId) => {
+        const discovery = mapGet(discoveryByEvidenceId, evidenceId)
+        if (!discovery) return
+        for (let anchorIndex = 0;
+          anchorIndex < discovery.anchorEvidenceIds.length;
+          anchorIndex += 1) {
+          const anchorEvidenceId = discovery.anchorEvidenceIds[anchorIndex]
+          if (setHas(routingEvidenceSet, anchorEvidenceId)) continue
+          visit(anchorEvidenceId)
+          setAdd(routingEvidenceSet, anchorEvidenceId)
+          arrayPush(routingEvidenceIds, anchorEvidenceId)
+        }
+        if (!setHas(bridgeOrdinalSet, discovery.bridgeOrdinal)) {
+          setAdd(bridgeOrdinalSet, discovery.bridgeOrdinal)
+          arrayPush(bridgeOrdinals, discovery.bridgeOrdinal)
+        }
+      }
+      visit(selected[index])
+      for (let routingIndex = 0;
+        routingIndex < routingEvidenceIds.length;
+        routingIndex += 1) {
+        const routingEvidenceId = routingEvidenceIds[routingIndex]
+        if (setHas(selectedSet, routingEvidenceId) ||
+          setHas(routingOnlyEvidenceSet, routingEvidenceId)) continue
+        setAdd(routingOnlyEvidenceSet, routingEvidenceId)
+        arrayPush(routingOnlyEvidenceIds, routingEvidenceId)
+      }
+      arrayPush(selectedRoutingLineage, {
+        bridgeOrdinals,
+        routingEvidenceIds,
+        selectedEvidenceId: selected[index],
+      })
     }
     const stagnant = consecutiveNoNewEvidenceRounds >=
       MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS
@@ -831,6 +895,7 @@ function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
     return deepFreeze({
       anchorEvidenceIds: copyFrontierArray(anchorEvidenceIds),
       attemptedQueryKeys: copyFrontierArray(attemptedQueryKeys),
+      bridgeLineage: copyFrontierArray(bridgeLineage),
       budgetRefusals,
       consecutiveNoNewEvidenceRounds,
       durableWrites: 0,
@@ -845,11 +910,13 @@ function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
         maxRetrievalCalls - rounds.length,
       ),
       repeatedQueryAttempts,
+      routingOnlyEvidenceIds,
       roundCount: rounds.length,
       rounds: copyFrontierArray(rounds),
       schema: MEMORY_RETRIEVAL_FRONTIER_SCHEMA,
       seenEvidenceIds: copyFrontierArray(seenEvidenceIds),
       selectedEvidenceIds: selected,
+      selectedRoutingLineage,
       stagnant,
       status,
       unseenSelectedEvidenceIds,
@@ -1226,6 +1293,7 @@ export const MEMORY_BRIDGE_TOOL = deepFreeze({
   description: [
     'Search for missing relational evidence after another memory result provides a plausible anchor.',
     'Supply 2 to 4 diverse natural-language probes generated from the question and returned raw anchor text; do not guess the missing answer term.',
+    'For a successive hop, include at least one newly returned relationship memory as an anchor rather than repeating only earlier anchors.',
     'The host batches semantic probes when configured, adds local ranked probes, fuses and deduplicates their canonical messages, and runs the reranker at most once.',
     'This consumes one retrieval call and never writes memory.',
   ].join(' '),
@@ -1302,6 +1370,11 @@ export const MEMORY_BRIDGE_INSTRUCTIONS = [
   'After a returned raw memory gives a plausible anchor but the linked, earlier, later, or otherwise related fact is still missing, the next retrieval call must be memory_bridge; this bridge-first rule overrides the general memory_search instruction.',
   'Do not issue another memory_search while a plausible returned anchor remains unexplored.',
   'Generate 2 to 4 diverse probes from the question and the anchor text itself; do not guess the missing answer term.',
+  'If memory_bridge returns a new plausible raw anchor but not the answer, call memory_bridge again with the new anchor.',
+  'Treat a returned raw memory that connects the current anchor to a newly named entity, person, event, or term as a plausible next anchor even when it does not yet answer the question.',
+  'On successive hops, anchor that new raw memory; do not reuse only the prior anchor set.',
+  'A raw memory used only to navigate to answer evidence need not be selected as answer evidence; the host records its ephemeral routing role separately.',
+  'Do not stop while retrieval budget remains and a new plausible anchor is unexplored.',
   'Resume ordinary search only if no plausible raw anchor was returned or memory_bridge reports stagnation.',
   'Inspect its retrievalFrontier and stop reformulating after it reports stagnation.',
 ].join(' ')

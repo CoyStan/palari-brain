@@ -398,8 +398,46 @@ async function runControl(t, spec) {
   assert.deepEqual(result.selectedEvidenceIds, expectedSelectedIds)
   assert.ok(!result.selectedEvidenceIds.includes(initialAnchorId))
   assert.equal(result.retrievalFrontier.anchorEvidenceIds.length, spec.hops.length)
+  assert.equal(result.retrievalFrontier.bridgeLineage.length, spec.hops.length)
+  for (let index = 0; index < spec.hops.length; index += 1) {
+    const lineage = result.retrievalFrontier.bridgeLineage[index]
+    const expectedAnchorId = index === 0
+      ? initialAnchorId
+      : hopEvidence[index - 1].evidenceId
+    assert.deepEqual(lineage.anchorEvidenceIds, [expectedAnchorId])
+    assert.ok(lineage.discoveredEvidenceIds.includes(
+      hopEvidence[index].evidenceId,
+    ))
+    assert.equal(lineage.ordinal, index + 1)
+    assert.equal(lineage.retrievalRoundOrdinal, index + 2)
+  }
+  for (let index = 0; index < spec.selectedHopIndexes.length; index += 1) {
+    const selectedHopIndex = spec.selectedHopIndexes[index]
+    const lineage = result.retrievalFrontier.selectedRoutingLineage[index]
+    assert.equal(
+      lineage.selectedEvidenceId,
+      hopEvidence[selectedHopIndex].evidenceId,
+    )
+    assert.deepEqual(lineage.routingEvidenceIds, [
+      initialAnchorId,
+      ...hopEvidence.slice(0, selectedHopIndex).map((row) => row.evidenceId),
+    ])
+    assert.deepEqual(
+      lineage.bridgeOrdinals,
+      Array.from({ length: selectedHopIndex + 1 }, (_, ordinal) => ordinal + 1),
+    )
+  }
+  assert.deepEqual(
+    result.retrievalFrontier.routingOnlyEvidenceIds,
+    [initialAnchorId],
+  )
   assert.deepEqual(result.retrievalFrontier.unseenSelectedEvidenceIds, [])
   assert.equal(result.retrievalFrontier.durableWrites, 0)
+  assert.ok(Object.isFrozen(result.retrievalFrontier.bridgeLineage))
+  assert.doesNotMatch(
+    JSON.stringify(result.retrievalFrontier.bridgeLineage),
+    /Paco|Pedro|Lantern|Northwind|Ljubljana|Valpara.so/,
+  )
 }
 
 test('fixed-budget iterative bridge controls transfer across unrelated domains',

@@ -451,6 +451,46 @@ No official judge was called and historical LongMemEval remains 6/10. Focused
 tests pass 46/46, quickstart passes 6/6, and the complete legacy tier passes 884
 with 3 optional skips.
 
+A bounded transfer diagnostic then separated direct recall, ambiguous
+preference coverage, and raw multi-hop routing. The real Fitbit negative
+control answered “about 9 months” after one ordinary search and did not invoke
+an unnecessary bridge. The real recommendation case used two ordinary
+searches and found a genuine direct true-crime preference, but did not recover
+the predeclared stand-up/Netflix preference; its recommendation is therefore
+useful evidence of an independent-preference coverage ambiguity, not a graded
+bridge success or a proven wrong answer.
+
+The 75-note synthetic Firefly control exposed two general continuation-policy
+failures before succeeding. Luna first stopped after discovering that Aurora's
+point person was Carla, then on the next prompt revision repeated the original
+Firefly anchor rather than continuing from Carla. General successive-anchor
+guidance produced the complete raw route `Firefly -> Aurora -> Carla ->
+September 12` in three retrieval calls, without putting the missing date in a
+probe, and Luna answered September 12 correctly. A further prompt instruction
+could not make Luna select Carla as final answer evidence. That is the right
+architectural lesson rather than another prompt defect: Carla was necessary
+routing evidence, while the Firefly mapping and date note were the evidence
+used to state the answer.
+
+The retrieval frontier is now `palari-retrieval-frontier/v2`. The host records
+every bridge's canonical anchor IDs, returned IDs, newly discovered IDs, and
+ordinals, then derives transitive `selectedRoutingLineage` and the subset of
+`routingOnlyEvidenceIds` after the final evidence commitment. This is
+ID-only, immutable, answer-session telemetry with `durableWrites: 0`; it does
+not copy raw text, assert that every returned candidate is semantically
+related, or create a learned edge. The answer prompt now explicitly permits a
+routing-only memory to remain outside final answer evidence. Provider-free
+contracts preserve the distinction for kitchen retrieval and for employment,
+relocation, Paco/Pedro alias, and project-codename routes. They also verify
+transitive ancestry, immutable ID-only lineage, and zero durable writes.
+
+The transfer prompt diagnostics added `$0.02773636`, bringing alpha accounted
+spend to `$3.37053857` under the approved `$3.99230755` ceiling with
+`$0.62176898` remaining. No provider was called to implement or test frontier
+v2, no official judge was called, and historical LongMemEval remains 6/10.
+Focused tests pass 46/46, quickstart passes 6/6, and the complete legacy tier
+passes 884 with 3 optional skips.
+
 ## Active commands
 
 ```bash
@@ -474,20 +514,22 @@ as both outstanding and resolved as ambiguous rather than forcing either the
 model's prior 2 or the benchmark's 3. No new live answer is claimed. Continue
 collecting explicitly labelled current-product cases with the stage audit.
 The five-case final-answer replay is complete and must not be repeated or used
-to regrade sealed v6. The retrieval frontier, opt-in batched `memory_bridge`,
-bounded anchor-conditioned bridge reranker, and four-case transfer controls are
-the completed first four successor slices. The default bridge-first prompt now
-chooses the bridge unaided on the known kitchen miss, but the target ranked
-sixth and only one real relationship case has exercised the policy. Next,
-collect repeated real success and failure traces containing bridge use,
-candidate rank, selected raw memory pairs, audited outcome, and unnecessary
-bridge calls. Do not implement asynchronous co-use edges from these repeated
-runs of one pair. Reconsider only after distinct relationships recur or an
-offline ablation shows that scoped, reversible derived edges improve later
-queries without false reinforcement; deletion and non-reinforcement controls
-remain mandatory before such metadata can affect ranking. Do not add a Python
-learning lab unless retrieval failures repeat across current canonical cases
-and the simpler bridge-search successor stops improving them.
+to regrade sealed v6. The iterative bridge can now continue through raw alias
+and codename memories, and frontier v2 preserves which intermediate raw
+memories actually routed a selected answer memory. The next evidence-collecting
+unit is distinct real relationship cases, recording bridge use, candidate
+rank, selected answer evidence, routing-only lineage, audited outcome, and
+unnecessary bridge calls. Do not tune from the single ambiguous recommendation
+case or repeat the same kitchen/Firefly pair to manufacture recurrence.
+
+Do not let co-use metadata affect ranking yet. Once distinct successful and
+failed lineages exist, evaluate a provider-free asynchronous edge proposal
+using only successful selected-routing ancestry, with negative controls for
+irrelevant candidates, deletion cascades, scope isolation, and non-reinforcement
+after failure. Only retain it if an offline ablation improves later retrieval
+at fixed cost without false reinforcement. Do not add a Python learning lab
+unless current canonical retrieval failures repeat and this simpler
+bridge-search path stops improving them.
 
 ## Product check
 

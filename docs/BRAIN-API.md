@@ -817,7 +817,7 @@ evidence; exact journal messages and verified edge quotes remain the only
 testimony.
 
 `retrievalFrontier()` and `result.retrievalFrontier` expose the immutable
-`palari-retrieval-frontier/v1` state for the current answer. It records unique
+`palari-retrieval-frontier/v2` state for the current answer. It records unique
 normalized query attempts, repeated attempts, per-round new and repeated raw
 evidence IDs, explicit anchor IDs, selected IDs, remaining calls, budget
 refusals, and consecutive rounds without new evidence. Two consecutive
@@ -826,6 +826,16 @@ first alpha slice and does not itself stop retrieval. `memory_plan` does not
 count as a frontier round because it returns navigation metadata rather than
 evidence. The frontier is discarded after the answer and always reports
 `ephemeral: true` and `durableWrites: 0`.
+
+Version 2 also records each bridge call in `bridgeLineage`, using only
+host-observed canonical evidence IDs: the bridge anchors, newly discovered
+evidence, all returned evidence, and both bridge and retrieval-round ordinals.
+For each final selected evidence ID, `selectedRoutingLineage` traces the
+transitive raw-memory anchors that led to it. `routingOnlyEvidenceIds` is the
+union of those ancestors that were not selected as answer evidence. Routing
+evidence explains how Palari assembled the context; it is not thereby asserted
+to support the final answer. This lineage is ephemeral telemetry, not a
+semantic relationship, learned edge, or durable memory write.
 
 The provider callback `markRetrievalAnchors(evidenceIds)` adds an ephemeral
 navigation anchor only after that canonical evidence ID has been returned in
