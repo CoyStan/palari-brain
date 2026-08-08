@@ -2130,6 +2130,7 @@ export async function answerWithRetrieval(brain, {
         statement,
       })
     }
+    const lateErrors = []
     let enumeration = null
     if (enumerationRequired) {
       const proposed = candidate.enumeration
@@ -2272,9 +2273,8 @@ export async function answerWithRetrieval(brain, {
         'Answer commitment recommendation clarificationQuestion',
         MEMORY_ANSWER_MAX_RECOMMENDATION_CLARIFICATION_CHARS,
       )
-      const surfaceErrors = []
       if (clarificationQuestion && !stringIncludes(text, clarificationQuestion)) {
-        arrayPush(surfaceErrors,
+        arrayPush(lateErrors,
           'Answer commitment recommendation clarificationQuestion must appear verbatim in the answer text.',
         )
       }
@@ -2294,7 +2294,7 @@ export async function answerWithRetrieval(brain, {
           )
         }
         if (!stringIncludes(text, proposal)) {
-          arrayPush(surfaceErrors,
+          arrayPush(lateErrors,
             `Answer commitment recommendation item ${index} proposal must appear verbatim in the answer text.`,
           )
         }
@@ -2346,7 +2346,7 @@ export async function answerWithRetrieval(brain, {
           )
         }
         if (verificationNote && !stringIncludes(text, verificationNote)) {
-          arrayPush(surfaceErrors,
+          arrayPush(lateErrors,
             `Answer commitment recommendation item ${index} verificationNote ` +
               `must appear verbatim in the answer text.`,
           )
@@ -2359,9 +2359,6 @@ export async function answerWithRetrieval(brain, {
           verificationNote,
         })
       }
-      if (surfaceErrors.length) {
-        throw answerCommitmentError(arrayJoin(surfaceErrors, ' '))
-      }
       recommendation = {
         clarificationQuestion,
         items,
@@ -2372,12 +2369,15 @@ export async function answerWithRetrieval(brain, {
       used: usedEvidenceIds,
     })
     if (review?.unresolvedEvidenceIds.length) {
-      throw answerCommitmentError(
+      arrayPush(lateErrors,
         `Current-state commitment left later returned direct-user evidence ` +
           `unassessed: ${arrayJoin(review.unresolvedEvidenceIds, ', ')}. ` +
           `Add each as used evidence or with a specific not_used_reason; ` +
           `later evidence is not automatically controlling.`,
       )
+    }
+    if (lateErrors.length) {
+      throw answerCommitmentError(arrayJoin(lateErrors, ' '))
     }
     acceptedCurrentEvidenceReview = review
       ? deepFreeze(review)

@@ -617,6 +617,30 @@ approved `$3.99230755` ceiling. No retry or second live replay was performed;
 historical LongMemEval remains 6/10. Focused tests pass 62/62, quickstart
 passes 6/6, and the complete legacy tier passes 900 with 3 optional skips.
 
+The founder then approved one fresh cultural-only confirmation under a `$0.05`
+cap. It ran once with zero retries from a custody-verified copy of the same
+frozen store. The aggregate surface rejection worked: Luna's repair copied all
+three structured proposals, all three exact external-verification notes, and
+the complete clarification question into useful final prose. The answer still
+terminated before judging because its `current` retrieval plan had exposed a
+later direct-user row that the commitment did not assess. That independent
+current-evidence defect was reported only after the surface repair consumed
+the single repair turn.
+
+The generalized provider-free successor now accumulates recommendation-text
+occurrence defects and unresolved bounded current-evidence review into the
+same late-validation rejection. It does not weaken exact text, evidence use,
+recency assessment, one-repair, or dispatch limits. A combined regression
+starts with missing proposal/caveat/clarification text and an omitted later raw
+memory, verifies that the one rejection names all four defects including the
+later evidence ID, and accepts one fully corrected commitment. The failed live
+stage conservatively retained its full `$0.05` reservation, bringing accounted
+spend to `$3.50613237`. No additional replay was made, and historical
+LongMemEval remains 6/10.
+
+Focused tests pass 63/63, quickstart passes 6/6, and the complete legacy tier
+passes 901 with 3 optional skips.
+
 ## Active commands
 
 ```bash
@@ -645,12 +669,13 @@ and codename memories, and frontier v2 preserves which intermediate raw
 memories actually routed a selected answer memory. The ten-case diagnostic
 showed that the immediate product work was after retrieval. The temporal
 successor is now confirmed live on its original failure. The recommendation
-successor produced useful structured content on its original failure but
-exposed a multi-error/single-repair mismatch; the host now reports every
-deterministic answer-text occurrence defect together. A second cultural-case
-live replay would require a new explicit founder-approved cap and must not be
-treated as a retry or benchmark regrade. Until such a cap is approved, make no
-provider call. Continue collecting
+successor produced useful structured content on its original failure but two
+fresh confirmations exposed a multi-error/single-repair waterfall. The host
+now reports the observed recommendation-text and current-evidence defects
+together. Do not replay this same cultural case again; collect distinct real
+relationship cases before deciding whether the structured recommendation
+contract is worth its latency and complexity. Make no provider call without a
+new explicit founder-approved cap. Continue collecting
 distinct real relationship cases, recording bridge use, candidate rank,
 materially used answer evidence, routing-only lineage, audited outcome, and
 unnecessary bridge calls. Do not tune from the single ambiguous recommendation

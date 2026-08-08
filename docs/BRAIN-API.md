@@ -651,9 +651,10 @@ honest abstention contains zero items.
 
 For an otherwise well-shaped recommendation, the host accumulates every
 missing answer-text occurrence across the clarification question, proposals,
-and verification notes into one rejection. This preserves exact presence
+and verification notes, plus any unresolved bounded current-evidence review,
+into one rejection. This preserves exact presence and evidence-assessment
 checks while making the provider's single repair turn actionable; the repair
-does not have to discover independent surface mismatches one at a time.
+does not have to discover independent late mismatches one at a time.
 
 This boundary proves proposal presence, answer-text presence, and provenance;
 it does not prove that a provider correctly identified every need for external

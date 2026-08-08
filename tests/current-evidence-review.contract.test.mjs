@@ -285,6 +285,122 @@ test('OpenAI provider repairs an old-only current commitment once',
     )
   }))
 
+test('one repair receives recommendation text and current-review defects together',
+  async (t) => withBrain(t, 'current-recommend-combined-repair', async (brain) => {
+    const scope = {
+      palariId: 'palari-current-recommend-repair',
+      userId: 'user-current-recommend-repair',
+    }
+    const early = 'My Maple restaurant preference is quiet patio seating.'
+    const late = 'My Maple restaurant note now says the table lamps are amber.'
+    await ingest(brain, scope, [
+      { eventAt: EARLY, text: early },
+      { eventAt: LATE, text: late },
+    ])
+    const proposal = 'Choose a quiet restaurant with patio seating.'
+    const verificationNote =
+      'Verify the current hours and patio availability before going.'
+    const clarificationQuestion = 'Which neighborhood should I search?'
+
+    const bodies = []
+    let laterEvidenceId = null
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) {
+          return completedCall({
+            args: {
+              anchor_event: 'current Maple restaurant preference',
+              category: 'current restaurant recommendation',
+              relation: 'current',
+              time_range: { after: null, before: null },
+            },
+            callId: 'combined-plan',
+            name: 'memory_plan',
+          })
+        }
+        if (bodies.length === 2) {
+          return completedCall({
+            args: {
+              limit: 10,
+              maxChars: 20_000,
+              phrase: 'Maple restaurant patio seating table lamps amber',
+            },
+            callId: 'combined-search',
+            name: 'memory_search',
+          })
+        }
+        const searchOutput = body.input.find((item) =>
+          item.type === 'function_call_output' &&
+          item.call_id === 'combined-search')
+        const found = JSON.parse(searchOutput.output)
+        const earlyRow = findText(found.matches, early)
+        const lateRow = findText(found.matches, late)
+        laterEvidenceId = lateRow.evidenceId
+        const recommendation = {
+          clarificationQuestion,
+          items: [{
+            evidenceIds: [earlyRow.evidenceId],
+            proposal,
+            requiresExternalVerification: true,
+            verificationNote,
+          }],
+        }
+        if (bodies.length === 3) {
+          return completedCall({
+            args: {
+              abstained: false,
+              bases: [used(earlyRow)],
+              recommendation,
+              temporaryInferences: [],
+              text: 'Try a suitable nearby patio and check its details. Where are you?',
+            },
+            callId: 'combined-defects',
+            name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+          })
+        }
+        return completedCall({
+          args: {
+            abstained: false,
+            bases: [
+              used(earlyRow),
+              notUsed(
+                lateRow,
+                'This later note concerns lighting, not restaurant ambience.',
+              ),
+            ],
+            recommendation,
+            temporaryInferences: [],
+            text: `${proposal} ${verificationNote} ${clarificationQuestion}`,
+          },
+          callId: 'combined-repaired',
+          name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+        })
+      },
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...scope,
+      compositionMode: 'auto',
+      provider,
+      question: 'Can you recommend a restaurant for my current preference?',
+      questionDate: LATE,
+      trustedRetrievalTimeRange: { after: null, before: null },
+    })
+
+    assert.equal(bodies.length, 4)
+    assert.equal(result.answerRecommendation.items[0].proposal, proposal)
+    const rejection = bodies[3].input.find((item) =>
+      item.type === 'function_call_output' &&
+      item.call_id === 'combined-defects')
+    const reason = JSON.parse(rejection.output).rejection
+    assert.match(reason, /clarificationQuestion/)
+    assert.match(reason, /item 0 proposal/)
+    assert.match(reason, /item 0 verificationNote/)
+    assert.match(reason, /later returned direct-user evidence/)
+    assert.match(reason, new RegExp(laterEvidenceId))
+  }))
+
 test('later unrelated evidence may be explicitly reviewed without controlling',
   async (t) => withBrain(t, 'current-review-unrelated', async (brain) => {
     const scope = {
