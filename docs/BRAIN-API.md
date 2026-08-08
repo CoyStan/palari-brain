@@ -598,6 +598,20 @@ retrieved rows need not be selected. Unknown IDs, fabricated quotes, duplicate
 bases, ambiguous use/non-use, extra provider-authored provenance, malformed
 fields, and copied or mutated callback results fail closed.
 
+Product callers may set `compositionMode: 'auto'` or `'enumerate'` for count
+and complete-list questions. The commitment then includes every distinct
+direct-evidence candidate with an `included`, `excluded`, or `ambiguous`
+disposition; the host recomputes referenced, included, and ambiguous counts.
+`excluded` is reserved for direct evidence that affirmatively places a
+candidate outside the requested scope or establishes completion,
+cancellation, or non-applicability. Evidence that both asserts an outstanding
+action and suggests it may already be resolved remains `ambiguous`; answer-time
+interpretation must not silently collapse it into a definite count. This is a
+model-facing policy plus a host-verified structural/count boundary. The host
+does not claim to independently understand the semantic truth of arbitrary
+prose, so provider-free contracts do not establish live classification
+quality.
+
 A cross-context inference is a separate `temporaryInferences` entry. It must
 cite selected used evidence, set `revisable: true`, state its consequence for
 this answer, and remains only in the returned answer trace. It never crosses

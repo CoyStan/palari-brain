@@ -44,6 +44,15 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
   'standard',
   'enumerate',
 ])
+export const MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS = [
+  'This question requires exhaustive answer composition from returned evidence.',
+  'Before writing final prose, enumerate every distinct candidate unit supported by direct canonical evidence.',
+  'Classify each candidate as included, excluded, or ambiguous; give a reason for excluded or ambiguous candidates.',
+  'Use excluded only when direct evidence affirmatively establishes that the candidate is outside the requested category or time range, completed, cancelled, or otherwise not applicable.',
+  'When evidence simultaneously asserts an outstanding action and language suggesting completion or resolution, or when current state otherwise remains uncertain, classify the candidate as ambiguous instead of inferring that it is resolved.',
+  'Do not silently drop a candidate, force ambiguity into a definite count, or save an answer-time inference as canonical memory.',
+  'Report referenced, included, and ambiguous counts exactly as committed.',
+].join(' ')
 export const MEMORY_RETRIEVAL_PLAN_TOOL_NAME = 'memory_plan'
 export const MEMORY_RETRIEVAL_PLAN_RELATIONS = Object.freeze([
   'after',
@@ -1085,13 +1094,7 @@ export async function answerWithRetrieval(brain, {
   )
   const enumerationRequired = resolvedCompositionMode === 'enumerate'
   const enumerationInstructions = enumerationRequired
-    ? [
-        'This question requires exhaustive answer composition from returned evidence.',
-        'Before writing final prose, enumerate every distinct candidate unit supported by direct canonical evidence.',
-        'Classify each candidate as included, excluded, or ambiguous; give a reason for excluded or ambiguous candidates.',
-        'Do not silently drop a candidate, force ambiguity into a definite count, or save an answer-time inference as canonical memory.',
-        'Report referenced, included, and ambiguous counts exactly as committed.',
-      ].join(' ')
+    ? MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS
     : ''
   const answerInstructions = [
     MEMORY_RETRIEVAL_INSTRUCTIONS,

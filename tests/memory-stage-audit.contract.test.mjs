@@ -40,6 +40,23 @@ function judgment(field, value, rationale = '') {
   }
 }
 
+function sessionTrace(returnedSessions = []) {
+  return {
+    answerCommitted: false,
+    retrievalTranscript: [{
+      result: {
+        messages: returnedSessions.map((session) => ({
+          evidenceId: `evidence-${session}`,
+          session,
+          text: `Evidence from ${session}`,
+        })),
+      },
+      tool: 'memory_read',
+    }],
+    selectedEvidenceIds: [],
+  }
+}
+
 function auditCase({
   ambiguity = false,
   answerCorrect = true,
@@ -127,6 +144,48 @@ test('missing semantic judgments remain ungraded after evidence composition', ()
   const report = buildMemoryStageAudit([entry])
   assert.equal(report.cases[0].stage, 'ungraded')
   assert.match(report.cases[0].reason, /correctness has not been judged/)
+})
+
+test('stage audit separates session-level admission from retrieval failure', () => {
+  const report = buildMemoryStageAudit([
+    {
+      canonicalEvidenceIds: [],
+      canonicalSessionIds: ['s2'],
+      expectedSessionIds: ['s1', 's2'],
+      id: 'session-write',
+      requiredEvidenceIds: [],
+      trace: sessionTrace(['s2']),
+    },
+    {
+      canonicalEvidenceIds: [],
+      canonicalSessionIds: ['s1', 's2'],
+      expectedSessionIds: ['s1', 's2'],
+      id: 'session-retrieval',
+      requiredEvidenceIds: [],
+      trace: sessionTrace(['s2']),
+    },
+  ])
+  assert.deepEqual(
+    report.cases.map(({ stage }) => stage),
+    ['write', 'retrieval'],
+  )
+  assert.deepEqual(report.cases[0].missingCanonicalSessionIds, ['s1'])
+  assert.deepEqual(report.cases[0].missingReturnedSessionIds, ['s1'])
+  assert.deepEqual(report.cases[1].missingCanonicalSessionIds, [])
+  assert.deepEqual(report.cases[1].missingReturnedSessionIds, ['s1'])
+})
+
+test('required sessions without a canonical-presence observation stay ungraded', () => {
+  const report = buildMemoryStageAudit([{
+    canonicalEvidenceIds: [],
+    expectedSessionIds: ['s1'],
+    id: 'session-canonical-unobserved',
+    requiredEvidenceIds: [],
+    trace: sessionTrace(['s1']),
+  }])
+  assert.equal(report.cases[0].stage, 'ungraded')
+  assert.equal(report.cases[0].canonicalSessionPresenceJudged, false)
+  assert.match(report.cases[0].reason, /Canonical presence has not been observed/)
 })
 
 test('retrieval telemetry rejects selected evidence that was never returned', () => {

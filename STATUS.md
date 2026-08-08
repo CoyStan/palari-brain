@@ -243,12 +243,39 @@ and judged-material-use telemetry, refuses to infer an audit without explicit
 input, and performs zero provider or network calls. The RRC discussion paper
 now labels importance sampling as a motivating toy readout rather than evidence
 that prompt-based RRC approximates a full transformer; learned discrete routing
-remains an empirical hypothesis. Focused tests pass 30/30, quickstart passes
-6/6, the provider-free answer-interpretation regression passes 7/7, and its
-directly relevant contracts pass 5/5. A private local audit of the current
-clothing case confirms zero missing canonical, returned, or selected required
-evidence IDs and reports `ungraded`: outcome ambiguity has not yet been judged.
+remains an empirical hypothesis. At that point focused tests passed 30/30,
+quickstart passed 6/6, the provider-free answer-interpretation regression
+passed 7/7, and its directly relevant contracts passed 5/5. A private local
+audit of the current clothing case confirms zero missing canonical, returned,
+or selected required evidence IDs and reports `ungraded`: outcome ambiguity
+has not yet been judged.
 It does not convert the benchmark reference into product semantics.
+
+The audit now also distinguishes required session presence at the canonical
+write boundary from session recall. An eight-case provider-free diagnostic
+used five terminal v6 misses plus three current canonical cases. All five v6
+misses classified at the earlier write/admission stage: four had none of their
+answer-bearing sessions in stored memory, and one stored only one of two.
+None classified as retrieval. The current Harajuku and language-preference
+cases classified success; the clothing action-state case classified ambiguity
+because its direct wording says both “need to return” and “exchanged.” Counts
+are write 5, retrieval 0, ambiguity 1, success 2, with zero ungraded, provider,
+or network calls. The local input and report stay gitignored.
+
+This evidence rejects a Python learned-reranker successor for now: reranking
+cannot recover evidence that never crossed the write boundary, and the current
+canonical cases do not show a repeated retrieval miss. Enumeration policy now
+reserves exclusion for direct evidence of out-of-scope or resolved state and
+requires contradictory outstanding/resolution language to remain ambiguous.
+The host still verifies structure and exact counts rather than claiming it can
+semantically grade arbitrary prose; provider-free contracts prove the policy
+is carried on both provider-neutral and OpenAI enumeration paths, not that a
+live model will always follow it.
+
+After the session-level audit and ambiguity-policy changes, focused tests pass
+32/32, quickstart passes 6/6, the provider-free answer-interpretation
+regression passes 7/7, the directly relevant audit/retrieval/OpenAI contracts
+pass 76/76, and the complete legacy tier passes 867 with 3 optional skips.
 
 ## Active commands
 
@@ -268,14 +295,13 @@ benchmark grades. Run only one alpha CLI process at a time.
 ## Next
 
 Do not tune retrieval further for `0a995998`: all three original statements
-were returned and enumerated. The next decision is product semantics, not more
-provider sampling: whether an action phrased as both “need to return” and
-“exchanged” should be reported as ambiguous, excluded as resolved, or counted
-literally. Palari currently chooses excluded/resolved and therefore answers 2.
-Preserve that evidence and do not force the benchmark's 3 without a general
-policy for contradictory action state. Use the stage audit on explicitly
-labelled local cases before adding a Python learning lab; only test a learned
-utility reranker if the report establishes retrieval as a repeated bottleneck.
+were returned and enumerated. The general policy now treats an action phrased
+as both outstanding and resolved as ambiguous rather than forcing either the
+model's prior 2 or the benchmark's 3. No new live answer is claimed. Continue
+collecting explicitly labelled current-product cases with the stage audit.
+Do not add a Python learning lab unless current canonical cases—not the old
+digest-only v6 arm—establish retrieval as a repeated bottleneck at equal
+candidate and context budgets.
 
 ## Product check
 

@@ -28,7 +28,10 @@ classifies the earliest observed failure for explicitly labelled cases as
 `ungraded`. It combines canonical-presence IDs with the existing exact-span,
 selection, and judged-material-use telemetry. Answer correctness and ambiguity
 must be supplied as explicit labelled judgments; missing labels remain
-`ungraded`.
+`ungraded`. Session-level diagnostics may additionally provide
+`expectedSessionIds` and `canonicalSessionIds`; omitting canonical-session
+presence keeps that part of the audit ungraded rather than treating absence as
+a failed write.
 
 The command only reads local JSON, performs no provider or network call, and
 refuses to run without an explicit input. A case has this shape:

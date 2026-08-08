@@ -32,6 +32,7 @@ import {
   MEMORY_ANSWER_MAX_ENUMERATION_ITEMS,
   MEMORY_ANSWER_MAX_ENUMERATION_LABEL_CHARS,
   MEMORY_ANSWER_MAX_ENUMERATION_REASON_CHARS,
+  MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS,
   MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
   MEMORY_ANSWER_MAX_BASES,
   MEMORY_ANSWER_MAX_QUOTE_CHARS,
@@ -533,7 +534,7 @@ const OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL = deepFreeze({
   ...clone(OPENAI_ANSWER_COMMIT_TOOL),
   description: [
     OPENAI_ANSWER_COMMIT_TOOL.description,
-    'For this exhaustive question, enumerate every distinct candidate supported by direct canonical evidence; classify it included, excluded, or ambiguous and report exact counts.',
+    MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS,
   ].join(' '),
   parameters: {
     ...clone(OPENAI_ANSWER_COMMIT_TOOL.parameters),

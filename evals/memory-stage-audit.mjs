@@ -111,19 +111,29 @@ function materialUseById(values = []) {
 function classification({
   ambiguityJudgment,
   answerJudgment,
+  canonicalSessionPresenceJudged,
+  expectedSessionIds,
   missingCanonicalIds,
+  missingCanonicalSessionIds,
   missingMaterialJudgmentIds,
   missingMaterialUseIds,
   missingReturnedIds,
+  missingReturnedSessionIds,
   missingSelectedIds,
 } = {}) {
-  if (missingCanonicalIds.length) {
+  if (missingCanonicalIds.length || missingCanonicalSessionIds.length) {
     return {
       reason: 'Required evidence was not present in canonical memory.',
       stage: 'write',
     }
   }
-  if (missingReturnedIds.length) {
+  if (expectedSessionIds.length && !canonicalSessionPresenceJudged) {
+    return {
+      reason: 'Canonical presence has not been observed for every required session.',
+      stage: 'ungraded',
+    }
+  }
+  if (missingReturnedIds.length || missingReturnedSessionIds.length) {
     return {
       reason: 'Canonical required evidence was not returned by retrieval.',
       stage: 'retrieval',
@@ -195,6 +205,12 @@ export function classifyMemoryStageCase(value = {}) {
     value.expectedSessionIds ?? [],
     'case.expectedSessionIds',
   )
+  const canonicalSessionPresenceJudged =
+    Object.hasOwn(value, 'canonicalSessionIds')
+  const canonicalSessionIds = uniqueStrings(
+    value.canonicalSessionIds ?? [],
+    'case.canonicalSessionIds',
+  )
   const materialUseJudgments = value.materialUseJudgments ?? []
   const metrics = measureRetrievalEvidence({
     equivalentFactJudgments: value.equivalentFactJudgments ?? [],
@@ -218,7 +234,11 @@ export function classifyMemoryStageCase(value = {}) {
     requiredEvidenceIds,
     canonicalEvidenceIds,
   )
+  const missingCanonicalSessionIds = canonicalSessionPresenceJudged
+    ? missingFrom(expectedSessionIds, canonicalSessionIds)
+    : Object.freeze([])
   const missingReturnedIds = metrics.exactSpanRecall.missingIds
+  const missingReturnedSessionIds = metrics.sessionRecall.missingIds
   const missingSelectedIds = missingFrom(requiredEvidenceIds, selectedSet)
   const missingMaterialJudgmentIds = Object.freeze(
     requiredEvidenceIds.filter((id) => !materialById.has(id)),
@@ -229,22 +249,31 @@ export function classifyMemoryStageCase(value = {}) {
   const result = classification({
     ambiguityJudgment,
     answerJudgment,
+    canonicalSessionPresenceJudged,
+    expectedSessionIds,
     missingCanonicalIds,
+    missingCanonicalSessionIds,
     missingMaterialJudgmentIds,
     missingMaterialUseIds,
     missingReturnedIds,
+    missingReturnedSessionIds,
     missingSelectedIds,
   })
 
   return Object.freeze({
     ambiguityJudgment,
     answerJudgment,
+    canonicalSessionIds,
+    canonicalSessionPresenceJudged,
+    expectedSessionIds,
     id,
     metrics,
     missingCanonicalIds,
+    missingCanonicalSessionIds,
     missingMaterialJudgmentIds,
     missingMaterialUseIds,
     missingReturnedIds,
+    missingReturnedSessionIds,
     missingSelectedIds,
     reason: result.reason,
     requiredEvidenceIds,

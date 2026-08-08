@@ -6,6 +6,7 @@ import test from 'node:test'
 
 import {
   DEFAULT_RETRIEVAL_CALLS,
+  MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS,
   MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
   MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
   MEMORY_EXPLORATION_INSTRUCTIONS,
@@ -1143,6 +1144,11 @@ test('answer composition auto-detection is general and avoids scalar duration qu
     () => resolveMemoryAnswerCompositionMode('Anything?', 'unknown'),
     /compositionMode must be one of/,
   )
+  assert.match(MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS, /excluded only when direct evidence/i)
+  assert.match(
+    MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS,
+    /simultaneously asserts an outstanding action.*classify.*ambiguous/i,
+  )
 })
 
 test('enumeration commitment preserves exhaustive candidates, ambiguity, and exact counts',
@@ -1151,7 +1157,7 @@ test('enumeration commitment preserves exhaustive candidates, ambiguity, and exa
     await seed(brain, [
       { id: 'passport-pickup:0', user: 'I need to pick up my renewed passport from city hall.' },
       { id: 'keyboard-return:0', user: 'I may still need to return the rented keyboard to the music shop.' },
-      { id: 'prescription-pickup:0', user: 'I need to collect my prescription from the pharmacy.' },
+      { id: 'prescription-pickup:0', user: 'I already collected my prescription from the pharmacy.' },
     ])
     const provider = requireEvidenceCommitment(async ({
       answerEnumerationRequired,
@@ -1178,15 +1184,15 @@ test('enumeration commitment preserves exhaustive candidates, ambiguity, and exa
       const candidates = [
         [passport, 'I need to pick up my renewed passport from city hall.'],
         [keyboard, 'I may still need to return the rented keyboard to the music shop.'],
-        [prescription, 'I need to collect my prescription from the pharmacy.'],
+        [prescription, 'I already collected my prescription from the pharmacy.'],
       ]
       const bases = candidates.map(([row, quote], index) => ({
-        consequence_for_answer: index === 1
+        consequence_for_answer: index === 2
           ? ''
           : 'This is a candidate store errand.',
         evidenceId: row.evidenceId,
-        not_used_reason: index === 1
-          ? 'This possible return is excluded from the definite count.'
+        not_used_reason: index === 2
+          ? 'This pickup is explicitly complete.'
           : '',
         quote,
       }))
@@ -1205,19 +1211,19 @@ test('enumeration commitment preserves exhaustive candidates, ambiguity, and exa
             },
             {
               action: 'return',
-              disposition: 'excluded',
+              disposition: 'ambiguous',
               evidenceId: keyboard.evidenceId,
               label: 'rented keyboard',
               quote: candidates[1][1],
-              reason: 'The tentative wording excludes it from the definite count.',
+              reason: 'The tentative wording leaves the current return state unresolved.',
             },
             {
               action: 'collect',
-              disposition: 'ambiguous',
+              disposition: 'excluded',
               evidenceId: prescription.evidenceId,
               label: 'prescription',
               quote: candidates[2][1],
-              reason: 'The evidence is direct but its current completion status is unresolved.',
+              reason: 'The evidence directly says collection is complete.',
             },
           ],
           referencedCount: 3,

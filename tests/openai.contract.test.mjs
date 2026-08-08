@@ -414,6 +414,8 @@ test('OpenAI adds exhaustive enumeration only for an enumeration answer session'
       0,
     )
     assert.match(commit.description, /every distinct candidate/i)
+    assert.match(commit.description, /excluded only when direct evidence/i)
+    assert.match(commit.description, /simultaneously asserts an outstanding action/i)
   })
 
 test('one memory plan preserves all four retrieval calls in the OpenAI loop',
