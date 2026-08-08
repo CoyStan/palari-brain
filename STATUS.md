@@ -366,6 +366,20 @@ embedding/model quality or a new live answer. Focused tests pass 39/39,
 quickstart passes 6/6, and the complete legacy tier passes 877 with 3 optional
 skips.
 
+The third provider-free slice now conditions bridge-only candidate reranking
+on a bounded combination of the current question, the primary generated
+probe, and exact excerpts from every returned raw anchor. The private routing
+query preserves both ends of long fields, represents up to four anchors, and
+cannot exceed the reranker adapter's 500-character query limit. It is never
+registered as evidence or exposed in the tool result; additive
+`rerankConditioning` telemetry reports only its mode, anchor IDs, applied
+state, and size. The kitchen contract proves the routing query contains the
+Air Fryer anchor but not the missing Instant Pot term, while the final answer
+commits only the independently returned raw Instant Pot evidence. A separate
+four-anchor contract reaches the exact cap without dropping an anchor. The
+default six-tool wire remains unchanged. Focused tests pass 40/40, quickstart
+passes 6/6, and the complete legacy tier passes 878 with 3 optional skips.
+
 ## Active commands
 
 ```bash
@@ -389,15 +403,14 @@ as both outstanding and resolved as ambiguous rather than forcing either the
 model's prior 2 or the benchmark's 3. No new live answer is claimed. Continue
 collecting explicitly labelled current-product cases with the stage audit.
 The five-case final-answer replay is complete and must not be repeated or used
-to regrade sealed v6. The retrieval frontier is the completed first slice of
-the successor, and the opt-in batched `memory_bridge` is the completed second
-slice. Next, condition bridge candidate reranking on the question plus returned
-raw anchor text without treating the anchor as testimony for the missing fact.
-Then test the complete iterative route with unrelated temporal-predecessor and
-relationship controls at the same candidate and context budgets. Durable
-successful-co-use edges remain a later isolated slice. Do not add a Python
-learning lab unless retrieval failures repeat across current canonical cases
-and the simpler bridge-search successor stops improving them.
+to regrade sealed v6. The retrieval frontier, opt-in batched `memory_bridge`,
+and bounded anchor-conditioned bridge reranker are the completed first three
+successor slices. Next, test the complete iterative route with unrelated
+temporal-predecessor and relationship controls at the same candidate and
+context budgets. Durable successful-co-use edges remain a later isolated
+slice. Do not add a Python learning lab unless retrieval failures repeat across
+current canonical cases and the simpler bridge-search successor stops
+improving them.
 
 ## Product check
 

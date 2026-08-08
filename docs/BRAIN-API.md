@@ -678,15 +678,24 @@ the historical retrieval instructions and six-tool wire exactly. Once enabled,
 the tool accepts calls only after at least one canonical evidence ID has already
 been returned in the same answer. The provider supplies that anchor ID plus
 2–4 distinct natural-language probes generated from the question and raw
-anchor text; the host does not
-predefine a relation taxonomy or guess the missing answer. The first probe is
-the primary reranker query, every probe contributes a local ranked surface,
+anchor text; the host does not predefine a relation taxonomy or guess the
+missing answer. The first probe is
+the primary bridge probe, every probe contributes a local ranked surface,
 and—when semantic retrieval is configured—all query embeddings are requested
 in one batch and the vector bank is scanned once. Results are fused,
-deduplicated, read from the canonical journal, and optionally reranked once.
+deduplicated, and read from the canonical journal. When a reranker is
+configured, it runs once with a host-bounded query containing the current
+question, the primary probe, and an excerpt from every already-returned raw
+anchor. The query preserves both ends of longer fields and never exceeds 500
+characters. Anchor text is routing context only: it is not added as evidence
+for a missing fact, and an answer commitment must still cite independently
+returned canonical evidence that supports its claim.
+
 The complete batch consumes one retrieval-budget call. Its output includes the
-updated immutable `retrievalFrontier`, so the provider can see whether the
-round found new raw evidence or reached stagnation. It never writes memory.
+updated immutable `retrievalFrontier` plus `rerankConditioning` telemetry with
+the mode, anchor IDs, applied state, and query character count; the private
+rerank query itself is not exposed. The provider can see whether the round
+found new raw evidence or reached stagnation. It never writes memory.
 
 An optional provider-neutral second stage can rerank the bounded RRF pool:
 
@@ -823,8 +832,10 @@ navigation anchor only after that canonical evidence ID has been returned in
 the same answer session. Unknown or provider-invented IDs fail closed. This
 contract and `memory_bridge` implement iterative search without predefining
 what relations, attributes, or categories are important at write time. The
-provider still authors the temporary probes; Palari does not yet condition the
-reranker on anchor text or reinforce durable graph edges.
+provider still authors the temporary probes. On bridge calls only, Palari now
+conditions the optional reranker on the question, primary probe, and bounded
+returned raw anchor excerpts. This conditioning is a locating signal rather
+than testimony. Palari does not yet reinforce durable graph edges.
 
 `result.retrievalPlan` is either null or the one immutable session plan with
 exact fields `anchor_event`, `relation`, `category`, and `time_range`.

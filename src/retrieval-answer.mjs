@@ -53,6 +53,7 @@ export const MEMORY_BRIDGE_LIMITS = Object.freeze({
   maxProbes: 4,
   minProbes: 2,
 })
+export const MEMORY_BRIDGE_RERANK_MAX_QUERY_CHARS = 500
 export const MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS = [
   'This question requires exhaustive answer composition from returned evidence.',
   'Before writing final prose, enumerate every distinct candidate unit supported by direct canonical evidence.',
@@ -125,6 +126,7 @@ const dateGetTime = Function.call.bind(Date.prototype.getTime)
 const dateToISOString = Function.call.bind(Date.prototype.toISOString)
 const mapGet = Function.call.bind(Map.prototype.get)
 const mapSet = Function.call.bind(Map.prototype.set)
+const mathFloor = Math.floor
 const mathMax = Math.max
 const numberConstructor = Number
 const numberIsSafeInteger = Number.isSafeInteger
@@ -148,6 +150,7 @@ const setConstructor = Set
 const stringFrom = String
 const stringIncludes = Function.call.bind(String.prototype.includes)
 const stringReplace = Function.call.bind(String.prototype.replace)
+const stringSlice = Function.call.bind(String.prototype.slice)
 const stringToLowerCase = Function.call.bind(String.prototype.toLowerCase)
 const stringTrim = Function.call.bind(String.prototype.trim)
 const structuredCloneValue = globalThis.structuredClone
@@ -1024,6 +1027,79 @@ function normalizeMemoryBridgeInput(value) {
   return normalized
 }
 
+// Bridge reranking is allowed to use returned raw evidence as routing context,
+// but the composed query never enters the answer-commit evidence registry and
+// cannot stand in for canonical evidence supporting the missing fact. Keep all
+// anchors represented while preserving both ends of longer natural language.
+function boundedBridgeRerankExcerpt(value, maximum) {
+  const text = stringTrim(stringFrom(value ?? ''))
+  if (text.length <= maximum) return text
+  if (maximum <= 1) return stringSlice(text, 0, maximum)
+  const contentChars = maximum - 1
+  const headChars = mathFloor((contentChars + 1) / 2)
+  const tailChars = contentChars - headChars
+  return `${stringSlice(text, 0, headChars)}…${tailChars > 0
+    ? stringSlice(text, -tailChars)
+    : ''}`
+}
+
+function bridgeRerankQuery({
+  anchorEvidenceIds,
+  evidenceRegistry,
+  primaryProbe,
+  question,
+}) {
+  const anchorTexts = []
+  const anchorLabels = []
+  for (let index = 0; index < anchorEvidenceIds.length; index += 1) {
+    const evidenceId = anchorEvidenceIds[index]
+    const sources = mapGet(evidenceRegistry, evidenceId)
+    if (!sources || typeof sources[0] !== 'string' || !sources[0]) {
+      throw memoryBridgeError(
+        'memory_bridge anchor has no registered canonical text.',
+      )
+    }
+    arrayPush(anchorTexts, sources[0])
+    arrayPush(anchorLabels, `\nReturned anchor ${index + 1}:\n`)
+  }
+
+  const questionLabel = 'Question:\n'
+  const probeLabel = '\nBridge probe:\n'
+  let labelChars = questionLabel.length + probeLabel.length
+  for (let index = 0; index < anchorLabels.length; index += 1) {
+    labelChars += anchorLabels[index].length
+  }
+  const textBudget = MEMORY_BRIDGE_RERANK_MAX_QUERY_CHARS - labelChars
+  const questionExcerpt = boundedBridgeRerankExcerpt(
+    question,
+    Math.min(160, textBudget),
+  )
+  const probeExcerpt = boundedBridgeRerankExcerpt(
+    primaryProbe,
+    Math.min(120, textBudget - questionExcerpt.length),
+  )
+  let anchorBudget = textBudget - questionExcerpt.length - probeExcerpt.length
+  let anchorsRemaining = anchorTexts.length
+  const anchorExcerpts = []
+  for (let index = 0; index < anchorTexts.length; index += 1) {
+    const share = mathFloor(anchorBudget / anchorsRemaining)
+    const excerpt = boundedBridgeRerankExcerpt(anchorTexts[index], share)
+    arrayPush(anchorExcerpts, excerpt)
+    anchorBudget -= excerpt.length
+    anchorsRemaining -= 1
+  }
+
+  const parts = [questionLabel, questionExcerpt, probeLabel, probeExcerpt]
+  for (let index = 0; index < anchorExcerpts.length; index += 1) {
+    arrayPush(parts, anchorLabels[index], anchorExcerpts[index])
+  }
+  const query = arrayJoin(parts, '')
+  if (query.length > MEMORY_BRIDGE_RERANK_MAX_QUERY_CHARS) {
+    throw new Error('memory_bridge rerank query exceeded its host bound.')
+  }
+  return query
+}
+
 // The ranked explorer has a deliberately small query contract. Preserve both
 // ends of a longer natural-language question: subjects tend to occur near the
 // beginning and the requested distinction near the end.
@@ -1336,6 +1412,7 @@ async function hybridSearch(
   referenceTime = null,
   supplementalRankedQueries = [],
   semanticProbeQueries = [],
+  rerankQuery = null,
 ) {
   const phrase = searchPhrase(input.phrase)
   const limit = boundedInteger(
@@ -1459,7 +1536,10 @@ async function hybridSearch(
   let ordered = candidates
   if (capabilities.reranking && candidates.length > 0) {
     const texts = Object.freeze(candidates.map((candidate) => candidate.text))
-    const scores = await brain.rerankEvidence(phrase, texts)
+    const effectiveRerankQuery = rerankQuery === null
+      ? phrase
+      : searchPhrase(rerankQuery)
+    const scores = await brain.rerankEvidence(effectiveRerankQuery, texts)
     if (!Array.isArray(scores) || scores.length !== candidates.length) {
       throw new TypeError(
         'reranker must return one numeric score per canonical candidate.',
@@ -1614,6 +1694,7 @@ export async function answerWithRetrieval(brain, {
   const transcript = []
   const frontier = createEphemeralRetrievalFrontier(budget)
   const referenceTime = questionReferenceTime(questionDate)
+  const routingQuestion = stringFrom(question)
 
   const registerEvidence = (result) => {
     for (const { evidenceId, text } of evidenceTexts(result)) {
@@ -1984,6 +2065,14 @@ export async function answerWithRetrieval(brain, {
     async memory_bridge(input) {
       const normalized = normalizeMemoryBridgeInput(input)
       frontier.markAnchors(normalized.anchorEvidenceIds)
+      const rerankQuery = capabilities.reranking
+        ? bridgeRerankQuery({
+            anchorEvidenceIds: normalized.anchorEvidenceIds,
+            evidenceRegistry,
+            primaryProbe: normalized.probes[0],
+            question: routingQuestion,
+          })
+        : null
       const supplementalRankedQueries = []
       const semanticProbeQueries = []
       for (let index = 0; index < normalized.probes.length; index += 1) {
@@ -2014,6 +2103,7 @@ export async function answerWithRetrieval(brain, {
         referenceTime,
         supplementalRankedQueries,
         semanticProbeQueries,
+        rerankQuery,
       )
       consultRows(result.matches)
       return registerEvidence({
@@ -2023,6 +2113,14 @@ export async function answerWithRetrieval(brain, {
         primaryProbe: normalized.probes[0],
         probeCount: normalized.probes.length,
         probes: normalized.probes,
+        rerankConditioning: {
+          anchorEvidenceIds: normalized.anchorEvidenceIds,
+          applied: result.rerankCandidates > 0,
+          mode: capabilities.reranking
+            ? 'question_anchor_probe'
+            : 'none',
+          queryChars: rerankQuery?.length ?? 0,
+        },
         ...(trustedTimeRange
           ? { effectiveTimeRange: trustedTimeRange }
           : {}),

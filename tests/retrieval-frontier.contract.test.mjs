@@ -6,6 +6,7 @@ import test from 'node:test'
 
 import {
   MEMORY_BRIDGE_LIMITS,
+  MEMORY_BRIDGE_RERANK_MAX_QUERY_CHARS,
   MEMORY_ITERATIVE_RETRIEVAL_TOOLS,
   MEMORY_RETRIEVAL_FRONTIER_SCHEMA,
   MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS,
@@ -72,6 +73,7 @@ async function seed(brain, text, {
 test('memory_bridge batches generated semantic probes and returns raw evidence',
   async (t) => {
     const embedCalls = []
+    const rerankCalls = []
     const concepts = [
       ['air fryer', 'later appliance anchor'],
       [
@@ -92,7 +94,11 @@ test('memory_bridge batches generated semantic probes and returns raw evidence',
         ))
       })
     }
-    const brain = await openBrain(t, { embedder })
+    const reranker = async (query, texts) => {
+      rerankCalls.push({ query, texts: [...texts] })
+      return texts.map((text) => text.includes('Instant Pot') ? 10 : 0)
+    }
+    const brain = await openBrain(t, { embedder, reranker })
     await seed(brain, 'I bought an Instant Pot for weeknight dinners.', {
       eventAt: '2025-01-01T00:00:00.000Z',
       sourceMessageId: 'kitchen-earlier:0',
@@ -106,6 +112,7 @@ test('memory_bridge batches generated semantic probes and returns raw evidence',
       'countertop cooking device acquired earlier',
       'earlier kitchen appliance used for meals',
     ]
+    let anchorEvidenceId
     const provider = requireEvidenceCommitment(async ({
       answerInstructions,
       commitAnswer,
@@ -120,6 +127,7 @@ test('memory_bridge batches generated semantic probes and returns raw evidence',
       })
       const anchor = anchorResult.matches.find((row) =>
         row.speaker === 'user')
+      anchorEvidenceId = anchor.evidenceId
       const bridged = await retrieve({
         input: {
           anchorEvidenceIds: [anchor.evidenceId],
@@ -132,6 +140,12 @@ test('memory_bridge batches generated semantic probes and returns raw evidence',
       assert.equal(bridged.probeCount, 2)
       assert.deepEqual(bridged.probes, probes)
       assert.deepEqual(bridged.anchorEvidenceIds, [anchor.evidenceId])
+      assert.deepEqual(bridged.rerankConditioning, {
+        anchorEvidenceIds: [anchor.evidenceId],
+        applied: true,
+        mode: 'question_anchor_probe',
+        queryChars: rerankCalls[0].query.length,
+      })
       assert.equal(bridged.semanticProbeQueries.length, 2)
       assert.equal(bridged.retrievalFrontier.roundCount, 2)
       assert.deepEqual(
@@ -141,6 +155,7 @@ test('memory_bridge batches generated semantic probes and returns raw evidence',
       const earlier = bridged.matches.find((row) =>
         row.speaker === 'user' && row.text.includes('Instant Pot'))
       assert.ok(earlier)
+      assert.equal(earlier.rank, 1)
       return commitAnswer({
         abstained: false,
         bases: [{
@@ -160,9 +175,88 @@ test('memory_bridge batches generated semantic probes and returns raw evidence',
 
     assert.equal(result.retrievalCalls, 2)
     assert.deepEqual(embedCalls.at(-1), probes)
+    assert.equal(rerankCalls.length, 1)
+    assert.match(rerankCalls[0].query, /What kitchen device did I get before/)
+    assert.match(rerankCalls[0].query, /countertop cooking device acquired earlier/)
+    assert.match(rerankCalls[0].query, /I bought an Air Fryer yesterday\./)
+    assert.doesNotMatch(rerankCalls[0].query, /Instant Pot/)
+    assert.ok(
+      rerankCalls[0].query.length <=
+        MEMORY_BRIDGE_RERANK_MAX_QUERY_CHARS,
+    )
     assert.equal(result.retrievalFrontier.roundCount, 2)
     assert.equal(result.retrievalFrontier.durableWrites, 0)
+    assert.equal(result.selectedEvidenceIds.length, 1)
+    assert.notEqual(result.selectedEvidenceIds[0], anchorEvidenceId)
+    assert.match(result.answerEvidence[0].quote, /Instant Pot/)
+    assert.doesNotMatch(result.answerEvidence[0].quote, /Air Fryer/)
     assert.equal(result.answer, 'You bought an Instant Pot before the Air Fryer.')
+  })
+
+test('memory_bridge bounds rerank context while representing every raw anchor',
+  async (t) => {
+    const rerankQueries = []
+    const brain = await openBrain(t, {
+      async reranker(query, texts) {
+        rerankQueries.push(query)
+        return texts.map(() => 0)
+      },
+    })
+    for (let index = 1; index <= MEMORY_BRIDGE_LIMITS.maxAnchors; index += 1) {
+      await seed(
+        brain,
+        `A${index}-HEAD routing-anchor-shared ${'x'.repeat(500)} A${index}-TAIL`,
+        {
+          eventAt: `2025-01-0${index}T00:00:00.000Z`,
+          sourceMessageId: `bounded-anchor:${index}`,
+        },
+      )
+    }
+    const question = `Q-HEAD ${'q'.repeat(700)} Q-TAIL`
+    const primaryProbe =
+      `routing-anchor-shared P-HEAD ${'p'.repeat(240)} P-TAIL`
+
+    await answerWithRetrieval(brain, {
+      ...SCOPE,
+      iterativeRetrieval: true,
+      async provider({ retrieve }) {
+        const found = await retrieve({
+          input: { phrase: 'routing-anchor-shared' },
+          tool: 'memory_find',
+        })
+        const anchors = found.matches
+          .filter((row) => row.speaker === 'user')
+          .slice(0, MEMORY_BRIDGE_LIMITS.maxAnchors)
+        assert.equal(anchors.length, MEMORY_BRIDGE_LIMITS.maxAnchors)
+        const bridged = await retrieve({
+          input: {
+            anchorEvidenceIds: anchors.map((row) => row.evidenceId),
+            probes: [primaryProbe, 'routing anchor relation'],
+          },
+          tool: 'memory_bridge',
+        })
+        assert.equal(bridged.rerankConditioning.applied, true)
+        assert.equal(
+          bridged.rerankConditioning.queryChars,
+          MEMORY_BRIDGE_RERANK_MAX_QUERY_CHARS,
+        )
+        assert.equal(Object.hasOwn(bridged, 'rerankQuery'), false)
+        return { text: 'Routing context remained bounded.' }
+      },
+      question,
+    })
+
+    assert.equal(rerankQueries.length, 1)
+    const query = rerankQueries[0]
+    assert.equal(query.length, MEMORY_BRIDGE_RERANK_MAX_QUERY_CHARS)
+    assert.match(query, /Q-HEAD/)
+    assert.match(query, /Q-TAIL/)
+    assert.match(query, /P-HEAD/)
+    assert.match(query, /P-TAIL/)
+    for (let index = 1; index <= MEMORY_BRIDGE_LIMITS.maxAnchors; index += 1) {
+      assert.match(query, new RegExp(`Returned anchor ${index}:`))
+      assert.match(query, new RegExp(`A${index}-HEAD`))
+    }
   })
 
 test('memory_bridge is bounded and rejects unknown anchors and duplicate probes',
@@ -276,6 +370,12 @@ test('memory_bridge exposes stagnation to the model after two no-new rounds',
           tool: 'memory_bridge',
         })
         assert.equal(first.semanticUsed, false)
+        assert.deepEqual(first.rerankConditioning, {
+          anchorEvidenceIds: [anchor.evidenceId],
+          applied: false,
+          mode: 'none',
+          queryChars: 0,
+        })
         assert.equal(first.retrievalFrontier.stagnant, false)
         const second = await retrieve({
           input: {
