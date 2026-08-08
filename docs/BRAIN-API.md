@@ -649,6 +649,12 @@ true. Every proposal and required note must appear verbatim in the answer.
 A clarification question may follow but cannot replace every proposal. An
 honest abstention contains zero items.
 
+For an otherwise well-shaped recommendation, the host accumulates every
+missing answer-text occurrence across the clarification question, proposals,
+and verification notes into one rejection. This preserves exact presence
+checks while making the provider's single repair turn actionable; the repair
+does not have to discover independent surface mismatches one at a time.
+
 This boundary proves proposal presence, answer-text presence, and provenance;
 it does not prove that a provider correctly identified every need for external
 verification. The model-facing policy therefore requires category- or

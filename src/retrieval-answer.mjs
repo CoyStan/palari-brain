@@ -2272,8 +2272,9 @@ export async function answerWithRetrieval(brain, {
         'Answer commitment recommendation clarificationQuestion',
         MEMORY_ANSWER_MAX_RECOMMENDATION_CLARIFICATION_CHARS,
       )
+      const surfaceErrors = []
       if (clarificationQuestion && !stringIncludes(text, clarificationQuestion)) {
-        throw answerCommitmentError(
+        arrayPush(surfaceErrors,
           'Answer commitment recommendation clarificationQuestion must appear verbatim in the answer text.',
         )
       }
@@ -2293,7 +2294,7 @@ export async function answerWithRetrieval(brain, {
           )
         }
         if (!stringIncludes(text, proposal)) {
-          throw answerCommitmentError(
+          arrayPush(surfaceErrors,
             `Answer commitment recommendation item ${index} proposal must appear verbatim in the answer text.`,
           )
         }
@@ -2345,7 +2346,7 @@ export async function answerWithRetrieval(brain, {
           )
         }
         if (verificationNote && !stringIncludes(text, verificationNote)) {
-          throw answerCommitmentError(
+          arrayPush(surfaceErrors,
             `Answer commitment recommendation item ${index} verificationNote ` +
               `must appear verbatim in the answer text.`,
           )
@@ -2357,6 +2358,9 @@ export async function answerWithRetrieval(brain, {
           requiresExternalVerification: item.requiresExternalVerification,
           verificationNote,
         })
+      }
+      if (surfaceErrors.length) {
+        throw answerCommitmentError(arrayJoin(surfaceErrors, ' '))
       }
       recommendation = {
         clarificationQuestion,

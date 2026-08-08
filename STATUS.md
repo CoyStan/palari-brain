@@ -587,6 +587,36 @@ standard mode remains unchanged. No provider was called, spend remains
 legacy tier passes 899 with 3 optional skips. This is not a new live
 cultural-events result.
 
+The founder-authorized two-case answer-only confirmation then ran once from
+custody-verified copies of the frozen canonical stores with zero retries and a
+fresh `$0.10` aggregate allowance. Harajuku completed correctly: Luna selected
+the later direct “3 months” row, answered “about 3 months,” and the pinned
+judge returned `yes`. This confirms the post-retrieval temporal behavior on
+the original failure, although no repair was needed because the first
+commitment chose the current evidence.
+
+The cultural case retrieved and materially used the direct language-diversity
+and French/Spanish preferences and generated three concrete, evidence-linked
+proposal records with external-listing caveats. It nevertheless terminated at
+the answer boundary before judging. The first commitment's prose paraphrased
+its structured clarification, proposal, and caveat fields instead of copying
+them verbatim. The host reported only the first mismatch; Luna corrected that
+one in its sole repair, then encountered the still-unreported proposal
+mismatch. This is a validation/repair ergonomics failure, not another retrieval
+miss or a lack of useful recommendation content.
+
+The provider-free successor now accumulates all answer-text occurrence
+mismatches for an otherwise well-shaped recommendation into the same host
+rejection. Exact proposal, caveat, clarification, and evidence-link checks stay
+unchanged, as do the one-repair and seven-dispatch ceilings. A regression
+reproduces all three simultaneous mismatches and proves that one rejection
+names all three before accepting a fully corrected commitment. The run added
+`$0.05245006` of conservative accounted spend—the failed answer stage retains
+its `$0.05` reservation—bringing the ledger to `$3.45613237` under the
+approved `$3.99230755` ceiling. No retry or second live replay was performed;
+historical LongMemEval remains 6/10. Focused tests pass 62/62, quickstart
+passes 6/6, and the complete legacy tier passes 900 with 3 optional skips.
+
 ## Active commands
 
 ```bash
@@ -613,15 +643,14 @@ The five-case final-answer replay is complete and must not be repeated or used
 to regrade sealed v6. The iterative bridge can now continue through raw alias
 and codename memories, and frontier v2 preserves which intermediate raw
 memories actually routed a selected answer memory. The ten-case diagnostic
-showed that the immediate product work was after retrieval. Both observed
-failures now have provider-free successors: later highly ranked direct-user
-updates cannot remain silently unassessed in an active current-state answer,
-and recalled preferences must produce an evidence-linked recommendation before
-clarification when a safe proposal is possible. The next evidence unit is an
-answer-only live confirmation on the two frozen failed stores under a new
-explicit founder-approved cap, reporting host repair, selected evidence,
-proposal/caveat telemetry, judge result, and cost without rewriting memory.
-Until that cap is approved, make no provider call. Continue collecting
+showed that the immediate product work was after retrieval. The temporal
+successor is now confirmed live on its original failure. The recommendation
+successor produced useful structured content on its original failure but
+exposed a multi-error/single-repair mismatch; the host now reports every
+deterministic answer-text occurrence defect together. A second cultural-case
+live replay would require a new explicit founder-approved cap and must not be
+treated as a retry or benchmark regrade. Until such a cap is approved, make no
+provider call. Continue collecting
 distinct real relationship cases, recording bridge use, candidate rank,
 materially used answer evidence, routing-only lineage, audited outcome, and
 unnecessary bridge calls. Do not tune from the single ambiguous recommendation

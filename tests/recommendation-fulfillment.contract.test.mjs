@@ -290,6 +290,85 @@ test('OpenAI repairs clarification-only output into a useful proposal',
     )
   }))
 
+test('one OpenAI repair reports every recommendation text mismatch together',
+  async (t) => withBrain(t, 'recommend-surface-repair', async (brain) => {
+    const scope = {
+      palariId: 'palari-surface-repair',
+      userId: 'user-surface-repair',
+    }
+    const memory = 'I prefer quiet restaurants with outdoor seating.'
+    const proposal = 'Choose a quiet restaurant with patio seating.'
+    const verificationNote =
+      'Verify the current hours and patio availability before going.'
+    const clarificationQuestion = 'Which neighborhood should I search?'
+    await seed(brain, scope, memory)
+
+    const bodies = []
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) {
+          return completedCall({
+            args: { phrase: memory },
+            callId: 'surface-search',
+            name: 'memory_find',
+          })
+        }
+        const searchOutput = body.input.find((item) =>
+          item.type === 'function_call_output' &&
+          item.call_id === 'surface-search')
+        const found = JSON.parse(searchOutput.output)
+        const row = onlyUserMatch(found.matches)
+        const valid = commitment({
+          bases: [used(row)],
+          clarificationQuestion,
+          items: [recommendationItem({
+            evidenceIds: [row.evidenceId],
+            proposal,
+            requiresExternalVerification: true,
+            verificationNote,
+          })],
+          text: `${proposal} ${verificationNote} ${clarificationQuestion}`,
+        })
+        if (bodies.length === 2) {
+          return completedCall({
+            args: {
+              ...valid,
+              text: 'Try a suitable nearby patio and check its details. Where are you?',
+            },
+            callId: 'surface-mismatches',
+            name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+          })
+        }
+        return completedCall({
+          args: valid,
+          callId: 'surface-repaired',
+          name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+        })
+      },
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...scope,
+      compositionMode: 'auto',
+      provider,
+      question: 'Can you suggest a restaurant for dinner?',
+    })
+
+    assert.equal(
+      result.answer,
+      `${proposal} ${verificationNote} ${clarificationQuestion}`,
+    )
+    assert.equal(bodies.length, 3)
+    const rejection = bodies[2].input.find((item) =>
+      item.type === 'function_call_output' &&
+      item.call_id === 'surface-mismatches')
+    const reason = JSON.parse(rejection.output).rejection
+    assert.match(reason, /clarificationQuestion/)
+    assert.match(reason, /item 0 proposal/)
+    assert.match(reason, /item 0 verificationNote/)
+  }))
+
 test('recommendations reject unused grounding and unverifiable answer text',
   async (t) => withBrain(t, 'recommend-invalid-controls', async (brain) => {
     const scope = {
