@@ -491,6 +491,46 @@ v2, no official judge was called, and historical LongMemEval remains 6/10.
 Focused tests pass 46/46, quickstart passes 6/6, and the complete legacy tier
 passes 884 with 3 optional skips.
 
+A founder-approved `$0.50` fresh diagnostic then ran the latest complete stack
+once across the ten current regression/integration questions: canonical raw
+memory, Gemini query embeddings, local Ettin reranking, planned search
+expansion, trusted retrieval time authority, automatic answer composition,
+iterative bridges, frontier v2, Luna answers, and the pinned GPT-4o
+LongMemEval-compatible judge. All ten completed with no retry,
+infrastructure failure, source-custody failure, or budget stop. The official
+judge accepted 8/10. This is a current diagnostic over already examined cases,
+not a held-out benchmark or a rewrite of the historical 6/10.
+
+The result cleanly separates retrieval from later answer behavior. All 14/14
+dataset-marked raw spans were byte-present in the canonical stores and returned
+by retrieval. The provider-free stage audit, independently reproduced through
+the repository CLI, classifies success 8, composition 1, utilization 1, and
+write/retrieval/ambiguity/ungraded 0. In the Harajuku rejection, retrieval
+returned both the older one-month statement and the decisive later three-month
+update, but Luna selected the older rank-1 row and answered seven months. In
+the cultural-events rejection, retrieval returned all three marked preference
+spans and Luna selected the two decisive ones, but asked for the user's location
+instead of giving the requested recommendation. These are evidence-choice and
+answer-policy failures, respectively; another retrieval rule would not fix
+either one.
+
+The iterative bridge ran in 3/10 cases but no bridge-discovered memory was
+materially used in an answer, and the batch produced no routing-only evidence
+IDs. It therefore supplies no positive training event for asynchronous co-use
+edges. Review also found that `selectedRoutingLineage` intentionally follows
+all selected commitment IDs, including evidence explicitly marked not used;
+any future learner must admit only materially used answer evidence and its
+successful routing ancestry, never selected lineage alone. Persistent co-use
+ranking remains deferred.
+
+The campaign added `$0.03314374` of accounted spend, bringing the alpha ledger
+to `$3.40368231`. It stayed below both the fresh run cap of `$3.87053857` and
+the approved aggregate ceiling of `$3.99230755`, leaving `$0.58862524` of
+approved headroom. The run made 14 Gemini query-embedding calls and 35 Luna
+dispatches. Sealed U8 was absent, the ten source stores remained unchanged, and
+all private inputs, traces, answers, judge labels, and provider-free reports
+remain gitignored under `.palari-alpha/latest-ten-v1-2026-08-08/`.
+
 ## Active commands
 
 ```bash
@@ -516,20 +556,27 @@ collecting explicitly labelled current-product cases with the stage audit.
 The five-case final-answer replay is complete and must not be repeated or used
 to regrade sealed v6. The iterative bridge can now continue through raw alias
 and codename memories, and frontier v2 preserves which intermediate raw
-memories actually routed a selected answer memory. The next evidence-collecting
-unit is distinct real relationship cases, recording bridge use, candidate
-rank, selected answer evidence, routing-only lineage, audited outcome, and
-unnecessary bridge calls. Do not tune from the single ambiguous recommendation
-case or repeat the same kitchen/Firefly pair to manufacture recurrence.
+memories actually routed a selected answer memory. The ten-case diagnostic
+shows that the immediate product work is now after retrieval: make later direct
+updates outrank stale same-entity facts during evidence composition, and make
+a well-supported recommendation answer the task instead of turning into an
+unnecessary clarification. Prove both first with provider-free controls against
+unrelated domains, then spend on a small fresh transfer check only if those
+controls expose a general change. Continue collecting distinct real
+relationship cases, recording bridge use, candidate rank, materially used
+answer evidence, routing-only lineage, audited outcome, and unnecessary bridge
+calls. Do not tune from the single ambiguous recommendation case or repeat the
+same kitchen/Firefly pair to manufacture recurrence.
 
 Do not let co-use metadata affect ranking yet. Once distinct successful and
 failed lineages exist, evaluate a provider-free asynchronous edge proposal
-using only successful selected-routing ancestry, with negative controls for
-irrelevant candidates, deletion cascades, scope isolation, and non-reinforcement
-after failure. Only retain it if an offline ablation improves later retrieval
-at fixed cost without false reinforcement. Do not add a Python learning lab
-unless current canonical retrieval failures repeat and this simpler
-bridge-search path stops improving them.
+using only materially used answer evidence plus successful routing ancestry,
+with negative controls for irrelevant candidates, deletion cascades, scope
+isolation, and non-reinforcement after failure. Selected-but-not-used evidence
+is not a positive event. Only retain the proposal if an offline ablation
+improves later retrieval at fixed cost without false reinforcement. Do not add
+a Python learning lab unless current canonical retrieval failures repeat and
+this simpler bridge-search path stops improving them.
 
 ## Product check
 
