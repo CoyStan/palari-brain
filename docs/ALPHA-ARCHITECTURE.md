@@ -39,6 +39,15 @@ unused reservation; failure or process interruption retains the full amount.
 Starting with a cap below the already-accounted amount is rejected. This is
 deliberately simple conservative accounting, not a token ledger.
 
+`maxCostUsd` is a pre-dispatch upper bound, not a target or an estimate to fix
+afterward. A paid stage that may lazily embed an unindexed corpus must bound
+the complete first-use backfill plus every answer and judge call before it is
+invoked. If that worst-case reservation does not fit the approved aggregate
+cap, the adapter must fail provider-free before any network call. The runner
+rejects a result reported above its reservation, but that post-call check
+cannot recover money already spent and is therefore not a substitute for a
+conservative adapter preflight.
+
 The budget file assumes one alpha runner process at a time. Concurrent CLI
 runs are unsupported; wait for one to finish before starting another. Reset or
 edit the mutable budget only when deliberately beginning a new founder-approved

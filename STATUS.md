@@ -737,6 +737,31 @@ a Museum Pass mentioned elsewhere. No provider was called and spend did not
 change. Focused tests pass 68/68, quickstart passes 6/6, and the complete
 legacy tier passes 906 with 3 optional skips.
 
+The first distinct live relationship case now confirms that Luna follows the
+new source-session rule. In fresh photography case `06878be2`, the broad
+question did not mention Sony. Its untouched source held 443 canonical raw
+messages across 48 sessions and three dataset-marked direct user spans. The
+initial `memory_search` returned two marked spans plus a relevant prior Palari
+answer; Luna immediately called `memory_read` on that answer's exact source
+session and recovered the missing Sony 24–70mm span. All 3/3 marked spans were
+returned, selected, and materially used in a Sony A7R IV-specific answer. No
+bridge was needed, two retrieval calls remained, the provider-free stage audit
+classified success, and the pinned independent judge returned yes. This is a
+fresh current-product diagnostic, not a benchmark regrade, and it must not be
+replayed merely to tune the successful prompt.
+
+That same run exposed a separate budget-preflight defect. The first semantic
+search lazily embedded the previously unindexed 443-message corpus: eight
+Gemini calls accounted 495,338 tokens and `$0.07430070`; three Luna dispatches
+accounted `$0.00402052`; the judge accounted `$0.00131500`. Total measured
+fresh spend was `$0.07963622`, exceeding the approved `$0.05` reservation by
+`$0.02963622`. The runner correctly rejected settlement above the declared
+reservation and made no retry, but post-call rejection cannot undo provider
+spend. The mutable aggregate ledger was therefore corrected upward to
+`$3.97645590`. No more provider calls were made. Future fresh-store adapters
+must include the worst-case lazy corpus-embedding backfill in their
+pre-dispatch reservation or fail provider-free before dispatch.
+
 ## Active commands
 
 ```bash
@@ -769,11 +794,12 @@ successor produced useful content on its original failure, and the fresh Miami
 case confirmed that dual prose/structure generation is brittle. The active
 path now removes the second recommendation surface entirely; the host retains
 only scoped returned-ID provenance checks. Do not replay either recommendation
-case. The fresh Tokyo store now proves provider-free that a returned prior
-Palari answer can route through its exact source session to both marked direct
-user statements in two calls, and unrelated controls do not cross-contaminate
-sessions. The next distinct live relationship case should record whether Luna
-actually follows this route; do not replay Tokyo merely to tune its prompt.
+case. The fresh Tokyo store proves provider-free that a returned prior Palari
+answer can route through its exact source session, and the distinct live
+photography case confirms that Luna follows that route and uses evidence it
+adds. Do not replay either case merely to tune the successful prompt. Before
+another fresh-store diagnostic, bound the one-time embedding backfill from the
+canonical corpus and reserve it along with answer and judge calls.
 Make no provider call without a new explicit founder-approved cap. Continue
 collecting distinct real relationship cases, recording bridge use, candidate
 rank,
