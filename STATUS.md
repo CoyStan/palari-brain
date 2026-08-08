@@ -200,18 +200,39 @@ three original user statements and the host accepted an honest composition of
 two definite pickups plus one ambiguous old-boots return. This is not a new
 Luna result and does not regrade the historical 6/10. Focused tests pass 25/25,
 the answer/OpenAI contracts pass 73/73, quickstart passes 6/6, and the complete
-legacy tier passes 859 with 3 optional skips. No provider was called and spend
+legacy tier passes 860 with 3 optional skips. No provider was called and spend
 did not change.
+
+A founder-approved `$1.00` fresh answer-only campaign then reused three frozen
+stores rather than paying to rewrite their histories. Ten Luna samples ran
+under a `$3.38366359` cumulative alpha cap with no retries: five clothing
+aggregation attempts, three luxury-spend aggregation attempts, and two honest
+zero-event count attempts. Seven completed and three failed the commitment
+boundary; all three failures were clothing attempts. Luxury spending completed
+3/3, and the captured run enumerated the three direct purchases and answered
+the `$2,500` reference. Zero-event counting completed 2/2, and the captured run
+correctly excluded a fruit-tart discussion and abstained on egg-tart frequency.
+The first captured clothing failure exposed a contract mismatch: Luna linked
+an excluded candidate to selected `not_used_reason` evidence, while the host
+required materially-used evidence. The general boundary now permits excluded
+candidates to link any selected evidence; temporary inferences still require
+materially-used evidence. The post-fix clothing run completed and enumerated
+all three original user statements, but classified the old-boots return as
+excluded because the same statement says the boots were exchanged. It answered
+`2`, not the benchmark reference `3`. This isolates the remaining disagreement
+to semantic interpretation of contradictory wording: retrieval and candidate
+coverage succeeded. The campaign added `$0.55864396` of conservative accounted
+spend, including `$0.45` retained for three failed answer reservations, bringing
+alpha accounted spend to `$2.94230755`. Historical LongMemEval remains 6/10.
 
 Historical LongMemEval result: `6/10`, unchanged. Sealed U8 question
 `1568498a` remains forbidden. Pre-alpha accounted provider spend was
 `$8.00840072`; the alpha ledger now accounts `$2.38366359`, for cumulative
-accounted spend of `$10.39206431`. Known alpha provider usage is approximately
-`$1.86792376`; the higher ledger value conservatively retains failed
-answer-stage reservations. The aggregation confirmation added `$0.07785752`
-and stayed below the approved `$2.55` aggregate alpha cap, with `$0.16633641`
-of accounted headroom left. That is not enough to reserve another complete
-`$0.05` writer plus `$0.15` answer invocation.
+accounted spend of `$10.95070827`. The alpha ledger now accounts `$2.94230755`;
+it conservatively retains failed answer-stage reservations. The answer-only
+campaign stayed below its approved `$3.38366359` alpha cap and left
+`$0.44135604` of accounted headroom. No further live run is needed to diagnose
+the clothing case.
 
 ## Active commands
 
@@ -229,13 +250,13 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-The offline architecture work is complete. Do not tune retrieval further for
-`0a995998`: all relevant original statements were returned. The next useful
-step is one fresh live Luna confirmation with the active gitignored adapter's
-`compositionMode: 'auto'`. That call is blocked until the founder approves a
-new aggregate cap with at least `$0.20` of headroom; the current `$2.55` cap has
-only `$0.16633641` left, below the conservative `$0.05` writer plus `$0.15`
-answer reservation. Do not spend under the current cap.
+Do not tune retrieval further for `0a995998`: all three original statements
+were returned and enumerated. The next decision is product semantics, not more
+provider sampling: whether an action phrased as both “need to return” and
+“exchanged” should be reported as ambiguous, excluded as resolved, or counted
+literally. Palari currently chooses excluded/resolved and therefore answers 2.
+Preserve that evidence and do not force the benchmark's 3 without a general
+policy for contradictory action state.
 
 ## Product check
 
