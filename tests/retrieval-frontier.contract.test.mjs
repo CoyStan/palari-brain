@@ -5,6 +5,8 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import {
+  MEMORY_BRIDGE_LIMITS,
+  MEMORY_ITERATIVE_RETRIEVAL_TOOLS,
   MEMORY_RETRIEVAL_FRONTIER_SCHEMA,
   MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS,
   answerWithRetrieval,
@@ -35,12 +37,13 @@ function keepNothing({ request }) {
   }
 }
 
-async function openBrain(t) {
+async function openBrain(t, options = {}) {
   const root = await mkdtemp(join(tmpdir(), 'palari-retrieval-frontier-'))
   const brain = await createPalariBrain({
     memoryEnabled: true,
     statePath: join(root, 'state.json'),
     workspaceId: 'retrieval-frontier',
+    ...options,
   })
   t.after(async () => {
     brain.close()
@@ -49,19 +52,249 @@ async function openBrain(t) {
   return brain
 }
 
-async function seed(brain, text) {
+async function seed(brain, text, {
+  eventAt = '2025-01-01T00:00:00.000Z',
+  sourceMessageId = 'frontier-seed:0',
+} = {}) {
   await ingestChatTurn(brain, {
     ...SCOPE,
     assistantMessage: 'Noted.',
-    eventAt: '2025-01-01T00:00:00.000Z',
+    eventAt,
     retention: 'durable',
-    sourceMessageId: 'frontier-seed:0',
+    sourceMessageId,
     userMessage: text,
   }, {
     reducer: keepNothing,
     reducerId: 'retrieval-frontier-test/v1',
   })
 }
+
+test('memory_bridge batches generated semantic probes and returns raw evidence',
+  async (t) => {
+    const embedCalls = []
+    const concepts = [
+      ['air fryer', 'later appliance anchor'],
+      [
+        'instant pot',
+        'countertop cooking device',
+        'earlier kitchen appliance',
+        'weeknight dinners',
+      ],
+      ['unrelated', 'garden'],
+    ]
+    const embedder = async (texts) => {
+      embedCalls.push([...texts])
+      return texts.map((text) => {
+        const lowered = String(text).toLowerCase()
+        return concepts.map((bucket) => bucket.reduce(
+          (score, token) => score + (lowered.includes(token) ? 1 : 0),
+          0,
+        ))
+      })
+    }
+    const brain = await openBrain(t, { embedder })
+    await seed(brain, 'I bought an Instant Pot for weeknight dinners.', {
+      eventAt: '2025-01-01T00:00:00.000Z',
+      sourceMessageId: 'kitchen-earlier:0',
+    })
+    await seed(brain, 'I bought an Air Fryer yesterday.', {
+      eventAt: '2025-02-01T00:00:00.000Z',
+      sourceMessageId: 'kitchen-anchor:0',
+    })
+
+    const probes = [
+      'countertop cooking device acquired earlier',
+      'earlier kitchen appliance used for meals',
+    ]
+    const provider = requireEvidenceCommitment(async ({
+      answerInstructions,
+      commitAnswer,
+      retrievalTools,
+      retrieve,
+    }) => {
+      assert.match(answerInstructions, /memory_bridge/)
+      assert.equal(retrievalTools, MEMORY_ITERATIVE_RETRIEVAL_TOOLS)
+      const anchorResult = await retrieve({
+        input: { phrase: 'Air Fryer' },
+        tool: 'memory_find',
+      })
+      const anchor = anchorResult.matches.find((row) =>
+        row.speaker === 'user')
+      const bridged = await retrieve({
+        input: {
+          anchorEvidenceIds: [anchor.evidenceId],
+          limit: 6,
+          probes,
+        },
+        tool: 'memory_bridge',
+      })
+      assert.equal(bridged.operation, 'memory_bridge')
+      assert.equal(bridged.probeCount, 2)
+      assert.deepEqual(bridged.probes, probes)
+      assert.deepEqual(bridged.anchorEvidenceIds, [anchor.evidenceId])
+      assert.equal(bridged.semanticProbeQueries.length, 2)
+      assert.equal(bridged.retrievalFrontier.roundCount, 2)
+      assert.deepEqual(
+        bridged.retrievalFrontier.anchorEvidenceIds,
+        [anchor.evidenceId],
+      )
+      const earlier = bridged.matches.find((row) =>
+        row.speaker === 'user' && row.text.includes('Instant Pot'))
+      assert.ok(earlier)
+      return commitAnswer({
+        abstained: false,
+        bases: [{
+          evidenceId: earlier.evidenceId,
+          quote: 'Instant Pot for weeknight dinners',
+        }],
+        text: 'You bought an Instant Pot before the Air Fryer.',
+      })
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      iterativeRetrieval: true,
+      provider,
+      question: 'What kitchen device did I get before the Air Fryer?',
+    })
+
+    assert.equal(result.retrievalCalls, 2)
+    assert.deepEqual(embedCalls.at(-1), probes)
+    assert.equal(result.retrievalFrontier.roundCount, 2)
+    assert.equal(result.retrievalFrontier.durableWrites, 0)
+    assert.equal(result.answer, 'You bought an Instant Pot before the Air Fryer.')
+  })
+
+test('memory_bridge is bounded and rejects unknown anchors and duplicate probes',
+  async (t) => {
+    const bridge = MEMORY_ITERATIVE_RETRIEVAL_TOOLS.find((tool) =>
+      tool.name === 'memory_bridge')
+    assert.ok(bridge)
+    assert.deepEqual(bridge.parameters.required, [
+      'anchorEvidenceIds',
+      'probes',
+    ])
+    assert.equal(
+      bridge.parameters.properties.probes.minItems,
+      MEMORY_BRIDGE_LIMITS.minProbes,
+    )
+    assert.equal(
+      bridge.parameters.properties.probes.maxItems,
+      MEMORY_BRIDGE_LIMITS.maxProbes,
+    )
+
+    const brain = await openBrain(t)
+    await seed(brain, 'I bought an Air Fryer yesterday.')
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        async provider({ retrieve }) {
+          await retrieve({
+            input: {
+              anchorEvidenceIds: ['irrelevant'],
+              probes: ['earlier appliance', 'previous kitchen device'],
+            },
+            tool: 'memory_bridge',
+          })
+          return { text: 'unreachable' }
+        },
+        question: 'What came before it?',
+      }),
+      /Unknown memory tool: memory_bridge/,
+    )
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        iterativeRetrieval: true,
+        async provider({ retrieve }) {
+          await retrieve({
+            input: {
+              anchorEvidenceIds: ['not-returned'],
+              probes: ['earlier appliance', 'previous kitchen device'],
+            },
+            tool: 'memory_bridge',
+          })
+          return { text: 'unreachable' }
+        },
+        question: 'What came before it?',
+      }),
+      (error) => {
+        assert.equal(
+          error.code,
+          'MEMORY_RETRIEVAL_FRONTIER_ANCHOR_INVALID',
+        )
+        return true
+      },
+    )
+
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        iterativeRetrieval: true,
+        async provider({ retrieve }) {
+          const found = await retrieve({
+            input: { phrase: 'Air Fryer' },
+            tool: 'memory_find',
+          })
+          await retrieve({
+            input: {
+              anchorEvidenceIds: [found.matches[0].evidenceId],
+              probes: ['Earlier appliance', '  earlier   appliance  '],
+            },
+            tool: 'memory_bridge',
+          })
+          return { text: 'unreachable' }
+        },
+        question: 'What came before it?',
+      }),
+      (error) => {
+        assert.equal(error.code, 'MEMORY_BRIDGE_INPUT_INVALID')
+        return true
+      },
+    )
+  })
+
+test('memory_bridge exposes stagnation to the model after two no-new rounds',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, 'I bought an Air Fryer yesterday.')
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      iterativeRetrieval: true,
+      async provider({ retrieve }) {
+        const found = await retrieve({
+          input: { phrase: 'Air Fryer' },
+          tool: 'memory_find',
+        })
+        const anchor = found.matches.find((row) => row.speaker === 'user')
+        const first = await retrieve({
+          input: {
+            anchorEvidenceIds: [anchor.evidenceId],
+            probes: ['earlier appliance', 'previous kitchen device'],
+          },
+          tool: 'memory_bridge',
+        })
+        assert.equal(first.semanticUsed, false)
+        assert.equal(first.retrievalFrontier.stagnant, false)
+        const second = await retrieve({
+          input: {
+            anchorEvidenceIds: [anchor.evidenceId],
+            probes: ['prior countertop purchase', 'older cooking equipment'],
+          },
+          tool: 'memory_bridge',
+        })
+        assert.equal(second.retrievalFrontier.stagnant, true)
+        assert.equal(second.retrievalFrontier.status, 'stagnant')
+        return { text: 'No linked raw memory was found.' }
+      },
+      question: 'What kitchen device did I get before the Air Fryer?',
+    })
+
+    assert.equal(result.retrievalCalls, 3)
+    assert.equal(result.retrievalFrontier.stagnant, true)
+    assert.equal(result.retrievalFrontier.durableWrites, 0)
+  })
 
 test('ephemeral frontier tracks normalized attempts, novelty, anchors, and selection',
   async (t) => {

@@ -349,6 +349,23 @@ adds observability only: it does not yet generate bridge probes, rerank from
 anchors, or reinforce cross-answer edges. Focused tests pass 36/36, quickstart
 passes 6/6, and the complete legacy tier passes 873 with 3 optional skips.
 
+The second provider-free slice is now implemented as the opt-in
+`iterativeRetrieval` path. After an ordinary result supplies a returned raw
+evidence anchor, `memory_bridge` accepts 2–4 provider-generated natural-language
+probes, embeds every semantic query in one batch, scans the scoped vector bank
+once, adds complementary local ranked surfaces, fuses/deduplicates canonical
+messages, and invokes the configured reranker at most once. The complete batch
+costs one retrieval call and returns the updated frontier so the provider can
+stop after two no-new-evidence rounds. Unknown anchors, duplicate/oversized
+probes, malformed bounds, and calls without the opt-in fail closed. The default
+instructions and six-tool provider wire remain byte-identical to the sealed
+historical path. A provider-free kitchen plumbing contract recovered the raw
+Instant Pot statement from Air Fryer-conditioned probes that did not contain
+the missing answer term; this verifies batching and provenance, not production
+embedding/model quality or a new live answer. Focused tests pass 39/39,
+quickstart passes 6/6, and the complete legacy tier passes 877 with 3 optional
+skips.
+
 ## Active commands
 
 ```bash
@@ -373,13 +390,14 @@ model's prior 2 or the benchmark's 3. No new live answer is claimed. Continue
 collecting explicitly labelled current-product cases with the stage audit.
 The five-case final-answer replay is complete and must not be repeated or used
 to regrade sealed v6. The retrieval frontier is the completed first slice of
-the successor. Next, add a bounded batched `memory_bridge` operation that lets
-the provider generate multiple on-the-fly relational probes from the question
-and returned anchors, then test it with unrelated temporal-predecessor controls
-at the same candidate and context budgets. Anchor-conditioned reranking and
-durable successful-co-use edges remain later isolated slices. Do not add a
-Python learning lab unless retrieval failures repeat across current canonical
-cases and the simpler bridge-search successor stops improving them.
+the successor, and the opt-in batched `memory_bridge` is the completed second
+slice. Next, condition bridge candidate reranking on the question plus returned
+raw anchor text without treating the anchor as testimony for the missing fact.
+Then test the complete iterative route with unrelated temporal-predecessor and
+relationship controls at the same candidate and context budgets. Durable
+successful-co-use edges remain a later isolated slice. Do not add a Python
+learning lab unless retrieval failures repeat across current canonical cases
+and the simpler bridge-search successor stops improving them.
 
 ## Product check
 

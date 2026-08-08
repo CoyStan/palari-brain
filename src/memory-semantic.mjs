@@ -23,6 +23,7 @@
 // breaking ties.
 
 const VECTOR_TABLE = 'dialogue_evidence_vectors'
+export const MAX_SEMANTIC_BATCH_PHRASES = 16
 
 export function ensureSemanticIndex(db) {
   db.exec(`
@@ -118,42 +119,78 @@ export async function indexEvidenceVectors(db, {
 // (thousands to low hundreds of thousands of rows) a linear scan in
 // milliseconds beats carrying an ANN dependency, and it is exactly
 // reproducible.
-export async function semanticFindEvidence(db, {
+export async function semanticFindEvidenceBatch(db, {
   embed,
   limit = 20,
-  phrase,
+  phrases,
   scope,
   visibleStatementsSql,
 }) {
   if (typeof embed !== 'function') {
-    throw new TypeError('semanticFindEvidence requires an embed function.')
+    throw new TypeError(
+      'semanticFindEvidenceBatch requires an embed function.',
+    )
   }
-  const needle = String(phrase ?? '').trim()
-  if (!needle) throw new TypeError('semanticFindEvidence requires a phrase.')
+  if (!Array.isArray(phrases) || phrases.length < 1 ||
+    phrases.length > MAX_SEMANTIC_BATCH_PHRASES) {
+    throw new TypeError(
+      `semanticFindEvidenceBatch requires 1 to ` +
+        `${MAX_SEMANTIC_BATCH_PHRASES} phrases.`,
+    )
+  }
+  const needles = phrases.map((phrase, index) => {
+    const needle = String(phrase ?? '').trim()
+    if (!needle) {
+      throw new TypeError(
+        `semanticFindEvidenceBatch phrase ${index} must be non-empty.`,
+      )
+    }
+    return needle
+  })
   await indexEvidenceVectors(db, { embed, scope, visibleStatementsSql })
-  const [queryVector] = await embed([needle])
-  if (!queryVector?.length) {
-    throw new TypeError('embed returned no vector for the query.')
+  const queryVectors = await embed(needles)
+  assertVectors(queryVectors, needles.length, 'embed')
+  for (let index = 0; index < queryVectors.length; index += 1) {
+    if (!queryVectors[index]?.length) {
+      throw new TypeError(
+        `embed returned no vector for query ${index}.`,
+      )
+    }
   }
-  const query = Float32Array.from(queryVector, Number)
   const rows = db.prepare(`
     WITH visible AS (${visibleStatementsSql})
     SELECT visible.*, v.vector AS semantic_vector
     FROM visible
     JOIN ${VECTOR_TABLE} v ON v.evidence_id = visible.id
   `).all(scope.palariId, scope.userId)
+  const vectorRows = rows.map((row) => ({
+    row,
+    vector: fromBlob(row.semantic_vector),
+  }))
+  const boundedLimit = Math.max(1, Math.min(Number(limit) || 20, 200))
+  return queryVectors.map((queryVector) => {
+    const query = Float32Array.from(queryVector, Number)
+    return vectorRows
+      .map(({ row, vector }) => ({
+        row,
+        similarity: cosine(query, vector),
+      }))
+      .sort((left, right) =>
+        right.similarity - left.similarity ||
+        String(left.row.event_at).localeCompare(String(right.row.event_at)) ||
+        Number(left.row.dialogue_order) - Number(right.row.dialogue_order))
+      .slice(0, boundedLimit)
+      .map(({ row, similarity }) => {
+        const { semantic_vector: _vector, ...canonical } = row
+        return { ...canonical, similarity }
+      })
+  })
+}
+
+export async function semanticFindEvidence(db, options = {}) {
+  const [rows] = await semanticFindEvidenceBatch(db, {
+    ...options,
+    phrases: [options.phrase],
+  })
   return rows
-    .map((row) => ({
-      row,
-      similarity: cosine(query, fromBlob(row.semantic_vector)),
-    }))
-    .sort((left, right) =>
-      right.similarity - left.similarity ||
-      String(left.row.event_at).localeCompare(String(right.row.event_at)) ||
-      Number(left.row.dialogue_order) - Number(right.row.dialogue_order))
-    .slice(0, Math.max(1, Math.min(Number(limit) || 20, 200)))
-    .map(({ row, similarity }) => {
-      const { semantic_vector: _vector, ...canonical } = row
-      return { ...canonical, similarity }
-    })
 }

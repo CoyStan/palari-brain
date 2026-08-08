@@ -480,7 +480,6 @@ historical evaluators:
 
 ```js
 import {
-  MEMORY_RETRIEVAL_TOOLS,
   answerWithRetrieval,
 } from 'palari-brain'
 import { buildGeminiFunctionTools } from 'palari-brain/gemini'
@@ -490,6 +489,7 @@ const result = await answerWithRetrieval(brain, {
   userId,
   question,
   questionDate,
+  iterativeRetrieval: true,
   maxRetrievalCalls: 4,
   async provider({
     answerEvidenceCount,
@@ -505,8 +505,9 @@ const result = await answerWithRetrieval(brain, {
     retrievalTools,
     retrieve,
   }) {
-    // Map retrievalTools (the same value as MEMORY_RETRIEVAL_TOOLS) to
-    // provider tool declarations. For Gemini:
+    // Map the host-selected retrievalTools to provider declarations. This is
+    // MEMORY_ITERATIVE_RETRIEVAL_TOOLS for the opted-in call shown here and
+    // MEMORY_RETRIEVAL_TOOLS when iterativeRetrieval is false. For Gemini:
     const tools = buildGeminiFunctionTools(retrievalTools)
     // Route each requested call through retrieve. One memory_plan may register
     // ephemeral navigation metadata without consuming maxRetrievalCalls.
@@ -600,8 +601,11 @@ returned by the host's `commitAnswer()` callback. The proposal must contain a
 boolean `abstained`, bounded non-empty answer text, and one or more unique
 returned evidence IDs with exact contiguous quotes. Every selected basis sets
 exactly one non-empty `consequence_for_answer` or `not_used_reason`; unrelated
-retrieved rows need not be selected. Unknown IDs, fabricated quotes, duplicate
-bases, ambiguous use/non-use, extra provider-authored provenance, malformed
+retrieved rows need not be selected. With `iterativeRetrieval: true`, the
+additive `memory_bridge` declaration becomes the seventh memory tool; omitted
+or false configuration preserves the six-tool provider wire. Unknown IDs,
+fabricated quotes, duplicate bases, ambiguous use/non-use, extra
+provider-authored provenance, malformed
 fields, and copied or mutated callback results fail closed.
 
 Product callers may set `compositionMode: 'auto'` or `'enumerate'` for count
@@ -651,7 +655,7 @@ an independent adapter and can coexist with the OpenAI generation path.
 Offline adapter tests do not establish live compatibility, quality, latency,
 or price.
 
-It supplies the digest first and exposes all six tools:
+It supplies the digest first and exposes six base tools plus one opt-in tool:
 
 | Tool | Behavior |
 | --- | --- |
@@ -661,11 +665,28 @@ It supplies the digest first and exposes all six tools:
 | `memory_plan` | One ephemeral anchor/relation/category/time-range plan; no evidence and no retrieval-budget charge |
 | `memory_search` | Reciprocal-rank fusion of ranked and optional semantic hits, followed by canonical reads |
 | `memory_graph` | Read-only traversal of previously admitted quoted edges |
+| `memory_bridge` (opt-in) | One bounded batch of 2–4 provider-generated relational probes, linked to already-returned anchors |
 
 `memory_search` reports `semanticUsed`. If no embedder was configured, it
 falls back honestly to ranked-only search instead of dialing out or claiming
 semantic behavior. `memory_graph` never calls the extractor; graph indexing
 is an explicit earlier `brain.indexGraph(scope)` operation.
+
+`memory_bridge` is the iterative-retrieval surface. Callers enable it with
+`answerWithRetrieval(..., { iterativeRetrieval: true })`; the default preserves
+the historical retrieval instructions and six-tool wire exactly. Once enabled,
+the tool accepts calls only after at least one canonical evidence ID has already
+been returned in the same answer. The provider supplies that anchor ID plus
+2–4 distinct natural-language probes generated from the question and raw
+anchor text; the host does not
+predefine a relation taxonomy or guess the missing answer. The first probe is
+the primary reranker query, every probe contributes a local ranked surface,
+and—when semantic retrieval is configured—all query embeddings are requested
+in one batch and the vector bank is scanned once. Results are fused,
+deduplicated, read from the canonical journal, and optionally reranked once.
+The complete batch consumes one retrieval-budget call. Its output includes the
+updated immutable `retrievalFrontier`, so the provider can see whether the
+round found new raw evidence or reached stagnation. It never writes memory.
 
 An optional provider-neutral second stage can rerank the bounded RRF pool:
 
@@ -800,10 +821,10 @@ evidence. The frontier is discarded after the answer and always reports
 The provider callback `markRetrievalAnchors(evidenceIds)` adds an ephemeral
 navigation anchor only after that canonical evidence ID has been returned in
 the same answer session. Unknown or provider-invented IDs fail closed. This
-contract prepares iterative bridge retrieval without predefining what
-relations, attributes, or categories are important at write time; it does not
-yet generate bridge queries, rerank candidates from anchors, or reinforce
-durable graph edges.
+contract and `memory_bridge` implement iterative search without predefining
+what relations, attributes, or categories are important at write time. The
+provider still authors the temporary probes; Palari does not yet condition the
+reranker on anchor text or reinforce durable graph edges.
 
 `result.retrievalPlan` is either null or the one immutable session plan with
 exact fields `anchor_event`, `relation`, `category`, and `time_range`.
@@ -867,7 +888,8 @@ requires a new preregistered identity, cap, and founder authorization.
 ### Host-computed question-relative time
 
 When `answerWithRetrieval` receives a valid `questionDate`, every answer-facing
-canonical row returned by `memory_find`, `memory_read`, or `memory_search`
+canonical row returned by `memory_find`, `memory_read`, `memory_search`, or
+`memory_bridge`
 contains a copied `questionRelativeTime` block. Admitted graph edges receive
 the same block because their `observedAt` is also host-recorded:
 
@@ -1018,10 +1040,17 @@ plus `similarity`. Vectors are derived data in the same SQLite file
 deletion. Without an embedder the surface throws — nothing dials out and
 nothing pretends.
 
+`await brain.exploreSemanticBatch(scope, { phrases, limit })` returns one
+canonical ranking per phrase. It accepts at most 16 phrases, embeds all query
+phrases in one provider/local-model call, and scans the visible vector bank
+once. This is the query-time primitive used by `memory_bridge`; incremental
+indexing may still require its own bounded embedding batches when canonical
+rows have not yet been indexed.
+
 `brain.retrievalCapabilities.semantic` tells an answer orchestrator whether
 the optional semantic surface is configured. `answerWithRetrieval` uses that
-host-derived capability to decide whether `memory_search` runs one or two
-ranking surfaces.
+host-derived capability to decide whether `memory_search` and `memory_bridge`
+run semantic ranking surfaces.
 
 `brain.retrievalCapabilities.reranking` independently reports whether the
 optional cross-encoder stage is configured. Embedding and reranking are

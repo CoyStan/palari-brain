@@ -172,8 +172,9 @@ Omitting attribution preserves the pre-attribution output shapes. Reusing one
 `sourceMessageId` with a different author conflicts just like changing its
 message bytes or timestamp.
 
-Find, read, semantic, hybrid `memory_search`, graph, briefing, and forget
-residual rows return `authorId` when their canonical evidence has one. An
+Find, read, semantic, hybrid `memory_search`, batched `memory_bridge`, graph,
+briefing, and forget residual rows return `authorId` when their canonical
+evidence has one. An
 attributed timeline session has `participants` entries shaped as
 `{ speaker, authorId, messages }`. The graph extractor and statement
 extractor never receive `authorId`; graph results recover it host-side from

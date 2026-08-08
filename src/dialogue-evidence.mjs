@@ -12,7 +12,10 @@ import {
   collectForgetCandidates,
   residualMentions,
 } from './memory-forget.mjs'
-import { semanticFindEvidence } from './memory-semantic.mjs'
+import {
+  semanticFindEvidence,
+  semanticFindEvidenceBatch,
+} from './memory-semantic.mjs'
 import { extractGraph, graphFind } from './memory-graph.mjs'
 import { statementQuoteOrigins } from './statement-extraction.mjs'
 
@@ -20,6 +23,20 @@ export const dialogueSourceKinds = Object.freeze([
   'user_message',
   'assistant_message',
 ])
+
+function semanticEvidenceRow(row) {
+  return {
+    ...(row.author_id === undefined || row.author_id === null
+      ? {}
+      : { authorId: String(row.author_id) }),
+    evidenceId: String(row.id),
+    observedAt: String(row.event_at),
+    session: String(row.source_message_id).split(':')[0],
+    similarity: row.similarity,
+    speaker: row.source_kind === 'user_message' ? 'user' : 'Palari',
+    text: String(row.content),
+  }
+}
 
 function isWellFormedText(value) {
   for (let index = 0; index < value.length; index += 1) {
@@ -1446,17 +1463,47 @@ export function createDialogueGate(store, {
         query: { phrase: String(options.phrase ?? '') },
         userId: scoped.userId,
       })
-      return rows.map((row) => ({
-        ...(row.author_id === undefined || row.author_id === null
-          ? {}
-          : { authorId: String(row.author_id) }),
-        evidenceId: String(row.id),
-        observedAt: String(row.event_at),
-        session: String(row.source_message_id).split(':')[0],
-        similarity: row.similarity,
-        speaker: row.source_kind === 'user_message' ? 'user' : 'Palari',
-        text: String(row.content),
-      }))
+      return rows.map(semanticEvidenceRow)
+    },
+    // Bridge retrieval evaluates several model-generated probes together.
+    // Query embeddings are requested in one batch and the visible vector bank
+    // is scanned once; every hit remains a canonical journal row.
+    exploreSemanticBatch: async (scope, options = {}) => {
+      if (typeof embedder !== 'function') {
+        throw new TypeError(
+          'Semantic exploration requires the brain to be created with an ' +
+          'embedder option.',
+        )
+      }
+      const scoped = normalizedScope(scope)
+      const phrases = Array.isArray(options.phrases)
+        ? options.phrases.map((phrase) => String(phrase ?? ''))
+        : options.phrases
+      const batches = await semanticFindEvidenceBatch(store.db, {
+        embed: embedder,
+        limit: options.limit,
+        phrases,
+        scope: scoped,
+        visibleStatementsSql,
+      })
+      const consulted = []
+      const seen = new Set()
+      for (const rows of batches) {
+        for (const row of rows) {
+          const evidenceId = String(row.id)
+          if (seen.has(evidenceId)) continue
+          seen.add(evidenceId)
+          consulted.push(evidenceId)
+        }
+      }
+      auditLog?.({
+        consulted,
+        operation: 'memory_semantic_batch',
+        palariId: scoped.palariId,
+        query: { phrases },
+        userId: scoped.userId,
+      })
+      return batches.map((rows) => rows.map(semanticEvidenceRow))
     },
     listBlockedReductions: digest.listBlocked,
     listPendingReductions: digest.listPending,

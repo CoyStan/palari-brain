@@ -11,6 +11,7 @@ import {
   MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
   MEMORY_EXPLORATION_INSTRUCTIONS,
   MEMORY_RETRIEVAL_INSTRUCTIONS,
+  MEMORY_ITERATIVE_RETRIEVAL_TOOLS,
   MEMORY_RETRIEVAL_TOOLS,
   answerWithRetrieval,
   createPalariBrain,
@@ -1754,6 +1755,18 @@ test('retrieval tools are provider-neutral, bounded, and additive', () => {
     tool.name === 'memory_search')
   assert.deepEqual(search.parameters.required, ['phrase'])
   assert.equal(search.parameters.properties.phrase.maxLength, 500)
+  const bridge = MEMORY_ITERATIVE_RETRIEVAL_TOOLS.find((tool) =>
+    tool.name === 'memory_bridge')
+  assert.deepEqual(bridge.parameters.required, [
+    'anchorEvidenceIds',
+    'probes',
+  ])
+  assert.equal(bridge.parameters.properties.probes.minItems, 2)
+  assert.equal(bridge.parameters.properties.probes.maxItems, 4)
+  assert.equal(
+    MEMORY_ITERATIVE_RETRIEVAL_TOOLS.length,
+    MEMORY_RETRIEVAL_TOOLS.length + 1,
+  )
   const graph = MEMORY_RETRIEVAL_TOOLS.find((tool) =>
     tool.name === 'memory_graph')
   assert.equal(graph.parameters.properties.hops.maximum, 3)

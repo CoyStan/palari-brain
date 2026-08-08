@@ -108,6 +108,26 @@ test('semantic results are deterministic and incremental', async (t) => {
   assert.match(first[0].text, /wifi password/)
 })
 
+test('semantic batch embeds all probes together and returns one ranking each',
+  async (t) => {
+    const calls = []
+    const brain = await openBrain(t, async (texts) => {
+      calls.push([...texts])
+      return fakeEmbed(texts)
+    })
+    await seed(brain)
+    const phrases = [
+      'how do I get into my flat',
+      'how do I get online at the lake house',
+    ]
+    const batches = await brain.exploreSemanticBatch(SCOPE, { phrases })
+
+    assert.equal(batches.length, phrases.length)
+    assert.match(batches[0][0].text, /spare key/)
+    assert.match(batches[1][0].text, /wifi password/)
+    assert.deepEqual(calls.at(-1), phrases)
+  })
+
 test('semantic search stays inside the caller scope', async (t) => {
   const brain = await openBrain(t)
   await seed(brain)
@@ -137,6 +157,12 @@ test('without an embedder the surface refuses instead of pretending',
     await seed(brain)
     await assert.rejects(
       brain.exploreSemantic(SCOPE, { phrase: 'anything' }),
+      /requires the brain to be created with an embedder/,
+    )
+    await assert.rejects(
+      brain.exploreSemanticBatch(SCOPE, {
+        phrases: ['anything', 'something else'],
+      }),
       /requires the brain to be created with an embedder/,
     )
   })

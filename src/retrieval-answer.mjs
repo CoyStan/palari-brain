@@ -47,6 +47,12 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
 export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
   'palari-retrieval-frontier/v1'
 export const MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS = 2
+export const MEMORY_BRIDGE_LIMITS = Object.freeze({
+  maxAnchors: 4,
+  maxProbeChars: 300,
+  maxProbes: 4,
+  minProbes: 2,
+})
 export const MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS = [
   'This question requires exhaustive answer composition from returned evidence.',
   'Before writing final prose, enumerate every distinct candidate unit supported by direct canonical evidence.',
@@ -77,6 +83,15 @@ const RETRIEVAL_PLAN_MONTH_DAYS = Object.freeze([
   31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
 ])
 const RETRIEVAL_FRONTIER_WHITESPACE = /\s+/gu
+const MEMORY_BRIDGE_INPUT_FIELDS = Object.freeze({
+  after: true,
+  anchorEvidenceIds: true,
+  before: true,
+  limit: true,
+  maxChars: true,
+  probes: true,
+})
+const MEMORY_BRIDGE_TIME_FIELDS = Object.freeze(['after', 'before'])
 
 export const MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS = [
   'Memory retrieval is complete. Do not call another memory tool.',
@@ -661,6 +676,28 @@ function frontierAttemptKey(tool, input) {
       arrayPush(parts, `evidenceIds=${arrayJoin(normalizedIds, ',')}`)
     }
   }
+  const anchorEvidenceIds = input?.anchorEvidenceIds
+  if (arrayIsArray(anchorEvidenceIds)) {
+    const normalizedIds = []
+    for (let index = 0; index < anchorEvidenceIds.length; index += 1) {
+      const id = stringTrim(stringFrom(anchorEvidenceIds[index] ?? ''))
+      if (id) arrayPush(normalizedIds, id)
+    }
+    if (normalizedIds.length) {
+      arrayPush(parts, `anchorEvidenceIds=${arrayJoin(normalizedIds, ',')}`)
+    }
+  }
+  const probes = input?.probes
+  if (arrayIsArray(probes)) {
+    const normalizedProbes = []
+    for (let index = 0; index < probes.length; index += 1) {
+      const probe = frontierText(probes[index])
+      if (probe) arrayPush(normalizedProbes, probe)
+    }
+    if (normalizedProbes.length) {
+      arrayPush(parts, `probes=${arrayJoin(normalizedProbes, '\u001f')}`)
+    }
+  }
   return arrayJoin(parts, '|')
 }
 
@@ -839,6 +876,154 @@ function searchPhrase(value) {
   return phrase
 }
 
+function memoryBridgeError(message) {
+  const error = new TypeError(message)
+  error.code = 'MEMORY_BRIDGE_INPUT_INVALID'
+  return error
+}
+
+function bridgeDataArray(value, label, minimum, maximum) {
+  if (!arrayIsArray(value) || objectGetPrototypeOf(value) !== arrayPrototype ||
+    value.length < minimum || value.length > maximum) {
+    throw memoryBridgeError(
+      `${label} must contain ${minimum} to ${maximum} items.`,
+    )
+  }
+  const keys = reflectOwnKeys(value)
+  if (keys.length !== value.length + 1 || !objectHasOwn(value, 'length')) {
+    throw memoryBridgeError(`${label} must be a dense data array.`)
+  }
+  const items = []
+  for (let index = 0; index < value.length; index += 1) {
+    const descriptor = objectGetOwnPropertyDescriptor(value, stringFrom(index))
+    if (!descriptor || !objectHasOwn(descriptor, 'value') ||
+      descriptor.enumerable !== true) {
+      throw memoryBridgeError(`${label} must be a dense data array.`)
+    }
+    arrayPush(items, descriptor.value)
+  }
+  return items
+}
+
+function normalizeMemoryBridgeInput(value) {
+  if (!plainObject(value)) {
+    throw memoryBridgeError('memory_bridge input must be a plain data object.')
+  }
+  const keys = reflectOwnKeys(value)
+  const input = {}
+  for (let index = 0; index < keys.length; index += 1) {
+    const key = keys[index]
+    if (typeof key !== 'string' ||
+      !objectHasOwn(MEMORY_BRIDGE_INPUT_FIELDS, key)) {
+      throw memoryBridgeError('memory_bridge input has unsupported fields.')
+    }
+    const descriptor = objectGetOwnPropertyDescriptor(value, key)
+    if (!descriptor || !objectHasOwn(descriptor, 'value') ||
+      descriptor.enumerable !== true) {
+      throw memoryBridgeError(
+        `memory_bridge ${key} must be an enumerable data property.`,
+      )
+    }
+    input[key] = descriptor.value
+  }
+
+  const rawAnchors = bridgeDataArray(
+    input.anchorEvidenceIds,
+    'memory_bridge anchorEvidenceIds',
+    1,
+    MEMORY_BRIDGE_LIMITS.maxAnchors,
+  )
+  const anchors = []
+  const anchorSeen = new setConstructor()
+  for (let index = 0; index < rawAnchors.length; index += 1) {
+    if (typeof rawAnchors[index] !== 'string') {
+      throw memoryBridgeError(
+        'memory_bridge anchors must be returned evidence ID strings.',
+      )
+    }
+    const anchor = stringTrim(rawAnchors[index])
+    if (!anchor || anchor.length > 500 || setHas(anchorSeen, anchor)) {
+      throw memoryBridgeError(
+        'memory_bridge anchors must be unique returned evidence IDs.',
+      )
+    }
+    setAdd(anchorSeen, anchor)
+    arrayPush(anchors, anchor)
+  }
+
+  const rawProbes = bridgeDataArray(
+    input.probes,
+    'memory_bridge probes',
+    MEMORY_BRIDGE_LIMITS.minProbes,
+    MEMORY_BRIDGE_LIMITS.maxProbes,
+  )
+  const probes = []
+  const probeSeen = new setConstructor()
+  for (let index = 0; index < rawProbes.length; index += 1) {
+    if (typeof rawProbes[index] !== 'string') {
+      throw memoryBridgeError('memory_bridge probes must be strings.')
+    }
+    const probe = stringReplace(
+      stringTrim(rawProbes[index]),
+      RETRIEVAL_FRONTIER_WHITESPACE,
+      ' ',
+    )
+    const identity = frontierText(probe)
+    if (!identity || probe.length > MEMORY_BRIDGE_LIMITS.maxProbeChars ||
+      setHas(probeSeen, identity)) {
+      throw memoryBridgeError(
+        `memory_bridge probes must be unique non-empty strings of at most ` +
+          `${MEMORY_BRIDGE_LIMITS.maxProbeChars} characters.`,
+      )
+    }
+    setAdd(probeSeen, identity)
+    arrayPush(probes, probe)
+  }
+
+  const normalized = { anchorEvidenceIds: anchors, probes }
+  for (let index = 0; index < MEMORY_BRIDGE_TIME_FIELDS.length; index += 1) {
+    const field = MEMORY_BRIDGE_TIME_FIELDS[index]
+    if (input[field] === undefined || input[field] === null ||
+      input[field] === '') continue
+    if (typeof input[field] !== 'string' || input[field].length > 100) {
+      throw memoryBridgeError(
+        `memory_bridge ${field} must be an ISO-8601 string when provided.`,
+      )
+    }
+    try {
+      normalized[field] = retrievalPlanInstant(
+        input[field],
+        `memory_bridge ${field}`,
+      )
+    } catch {
+      throw memoryBridgeError(
+        `memory_bridge ${field} must be an ISO-8601 string when provided.`,
+      )
+    }
+  }
+  if (input.limit !== undefined && input.limit !== null) {
+    if (!numberIsSafeInteger(input.limit) || input.limit < 1 ||
+      input.limit > MAX_HYBRID_LIMIT) {
+      throw memoryBridgeError(
+        `memory_bridge limit must be an integer from 1 to ` +
+          `${MAX_HYBRID_LIMIT}.`,
+      )
+    }
+    normalized.limit = input.limit
+  }
+  if (input.maxChars !== undefined && input.maxChars !== null) {
+    if (!numberIsSafeInteger(input.maxChars) || input.maxChars < 1 ||
+      input.maxChars > MAX_HYBRID_MAX_CHARS) {
+      throw memoryBridgeError(
+        `memory_bridge maxChars must be an integer from 1 to ` +
+          `${MAX_HYBRID_MAX_CHARS}.`,
+      )
+    }
+    normalized.maxChars = input.maxChars
+  }
+  return normalized
+}
+
 // The ranked explorer has a deliberately small query contract. Preserve both
 // ends of a longer natural-language question: subjects tend to occur near the
 // beginning and the requested distinction near the end.
@@ -961,12 +1146,87 @@ const GRAPH_TOOL = deepFreeze({
   },
 })
 
+export const MEMORY_BRIDGE_TOOL = deepFreeze({
+  description: [
+    'Search for missing relational evidence after another memory result provides a plausible anchor.',
+    'Supply 2 to 4 diverse natural-language probes generated from the question and returned raw anchor text; do not guess the missing answer term.',
+    'The host batches semantic probes when configured, adds local ranked probes, fuses and deduplicates their canonical messages, and runs the reranker at most once.',
+    'This consumes one retrieval call and never writes memory.',
+  ].join(' '),
+  name: 'memory_bridge',
+  parameters: {
+    additionalProperties: false,
+    properties: {
+      after: {
+        description:
+          'Only messages observed at or after this ISO-8601 UTC time.',
+        type: 'string',
+      },
+      anchorEvidenceIds: {
+        description:
+          'Canonical evidence IDs already returned in this answer that motivate the probes.',
+        items: { maxLength: 500, minLength: 1, type: 'string' },
+        maxItems: MEMORY_BRIDGE_LIMITS.maxAnchors,
+        minItems: 1,
+        type: 'array',
+        uniqueItems: true,
+      },
+      before: {
+        description:
+          'Only messages observed at or before this ISO-8601 UTC time.',
+        type: 'string',
+      },
+      limit: {
+        description: 'Maximum deduplicated canonical messages to return.',
+        maximum: MAX_HYBRID_LIMIT,
+        minimum: 1,
+        type: 'integer',
+      },
+      maxChars: {
+        description:
+          'Maximum approximate returned-message characters. A complete message is never cut.',
+        maximum: MAX_HYBRID_MAX_CHARS,
+        minimum: 1,
+        type: 'integer',
+      },
+      probes: {
+        description: [
+          'Ordered, on-the-fly retrieval probes.',
+          'Make the first a broad semantic bridge and the rest complementary relational or lexical formulations.',
+        ].join(' '),
+        items: {
+          maxLength: MEMORY_BRIDGE_LIMITS.maxProbeChars,
+          minLength: 1,
+          type: 'string',
+        },
+        maxItems: MEMORY_BRIDGE_LIMITS.maxProbes,
+        minItems: MEMORY_BRIDGE_LIMITS.minProbes,
+        type: 'array',
+        uniqueItems: true,
+      },
+    },
+    required: ['anchorEvidenceIds', 'probes'],
+    type: 'object',
+  },
+})
+
 export const MEMORY_RETRIEVAL_TOOLS = deepFreeze([
   ...MEMORY_EXPLORATION_TOOLS,
   MEMORY_RETRIEVAL_PLAN_TOOL,
   HYBRID_TOOL,
   GRAPH_TOOL,
 ])
+
+export const MEMORY_ITERATIVE_RETRIEVAL_TOOLS = deepFreeze([
+  ...MEMORY_RETRIEVAL_TOOLS,
+  MEMORY_BRIDGE_TOOL,
+])
+
+export const MEMORY_BRIDGE_INSTRUCTIONS = [
+  'When a returned raw memory gives a plausible anchor but the linked, earlier, later, or otherwise related fact is still missing, use memory_bridge.',
+  'Generate 2 to 4 diverse probes from the question and the anchor text itself; do not guess the missing answer term.',
+  'Inspect its retrievalFrontier and stop reformulating after it reports stagnation.',
+].join(' ')
 
 export const MEMORY_RETRIEVAL_INSTRUCTIONS = [
   MEMORY_EXPLORATION_INSTRUCTIONS,
@@ -1075,6 +1335,7 @@ async function hybridSearch(
   input = {},
   referenceTime = null,
   supplementalRankedQueries = [],
+  semanticProbeQueries = [],
 ) {
   const phrase = searchPhrase(input.phrase)
   const limit = boundedInteger(
@@ -1142,12 +1403,34 @@ async function hybridSearch(
     })
   }
   let semantic = []
+  const semanticProbeResults = []
   if (capabilities.semantic) {
-    semantic = (await brain.exploreSemantic(scope, {
-      limit: candidateLimit,
-      phrase,
-    })).filter((row) => withinBounds(row, after, before))
-    rankings.push({ rows: semantic, surface: 'semantic' })
+    if (semanticProbeQueries.length > 0 &&
+      typeof brain.exploreSemanticBatch === 'function') {
+      const batches = await brain.exploreSemanticBatch(scope, {
+        limit: candidateLimit,
+        phrases: semanticProbeQueries.map((query) => query.phrase),
+      })
+      for (let index = 0; index < batches.length; index += 1) {
+        const rows = batches[index]
+          .filter((row) => withinBounds(row, after, before))
+        const query = semanticProbeQueries[index]
+        const surface = `semantic:${stringFrom(query.surface ?? index + 1)}`
+        rankings.push({ rows, surface })
+        semantic.push(...rows)
+        semanticProbeResults.push({
+          candidates: rows.length,
+          phrase: query.phrase,
+          surface,
+        })
+      }
+    } else {
+      semantic = (await brain.exploreSemantic(scope, {
+        limit: candidateLimit,
+        phrase,
+      })).filter((row) => withinBounds(row, after, before))
+      rankings.push({ rows: semantic, surface: 'semantic' })
+    }
   }
 
   const fused = reciprocalRankFuse(rankings, {
@@ -1249,6 +1532,9 @@ async function hybridSearch(
     rerankCandidates: capabilities.reranking ? candidates.length : 0,
     reranked: capabilities.reranking,
     semanticCandidates: semantic.length,
+    ...(semanticProbeResults.length
+      ? { semanticProbeQueries: semanticProbeResults }
+      : {}),
     semanticUsed: capabilities.semantic,
     supplementalRankedCandidates,
     supplementalRankedQueries: supplementalQueries,
@@ -1263,6 +1549,7 @@ export async function answerWithRetrieval(brain, {
   additionalInstructions = '',
   compositionMode = 'standard',
   expandPlannedSearches = false,
+  iterativeRetrieval = false,
   maxChars = 100_000,
   maxRetrievalCalls = DEFAULT_RETRIEVAL_CALLS,
   palariId,
@@ -1297,6 +1584,9 @@ export async function answerWithRetrieval(brain, {
   if (typeof expandPlannedSearches !== 'boolean') {
     throw new TypeError('expandPlannedSearches must be boolean.')
   }
+  if (typeof iterativeRetrieval !== 'boolean') {
+    throw new TypeError('iterativeRetrieval must be boolean.')
+  }
   const resolvedCompositionMode = resolveMemoryAnswerCompositionMode(
     question,
     compositionMode,
@@ -1307,6 +1597,7 @@ export async function answerWithRetrieval(brain, {
     : ''
   const answerInstructions = [
     MEMORY_RETRIEVAL_INSTRUCTIONS,
+    iterativeRetrieval ? MEMORY_BRIDGE_INSTRUCTIONS : '',
     enumerationInstructions,
     additionalInstructions.trim(),
   ].filter(Boolean).join('\n\n')
@@ -1321,6 +1612,7 @@ export async function answerWithRetrieval(brain, {
   const evidenceRegistry = new Map()
   let evidenceCount = 0
   const transcript = []
+  const frontier = createEphemeralRetrievalFrontier(budget)
   const referenceTime = questionReferenceTime(questionDate)
 
   const registerEvidence = (result) => {
@@ -1689,6 +1981,53 @@ export async function answerWithRetrieval(brain, {
       }
     : input
   const tools = {
+    async memory_bridge(input) {
+      const normalized = normalizeMemoryBridgeInput(input)
+      frontier.markAnchors(normalized.anchorEvidenceIds)
+      const supplementalRankedQueries = []
+      const semanticProbeQueries = []
+      for (let index = 0; index < normalized.probes.length; index += 1) {
+        const surface = `bridge-${index + 1}`
+        arrayPush(semanticProbeQueries, {
+          phrase: normalized.probes[index],
+          surface,
+        })
+        if (index > 0) {
+          arrayPush(supplementalRankedQueries, {
+            phrase: normalized.probes[index],
+            surface,
+          })
+        }
+      }
+      const searchInput = applyTrustedTimeRange({
+        ...(normalized.after ? { after: normalized.after } : {}),
+        ...(normalized.before ? { before: normalized.before } : {}),
+        ...(normalized.limit ? { limit: normalized.limit } : {}),
+        ...(normalized.maxChars ? { maxChars: normalized.maxChars } : {}),
+        phrase: normalized.probes[0],
+      })
+      const result = await hybridSearch(
+        brain,
+        scope,
+        capabilities,
+        searchInput,
+        referenceTime,
+        supplementalRankedQueries,
+        semanticProbeQueries,
+      )
+      consultRows(result.matches)
+      return registerEvidence({
+        ...result,
+        anchorEvidenceIds: normalized.anchorEvidenceIds,
+        operation: 'memory_bridge',
+        primaryProbe: normalized.probes[0],
+        probeCount: normalized.probes.length,
+        probes: normalized.probes,
+        ...(trustedTimeRange
+          ? { effectiveTimeRange: trustedTimeRange }
+          : {}),
+      })
+    },
     memory_find(input) {
       const found = brain.exploreFind(scope, applyTrustedTimeRange(input))
       consultRows(found.matches)
@@ -1771,7 +2110,6 @@ export async function answerWithRetrieval(brain, {
   }
 
   const briefing = recallMemory(brain, scope, { maxChars })
-  const frontier = createEphemeralRetrievalFrontier(budget)
   let calls = 0
   let exhausted = false
   let retrievalOpen = true
@@ -1784,6 +2122,9 @@ export async function answerWithRetrieval(brain, {
       const name = stringFrom(request?.tool ?? '')
       if (!objectHasOwn(tools, name)) {
         throw new TypeError(`Unknown memory tool: ${name}`)
+      }
+      if (name === 'memory_bridge' && !iterativeRetrieval) {
+        throw new TypeError('Unknown memory tool: memory_bridge')
       }
       const planning = name === MEMORY_RETRIEVAL_PLAN_TOOL_NAME
       if (!planning && calls >= budget) {
@@ -1799,8 +2140,16 @@ export async function answerWithRetrieval(brain, {
       }
       if (!planning) calls += 1
       const input = request?.input ?? {}
-      const result = await tools[name](input)
-      if (!planning) frontier.record({ input, result, tool: name })
+      let result = await tools[name](input)
+      if (!planning) {
+        frontier.record({ input, result, tool: name })
+        if (name === 'memory_bridge') {
+          result = deepFreeze({
+            ...result,
+            retrievalFrontier: frontier.snapshot({ retrievalOpen }),
+          })
+        }
+      }
       arrayPush(transcript, { input, result, tool: name })
       return result
     })()
@@ -1856,7 +2205,9 @@ export async function answerWithRetrieval(brain, {
       retrievalFinalizationInstructions:
         MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
       retrievalFrontier: () => frontier.snapshot({ retrievalOpen }),
-      retrievalTools: MEMORY_RETRIEVAL_TOOLS,
+      retrievalTools: iterativeRetrieval
+        ? MEMORY_ITERATIVE_RETRIEVAL_TOOLS
+        : MEMORY_RETRIEVAL_TOOLS,
       commitAnswer,
       retrieve,
       systemInstruction: memoryAnswerSystemInstruction,
