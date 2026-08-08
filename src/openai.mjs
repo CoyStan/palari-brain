@@ -33,10 +33,6 @@ import {
   MEMORY_ANSWER_MAX_ENUMERATION_LABEL_CHARS,
   MEMORY_ANSWER_MAX_ENUMERATION_REASON_CHARS,
   MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS,
-  MEMORY_ANSWER_MAX_RECOMMENDATION_CLARIFICATION_CHARS,
-  MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS,
-  MEMORY_ANSWER_MAX_RECOMMENDATION_PROPOSAL_CHARS,
-  MEMORY_ANSWER_MAX_RECOMMENDATION_VERIFICATION_CHARS,
   MEMORY_ANSWER_RECOMMENDATION_INSTRUCTIONS,
   MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
   MEMORY_ANSWER_MAX_BASES,
@@ -619,69 +615,36 @@ const OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL = deepFreeze({
   },
 })
 
-const OPENAI_ANSWER_RECOMMENDATION_COMMIT_TOOL = deepFreeze({
-  ...clone(OPENAI_ANSWER_COMMIT_TOOL),
+const OPENAI_ANSWER_SUPPORTED_COMMIT_TOOL = deepFreeze({
   description: [
-    OPENAI_ANSWER_COMMIT_TOOL.description,
+    'Commit one final answer after memory evidence was returned.',
+    'Write the complete user-facing recommendation once in text.',
+    'supportingEvidenceIds may contain only evidence IDs returned in this answer session that materially support the answer.',
+    'Use abstained true with no supporting evidence IDs when returned memory cannot support a recommendation.',
     MEMORY_ANSWER_RECOMMENDATION_INSTRUCTIONS,
   ].join(' '),
+  name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
   parameters: {
-    ...clone(OPENAI_ANSWER_COMMIT_TOOL.parameters),
+    additionalProperties: false,
     properties: {
-      ...clone(OPENAI_ANSWER_COMMIT_TOOL.parameters.properties),
-      recommendation: {
-        additionalProperties: false,
-        properties: {
-          items: {
-            items: {
-              additionalProperties: false,
-              properties: {
-                proposal: {
-                  maxLength: MEMORY_ANSWER_MAX_RECOMMENDATION_PROPOSAL_CHARS,
-                  minLength: 1,
-                  type: 'string',
-                },
-                evidenceIds: {
-                  items: { maxLength: 500, minLength: 1, type: 'string' },
-                  maxItems: MEMORY_ANSWER_MAX_BASES,
-                  minItems: 1,
-                  type: 'array',
-                },
-                requiresExternalVerification: { type: 'boolean' },
-                verificationNote: {
-                  maxLength: MEMORY_ANSWER_MAX_RECOMMENDATION_VERIFICATION_CHARS,
-                  type: 'string',
-                },
-              },
-              required: [
-                'proposal',
-                'evidenceIds',
-                'requiresExternalVerification',
-                'verificationNote',
-              ],
-              type: 'object',
-            },
-            maxItems: MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS,
-            minItems: 0,
-            type: 'array',
-          },
-          clarificationQuestion: {
-            maxLength: MEMORY_ANSWER_MAX_RECOMMENDATION_CLARIFICATION_CHARS,
-            type: 'string',
-          },
-        },
-        required: ['items', 'clarificationQuestion'],
-        type: 'object',
+      abstained: { type: 'boolean' },
+      supportingEvidenceIds: {
+        items: { maxLength: 500, minLength: 1, type: 'string' },
+        maxItems: MEMORY_ANSWER_MAX_BASES,
+        minItems: 0,
+        type: 'array',
+      },
+      text: {
+        maxLength: MEMORY_ANSWER_MAX_TEXT_CHARS,
+        minLength: 1,
+        type: 'string',
       },
     },
-    required: [
-      'abstained',
-      'bases',
-      'temporaryInferences',
-      'text',
-      'recommendation',
-    ],
+    required: ['abstained', 'supportingEvidenceIds', 'text'],
+    type: 'object',
   },
+  strict: true,
+  type: 'function',
 })
 
 const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
@@ -693,14 +656,23 @@ const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
   'No memory tool is available during this repair.',
 ].join(' ')
 
+const ANSWER_SUPPORTED_COMMIT_REPAIR_INSTRUCTIONS = [
+  'Return the final answer only by calling palari_answer_commit.',
+  'Write the complete user-facing recommendation once in text.',
+  'For a non-abstaining answer, cite one or more unique supportingEvidenceIds returned in this answer session.',
+  'For an abstaining answer, cite no supportingEvidenceIds.',
+  'Do not copy quotes or create a second structured proposal surface.',
+  'No memory tool is available during this repair.',
+].join(' ')
+
 function answerCommitTool({
   enumerationRequired = false,
-  recommendationRequired = false,
+  supportingEvidenceOnly = false,
 } = {}) {
   return clone(enumerationRequired
     ? OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL
-    : recommendationRequired
-      ? OPENAI_ANSWER_RECOMMENDATION_COMMIT_TOOL
+    : supportingEvidenceOnly
+      ? OPENAI_ANSWER_SUPPORTED_COMMIT_TOOL
       : OPENAI_ANSWER_COMMIT_TOOL)
 }
 
@@ -780,16 +752,16 @@ export function createOpenAIRetrievalProvider({
     }
     const memoryTools = buildOpenAIFunctionTools(session.retrievalTools)
     const enumerationRequired = session.answerEnumerationRequired === true
-    const recommendationRequired =
-      session.answerRecommendationRequired === true
-    if (enumerationRequired && recommendationRequired) {
+    const supportingEvidenceOnly =
+      session.answerSupportingEvidenceOnly === true
+    if (enumerationRequired && supportingEvidenceOnly) {
       throw new TypeError(
-        'An answer session cannot require enumeration and recommendation commitments together.',
+        'An answer session cannot require enumeration and supporting-evidence-only commitments together.',
       )
     }
     const commitTool = answerCommitTool({
       enumerationRequired,
-      recommendationRequired,
+      supportingEvidenceOnly,
     })
     const tools = [...memoryTools, commitTool]
     const allowedNames = new Set(tools.map(({ name }) => name))
@@ -838,12 +810,16 @@ export function createOpenAIRetrievalProvider({
           finalizing
             ? finalizationInstructions(session)
             : answerInstructions(session),
-          commitOnly ? ANSWER_COMMIT_REPAIR_INSTRUCTIONS : '',
+          commitOnly
+            ? supportingEvidenceOnly
+              ? ANSWER_SUPPORTED_COMMIT_REPAIR_INSTRUCTIONS
+              : ANSWER_COMMIT_REPAIR_INSTRUCTIONS
+            : '',
           commitOnly && enumerationRequired
             ? 'The commitment must enumerate every evidence-supported candidate and its included, excluded, or ambiguous disposition with exact counts.'
             : '',
-          commitOnly && recommendationRequired
-            ? 'The commitment must contain at least one evidence-linked proposal unless it honestly abstains; clarification cannot replace every proposal.'
+          commitOnly && supportingEvidenceOnly
+            ? 'Write the recommendation once in text and cite returned supporting evidence IDs; use no duplicate proposal surface.'
             : '',
         ].filter(Boolean).join('\n\n'),
         max_output_tokens: maxOutputTokens,
@@ -1004,7 +980,7 @@ export function createOpenAIRetrievalProvider({
   })
   Object.defineProperty(provider, 'requiresRecommendationCommitment', {
     enumerable: true,
-    value: true,
+    value: false,
   })
   return provider
 }

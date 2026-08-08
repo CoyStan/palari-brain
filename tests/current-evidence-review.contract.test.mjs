@@ -285,8 +285,8 @@ test('OpenAI provider repairs an old-only current commitment once',
     )
   }))
 
-test('host renders recommendation text while one repair handles current review',
-  async (t) => withBrain(t, 'current-recommend-combined-repair', async (brain) => {
+test('recommendations leave semantic current-evidence judgment to one answer',
+  async (t) => withBrain(t, 'current-recommend-thin-host', async (brain) => {
     const scope = {
       palariId: 'palari-current-recommend-repair',
       userId: 'user-current-recommend-repair',
@@ -297,13 +297,13 @@ test('host renders recommendation text while one repair handles current review',
       { eventAt: EARLY, text: early },
       { eventAt: LATE, text: late },
     ])
-    const proposal = 'Choose a quiet restaurant with patio seating.'
-    const verificationNote =
-      'Verify the current hours and patio availability before going.'
-    const clarificationQuestion = 'Which neighborhood should I search?'
+    const answer = [
+      'Choose a quiet restaurant with patio seating.',
+      'Verify the current hours and patio availability before going.',
+      'Which neighborhood should I search?',
+    ].join(' ')
 
     const bodies = []
-    let laterEvidenceId = null
     const provider = createOpenAIRetrievalProvider({
       async invoke({ body }) {
         bodies.push(body)
@@ -335,45 +335,14 @@ test('host renders recommendation text while one repair handles current review',
           item.call_id === 'combined-search')
         const found = JSON.parse(searchOutput.output)
         const earlyRow = findText(found.matches, early)
-        const lateRow = findText(found.matches, late)
-        laterEvidenceId = lateRow.evidenceId
-        const recommendation = {
-          clarificationQuestion,
-          items: [{
-            evidenceIds: [earlyRow.evidenceId],
-            proposal,
-            requiresExternalVerification: true,
-            verificationNote,
-          }],
-        }
-        if (bodies.length === 3) {
-          return completedCall({
-            args: {
-              abstained: false,
-              bases: [used(earlyRow)],
-              recommendation,
-              temporaryInferences: [],
-              text: 'Try a suitable nearby patio and check its details. Where are you?',
-            },
-            callId: 'combined-defects',
-            name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
-          })
-        }
+        findText(found.matches, late)
         return completedCall({
           args: {
             abstained: false,
-            bases: [
-              used(earlyRow),
-              notUsed(
-                lateRow,
-                'This later note concerns lighting, not restaurant ambience.',
-              ),
-            ],
-            recommendation,
-            temporaryInferences: [],
-            text: `${proposal} ${verificationNote} ${clarificationQuestion}`,
+            supportingEvidenceIds: [earlyRow.evidenceId],
+            text: answer,
           },
-          callId: 'combined-repaired',
+          callId: 'thin-recommendation',
           name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
         })
       },
@@ -388,17 +357,11 @@ test('host renders recommendation text while one repair handles current review',
       trustedRetrievalTimeRange: { after: null, before: null },
     })
 
-    assert.equal(bodies.length, 4)
-    assert.equal(result.answerRecommendation.items[0].proposal, proposal)
-    const rejection = bodies[3].input.find((item) =>
-      item.type === 'function_call_output' &&
-      item.call_id === 'combined-defects')
-    const reason = JSON.parse(rejection.output).rejection
-    assert.match(reason, /later returned direct-user evidence/)
-    assert.match(reason, new RegExp(laterEvidenceId))
-    assert.ok(result.answer.includes(proposal))
-    assert.ok(result.answer.includes(verificationNote))
-    assert.ok(result.answer.includes(clarificationQuestion))
+    assert.equal(bodies.length, 3)
+    assert.equal(result.answer, answer)
+    assert.equal(result.answerRecommendation, null)
+    assert.equal(result.selectedEvidenceIds.length, 1)
+    assert.equal(result.currentEvidenceReview, undefined)
   }))
 
 test('later unrelated evidence may be explicitly reviewed without controlling',

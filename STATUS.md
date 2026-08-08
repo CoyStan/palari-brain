@@ -699,6 +699,23 @@ must reserve `$0` for writer and `$0.10` for lazy indexing plus answer and
 judge. Historical LongMemEval remains 6/10; this diagnostic does not regrade
 it.
 
+The founder then challenged the premise of the recommendation host boundary.
+The Miami failure was not bad retrieval or a bad recommendation: deterministic
+code was using exact string occurrence as a proxy for semantic agreement
+between two model-authored answer surfaces. The active recommendation path is
+now deliberately thinner. Luna writes the complete answer once and declares
+only the IDs of returned memories that support it. The host verifies shape,
+size, uniqueness, and membership in the current scoped answer session, then
+derives the evidence excerpts itself. It does not ask Luna to copy quotes,
+duplicate proposals, declare verification metadata, or produce prose for an
+exact-string check; it never appends or rewrites recommendation text. Semantic
+quality and external-current caveats remain model responsibilities measured by
+evaluation. `answerRecommendation` remains a null compatibility tombstone.
+This provider-free successor was not replayed live. Focused tests pass 63/63,
+including drink, exercise, reading, Miami-shaped, invalid-ID, duplicate-ID,
+unsupported-answer, abstention, and current-context controls. Quickstart passes
+6/6, and the complete legacy tier passes 901 with 3 optional skips.
+
 ## Active commands
 
 ```bash
@@ -727,17 +744,18 @@ and codename memories, and frontier v2 preserves which intermediate raw
 memories actually routed a selected answer memory. The ten-case diagnostic
 showed that the immediate product work was after retrieval. The temporal
 successor is now confirmed live on its original failure. The recommendation
-successor produced useful structured content on its original failure, and the
-fresh Miami case confirmed that dual prose/structure generation is brittle.
-Host rendering now removes that duplicated presentation requirement without
-weakening evidence or caveat validation. Do not replay either recommendation
+successor produced useful content on its original failure, and the fresh Miami
+case confirmed that dual prose/structure generation is brittle. The active
+path now removes the second recommendation surface entirely; the host retains
+only scoped returned-ID provenance checks. Do not replay either recommendation
 case. The next provider-free unit is to reproduce the fresh Tokyo path from its
 saved store and test whether a general “prior Palari answer is a navigation
 anchor; recover its surrounding direct-user context” rule reaches both Suica
 and TripIt within the existing budget. Do not make that rule affect live
 retrieval until unrelated negative controls show it does not flood context.
 Make no provider call without a new explicit founder-approved cap. Continue
-collecting distinct real relationship cases, recording bridge use, candidate rank,
+collecting distinct real relationship cases, recording bridge use, candidate
+rank,
 materially used answer evidence, routing-only lineage, audited outcome, and
 unnecessary bridge calls. Do not tune from the single ambiguous recommendation
 case or repeat the same kitchen/Firefly pair to manufacture recurrence.

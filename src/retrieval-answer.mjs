@@ -34,6 +34,8 @@ export const MEMORY_ANSWER_MAX_ENUMERATION_ITEMS = 50
 export const MEMORY_ANSWER_MAX_ENUMERATION_LABEL_CHARS = 500
 export const MEMORY_ANSWER_MAX_ENUMERATION_ACTION_CHARS = 200
 export const MEMORY_ANSWER_MAX_ENUMERATION_REASON_CHARS = 1_000
+// Deprecated compatibility exports from the removed dual recommendation
+// surface. Recommendation mode no longer consumes these limits.
 export const MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS = 10
 export const MEMORY_ANSWER_MAX_RECOMMENDATION_PROPOSAL_CHARS = 1_000
 export const MEMORY_ANSWER_MAX_RECOMMENDATION_VERIFICATION_CHARS = 1_000
@@ -74,10 +76,10 @@ export const MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS = [
 ].join(' ')
 export const MEMORY_ANSWER_RECOMMENDATION_INSTRUCTIONS = [
   'This question asks for a recommendation or suggestion grounded in returned memory.',
-  'A non-abstaining answer must include at least one concrete evidence-linked proposal; clarification may follow but cannot replace every useful proposal.',
+  'Write the recommendation once in the final answer text and cite only returned memories that materially support it.',
+  'A non-abstaining answer must make at least one concrete proposal; clarification may follow but cannot replace every useful proposal.',
   'When exact current inventory, availability, or event listings are not established by returned evidence or another authorized tool, give a safe category-level or strategy-level proposal instead of inventing a live listing.',
-  'A proposal that depends on external current availability must set requiresExternalVerification true and include an explicit verification note in the answer.',
-  'Each proposal and required verification note must appear verbatim in the final answer, and every linked evidence ID must be selected as materially used.',
+  'When a proposal depends on external current availability, state that limitation directly in the answer.',
 ].join(' ')
 export const MEMORY_RETRIEVAL_PLAN_TOOL_NAME = 'memory_plan'
 export const MEMORY_RETRIEVAL_PLAN_RELATIONS = Object.freeze([
@@ -296,16 +298,26 @@ function assertDenseDataArray(value, label) {
 
 function assertCommitmentDataShape(proposal, {
   enumerationRequired = false,
-  recommendationRequired = false,
+  supportingEvidenceOnly = false,
 } = {}) {
+  if (supportingEvidenceOnly) {
+    exactDataProperties(
+      proposal,
+      ['abstained', 'supportingEvidenceIds', 'text'],
+      'Answer commitment',
+    )
+    assertDenseDataArray(
+      proposal.supportingEvidenceIds,
+      'Answer commitment supportingEvidenceIds',
+    )
+    return
+  }
   const modern = plainObject(proposal) &&
     objectHasOwn(proposal, 'temporaryInferences')
   exactDataProperties(
     proposal,
     modern && enumerationRequired
       ? ['abstained', 'bases', 'enumeration', 'temporaryInferences', 'text']
-      : modern && recommendationRequired
-        ? ['abstained', 'bases', 'recommendation', 'temporaryInferences', 'text']
       : modern
         ? ['abstained', 'bases', 'temporaryInferences', 'text']
       : ['abstained', 'bases', 'text'],
@@ -406,29 +418,6 @@ function assertCommitmentDataShape(proposal, {
       ], `Answer commitment enumeration item ${index}`)
     }
     return
-  }
-  if (!recommendationRequired) return
-  const recommendation = proposal.recommendation
-  exactDataProperties(recommendation, [
-    'items',
-    'clarificationQuestion',
-  ], 'Answer commitment recommendation')
-  assertDenseDataArray(
-    recommendation.items,
-    'Answer commitment recommendation items',
-  )
-  for (let index = 0; index < recommendation.items.length; index += 1) {
-    const item = recommendation.items[index]
-    exactDataProperties(item, [
-      'proposal',
-      'evidenceIds',
-      'requiresExternalVerification',
-      'verificationNote',
-    ], `Answer commitment recommendation item ${index}`)
-    assertDenseDataArray(
-      item.evidenceIds,
-      `Answer commitment recommendation item ${index} evidenceIds`,
-    )
   }
 }
 
@@ -1433,6 +1422,15 @@ export const MEMORY_BRIDGE_INSTRUCTIONS = [
   'Inspect its retrievalFrontier and stop reformulating after it reports stagnation.',
 ].join(' ')
 
+const MEMORY_RETRIEVAL_DETAILED_EVIDENCE_INSTRUCTION =
+  'Select only memories you actually assessed for the answer. For each selected memory, state either its concrete consequence_for_answer or a specific not_used_reason; never both. Retrieved rows that were not selected need no commitment.'
+const MEMORY_RETRIEVAL_TEMPORARY_INFERENCE_INSTRUCTION =
+  'A consequence_for_answer is a declaration to audit, not proof of material use. Cross-context transfer must be a temporary provenance-linked inference marked revisable, never a canonical user fact.'
+const MEMORY_RETRIEVAL_SUPPORTING_EVIDENCE_INSTRUCTION =
+  'Cite only returned memories that materially support the recommendation; the commitment asks for supporting evidence IDs, not copied quotes or consequence fields.'
+const MEMORY_RETRIEVAL_EPHEMERAL_REASONING_INSTRUCTION =
+  'A model-declared evidence link is an auditable claim, not proof of material use. Answer-time reasoning never becomes canonical memory without passing the write admission gate.'
+
 export const MEMORY_RETRIEVAL_INSTRUCTIONS = [
   MEMORY_EXPLORATION_INSTRUCTIONS,
   MEMORY_RETRIEVAL_PLAN_INSTRUCTIONS,
@@ -1440,8 +1438,8 @@ export const MEMORY_RETRIEVAL_INSTRUCTIONS = [
   'Use memory_graph for relationship, correction-history, and multi-hop questions. Its edges are finding aids backed by the exact quote and evidence ID on each edge.',
   'After each memory-tool result, inspect the returned canonical messages or admitted edges themselves. If one directly addresses the question, use it or state the exact conflict or limitation that makes it unusable; do not claim no relevant memory merely because the initial briefing or digest was empty.',
   'A non-empty result does not establish relevance. If the returned records do not address the question, do not force an answer from them.',
-  'Select only memories you actually assessed for the answer. For each selected memory, state either its concrete consequence_for_answer or a specific not_used_reason; never both. Retrieved rows that were not selected need no commitment.',
-  'A consequence_for_answer is a declaration to audit, not proof of material use. Cross-context transfer must be a temporary provenance-linked inference marked revisable, never a canonical user fact.',
+  MEMORY_RETRIEVAL_DETAILED_EVIDENCE_INSTRUCTION,
+  MEMORY_RETRIEVAL_TEMPORARY_INFERENCE_INSTRUCTION,
   'Prior Palari speech may be reported as advice, a recommendation, or a commitment previously made by Palari. It must never be recast as something the user said, did, owned, or preferred.',
   'For elapsed-time answers, use the host-derived questionRelativeTime metadata on returned rows. It is authoritative arithmetic from observedAt and the question date; do not invent dates from text or approximate a calendar month as 30 days.',
   'Do not treat an empty search as proof that an event never happened. For a time-bounded absence or count, search the relevant concept inside explicit after/before bounds.',
@@ -1776,8 +1774,6 @@ export async function answerWithRetrieval(brain, {
   // weakened after canonical evidence has been returned.
   const requiresEvidenceCommitment =
     provider.requiresEvidenceCommitment === true
-  const requiresRecommendationCommitment =
-    provider.requiresRecommendationCommitment === true
   const budget = Number(maxRetrievalCalls)
   if (!numberIsSafeInteger(budget) || budget < 0 ||
     budget > DEFAULT_RETRIEVAL_CALLS) {
@@ -1803,17 +1799,27 @@ export async function answerWithRetrieval(brain, {
     compositionMode,
   )
   const enumerationRequired = resolvedCompositionMode === 'enumerate'
-  const recommendationRequired =
-    resolvedCompositionMode === 'recommend' &&
-    requiresRecommendationCommitment
+  const supportingEvidenceOnly =
+    resolvedCompositionMode === 'recommend' && requiresEvidenceCommitment
   const enumerationInstructions = enumerationRequired
     ? MEMORY_ANSWER_ENUMERATION_INSTRUCTIONS
     : ''
   const recommendationInstructions = resolvedCompositionMode === 'recommend'
     ? MEMORY_ANSWER_RECOMMENDATION_INSTRUCTIONS
     : ''
+  const retrievalInstructions = resolvedCompositionMode === 'recommend'
+    ? stringReplace(
+        stringReplace(
+          MEMORY_RETRIEVAL_INSTRUCTIONS,
+          MEMORY_RETRIEVAL_DETAILED_EVIDENCE_INSTRUCTION,
+          MEMORY_RETRIEVAL_SUPPORTING_EVIDENCE_INSTRUCTION,
+        ),
+        MEMORY_RETRIEVAL_TEMPORARY_INFERENCE_INSTRUCTION,
+        MEMORY_RETRIEVAL_EPHEMERAL_REASONING_INSTRUCTION,
+      )
+    : MEMORY_RETRIEVAL_INSTRUCTIONS
   const answerInstructions = [
-    MEMORY_RETRIEVAL_INSTRUCTIONS,
+    retrievalInstructions,
     iterativeRetrieval ? MEMORY_BRIDGE_INSTRUCTIONS : '',
     enumerationInstructions,
     recommendationInstructions,
@@ -1921,9 +1927,73 @@ export async function answerWithRetrieval(brain, {
     // never invoke provider-overridable Array methods during validation.
     assertCommitmentDataShape(proposal, {
       enumerationRequired,
-      recommendationRequired,
+      supportingEvidenceOnly,
     })
     const candidate = snapshotCommitment(proposal)
+    if (supportingEvidenceOnly) {
+      if (typeof candidate.abstained !== 'boolean') {
+        throw answerCommitmentError(
+          'Answer commitment abstained must be boolean.',
+        )
+      }
+      const text = boundedCommitmentText(
+        candidate.text,
+        'Answer commitment text',
+        MEMORY_ANSWER_MAX_TEXT_CHARS,
+        { trim: true },
+      )
+      const ids = candidate.supportingEvidenceIds
+      if (ids.length > MEMORY_ANSWER_MAX_BASES ||
+        (!candidate.abstained && ids.length < 1) ||
+        (candidate.abstained && ids.length !== 0)) {
+        throw answerCommitmentError(
+          candidate.abstained
+            ? 'An abstaining answer commitment must contain zero supporting evidence IDs.'
+            : `A non-abstaining answer commitment must contain 1 to ` +
+              `${MEMORY_ANSWER_MAX_BASES} supporting evidence IDs.`,
+        )
+      }
+      const seen = new setConstructor()
+      const bases = []
+      const evidenceCommitments = []
+      for (let index = 0; index < ids.length; index += 1) {
+        const evidenceId = boundedCommitmentText(
+          ids[index],
+          `Answer commitment supporting evidence ID ${index}`,
+          500,
+          { trim: true },
+        )
+        if (setHas(seen, evidenceId)) {
+          throw answerCommitmentError(
+            `Answer commitment supporting evidence ID ${index} is duplicated.`,
+          )
+        }
+        const sources = mapGet(evidenceRegistry, evidenceId)
+        if (!sources) {
+          throw answerCommitmentError(
+            `Answer commitment supporting evidence ID ${index} was not returned in this answer session.`,
+          )
+        }
+        setAdd(seen, evidenceId)
+        const quote = stringSlice(sources[0], 0, MEMORY_ANSWER_MAX_QUOTE_CHARS)
+        arrayPush(bases, { evidenceId, quote })
+        arrayPush(evidenceCommitments, {
+          consequence_for_answer: null,
+          evidenceId,
+          not_used_reason: null,
+          quote,
+        })
+      }
+      const committed = deepFreeze({
+        abstained: candidate.abstained,
+        bases,
+        evidenceCommitments,
+        temporaryInferences: [],
+        text,
+      })
+      weakSetAdd(committedResponses, committed)
+      return committed
+    }
     const modernKeys = enumerationRequired
       ? [
           'abstained',
@@ -1932,14 +2002,6 @@ export async function answerWithRetrieval(brain, {
           'temporaryInferences',
           'text',
         ]
-      : recommendationRequired
-        ? [
-            'abstained',
-            'bases',
-            'recommendation',
-            'temporaryInferences',
-            'text',
-          ]
       : [
           'abstained',
           'bases',
@@ -1955,7 +2017,7 @@ export async function answerWithRetrieval(brain, {
     if (typeof candidate.abstained !== 'boolean') {
       throw answerCommitmentError('Answer commitment abstained must be boolean.')
     }
-    let text = boundedCommitmentText(
+    const text = boundedCommitmentText(
       candidate.text,
       'Answer commitment text',
       MEMORY_ANSWER_MAX_TEXT_CHARS,
@@ -2254,118 +2316,6 @@ export async function answerWithRetrieval(brain, {
         referencedCount: proposed.items.length,
       }
     }
-    let recommendation = null
-    if (recommendationRequired) {
-      const proposed = candidate.recommendation
-      if (!arrayIsArray(proposed.items) ||
-        proposed.items.length > MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS ||
-        (!candidate.abstained && proposed.items.length < 1) ||
-        (candidate.abstained && proposed.items.length !== 0)) {
-        throw answerCommitmentError(
-          candidate.abstained
-            ? 'An abstaining recommendation commitment must contain zero recommendation items.'
-            : `A non-abstaining recommendation commitment must contain 1 to ` +
-              `${MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS} recommendation items.`,
-        )
-      }
-      const clarificationQuestion = boundedOptionalCommitmentText(
-        proposed.clarificationQuestion,
-        'Answer commitment recommendation clarificationQuestion',
-        MEMORY_ANSWER_MAX_RECOMMENDATION_CLARIFICATION_CHARS,
-      )
-      const surfaceAdditions = []
-      const items = []
-      const proposalSeen = new setConstructor()
-      for (let index = 0; index < proposed.items.length; index += 1) {
-        const item = proposed.items[index]
-        const proposal = boundedCommitmentText(
-          item.proposal,
-          `Answer commitment recommendation item ${index} proposal`,
-          MEMORY_ANSWER_MAX_RECOMMENDATION_PROPOSAL_CHARS,
-          { trim: true },
-        )
-        if (setHas(proposalSeen, proposal)) {
-          throw answerCommitmentError(
-            `Answer commitment recommendation item ${index} duplicates a proposal.`,
-          )
-        }
-        if (!stringIncludes(text, proposal)) {
-          arrayPush(surfaceAdditions, proposal)
-        }
-        if (!arrayIsArray(item.evidenceIds) ||
-          item.evidenceIds.length < 1 ||
-          item.evidenceIds.length > MEMORY_ANSWER_MAX_BASES) {
-          throw answerCommitmentError(
-            `Answer commitment recommendation item ${index} evidenceIds ` +
-              `must contain 1 to ${MEMORY_ANSWER_MAX_BASES} items.`,
-          )
-        }
-        const evidenceIds = []
-        const evidenceSeen = new setConstructor()
-        for (let idIndex = 0; idIndex < item.evidenceIds.length; idIndex += 1) {
-          const evidenceId = boundedCommitmentText(
-            item.evidenceIds[idIndex],
-            `Answer commitment recommendation item ${index} evidence ID ${idIndex}`,
-            500,
-            { trim: true },
-          )
-          if (setHas(evidenceSeen, evidenceId)) {
-            throw answerCommitmentError(
-              `Answer commitment recommendation item ${index} duplicates evidence.`,
-            )
-          }
-          if (!setHas(usedEvidenceIds, evidenceId)) {
-            throw answerCommitmentError(
-              `Answer commitment recommendation item ${index} must link materially used evidence.`,
-            )
-          }
-          setAdd(evidenceSeen, evidenceId)
-          arrayPush(evidenceIds, evidenceId)
-        }
-        if (typeof item.requiresExternalVerification !== 'boolean') {
-          throw answerCommitmentError(
-            `Answer commitment recommendation item ${index} ` +
-              `requiresExternalVerification must be boolean.`,
-          )
-        }
-        const verificationNote = boundedOptionalCommitmentText(
-          item.verificationNote,
-          `Answer commitment recommendation item ${index} verificationNote`,
-          MEMORY_ANSWER_MAX_RECOMMENDATION_VERIFICATION_CHARS,
-        )
-        if (item.requiresExternalVerification !== Boolean(verificationNote)) {
-          throw answerCommitmentError(
-            `Answer commitment recommendation item ${index} must include a ` +
-              `verificationNote exactly when external verification is required.`,
-          )
-        }
-        if (verificationNote && !stringIncludes(text, verificationNote)) {
-          arrayPush(surfaceAdditions, verificationNote)
-        }
-        setAdd(proposalSeen, proposal)
-        arrayPush(items, {
-          evidenceIds,
-          proposal,
-          requiresExternalVerification: item.requiresExternalVerification,
-          verificationNote,
-        })
-      }
-      if (clarificationQuestion && !stringIncludes(text, clarificationQuestion)) {
-        arrayPush(surfaceAdditions, clarificationQuestion)
-      }
-      if (surfaceAdditions.length) {
-        text = boundedCommitmentText(
-          `${text}\n\n${arrayJoin(surfaceAdditions, '\n\n')}`,
-          'Answer commitment rendered recommendation text',
-          MEMORY_ANSWER_MAX_TEXT_CHARS,
-          { trim: true },
-        )
-      }
-      recommendation = {
-        clarificationQuestion,
-        items,
-      }
-    }
     const review = currentEvidenceReview({
       assessed: seen,
       used: usedEvidenceIds,
@@ -2388,7 +2338,6 @@ export async function answerWithRetrieval(brain, {
       abstained: candidate.abstained,
       bases,
       ...(enumerationRequired ? { enumeration } : {}),
-      ...(recommendationRequired ? { recommendation } : {}),
       evidenceCommitments,
       temporaryInferences,
       text,
@@ -2635,7 +2584,8 @@ export async function answerWithRetrieval(brain, {
     response = await provider({
       answerEvidenceCount: () => evidenceCount,
       answerEnumerationRequired: enumerationRequired,
-      answerRecommendationRequired: recommendationRequired,
+      answerRecommendationRequired: false,
+      answerSupportingEvidenceOnly: supportingEvidenceOnly,
       answerInstructions,
       briefing,
       memoryText: briefing.text,
@@ -2699,9 +2649,6 @@ export async function answerWithRetrieval(brain, {
   const answerEnumeration = answerCommitted && enumerationRequired
     ? response.enumeration
     : null
-  const answerRecommendation = answerCommitted && recommendationRequired
-    ? response.recommendation
-    : null
   if (answerCommitted) {
     for (let index = 0; index < response.bases.length; index += 1) {
       const { evidenceId, quote } = response.bases[index]
@@ -2738,7 +2685,8 @@ export async function answerWithRetrieval(brain, {
     answerCommitted,
     answerCompositionMode: resolvedCompositionMode,
     answerEnumeration,
-    answerRecommendation,
+    // Compatibility tombstone for the removed dual recommendation surface.
+    answerRecommendation: null,
     answerEvidence,
     ...(acceptedCurrentEvidenceReview
       ? { currentEvidenceReview: acceptedCurrentEvidenceReview }

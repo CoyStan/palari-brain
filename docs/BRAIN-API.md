@@ -494,7 +494,7 @@ const result = await answerWithRetrieval(brain, {
   async provider({
     answerEvidenceCount,
     answerInstructions,
-    answerRecommendationRequired,
+    answerSupportingEvidenceOnly,
     commitAnswer,
     memoryText,
     maxRetrievalCalls,
@@ -528,20 +528,26 @@ const result = await answerWithRetrieval(brain, {
     // is returned, pass the final proposal through commitAnswer and return
     // that exact callback result. Each basis quote must be an exact
     // contiguous substring of the row returned under that evidenceId.
-    // When answerRecommendationRequired is true, the commitment also carries
-    // at least one evidence-linked proposal unless it honestly abstains.
+    // When answerSupportingEvidenceOnly is true, write the recommendation
+    // once in text and cite only returned IDs that materially support it.
     if (answerEvidenceCount() > 0) {
-      return commitAnswer({
-        abstained: false,
-        bases: [{
-          evidenceId: 'returned-id',
-          quote: 'exact returned quote',
-          consequence_for_answer: 'This fact changes the recommendation.',
-          not_used_reason: '',
-        }],
-        temporaryInferences: [],
-        text: '...',
-      })
+      return answerSupportingEvidenceOnly
+        ? commitAnswer({
+            abstained: false,
+            supportingEvidenceIds: ['returned-id'],
+            text: 'Write the complete recommendation once.',
+          })
+        : commitAnswer({
+            abstained: false,
+            bases: [{
+              evidenceId: 'returned-id',
+              quote: 'exact returned quote',
+              consequence_for_answer: 'This fact changes the answer.',
+              not_used_reason: '',
+            }],
+            temporaryInferences: [],
+            text: '...',
+          })
     }
     return { abstained: true, text: '...' }
   },
@@ -638,39 +644,39 @@ ephemeral answer-time completeness guard over raw evidence, not a durable fact
 schema or a claim that Palari understands arbitrary semantic equivalence.
 
 The same auto path resolves recommendation and suggestion questions to
-`compositionMode: 'recommend'` when the provider declares
-`requiresRecommendationCommitment: true`; the bundled OpenAI retrieval
-provider declares this capability. Explicit count and list forms still resolve
-to enumeration first, while explicit `compositionMode: 'standard'` preserves
-the prior wire. A non-abstaining recommendation commitment contains one or
-more items with a proposal, materially used evidence IDs, an
-`requiresExternalVerification` flag, and a verification note when that flag is
-true. Every proposal and required note must appear verbatim in the answer.
-A clarification question may follow but cannot replace every proposal. An
-honest abstention contains zero items.
+`compositionMode: 'recommend'`. Explicit count and list forms still resolve to
+enumeration first, while explicit `compositionMode: 'standard'` preserves the
+prior wire. For providers using the evidence-commitment boundary, recommendation
+mode exposes one user-facing surface:
 
-The structured recommendation is the canonical proposal surface. If an
-otherwise valid proposal, verification note, or clarification is absent from
-the provider's prose, the host appends that exact validated field to the final
-answer under the existing answer-size bound. The model therefore does not
-have to generate identical content twice. Evidence linkage, the
-external-verification declaration, honest abstention, and bounded
-current-evidence review remain fail-closed; those defects still use the single
-commitment repair when applicable.
+```js
+{
+  abstained: false,
+  supportingEvidenceIds: ['returned-id'],
+  text: 'The complete recommendation, written once.',
+}
+```
 
-This boundary proves proposal presence, answer-text presence, and provenance;
-it does not prove that a provider correctly identified every need for external
-verification. The model-facing policy therefore requires category- or
-strategy-level proposals when returned memory does not establish live
-inventory, event listings, or availability, and requires an explicit caveat
-when a proposal depends on checking those external facts.
+A non-abstaining recommendation cites one to twenty unique evidence IDs; an
+honest abstention cites none. The host checks only that each generated ID was
+actually returned inside the current scoped answer session, then derives the
+canonical evidence trace itself. It does not ask the model to copy quotes,
+duplicate a proposal in structured fields, or generate prose that passes an
+exact-string equivalence check. It never rewrites the recommendation.
 
-A cross-context inference is a separate `temporaryInferences` entry. It must
-cite selected used evidence, set `revisable: true`, state its consequence for
-this answer, and remains only in the returned answer trace. It never crosses
-the admission gate and never becomes a canonical user fact. This lets an
-answer tentatively transfer a preference between contexts without claiming the
-transfer is permanently true.
+The model-facing policy still asks for a useful concrete proposal, a safe
+category-level answer when current inventory is unknown, and an explicit
+caveat when external availability must be checked. Those are semantic model
+responsibilities measured by evaluation, not claims that deterministic host
+code can prove. The bounded current-evidence repair does not apply to this
+single-surface recommendation path; returned supporting IDs remain auditable.
+
+Outside the single-surface recommendation mode, a cross-context inference is a
+separate `temporaryInferences` entry. It must cite selected used evidence, set
+`revisable: true`, state its consequence for this answer, and remains only in
+the returned answer trace. Recommendation reasoning is already ephemeral
+because only its text and supporting returned IDs survive the answer boundary;
+neither path crosses the admission gate or becomes a canonical user fact.
 
 A valid commitment ends the answer immediately, without another generation.
 Raw text or an invalid commitment after evidence gets at most one host-guided
@@ -910,16 +916,19 @@ is the immutable `palari-current-evidence-review/v1` trace. It lists the
 bounded candidate IDs, which were explicitly assessed, the materially used
 direct-user IDs, and `durableWrites: 0`. The field is absent from default and
 historical paths.
-For a structured recommendation, `result.answerRecommendation` contains the
-host-validated items and optional clarification question. Each item links only
-materially used evidence, appears in the final answer text, and preserves its
-external-verification declaration and exact caveat. Other composition modes
-return `answerRecommendation: null`.
+`result.answerRecommendation` is retained as a compatibility tombstone and is
+always `null`; recommendation text now has no competing structured proposal
+surface. `result.selectedEvidenceIds` contains the returned IDs declared as
+supporting the recommendation, while `result.answerEvidence` contains the
+host-captured returned excerpt for each one.
 
-These are auditable provider declarations: the host proves that IDs and exact
-quotes were returned and that the fields are structurally coherent. A declared
-`consequence_for_answer` does not prove the answer materially depended on that
-memory. Semantic material use remains an independently judged label.
+These are auditable provider declarations. Recommendation mode proves only
+that each supporting ID was returned in the scoped answer session. Detailed
+standard and enumeration commitments additionally prove that their copied
+quotes were returned and their fields are structurally coherent. Neither an ID
+selection nor a declared `consequence_for_answer` proves that the answer
+materially depended on that memory; semantic material use remains an
+independently judged label.
 
 The provider-free evaluator in `evals/retrieval-evidence-metrics.mjs` therefore
 keeps five surfaces separate: session recall from returned canonical sessions,

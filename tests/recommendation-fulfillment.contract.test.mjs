@@ -40,80 +40,34 @@ async function withBrain(t, label, run) {
   return run(brain)
 }
 
-async function seed(brain, scope, text, suffix = 'preference') {
+async function seed(brain, scope, text) {
   await ingestChatTurn(brain, {
     ...scope,
     assistantMessage: 'Noted.',
     eventAt: '2025-01-01T00:00:00.000Z',
     retention: 'durable',
-    sourceMessageId: `${scope.userId}:${suffix}`,
+    sourceMessageId: `${scope.userId}:preference`,
     userMessage: text,
   }, {
     reducer: keepNothing,
-    reducerId: 'recommendation-fulfillment/v1',
+    reducerId: 'recommendation-fulfillment/v2',
   })
 }
 
-function requireRecommendation(provider) {
-  Object.defineProperties(provider, {
-    requiresEvidenceCommitment: {
-      enumerable: true,
-      value: true,
-    },
-    requiresRecommendationCommitment: {
-      enumerable: true,
-      value: true,
-    },
+function requireEvidenceCommitment(provider) {
+  Object.defineProperty(provider, 'requiresEvidenceCommitment', {
+    enumerable: true,
+    value: true,
   })
   return provider
 }
 
-function used(row, consequence = 'This preference personalizes the proposal.') {
-  return {
-    consequence_for_answer: consequence,
-    evidenceId: row.evidenceId,
-    not_used_reason: '',
-    quote: row.text ?? row.snippet ?? row.quote,
-  }
-}
-
-function notUsed(row, reason = 'This memory does not support a recommendation.') {
-  return {
-    consequence_for_answer: '',
-    evidenceId: row.evidenceId,
-    not_used_reason: reason,
-    quote: row.text ?? row.snippet ?? row.quote,
-  }
-}
-
-function recommendationItem({
-  evidenceIds,
-  proposal,
-  requiresExternalVerification = false,
-  verificationNote = '',
-}) {
-  return {
-    evidenceIds,
-    proposal,
-    requiresExternalVerification,
-    verificationNote,
-  }
-}
-
-function commitment({
+function supportedCommitment({
   abstained = false,
-  bases,
-  clarificationQuestion = '',
-  items,
+  supportingEvidenceIds = [],
   text,
 }) {
-  return {
-    abstained,
-    bases,
-    recommendation: { clarificationQuestion, items },
-    temporaryInferences: [],
-    text,
-  }
+  return { abstained, supportingEvidenceIds, text }
 }
 
 function completedCall({ args, callId, name }) {
@@ -155,7 +109,7 @@ const POSITIVE_CASES = Object.freeze([
   },
 ])
 
-test('auto recommendation mode requires materially evidence-linked proposals',
+test('recommendations use one answer surface plus returned supporting IDs',
   async (t) => {
     for (const entry of POSITIVE_CASES) {
       await t.test(entry.domain, async (t) => withBrain(
@@ -167,23 +121,21 @@ test('auto recommendation mode requires materially evidence-linked proposals',
             userId: `user-${entry.domain}`,
           }
           await seed(brain, scope, entry.memory)
-          const provider = requireRecommendation(async ({
-            answerRecommendationRequired,
+          let evidenceId = null
+          const provider = requireEvidenceCommitment(async ({
+            answerSupportingEvidenceOnly,
             commitAnswer,
             retrieve,
           }) => {
-            assert.equal(answerRecommendationRequired, true)
+            assert.equal(answerSupportingEvidenceOnly, true)
             const found = await retrieve({
               input: { phrase: entry.memory },
               tool: 'memory_find',
             })
             const row = onlyUserMatch(found.matches)
-            return commitAnswer(commitment({
-              bases: [used(row)],
-              items: [recommendationItem({
-                evidenceIds: [row.evidenceId],
-                proposal: entry.proposal,
-              })],
+            evidenceId = row.evidenceId
+            return commitAnswer(supportedCommitment({
+              supportingEvidenceIds: [row.evidenceId],
               text: entry.proposal,
             }))
           })
@@ -195,29 +147,34 @@ test('auto recommendation mode requires materially evidence-linked proposals',
             question: entry.question,
           })
 
+          assert.equal(result.answer, entry.proposal)
           assert.equal(result.answerCompositionMode, 'recommend')
-          assert.equal(result.answerRecommendation.items.length, 1)
-          assert.equal(result.answerRecommendation.items[0].proposal, entry.proposal)
-          assert.equal(result.answerEvidence.length, 1)
-          assert.ok(Object.isFrozen(result.answerRecommendation))
+          assert.equal(result.answerRecommendation, null)
+          assert.deepEqual(result.selectedEvidenceIds, [evidenceId])
+          assert.deepEqual(
+            result.answerEvidence.map((basis) => basis.evidenceId),
+            [evidenceId],
+          )
+          assert.match(result.answerEvidence[0].quote, new RegExp(entry.memory))
+          assert.equal(
+            result.evidenceCommitments[0].consequence_for_answer,
+            null,
+          )
         },
       ))
     }
   })
 
-test('OpenAI repairs clarification-only output into a useful proposal',
-  async (t) => withBrain(t, 'recommend-openai-repair', async (brain) => {
+test('OpenAI recommendation commitment has no duplicate proposal surface',
+  async (t) => withBrain(t, 'recommend-openai-thin', async (brain) => {
     const scope = {
-      palariId: 'palari-event-repair',
-      userId: 'user-event-repair',
+      palariId: 'palari-thin',
+      userId: 'user-thin',
     }
     const memory =
-      'I want cultural exchanges where I can practice French and Spanish.'
-    const proposal =
-      'Look for a French or Spanish language-exchange meetup this weekend.'
-    const verificationNote =
-      'Verify the current date, location, and availability before attending.'
-    const clarificationQuestion = 'What city or neighborhood are you in?'
+      'I like hotels with great views and unusual pool or balcony features.'
+    const answer =
+      'Consider The Setai, and verify the exact room amenities before booking.'
     await seed(brain, scope, memory)
 
     const bodies = []
@@ -226,43 +183,30 @@ test('OpenAI repairs clarification-only output into a useful proposal',
         bodies.push(body)
         const commitTool = body.tools?.find((tool) =>
           tool.name === OPENAI_ANSWER_COMMIT_TOOL_NAME)
+        assert.ok(commitTool)
+        assert.ok(
+          commitTool.parameters.required.includes('supportingEvidenceIds'),
+        )
+        assert.ok(!commitTool.parameters.required.includes('recommendation'))
+        assert.ok(!commitTool.parameters.required.includes('bases'))
         if (bodies.length === 1) {
-          assert.ok(commitTool.parameters.required.includes('recommendation'))
           return completedCall({
             args: { phrase: memory },
-            callId: 'search',
+            callId: 'thin-search',
             name: 'memory_find',
           })
         }
         const searchOutput = body.input.find((item) =>
-          item.type === 'function_call_output' && item.call_id === 'search')
+          item.type === 'function_call_output' &&
+          item.call_id === 'thin-search')
         const found = JSON.parse(searchOutput.output)
         const row = onlyUserMatch(found.matches)
-        if (bodies.length === 2) {
-          return completedCall({
-            args: commitment({
-              bases: [used(row)],
-              clarificationQuestion,
-              items: [],
-              text: clarificationQuestion,
-            }),
-            callId: 'clarification-only',
-            name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
-          })
-        }
         return completedCall({
-          args: commitment({
-            bases: [used(row)],
-            clarificationQuestion,
-            items: [recommendationItem({
-              evidenceIds: [row.evidenceId],
-              proposal,
-              requiresExternalVerification: true,
-              verificationNote,
-            })],
-            text: `${proposal} ${verificationNote} ${clarificationQuestion}`,
+          args: supportedCommitment({
+            supportingEvidenceIds: [row.evidenceId],
+            text: answer,
           }),
-          callId: 'useful-recommendation',
+          callId: 'thin-answer',
           name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
         })
       },
@@ -272,35 +216,23 @@ test('OpenAI repairs clarification-only output into a useful proposal',
       ...scope,
       compositionMode: 'auto',
       provider,
-      question: 'Can you recommend cultural events around me this weekend?',
+      question: 'Can you recommend a Miami hotel?',
     })
 
-    assert.equal(bodies.length, 3)
-    assert.equal(result.answerRecommendation.items[0].proposal, proposal)
-    assert.equal(
-      result.answerRecommendation.items[0].requiresExternalVerification,
-      true,
-    )
-    const rejection = bodies[2].input.find((item) =>
-      item.type === 'function_call_output' &&
-      item.call_id === 'clarification-only')
-    assert.match(
-      JSON.parse(rejection.output).rejection,
-      /non-abstaining recommendation commitment must contain 1 to/,
-    )
+    assert.equal(bodies.length, 2)
+    assert.equal(result.answer, answer)
+    assert.equal(result.answerRecommendation, null)
+    assert.equal(result.selectedEvidenceIds.length, 1)
   }))
 
-test('host renders missing recommendation text surfaces without a repair',
-  async (t) => withBrain(t, 'recommend-surface-render', async (brain) => {
+test('OpenAI recommendation repair stays on the thin commitment schema',
+  async (t) => withBrain(t, 'recommend-openai-thin-repair', async (brain) => {
     const scope = {
-      palariId: 'palari-surface-repair',
-      userId: 'user-surface-repair',
+      palariId: 'palari-thin-repair',
+      userId: 'user-thin-repair',
     }
-    const memory = 'I prefer quiet restaurants with outdoor seating.'
-    const proposal = 'Choose a quiet restaurant with patio seating.'
-    const verificationNote =
-      'Verify the current hours and patio availability before going.'
-    const clarificationQuestion = 'Which neighborhood should I search?'
+    const memory = 'I prefer calm hotels near the water.'
+    const answer = 'Choose a quiet waterfront hotel and verify current rooms.'
     await seed(brain, scope, memory)
 
     const bodies = []
@@ -310,32 +242,41 @@ test('host renders missing recommendation text surfaces without a repair',
         if (bodies.length === 1) {
           return completedCall({
             args: { phrase: memory },
-            callId: 'surface-search',
+            callId: 'repair-search',
             name: 'memory_find',
           })
         }
         const searchOutput = body.input.find((item) =>
           item.type === 'function_call_output' &&
-          item.call_id === 'surface-search')
+          item.call_id === 'repair-search')
         const found = JSON.parse(searchOutput.output)
         const row = onlyUserMatch(found.matches)
-        const valid = commitment({
-          bases: [used(row)],
-          clarificationQuestion,
-          items: [recommendationItem({
-            evidenceIds: [row.evidenceId],
-            proposal,
-            requiresExternalVerification: true,
-            verificationNote,
-          })],
-          text: `${proposal} ${verificationNote} ${clarificationQuestion}`,
-        })
+        if (bodies.length === 2) {
+          return completedCall({
+            args: supportedCommitment({
+              supportingEvidenceIds: ['not-returned'],
+              text: answer,
+            }),
+            callId: 'invalid-support',
+            name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+          })
+        }
+        assert.match(body.instructions, /supportingEvidenceIds/)
+        assert.doesNotMatch(body.instructions, /copy an exact contiguous quote/)
+        assert.doesNotMatch(body.instructions, /consequence_for_answer/)
+        const rejection = body.input.find((item) =>
+          item.type === 'function_call_output' &&
+          item.call_id === 'invalid-support')
+        assert.match(
+          JSON.parse(rejection.output).rejection,
+          /not returned in this answer session/,
+        )
         return completedCall({
-          args: {
-            ...valid,
-            text: 'Try a suitable nearby patio and check its details. Where are you?',
-          },
-          callId: 'surface-rendered',
+          args: supportedCommitment({
+            supportingEvidenceIds: [row.evidenceId],
+            text: answer,
+          }),
+          callId: 'repaired-support',
           name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
         })
       },
@@ -345,63 +286,55 @@ test('host renders missing recommendation text surfaces without a repair',
       ...scope,
       compositionMode: 'auto',
       provider,
-      question: 'Can you suggest a restaurant for dinner?',
+      question: 'Can you recommend a hotel?',
     })
 
-    assert.equal(bodies.length, 2)
-    assert.match(result.answer, /Try a suitable nearby patio/)
-    assert.ok(result.answer.includes(proposal))
-    assert.ok(result.answer.includes(verificationNote))
-    assert.ok(result.answer.includes(clarificationQuestion))
+    assert.equal(bodies.length, 3)
+    assert.equal(result.answer, answer)
+    assert.equal(result.selectedEvidenceIds.length, 1)
   }))
 
-test('recommendations reject unused grounding and unverifiable answer text',
-  async (t) => withBrain(t, 'recommend-invalid-controls', async (brain) => {
+test('thin host rejects unknown, duplicate, and absent supporting IDs',
+  async (t) => withBrain(t, 'recommend-thin-controls', async (brain) => {
     const scope = {
-      palariId: 'palari-invalid-recommendation',
-      userId: 'user-invalid-recommendation',
+      palariId: 'palari-thin-controls',
+      userId: 'user-thin-controls',
     }
     const memory = 'I prefer quiet restaurants with outdoor seating.'
     await seed(brain, scope, memory)
     const errors = []
-    const provider = requireRecommendation(async ({ commitAnswer, retrieve }) => {
+    const provider = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
       const found = await retrieve({
         input: { phrase: memory },
         tool: 'memory_find',
       })
       const row = onlyUserMatch(found.matches)
-      for (const proposal of [
-        commitment({
-          bases: [notUsed(row)],
-          items: [recommendationItem({
-            evidenceIds: [row.evidenceId],
-            proposal: 'Choose a quiet patio restaurant.',
-          })],
+      for (const candidate of [
+        supportedCommitment({
+          supportingEvidenceIds: ['not-returned'],
           text: 'Choose a quiet patio restaurant.',
         }),
-        commitment({
-          bases: [used(row)],
-          items: [recommendationItem({
-            evidenceIds: [row.evidenceId],
-            proposal: 'Choose a quiet patio restaurant.',
-            requiresExternalVerification: true,
-          })],
+        supportedCommitment({
+          supportingEvidenceIds: [row.evidenceId, row.evidenceId],
+          text: 'Choose a quiet patio restaurant.',
+        }),
+        supportedCommitment({
+          supportingEvidenceIds: [],
           text: 'Choose a quiet patio restaurant.',
         }),
       ]) {
         try {
-          commitAnswer(proposal)
+          commitAnswer(candidate)
         } catch (error) {
           errors.push(String(error))
         }
       }
-      return commitAnswer(commitment({
-        bases: [used(row)],
-        items: [recommendationItem({
-          evidenceIds: [row.evidenceId],
-          proposal: 'Choose a quiet patio restaurant.',
-        })],
-        text: 'I have a suggestion.',
+      return commitAnswer(supportedCommitment({
+        supportingEvidenceIds: [row.evidenceId],
+        text: 'Choose a quiet patio restaurant.',
       }))
     })
 
@@ -412,31 +345,31 @@ test('recommendations reject unused grounding and unverifiable answer text',
       question: 'Can you suggest a restaurant style for dinner?',
     })
 
-    assert.equal(errors.length, 2)
-    assert.match(errors[0], /materially used evidence/)
-    assert.match(errors[1], /verificationNote exactly when/)
-    assert.equal(result.answerRecommendation.items.length, 1)
-    assert.ok(result.answer.includes('Choose a quiet patio restaurant.'))
+    assert.equal(errors.length, 3)
+    assert.match(errors[0], /not returned in this answer session/)
+    assert.match(errors[1], /duplicated/)
+    assert.match(errors[2], /must contain 1 to/)
+    assert.equal(result.answer, 'Choose a quiet patio restaurant.')
   }))
 
-test('honest recommendation abstention contains no fabricated proposal',
+test('honest recommendation abstention cites no supporting memory',
   async (t) => withBrain(t, 'recommend-abstention', async (brain) => {
     const scope = {
       palariId: 'palari-recommend-abstention',
       userId: 'user-recommend-abstention',
     }
-    const memory = 'I replaced the batteries in my hallway clock.'
-    await seed(brain, scope, memory)
-    const provider = requireRecommendation(async ({ commitAnswer, retrieve }) => {
-      const found = await retrieve({
+    await seed(brain, scope, 'I replaced the hallway clock batteries.')
+    const provider = requireEvidenceCommitment(async ({
+      commitAnswer,
+      retrieve,
+    }) => {
+      await retrieve({
         input: { phrase: 'batteries' },
         tool: 'memory_find',
       })
-      const row = onlyUserMatch(found.matches)
-      return commitAnswer(commitment({
+      return commitAnswer(supportedCommitment({
         abstained: true,
-        bases: [notUsed(row)],
-        items: [],
+        supportingEvidenceIds: [],
         text: 'I do not have a relevant stored preference for that recommendation.',
       }))
     })
@@ -449,8 +382,9 @@ test('honest recommendation abstention contains no fabricated proposal',
     })
 
     assert.equal(result.abstained, true)
-    assert.deepEqual(result.answerRecommendation.items, [])
+    assert.equal(result.answerRecommendation, null)
     assert.deepEqual(result.answerEvidence, [])
+    assert.deepEqual(result.selectedEvidenceIds, [])
   }))
 
 test('recommendation auto-detection is bounded and enumeration takes priority', () => {
