@@ -641,6 +641,64 @@ LongMemEval remains 6/10.
 Focused tests pass 63/63, quickstart passes 6/6, and the complete legacy tier
 passes 901 with 3 optional skips.
 
+The first genuinely fresh generalization batch then selected the first five
+IDs in immutable S60 order with no prior result or failure artifact. Selection
+used IDs and artifact metadata only; question text, answers, and supporting
+memories were not inspected. Sealed U8 was mechanically excluded. The founder
+approved a `$0.50` fresh cap and `$4.00613237` aggregate ceiling. Five new
+canonical stores ingested 2,426 raw turns without a failed turn, and all five
+questions ran once with zero retries through Gemini retrieval embeddings,
+local Ettin, the latest iterative answer path, Luna, and the pinned GPT-4o
+judge.
+
+Four cases produced complete answer-and-judge artifacts. Three were judged
+correct: the system composed two April event spans into 3 days, composed a
+one-hour preparation span with a 30-minute commute into 90 minutes, and
+recalled a 16GB RAM upgrade. The Tokyo-advice case was judged incorrect. Both
+dataset-marked direct-user preparation rows—Suica and the later Suica-plus-
+TripIt statement—were canonical, but neither was returned. Luna made one
+search, selected a prior Palari Suica answer plus situational rows, gave generic
+transit advice, and never used the available bridge/read path. This is a
+retrieval-completeness failure, not an answer-use failure.
+
+The fifth, Miami, returned its one dataset-marked direct hotel-preference row
+and generated a useful evidence-linked proposal with an external-verification
+caveat, but failed before judging. Its proposal field named the same hotel and
+strategy as its prose in different words; the one repair repeated the
+paraphrase instead of copying the exact proposal. Combined with the independent
+cultural-events failures, this establishes that requiring the model to emit
+the same recommendation in both prose and structured fields is an operationally
+brittle composition boundary across distinct domains.
+
+The provider-free successor makes the structured recommendation canonical and
+has the host append any missing validated proposal, caveat, or clarification
+to the bounded final text. The provider no longer has to duplicate exact
+strings. Evidence must still be returned and materially used, external
+verification still requires an exact caveat, abstention remains explicit, and
+current-evidence review still fails closed. Restaurant, multi-surface OpenAI,
+and combined current-review controls prove host rendering without spending a
+repair on presentation duplication.
+
+The post-run audit classifies success 3, retrieval 1, composition 1, and every
+other stage 0. All 8/8 marked spans were canonical; at least 6/8 were returned,
+5 were selected, and 5 were materially used. Miami's failed trace provides a
+returned lower bound rather than a complete retrieval transcript. No case
+called `memory_bridge`, so the batch provides no successful routing lineage or
+co-use event.
+
+Fresh measured spend was `$0.39068731`: `$0.36927405` for 48 lazy Gemini
+embedding calls over 2,461,827 tokens, `$0.01893326` for Luna answers, and
+`$0.00248` for four judges. Lazy index construction occurred during answer
+retrieval rather than writer ingest, so the private adapter's `$0.05` answer
+reservation was too low. Four complete result artifacts were consequently
+reported as runner failures after their provider work completed; the fifth was
+the genuine commitment failure. The persistent ledger was conservatively
+corrected from the runner's `$3.75613237` to measured `$3.89681968`, still
+`$0.10931269` below the approved aggregate cap. Future fresh-store diagnostics
+must reserve `$0` for writer and `$0.10` for lazy indexing plus answer and
+judge. Historical LongMemEval remains 6/10; this diagnostic does not regrade
+it.
+
 ## Active commands
 
 ```bash
@@ -669,14 +727,17 @@ and codename memories, and frontier v2 preserves which intermediate raw
 memories actually routed a selected answer memory. The ten-case diagnostic
 showed that the immediate product work was after retrieval. The temporal
 successor is now confirmed live on its original failure. The recommendation
-successor produced useful structured content on its original failure but two
-fresh confirmations exposed a multi-error/single-repair waterfall. The host
-now reports the observed recommendation-text and current-evidence defects
-together. Do not replay this same cultural case again; collect distinct real
-relationship cases before deciding whether the structured recommendation
-contract is worth its latency and complexity. Make no provider call without a
-new explicit founder-approved cap. Continue collecting
-distinct real relationship cases, recording bridge use, candidate rank,
+successor produced useful structured content on its original failure, and the
+fresh Miami case confirmed that dual prose/structure generation is brittle.
+Host rendering now removes that duplicated presentation requirement without
+weakening evidence or caveat validation. Do not replay either recommendation
+case. The next provider-free unit is to reproduce the fresh Tokyo path from its
+saved store and test whether a general “prior Palari answer is a navigation
+anchor; recover its surrounding direct-user context” rule reaches both Suica
+and TripIt within the existing budget. Do not make that rule affect live
+retrieval until unrelated negative controls show it does not flood context.
+Make no provider call without a new explicit founder-approved cap. Continue
+collecting distinct real relationship cases, recording bridge use, candidate rank,
 materially used answer evidence, routing-only lineage, audited outcome, and
 unnecessary bridge calls. Do not tune from the single ambiguous recommendation
 case or repeat the same kitchen/Firefly pair to manufacture recurrence.

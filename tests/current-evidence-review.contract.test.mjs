@@ -285,7 +285,7 @@ test('OpenAI provider repairs an old-only current commitment once',
     )
   }))
 
-test('one repair receives recommendation text and current-review defects together',
+test('host renders recommendation text while one repair handles current review',
   async (t) => withBrain(t, 'current-recommend-combined-repair', async (brain) => {
     const scope = {
       palariId: 'palari-current-recommend-repair',
@@ -394,11 +394,11 @@ test('one repair receives recommendation text and current-review defects togethe
       item.type === 'function_call_output' &&
       item.call_id === 'combined-defects')
     const reason = JSON.parse(rejection.output).rejection
-    assert.match(reason, /clarificationQuestion/)
-    assert.match(reason, /item 0 proposal/)
-    assert.match(reason, /item 0 verificationNote/)
     assert.match(reason, /later returned direct-user evidence/)
     assert.match(reason, new RegExp(laterEvidenceId))
+    assert.ok(result.answer.includes(proposal))
+    assert.ok(result.answer.includes(verificationNote))
+    assert.ok(result.answer.includes(clarificationQuestion))
   }))
 
 test('later unrelated evidence may be explicitly reviewed without controlling',

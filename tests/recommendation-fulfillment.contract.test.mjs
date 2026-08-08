@@ -290,8 +290,8 @@ test('OpenAI repairs clarification-only output into a useful proposal',
     )
   }))
 
-test('one OpenAI repair reports every recommendation text mismatch together',
-  async (t) => withBrain(t, 'recommend-surface-repair', async (brain) => {
+test('host renders missing recommendation text surfaces without a repair',
+  async (t) => withBrain(t, 'recommend-surface-render', async (brain) => {
     const scope = {
       palariId: 'palari-surface-repair',
       userId: 'user-surface-repair',
@@ -330,19 +330,12 @@ test('one OpenAI repair reports every recommendation text mismatch together',
           })],
           text: `${proposal} ${verificationNote} ${clarificationQuestion}`,
         })
-        if (bodies.length === 2) {
-          return completedCall({
-            args: {
-              ...valid,
-              text: 'Try a suitable nearby patio and check its details. Where are you?',
-            },
-            callId: 'surface-mismatches',
-            name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
-          })
-        }
         return completedCall({
-          args: valid,
-          callId: 'surface-repaired',
+          args: {
+            ...valid,
+            text: 'Try a suitable nearby patio and check its details. Where are you?',
+          },
+          callId: 'surface-rendered',
           name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
         })
       },
@@ -355,18 +348,11 @@ test('one OpenAI repair reports every recommendation text mismatch together',
       question: 'Can you suggest a restaurant for dinner?',
     })
 
-    assert.equal(
-      result.answer,
-      `${proposal} ${verificationNote} ${clarificationQuestion}`,
-    )
-    assert.equal(bodies.length, 3)
-    const rejection = bodies[2].input.find((item) =>
-      item.type === 'function_call_output' &&
-      item.call_id === 'surface-mismatches')
-    const reason = JSON.parse(rejection.output).rejection
-    assert.match(reason, /clarificationQuestion/)
-    assert.match(reason, /item 0 proposal/)
-    assert.match(reason, /item 0 verificationNote/)
+    assert.equal(bodies.length, 2)
+    assert.match(result.answer, /Try a suitable nearby patio/)
+    assert.ok(result.answer.includes(proposal))
+    assert.ok(result.answer.includes(verificationNote))
+    assert.ok(result.answer.includes(clarificationQuestion))
   }))
 
 test('recommendations reject unused grounding and unverifiable answer text',
@@ -402,14 +388,6 @@ test('recommendations reject unused grounding and unverifiable answer text',
           })],
           text: 'Choose a quiet patio restaurant.',
         }),
-        commitment({
-          bases: [used(row)],
-          items: [recommendationItem({
-            evidenceIds: [row.evidenceId],
-            proposal: 'Choose a quiet patio restaurant.',
-          })],
-          text: 'I have a suggestion.',
-        }),
       ]) {
         try {
           commitAnswer(proposal)
@@ -423,7 +401,7 @@ test('recommendations reject unused grounding and unverifiable answer text',
           evidenceIds: [row.evidenceId],
           proposal: 'Choose a quiet patio restaurant.',
         })],
-        text: 'Choose a quiet patio restaurant.',
+        text: 'I have a suggestion.',
       }))
     })
 
@@ -434,11 +412,11 @@ test('recommendations reject unused grounding and unverifiable answer text',
       question: 'Can you suggest a restaurant style for dinner?',
     })
 
-    assert.equal(errors.length, 3)
+    assert.equal(errors.length, 2)
     assert.match(errors[0], /materially used evidence/)
     assert.match(errors[1], /verificationNote exactly when/)
-    assert.match(errors[2], /proposal must appear verbatim/)
     assert.equal(result.answerRecommendation.items.length, 1)
+    assert.ok(result.answer.includes('Choose a quiet patio restaurant.'))
   }))
 
 test('honest recommendation abstention contains no fabricated proposal',

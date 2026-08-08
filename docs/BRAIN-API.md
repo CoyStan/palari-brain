@@ -649,12 +649,14 @@ true. Every proposal and required note must appear verbatim in the answer.
 A clarification question may follow but cannot replace every proposal. An
 honest abstention contains zero items.
 
-For an otherwise well-shaped recommendation, the host accumulates every
-missing answer-text occurrence across the clarification question, proposals,
-and verification notes, plus any unresolved bounded current-evidence review,
-into one rejection. This preserves exact presence and evidence-assessment
-checks while making the provider's single repair turn actionable; the repair
-does not have to discover independent late mismatches one at a time.
+The structured recommendation is the canonical proposal surface. If an
+otherwise valid proposal, verification note, or clarification is absent from
+the provider's prose, the host appends that exact validated field to the final
+answer under the existing answer-size bound. The model therefore does not
+have to generate identical content twice. Evidence linkage, the
+external-verification declaration, honest abstention, and bounded
+current-evidence review remain fail-closed; those defects still use the single
+commitment repair when applicable.
 
 This boundary proves proposal presence, answer-text presence, and provenance;
 it does not prove that a provider correctly identified every need for external

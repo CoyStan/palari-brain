@@ -1955,7 +1955,7 @@ export async function answerWithRetrieval(brain, {
     if (typeof candidate.abstained !== 'boolean') {
       throw answerCommitmentError('Answer commitment abstained must be boolean.')
     }
-    const text = boundedCommitmentText(
+    let text = boundedCommitmentText(
       candidate.text,
       'Answer commitment text',
       MEMORY_ANSWER_MAX_TEXT_CHARS,
@@ -2273,11 +2273,7 @@ export async function answerWithRetrieval(brain, {
         'Answer commitment recommendation clarificationQuestion',
         MEMORY_ANSWER_MAX_RECOMMENDATION_CLARIFICATION_CHARS,
       )
-      if (clarificationQuestion && !stringIncludes(text, clarificationQuestion)) {
-        arrayPush(lateErrors,
-          'Answer commitment recommendation clarificationQuestion must appear verbatim in the answer text.',
-        )
-      }
+      const surfaceAdditions = []
       const items = []
       const proposalSeen = new setConstructor()
       for (let index = 0; index < proposed.items.length; index += 1) {
@@ -2294,9 +2290,7 @@ export async function answerWithRetrieval(brain, {
           )
         }
         if (!stringIncludes(text, proposal)) {
-          arrayPush(lateErrors,
-            `Answer commitment recommendation item ${index} proposal must appear verbatim in the answer text.`,
-          )
+          arrayPush(surfaceAdditions, proposal)
         }
         if (!arrayIsArray(item.evidenceIds) ||
           item.evidenceIds.length < 1 ||
@@ -2346,10 +2340,7 @@ export async function answerWithRetrieval(brain, {
           )
         }
         if (verificationNote && !stringIncludes(text, verificationNote)) {
-          arrayPush(lateErrors,
-            `Answer commitment recommendation item ${index} verificationNote ` +
-              `must appear verbatim in the answer text.`,
-          )
+          arrayPush(surfaceAdditions, verificationNote)
         }
         setAdd(proposalSeen, proposal)
         arrayPush(items, {
@@ -2358,6 +2349,17 @@ export async function answerWithRetrieval(brain, {
           requiresExternalVerification: item.requiresExternalVerification,
           verificationNote,
         })
+      }
+      if (clarificationQuestion && !stringIncludes(text, clarificationQuestion)) {
+        arrayPush(surfaceAdditions, clarificationQuestion)
+      }
+      if (surfaceAdditions.length) {
+        text = boundedCommitmentText(
+          `${text}\n\n${arrayJoin(surfaceAdditions, '\n\n')}`,
+          'Answer commitment rendered recommendation text',
+          MEMORY_ANSWER_MAX_TEXT_CHARS,
+          { trim: true },
+        )
       }
       recommendation = {
         clarificationQuestion,
