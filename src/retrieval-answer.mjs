@@ -54,7 +54,7 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_SCHEMA =
   'palari-current-evidence-review/v1'
 export const MEMORY_ANSWER_CONFIRMATION_SCHEMA =
-  'palari-answer-confirmation/v2'
+  'palari-answer-confirmation/v3'
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_CANDIDATES = 3
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK = 3
 export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
@@ -666,9 +666,11 @@ export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
   'Act as a fresh, adversarial answer reviewer after another model produced a provisional answer.',
   'Before accepting or revising that draft, call memory_search with a new semantic or relational query designed to uncover omitted, conflicting, newer, or otherwise decisive evidence.',
   'The prior-evidence context contains one representative per information identity rather than repeated copies.',
-  'The confirmation search is host-filtered and returns only canonical memories whose evidence ID and provenance-aware normalized information were not returned earlier in this answer journey; duplicate information is also collapsed within each result.',
-  'If it returns any memory, assess that evidence, revise the answer when warranted, and continue with another confirmation search.',
-  'Commit only after the most recent confirmation search returns no new information. This is bounded retrieval closure, not proof that no possible memory exists.',
+  'The confirmation search is host-filtered and returns only unseen canonical candidates whose evidence ID and provenance-aware normalized information were not returned earlier in this answer journey; exact duplicate information is also collapsed within each result.',
+  'Search matches are candidates, not automatically new information. In the next commitment, assess every returned candidate with either a concrete consequence_for_answer or a specific not_used_reason such as duplicate information or irrelevance.',
+  'Any candidate with a consequence_for_answer is materially new and requires another confirmation search after revising the answer. Candidates given a specific not_used_reason are ignored and cannot be retrieved again in this answer journey.',
+  'An empty confirmation search means no new information was found for that adversarial query.',
+  'Commit only after the latest search is empty or every candidate from it is specifically assessed as not used, and all materially new candidates from earlier rounds remain assessed. This is bounded retrieval closure, not proof that no possible memory exists.',
 ].join(' ')
 
 function evidenceRows(result) {
@@ -1978,6 +1980,13 @@ export async function answerWithRetrieval(brain, {
   let acceptedCurrentEvidenceReview = null
   let confirmationActive = false
   let confirmationClosed = false
+  let confirmationSearchPerformed = false
+  let confirmationLatestEvidenceIds = []
+  let confirmationLatestAssessed = true
+  const confirmationIgnoredCandidateSet = new setConstructor()
+  const confirmationIgnoredCandidateEvidenceIds = []
+  const confirmationNewInformationSet = new setConstructor()
+  const confirmationNewInformationEvidenceIds = []
   const transcript = []
   const frontier = createEphemeralRetrievalFrontier(budget)
   const referenceTime = questionReferenceTime(questionDate)
@@ -2073,9 +2082,10 @@ export async function answerWithRetrieval(brain, {
   }
 
   const commitAnswer = (proposal) => {
-    if (confirmationActive && !confirmationClosed) {
+    if (confirmationActive && !confirmationClosed &&
+      !confirmationSearchPerformed) {
       throw answerConfirmationError(
-        'The answer is still provisional. Search unseen memory and commit only after the latest confirmation search returns no new evidence.',
+        'The answer is still provisional. Search unseen memory before committing.',
         'MEMORY_ANSWER_CONFIRMATION_REQUIRED',
       )
     }
@@ -2491,6 +2501,76 @@ export async function answerWithRetrieval(brain, {
     if (lateErrors.length) {
       throw answerCommitmentError(arrayJoin(lateErrors, ' '))
     }
+    if (confirmationActive) {
+      const assessedConfirmationIds = new setConstructor()
+      for (let index = 0; index < evidenceCommitments.length; index += 1) {
+        const assessment = evidenceCommitments[index]
+        setAdd(assessedConfirmationIds, assessment.evidenceId)
+      }
+      for (let index = 0;
+        index < confirmationNewInformationEvidenceIds.length;
+        index += 1) {
+        const evidenceId = confirmationNewInformationEvidenceIds[index]
+        if (!setHas(assessedConfirmationIds, evidenceId)) {
+          arrayPush(lateErrors,
+            `Confirmation commitment omitted previously material evidence ` +
+              `${evidenceId}. Assess it as used or with a specific ` +
+              `not_used_reason.`)
+        }
+      }
+      if (!confirmationClosed) {
+        const materialIds = []
+        for (let index = 0;
+          index < confirmationLatestEvidenceIds.length;
+          index += 1) {
+          const evidenceId = confirmationLatestEvidenceIds[index]
+          let assessment = null
+          for (let commitmentIndex = 0;
+            commitmentIndex < evidenceCommitments.length;
+            commitmentIndex += 1) {
+            if (evidenceCommitments[commitmentIndex].evidenceId ===
+              evidenceId) {
+              assessment = evidenceCommitments[commitmentIndex]
+              break
+            }
+          }
+          if (!assessment) {
+            arrayPush(lateErrors,
+              `Confirmation commitment left unseen candidate ${evidenceId} ` +
+                `unassessed. Add it as used evidence or with a specific ` +
+                `not_used_reason.`)
+            continue
+          }
+          if (assessment.consequence_for_answer) {
+            arrayPush(materialIds, evidenceId)
+          } else if (!setHas(confirmationIgnoredCandidateSet, evidenceId)) {
+            setAdd(confirmationIgnoredCandidateSet, evidenceId)
+            arrayPush(confirmationIgnoredCandidateEvidenceIds, evidenceId)
+          }
+        }
+        if (lateErrors.length) {
+          throw answerCommitmentError(arrayJoin(lateErrors, ' '))
+        }
+        if (materialIds.length > 0) {
+          for (let index = 0; index < materialIds.length; index += 1) {
+            const evidenceId = materialIds[index]
+            if (setHas(confirmationNewInformationSet, evidenceId)) continue
+            setAdd(confirmationNewInformationSet, evidenceId)
+            arrayPush(confirmationNewInformationEvidenceIds, evidenceId)
+          }
+          confirmationLatestAssessed = true
+          throw answerConfirmationError(
+            'The reviewer found materially new information. Revise the provisional answer and search unseen memory again before committing.',
+            'MEMORY_ANSWER_CONFIRMATION_REQUIRED',
+          )
+        }
+        confirmationLatestAssessed = true
+        confirmationClosed = true
+      }
+    }
+    if (lateErrors.length) {
+      throw answerCommitmentError(arrayJoin(lateErrors, ' '))
+    }
     acceptedCurrentEvidenceReview = review
       ? deepFreeze(review)
       : null
@@ -2850,6 +2930,11 @@ export async function answerWithRetrieval(brain, {
         if (name !== 'memory_search') {
           throw new TypeError(`Unknown confirmation memory tool: ${name}`)
         }
+        if (confirmationSearchPerformed && !confirmationLatestAssessed) {
+          throw answerCommitmentError(
+            'Assess every candidate from the latest confirmation search before searching again.',
+          )
+        }
         const input = request?.input ?? {}
         if (confirmationCalls >= confirmationBudget) {
           confirmationExhausted = true
@@ -2889,7 +2974,16 @@ export async function answerWithRetrieval(brain, {
         }
         consultRows(result.matches)
         confirmationFrontier.record({ input, result, tool: name })
+        confirmationSearchPerformed = true
+        confirmationLatestEvidenceIds = []
+        for (let index = 0; index < result.matches.length; index += 1) {
+          arrayPush(
+            confirmationLatestEvidenceIds,
+            result.matches[index].evidenceId,
+          )
+        }
         confirmationClosed = result.matches.length === 0
+        confirmationLatestAssessed = confirmationClosed
         arrayPush(transcript, {
           input,
           phase: 'answer_confirmation',
@@ -3000,21 +3094,27 @@ export async function answerWithRetrieval(brain, {
       retrievalOpen: false,
     })
     answerConfirmation = deepFreeze({
+      candidateEvidenceIds: confirmationSnapshot.seenEvidenceIds,
       closureRoundOrdinal: confirmationSnapshot.roundCount,
+      closureReason: confirmationLatestEvidenceIds.length === 0
+        ? 'empty_unseen_search'
+        : 'all_candidates_assessed_not_used',
       durableWrites: 0,
       ephemeral: true,
       exhausted: confirmationExhausted,
+      ignoredCandidateEvidenceIds:
+        confirmationIgnoredCandidateEvidenceIds,
       independentProviderDispatch: true,
       maxRetrievalCalls: confirmationBudget,
-      newEvidenceIds: confirmationSnapshot.seenEvidenceIds,
-      newInformationEvidenceIds: confirmationSnapshot.seenEvidenceIds,
+      newEvidenceIds: confirmationNewInformationEvidenceIds,
+      newInformationEvidenceIds: confirmationNewInformationEvidenceIds,
       priorDuplicateInformationCount:
         priorEvidenceCount - priorEvidence.length,
       priorInformationCount: priorEvidence.length,
       retrievalCalls: confirmationCalls,
       retrievalFrontier: confirmationSnapshot,
       schema: MEMORY_ANSWER_CONFIRMATION_SCHEMA,
-      status: 'closed_no_new_information',
+      status: 'closed_no_new_material_information',
       suppressedDuplicateInformationCount:
         suppressedDuplicateInformationEvidenceIds.length,
       suppressedDuplicateInformationEvidenceIds,

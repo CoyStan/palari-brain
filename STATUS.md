@@ -44,45 +44,68 @@ completeness/continuation and latest-update selection—not learned co-use edges
 This hard-set work is alpha diagnostic evidence and does not change historical
 LongMemEval grades.
 
+The founder-authorized follow-up reran the three judged-wrong hard cases plus
+the host-rejected charity case through the new confirmation path at 5,120
+output tokens, with no retries or inter-case tuning. None reached the judge, so
+this produced zero new grades and is not a benchmark regrade. Health-device
+retrieval improved from two to three device types but still missed the
+nebulizer, then failed the main commitment and its one repair before
+confirmation. The other three produced provisional answers and entered
+confirmation: instruments improved from two to three but still missed the
+Pearl drum set; Rachel recovered both Chicago and the later suburbs update but
+still emphasized Chicago; charity correctly enumerated all four prior events.
+All three exhausted two confirmation rounds because every unseen paraphrase or
+merely related row was treated as materially new.
+
+The follow-up made 11 searches, two reads, and two `memory_bridge` calls.
+Bridge recovered facts used by the provisional instrument and charity answers,
+but no answer completed successfully, so this is not yet evidence for durable
+successful-co-use edges. All four copy-first source audits completed their
+failure-path verification, and current source hashes still match frozen
+preflight hashes. The failed answer calls measured `$0.06090755`; conservative
+failure accounting retained four `$0.70` reservations, or `$2.80`. The private
+failure audit is resumable under `.palari-alpha/`.
+
 The product answer path now has an opt-in, answer-type-independent novelty
 closure review. Its first answer is provisional. A fresh provider invocation
 receives the draft and one representative per previously returned information
 identity, while its only retrieval surface is a host-filtered `memory_search`.
 Information identity combines normalized content with speaker, optional
 author, and observation time. The host removes every previously returned ID
-and duplicate information before top-K truncation, and collapses duplicates
-within the new result. Any genuinely new result keeps the answer open; the
-reviewer must assess or revise it and search again. The host accepts a new exact
-commitment only after the latest review search returns no new information.
-Review work is independently bounded from one to four calls;
-ending on novelty fails closed with `MEMORY_ANSWER_CONFIRMATION_INCOMPLETE`.
-Its frontier and novelty telemetry are ephemeral and record zero durable
-writes. This is bounded retrieval closure, not proof that the corpus contains
-no other evidence, and it adds no fixed semantic schema or learned co-use edge.
+and exact/cosmetic duplicate before top-K truncation and collapses duplicates
+within a result. A search match is now an unseen candidate, not automatically
+new information: the reviewer must classify every candidate with either a
+material consequence or a specific non-use reason. Material evidence keeps the
+answer open and forces another unseen search; ignored candidates cannot be
+returned again. An empty search or a latest candidate set fully assessed as
+non-material closes the check, while all earlier material evidence must remain
+assessed in the final commitment. This is a general reviewer judgment rather
+than a hand-authored semantic schema or a similarity threshold that could hide
+negations and corrections.
 
-The identity is deliberately provenance-aware and conservative. Identical
-Palari speech cannot hide a direct user statement, and the same words observed
-later remain available as new temporal evidence. Exact and cosmetic duplicate
-copies are suppressed. Arbitrary paraphrases are not mechanically merged,
-because a similarity threshold could erase a correction, negation, or useful
-qualification; the reviewer must assess that semantic redundancy and continue.
+The v3 confirmation telemetry separates all unseen candidates, materially new
+information, explicitly ignored candidates, and exact duplicates suppressed
+before retrieval. The final selected answer evidence still contains only rows
+with a material consequence. Identical Palari speech cannot hide direct user
+evidence, and the same words observed later remain available for temporal
+review. Once any candidate is assessed, it cannot recur in that answer journey.
 
 Provider-free controls cover health-device composition, archive recall,
-temporal repetition, speaker authority, and a project-name update: duplicate
-copies are invisible, novelty forces revision, an empty unseen-information
-search permits closure, premature commitment is rejected, and a final novel
-result cannot be released when the review budget ends. The OpenAI loop treats
-the special host rejection as a command to reopen retrieval rather than enter
-commit-only repair. The gitignored resumable 490-question adapter is prepared
-to use the same provider in a fresh two-call confirmation phase, but no paid
-run was started.
+paraphrase rejection, temporal repetition, speaker authority, and a
+project-name update: exact copies are invisible, every candidate is assessed,
+material novelty forces revision, a non-material candidate set may close,
+premature commitment is rejected, and a final novel result cannot be released
+when the review budget ends. The OpenAI loop still treats the special host
+rejection as a command to reopen retrieval rather than enter commit-only
+repair. The corrected v3 path has not received a paid live confirmation.
 
-The mutable private aggregate ledger now accounts `$28.03738150` under the
-founder-approved `$31.21912057` ceiling. It conservatively retains full stage
-reservations for terminal failures; expected spend and authorization ceilings
-remain distinct. No provider process is running. Focused OpenAI contracts pass
-26/26, `npm test` passes 81/81, quickstart passes 6/6, and the complete legacy
-suite passes 923 with 3 optional skips.
+The mutable private aggregate ledger now accounts `$30.83738150` under the
+founder-approved `$31.21912057` ceiling. Remaining headroom is `$0.38173907`,
+below the next `$0.70` case reservation, so another paid case requires a new
+explicit numeric aggregate cap. Expected spend and authorization ceilings
+remain distinct. No provider process is running. Focused confirmation/OpenAI
+contracts pass 32/32, `npm test` passes 82/82, quickstart passes 6/6, and the
+complete legacy suite passes 924 with 3 optional skips.
 
 ## Current state
 
