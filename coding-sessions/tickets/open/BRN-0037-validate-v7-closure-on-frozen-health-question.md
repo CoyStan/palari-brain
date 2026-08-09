@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0037
 children: []
-status: open
+status: claimed
 risk: R1
 priority: P1
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-09T21:50:10Z
 target_branch: "main"
 branch: "ticket/BRN-0037-validate-v7-closure-on-frozen-health-question"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0037-validate-v7-closure-on-frozen-health-question"
