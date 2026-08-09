@@ -953,7 +953,9 @@ contains only the validated ephemeral inference envelope described above.
 For an accepted active auto/current commitment, `result.currentEvidenceReview`
 is the immutable `palari-current-evidence-review/v1` trace. It lists the
 bounded candidate IDs, which were explicitly assessed, the materially used
-direct-user IDs, and `durableWrites: 0`. The field is absent from default and
+direct-user IDs, unresolved candidate IDs, and `durableWrites: 0`. Unresolved
+IDs are telemetry only: the host does not require the provider to select or
+explain arbitrary unused retrieval rows. The field is absent from default and
 historical paths.
 `result.answerRecommendation` is retained as a compatibility tombstone and is
 always `null`; recommendation text now has no competing structured proposal

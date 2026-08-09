@@ -162,9 +162,32 @@ and duplicate exclusion now work, but a reviewer can still close confidently
 after an unproductive query or overlook decisive evidence already present in
 its prior returned-information context. The next product change should target
 general reviewer coverage and prior-evidence conflict assessment, not
-`memory_bridge` or persistent co-use edges. Focused confirmation/OpenAI
-contracts pass 34/34, `npm test` passes 83/83, quickstart passes 6/6, and the
-complete legacy suite passes 926 with 3 optional skips.
+`memory_bridge` or persistent co-use edges.
+
+A provider-free replay then isolated the health infrastructure failure. The
+first commitment used a non-contiguous hearing-aid quote and correctly received
+its one repair. The repaired commitment used exact quotes, but the host still
+rejected it because two later top-ranked user rows—another daily Fitbit use and
+an irrelevant health-planner statement—were absent from its evidence
+bookkeeping. The provider had received only a general instruction, not the
+host's hidden two-ID candidate list.
+
+That current-evidence rule is now deliberately smaller. The host no longer
+requires arbitrary unused retrieval rows to be selected and explained, and the
+matching prompt sentence was removed. Exact returned evidence IDs, exact
+contiguous quotes, one declared consequence or non-use reason for every row the
+provider does select, scope isolation, and provenance validation remain
+mandatory. `currentEvidenceReview` still reports candidate, assessed, and
+unresolved IDs as diagnostic telemetry, but unresolved IDs cannot reject an
+otherwise valid answer or consume a repair. This removes a false infrastructure
+failure. Replaying the exact repaired health commitment against a copy of its
+frozen source now accepts it while retaining both unresolved IDs in telemetry;
+the replay used only the existing content-addressed cache and local reranker.
+This does not claim to solve semantic errors such as Rachel selecting Chicago
+over the already returned suburbs update. No paid call tested this
+simplification. Focused current-evidence/confirmation/OpenAI contracts pass
+42/42, `npm test` passes 83/83, quickstart passes 6/6, and the complete legacy
+suite passes 926 with 3 optional skips.
 
 ## Current state
 

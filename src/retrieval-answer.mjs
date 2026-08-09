@@ -656,7 +656,6 @@ export const MEMORY_RETRIEVAL_PLAN_INSTRUCTIONS = [
 export const MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS = [
   'Treat the question date as context for relative-time descriptions, not as an automatic retrieval cutoff. Keep retrieval bounds open unless the question itself explicitly asks about a bounded period such as before, after, as of, or during an event.',
   'For a current value, duration, correction, or knowledge update, do not stop at an older direct value. Use a second targeted retrieval for a later direct user statement about the same entity before inferring; a later direct value takes precedence over arithmetic extrapolated from an older value.',
-  'For an active current-state plan, explicitly assess later highly ranked direct user memories before committing an answer from an older one. A later memory is not automatically relevant or controlling, but it must be used or given a specific not-used reason instead of being silently ignored.',
   'For a personalized recommendation, retrieve both the current situational constraints and at least one direct user preference relevant to the recommendation category. If no relevant preference is found, say that the result is not personalized rather than inventing one.',
   'A relevant prior Palari answer may reveal the vocabulary or source session for user-specific resources, preferences, goals, relationships, or preparations, but it is navigation rather than proof. When such a Palari row is returned and retrieval budget remains, read its source session with memory_read before answering so the direct user context can support the answer. If that session does not recover the needed user evidence, continue through memory_bridge. Do not expand a generic prior Palari answer that contains no user-specific claim relevant to the question.',
   'For a total, count, or supposedly complete list, one relevance-ranked result is not exhaustive. Use complementary bounded searches inside the planned time range; if completeness is still unproven, report a partial result or insufficient evidence instead of a definitive total.',
@@ -2540,17 +2539,6 @@ export async function answerWithRetrieval(brain, {
       assessed: seen,
       used: usedEvidenceIds,
     })
-    if (review?.unresolvedEvidenceIds.length) {
-      arrayPush(lateErrors,
-        `Current-state commitment left later returned direct-user evidence ` +
-          `unassessed: ${arrayJoin(review.unresolvedEvidenceIds, ', ')}. ` +
-          `Add each as used evidence or with a specific not_used_reason; ` +
-          `later evidence is not automatically controlling.`,
-      )
-    }
-    if (lateErrors.length) {
-      throw answerCommitmentError(arrayJoin(lateErrors, ' '))
-    }
     if (confirmationActive) {
       const assessedConfirmationIds = new setConstructor()
       for (let index = 0; index < evidenceCommitments.length; index += 1) {

@@ -126,7 +126,7 @@ const CURRENT_CASES = Object.freeze([
   },
 ])
 
-test('auto/current answers must assess later top-ranked direct evidence',
+test('auto/current answers report later top-ranked direct evidence without blocking',
   async (t) => {
     for (const entry of CURRENT_CASES) {
       await t.test(entry.domain, async (t) => withBrain(
@@ -142,7 +142,6 @@ test('auto/current answers must assess later top-ranked direct evidence',
             { eventAt: LATE, text: entry.late },
           ])
 
-          let rejection = null
           const provider = async ({ commitAnswer, retrieve }) => {
             await retrieve({
               input: {
@@ -163,20 +162,8 @@ test('auto/current answers must assess later top-ranked direct evidence',
             })
             const early = findText(found.matches, entry.early)
             const late = findText(found.matches, entry.late)
-            try {
-              commitAnswer(commitment({ bases: [used(early)] }))
-            } catch (error) {
-              rejection = error
-            }
-            assert.equal(rejection?.code, 'MEMORY_ANSWER_COMMITMENT_INVALID')
-            assert.match(String(rejection), /later returned direct-user evidence/)
-            assert.match(String(rejection), new RegExp(late.evidenceId))
-            return commitAnswer(commitment({
-              bases: [
-                notUsed(early, 'The later direct update supersedes this value.'),
-                used(late),
-              ],
-            }))
+            assert.ok(late)
+            return commitAnswer(commitment({ bases: [used(early)] }))
           }
           provider.requiresEvidenceCommitment = true
 
@@ -190,19 +177,21 @@ test('auto/current answers must assess later top-ranked direct evidence',
           })
 
           assert.equal(result.answerEvidence.length, 1)
-          assert.equal(result.answerEvidence[0].quote, entry.late)
+          assert.equal(result.answerEvidence[0].quote, entry.early)
           assert.equal(
             result.currentEvidenceReview.schema,
             MEMORY_CURRENT_EVIDENCE_REVIEW_SCHEMA,
           )
+          assert.equal(result.currentEvidenceReview.assessedEvidenceIds.length, 0)
+          assert.equal(result.currentEvidenceReview.unresolvedEvidenceIds.length, 1)
           assert.equal(result.currentEvidenceReview.durableWrites, 0)
         },
       ))
     }
   })
 
-test('OpenAI provider repairs an old-only current commitment once',
-  async (t) => withBrain(t, 'current-review-openai-repair', async (brain) => {
+test('OpenAI provider accepts an old-only commitment and reports telemetry',
+  async (t) => withBrain(t, 'current-review-openai-telemetry', async (brain) => {
     const scope = {
       palariId: 'palari-openai-repair',
       userId: 'user-openai-repair',
@@ -245,7 +234,7 @@ test('OpenAI provider repairs an old-only current commitment once',
           item.type === 'function_call_output' && item.call_id === 'search')
         const found = JSON.parse(searchOutput.output)
         const earlyRow = findText(found.matches, early)
-        const lateRow = findText(found.matches, late)
+        findText(found.matches, late)
         if (bodies.length === 3) {
           return completedCall({
             args: commitment({ bases: [used(earlyRow)] }),
@@ -253,16 +242,7 @@ test('OpenAI provider repairs an old-only current commitment once',
             name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
           })
         }
-        return completedCall({
-          args: commitment({
-            bases: [
-              notUsed(earlyRow, 'The later direct update supersedes this tier.'),
-              used(lateRow),
-            ],
-          }),
-          callId: 'repaired-commit',
-          name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
-        })
+        throw new Error('The accepted commitment must not trigger a repair.')
       },
     })
 
@@ -275,14 +255,10 @@ test('OpenAI provider repairs an old-only current commitment once',
       trustedRetrievalTimeRange: { after: null, before: null },
     })
 
-    assert.equal(bodies.length, 4)
-    assert.equal(result.answerEvidence[0].quote, late)
-    const rejection = bodies[3].input.find((item) =>
-      item.type === 'function_call_output' && item.call_id === 'old-commit')
-    assert.match(
-      JSON.parse(rejection.output).rejection,
-      /later returned direct-user evidence/,
-    )
+    assert.equal(bodies.length, 3)
+    assert.equal(result.answerEvidence[0].quote, early)
+    assert.equal(result.currentEvidenceReview.assessedEvidenceIds.length, 0)
+    assert.equal(result.currentEvidenceReview.unresolvedEvidenceIds.length, 1)
   }))
 
 test('recommendations leave semantic current-evidence judgment to one answer',
