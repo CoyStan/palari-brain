@@ -25,6 +25,7 @@ import {
 } from './memory-graph.mjs'
 import {
   DEFAULT_RETRIEVAL_CALLS,
+  MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME,
   MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS,
   MEMORY_ANSWER_ENUMERATION_DISPOSITIONS,
   MEMORY_ANSWER_MAX_INFERENCE_CHARS,
@@ -751,6 +752,16 @@ export function createOpenAIRetrievalProvider({
       )
     }
     const memoryTools = buildOpenAIFunctionTools(session.retrievalTools)
+    const confirmationReviewTool = memoryTools.find(({ name }) =>
+      name === MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME)
+    const answerConfirmationClosed =
+      session.answerConfirmationClosed === undefined
+        ? null
+        : session.answerConfirmationClosed
+    if (answerConfirmationClosed !== null &&
+      typeof answerConfirmationClosed !== 'function') {
+      throw new TypeError('answerConfirmationClosed must be a function.')
+    }
     const enumerationRequired = session.answerEnumerationRequired === true
     const supportingEvidenceOnly =
       session.answerSupportingEvidenceOnly === true
@@ -801,13 +812,22 @@ export function createOpenAIRetrievalProvider({
         )
       }
       const evidenceAvailable = commitmentEvidenceCount(session) > 0
-      const commitOnly = forcingCommit || (finalizing && evidenceAvailable)
-      const toolDisabled = finalizing && !evidenceAvailable
+      const hostClosed = answerConfirmationClosed?.() === true
+      const ending = finalizing || hostClosed
+      const reviewMayBePending = Boolean(confirmationReviewTool) && !hostClosed
+      const commitOnly = forcingCommit ||
+        (ending && evidenceAvailable && !reviewMayBePending)
+      const toolDisabled = ending && !evidenceAvailable
+      const offeredTools = commitOnly
+        ? [commitTool]
+        : finalizing && reviewMayBePending
+          ? [confirmationReviewTool, commitTool]
+          : tools
       const body = {
         include: ['reasoning.encrypted_content'],
         input: clone(input),
         instructions: [
-          finalizing
+          ending
             ? finalizationInstructions(session)
             : answerInstructions(session),
           commitOnly
@@ -832,7 +852,7 @@ export function createOpenAIRetrievalProvider({
           : toolDisabled ? 'none' : 'auto',
         ...(toolDisabled
           ? {}
-          : { tools: commitOnly ? [clone(commitTool)] : clone(tools) }),
+          : { tools: clone(offeredTools) }),
       }
       const response = await invoke({
         body,
@@ -932,7 +952,16 @@ export function createOpenAIRetrievalProvider({
         appendCommitmentRepair(input, output, rejection)
         continue
       }
-      if (finalizing || forcingCommit) {
+      const confirmationReviewCalls = calls.filter(({ name }) =>
+        name === MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME)
+      if (confirmationReviewCalls.length && calls.length !== 1) {
+        throw adapterError(
+          'OPENAI_CONFIRMATION_REVIEW_MIXED_CALLS',
+          'OpenAI memory_candidate_review must be the only function call in its response.',
+        )
+      }
+      if (forcingCommit || (ending &&
+        confirmationReviewCalls.length !== calls.length)) {
         throw adapterError(
           forcingCommit
             ? 'OPENAI_ANSWER_COMMIT_REPAIR_FAILED'
@@ -957,7 +986,8 @@ export function createOpenAIRetrievalProvider({
         )
       }
       const remaining = retrievalLimit - retrievalCalls
-      const retrievalCallsInBatch = calls.length - planCalls.length
+      const retrievalCallsInBatch = calls.length - planCalls.length -
+        confirmationReviewCalls.length
       if (retrievalCallsInBatch > remaining) {
         throw adapterError(
           'OPENAI_RETRIEVAL_CALL_BUDGET_EXCEEDED',
@@ -976,6 +1006,10 @@ export function createOpenAIRetrievalProvider({
         })
         if (call.name === MEMORY_RETRIEVAL_PLAN_TOOL_NAME) {
           planningCalls += 1
+        } else if (call.name ===
+          MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME) {
+          // Ephemeral classification controls whether another retrieval is
+          // needed; it is not itself a memory retrieval call.
         } else {
           retrievalCalls += 1
         }

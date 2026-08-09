@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import {
+  MEMORY_ANSWER_CONFIRMATION_TOOLS,
   MEMORY_RETRIEVAL_TOOLS,
   answerWithRetrieval,
   buildMemoryReductionRequest,
@@ -683,6 +684,73 @@ test('confirmation rejection reopens retrieval instead of forcing commit repair'
       item.type === 'function_call_output' &&
       item.call_id === 'premature_commit' &&
       /Search unseen memory/.test(JSON.parse(item.output).rejection)))
+  })
+
+test('confirmation candidate review is ephemeral and remains available after the final search',
+  async () => {
+    const bodies = []
+    let searches = 0
+    let reviews = 0
+    let closed = false
+    const proposal = {
+      abstained: false,
+      bases: [{ evidenceId: 'evidence-1', quote: 'violet folder' }],
+      text: 'The key is in the violet folder.',
+    }
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1 || bodies.length === 3) {
+          return completedCall({
+            arguments: JSON.stringify({ phrase: `query-${bodies.length}` }),
+            callId: `search-${bodies.length}`,
+            name: 'memory_search',
+          })
+        }
+        if (bodies.length === 2 || bodies.length === 4) {
+          return completedCall({
+            arguments: JSON.stringify({
+              assessments: [{
+                disposition: bodies.length === 2 ? 'material' : 'not_used',
+                evidenceId: `candidate-${reviews + 1}`,
+                reason: 'Host-test classification.',
+              }],
+            }),
+            callId: `review-${bodies.length}`,
+            name: 'memory_candidate_review',
+          })
+        }
+        return completedCommit(proposal, { callId: 'closed-commit' })
+      },
+    })
+    const result = await provider(answerSession({
+      answerConfirmationClosed: () => closed,
+      answerEvidenceCount: () => 1,
+      maxRetrievalCalls: 2,
+      retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
+      async retrieve({ tool }) {
+        if (tool === 'memory_search') {
+          searches += 1
+          return { matches: [{ evidenceId: `candidate-${searches}` }] }
+        }
+        reviews += 1
+        closed = reviews === 2
+        return { closed, continueSearch: !closed }
+      },
+    }))
+
+    assert.deepEqual(result, proposal)
+    assert.equal(searches, 2)
+    assert.equal(reviews, 2)
+    assert.equal(bodies.length, 5)
+    assert.deepEqual(
+      bodies[3].tools.map(({ name }) => name),
+      ['memory_candidate_review', OPENAI_ANSWER_COMMIT_TOOL_NAME],
+    )
+    assert.deepEqual(bodies[4].tool_choice, {
+      name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+      type: 'function',
+    })
   })
 
 test('non-empty fourth retrieval forces only commitment without spending a fifth memory call',

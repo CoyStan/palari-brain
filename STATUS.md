@@ -66,29 +66,56 @@ preflight hashes. The failed answer calls measured `$0.06090755`; conservative
 failure accounting retained four `$0.70` reservations, or `$2.80`. The private
 failure audit is resumable under `.palari-alpha/`.
 
+A second founder-authorized follow-up ran the same four frozen cases through
+confirmation v3 under aggregate cap `$33.63738150`, again with no retries or
+inter-case tuning. It also produced zero completed answers and zero judge
+calls, so it adds no grades. Health retrieval now found the nebulizer but
+missed hearing aids; instruments returned only the Fender and Korg; Rachel's
+provisional answer used only the older Chicago statement; charity again
+proposed the correct four-event answer. In health, instruments, and Rachel,
+the reviewer naturally tried a second search after its first non-empty search,
+while v3 required classification to be smuggled through a final-answer
+commitment; the host correctly blocked the unassessed-search bypass. Charity
+did attempt that commitment-based classification, but a one-repair sequence
+ended with a malformed evidence ID. None of these outputs is a result.
+
+The v3 follow-up made 14 searches and one instrument `memory_bridge` call. All
+four sources remained byte-identical. Provider calls measured `$0.04666944`,
+while conservative failure accounting retained another four `$0.70`
+reservations. Failure-path frontier snapshots were again unavailable because
+the answer API threw before returning its structured result; the private audit
+records that telemetry limitation rather than inferring a clean frontier.
+
 The product answer path now has an opt-in, answer-type-independent novelty
 closure review. Its first answer is provisional. A fresh provider invocation
 receives the draft and one representative per previously returned information
-identity, while its only retrieval surface is a host-filtered `memory_search`.
+identity. Its provider-facing tools are host-filtered `memory_search` plus the
+ephemeral `memory_candidate_review` control.
 Information identity combines normalized content with speaker, optional
 author, and observation time. The host removes every previously returned ID
 and exact/cosmetic duplicate before top-K truncation and collapses duplicates
 within a result. A search match is now an unseen candidate, not automatically
-new information: the reviewer must classify every candidate with either a
-material consequence or a specific non-use reason. Material evidence keeps the
-answer open and forces another unseen search; ignored candidates cannot be
-returned again. An empty search or a latest candidate set fully assessed as
-non-material closes the check, while all earlier material evidence must remain
-assessed in the final commitment. This is a general reviewer judgment rather
-than a hand-authored semantic schema or a similarity threshold that could hide
-negations and corrections.
+new information. After every non-empty search, v4 requires one exact candidate
+review covering every latest evidence ID. Material evidence keeps the answer
+open and forces another unseen search; ignored candidates cannot be returned
+again. Review calls consume no retrieval budget, perform no durable write, and
+cannot be replaced by a second search or premature commitment. The final
+retrieval boundary still exposes review before forcing commitment. An empty
+search or a review classifying an unsaturated latest set as non-material closes
+the check. A full 20-candidate set always requires another duplicate-filtered
+search because more unseen candidates may remain; the next search cannot
+return any already returned or ignored information identity. All earlier
+material evidence must remain assessed in the final commitment. This is a
+general reviewer judgment rather than a hand-authored semantic schema or a
+similarity threshold that could hide negations and corrections.
 
-The v3 confirmation telemetry separates all unseen candidates, materially new
+The v4 confirmation telemetry separates all unseen candidates, materially new
 information, explicitly ignored candidates, and exact duplicates suppressed
-before retrieval. The final selected answer evidence still contains only rows
-with a material consequence. Identical Palari speech cannot hide direct user
-evidence, and the same words observed later remain available for temporal
-review. Once any candidate is assessed, it cannot recur in that answer journey.
+before retrieval, and counts classification calls separately from searches.
+The final selected answer evidence still contains only rows with a material
+consequence. Identical Palari speech cannot hide direct user evidence, and the
+same words observed later remain available for temporal review. Once any
+candidate is assessed, it cannot recur in that answer journey.
 
 Provider-free controls cover health-device composition, archive recall,
 paraphrase rejection, temporal repetition, speaker authority, and a
@@ -97,15 +124,15 @@ material novelty forces revision, a non-material candidate set may close,
 premature commitment is rejected, and a final novel result cannot be released
 when the review budget ends. The OpenAI loop still treats the special host
 rejection as a command to reopen retrieval rather than enter commit-only
-repair. The corrected v3 path has not received a paid live confirmation.
+repair. The explicit-review v4 successor is provider-free and has not received
+a paid live confirmation.
 
-The mutable private aggregate ledger now accounts `$30.83738150` under the
-founder-approved `$31.21912057` ceiling. Remaining headroom is `$0.38173907`,
-below the next `$0.70` case reservation, so another paid case requires a new
+The mutable private aggregate ledger now accounts `$33.63738150`, exactly the
+founder-approved `$33.63738150` ceiling. Another paid call requires a new
 explicit numeric aggregate cap. Expected spend and authorization ceilings
 remain distinct. No provider process is running. Focused confirmation/OpenAI
-contracts pass 32/32, `npm test` passes 82/82, quickstart passes 6/6, and the
-complete legacy suite passes 924 with 3 optional skips.
+contracts pass 34/34, `npm test` passes 83/83, quickstart passes 6/6, and the
+complete legacy suite passes 926 with 3 optional skips.
 
 ## Current state
 

@@ -80,26 +80,19 @@ function proposal(text, rows) {
   }
 }
 
-function reviewedProposal(text, usedRows, ignoredRows = []) {
-  return {
-    abstained: false,
-    bases: [
-      ...usedRows.map((row) => ({
-        consequence_for_answer: 'This directly changes the answer.',
-        evidenceId: row.evidenceId,
-        not_used_reason: '',
-        quote: row.text,
+function reviewCandidates(context, rows, disposition) {
+  return context.retrieve({
+    input: {
+      assessments: rows.map(({ evidenceId }) => ({
+        disposition,
+        evidenceId,
+        reason: disposition === 'material'
+          ? 'This adds information that may change the answer.'
+          : 'This repeats information already represented.',
       })),
-      ...ignoredRows.map((row) => ({
-        consequence_for_answer: '',
-        evidenceId: row.evidenceId,
-        not_used_reason: 'This repeats information already represented.',
-        quote: row.text,
-      })),
-    ],
-    temporaryInferences: [],
-    text,
-  }
+    },
+    tool: 'memory_candidate_review',
+  })
 }
 
 test('fresh reviewer revises on novelty and closes only after no new information',
@@ -135,7 +128,7 @@ test('fresh reviewer revises on novelty and closes only after no new information
       reviewerInvocations += 1
       assert.deepEqual(
         context.retrievalTools.map(({ name }) => name),
-        ['memory_search'],
+        ['memory_search', 'memory_candidate_review'],
       )
       assert.match(context.answerInstructions, /fresh, adversarial/)
       assert.match(context.memoryText, /provisionalAnswer/)
@@ -158,6 +151,9 @@ test('fresh reviewer revises on novelty and closes only after no new information
       const newRow = novel.matches.find((row) =>
         row.speaker === 'user' && row.text.includes('hearing aids'))
       assert.ok(newRow)
+      const review = await reviewCandidates(context, novel.matches, 'material')
+      assert.equal(review.continueSearch, true)
+      assert.equal(review.closed, false)
       assert.throws(
         () => context.commitAnswer(proposal(
           'Still premature.',
@@ -193,6 +189,7 @@ test('fresh reviewer revises on novelty and closes only after no new information
     assert.equal(result.answerConfirmation.status,
       'closed_no_new_material_information')
     assert.equal(result.answerConfirmation.retrievalCalls, 2)
+    assert.equal(result.answerConfirmation.reviewCalls, 1)
     assert.equal(result.answerConfirmation.newEvidenceIds.length,
       result.answerConfirmation.retrievalFrontier.seenEvidenceIds.length)
     assert.equal(result.answerConfirmation.durableWrites, 0)
@@ -274,11 +271,14 @@ test('reviewer can close on explicitly ignored paraphrase candidates without ano
       })
       assert.ok(candidates.matches.length >= 1)
       ignored = candidates.matches
-      return context.commitAnswer(reviewedProposal(
-        'You joined one event.',
-        [original],
+      const review = await reviewCandidates(
+        context,
         ignored,
-      ))
+        'not_used',
+      )
+      assert.equal(review.closed, true)
+      assert.equal(review.continueSearch, false)
+      return context.commitAnswer(proposal('You joined one event.', [original]))
     })
 
     const result = await answerWithRetrieval(brain, {
@@ -299,6 +299,74 @@ test('reviewer can close on explicitly ignored paraphrase candidates without ano
       new Set(result.answerConfirmation.ignoredCandidateEvidenceIds),
       new Set(ignored.map(({ evidenceId }) => evidenceId)),
     )
+  })
+
+test('a saturated candidate batch continues through only unseen information',
+  async (t) => {
+    const brain = await openBrain(t)
+    for (let index = 0; index < 22; index += 1) {
+      await seed(
+        brain,
+        `Catalog item ${index} stores code ${1000 + index}.`,
+        `catalog:${index}`,
+      )
+    }
+    let original
+    let provisional
+    const provider = requireCommitment(async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { limit: 1, phrase: 'catalog item 0 stores code 1000' },
+        tool: 'memory_search',
+      })
+      original = found.matches[0]
+      assert.ok(original)
+      provisional = commitAnswer(proposal(
+        'Catalog item zero stores code 1000.',
+        [original],
+      ))
+      return provisional
+    })
+    const pages = []
+    const confirmationProvider = requireCommitment(async (context) => {
+      for (let round = 0; round < 2; round += 1) {
+        const candidates = await context.retrieve({
+          input: { limit: 50, phrase: 'catalog item stores code' },
+          tool: 'memory_search',
+        })
+        pages.push(candidates.matches)
+        const review = await reviewCandidates(
+          context,
+          candidates.matches,
+          'not_used',
+        )
+        if (round === 0) {
+          assert.equal(candidates.matches.length, 20)
+          assert.equal(review.saturatedCandidateBatch, true)
+          assert.equal(review.continueSearch, true)
+        } else {
+          assert.ok(candidates.matches.length > 0)
+          assert.ok(candidates.matches.length < 20)
+          assert.equal(review.saturatedCandidateBatch, false)
+          assert.equal(review.closed, true)
+        }
+      }
+      return context.commitAnswer(proposal(
+        'Catalog item zero stores code 1000.',
+        [original],
+      ))
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      confirmationProvider,
+      maxConfirmationRetrievalCalls: 2,
+      provider,
+      question: 'What code does catalog item zero store?',
+    })
+    const firstIds = new Set(pages[0].map(({ evidenceId }) => evidenceId))
+    assert.ok(pages[1].every(({ evidenceId }) => !firstIds.has(evidenceId)))
+    assert.equal(result.answerConfirmation.retrievalCalls, 2)
+    assert.equal(result.answerConfirmation.reviewCalls, 2)
   })
 
 test('same words at a different observation time remain genuinely new',
@@ -337,6 +405,7 @@ test('same words at a different observation time remain genuinely new',
         row.observedAt === '2026-02-01T00:00:00.000Z')
       assert.ok(later)
       assert.notEqual(later.evidenceId, oldRow.evidenceId)
+      await reviewCandidates(context, novel.matches, 'material')
       assert.throws(
         () => context.commitAnswer(proposal(
           'Your emergency contact is still Morgan.',
@@ -397,6 +466,7 @@ test('same words from Palari cannot hide direct user evidence', async (t) => {
     const userRow = novel.matches.find((row) => row.speaker === 'user')
     assert.ok(userRow)
     assert.equal(userRow.text, text)
+    await reviewCandidates(context, novel.matches, 'material')
     assert.throws(
       () => context.commitAnswer(proposal(
         'You directly stated that the workshop access code is 4821.',
@@ -451,6 +521,7 @@ test('confirmation fails closed when its final bounded round finds novelty',
         tool: 'memory_search',
       })
       assert.ok(novel.matches.some((row) => row.text.includes('Juniper')))
+      await reviewCandidates(context, novel.matches, 'material')
       return provisional
     })
 
