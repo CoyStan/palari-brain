@@ -173,3 +173,23 @@ bounded work, source custody, and honest failure behavior.
   approved aggregate cap `$37.21155714`.
 - Once dispatched, stop after this one case regardless of success, judge
   result, or failure. Do not tune or retry.
+
+## Specialist Closeout
+
+BRN-0037 consumed its single authorized identity and stopped without retry.
+The provisional answer named two devices. Confirmation retrieved the missing
+hearing-aid and nebulizer evidence on a complete, unique 20-candidate page,
+but the reviewer supplied 19 assessments. The host rejected the incomplete
+review, so no revised answer, closure decision, official judge call, or grade
+exists. This is an alpha diagnostic failure, not a benchmark regrade.
+
+Provider-free replay reproduced the exact rejection, found 5/6 marked spans
+and all 4/4 decisive device facts across the journey, verified zero duplicate
+confirmation evidence, zero overlap with prior retrieval, zero durable writes,
+and byte-identical source custody. No bridge/read call occurred; structured
+frontier output was unavailable after the thrown answer.
+
+Measured spend was `$0.00853124`; conservative accounting retained `$0.70`
+and closed the ledger exactly at the approved `$37.21155714` ceiling. The
+identity must not be rerun. Any product response to the 20-versus-19 interface
+failure belongs to a separate ticket.
