@@ -383,7 +383,8 @@ private ledger is exactly `$37.21155714`, equal to the approved ceiling. A
 provider-free replay reproduced the 20-versus-19 rejection with 460 embedding-
 cache hits and zero misses. This identity is consumed and must not be rerun.
 
-BRN-0038 replaces that fragile ordered assessment list with confirmation
+BRN-0038, independently reviewed and founder-accepted, replaces that fragile
+ordered assessment list with confirmation
 schema `palari-answer-confirmation/v8`. Every displayed candidate now carries
 a short page-local `candidateNumber`. The fresh reviewer returns only material
 findings as `{candidateNumber, reason}`; `{findings: []}` means that no
