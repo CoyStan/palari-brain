@@ -896,6 +896,7 @@ export function createOpenAIRetrievalProvider({
           )
         }
         let rejection = null
+        let rejectionCode = null
         let committed
         if (calls.length !== 1 || commitmentCalls.length !== 1) {
           rejection = 'An answer commitment must be the only function call in its response.'
@@ -904,9 +905,22 @@ export function createOpenAIRetrievalProvider({
             committed = session.commitAnswer(clone(commitmentCalls[0].input))
           } catch (error) {
             rejection = commitmentRejection(error)
+            rejectionCode = String(error?.code ?? '')
           }
         }
         if (!rejection) return committed
+        if (rejectionCode === 'MEMORY_ANSWER_CONFIRMATION_REQUIRED') {
+          if (retrievalCalls >= retrievalLimit) {
+            throw adapterError(
+              'OPENAI_ANSWER_CONFIRMATION_INCOMPLETE',
+              'OpenAI exhausted the confirmation retrieval budget before a no-new-evidence round.',
+            )
+          }
+          forcingCommit = false
+          finalizing = false
+          appendCommitmentRepair(input, output, rejection)
+          continue
+        }
         if (repairUsed) {
           throw adapterError(
             'OPENAI_ANSWER_COMMIT_REPAIR_FAILED',

@@ -44,12 +44,34 @@ completeness/continuation and latest-update selection—not learned co-use edges
 This hard-set work is alpha diagnostic evidence and does not change historical
 LongMemEval grades.
 
+The product answer path now has an opt-in, answer-type-independent novelty
+closure review. Its first answer is provisional. A fresh provider invocation
+receives the draft and all previously returned canonical evidence, while its
+only retrieval surface is a host-filtered `memory_search` that removes every
+previously returned evidence ID before top-K truncation. Any new result keeps
+the answer open; the reviewer must assess or revise it and search again. The
+host accepts a new exact commitment only after the latest review search returns
+no new evidence. Review work is independently bounded from one to four calls;
+ending on novelty fails closed with `MEMORY_ANSWER_CONFIRMATION_INCOMPLETE`.
+Its frontier and novelty telemetry are ephemeral and record zero durable
+writes. This is bounded retrieval closure, not proof that the corpus contains
+no other evidence, and it adds no fixed semantic schema or learned co-use edge.
+
+Provider-free controls cover health-device composition, archive recall, and a
+project-name update: novelty forces revision, an empty unseen search permits
+closure, premature commitment is rejected, and a final novel result cannot be
+released when the review budget ends. The OpenAI loop treats the special host
+rejection as a command to reopen retrieval rather than enter commit-only
+repair. The gitignored resumable 490-question adapter is prepared to use the
+same provider in a fresh two-call confirmation phase, but no paid run was
+started.
+
 The mutable private aggregate ledger now accounts `$28.03738150` under the
 founder-approved `$31.21912057` ceiling. It conservatively retains full stage
 reservations for terminal failures; expected spend and authorization ceilings
 remain distinct. No provider process is running. Focused OpenAI contracts pass
-25/25, `npm test` passes 76/76, quickstart passes 6/6, and the complete legacy
-suite passes 917 with 3 optional skips.
+26/26, `npm test` passes 79/79, quickstart passes 6/6, and the complete legacy
+suite passes 921 with 3 optional skips.
 
 ## Current state
 

@@ -633,6 +633,58 @@ test('invalid commitment gets one repair and a second invalid result is terminal
     }
   })
 
+test('confirmation rejection reopens retrieval instead of forcing commit repair',
+  async () => {
+    const bodies = []
+    let searched = false
+    const proposal = {
+      abstained: false,
+      bases: [{ evidenceId: 'evidence-1', quote: 'violet folder' }],
+      text: 'The key is in the violet folder.',
+    }
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) {
+          return completedCommit(proposal, { callId: 'premature_commit' })
+        }
+        if (bodies.length === 2) {
+          return completedCall({
+            arguments: '{"phrase":"missing or conflicting key location"}',
+            callId: 'confirmation_search',
+            name: 'memory_search',
+          })
+        }
+        return completedCommit(proposal, { callId: 'closed_commit' })
+      },
+    })
+    const result = await provider(answerSession({
+      answerEvidenceCount: () => 1,
+      commitAnswer(received) {
+        if (!searched) {
+          const error = new TypeError('Search unseen memory before commit.')
+          error.code = 'MEMORY_ANSWER_CONFIRMATION_REQUIRED'
+          throw error
+        }
+        return Object.freeze(received)
+      },
+      maxRetrievalCalls: 2,
+      async retrieve() {
+        searched = true
+        return { matches: [] }
+      },
+    }))
+
+    assert.deepEqual(result, proposal)
+    assert.equal(bodies.length, 3)
+    assert.equal(bodies[1].tool_choice, 'auto')
+    assert.ok(bodies[1].tools.some(({ name }) => name === 'memory_search'))
+    assert.ok(bodies[1].input.some((item) =>
+      item.type === 'function_call_output' &&
+      item.call_id === 'premature_commit' &&
+      /Search unseen memory/.test(JSON.parse(item.output).rejection)))
+  })
+
 test('non-empty fourth retrieval forces only commitment without spending a fifth memory call',
   async () => {
     const bodies = []

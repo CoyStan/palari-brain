@@ -53,6 +53,8 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
 ])
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_SCHEMA =
   'palari-current-evidence-review/v1'
+export const MEMORY_ANSWER_CONFIRMATION_SCHEMA =
+  'palari-answer-confirmation/v1'
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_CANDIDATES = 3
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK = 3
 export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
@@ -214,6 +216,12 @@ function hasExactKeys(value, expected) {
 function answerCommitmentError(message) {
   const error = new TypeError(message)
   error.code = 'MEMORY_ANSWER_COMMITMENT_INVALID'
+  return error
+}
+
+function answerConfirmationError(message, code) {
+  const error = new TypeError(message)
+  error.code = code
   return error
 }
 
@@ -647,6 +655,14 @@ export const MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS = [
   'For a total, count, or supposedly complete list, one relevance-ranked result is not exhaustive. Use complementary bounded searches inside the planned time range; if completeness is still unproven, report a partial result or insufficient evidence instead of a definitive total.',
   'Do not transfer a value across mismatched named people, places, objects, or relationships. Evidence about a different named entity may justify insufficiency or non-use, but cannot answer the requested entity.',
   'Select each canonical evidence ID at most once in an answer commitment. When one message supports several points, choose one exact quote and combine its consequences in one basis.',
+].join(' ')
+
+export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
+  'Act as a fresh, adversarial answer reviewer after another model produced a provisional answer.',
+  'Before accepting or revising that draft, call memory_search with a new semantic or relational query designed to uncover omitted, conflicting, newer, or otherwise decisive evidence.',
+  'The confirmation search is host-filtered and returns only canonical memories that were not returned earlier in this answer journey.',
+  'If it returns any memory, assess that evidence, revise the answer when warranted, and continue with another confirmation search.',
+  'Commit only after the most recent confirmation search returns no new evidence. This is bounded retrieval closure, not proof that no possible memory exists.',
 ].join(' ')
 
 function evidenceRows(result) {
@@ -1304,6 +1320,8 @@ const HYBRID_TOOL = deepFreeze({
   },
 })
 
+export const MEMORY_ANSWER_CONFIRMATION_TOOLS = deepFreeze([HYBRID_TOOL])
+
 const GRAPH_TOOL = deepFreeze({
   description:
     'Traverse already admitted temporal graph edges from an entity for relational or multi-hop questions. Every edge contains an exact quote and canonical evidence ID. This lookup never extracts or writes graph data.',
@@ -1541,6 +1559,7 @@ async function hybridSearch(
   supplementalRankedQueries = [],
   semanticProbeQueries = [],
   rerankQuery = null,
+  excludedEvidenceIds = null,
 ) {
   const phrase = searchPhrase(input.phrase)
   const limit = boundedInteger(
@@ -1561,8 +1580,24 @@ async function hybridSearch(
   const before = input.before === undefined || input.before === null
     ? ''
     : String(input.before)
+  const excluded = excludedEvidenceIds instanceof setConstructor
+    ? excludedEvidenceIds
+    : new setConstructor()
+  const excludedCandidates = new setConstructor()
+  const newRowsOnly = (rows) => {
+    const eligible = []
+    for (let index = 0; index < rows.length; index += 1) {
+      const row = rows[index]
+      if (setHas(excluded, row?.evidenceId)) {
+        setAdd(excludedCandidates, row.evidenceId)
+      } else {
+        arrayPush(eligible, row)
+      }
+    }
+    return eligible
+  }
   const candidateLimit = Math.min(
-    Math.max(DEFAULT_HYBRID_LIMIT, limit * 2),
+    Math.max(DEFAULT_HYBRID_LIMIT, limit * 2 + excluded.size),
     200,
   )
 
@@ -1575,7 +1610,7 @@ async function hybridSearch(
     ranked: true,
   })
   const rankings = [{
-    rows: ranked.matches,
+    rows: newRowsOnly(ranked.matches),
     surface: 'ranked',
   }]
   const supplementalQueries = []
@@ -1599,7 +1634,7 @@ async function hybridSearch(
       ranked: true,
     })
     const surface = `ranked:${stringFrom(query?.surface ?? index + 1)}`
-    rankings.push({ rows: supplemental.matches, surface })
+    rankings.push({ rows: newRowsOnly(supplemental.matches), surface })
     supplementalRankedCandidates += supplemental.matches.length
     supplementalQueries.push({
       candidates: supplemental.matches.length,
@@ -1617,8 +1652,8 @@ async function hybridSearch(
         phrases: semanticProbeQueries.map((query) => query.phrase),
       })
       for (let index = 0; index < batches.length; index += 1) {
-        const rows = batches[index]
-          .filter((row) => withinBounds(row, after, before))
+        const rows = newRowsOnly(batches[index]
+          .filter((row) => withinBounds(row, after, before)))
         const query = semanticProbeQueries[index]
         const surface = `semantic:${stringFrom(query.surface ?? index + 1)}`
         rankings.push({ rows, surface })
@@ -1630,10 +1665,10 @@ async function hybridSearch(
         })
       }
     } else {
-      semantic = (await brain.exploreSemantic(scope, {
+      semantic = newRowsOnly((await brain.exploreSemantic(scope, {
         limit: candidateLimit,
         phrase,
-      })).filter((row) => withinBounds(row, after, before))
+      })).filter((row) => withinBounds(row, after, before)))
       rankings.push({ rows: semantic, surface: 'semantic' })
     }
   }
@@ -1734,6 +1769,12 @@ async function hybridSearch(
   return {
     chars,
     matches,
+    ...(excluded.size > 0
+      ? {
+          excludedCandidates: excludedCandidates.size,
+          newEvidenceOnly: true,
+        }
+      : {}),
     operation: 'memory_search',
     phrase,
     rankedCandidates: ranked.matches.length,
@@ -1756,9 +1797,11 @@ async function hybridSearch(
 export async function answerWithRetrieval(brain, {
   additionalInstructions = '',
   compositionMode = 'standard',
+  confirmationProvider = null,
   expandPlannedSearches = false,
   iterativeRetrieval = false,
   maxChars = 100_000,
+  maxConfirmationRetrievalCalls = 2,
   maxRetrievalCalls = DEFAULT_RETRIEVAL_CALLS,
   palariId,
   provider,
@@ -1770,6 +1813,10 @@ export async function answerWithRetrieval(brain, {
   if (typeof provider !== 'function') {
     throw new TypeError('answerWithRetrieval requires a provider function.')
   }
+  if (confirmationProvider !== null &&
+    typeof confirmationProvider !== 'function') {
+    throw new TypeError('confirmationProvider must be a function or null.')
+  }
   // Capability declarations are part of the call contract. Snapshot before
   // invoking provider code so a writable custom-provider property cannot be
   // weakened after canonical evidence has been returned.
@@ -1780,6 +1827,14 @@ export async function answerWithRetrieval(brain, {
     budget > DEFAULT_RETRIEVAL_CALLS) {
     throw new TypeError(
       `maxRetrievalCalls must be an integer from 0 to ` +
+        `${DEFAULT_RETRIEVAL_CALLS}.`,
+    )
+  }
+  const confirmationBudget = Number(maxConfirmationRetrievalCalls)
+  if (!numberIsSafeInteger(confirmationBudget) || confirmationBudget < 1 ||
+    confirmationBudget > DEFAULT_RETRIEVAL_CALLS) {
+    throw new TypeError(
+      `maxConfirmationRetrievalCalls must be an integer from 1 to ` +
         `${DEFAULT_RETRIEVAL_CALLS}.`,
     )
   }
@@ -1834,11 +1889,14 @@ export async function answerWithRetrieval(brain, {
   const capabilities = capabilitiesOf(brain)
   const consulted = []
   const committedResponses = new WeakSet()
+  const confirmationCommittedResponses = new WeakSet()
   const evidenceRegistry = new Map()
   const evidenceReviewIndex = new Map()
   const evidenceReviewRows = []
   let evidenceCount = 0
   let acceptedCurrentEvidenceReview = null
+  let confirmationActive = false
+  let confirmationClosed = false
   const transcript = []
   const frontier = createEphemeralRetrievalFrontier(budget)
   const referenceTime = questionReferenceTime(questionDate)
@@ -1923,6 +1981,12 @@ export async function answerWithRetrieval(brain, {
   }
 
   const commitAnswer = (proposal) => {
+    if (confirmationActive && !confirmationClosed) {
+      throw answerConfirmationError(
+        'The answer is still provisional. Search unseen memory and commit only after the latest confirmation search returns no new evidence.',
+        'MEMORY_ANSWER_CONFIRMATION_REQUIRED',
+      )
+    }
     // Provider objects are outside the host trust boundary. Read them once
     // into a private structured snapshot, then use only host-owned iteration;
     // never invoke provider-overridable Array methods during validation.
@@ -1993,6 +2057,9 @@ export async function answerWithRetrieval(brain, {
         text,
       })
       weakSetAdd(committedResponses, committed)
+      if (confirmationActive) {
+        weakSetAdd(confirmationCommittedResponses, committed)
+      }
       return committed
     }
     const modernKeys = enumerationRequired
@@ -2344,6 +2411,9 @@ export async function answerWithRetrieval(brain, {
       text,
     })
     weakSetAdd(committedResponses, committed)
+    if (confirmationActive) {
+      weakSetAdd(confirmationCommittedResponses, committed)
+    }
     return committed
   }
 
@@ -2633,12 +2703,192 @@ export async function answerWithRetrieval(brain, {
   if (providerFailed) throw providerError
   if (retrievalFailed) throw retrievalError
 
-  const answerCommitted = weakSetHas(committedResponses, response)
+  let answerCommitted = weakSetHas(committedResponses, response)
   if (requiresEvidenceCommitment &&
     evidenceCount > 0 && !answerCommitted) {
     throw answerCommitmentError(
       'This provider must return the exact host-committed answer object after evidence retrieval.',
     )
+  }
+  let answerConfirmation = null
+  if (confirmationProvider) {
+    const provisionalResponse = response
+    const priorEvidence = []
+    for (const [evidenceId, texts] of evidenceRegistry) {
+      arrayPush(priorEvidence, {
+        evidenceId,
+        text: texts[0],
+      })
+    }
+    const confirmationFrontier = createEphemeralRetrievalFrontier(
+      confirmationBudget,
+    )
+    const confirmationOperations = []
+    let confirmationCalls = 0
+    let confirmationExhausted = false
+    let confirmationOpen = true
+    confirmationActive = true
+    confirmationClosed = false
+
+    const confirmationRetrieve = (request) => {
+      if (!confirmationOpen) {
+        return promiseReject(new TypeError('Memory confirmation is closed.'))
+      }
+      const operation = (async () => {
+        const name = stringFrom(request?.tool ?? '')
+        if (name !== 'memory_search') {
+          throw new TypeError(`Unknown confirmation memory tool: ${name}`)
+        }
+        const input = request?.input ?? {}
+        if (confirmationCalls >= confirmationBudget) {
+          confirmationExhausted = true
+          confirmationFrontier.refuseForBudget({ input, tool: name })
+          return {
+            exhausted: true,
+            reason: 'confirmation_retrieval_budget_exhausted',
+          }
+        }
+        confirmationCalls += 1
+        const excludedEvidenceIds = new setConstructor()
+        for (const evidenceId of evidenceRegistry.keys()) {
+          setAdd(excludedEvidenceIds, evidenceId)
+        }
+        const result = registerEvidence(await hybridSearch(
+          brain,
+          scope,
+          capabilities,
+          applyTrustedTimeRange(input),
+          referenceTime,
+          [],
+          [],
+          null,
+          excludedEvidenceIds,
+        ))
+        consultRows(result.matches)
+        confirmationFrontier.record({ input, result, tool: name })
+        confirmationClosed = result.matches.length === 0
+        arrayPush(transcript, {
+          input,
+          phase: 'answer_confirmation',
+          result,
+          tool: name,
+        })
+        return result
+      })()
+      objectDefineProperty(operation, 'constructor', {
+        value: promiseSpeciesCarrier,
+      })
+      const record = { completion: null, outcome: null }
+      const completion = promiseThen(
+        operation,
+        () => {
+          record.outcome = { status: 'fulfilled' }
+        },
+        (reason) => {
+          record.outcome = { reason, status: 'rejected' }
+        },
+      )
+      objectDefineProperty(completion, 'constructor', {
+        value: promiseConstructor,
+      })
+      record.completion = completion
+      arrayPush(confirmationOperations, record)
+      return operation
+    }
+
+    let confirmationResponse
+    let confirmationProviderError = null
+    try {
+      confirmationResponse = await confirmationProvider({
+        answerEvidenceCount: () => evidenceCount,
+        answerEnumerationRequired: enumerationRequired,
+        answerRecommendationRequired: false,
+        answerSupportingEvidenceOnly: supportingEvidenceOnly,
+        answerInstructions: [
+          answerInstructions,
+          MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS,
+        ].filter(Boolean).join('\n\n'),
+        briefing,
+        commitAnswer,
+        maxRetrievalCalls: confirmationBudget,
+        maxRetrievalPlanningCalls: 0,
+        memoryText: JSON.stringify({
+          previouslyReturnedEvidence: priorEvidence,
+          provisionalAnswer: answerCommitted
+            ? provisionalResponse.text
+            : stringFrom(provisionalResponse?.text ?? provisionalResponse ?? ''),
+        }),
+        provisionalAnswer: answerCommitted
+          ? provisionalResponse.text
+          : stringFrom(provisionalResponse?.text ?? provisionalResponse ?? ''),
+        question,
+        questionDate,
+        questionText: [
+          questionDate ? `Question date: ${questionDate}` : '',
+          `Question: ${stringFrom(question)}`,
+        ].filter(Boolean).join('\n'),
+        recommendedMaxOutputTokens:
+          MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS,
+        retrievalCapabilities: capabilities,
+        retrievalFinalizationInstructions:
+          MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS,
+        retrievalFrontier: () => confirmationFrontier.snapshot({
+          retrievalOpen: confirmationOpen,
+        }),
+        retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
+        retrieve: confirmationRetrieve,
+        systemInstruction: memoryAnswerSystemInstruction,
+      })
+    } catch (error) {
+      confirmationProviderError = error
+    } finally {
+      confirmationOpen = false
+    }
+
+    let confirmationRetrievalError = null
+    for (let index = 0; index < confirmationOperations.length; index += 1) {
+      const record = confirmationOperations[index]
+      await record.completion
+      if (record.outcome.status === 'rejected' &&
+        confirmationRetrievalError === null) {
+        confirmationRetrievalError = record.outcome.reason
+      }
+    }
+    if (confirmationProviderError) throw confirmationProviderError
+    if (confirmationRetrievalError) throw confirmationRetrievalError
+    if (!confirmationClosed) {
+      throw answerConfirmationError(
+        'Answer confirmation exhausted its bounded retrieval work before a no-new-evidence round.',
+        'MEMORY_ANSWER_CONFIRMATION_INCOMPLETE',
+      )
+    }
+    const confirmationCommitted = weakSetHas(
+      confirmationCommittedResponses,
+      confirmationResponse,
+    )
+    if (evidenceCount > 0 && !confirmationCommitted) {
+      throw answerCommitmentError(
+        'The confirmation provider must return a new exact host-committed answer object after closure.',
+      )
+    }
+    response = confirmationResponse
+    answerCommitted = confirmationCommitted
+    const confirmationSnapshot = confirmationFrontier.snapshot({
+      retrievalOpen: false,
+    })
+    answerConfirmation = deepFreeze({
+      closureRoundOrdinal: confirmationSnapshot.roundCount,
+      durableWrites: 0,
+      ephemeral: true,
+      exhausted: confirmationExhausted,
+      independentProviderDispatch: true,
+      maxRetrievalCalls: confirmationBudget,
+      newEvidenceIds: confirmationSnapshot.seenEvidenceIds,
+      retrievalCalls: confirmationCalls,
+      retrievalFrontier: confirmationSnapshot,
+      schema: MEMORY_ANSWER_CONFIRMATION_SCHEMA,
+      status: 'closed_no_new_evidence',
+    })
   }
   const answerEvidence = []
   const evidenceCommitments = answerCommitted
@@ -2686,6 +2936,7 @@ export async function answerWithRetrieval(brain, {
     answerCommitted,
     answerCompositionMode: resolvedCompositionMode,
     answerEnumeration,
+    ...(answerConfirmation ? { answerConfirmation } : {}),
     // Compatibility tombstone for the removed dual recommendation surface.
     answerRecommendation: null,
     answerEvidence,
