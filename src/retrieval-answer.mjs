@@ -59,7 +59,7 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_SCHEMA =
   'palari-current-evidence-review/v1'
 export const MEMORY_ANSWER_CONFIRMATION_SCHEMA =
-  'palari-answer-confirmation/v7'
+  'palari-answer-confirmation/v8'
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_CANDIDATES = 3
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK = 3
 export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
@@ -673,11 +673,11 @@ export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
   'Before accepting or revising that draft, call memory_search with a new semantic or relational query designed to uncover omitted, conflicting, newer, or otherwise decisive evidence.',
   'The prior-evidence context contains one representative per information identity rather than repeated copies.',
   'The confirmation search is host-filtered and returns compact exact excerpts from only unseen canonical candidates whose evidence ID and provenance-aware normalized information were not returned earlier in this answer journey; exact duplicate information is also collapsed within each result. Direct user evidence is presented before derivative Palari navigation anchors, while complete canonical messages remain host-side for quote validation and audit.',
-  'Search matches are candidates, not automatically new information. After every non-empty search, call memory_candidate_review before searching or committing. Return exactly one assessment per candidate in the same order; the host binds positions to immutable evidence IDs, so do not reproduce those IDs. Classify every candidate as material or not_used and give a specific reason.',
-  'Any material candidate requires revising the answer and another confirmation search. Candidates classified not_used are ignored and cannot be retrieved again in this answer journey.',
-  'The host reports candidatePageComplete separately from lowerRankedCandidatesAvailable. If candidatePageComplete is false, another duplicate-filtered search is required even when every displayed candidate is not_used. A lower-ranked tail alone does not make the delivered top-K review incomplete.',
+  'Search matches are candidates, not automatically new information. After every non-empty search, call memory_candidate_review before searching or committing. Review the complete displayed page and return only findings that materially change, expand, contradict, date, or otherwise affect the answer. Identify each finding by its short page-local candidateNumber and give a specific reason; never reproduce an evidence ID. Return an empty findings list when no displayed candidate materially affects the answer.',
+  'Any material finding requires revising the answer and another confirmation search. Every unlisted candidate on a successfully reviewed page is treated as non-material and cannot be retrieved again in this answer journey.',
+  'The host reports candidatePageComplete separately from lowerRankedCandidatesAvailable. If candidatePageComplete is false, another duplicate-filtered search is required even when findings is empty. A lower-ranked tail alone does not make the delivered top-K review incomplete.',
   'An empty confirmation search means no new information was found for that adversarial query.',
-  'Commit only after the latest search is empty or memory_candidate_review reports that every candidate is not used, and all materially new candidates from earlier rounds remain assessed in the final commitment. This is bounded retrieval closure, not proof that no possible memory exists.',
+  'Commit only after the latest search is empty or a complete displayed page produces no material findings, and all material findings from earlier rounds remain assessed in the final commitment. This is bounded retrieval closure, not proof that no possible memory exists.',
 ].join(' ')
 
 function evidenceRows(result) {
@@ -1403,23 +1403,24 @@ const MEMORY_ANSWER_CONFIRMATION_SEARCH_TOOL = deepFreeze({
 
 export const MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL = deepFreeze({
   description: [
-    'Classify every candidate from the latest non-empty confirmation search before another search or final commitment.',
-    'Return exactly one assessment per candidate in the same order; the host attaches immutable evidence IDs by position.',
-    'Use material only when the candidate changes, expands, contradicts, dates, or otherwise affects the answer.',
-    'Use not_used for duplicate, derivative, irrelevant, superseded, or otherwise non-material information and state the specific reason.',
-    'This review is ephemeral, performs no retrieval or durable write, and assessed candidates cannot recur in this answer journey.',
+    'Review every candidate from the latest non-empty confirmation search before another search or final commitment.',
+    'Return only material findings, identified by the short page-local candidateNumber shown in the search result; the host attaches immutable evidence IDs.',
+    'A finding is material only when it changes, expands, contradicts, dates, or otherwise affects the answer.',
+    'Return an empty findings list when nothing on the displayed page materially affects the answer. Do not explain or list non-material candidates.',
+    'This review is ephemeral, performs no retrieval or durable write, and every candidate on a successfully reviewed page is excluded from later confirmation retrieval.',
   ].join(' '),
   name: MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME,
   parameters: {
     additionalProperties: false,
     properties: {
-      assessments: {
+      findings: {
         items: {
           additionalProperties: false,
           properties: {
-            disposition: {
-              enum: ['material', 'not_used'],
-              type: 'string',
+            candidateNumber: {
+              maximum: MEMORY_ANSWER_MAX_BASES,
+              minimum: 1,
+              type: 'integer',
             },
             reason: {
               maxLength: MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
@@ -1427,15 +1428,14 @@ export const MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL = deepFreeze({
               type: 'string',
             },
           },
-          required: ['disposition', 'reason'],
+          required: ['candidateNumber', 'reason'],
           type: 'object',
         },
         maxItems: MEMORY_ANSWER_MAX_BASES,
-        minItems: 1,
         type: 'array',
       },
     },
-    required: ['assessments'],
+    required: ['findings'],
     type: 'object',
   },
 })
@@ -1978,7 +1978,12 @@ async function hybridSearch(
   let chars = 0
   const candidatePage = presented.slice(0, limit)
   for (const candidate of candidatePage) {
-    const ranked = { ...candidate, rank: matches.length + 1 }
+    const position = matches.length + 1
+    const ranked = {
+      ...candidate,
+      ...(confirmationView ? { candidateNumber: position } : {}),
+      rank: position,
+    }
     const cost = JSON.stringify(ranked).length
     if (matches.length && chars + cost > maxChars) break
     matches.push(ranked)
@@ -3058,56 +3063,72 @@ export async function answerWithRetrieval(brain, {
               'Candidate review requires one latest non-empty unassessed confirmation search.',
             )
           }
-          exactDataProperties(input, ['assessments'], 'Candidate review')
+          exactDataProperties(input, ['findings'], 'Candidate review')
           const candidate = snapshotCommitment(input)
-          exactDataProperties(candidate, ['assessments'], 'Candidate review')
-          if (!arrayIsArray(candidate.assessments) ||
-            candidate.assessments.length !==
+          exactDataProperties(candidate, ['findings'], 'Candidate review')
+          if (!arrayIsArray(candidate.findings) ||
+            candidate.findings.length >
               confirmationLatestEvidenceIds.length) {
             throw answerCommitmentError(
-              `Candidate review must assess exactly ` +
-                `${confirmationLatestEvidenceIds.length} latest candidates.`,
+              `Candidate review findings must be an array containing no more ` +
+                `than ${confirmationLatestEvidenceIds.length} latest candidates.`,
             )
           }
           const materialEvidenceIds = []
           const ignoredEvidenceIds = []
-          for (let index = 0; index < candidate.assessments.length; index += 1) {
-            const assessment = candidate.assessments[index]
+          const materialEvidenceSet = new setConstructor()
+          const candidateNumberSet = new setConstructor()
+          for (let index = 0; index < candidate.findings.length; index += 1) {
+            const finding = candidate.findings[index]
             exactDataProperties(
-              assessment,
-              ['disposition', 'reason'],
-              `Candidate review assessment ${index}`,
+              finding,
+              ['candidateNumber', 'reason'],
+              `Candidate review finding ${index}`,
             )
-            const evidenceId = confirmationLatestEvidenceIds[index]
+            const candidateNumber = finding.candidateNumber
+            if (!numberIsSafeInteger(candidateNumber) || candidateNumber < 1 ||
+              candidateNumber > confirmationLatestEvidenceIds.length) {
+              throw answerCommitmentError(
+                `Candidate review finding ${index} candidateNumber must be a ` +
+                  `latest page integer from 1 to ` +
+                  `${confirmationLatestEvidenceIds.length}.`,
+              )
+            }
+            if (setHas(candidateNumberSet, candidateNumber)) {
+              throw answerCommitmentError(
+                `Candidate review candidateNumber ${candidateNumber} is duplicated.`,
+              )
+            }
+            setAdd(candidateNumberSet, candidateNumber)
+            const evidenceId = confirmationLatestEvidenceIds[
+              candidateNumber - 1
+            ]
             const reason = boundedCommitmentText(
-              assessment.reason,
-              `Candidate review assessment ${index} reason`,
+              finding.reason,
+              `Candidate review finding ${index} reason`,
               MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
               { trim: true },
             )
-            if (assessment.disposition !== 'material' &&
-              assessment.disposition !== 'not_used') {
-              throw answerCommitmentError(
-                `Candidate review assessment ${index} disposition must be ` +
-                  `material or not_used.`,
-              )
-            }
-            if (assessment.disposition === 'material') {
-              arrayPush(materialEvidenceIds, evidenceId)
-              if (!setHas(confirmationNewInformationSet, evidenceId)) {
-                setAdd(confirmationNewInformationSet, evidenceId)
-                arrayPush(confirmationNewInformationEvidenceIds, evidenceId)
-              }
-            } else {
-              arrayPush(ignoredEvidenceIds, evidenceId)
-              if (!setHas(confirmationIgnoredCandidateSet, evidenceId)) {
-                setAdd(confirmationIgnoredCandidateSet, evidenceId)
-                arrayPush(confirmationIgnoredCandidateEvidenceIds, evidenceId)
-              }
+            arrayPush(materialEvidenceIds, evidenceId)
+            setAdd(materialEvidenceSet, evidenceId)
+            if (!setHas(confirmationNewInformationSet, evidenceId)) {
+              setAdd(confirmationNewInformationSet, evidenceId)
+              arrayPush(confirmationNewInformationEvidenceIds, evidenceId)
             }
             // The reason is validated and returned for the model's ephemeral
             // working context, but is never written to canonical memory.
-            candidate.assessments[index].reason = reason
+            candidate.findings[index].reason = reason
+          }
+          for (let index = 0;
+            index < confirmationLatestEvidenceIds.length;
+            index += 1) {
+            const evidenceId = confirmationLatestEvidenceIds[index]
+            if (setHas(materialEvidenceSet, evidenceId)) continue
+            arrayPush(ignoredEvidenceIds, evidenceId)
+            if (!setHas(confirmationIgnoredCandidateSet, evidenceId)) {
+              setAdd(confirmationIgnoredCandidateSet, evidenceId)
+              arrayPush(confirmationIgnoredCandidateEvidenceIds, evidenceId)
+            }
           }
           confirmationReviewCalls += 1
           confirmationLatestAssessed = true
@@ -3337,7 +3358,7 @@ export async function answerWithRetrieval(brain, {
       closureRoundOrdinal: confirmationSnapshot.roundCount,
       closureReason: confirmationLatestEvidenceIds.length === 0
         ? 'empty_unseen_search'
-        : 'all_candidates_assessed_not_used',
+        : 'no_material_findings',
       durableWrites: 0,
       ephemeral: true,
       exhausted: confirmationExhausted,

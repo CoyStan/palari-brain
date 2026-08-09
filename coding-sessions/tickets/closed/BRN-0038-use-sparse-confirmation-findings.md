@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0038
 children: []
-status: open
+status: accepted
 risk: R2
 priority: P1
 agents_allowed: 2
@@ -165,3 +165,24 @@ complete displayed page contains no material evidence.
   access.
 - Stop if sparse output would allow an invalid candidate number, unreviewed
   page, material finding, or duplicate information to be released silently.
+
+## Specialist Closeout
+
+Confirmation v8 now exposes short page-local candidate numbers and accepts
+only sparse material findings. Empty findings close a fully delivered page;
+material findings bind host-side, force revision and another unseen search,
+and remain required in the final answer. All unlisted page candidates become
+non-material and cannot recur. Character-truncated pages remain open, and an
+ordinary lower-ranked tail remains compatible with closure.
+
+Host validation rejects missing, fractional, zero, negative, out-of-range,
+duplicate, stale-review, extra-field, and legacy assessment payloads. The
+model never reproduces evidence IDs. Exact canonical validation, direct-user-
+first presentation, duplicate-information exclusion, bounded work, isolation,
+and zero durable writes are preserved.
+
+Focused tests pass 10/10, the default suite 86/86, quickstart 6/6, and the
+complete legacy suite 917 pass / 15 optional skips / 0 fail across 932. Diff
+and governed scope are clean. No provider, credential, private artifact,
+dataset, or sealed U8 access occurred. Fresh independent review is required
+before founder acceptance.

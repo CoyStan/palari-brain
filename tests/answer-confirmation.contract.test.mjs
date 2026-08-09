@@ -85,35 +85,38 @@ function proposal(text, rows) {
 function reviewCandidates(context, rows, disposition) {
   return context.retrieve({
     input: {
-      assessments: rows.map(() => ({
-        disposition,
-        reason: disposition === 'material'
-          ? 'This adds information that may change the answer.'
-          : 'This repeats information already represented.',
-      })),
+      findings: disposition === 'material'
+        ? rows.map((row) => ({
+            candidateNumber: row.candidateNumber,
+            reason: 'This adds information that may change the answer.',
+          }))
+        : [],
     },
     tool: 'memory_candidate_review',
   })
 }
 
-test('candidate reviews bind ordered assessments to host evidence IDs',
+test('sparse candidate reviews reject invalid numbers and close with no findings',
   async (t) => {
     assert.equal(
       MEMORY_ANSWER_CONFIRMATION_SCHEMA,
-      'palari-answer-confirmation/v7',
+      'palari-answer-confirmation/v8',
     )
-    const assessmentSchema = MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL
-      .parameters.properties.assessments.items
+    const reviewSchema = MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL.parameters
+    assert.deepEqual(Object.keys(reviewSchema.properties), ['findings'])
+    const findingSchema = reviewSchema.properties.findings.items
     assert.deepEqual(
-      Object.keys(assessmentSchema.properties).sort(),
-      ['disposition', 'reason'],
+      Object.keys(findingSchema.properties).sort(),
+      ['candidateNumber', 'reason'],
     )
     assert.deepEqual(
-      [...assessmentSchema.required].sort(),
-      ['disposition', 'reason'],
+      [...findingSchema.required].sort(),
+      ['candidateNumber', 'reason'],
     )
     assert.match(MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS,
-      /host binds positions to immutable evidence IDs/)
+      /return only findings that materially/)
+    assert.match(MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS,
+      /empty findings list/)
     assert.match(MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS,
       /candidatePageComplete separately from lowerRankedCandidatesAvailable/)
     const searchSchema = MEMORY_ANSWER_CONFIRMATION_TOOLS.find(
@@ -126,12 +129,14 @@ test('candidate reviews bind ordered assessments to host evidence IDs',
     assert.ok(!Object.hasOwn(searchSchema.properties, 'limit'))
     assert.ok(!Object.hasOwn(searchSchema.properties, 'maxChars'))
 
-    async function runReview(buildAssessments, verifyReview = () => {}) {
+    async function runReview(buildInput, verifyReview = () => {}) {
       const brain = await openBrain(t)
       await seed(brain, 'My archive key is in the violet folder.',
         'binding-old:0')
       await seed(brain, 'My spare archive key is in the amber drawer.',
         'binding-new:0')
+      await seed(brain, 'My backup archive key is in the green cabinet.',
+        'binding-backup:0')
       let original
       const provider = requireCommitment(async ({ commitAnswer, retrieve }) => {
         const found = await retrieve({
@@ -148,18 +153,16 @@ test('candidate reviews bind ordered assessments to host evidence IDs',
           input: { limit: 20, phrase: 'spare archive key amber drawer' },
           tool: 'memory_search',
         })
-        assert.ok(candidates.matches.length >= 1)
-        const valid = candidates.matches.map(() => ({
-          disposition: 'not_used',
-          reason: 'This concerns a separate spare key.',
-        }))
+        assert.ok(candidates.matches.length >= 2)
+        assert.deepEqual(
+          candidates.matches.map(({ candidateNumber }) => candidateNumber),
+          candidates.matches.map((_, index) => index + 1),
+        )
         const review = await context.retrieve({
-          input: {
-            assessments: buildAssessments(valid, candidates.matches),
-          },
+          input: buildInput(candidates.matches),
           tool: 'memory_candidate_review',
         })
-        verifyReview(review, candidates.matches)
+        await verifyReview(review, candidates.matches, context)
         return context.commitAnswer(proposal(
           'The key is in the violet folder.',
           [original],
@@ -174,21 +177,71 @@ test('candidate reviews bind ordered assessments to host evidence IDs',
     }
 
     await assert.rejects(
-      runReview((valid, matches) => valid.map((assessment, index) => ({
-        ...assessment,
-        evidenceId: matches[index].evidenceId,
-      }))),
+      runReview((matches) => ({
+        assessments: matches.map(() => ({
+          disposition: 'not_used',
+          reason: 'Legacy ordered assessment.',
+        })),
+      })),
+      /findings must be a data property/,
+    )
+    await assert.rejects(
+      runReview((matches) => ({
+        findings: [{
+          candidateNumber: 1,
+          evidenceId: matches[0].evidenceId,
+          reason: 'Opaque IDs are not accepted.',
+        }],
+      })),
       /unsupported or missing fields/,
     )
     await assert.rejects(
-      runReview((valid) => valid.slice(1)),
-      /must assess exactly/,
+      runReview(() => ({
+        findings: [{ reason: 'Candidate number is missing.' }],
+      })),
+      /unsupported or missing fields/,
     )
     await assert.rejects(
-      runReview((valid) => [...valid, valid[0]]),
-      /must assess exactly/,
+      runReview(() => ({
+        findings: [{ candidateNumber: 1 }],
+      })),
+      /unsupported or missing fields/,
     )
-    const result = await runReview((valid) => valid, (review, matches) => {
+    for (const candidateNumber of [0, -1, 1.5, 99]) {
+      await assert.rejects(
+        runReview(() => ({
+          findings: [{
+            candidateNumber,
+            reason: 'Invalid page-local candidate number.',
+          }],
+        })),
+        /candidateNumber must be a latest page integer/,
+      )
+    }
+    await assert.rejects(
+      runReview(() => ({
+        findings: [
+          { candidateNumber: 1, reason: 'First copy.' },
+          { candidateNumber: 1, reason: 'Duplicate copy.' },
+        ],
+      })),
+      /candidateNumber 1 is duplicated/,
+    )
+    await assert.rejects(
+      runReview(() => ({ findings: [] }),
+        async (_review, _matches, context) => {
+          await assert.rejects(
+            context.retrieve({
+              input: { findings: [] },
+              tool: 'memory_candidate_review',
+            }),
+            /latest non-empty unassessed confirmation search/,
+          )
+        }),
+      /latest non-empty unassessed confirmation search/,
+    )
+    const result = await runReview(() => ({ findings: [] }),
+      (review, matches) => {
       assert.deepEqual(
         review.assessedEvidenceIds,
         matches.map(({ evidenceId }) => evidenceId),
@@ -197,9 +250,77 @@ test('candidate reviews bind ordered assessments to host evidence IDs',
         review.ignoredEvidenceIds,
         matches.map(({ evidenceId }) => evidenceId),
       )
+      assert.deepEqual(review.materialEvidenceIds, [])
     })
     assert.equal(result.answer, 'The key is in the violet folder.')
     assert.equal(result.answerConfirmation.reviewCalls, 1)
+    assert.equal(result.answerConfirmation.closureReason,
+      'no_material_findings')
+  })
+
+test('sparse findings bind explicit candidate numbers independent of order',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, 'My primary archive key is in the violet folder.',
+      'sparse-old:0')
+    await seed(brain, 'My spare archive key is in the amber drawer.',
+      'sparse-new:0')
+    await seed(brain, 'My backup archive key is in the green cabinet.',
+      'sparse-backup:0')
+    let original
+    const provider = requireCommitment(async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { limit: 1, phrase: 'primary archive key violet folder' },
+        tool: 'memory_search',
+      })
+      original = found.matches[0]
+      return commitAnswer(proposal('The primary key is in violet.', [original]))
+    })
+    let materialRows
+    const confirmationProvider = requireCommitment(async (context) => {
+      const candidates = await context.retrieve({
+        input: { phrase: 'spare backup archive key locations' },
+        tool: 'memory_search',
+      })
+      assert.ok(candidates.matches.length >= 2)
+      materialRows = [candidates.matches.at(-1), candidates.matches[0]]
+      const review = await context.retrieve({
+        input: {
+          findings: materialRows.map((row) => ({
+            candidateNumber: row.candidateNumber,
+            reason: 'This adds another archive-key location.',
+          })),
+        },
+        tool: 'memory_candidate_review',
+      })
+      assert.deepEqual(
+        review.materialEvidenceIds,
+        materialRows.map(({ evidenceId }) => evidenceId),
+      )
+      assert.equal(review.closed, false)
+      const closed = await context.retrieve({
+        input: { phrase: 'spare backup archive key locations' },
+        tool: 'memory_search',
+      })
+      assert.deepEqual(closed.matches, [])
+      return context.commitAnswer(proposal(
+        'The primary key is in violet; spare keys are also recorded.',
+        [original, ...materialRows],
+      ))
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      confirmationProvider,
+      maxConfirmationRetrievalCalls: 2,
+      provider,
+      question: 'Where are my archive keys?',
+    })
+    assert.equal(result.answerConfirmation.reviewCalls, 1)
+    assert.deepEqual(
+      result.answerConfirmation.newInformationEvidenceIds,
+      materialRows.map(({ evidenceId }) => evidenceId),
+    )
   })
 
 test('fresh reviewer revises on novelty and closes only after no new information',
@@ -352,7 +473,7 @@ test('confirmation can accept a complete draft after one empty unseen search',
     assert.equal(result.answer, draft.text)
   })
 
-test('reviewer can close on explicitly ignored paraphrase candidates without another search',
+test('reviewer can close with no findings without explaining every paraphrase',
   async (t) => {
     const brain = await openBrain(t)
     await seed(brain,
@@ -396,7 +517,7 @@ test('reviewer can close on explicitly ignored paraphrase candidates without ano
     })
     assert.equal(result.answer, 'You joined one event.')
     assert.equal(result.answerConfirmation.closureReason,
-      'all_candidates_assessed_not_used')
+      'no_material_findings')
     assert.deepEqual(result.answerConfirmation.newInformationEvidenceIds, [])
     assert.deepEqual(
       result.answerEvidence.map(({ evidenceId }) => evidenceId),
