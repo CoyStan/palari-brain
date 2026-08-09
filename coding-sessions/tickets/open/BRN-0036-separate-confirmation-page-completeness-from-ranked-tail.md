@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0036
 children: []
-status: in-review
+status: claimed
 risk: R2
 priority: P1
 agents_allowed: 2
-claimed_by: 
-claimed_at: 
+claimed_by: "quetza"
+claimed_at: 2026-08-09T21:40:46Z
 target_branch: "main"
 branch: "ticket/BRN-0036-separate-confirmation-page-completeness-from-ranked-tail"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0036-separate-confirmation-page-completeness-from-ranked-tail"
