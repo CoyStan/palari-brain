@@ -264,6 +264,28 @@ aggregate authorization ceiling `$36.50128178`. The embedding cache recorded
 matches frozen preflight. This remains an alpha diagnostic, not a benchmark
 regrade.
 
+Provider-free inspection then found that the five-result confirmation was not
+a five-candidate limit. The reviewer requested up to 20 candidates, but five
+long complete messages consumed its model-authored 12,000-character budget;
+the host incorrectly allowed that character-truncated page to close because it
+was shorter than 20. Confirmation schema `palari-answer-confirmation/v6` now
+keeps those budgets host-owned, presents at most 20 compact exact 800-character
+excerpts inside 20,000 characters, and places direct user evidence before
+derivative Palari navigation anchors. Complete canonical messages remain
+host-side for exact-quote validation and audit; ordinary retrieval still
+returns complete messages unchanged.
+
+Confirmation results now state whether truncation left an unseen tail. A tail
+keeps the answer provisional and forces the next duplicate-filtered page even
+when every displayed candidate was classified `not_used`. Previously returned,
+ignored, or provenance-aware duplicate information remains ineligible, so the
+next page contains only genuinely unseen information identities. A focused
+regression proves character-truncated pages are disjoint, preserve full source
+validation, perform no durable write, and cannot close early. `npm test` passes
+85/85, quickstart passes 6/6, and the complete legacy suite passes 928 with 3
+optional skips. No paid call was made; the private ledger remains
+`$35.81155714`.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate

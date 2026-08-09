@@ -8,6 +8,7 @@ import {
   MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS,
   MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL,
   MEMORY_ANSWER_CONFIRMATION_SCHEMA,
+  MEMORY_ANSWER_CONFIRMATION_TOOLS,
   answerWithRetrieval,
   createPalariBrain,
   ingestChatTurn,
@@ -109,6 +110,15 @@ test('candidate reviews bind ordered assessments to host evidence IDs',
     )
     assert.match(MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS,
       /host binds positions to immutable evidence IDs/)
+    const searchSchema = MEMORY_ANSWER_CONFIRMATION_TOOLS.find(
+      ({ name }) => name === 'memory_search',
+    ).parameters
+    assert.deepEqual(
+      Object.keys(searchSchema.properties).sort(),
+      ['after', 'before', 'phrase'],
+    )
+    assert.ok(!Object.hasOwn(searchSchema.properties, 'limit'))
+    assert.ok(!Object.hasOwn(searchSchema.properties, 'maxChars'))
 
     async function runReview(buildAssessments, verifyReview = () => {}) {
       const brain = await openBrain(t)
@@ -458,6 +468,110 @@ test('a saturated candidate batch continues through only unseen information',
     assert.ok(pages[1].every(({ evidenceId }) => !firstIds.has(evidenceId)))
     assert.equal(result.answerConfirmation.retrievalCalls, 2)
     assert.equal(result.answerConfirmation.reviewCalls, 2)
+  })
+
+test('character-truncated confirmation stays open and pages compact user evidence',
+  async (t) => {
+    const brain = await openBrain(t)
+    for (let index = 0; index < 16; index += 1) {
+      await seed(
+        brain,
+        `Long catalog device ${index} begins here. ` +
+          `${'\\'.repeat(2_000)}` +
+          `Exact marker ${index} confirms daily use.`,
+        `long-catalog:${index}`,
+      )
+    }
+    let original
+    let provisional
+    const provider = requireCommitment(async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { limit: 1, phrase: 'Long catalog device 0 Exact marker 0' },
+        tool: 'memory_search',
+      })
+      original = found.matches[0]
+      provisional = commitAnswer(proposal(
+        'The first catalog device is recorded.',
+        [{
+          ...original,
+          text: 'Long catalog device 0 begins here.',
+        }],
+      ))
+      return provisional
+    })
+    const pages = []
+    const confirmationProvider = requireCommitment(async (context) => {
+      const first = await context.retrieve({
+        input: {
+          // These legacy model-authored controls are intentionally ignored;
+          // the confirmation host owns both budgets.
+          limit: 1,
+          maxChars: 1,
+          phrase: 'long catalog device exact marker confirms daily use',
+        },
+        tool: 'memory_search',
+      })
+      pages.push(first.matches)
+      assert.ok(first.matches.length > 1)
+      assert.ok(first.matches.length < 20)
+      assert.equal(first.truncatedByChars, true)
+      assert.equal(first.moreCandidatesAvailable, true)
+      assert.equal(first.candidateExcerptChars, 800)
+      assert.ok(first.matches.every((row) => row.speaker === 'user'))
+      assert.ok(first.matches.every((row) =>
+        row.text.length <= first.candidateExcerptChars &&
+        row.sourceTextChars > row.text.length &&
+        row.textIsPartial === true))
+      const canonical = brain.exploreRead(SCOPE, {
+        evidenceIds: [first.matches[0].evidenceId],
+        limit: 1,
+        maxChars: 20_000,
+      }).messages[0]
+      assert.ok(canonical.text.includes(first.matches[0].text))
+      assert.ok(canonical.text.length > first.matches[0].text.length)
+      const firstReview = await reviewCandidates(
+        context,
+        first.matches,
+        'not_used',
+      )
+      assert.equal(firstReview.closed, false)
+      assert.equal(firstReview.continueSearch, true)
+      assert.equal(firstReview.saturatedCandidateBatch, true)
+
+      const second = await context.retrieve({
+        input: { phrase: 'long catalog device exact marker confirms daily use' },
+        tool: 'memory_search',
+      })
+      pages.push(second.matches)
+      assert.ok(second.matches.length >= 1)
+      assert.equal(second.moreCandidatesAvailable, false)
+      const secondReview = await reviewCandidates(
+        context,
+        second.matches,
+        'not_used',
+      )
+      assert.equal(secondReview.closed, true)
+      return context.commitAnswer(proposal(
+        'The first catalog device is recorded.',
+        [{
+          ...original,
+          text: 'Long catalog device 0 begins here.',
+        }],
+      ))
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      confirmationProvider,
+      maxConfirmationRetrievalCalls: 2,
+      provider,
+      question: 'What does the first catalog device record?',
+    })
+    const firstIds = new Set(pages[0].map(({ evidenceId }) => evidenceId))
+    assert.ok(pages[1].every(({ evidenceId }) => !firstIds.has(evidenceId)))
+    assert.equal(result.answerConfirmation.retrievalCalls, 2)
+    assert.equal(result.answerConfirmation.reviewCalls, 2)
+    assert.equal(result.answerConfirmation.durableWrites, 0)
   })
 
 test('same words at a different observation time remain genuinely new',

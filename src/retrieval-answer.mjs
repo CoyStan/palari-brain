@@ -34,6 +34,11 @@ export const MEMORY_ANSWER_MAX_ENUMERATION_ITEMS = 50
 export const MEMORY_ANSWER_MAX_ENUMERATION_LABEL_CHARS = 500
 export const MEMORY_ANSWER_MAX_ENUMERATION_ACTION_CHARS = 200
 export const MEMORY_ANSWER_MAX_ENUMERATION_REASON_CHARS = 1_000
+const MEMORY_ANSWER_CONFIRMATION_CANDIDATE_CHARS = 800
+const MEMORY_ANSWER_CONFIRMATION_MAX_CHARS = 20_000
+const MEMORY_ANSWER_CONFIRMATION_CANONICAL_MATCHES = Symbol(
+  'memory-answer-confirmation-canonical-matches',
+)
 // Deprecated compatibility exports from the removed dual recommendation
 // surface. Recommendation mode no longer consumes these limits.
 export const MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS = 10
@@ -54,7 +59,7 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_SCHEMA =
   'palari-current-evidence-review/v1'
 export const MEMORY_ANSWER_CONFIRMATION_SCHEMA =
-  'palari-answer-confirmation/v5'
+  'palari-answer-confirmation/v6'
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_CANDIDATES = 3
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK = 3
 export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
@@ -667,10 +672,10 @@ export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
   'Act as a fresh, adversarial answer reviewer after another model produced a provisional answer.',
   'Before accepting or revising that draft, call memory_search with a new semantic or relational query designed to uncover omitted, conflicting, newer, or otherwise decisive evidence.',
   'The prior-evidence context contains one representative per information identity rather than repeated copies.',
-  'The confirmation search is host-filtered and returns only unseen canonical candidates whose evidence ID and provenance-aware normalized information were not returned earlier in this answer journey; exact duplicate information is also collapsed within each result.',
+  'The confirmation search is host-filtered and returns compact exact excerpts from only unseen canonical candidates whose evidence ID and provenance-aware normalized information were not returned earlier in this answer journey; exact duplicate information is also collapsed within each result. Direct user evidence is presented before derivative Palari navigation anchors, while complete canonical messages remain host-side for quote validation and audit.',
   'Search matches are candidates, not automatically new information. After every non-empty search, call memory_candidate_review before searching or committing. Return exactly one assessment per candidate in the same order; the host binds positions to immutable evidence IDs, so do not reproduce those IDs. Classify every candidate as material or not_used and give a specific reason.',
   'Any material candidate requires revising the answer and another confirmation search. Candidates classified not_used are ignored and cannot be retrieved again in this answer journey.',
-  `A full ${MEMORY_ANSWER_MAX_BASES}-candidate review batch may have more unseen candidates behind it, so it always requires another duplicate-filtered search even when every candidate is not_used.`,
+  'Whenever the host reports moreCandidatesAvailable, another duplicate-filtered search is required even when every displayed candidate is not_used.',
   'An empty confirmation search means no new information was found for that adversarial query.',
   'Commit only after the latest search is empty or memory_candidate_review reports that every candidate is not used, and all materially new candidates from earlier rounds remain assessed in the final commitment. This is bounded retrieval closure, not proof that no possible memory exists.',
 ].join(' ')
@@ -1364,6 +1369,38 @@ const HYBRID_TOOL = deepFreeze({
   },
 })
 
+const MEMORY_ANSWER_CONFIRMATION_SEARCH_TOOL = deepFreeze({
+  description: [
+    'Search for omitted, conflicting, newer, or otherwise decisive memory.',
+    'The host owns the candidate count and character budget, removes previously returned information, presents compact exact excerpts, and reports whether an unseen tail remains.',
+  ].join(' '),
+  name: 'memory_search',
+  parameters: {
+    additionalProperties: false,
+    properties: {
+      after: {
+        description:
+          'Only messages observed at or after this ISO-8601 UTC time.',
+        type: 'string',
+      },
+      before: {
+        description:
+          'Only messages observed at or before this ISO-8601 UTC time.',
+        type: 'string',
+      },
+      phrase: {
+        description:
+          'A new semantic or relational query for evidence the draft may have missed.',
+        maxLength: MAX_SEARCH_PHRASE_CHARS,
+        minLength: 1,
+        type: 'string',
+      },
+    },
+    required: ['phrase'],
+    type: 'object',
+  },
+})
+
 export const MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL = deepFreeze({
   description: [
     'Classify every candidate from the latest non-empty confirmation search before another search or final commitment.',
@@ -1404,7 +1441,7 @@ export const MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL = deepFreeze({
 })
 
 export const MEMORY_ANSWER_CONFIRMATION_TOOLS = deepFreeze([
-  HYBRID_TOOL,
+  MEMORY_ANSWER_CONFIRMATION_SEARCH_TOOL,
   MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL,
 ])
 
@@ -1636,6 +1673,62 @@ function decorateAnswerRows(rows, referenceTime) {
   return decorated
 }
 
+function compactConfirmationExcerpt(text, phrase) {
+  const source = stringFrom(text ?? '')
+  if (source.length <= MEMORY_ANSWER_CONFIRMATION_CANDIDATE_CHARS) {
+    return { excerptStart: 0, text: source, textIsPartial: false }
+  }
+  const normalizedPhrase = frontierText(phrase)
+  const terms = normalizedPhrase
+    .split(' ')
+    .filter((term) => term.length >= 3)
+  const lowered = stringToLowerCase(source)
+  let at = -1
+  for (let index = 0; index < terms.length; index += 1) {
+    const found = lowered.indexOf(terms[index])
+    if (found >= 0 && (at < 0 || found < at)) at = found
+  }
+  if (at < 0) at = 0
+  const contextBefore = Math.floor(
+    MEMORY_ANSWER_CONFIRMATION_CANDIDATE_CHARS / 4,
+  )
+  const maximumStart = source.length -
+    MEMORY_ANSWER_CONFIRMATION_CANDIDATE_CHARS
+  const start = Math.min(Math.max(0, at - contextBefore), maximumStart)
+  return {
+    excerptStart: start,
+    text: source.slice(
+      start,
+      start + MEMORY_ANSWER_CONFIRMATION_CANDIDATE_CHARS,
+    ),
+    textIsPartial: true,
+  }
+}
+
+function confirmationCandidateView(candidates, phrase) {
+  const directUser = []
+  const navigation = []
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index]
+    if (candidate.speaker === 'user') {
+      arrayPush(directUser, candidate)
+    } else {
+      arrayPush(navigation, candidate)
+    }
+  }
+  const ordered = [...directUser, ...navigation]
+  return ordered.map((candidate) => {
+    const compact = compactConfirmationExcerpt(candidate.text, phrase)
+    return {
+      ...candidate,
+      excerptStart: compact.excerptStart,
+      sourceTextChars: candidate.text.length,
+      text: compact.text,
+      textIsPartial: compact.textIsPartial,
+    }
+  })
+}
+
 async function hybridSearch(
   brain,
   scope,
@@ -1647,6 +1740,7 @@ async function hybridSearch(
   rerankQuery = null,
   excludedEvidenceIds = null,
   excludedInformationKeys = null,
+  { confirmationView = false } = {},
 ) {
   const phrase = searchPhrase(input.phrase)
   const limit = boundedInteger(
@@ -1870,17 +1964,35 @@ async function hybridSearch(
     }
   }
 
+  const presented = confirmationView
+    ? confirmationCandidateView(ordered, phrase)
+    : ordered
+  const canonicalById = new mapConstructor()
+  if (confirmationView) {
+    for (let index = 0; index < ordered.length; index += 1) {
+      mapSet(canonicalById, ordered[index].evidenceId, ordered[index])
+    }
+  }
   const matches = []
+  const canonicalMatches = []
   let chars = 0
-  for (const candidate of ordered.slice(0, limit)) {
+  const candidatePage = presented.slice(0, limit)
+  for (const candidate of candidatePage) {
     const ranked = { ...candidate, rank: matches.length + 1 }
     const cost = JSON.stringify(ranked).length
     if (matches.length && chars + cost > maxChars) break
     matches.push(ranked)
+    if (confirmationView) {
+      arrayPush(canonicalMatches, mapGet(canonicalById, candidate.evidenceId))
+    }
     chars += cost
   }
 
-  return {
+  const truncatedByChars = matches.length < candidatePage.length
+  const truncatedByLimit = presented.length > limit
+  const moreCandidatesAvailable = truncatedByChars || truncatedByLimit
+
+  const result = {
     chars,
     matches,
     ...(excluded.size > 0
@@ -1908,10 +2020,31 @@ async function hybridSearch(
       ? { semanticProbeQueries: semanticProbeResults }
       : {}),
     semanticUsed: capabilities.semantic,
+    ...(confirmationView
+      ? {
+          candidateExcerptChars:
+            MEMORY_ANSWER_CONFIRMATION_CANDIDATE_CHARS,
+          directUserCandidates: presented.filter(
+            ({ speaker }) => speaker === 'user',
+          ).length,
+          moreCandidatesAvailable,
+          totalEligibleCandidates: presented.length,
+          truncatedByChars,
+          truncatedByLimit,
+        }
+      : {}),
     supplementalRankedCandidates,
     supplementalRankedQueries: supplementalQueries,
     truncated: matches.length < ordered.length,
   }
+  if (confirmationView) {
+    objectDefineProperty(
+      result,
+      MEMORY_ANSWER_CONFIRMATION_CANONICAL_MATCHES,
+      { value: canonicalMatches },
+    )
+  }
+  return result
 }
 
 // New API rather than silently changing the three-tool contract consumed by
@@ -3026,20 +3159,17 @@ export async function answerWithRetrieval(brain, {
         for (let index = 0; index < returnedInformationKeys.length; index += 1) {
           setAdd(excludedInformationKeys, returnedInformationKeys[index])
         }
-        const boundedSearchInput = applyTrustedTimeRange(input)
+        const boundedSearchInput = applyTrustedTimeRange({
+          ...(input.after === undefined ? {} : { after: input.after }),
+          ...(input.before === undefined ? {} : { before: input.before }),
+          phrase: input.phrase,
+        })
         const effectiveSearchInput = {
           ...boundedSearchInput,
-          limit: Math.min(
-            boundedInteger(
-              boundedSearchInput.limit,
-              DEFAULT_HYBRID_LIMIT,
-              MAX_HYBRID_LIMIT,
-              'limit',
-            ),
-            MEMORY_ANSWER_MAX_BASES,
-          ),
+          limit: MEMORY_ANSWER_MAX_BASES,
+          maxChars: MEMORY_ANSWER_CONFIRMATION_MAX_CHARS,
         }
-        const result = registerEvidence(await hybridSearch(
+        const internalResult = await hybridSearch(
           brain,
           scope,
           capabilities,
@@ -3050,7 +3180,13 @@ export async function answerWithRetrieval(brain, {
           null,
           excludedEvidenceIds,
           excludedInformationKeys,
-        ))
+          { confirmationView: true },
+        )
+        const canonicalMatches = internalResult[
+          MEMORY_ANSWER_CONFIRMATION_CANONICAL_MATCHES
+        ]
+        registerEvidence({ matches: canonicalMatches })
+        const result = deepFreeze({ ...internalResult })
         const suppressedIds = result.excludedDuplicateInformationEvidenceIds
         for (let index = 0; index < suppressedIds.length; index += 1) {
           const evidenceId = suppressedIds[index]
@@ -3075,6 +3211,7 @@ export async function answerWithRetrieval(brain, {
         confirmationClosed = result.matches.length === 0
         confirmationLatestAssessed = confirmationClosed
         confirmationLatestSearchSaturated =
+          result.moreCandidatesAvailable ||
           result.matches.length === MEMORY_ANSWER_MAX_BASES
         arrayPush(transcript, {
           input: effectiveSearchInput,
