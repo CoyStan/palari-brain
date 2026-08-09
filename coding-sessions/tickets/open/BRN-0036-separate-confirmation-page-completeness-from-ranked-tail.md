@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0036
 children: []
-status: open
+status: claimed
 risk: R2
 priority: P1
 agents_allowed: 2
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-09T21:27:53Z
 target_branch: "main"
 branch: "ticket/BRN-0036-separate-confirmation-page-completeness-from-ranked-tail"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0036-separate-confirmation-page-completeness-from-ranked-tail"
@@ -171,3 +171,17 @@ acceptance is required before integration.
   dataset access, sealed-U8 execution, or live diagnostic.
 - Stop if the change would allow unassessed or material evidence to be released,
   or if it needs a domain-specific relevance rule.
+
+## Specialist Closeout
+
+Confirmation v7 now separates incomplete intended-page delivery from a normal
+lower-ranked retrieval tail. Search and review telemetry expose both states.
+Only character truncation keeps an all-`not_used` review open; a fully delivered
+top-20 page may close even when additional lower-ranked candidates exist.
+Material candidates still require revision and another search.
+
+The general focused contracts pass 9/9, `npm test` passes 85/85, quickstart
+passes 6/6, and the isolated complete legacy suite passes 916 with 15 optional
+private-artifact skips. Scope and diff checks are clean. No provider, dataset,
+sealed U8, credential, or private artifact was accessed. The implementation is
+ready for an independent read-only review; the specialist does not accept it.

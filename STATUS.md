@@ -329,6 +329,28 @@ candidates are all `not_used` may close while character-truncated pages remain
 open. Increasing budgets or adding a fixed health schema is not supported by
 this evidence.
 
+BRN-0036 implements that distinction as confirmation schema
+`palari-answer-confirmation/v7`. The host now reports
+`candidatePageComplete` separately from
+`lowerRankedCandidatesAvailable`. Character truncation makes the intended
+top-20 page incomplete and still forces another duplicate-filtered search. A
+fully delivered top-20 page may close after every displayed candidate is
+explicitly classified `not_used`, even when lower-ranked retrieval candidates
+remain. Any material candidate still forces revision and another search, and
+unresolved material evidence still fails closed. Compact exact excerpts,
+direct-user-first ordering, full host-side canonical validation, information-
+identity duplicate exclusion, the two-search budget, and zero durable writes
+are unchanged.
+
+The general provider-free contracts cover both tails: a complete 20-candidate
+page closes without scanning its lower-ranked tail, while a character-
+truncated page stays open and its next page contains only unseen information.
+Focused confirmation tests pass 9/9, `npm test` passes 85/85, quickstart passes
+6/6, and the isolated complete legacy suite passes 916 with 15 optional
+private-artifact skips. No provider call, private diagnostic mutation, or
+benchmark regrade was performed; the private aggregate ledger remains
+`$36.51155714`.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate
