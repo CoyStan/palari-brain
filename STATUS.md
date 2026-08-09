@@ -189,6 +189,43 @@ simplification. Focused current-evidence/confirmation/OpenAI contracts pass
 42/42, `npm test` passes 83/83, quickstart passes 6/6, and the complete legacy
 suite passes 926 with 3 optional skips.
 
+The founder-authorized no-retry follow-up then ran the same four frozen cases
+on that simplified setup under aggregate cap `$37.17774939`. Two completed and
+reached the judge: charity was correct and Rachel again selected the older
+Chicago statement over the already retrieved later suburbs update. Health and
+instruments reached confirmation but failed there, so they are unjudged. This
+is 1/2 among completed answers plus two unjudged failures, not a four-question
+score and not a benchmark regrade.
+
+The intended simplification worked: health's repaired main commitment was
+accepted and entered confirmation instead of being rejected for absent
+bookkeeping on arbitrary later rows. Its new provisional answer found Fitbit,
+Accu-Chek, and hearing aids but omitted the nebulizer. After one material
+candidate review and another search, its second review mistyped one evidence
+ID and the host rejected it. Instruments again missed Yamaha and treated the
+Pearl set as ambiguous. Both bounded confirmation searches found material
+ownership-related candidates; after the final review left closure open with no
+search budget, the model attempted an invalid extra review using stale IDs and
+the host rejected it rather than release an unconfirmed answer.
+
+Across the two completed cases, all 9/9 marked spans were retrieved, 3/9 were
+selected, and 3/9 materially used. Their confirmation searches returned six
+never-repeated candidates, classified all six `not_used`, and performed no
+durable write. Across all four cases there were no `memory_bridge` calls;
+Rachel used one `memory_read`. All four current source hashes match frozen
+preflight. Expected fresh spend was `$0.05–$0.15`; measured provider spend was
+`$0.05057792`. Conservative accounting retained two `$0.70` failure
+reservations and charged `$1.42353239`, bringing the private ledger to
+`$35.80128178` under the approved `$37.17774939` ceiling. The completed run
+leaves `$1.37646761` ceiling headroom, but no provider process or additional
+paid call is running.
+
+This rerun supports the smaller boundary: the former false host rejection is
+gone, while Rachel remains plainly a model reasoning error. The remaining
+unjudged cases expose narrow confirmation-control problems—one copied-ID typo
+and one invalid action after bounded material discovery—not evidence for more
+memory machinery, bridge learning, or a fixed semantic schema.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate
