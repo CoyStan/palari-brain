@@ -752,6 +752,72 @@ test('confirmation candidate review is ephemeral and remains available after the
     })
   })
 
+test('confirmation returns a host-validated bounded answer at its emergency limit',
+  async () => {
+    const bodies = []
+    let searches = 0
+    let reviews = 0
+    let boundedCommits = 0
+    const proposal = {
+      abstained: false,
+      bases: [{ evidenceId: 'evidence-1', quote: 'four devices' }],
+      text: 'You use four devices.',
+    }
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1 || bodies.length === 3) {
+          return completedCall({
+            arguments: JSON.stringify({ phrase: `query-${bodies.length}` }),
+            callId: `search-${bodies.length}`,
+            name: 'memory_search',
+          })
+        }
+        if (bodies.length === 2 || bodies.length === 4) {
+          return completedCall({
+            arguments: JSON.stringify({
+              findings: [{
+                candidateNumber: 1,
+                reason: 'This changes the answer.',
+              }],
+            }),
+            callId: `review-${bodies.length}`,
+            name: 'memory_candidate_review',
+          })
+        }
+        return completedCommit(proposal, { callId: 'bounded-commit' })
+      },
+    })
+    const result = await provider(answerSession({
+      answerConfirmationClosed: () => false,
+      answerEvidenceCount: () => 1,
+      commitAnswer() {
+        const error = new TypeError('Continue confirmation.')
+        error.code = 'MEMORY_ANSWER_CONFIRMATION_REQUIRED'
+        throw error
+      },
+      commitIncompleteAnswer(received) {
+        boundedCommits += 1
+        return Object.freeze(received)
+      },
+      maxRetrievalCalls: 2,
+      retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
+      async retrieve({ tool }) {
+        if (tool === 'memory_search') searches += 1
+        else reviews += 1
+        return tool === 'memory_search'
+          ? { matches: [{ evidenceId: `candidate-${searches}` }] }
+          : { closed: false, continueSearch: true }
+      },
+    }))
+
+    assert.deepEqual(result, proposal)
+    assert.equal(searches, 2)
+    assert.equal(reviews, 2)
+    assert.equal(boundedCommits, 1)
+    assert.equal(bodies.length, 5)
+  })
+
 test('non-empty fourth retrieval forces only commitment without spending a fifth memory call',
   async () => {
     const bodies = []
@@ -1072,9 +1138,9 @@ test('retrieval provider fails closed on unknown calls, refusals, and caps',
     assert.throws(
       () => createOpenAIRetrievalProvider({
         async invoke() {},
-        maxModelDispatches: 8,
+        maxModelDispatches: 12,
       }),
-      /maxModelDispatches cannot exceed 7/,
+      /maxModelDispatches cannot exceed 11/,
     )
 
     const malformed = createOpenAIRetrievalProvider({

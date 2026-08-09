@@ -412,6 +412,41 @@ passes 6/6, and the complete legacy suite passes 917 with 15 optional skips
 and zero failures across 932 tests. No provider or private artifact was
 accessed and the private ledger remains `$37.21155714`.
 
+BRN-0041 simplifies that confirmation design after a live alpha diagnostic
+showed the reviewer behaving correctly while the host discarded its progress.
+Two consecutive confirmation searches each found material health-device
+information. The reviewer revised the answer, but the old special two-search
+limit left no clean closure round and converted the latest evidence-backed
+commitment into an exception. The mistake was the control policy, not the
+reviewer's materiality judgment.
+
+Confirmation schema `palari-answer-confirmation/v9` now treats the reviewer as
+one model-owned reasoning loop. It chooses unseen queries, reports sparse
+material findings, revises, and continues while work remains. The default is
+the existing full four-search retrieval allowance rather than a special limit
+of two. The host still binds page-local numbers to immutable evidence IDs,
+removes previously returned and duplicate information, requires every
+displayed page to be assessed, and validates final raw evidence.
+
+The work bound is now an emergency boundary rather than a semantic workflow.
+After the latest displayed page has been assessed and the allowance is spent,
+the reviewer may return its newest host-valid evidence commitment. Palari
+returns that answer with `status: "bounded_incomplete"`, `complete: false`,
+`exhausted: true`, and `closureReason: "emergency_bound"` instead of erasing
+the answer. Normal empty-search or no-material-findings closure remains
+`closed_no_new_material_information`. Invalid evidence, malformed findings,
+and unassessed pages still fail closed. The default OpenAI dispatch guard grew
+from 7 to 11 so normal model-directed review has room to search, assess, and
+commit; it remains a hard emergency ceiling.
+
+Provider-free tests demonstrate three material rounds followed by a fourth
+clean check, emergency best-answer return, and rejection of premature or
+forged bounded commitments. Focused confirmation/OpenAI tests pass 39/39,
+`npm test` passes 87/87, quickstart passes 6/6, and the complete legacy suite
+passes 919 with 15 optional skips and zero failures across 934 tests. No
+provider, credential, private evaluation artifact, dataset, or sealed U8 was
+accessed for BRN-0041.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate

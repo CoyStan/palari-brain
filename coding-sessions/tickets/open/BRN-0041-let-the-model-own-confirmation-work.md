@@ -170,3 +170,26 @@ emergency work bound without discarding the latest valid answer.
   access.
 - Stop if the model-owned loop would weaken canonical evidence validation,
   duplicate exclusion, user/workspace isolation, or the emergency hard bound.
+
+## Specialist Closeout
+
+Confirmation v9 removes two searches as the normal workflow. The independent
+reviewer now receives the existing full four-search allowance by default and
+owns its semantic queries, sparse findings, revisions, and stopping decision.
+The host continues to exclude previously returned and duplicate information,
+bind short candidate numbers to canonical IDs, require complete page review,
+and validate every committed evidence basis.
+
+When the emergency allowance ends after the latest page was assessed, the
+OpenAI adapter asks the host to validate the model's newest commitment as
+bounded best effort. A valid commitment returns with explicit
+`bounded_incomplete` telemetry instead of becoming an exception. Premature
+bounded commits, unassessed pages, forged IDs, malformed findings, and all
+other commitment failures remain rejected. Normal clean closure is unchanged.
+
+The default OpenAI dispatch ceiling is 11, leaving room for the model-directed
+review while remaining finite. Focused tests pass 39/39, the core suite passes
+87/87, quickstart passes 6/6, and legacy passes 919 with 15 optional skips and
+zero failures across 934 tests. No provider, credential, private artifact,
+dataset, or sealed U8 was accessed. The committed diff requires independent R2
+review before founder acceptance.

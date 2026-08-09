@@ -557,22 +557,31 @@ const result = await answerWithRetrieval(brain, {
 Product callers can opt into a second, fresh answer-review dispatch by passing
 `confirmationProvider` (the same provider function may be reused) and
 `maxConfirmationRetrievalCalls` from 1 through 4. The first response is then
-provisional. The reviewer receives that draft plus every canonical memory
-already returned, collapsed to one representative per information identity.
+provisional. The default is the full four-search emergency allowance, not a
+two-search semantic workflow. The reviewer receives that draft plus every
+canonical memory already returned, collapsed to one representative per
+information identity.
 That identity combines normalized text with speaker, optional author, and
 observation time. Its only retrieval tool is a host-filtered `memory_search`
 that removes both previously returned evidence IDs and duplicate information
 before result truncation, and also collapses duplicate information within the
-new result. Any novel result reopens the answer; the reviewer must assess or
-revise it and search again. The host accepts a new commitment only after the
-latest confirmation search returns no novel information. If the bounded
-review ends on novelty, the call fails closed with
-`MEMORY_ANSWER_CONFIRMATION_INCOMPLETE` rather than releasing an unconfirmed
-answer.
+new result. Search matches are candidates: the reviewer reports only material
+findings with short page-local numbers, revises from those findings, and
+chooses another unseen query while work remains. A complete reviewed page with
+no material finding, or an empty search, closes confirmation normally. If the
+emergency allowance ends after a fully assessed material page, the reviewer
+may commit its latest host-valid evidence-backed revision. The answer is
+returned rather than erased and its confirmation status is explicitly
+`bounded_incomplete`; invalid evidence and unassessed displayed candidates
+still fail closed.
 
-Successful results expose ephemeral `answerConfirmation` telemetry, including
+Results expose ephemeral `answerConfirmation` telemetry, including
 the independent retrieval frontier, prior and suppressed duplicate counts,
-novel information evidence IDs, closure round, and zero durable writes.
+novel information evidence IDs, closure round, a `complete` boolean, and zero
+durable writes. Normal closure reports
+`closed_no_new_material_information`; emergency best effort reports
+`bounded_incomplete` with `closureReason: "emergency_bound"` and
+`exhausted: true`.
 Authority and time are deliberately part of identity: a direct user statement
 cannot be hidden by identical Palari speech, and a later repetition remains
 available as fresh temporal evidence. The host conservatively does not merge

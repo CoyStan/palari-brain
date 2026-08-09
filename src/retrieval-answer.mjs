@@ -59,7 +59,7 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_SCHEMA =
   'palari-current-evidence-review/v1'
 export const MEMORY_ANSWER_CONFIRMATION_SCHEMA =
-  'palari-answer-confirmation/v8'
+  'palari-answer-confirmation/v9'
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_CANDIDATES = 3
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK = 3
 export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
@@ -674,10 +674,10 @@ export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
   'The prior-evidence context contains one representative per information identity rather than repeated copies.',
   'The confirmation search is host-filtered and returns compact exact excerpts from only unseen canonical candidates whose evidence ID and provenance-aware normalized information were not returned earlier in this answer journey; exact duplicate information is also collapsed within each result. Direct user evidence is presented before derivative Palari navigation anchors, while complete canonical messages remain host-side for quote validation and audit.',
   'Search matches are candidates, not automatically new information. After every non-empty search, call memory_candidate_review before searching or committing. Review the complete displayed page and return only findings that materially change, expand, contradict, date, or otherwise affect the answer. Identify each finding by its short page-local candidateNumber and give a specific reason; never reproduce an evidence ID. Return an empty findings list when no displayed candidate materially affects the answer.',
-  'Any material finding requires revising the answer and another confirmation search. Every unlisted candidate on a successfully reviewed page is treated as non-material and cannot be retrieved again in this answer journey.',
+  'Any material finding requires revising the answer and, while retrieval remains available, another confirmation search chosen from your own semantic judgment. Every unlisted candidate on a successfully reviewed page is treated as non-material and cannot be retrieved again in this answer journey.',
   'The host reports candidatePageComplete separately from lowerRankedCandidatesAvailable. If candidatePageComplete is false, another duplicate-filtered search is required even when findings is empty. A lower-ranked tail alone does not make the delivered top-K review incomplete.',
   'An empty confirmation search means no new information was found for that adversarial query.',
-  'Commit only after the latest search is empty or a complete displayed page produces no material findings, and all material findings from earlier rounds remain assessed in the final commitment. This is bounded retrieval closure, not proof that no possible memory exists.',
+  'Normally commit after the latest search is empty or a complete displayed page produces no material findings, with all earlier material findings assessed in the final commitment. If the host closes retrieval at its emergency work bound, commit the best evidence-backed revision instead of discarding it; the host will label that result bounded-incomplete rather than fully confirmed. This is bounded review, not proof that no possible memory exists.',
 ].join(' ')
 
 function evidenceRows(result) {
@@ -2064,7 +2064,7 @@ export async function answerWithRetrieval(brain, {
   expandPlannedSearches = false,
   iterativeRetrieval = false,
   maxChars = 100_000,
-  maxConfirmationRetrievalCalls = 2,
+  maxConfirmationRetrievalCalls = DEFAULT_RETRIEVAL_CALLS,
   maxRetrievalCalls = DEFAULT_RETRIEVAL_CALLS,
   palariId,
   provider,
@@ -2153,6 +2153,7 @@ export async function answerWithRetrieval(brain, {
   const consulted = []
   const committedResponses = new WeakSet()
   const confirmationCommittedResponses = new WeakSet()
+  const confirmationIncompleteCommittedResponses = new WeakSet()
   const evidenceRegistry = new Map()
   const evidenceRegistryIds = []
   const evidenceInformationIndex = new Map()
@@ -2164,6 +2165,7 @@ export async function answerWithRetrieval(brain, {
   let acceptedCurrentEvidenceReview = null
   let confirmationActive = false
   let confirmationClosed = false
+  let confirmationIncompleteCommitAllowed = false
   let confirmationSearchPerformed = false
   let confirmationLatestEvidenceIds = []
   let confirmationLatestAssessed = true
@@ -2268,7 +2270,8 @@ export async function answerWithRetrieval(brain, {
   }
 
   const commitAnswer = (proposal) => {
-    if (confirmationActive && !confirmationClosed) {
+    if (confirmationActive && !confirmationClosed &&
+      !confirmationIncompleteCommitAllowed) {
       throw answerConfirmationError(
         confirmationSearchPerformed && !confirmationLatestAssessed
           ? 'The answer is still provisional. Review every candidate from the latest confirmation search before committing.'
@@ -2348,6 +2351,9 @@ export async function answerWithRetrieval(brain, {
       weakSetAdd(committedResponses, committed)
       if (confirmationActive) {
         weakSetAdd(confirmationCommittedResponses, committed)
+        if (confirmationIncompleteCommitAllowed) {
+          weakSetAdd(confirmationIncompleteCommittedResponses, committed)
+        }
       }
       return committed
     }
@@ -2712,6 +2718,9 @@ export async function answerWithRetrieval(brain, {
     weakSetAdd(committedResponses, committed)
     if (confirmationActive) {
       weakSetAdd(confirmationCommittedResponses, committed)
+      if (confirmationIncompleteCommitAllowed) {
+        weakSetAdd(confirmationIncompleteCommittedResponses, committed)
+      }
     }
     return committed
   }
@@ -3049,6 +3058,24 @@ export async function answerWithRetrieval(brain, {
     confirmationActive = true
     confirmationClosed = false
 
+    const commitIncompleteAnswer = (proposal) => {
+      if (confirmationClosed) return commitAnswer(proposal)
+      if (confirmationCalls < confirmationBudget ||
+        !confirmationSearchPerformed || !confirmationLatestAssessed) {
+        throw answerConfirmationError(
+          'A bounded-incomplete answer requires an exhausted confirmation budget and a fully assessed latest page.',
+          'MEMORY_ANSWER_CONFIRMATION_REQUIRED',
+        )
+      }
+      confirmationExhausted = true
+      confirmationIncompleteCommitAllowed = true
+      try {
+        return commitAnswer(proposal)
+      } finally {
+        confirmationIncompleteCommitAllowed = false
+      }
+    }
+
     const confirmationRetrieve = (request) => {
       if (!confirmationOpen) {
         return promiseReject(new TypeError('Memory confirmation is closed.'))
@@ -3284,6 +3311,7 @@ export async function answerWithRetrieval(brain, {
         ].filter(Boolean).join('\n\n'),
         briefing,
         commitAnswer,
+        commitIncompleteAnswer,
         maxRetrievalCalls: confirmationBudget,
         maxRetrievalPlanningCalls: 0,
         memoryText: JSON.stringify({
@@ -3330,7 +3358,11 @@ export async function answerWithRetrieval(brain, {
     }
     if (confirmationProviderError) throw confirmationProviderError
     if (confirmationRetrievalError) throw confirmationRetrievalError
-    if (!confirmationClosed) {
+    const confirmationIncomplete = weakSetHas(
+      confirmationIncompleteCommittedResponses,
+      confirmationResponse,
+    )
+    if (!confirmationClosed && !confirmationIncomplete) {
       throw answerConfirmationError(
         'Answer confirmation exhausted its bounded retrieval work before a no-new-information round.',
         'MEMORY_ANSWER_CONFIRMATION_INCOMPLETE',
@@ -3342,7 +3374,7 @@ export async function answerWithRetrieval(brain, {
     )
     if (evidenceCount > 0 && !confirmationCommitted) {
       throw answerCommitmentError(
-        'The confirmation provider must return a new exact host-committed answer object after closure.',
+        'The confirmation provider must return a new exact host-committed answer object after closure or bounded exhaustion.',
       )
     }
     response = confirmationResponse
@@ -3356,9 +3388,12 @@ export async function answerWithRetrieval(brain, {
       closureLowerRankedCandidatesAvailable:
         confirmationLatestLowerRankedCandidatesAvailable,
       closureRoundOrdinal: confirmationSnapshot.roundCount,
-      closureReason: confirmationLatestEvidenceIds.length === 0
-        ? 'empty_unseen_search'
-        : 'no_material_findings',
+      closureReason: confirmationIncomplete
+        ? 'emergency_bound'
+        : confirmationLatestEvidenceIds.length === 0
+          ? 'empty_unseen_search'
+          : 'no_material_findings',
+      complete: !confirmationIncomplete,
       durableWrites: 0,
       ephemeral: true,
       exhausted: confirmationExhausted,
@@ -3375,7 +3410,9 @@ export async function answerWithRetrieval(brain, {
       reviewCalls: confirmationReviewCalls,
       retrievalFrontier: confirmationSnapshot,
       schema: MEMORY_ANSWER_CONFIRMATION_SCHEMA,
-      status: 'closed_no_new_material_information',
+      status: confirmationIncomplete
+        ? 'bounded_incomplete'
+        : 'closed_no_new_material_information',
       suppressedDuplicateInformationCount:
         suppressedDuplicateInformationEvidenceIds.length,
       suppressedDuplicateInformationEvidenceIds,
