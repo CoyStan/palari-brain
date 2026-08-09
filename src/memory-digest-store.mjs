@@ -1053,7 +1053,12 @@ export function createMemoryDigestStore(store, {
             prior: priorForBuild,
             utilization,
           })
-        } catch {
+        } catch (error) {
+          // Capacity is the only failure this loop may absorb: it means the
+          // batch is full, not that the request is malformed. Anything else
+          // is a real defect and would otherwise be indistinguishable from a
+          // full batch.
+          if (error?.code !== 'REDUCER_INPUT_CAPACITY') throw error
           break
         }
         accepted.push(trial.at(-1))
