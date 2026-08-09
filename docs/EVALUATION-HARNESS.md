@@ -185,9 +185,11 @@ accessors, proxies, extra fields, coercion, and impossible counts fail closed.
 
 The sanitized successful v3 response shape (2,142 input, 2,139 cache-write,
 zero cached, 40 output, 8 reasoning, 2,182 total) settles through Luna `short`
-to exactly `$0.0004764`. Cache-write is validated as a subset of input; the
-frozen Luna measured policy bills non-cached input at the ordinary Standard
-input rate, so it does not add a second charge. This offline reproduction does
+to exactly `$0.00058335`. Cache-write is validated as a distinct subset of
+input and billed at 1.25 times the ordinary input rate; cached reads and the
+remaining uncached input retain their own rates, matching the
+[official OpenAI prompt-caching documentation](https://developers.openai.com/api/docs/guides/prompt-caching#frequently-asked-questions).
+This offline correction does
 not retroactively settle v3: its full generation reservation remains uncertain
 and cumulative accounted spend remains `$7.90712669`.
 The identity cannot be retried or resumed.

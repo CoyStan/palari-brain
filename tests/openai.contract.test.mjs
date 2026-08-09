@@ -162,11 +162,11 @@ test('OpenAI function mapping preserves provider-neutral schemas', () => {
 
 test('retrieval provider accepts one bounded active answer ceiling override',
   async () => {
-    let observed
+    const observed = []
     const provider = createOpenAIRetrievalProvider({
-      maxOutputTokens: 1_024,
+      maxOutputTokens: 5_120,
       async invoke({ body }) {
-        observed = body.max_output_tokens
+        observed.push(body.max_output_tokens)
         return completedText('A concise recommendation.')
       },
     })
@@ -175,13 +175,13 @@ test('retrieval provider accepts one bounded active answer ceiling override',
       await provider(answerSession()),
       { abstained: false, text: 'A concise recommendation.' },
     )
-    assert.equal(observed, 1_024)
+    assert.deepEqual(observed, [5_120])
     assert.throws(
       () => createOpenAIRetrievalProvider({
         invoke: async () => completedText('unused'),
-        maxOutputTokens: 4_097,
+        maxOutputTokens: 5_121,
       }),
-      /cannot exceed 4096/,
+      /cannot exceed 5120/,
     )
   })
 

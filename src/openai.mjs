@@ -734,8 +734,8 @@ export function createOpenAIRetrievalProvider({
   const configuredMaxOutputTokens = rawMaxOutputTokens === null
     ? null
     : positiveInteger(rawMaxOutputTokens, 'maxOutputTokens')
-  if (configuredMaxOutputTokens !== null && configuredMaxOutputTokens > 4_096) {
-    throw new TypeError('maxOutputTokens cannot exceed 4096.')
+  if (configuredMaxOutputTokens !== null && configuredMaxOutputTokens > 5_120) {
+    throw new TypeError('maxOutputTokens cannot exceed 5120.')
   }
 
   const provider = async function openAIRetrievalProvider(session = {}) {

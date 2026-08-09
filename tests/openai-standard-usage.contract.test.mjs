@@ -37,16 +37,36 @@ test('sanitized BRN-0026 HTTP-200 usage settles exactly through public short', (
   assert.equal(settled.inputTokens, 2_142)
   assert.equal(settled.cachedInputTokens, 0)
   assert.equal(settled.cacheWriteTokens, 2_139)
+  assert.equal(settled.uncachedInputTokens, 3)
   assert.equal(settled.outputTokens, 40)
   assert.equal(settled.reasoningTokens, 8)
-  assert.equal(settled.measuredPicodollars, '476400000')
-  assert.equal(settled.measuredUsdDecimal, '0.0004764')
+  assert.equal(settled.cacheWriteUsdPerMillion, 0.25)
+  assert.equal(settled.uncachedInputPicodollars, '600000')
+  assert.equal(settled.cacheWritePicodollars, '534750000')
+  assert.equal(settled.measuredPicodollars, '583350000')
+  assert.equal(settled.measuredUsdDecimal, '0.00058335')
   assert.equal(Object.getPrototypeOf(settled), null)
   assert.equal(Object.isFrozen(settled), true)
   assert.deepEqual(source, before)
 })
 
 test('public bands use the pinned Luna and Sol Standard rates', () => {
+  const fixtures = [
+    ['gpt-5.6-luna', 'short', '0.00058335'],
+    ['gpt-5.6-luna', 'long', '0.0011427'],
+    ['gpt-5.6-sol', 'short', '0.01458375'],
+    ['gpt-5.6-sol', 'long', '0.0285675'],
+  ]
+  for (const [model, contextBand, expected] of fixtures) {
+    assert.equal(settleOpenAIStandardUsage({
+      contextBand,
+      model,
+      usage: usage(),
+    }).measuredUsdDecimal, expected)
+  }
+})
+
+test('zero cache writes preserve the prior Luna and Sol settlements', () => {
   const fixtures = [
     ['gpt-5.6-luna', 'short', '0.0004764'],
     ['gpt-5.6-luna', 'long', '0.0009288'],
@@ -57,9 +77,64 @@ test('public bands use the pinned Luna and Sol Standard rates', () => {
     assert.equal(settleOpenAIStandardUsage({
       contextBand,
       model,
-      usage: usage(),
+      usage: usage({
+        input_tokens_details: {
+          cache_write_tokens: 0,
+          cached_tokens: 0,
+        },
+      }),
     }).measuredUsdDecimal, expected)
   }
+})
+
+test('cache reads and ordinary inputs retain their historical rates', () => {
+  const settled = settleOpenAIStandardUsage({
+    contextBand: 'short',
+    model: 'gpt-5.6-luna',
+    usage: usage({
+      input_tokens: 1_000,
+      input_tokens_details: {
+        cache_write_tokens: 0,
+        cached_tokens: 400,
+      },
+      output_tokens: 100,
+      output_tokens_details: { reasoning_tokens: 20 },
+      total_tokens: 1_100,
+    }),
+  })
+
+  assert.equal(settled.uncachedInputTokens, 600)
+  assert.equal(settled.cachedInputTokens, 400)
+  assert.equal(settled.cacheWriteTokens, 0)
+  assert.equal(settled.uncachedInputPicodollars, '120000000')
+  assert.equal(settled.cachedInputPicodollars, '8000000')
+  assert.equal(settled.cacheWritePicodollars, '0')
+  assert.equal(settled.outputPicodollars, '120000000')
+  assert.equal(settled.measuredUsdDecimal, '0.000248')
+})
+
+test('mixed cache writes, reads, and ordinary input settle without overlap', () => {
+  const settled = settleOpenAIStandardUsage({
+    contextBand: 'short',
+    model: 'gpt-5.6-luna',
+    usage: usage({
+      input_tokens: 1_000,
+      input_tokens_details: {
+        cache_write_tokens: 200,
+        cached_tokens: 400,
+      },
+      output_tokens: 100,
+      output_tokens_details: { reasoning_tokens: 20 },
+      total_tokens: 1_100,
+    }),
+  })
+
+  assert.equal(settled.uncachedInputTokens, 400)
+  assert.equal(settled.uncachedInputPicodollars, '80000000')
+  assert.equal(settled.cachedInputPicodollars, '8000000')
+  assert.equal(settled.cacheWritePicodollars, '50000000')
+  assert.equal(settled.outputPicodollars, '120000000')
+  assert.equal(settled.measuredUsdDecimal, '0.000258')
 })
 
 test('legacy internal context labels fail before settlement', () => {
@@ -134,5 +209,5 @@ test('accessors, proxies, and later source mutation cannot enter settlement', ()
   })
   source.input_tokens = 1
   assert.equal(settled.inputTokens, 2_142)
-  assert.equal(settled.measuredUsdDecimal, '0.0004764')
+  assert.equal(settled.measuredUsdDecimal, '0.00058335')
 })

@@ -24,6 +24,8 @@ const utilIsProxy = utilTypes.isProxy
 
 const PICODOLLARS_PER_DOLLAR = 1_000_000_000_000n
 const PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION = 10_000n
+const GPT_5_6_CACHE_WRITE_RATE_NUMERATOR = 5n
+const GPT_5_6_CACHE_WRITE_RATE_DENOMINATOR = 4n
 
 function fail(message) {
   throw new TypeError(`OpenAI Standard usage settlement: ${message}`)
@@ -147,7 +149,8 @@ export function settleOpenAIStandardUsage({
     fail('usage token relationships are inconsistent.')
   }
 
-  const uncachedInputTokens = inputTokens - cachedInputTokens
+  const uncachedInputTokens = inputTokens - cachedInputTokens -
+    cacheWriteTokens
   const inputCents = centsPerMillion(
     rates.inputUsdPerMillion,
     'input rate',
@@ -160,15 +163,24 @@ export function settleOpenAIStandardUsage({
     rates.outputUsdPerMillion,
     'output rate',
   )
+  const cacheWriteCentsNumerator = bigintFrom(inputCents) *
+    GPT_5_6_CACHE_WRITE_RATE_NUMERATOR
+  if (cacheWriteCentsNumerator % GPT_5_6_CACHE_WRITE_RATE_DENOMINATOR !== 0n) {
+    fail('cache-write rate is not pinned to exact cents.')
+  }
+  const cacheWriteCents = cacheWriteCentsNumerator /
+    GPT_5_6_CACHE_WRITE_RATE_DENOMINATOR
   const uncachedInputPicodollars = bigintFrom(uncachedInputTokens) *
     bigintFrom(inputCents) * PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
   const cachedInputPicodollars = bigintFrom(cachedInputTokens) *
     bigintFrom(cachedInputCents) *
     PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
+  const cacheWritePicodollars = bigintFrom(cacheWriteTokens) *
+    cacheWriteCents * PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
   const outputPicodollars = bigintFrom(outputTokens) *
     bigintFrom(outputCents) * PICODOLLARS_PER_TOKEN_PER_CENT_PER_MILLION
   const measuredPicodollars = uncachedInputPicodollars +
-    cachedInputPicodollars + outputPicodollars
+    cachedInputPicodollars + cacheWritePicodollars + outputPicodollars
 
   return objectFreeze(record([
     ['source', 'openai-responses-usage'],
@@ -185,9 +197,11 @@ export function settleOpenAIStandardUsage({
     ['totalTokens', totalTokens],
     ['inputUsdPerMillion', rates.inputUsdPerMillion],
     ['cachedInputUsdPerMillion', rates.cachedInputUsdPerMillion],
+    ['cacheWriteUsdPerMillion', Number(cacheWriteCents) / 100],
     ['outputUsdPerMillion', rates.outputUsdPerMillion],
     ['uncachedInputPicodollars', stringFrom(uncachedInputPicodollars)],
     ['cachedInputPicodollars', stringFrom(cachedInputPicodollars)],
+    ['cacheWritePicodollars', stringFrom(cacheWritePicodollars)],
     ['outputPicodollars', stringFrom(outputPicodollars)],
     ['measuredPicodollars', stringFrom(measuredPicodollars)],
     ['measuredUsdDecimal', usdDecimal(measuredPicodollars)],

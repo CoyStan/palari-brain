@@ -1,5 +1,56 @@
 # STATUS — Palari alpha
 
+## 2026-08-09 current handoff
+
+The latest practical-memory path still uses canonical raw dialogue with
+provenance, hybrid retrieval, local Ettin reranking, model-directed iterative
+queries, exact-session navigation from prior Palari answers, `memory_bridge`,
+and an ephemeral retrieval frontier. No fixed semantic schema or persistent
+successful-co-use edge was added.
+
+GPT-5.6 Standard settlement now accounts for cache-write tokens as a distinct
+input subset at 1.25 times ordinary input, while preserving historical
+zero-write Luna and Sol behavior. The provider-free correction increased the
+private aggregate ledger from `$4.35556818` to `$4.36187003`. The evaluation
+path also has an exact-content, namespace-bound SQLite embedding cache and a
+transport-only rolling Gemini pacer. The cache stores only digests and derived
+vectors, never raw text or provenance, and fails closed on corruption.
+
+The all-runnable LongMemEval alpha diagnostic excluded all ten sealed U8 IDs
+before source ingest and hash-verified 490 immutable source stores. It completed
+the first 21 cases before Gemini credit exhaustion: 21/21 were judged correct,
+all 22/22 marked spans were retrieved, and 20/22 were selected and materially
+used. These were all single-session-user cases, so this is positive but narrow
+diagnostic evidence, not a benchmark score. The interrupted population run was
+not retried or presented as a regrade.
+
+A separately frozen hard set then targeted multi-session composition, temporal
+reasoning, and knowledge updates. A 1,024-token per-dispatch ceiling caused two
+answer-agent completion failures, so an explicitly labelled follow-up changed
+only that ceiling to 5,120. Of eight cases run at 5,120, seven produced accepted
+answers and four of those seven were judged correct. Across the seven completed
+cases, 24/31 dataset-marked spans were returned, 17/31 were selected, and 15/31
+were materially used. A manual fact-level audit found 16/20 decisive facts
+returned and 15/20 selected and used. The three incorrect answers were two
+retrieval-coverage misses and one post-retrieval latest-update selection miss.
+The eighth case proposed the substantively correct count but retained an
+invalid evidence ID after one repair, so the host rejected the commitment
+before judging. All eight source hashes remained unchanged.
+
+No completed hard case used `memory_bridge`; there were no frontier budget
+refusals, stagnation flags, or durable writes. The incorrect completed cases
+all closed with unused retrieval calls, so the next practical work is retrieval
+completeness/continuation and latest-update selection—not learned co-use edges.
+This hard-set work is alpha diagnostic evidence and does not change historical
+LongMemEval grades.
+
+The mutable private aggregate ledger now accounts `$28.03738150` under the
+founder-approved `$31.21912057` ceiling. It conservatively retains full stage
+reservations for terminal failures; expected spend and authorization ceilings
+remain distinct. No provider process is running. Focused OpenAI contracts pass
+25/25, `npm test` passes 76/76, quickstart passes 6/6, and the complete legacy
+suite passes 917 with 3 optional skips.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate
