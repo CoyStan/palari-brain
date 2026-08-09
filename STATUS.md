@@ -352,6 +352,37 @@ private-artifact skips. No provider call, private diagnostic mutation, or
 benchmark regrade was performed; the private aggregate ledger remains
 `$36.51155714`.
 
+The founder-authorized BRN-0037 alpha diagnostic then ran the same frozen
+health-device question once, with no retry or tuning, under aggregate cap
+`$37.21155714`. It did not complete and the official judge was never called,
+so it has no grade and is not a benchmark regrade. The provisional answer
+named only two of the reference's four devices: Fitbit Versa 3 and Accu-Chek
+Aviva Nano. Main retrieval returned 3/6 dataset-marked spans and selected and
+materially used 2/6. At the smaller decisive-fact level, main retrieval found
+and used 2/4 device categories.
+
+Confirmation then returned one character-complete page of 20 unique candidates
+with 17 direct-user rows, zero evidence overlap with main retrieval, and an
+ordinary lower-ranked tail among 50 eligible candidates. Across the complete
+journey, retrieval reached 5/6 marked spans and all 4/4 decisive device facts,
+including raw user evidence for the missing hearing aids and nebulizer. The
+reviewer recognized five rows as material, but emitted only 19 ordered
+assessments for the 20 candidates. The host rejected the incomplete review
+before binding it, revising the answer, or exercising v7's complete-page
+closure rule. Thus this run neither confirms nor refutes that closure change;
+it exposes a separate bounded confirmation-interface failure.
+
+There were no `memory_bridge` or `memory_read` calls and no durable writes.
+Failure-path frontier output remains unavailable because the answer API threw
+before returning its structured result. The source database hash remained
+`b1ac32ef9e5ce86cd7509eec1891e0080a80a1b7dc269b2f2c1c0efca3a1f70b`.
+Six OpenAI dispatches plus three embedding inputs measured `$0.00853124`
+(`$0.00848354` OpenAI and `$0.00004770` Gemini); no judge spend occurred.
+Conservative failure accounting retained the full `$0.70` reservation, so the
+private ledger is exactly `$37.21155714`, equal to the approved ceiling. A
+provider-free replay reproduced the 20-versus-19 rejection with 460 embedding-
+cache hits and zero misses. This identity is consumed and must not be rerun.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate
