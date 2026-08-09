@@ -46,32 +46,43 @@ LongMemEval grades.
 
 The product answer path now has an opt-in, answer-type-independent novelty
 closure review. Its first answer is provisional. A fresh provider invocation
-receives the draft and all previously returned canonical evidence, while its
-only retrieval surface is a host-filtered `memory_search` that removes every
-previously returned evidence ID before top-K truncation. Any new result keeps
-the answer open; the reviewer must assess or revise it and search again. The
-host accepts a new exact commitment only after the latest review search returns
-no new evidence. Review work is independently bounded from one to four calls;
+receives the draft and one representative per previously returned information
+identity, while its only retrieval surface is a host-filtered `memory_search`.
+Information identity combines normalized content with speaker, optional
+author, and observation time. The host removes every previously returned ID
+and duplicate information before top-K truncation, and collapses duplicates
+within the new result. Any genuinely new result keeps the answer open; the
+reviewer must assess or revise it and search again. The host accepts a new exact
+commitment only after the latest review search returns no new information.
+Review work is independently bounded from one to four calls;
 ending on novelty fails closed with `MEMORY_ANSWER_CONFIRMATION_INCOMPLETE`.
 Its frontier and novelty telemetry are ephemeral and record zero durable
 writes. This is bounded retrieval closure, not proof that the corpus contains
 no other evidence, and it adds no fixed semantic schema or learned co-use edge.
 
-Provider-free controls cover health-device composition, archive recall, and a
-project-name update: novelty forces revision, an empty unseen search permits
-closure, premature commitment is rejected, and a final novel result cannot be
-released when the review budget ends. The OpenAI loop treats the special host
-rejection as a command to reopen retrieval rather than enter commit-only
-repair. The gitignored resumable 490-question adapter is prepared to use the
-same provider in a fresh two-call confirmation phase, but no paid run was
-started.
+The identity is deliberately provenance-aware and conservative. Identical
+Palari speech cannot hide a direct user statement, and the same words observed
+later remain available as new temporal evidence. Exact and cosmetic duplicate
+copies are suppressed. Arbitrary paraphrases are not mechanically merged,
+because a similarity threshold could erase a correction, negation, or useful
+qualification; the reviewer must assess that semantic redundancy and continue.
+
+Provider-free controls cover health-device composition, archive recall,
+temporal repetition, speaker authority, and a project-name update: duplicate
+copies are invisible, novelty forces revision, an empty unseen-information
+search permits closure, premature commitment is rejected, and a final novel
+result cannot be released when the review budget ends. The OpenAI loop treats
+the special host rejection as a command to reopen retrieval rather than enter
+commit-only repair. The gitignored resumable 490-question adapter is prepared
+to use the same provider in a fresh two-call confirmation phase, but no paid
+run was started.
 
 The mutable private aggregate ledger now accounts `$28.03738150` under the
 founder-approved `$31.21912057` ceiling. It conservatively retains full stage
 reservations for terminal failures; expected spend and authorization ceilings
 remain distinct. No provider process is running. Focused OpenAI contracts pass
-26/26, `npm test` passes 79/79, quickstart passes 6/6, and the complete legacy
-suite passes 921 with 3 optional skips.
+26/26, `npm test` passes 81/81, quickstart passes 6/6, and the complete legacy
+suite passes 923 with 3 optional skips.
 
 ## Current state
 

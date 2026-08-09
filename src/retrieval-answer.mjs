@@ -54,7 +54,7 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_SCHEMA =
   'palari-current-evidence-review/v1'
 export const MEMORY_ANSWER_CONFIRMATION_SCHEMA =
-  'palari-answer-confirmation/v1'
+  'palari-answer-confirmation/v2'
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_CANDIDATES = 3
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK = 3
 export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
@@ -133,6 +133,10 @@ const ENUMERATION_NAMED_COLLECTION_QUESTION = /^\s*(?:which|what)\s+.{0,120}\b(?
 const ENUMERATION_RELATIONAL_QUESTION = /^\s*(?:which|what)\s+.{1,120}\s+(?:do|does|did|are|were|have|has|had|should|must|can|could|will|would)\b/iu
 const RECOMMENDATION_QUESTION = /\b(?:recommend(?:ation|ations|ed|ing)?|suggest(?:ion|ions|ed|ing)?)\b/iu
 const SCALAR_MEASUREMENT_UNIT = /^(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?|meters?|metres?|kilometers?|kilometres?|miles?|feet|inches?|grams?|kilograms?|pounds?|ounces?|liters?|litres?|gallons?|degrees?|percent|percentage|dollars?|euros?|pounds?\s+sterling|tokens?|characters?|words?)\b/iu
+const INFORMATION_APOSTROPHES = /[\u2018\u2019]/gu
+const INFORMATION_DASHES = /[\u2010-\u2015]/gu
+const INFORMATION_QUOTES = /[\u201c\u201d\u201e]/gu
+const INFORMATION_TRAILING_PERIOD = /\.$/u
 
 // Capture the small set of intrinsics used by the answer-commit boundary
 // before provider code can run in this realm. Provider adapters are local
@@ -171,6 +175,7 @@ const setHas = Function.call.bind(Set.prototype.has)
 const setConstructor = Set
 const stringFrom = String
 const stringIncludes = Function.call.bind(String.prototype.includes)
+const stringNormalize = Function.call.bind(String.prototype.normalize)
 const stringReplace = Function.call.bind(String.prototype.replace)
 const stringSlice = Function.call.bind(String.prototype.slice)
 const stringToLowerCase = Function.call.bind(String.prototype.toLowerCase)
@@ -660,9 +665,10 @@ export const MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS = [
 export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
   'Act as a fresh, adversarial answer reviewer after another model produced a provisional answer.',
   'Before accepting or revising that draft, call memory_search with a new semantic or relational query designed to uncover omitted, conflicting, newer, or otherwise decisive evidence.',
-  'The confirmation search is host-filtered and returns only canonical memories that were not returned earlier in this answer journey.',
+  'The prior-evidence context contains one representative per information identity rather than repeated copies.',
+  'The confirmation search is host-filtered and returns only canonical memories whose evidence ID and provenance-aware normalized information were not returned earlier in this answer journey; duplicate information is also collapsed within each result.',
   'If it returns any memory, assess that evidence, revise the answer when warranted, and continue with another confirmation search.',
-  'Commit only after the most recent confirmation search returns no new evidence. This is bounded retrieval closure, not proof that no possible memory exists.',
+  'Commit only after the most recent confirmation search returns no new information. This is bounded retrieval closure, not proof that no possible memory exists.',
 ].join(' ')
 
 function evidenceRows(result) {
@@ -685,13 +691,7 @@ function evidenceTexts(result) {
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index]
     const evidenceId = stringTrim(stringFrom(row?.evidenceId ?? ''))
-    const text = typeof row?.text === 'string'
-      ? row.text
-      : typeof row?.snippet === 'string'
-        ? row.snippet
-        : typeof row?.quote === 'string'
-          ? row.quote
-          : ''
+    const text = informationText(row)
     if (evidenceId && text) arrayPush(evidence, { evidenceId, text })
   }
   return evidence
@@ -704,6 +704,46 @@ function frontierText(value) {
     RETRIEVAL_FRONTIER_WHITESPACE,
     ' ',
   )
+}
+
+function informationText(row) {
+  return typeof row?.text === 'string'
+    ? row.text
+    : typeof row?.snippet === 'string'
+      ? row.snippet
+      : typeof row?.quote === 'string'
+        ? row.quote
+        : ''
+}
+
+function normalizedInformationText(value) {
+  let normalized = stringNormalize(stringFrom(value ?? ''), 'NFC')
+  normalized = stringReplace(normalized, INFORMATION_APOSTROPHES, "'")
+  normalized = stringReplace(normalized, INFORMATION_QUOTES, '"')
+  normalized = stringReplace(normalized, INFORMATION_DASHES, '-')
+  normalized = frontierText(normalized)
+  return stringReplace(normalized, INFORMATION_TRAILING_PERIOD, '')
+}
+
+function informationIdentity(row) {
+  const text = informationText(row)
+  const normalizedText = normalizedInformationText(text)
+  if (!normalizedText) return null
+  const speaker = frontierText(row?.speaker)
+  const authorId = stringTrim(stringFrom(row?.authorId ?? ''))
+  const observedAt = stringTrim(stringFrom(row?.observedAt ?? ''))
+  return {
+    authorId,
+    key: arrayJoin([
+      speaker,
+      authorId,
+      observedAt,
+      normalizedText,
+    ], '\u0000'),
+    observedAt,
+    speaker,
+    text,
+  }
 }
 
 function frontierAttemptKey(tool, input) {
@@ -1560,6 +1600,7 @@ async function hybridSearch(
   semanticProbeQueries = [],
   rerankQuery = null,
   excludedEvidenceIds = null,
+  excludedInformationKeys = null,
 ) {
   const phrase = searchPhrase(input.phrase)
   const limit = boundedInteger(
@@ -1583,7 +1624,13 @@ async function hybridSearch(
   const excluded = excludedEvidenceIds instanceof setConstructor
     ? excludedEvidenceIds
     : new setConstructor()
+  const excludedInformation = excludedInformationKeys instanceof setConstructor
+    ? excludedInformationKeys
+    : new setConstructor()
+  const informationFiltering = excludedInformationKeys instanceof setConstructor
   const excludedCandidates = new setConstructor()
+  const excludedDuplicateInformation = new setConstructor()
+  const excludedDuplicateInformationEvidenceIds = []
   const newRowsOnly = (rows) => {
     const eligible = []
     for (let index = 0; index < rows.length; index += 1) {
@@ -1597,7 +1644,10 @@ async function hybridSearch(
     return eligible
   }
   const candidateLimit = Math.min(
-    Math.max(DEFAULT_HYBRID_LIMIT, limit * 2 + excluded.size),
+    Math.max(
+      DEFAULT_HYBRID_LIMIT,
+      limit * 2 + excluded.size + excludedInformation.size,
+    ),
     200,
   )
 
@@ -1674,11 +1724,14 @@ async function hybridSearch(
   }
 
   const fused = reciprocalRankFuse(rankings, {
-    limit: capabilities.reranking
+    limit: informationFiltering
+      ? candidateLimit
+      : capabilities.reranking
       ? Math.min(candidateLimit, MAX_HYBRID_LIMIT)
       : limit,
   })
   const candidates = []
+  const candidateInformationKeys = new setConstructor()
   for (const entry of fused) {
     const read = brain.exploreRead(scope, {
       evidenceIds: [entry.evidenceId],
@@ -1688,6 +1741,21 @@ async function hybridSearch(
     const message = read.messages[0]
     if (!message) continue
     const candidate = decorateAnswerRow(message, referenceTime)
+    if (informationFiltering) {
+      const identity = informationIdentity(candidate)
+      if (identity && (setHas(excludedInformation, identity.key) ||
+        setHas(candidateInformationKeys, identity.key))) {
+        if (!setHas(excludedDuplicateInformation, candidate.evidenceId)) {
+          setAdd(excludedDuplicateInformation, candidate.evidenceId)
+          arrayPush(
+            excludedDuplicateInformationEvidenceIds,
+            candidate.evidenceId,
+          )
+        }
+        continue
+      }
+      if (identity) setAdd(candidateInformationKeys, identity.key)
+    }
     Object.assign(candidate, {
       rrfScore: entry.rrfScore,
       surfaceRanks: entry.surfaceRanks,
@@ -1773,6 +1841,15 @@ async function hybridSearch(
       ? {
           excludedCandidates: excludedCandidates.size,
           newEvidenceOnly: true,
+        }
+      : {}),
+    ...(informationFiltering
+      ? {
+          excludedDuplicateInformationCount:
+            excludedDuplicateInformation.size,
+          excludedDuplicateInformationEvidenceIds:
+            excludedDuplicateInformationEvidenceIds,
+          newInformationOnly: true,
         }
       : {}),
     operation: 'memory_search',
@@ -1891,6 +1968,10 @@ export async function answerWithRetrieval(brain, {
   const committedResponses = new WeakSet()
   const confirmationCommittedResponses = new WeakSet()
   const evidenceRegistry = new Map()
+  const evidenceRegistryIds = []
+  const evidenceInformationIndex = new Map()
+  const returnedInformationKeySet = new setConstructor()
+  const returnedInformationKeys = []
   const evidenceReviewIndex = new Map()
   const evidenceReviewRows = []
   let evidenceCount = 0
@@ -1906,7 +1987,10 @@ export async function answerWithRetrieval(brain, {
     for (const { evidenceId, text } of evidenceTexts(result)) {
       const current = mapGet(evidenceRegistry, evidenceId)
       const texts = current ?? []
-      if (!current) evidenceCount += 1
+      if (!current) {
+        evidenceCount += 1
+        arrayPush(evidenceRegistryIds, evidenceId)
+      }
       arrayPush(texts, text)
       mapSet(evidenceRegistry, evidenceId, texts)
     }
@@ -1914,6 +1998,14 @@ export async function answerWithRetrieval(brain, {
     for (let index = 0; index < rows.length; index += 1) {
       const row = rows[index]
       const evidenceId = stringTrim(stringFrom(row?.evidenceId ?? ''))
+      const identity = informationIdentity(row)
+      if (evidenceId && identity) {
+        mapSet(evidenceInformationIndex, evidenceId, identity)
+        if (!setHas(returnedInformationKeySet, identity.key)) {
+          setAdd(returnedInformationKeySet, identity.key)
+          arrayPush(returnedInformationKeys, identity.key)
+        }
+      }
       const order = numberConstructor(row?.order)
       const speaker = stringToLowerCase(
         stringTrim(stringFrom(row?.speaker ?? '')),
@@ -2713,17 +2805,36 @@ export async function answerWithRetrieval(brain, {
   let answerConfirmation = null
   if (confirmationProvider) {
     const provisionalResponse = response
+    const priorEvidenceCount = evidenceRegistryIds.length
     const priorEvidence = []
-    for (const [evidenceId, texts] of evidenceRegistry) {
+    const priorInformationKeys = new setConstructor()
+    for (let index = 0; index < evidenceRegistryIds.length; index += 1) {
+      const evidenceId = evidenceRegistryIds[index]
+      const texts = mapGet(evidenceRegistry, evidenceId)
+      const identity = mapGet(evidenceInformationIndex, evidenceId)
+      const fallbackKey = arrayJoin([
+        '',
+        '',
+        '',
+        normalizedInformationText(texts[0]),
+      ], '\u0000')
+      const informationKey = identity?.key ?? fallbackKey
+      if (setHas(priorInformationKeys, informationKey)) continue
+      setAdd(priorInformationKeys, informationKey)
       arrayPush(priorEvidence, {
+        ...(identity?.authorId ? { authorId: identity.authorId } : {}),
         evidenceId,
-        text: texts[0],
+        ...(identity?.observedAt ? { observedAt: identity.observedAt } : {}),
+        ...(identity?.speaker ? { speaker: identity.speaker } : {}),
+        text: identity?.text ?? texts[0],
       })
     }
     const confirmationFrontier = createEphemeralRetrievalFrontier(
       confirmationBudget,
     )
     const confirmationOperations = []
+    const suppressedDuplicateInformationSet = new setConstructor()
+    const suppressedDuplicateInformationEvidenceIds = []
     let confirmationCalls = 0
     let confirmationExhausted = false
     let confirmationOpen = true
@@ -2750,8 +2861,12 @@ export async function answerWithRetrieval(brain, {
         }
         confirmationCalls += 1
         const excludedEvidenceIds = new setConstructor()
-        for (const evidenceId of evidenceRegistry.keys()) {
-          setAdd(excludedEvidenceIds, evidenceId)
+        for (let index = 0; index < evidenceRegistryIds.length; index += 1) {
+          setAdd(excludedEvidenceIds, evidenceRegistryIds[index])
+        }
+        const excludedInformationKeys = new setConstructor()
+        for (let index = 0; index < returnedInformationKeys.length; index += 1) {
+          setAdd(excludedInformationKeys, returnedInformationKeys[index])
         }
         const result = registerEvidence(await hybridSearch(
           brain,
@@ -2763,7 +2878,15 @@ export async function answerWithRetrieval(brain, {
           [],
           null,
           excludedEvidenceIds,
+          excludedInformationKeys,
         ))
+        const suppressedIds = result.excludedDuplicateInformationEvidenceIds
+        for (let index = 0; index < suppressedIds.length; index += 1) {
+          const evidenceId = suppressedIds[index]
+          if (setHas(suppressedDuplicateInformationSet, evidenceId)) continue
+          setAdd(suppressedDuplicateInformationSet, evidenceId)
+          arrayPush(suppressedDuplicateInformationEvidenceIds, evidenceId)
+        }
         consultRows(result.matches)
         confirmationFrontier.record({ input, result, tool: name })
         confirmationClosed = result.matches.length === 0
@@ -2858,7 +2981,7 @@ export async function answerWithRetrieval(brain, {
     if (confirmationRetrievalError) throw confirmationRetrievalError
     if (!confirmationClosed) {
       throw answerConfirmationError(
-        'Answer confirmation exhausted its bounded retrieval work before a no-new-evidence round.',
+        'Answer confirmation exhausted its bounded retrieval work before a no-new-information round.',
         'MEMORY_ANSWER_CONFIRMATION_INCOMPLETE',
       )
     }
@@ -2884,10 +3007,17 @@ export async function answerWithRetrieval(brain, {
       independentProviderDispatch: true,
       maxRetrievalCalls: confirmationBudget,
       newEvidenceIds: confirmationSnapshot.seenEvidenceIds,
+      newInformationEvidenceIds: confirmationSnapshot.seenEvidenceIds,
+      priorDuplicateInformationCount:
+        priorEvidenceCount - priorEvidence.length,
+      priorInformationCount: priorEvidence.length,
       retrievalCalls: confirmationCalls,
       retrievalFrontier: confirmationSnapshot,
       schema: MEMORY_ANSWER_CONFIRMATION_SCHEMA,
-      status: 'closed_no_new_evidence',
+      status: 'closed_no_new_information',
+      suppressedDuplicateInformationCount:
+        suppressedDuplicateInformationEvidenceIds.length,
+      suppressedDuplicateInformationEvidenceIds,
     })
   }
   const answerEvidence = []

@@ -913,7 +913,7 @@ export function createOpenAIRetrievalProvider({
           if (retrievalCalls >= retrievalLimit) {
             throw adapterError(
               'OPENAI_ANSWER_CONFIRMATION_INCOMPLETE',
-              'OpenAI exhausted the confirmation retrieval budget before a no-new-evidence round.',
+              'OpenAI exhausted the confirmation retrieval budget before a no-new-information round.',
             )
           }
           forcingCommit = false

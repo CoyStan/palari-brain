@@ -558,20 +558,29 @@ Product callers can opt into a second, fresh answer-review dispatch by passing
 `confirmationProvider` (the same provider function may be reused) and
 `maxConfirmationRetrievalCalls` from 1 through 4. The first response is then
 provisional. The reviewer receives that draft plus every canonical memory
-already returned, but its only retrieval tool is a host-filtered
-`memory_search` that removes all previously returned evidence before result
-truncation. Any novel result reopens the answer; the reviewer must assess or
+already returned, collapsed to one representative per information identity.
+That identity combines normalized text with speaker, optional author, and
+observation time. Its only retrieval tool is a host-filtered `memory_search`
+that removes both previously returned evidence IDs and duplicate information
+before result truncation, and also collapses duplicate information within the
+new result. Any novel result reopens the answer; the reviewer must assess or
 revise it and search again. The host accepts a new commitment only after the
-latest confirmation search returns no novel evidence. If the bounded review
-ends on novelty, the call fails closed with
+latest confirmation search returns no novel information. If the bounded
+review ends on novelty, the call fails closed with
 `MEMORY_ANSWER_CONFIRMATION_INCOMPLETE` rather than releasing an unconfirmed
 answer.
 
 Successful results expose ephemeral `answerConfirmation` telemetry, including
-the independent retrieval frontier, novel evidence IDs, closure round, and
-zero durable writes. This establishes bounded retrieval closure, not a claim
-that no possible evidence exists. Omitting `confirmationProvider` preserves
-the historical single-dispatch behavior and result shape.
+the independent retrieval frontier, prior and suppressed duplicate counts,
+novel information evidence IDs, closure round, and zero durable writes.
+Authority and time are deliberately part of identity: a direct user statement
+cannot be hidden by identical Palari speech, and a later repetition remains
+available as fresh temporal evidence. The host conservatively does not merge
+arbitrary paraphrases, because doing so mechanically could erase a correction,
+negation, or qualification. The reviewer must assess such semantic redundancy
+and continue. This establishes bounded retrieval closure, not a claim that no
+possible evidence exists. Omitting `confirmationProvider` preserves the
+historical single-dispatch behavior and result shape.
 
 `buildGeminiFunctionTools` is the provider boundary for Gemini native
 function calling. It leaves the provider-neutral tool definitions unchanged,
