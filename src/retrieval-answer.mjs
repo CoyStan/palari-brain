@@ -59,7 +59,7 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_SCHEMA =
   'palari-current-evidence-review/v1'
 export const MEMORY_ANSWER_CONFIRMATION_SCHEMA =
-  'palari-answer-confirmation/v6'
+  'palari-answer-confirmation/v7'
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_CANDIDATES = 3
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK = 3
 export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
@@ -675,7 +675,7 @@ export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
   'The confirmation search is host-filtered and returns compact exact excerpts from only unseen canonical candidates whose evidence ID and provenance-aware normalized information were not returned earlier in this answer journey; exact duplicate information is also collapsed within each result. Direct user evidence is presented before derivative Palari navigation anchors, while complete canonical messages remain host-side for quote validation and audit.',
   'Search matches are candidates, not automatically new information. After every non-empty search, call memory_candidate_review before searching or committing. Return exactly one assessment per candidate in the same order; the host binds positions to immutable evidence IDs, so do not reproduce those IDs. Classify every candidate as material or not_used and give a specific reason.',
   'Any material candidate requires revising the answer and another confirmation search. Candidates classified not_used are ignored and cannot be retrieved again in this answer journey.',
-  'Whenever the host reports moreCandidatesAvailable, another duplicate-filtered search is required even when every displayed candidate is not_used.',
+  'The host reports candidatePageComplete separately from lowerRankedCandidatesAvailable. If candidatePageComplete is false, another duplicate-filtered search is required even when every displayed candidate is not_used. A lower-ranked tail alone does not make the delivered top-K review incomplete.',
   'An empty confirmation search means no new information was found for that adversarial query.',
   'Commit only after the latest search is empty or memory_candidate_review reports that every candidate is not used, and all materially new candidates from earlier rounds remain assessed in the final commitment. This is bounded retrieval closure, not proof that no possible memory exists.',
 ].join(' ')
@@ -1372,7 +1372,7 @@ const HYBRID_TOOL = deepFreeze({
 const MEMORY_ANSWER_CONFIRMATION_SEARCH_TOOL = deepFreeze({
   description: [
     'Search for omitted, conflicting, newer, or otherwise decisive memory.',
-    'The host owns the candidate count and character budget, removes previously returned information, presents compact exact excerpts, and reports whether an unseen tail remains.',
+    'The host owns the candidate count and character budget, removes previously returned information, presents compact exact excerpts, and distinguishes incomplete page delivery from a lower-ranked tail.',
   ].join(' '),
   name: 'memory_search',
   parameters: {
@@ -2024,9 +2024,11 @@ async function hybridSearch(
       ? {
           candidateExcerptChars:
             MEMORY_ANSWER_CONFIRMATION_CANDIDATE_CHARS,
+          candidatePageComplete: !truncatedByChars,
           directUserCandidates: presented.filter(
             ({ speaker }) => speaker === 'user',
           ).length,
+          lowerRankedCandidatesAvailable: truncatedByLimit,
           moreCandidatesAvailable,
           totalEligibleCandidates: presented.length,
           truncatedByChars,
@@ -2160,7 +2162,8 @@ export async function answerWithRetrieval(brain, {
   let confirmationSearchPerformed = false
   let confirmationLatestEvidenceIds = []
   let confirmationLatestAssessed = true
-  let confirmationLatestSearchSaturated = false
+  let confirmationLatestPageIncomplete = false
+  let confirmationLatestLowerRankedCandidatesAvailable = false
   const confirmationIgnoredCandidateSet = new setConstructor()
   const confirmationIgnoredCandidateEvidenceIds = []
   const confirmationNewInformationSet = new setConstructor()
@@ -3109,17 +3112,20 @@ export async function answerWithRetrieval(brain, {
           confirmationReviewCalls += 1
           confirmationLatestAssessed = true
           confirmationClosed = materialEvidenceIds.length === 0 &&
-            !confirmationLatestSearchSaturated
+            !confirmationLatestPageIncomplete
           const result = deepFreeze({
             assessedEvidenceIds: confirmationLatestEvidenceIds,
+            candidatePageComplete: !confirmationLatestPageIncomplete,
             closed: confirmationClosed,
             continueSearch: !confirmationClosed,
             durableWrites: 0,
             ephemeral: true,
             ignoredEvidenceIds,
+            lowerRankedCandidatesAvailable:
+              confirmationLatestLowerRankedCandidatesAvailable,
             materialEvidenceIds,
             operation: MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME,
-            saturatedCandidateBatch: confirmationLatestSearchSaturated,
+            saturatedCandidateBatch: confirmationLatestPageIncomplete,
           })
           arrayPush(transcript, {
             input: candidate,
@@ -3210,9 +3216,9 @@ export async function answerWithRetrieval(brain, {
         }
         confirmationClosed = result.matches.length === 0
         confirmationLatestAssessed = confirmationClosed
-        confirmationLatestSearchSaturated =
-          result.moreCandidatesAvailable ||
-          result.matches.length === MEMORY_ANSWER_MAX_BASES
+        confirmationLatestPageIncomplete = result.truncatedByChars
+        confirmationLatestLowerRankedCandidatesAvailable =
+          result.truncatedByLimit
         arrayPush(transcript, {
           input: effectiveSearchInput,
           phase: 'answer_confirmation',
@@ -3325,6 +3331,9 @@ export async function answerWithRetrieval(brain, {
     })
     answerConfirmation = deepFreeze({
       candidateEvidenceIds: confirmationSnapshot.seenEvidenceIds,
+      closureCandidatePageComplete: !confirmationLatestPageIncomplete,
+      closureLowerRankedCandidatesAvailable:
+        confirmationLatestLowerRankedCandidatesAvailable,
       closureRoundOrdinal: confirmationSnapshot.roundCount,
       closureReason: confirmationLatestEvidenceIds.length === 0
         ? 'empty_unseen_search'

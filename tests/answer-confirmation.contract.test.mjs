@@ -98,6 +98,10 @@ function reviewCandidates(context, rows, disposition) {
 
 test('candidate reviews bind ordered assessments to host evidence IDs',
   async (t) => {
+    assert.equal(
+      MEMORY_ANSWER_CONFIRMATION_SCHEMA,
+      'palari-answer-confirmation/v7',
+    )
     const assessmentSchema = MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL
       .parameters.properties.assessments.items
     assert.deepEqual(
@@ -110,6 +114,8 @@ test('candidate reviews bind ordered assessments to host evidence IDs',
     )
     assert.match(MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS,
       /host binds positions to immutable evidence IDs/)
+    assert.match(MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS,
+      /candidatePageComplete separately from lowerRankedCandidatesAvailable/)
     const searchSchema = MEMORY_ANSWER_CONFIRMATION_TOOLS.find(
       ({ name }) => name === 'memory_search',
     ).parameters
@@ -402,7 +408,7 @@ test('reviewer can close on explicitly ignored paraphrase candidates without ano
     )
   })
 
-test('a saturated candidate batch continues through only unseen information',
+test('a complete top-k review can close despite a lower-ranked tail',
   async (t) => {
     const brain = await openBrain(t)
     for (let index = 0; index < 22; index += 1) {
@@ -413,7 +419,6 @@ test('a saturated candidate batch continues through only unseen information',
       )
     }
     let original
-    let provisional
     const provider = requireCommitment(async ({ commitAnswer, retrieve }) => {
       const found = await retrieve({
         input: { limit: 1, phrase: 'catalog item 0 stores code 1000' },
@@ -421,36 +426,32 @@ test('a saturated candidate batch continues through only unseen information',
       })
       original = found.matches[0]
       assert.ok(original)
-      provisional = commitAnswer(proposal(
+      return commitAnswer(proposal(
         'Catalog item zero stores code 1000.',
         [original],
       ))
-      return provisional
     })
-    const pages = []
     const confirmationProvider = requireCommitment(async (context) => {
-      for (let round = 0; round < 2; round += 1) {
-        const candidates = await context.retrieve({
-          input: { limit: 50, phrase: 'catalog item stores code' },
-          tool: 'memory_search',
-        })
-        pages.push(candidates.matches)
-        const review = await reviewCandidates(
-          context,
-          candidates.matches,
-          'not_used',
-        )
-        if (round === 0) {
-          assert.equal(candidates.matches.length, 20)
-          assert.equal(review.saturatedCandidateBatch, true)
-          assert.equal(review.continueSearch, true)
-        } else {
-          assert.ok(candidates.matches.length > 0)
-          assert.ok(candidates.matches.length < 20)
-          assert.equal(review.saturatedCandidateBatch, false)
-          assert.equal(review.closed, true)
-        }
-      }
+      const candidates = await context.retrieve({
+        input: { limit: 50, phrase: 'catalog item stores code' },
+        tool: 'memory_search',
+      })
+      assert.equal(candidates.matches.length, 20)
+      assert.equal(candidates.candidatePageComplete, true)
+      assert.equal(candidates.lowerRankedCandidatesAvailable, true)
+      assert.equal(candidates.moreCandidatesAvailable, true)
+      assert.equal(candidates.truncatedByChars, false)
+      assert.equal(candidates.truncatedByLimit, true)
+      const review = await reviewCandidates(
+        context,
+        candidates.matches,
+        'not_used',
+      )
+      assert.equal(review.candidatePageComplete, true)
+      assert.equal(review.lowerRankedCandidatesAvailable, true)
+      assert.equal(review.saturatedCandidateBatch, false)
+      assert.equal(review.continueSearch, false)
+      assert.equal(review.closed, true)
       return context.commitAnswer(proposal(
         'Catalog item zero stores code 1000.',
         [original],
@@ -464,10 +465,13 @@ test('a saturated candidate batch continues through only unseen information',
       provider,
       question: 'What code does catalog item zero store?',
     })
-    const firstIds = new Set(pages[0].map(({ evidenceId }) => evidenceId))
-    assert.ok(pages[1].every(({ evidenceId }) => !firstIds.has(evidenceId)))
-    assert.equal(result.answerConfirmation.retrievalCalls, 2)
-    assert.equal(result.answerConfirmation.reviewCalls, 2)
+    assert.equal(result.answerConfirmation.retrievalCalls, 1)
+    assert.equal(result.answerConfirmation.reviewCalls, 1)
+    assert.equal(result.answerConfirmation.closureCandidatePageComplete, true)
+    assert.equal(
+      result.answerConfirmation.closureLowerRankedCandidatesAvailable,
+      true,
+    )
   })
 
 test('character-truncated confirmation stays open and pages compact user evidence',
@@ -514,6 +518,8 @@ test('character-truncated confirmation stays open and pages compact user evidenc
       pages.push(first.matches)
       assert.ok(first.matches.length > 1)
       assert.ok(first.matches.length < 20)
+      assert.equal(first.candidatePageComplete, false)
+      assert.equal(first.lowerRankedCandidatesAvailable, false)
       assert.equal(first.truncatedByChars, true)
       assert.equal(first.moreCandidatesAvailable, true)
       assert.equal(first.candidateExcerptChars, 800)
@@ -536,6 +542,7 @@ test('character-truncated confirmation stays open and pages compact user evidenc
       )
       assert.equal(firstReview.closed, false)
       assert.equal(firstReview.continueSearch, true)
+      assert.equal(firstReview.candidatePageComplete, false)
       assert.equal(firstReview.saturatedCandidateBatch, true)
 
       const second = await context.retrieve({
@@ -544,12 +551,14 @@ test('character-truncated confirmation stays open and pages compact user evidenc
       })
       pages.push(second.matches)
       assert.ok(second.matches.length >= 1)
+      assert.equal(second.candidatePageComplete, true)
       assert.equal(second.moreCandidatesAvailable, false)
       const secondReview = await reviewCandidates(
         context,
         second.matches,
         'not_used',
       )
+      assert.equal(secondReview.candidatePageComplete, true)
       assert.equal(secondReview.closed, true)
       return context.commitAnswer(proposal(
         'The first catalog device is recorded.',
