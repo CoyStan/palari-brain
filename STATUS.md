@@ -383,6 +383,34 @@ private ledger is exactly `$37.21155714`, equal to the approved ceiling. A
 provider-free replay reproduced the 20-versus-19 rejection with 460 embedding-
 cache hits and zero misses. This identity is consumed and must not be rerun.
 
+BRN-0038 replaces that fragile ordered assessment list with confirmation
+schema `palari-answer-confirmation/v8`. Every displayed candidate now carries
+a short page-local `candidateNumber`. The fresh reviewer returns only material
+findings as `{candidateNumber, reason}`; `{findings: []}` means that no
+displayed candidate changes the provisional answer. The host maps numbers to
+immutable canonical evidence IDs, rejects missing, fractional, out-of-range,
+duplicate, stale-review, extra-field, and legacy assessment payloads, and never
+asks the model to reproduce opaque IDs.
+
+A valid sparse review still covers the whole displayed page. Listed findings
+remain material, force answer revision and another unseen search, and must be
+supported in the final commitment. Every unlisted candidate becomes
+non-material for that answer journey and cannot recur. Empty findings close
+only a character-complete page; character-truncated pages continue, while an
+ordinary lower-ranked tail does not prevent closure. Compact exact excerpts,
+full host-side canonical validation, direct-user-first ordering, duplicate
+information exclusion, bounded work, isolation, and zero durable writes are
+unchanged.
+
+Provider-free contracts cover empty findings, reordered sparse findings,
+invalid/duplicate numbers, old payload rejection, repeated-review rejection,
+material continuation, complete lower-ranked tails, character-truncated
+disjoint pages, temporal identity, speaker authority, and bounded failure.
+Focused confirmation tests pass 10/10, `npm test` passes 86/86, quickstart
+passes 6/6, and the complete legacy suite passes 917 with 15 optional skips
+and zero failures across 932 tests. No provider or private artifact was
+accessed and the private ledger remains `$37.21155714`.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate
