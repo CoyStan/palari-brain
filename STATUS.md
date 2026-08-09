@@ -329,7 +329,8 @@ candidates are all `not_used` may close while character-truncated pages remain
 open. Increasing budgets or adding a fixed health schema is not supported by
 this evidence.
 
-BRN-0036 implements that distinction as confirmation schema
+BRN-0036, independently reviewed and founder-accepted, implements that
+distinction as confirmation schema
 `palari-answer-confirmation/v7`. The host now reports
 `candidatePageComplete` separately from
 `lowerRankedCandidatesAvailable`. Character truncation makes the intended
