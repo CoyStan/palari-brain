@@ -124,13 +124,45 @@ material novelty forces revision, a non-material candidate set may close,
 premature commitment is rejected, and a final novel result cannot be released
 when the review budget ends. The OpenAI loop still treats the special host
 rejection as a command to reopen retrieval rather than enter commit-only
-repair. The explicit-review v4 successor is provider-free and has not received
-a paid live confirmation.
+repair.
 
-The mutable private aggregate ledger now accounts `$33.63738150`, exactly the
-founder-approved `$33.63738150` ceiling. Another paid call requires a new
-explicit numeric aggregate cap. Expected spend and authorization ceilings
-remain distinct. No provider process is running. Focused confirmation/OpenAI
+The founder-authorized v4 live diagnostic reran the same four frozen hard
+cases with no retry or inter-case tuning. Three completed and reached the
+official judge: charity was correct, while instruments and Rachel were
+incorrect. Health failed exact-evidence commitment after its one repair and
+did not reach the judge. This is 1/3 among completed answers plus one unjudged
+failure, not a four-question score and not a benchmark regrade.
+
+The v4 control worked mechanically on every completed answer: three searches
+returned 11 never-repeated candidates, three explicit reviews classified all
+11 as `not_used`, and every journey closed without a durable write. It did not
+provide positive evidence for semantic completeness. Rachel's later direct
+suburbs statement was already among all three retrieved marked spans, but the
+answer selected the older Chicago statement and the reviewer still closed.
+The instrument answer retrieved only 1/4 marked spans, missed the Yamaha, and
+treated an expressed intention to sell the still-owned Pearl drum set as
+ambiguous. Charity retrieved all 6/6 marked spans and correctly composed four
+earlier events. Health retrieved evidence for Fitbit, Accu-Chek, nebulizer,
+and hearing aids, but proposed three definite devices plus an ambiguous fourth
+before its malformed exact-evidence commitment failed. Across the three
+completed cases, 10/13 marked spans were retrieved, 6/13 selected, and 5/13
+materially used.
+
+No v4 case called `memory_bridge`; completed frontiers had no budget refusals
+or stagnation. All four current source hashes match their frozen preflight
+hashes. The expected fresh spend was `$0.05–$0.20`; measured provider spend was
+`$0.05047783`. Conservative failure accounting charged `$0.74036789`, bringing
+the mutable private aggregate ledger to `$34.37774939` under the approved
+`$36.43738150` ceiling. The remaining ceiling headroom is `$2.05963211`, but
+the approved no-retry run is complete and no provider process is running.
+Expected spend and authorization ceilings remain distinct.
+
+The finding is narrower than “confirmation failed”: explicit classification
+and duplicate exclusion now work, but a reviewer can still close confidently
+after an unproductive query or overlook decisive evidence already present in
+its prior returned-information context. The next product change should target
+general reviewer coverage and prior-evidence conflict assessment, not
+`memory_bridge` or persistent co-use edges. Focused confirmation/OpenAI
 contracts pass 34/34, `npm test` passes 83/83, quickstart passes 6/6, and the
 complete legacy suite passes 926 with 3 optional skips.
 
