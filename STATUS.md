@@ -286,6 +286,49 @@ validation, perform no durable write, and cannot close early. `npm test` passes
 optional skips. No paid call was made; the private ledger remains
 `$35.81155714`.
 
+The founder then authorized aggregate cap `$36.51155714` for one no-retry
+health rerun on confirmation v6. The case did not complete and the official
+judge was never called, so it has no grade and is not a benchmark regrade. Its
+main answer was nevertheless substantively correct: two searches selected four
+raw user memories and answered that the user uses four devices—Accu-Chek Aviva
+Nano, Fitbit Versa 3, a nebulizer, and Phonak BTE hearing aids—matching the
+reference. Main retrieval returned 4/6 dataset-marked spans. The complete
+journey returned all 6/6 marked spans; 2/6 marked spans were selected and
+materially used because the Fitbit and nebulizer facts used alternate direct
+user spans. All four smallest decisive device facts were returned, selected,
+and materially used.
+
+The new compact interface removed the former five-message character cutoff.
+Confirmation returned two disjoint 20-candidate pages with no character
+truncation. The first review classified three candidates as material and 17 as
+`not_used`; the second classified all 20 as `not_used`. Both searches still
+reported a lower-ranked top-K tail from 50 eligible candidates, so the host
+correctly kept the answer provisional under the current v6 rule. With its two
+confirmation searches spent, the model attempted a one-item stale review
+instead of another search; the host rejected it. There were no bridge or
+session-read calls and no durable writes. A provider-free exact-action replay
+reproduced the failure, used 461 cache hits with zero misses, verified that
+confirmation pages did not repeat evidence, and verified the frozen source
+database hash byte-for-byte.
+
+Expected fresh spend was `$0.01–$0.03`; measured provider spend was
+`$0.01683535` (`$0.01674850` OpenAI and `$0.00008685` embeddings, with no
+judge). Because the answer stage failed, conservative accounting retained its
+full `$0.70` reservation. The private aggregate ledger is therefore exactly
+`$36.51155714`, equal to the approved hard ceiling. No provider process or
+further paid call is running. `npm test` remains 85/85 and quickstart remains
+6/6.
+
+This distinguishes two kinds of tails. A character-truncated intended page is
+incomplete and must continue; an ordinary lower-ranked tail beyond a fully
+delivered top-K page does not itself show missing relevant evidence. Treating
+both as mandatory exhaustion turns the abstract semantic check into a broad
+corpus scan and can reject a correct answer after 40 reviewed candidates. The
+next smallest product decision is whether a fully delivered top-K page whose
+candidates are all `not_used` may close while character-truncated pages remain
+open. Increasing budgets or adding a fixed health schema is not supported by
+this evidence.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate
