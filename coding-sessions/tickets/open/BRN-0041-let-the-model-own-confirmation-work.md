@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0041
 children: []
-status: open
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-09T23:44:22Z
 target_branch: "main"
 branch: "ticket/BRN-0041-let-the-model-own-confirmation-work"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0041-let-the-model-own-confirmation-work"
