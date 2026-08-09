@@ -241,6 +241,29 @@ provider-free correction: focused confirmation/OpenAI tests pass 35/35,
 passes 927 with 3 optional skips. The private ledger remains `$35.80128178`;
 no paid rerun was made.
 
+The founder then authorized aggregate cap `$36.50128178` for one fresh,
+no-retry health-case diagnostic on confirmation v5. The mechanical correction
+worked: the ordered five-candidate review completed, every assessment was
+bound to its host-owned evidence ID, and no malformed-ID failure occurred.
+The answer was nevertheless wrong: it returned 2 devices (Fitbit Versa 3 and
+Accu-Chek Aviva Nano) against reference count 4, and the official judge
+returned false. Main retrieval recovered 3/6 marked spans and only 1/6 marked
+spans was selected and materially used; both hearing-aid spans and the
+nebulizer span were missed. One confirmation search returned five genuinely
+unseen but non-material Fitbit/nasal-spray candidates, correctly ignored all
+five, then closed with one confirmation call and two main retrieval calls still
+unused. There were no bridge or read calls, no repeated confirmation evidence,
+and no durable writes. This isolates the remaining failure as retrieval-query
+coverage plus premature semantic closure, not ID plumbing.
+
+Expected fresh spend was `$0.01–$0.03`; measured and accounted fresh spend was
+`$0.01027536` (`$0.00979001` OpenAI, `$0.00003285` embeddings, and
+`$0.00045250` judge). The private ledger is now `$35.81155714`, below the hard
+aggregate authorization ceiling `$36.50128178`. The embedding cache recorded
+458 hits and 2 misses. Source custody passed and the source database hash still
+matches frozen preflight. This remains an alpha diagnostic, not a benchmark
+regrade.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate
