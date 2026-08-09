@@ -54,7 +54,7 @@ export const MEMORY_ANSWER_COMPOSITION_MODES = Object.freeze([
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_SCHEMA =
   'palari-current-evidence-review/v1'
 export const MEMORY_ANSWER_CONFIRMATION_SCHEMA =
-  'palari-answer-confirmation/v4'
+  'palari-answer-confirmation/v5'
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_CANDIDATES = 3
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK = 3
 export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
@@ -668,7 +668,7 @@ export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
   'Before accepting or revising that draft, call memory_search with a new semantic or relational query designed to uncover omitted, conflicting, newer, or otherwise decisive evidence.',
   'The prior-evidence context contains one representative per information identity rather than repeated copies.',
   'The confirmation search is host-filtered and returns only unseen canonical candidates whose evidence ID and provenance-aware normalized information were not returned earlier in this answer journey; exact duplicate information is also collapsed within each result.',
-  'Search matches are candidates, not automatically new information. After every non-empty search, call memory_candidate_review before searching or committing. Classify every returned candidate as material or not_used and give a specific reason.',
+  'Search matches are candidates, not automatically new information. After every non-empty search, call memory_candidate_review before searching or committing. Return exactly one assessment per candidate in the same order; the host binds positions to immutable evidence IDs, so do not reproduce those IDs. Classify every candidate as material or not_used and give a specific reason.',
   'Any material candidate requires revising the answer and another confirmation search. Candidates classified not_used are ignored and cannot be retrieved again in this answer journey.',
   `A full ${MEMORY_ANSWER_MAX_BASES}-candidate review batch may have more unseen candidates behind it, so it always requires another duplicate-filtered search even when every candidate is not_used.`,
   'An empty confirmation search means no new information was found for that adversarial query.',
@@ -1367,6 +1367,7 @@ const HYBRID_TOOL = deepFreeze({
 export const MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL = deepFreeze({
   description: [
     'Classify every candidate from the latest non-empty confirmation search before another search or final commitment.',
+    'Return exactly one assessment per candidate in the same order; the host attaches immutable evidence IDs by position.',
     'Use material only when the candidate changes, expands, contradicts, dates, or otherwise affects the answer.',
     'Use not_used for duplicate, derivative, irrelevant, superseded, or otherwise non-material information and state the specific reason.',
     'This review is ephemeral, performs no retrieval or durable write, and assessed candidates cannot recur in this answer journey.',
@@ -1383,17 +1384,13 @@ export const MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL = deepFreeze({
               enum: ['material', 'not_used'],
               type: 'string',
             },
-            evidenceId: {
-              minLength: 1,
-              type: 'string',
-            },
             reason: {
               maxLength: MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
               minLength: 1,
               type: 'string',
             },
           },
-          required: ['evidenceId', 'disposition', 'reason'],
+          required: ['disposition', 'reason'],
           type: 'object',
         },
         maxItems: MEMORY_ANSWER_MAX_BASES,
@@ -2936,34 +2933,16 @@ export async function answerWithRetrieval(brain, {
                 `${confirmationLatestEvidenceIds.length} latest candidates.`,
             )
           }
-          const expected = new setConstructor()
-          for (let index = 0;
-            index < confirmationLatestEvidenceIds.length;
-            index += 1) {
-            setAdd(expected, confirmationLatestEvidenceIds[index])
-          }
-          const seen = new setConstructor()
           const materialEvidenceIds = []
           const ignoredEvidenceIds = []
           for (let index = 0; index < candidate.assessments.length; index += 1) {
             const assessment = candidate.assessments[index]
             exactDataProperties(
               assessment,
-              ['evidenceId', 'disposition', 'reason'],
+              ['disposition', 'reason'],
               `Candidate review assessment ${index}`,
             )
-            const evidenceId = boundedCommitmentText(
-              assessment.evidenceId,
-              `Candidate review assessment ${index} evidenceId`,
-              500,
-              { trim: true },
-            )
-            if (!setHas(expected, evidenceId) || setHas(seen, evidenceId)) {
-              throw answerCommitmentError(
-                `Candidate review assessment ${index} must name one unique ` +
-                  `latest candidate evidence ID.`,
-              )
-            }
+            const evidenceId = confirmationLatestEvidenceIds[index]
             const reason = boundedCommitmentText(
               assessment.reason,
               `Candidate review assessment ${index} reason`,
@@ -2977,7 +2956,6 @@ export async function answerWithRetrieval(brain, {
                   `material or not_used.`,
               )
             }
-            setAdd(seen, evidenceId)
             if (assessment.disposition === 'material') {
               arrayPush(materialEvidenceIds, evidenceId)
               if (!setHas(confirmationNewInformationSet, evidenceId)) {

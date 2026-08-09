@@ -226,6 +226,21 @@ unjudged cases expose narrow confirmation-control problems—one copied-ID typo
 and one invalid action after bounded material discovery—not evidence for more
 memory machinery, bridge learning, or a fixed semantic schema.
 
+The health confirmation failure exposed an avoidable interface defect rather
+than a reason to add prompting or memory machinery. The reviewer had been
+required to reproduce each opaque 64-hex-character evidence ID; it omitted
+five characters from one otherwise correctly understood candidate. Confirmation
+schema `palari-answer-confirmation/v5` now accepts exactly one
+`{disposition, reason}` assessment per latest candidate in result order, and
+the host binds those positions back to its immutable evidence IDs. Full IDs
+remain in ephemeral audit telemetry, while the model can no longer mistype,
+duplicate, or invent them. Strict count validation still rejects omitted or
+extra assessments, and old ID-bearing review payloads fail closed. This was a
+provider-free correction: focused confirmation/OpenAI tests pass 35/35,
+`npm test` passes 84/84, quickstart passes 6/6, and the complete legacy suite
+passes 927 with 3 optional skips. The private ledger remains `$35.80128178`;
+no paid rerun was made.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate

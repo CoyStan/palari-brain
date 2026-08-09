@@ -6,6 +6,7 @@ import test from 'node:test'
 
 import {
   MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS,
+  MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL,
   MEMORY_ANSWER_CONFIRMATION_SCHEMA,
   answerWithRetrieval,
   createPalariBrain,
@@ -83,9 +84,8 @@ function proposal(text, rows) {
 function reviewCandidates(context, rows, disposition) {
   return context.retrieve({
     input: {
-      assessments: rows.map(({ evidenceId }) => ({
+      assessments: rows.map(() => ({
         disposition,
-        evidenceId,
         reason: disposition === 'material'
           ? 'This adds information that may change the answer.'
           : 'This repeats information already represented.',
@@ -94,6 +94,97 @@ function reviewCandidates(context, rows, disposition) {
     tool: 'memory_candidate_review',
   })
 }
+
+test('candidate reviews bind ordered assessments to host evidence IDs',
+  async (t) => {
+    const assessmentSchema = MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL
+      .parameters.properties.assessments.items
+    assert.deepEqual(
+      Object.keys(assessmentSchema.properties).sort(),
+      ['disposition', 'reason'],
+    )
+    assert.deepEqual(
+      [...assessmentSchema.required].sort(),
+      ['disposition', 'reason'],
+    )
+    assert.match(MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS,
+      /host binds positions to immutable evidence IDs/)
+
+    async function runReview(buildAssessments, verifyReview = () => {}) {
+      const brain = await openBrain(t)
+      await seed(brain, 'My archive key is in the violet folder.',
+        'binding-old:0')
+      await seed(brain, 'My spare archive key is in the amber drawer.',
+        'binding-new:0')
+      let original
+      const provider = requireCommitment(async ({ commitAnswer, retrieve }) => {
+        const found = await retrieve({
+          input: { limit: 1, phrase: 'archive key violet folder' },
+          tool: 'memory_search',
+        })
+        original = found.matches[0]
+        return commitAnswer(proposal('The key is in the violet folder.', [
+          original,
+        ]))
+      })
+      const confirmationProvider = requireCommitment(async (context) => {
+        const candidates = await context.retrieve({
+          input: { limit: 20, phrase: 'spare archive key amber drawer' },
+          tool: 'memory_search',
+        })
+        assert.ok(candidates.matches.length >= 1)
+        const valid = candidates.matches.map(() => ({
+          disposition: 'not_used',
+          reason: 'This concerns a separate spare key.',
+        }))
+        const review = await context.retrieve({
+          input: {
+            assessments: buildAssessments(valid, candidates.matches),
+          },
+          tool: 'memory_candidate_review',
+        })
+        verifyReview(review, candidates.matches)
+        return context.commitAnswer(proposal(
+          'The key is in the violet folder.',
+          [original],
+        ))
+      })
+      return answerWithRetrieval(brain, {
+        ...SCOPE,
+        confirmationProvider,
+        provider,
+        question: 'Where is my archive key?',
+      })
+    }
+
+    await assert.rejects(
+      runReview((valid, matches) => valid.map((assessment, index) => ({
+        ...assessment,
+        evidenceId: matches[index].evidenceId,
+      }))),
+      /unsupported or missing fields/,
+    )
+    await assert.rejects(
+      runReview((valid) => valid.slice(1)),
+      /must assess exactly/,
+    )
+    await assert.rejects(
+      runReview((valid) => [...valid, valid[0]]),
+      /must assess exactly/,
+    )
+    const result = await runReview((valid) => valid, (review, matches) => {
+      assert.deepEqual(
+        review.assessedEvidenceIds,
+        matches.map(({ evidenceId }) => evidenceId),
+      )
+      assert.deepEqual(
+        review.ignoredEvidenceIds,
+        matches.map(({ evidenceId }) => evidenceId),
+      )
+    })
+    assert.equal(result.answer, 'The key is in the violet folder.')
+    assert.equal(result.answerConfirmation.reviewCalls, 1)
+  })
 
 test('fresh reviewer revises on novelty and closes only after no new information',
   async (t) => {

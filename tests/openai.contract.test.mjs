@@ -712,7 +712,6 @@ test('confirmation candidate review is ephemeral and remains available after the
             arguments: JSON.stringify({
               assessments: [{
                 disposition: bodies.length === 2 ? 'material' : 'not_used',
-                evidenceId: `candidate-${reviews + 1}`,
                 reason: 'Host-test classification.',
               }],
             }),
