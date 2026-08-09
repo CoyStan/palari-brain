@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0038
 children: []
-status: claimed
+status: in-review
 risk: R2
 priority: P1
 agents_allowed: 2
-claimed_by: "quetza"
-claimed_at: 2026-08-09T22:22:37Z
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0038-use-sparse-confirmation-findings"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0038-use-sparse-confirmation-findings"
