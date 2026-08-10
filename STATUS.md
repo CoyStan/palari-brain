@@ -123,6 +123,28 @@ three completed cases measured `$0.06219460`. The provider failure retained
 its full `$0.70` reservation, so the aggregate ledger advanced by `$0.76219460`
 to `$47.47358870`, leaving `$2.52641130` under the approved `$50` ceiling.
 
+A provider-free source and stage audit now isolates the furniture miss. All
+four distinct decisive facts were present in canonical memory, returned,
+selected, and materially used. The fifth dataset-marked span was a duplicate
+coffee-table statement. The model included the coffee table, bookshelf, and
+kitchen table, but marked the Casper mattress ambiguous because the user said
+they had ordered it and expected delivery rather than separately saying they
+had bought or received it. The source says the user finally took the plunge,
+ordered the mattress from a named seller, and expected it on a stated day; it
+contains no failed or cancelled order. The local audit therefore classifies
+the miss as `utilization`, with zero write, retrieval, composition, ambiguity,
+ungraded, provider, or network events.
+
+The likely cause is an over-broad reading of the general enumeration ambiguity
+instruction. That instruction was added for evidence that conflicts about an
+outstanding and resolved action. This source has no such conflict: placing an
+order is the completed transaction relevant to a question about buying, and
+later receipt is not required. The smallest candidate fix is to state that a
+completed transaction verb such as `ordered`, `purchased`, or `paid for`
+supports `bought` unless direct evidence says the transaction failed, was
+cancelled, or was reversed. This is a proposed general semantic rule, not an
+implemented change or a benchmark-specific override.
+
 ## 2026-08-09 current handoff
 
 The latest practical-memory path still uses canonical raw dialogue with
@@ -1561,13 +1583,14 @@ explicit founder-approved aggregate cap and process plan. Run future hard cases
 as separate processes on this host so native reranker memory is reclaimed at
 each case boundary.
 
-The four interrupted cases have now received one clean continuation under
-the bounded reranker. Do not replay the three completed cases. Treat the
-furniture result as a semantic count/ownership miss: inspect provider-free why
-the ordered mattress was excluded before changing retrieval or answer policy.
-The airline case remains unjudged because of HTTP 429. Do not retry it without
-a new explicit process plan; do not reuse or reinterpret an old `inflight`
-artifact.
+The four interrupted cases have now received one clean continuation under the
+bounded reranker. Do not replay the three completed cases. The provider-free
+furniture audit is complete and classifies the miss as utilization. If the
+general transaction-semantic prompt fix proceeds, protect the older true
+conflict/ambiguity behavior with adjacent provider-free cases before any live
+validation. The airline case remains unjudged because of HTTP 429. Do not retry
+it without a new explicit process plan; do not reuse or reinterpret an old
+`inflight` artifact.
 
 Do not tune retrieval further for `0a995998`: all three original statements
 were returned and enumerated. The general policy now treats an action phrased
