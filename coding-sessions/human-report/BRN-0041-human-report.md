@@ -31,8 +31,14 @@ adapter problem: a premature final commitment could lose the instruction to
 review its last candidate page, and a malformed bounded commitment had no
 repair turn. Both paths now return control to the model correctly.
 
-All work was provider-free. Focused tests pass 41/41, core tests 87/87,
-quickstart 6/6, and legacy 921 pass with 15 optional skips and zero failures.
+A fresh review then found one parallel recommendation gap: Palari could call a
+newer memory material but still submit a recommendation citing only the older
+memory. The host now rejects that internal contradiction and lets the model
+correct its recommendation. This is evidence bookkeeping, not a host-authored
+decision about which memory is semantically important.
+
+All work was provider-free. Focused tests pass 43/43, core tests 87/87,
+quickstart 6/6, and legacy 923 pass with 15 optional skips and zero failures.
 
 ## What To Check
 

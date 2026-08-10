@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0041
 children: []
-status: in-review
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-10T00:12:03Z
 target_branch: "main"
 branch: "ticket/BRN-0041-let-the-model-own-confirmation-work"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0041-let-the-model-own-confirmation-work"
@@ -197,3 +197,14 @@ core suite passes 87/87, quickstart passes 6/6, and legacy passes 921 with 15
 optional skips and zero failures across 936 tests. No provider, credential,
 private artifact, dataset, or sealed U8 was accessed. The corrected committed
 diff requires fresh independent R2 review before founder acceptance.
+
+A second independent review found that recommendation-mode commitments
+returned before the material-evidence completeness check. The host could
+therefore accept an Atlas-only recommendation after the model had already
+marked the newer Nova preference material. The fix does not decide semantic
+materiality: it simply requires a non-abstaining recommendation to cite each
+finding the reviewer itself marked material. Real OpenAI integration tests
+cover both clean closure and bounded-incomplete repair. Focused tests now pass
+43/43; core remains 87/87; quickstart remains 6/6; legacy passes 923 with 15
+optional skips and zero failures across 938 tests. Fresh independent review is
+still required.

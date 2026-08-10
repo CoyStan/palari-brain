@@ -9,7 +9,8 @@
   when retrieval is exhausted and raises the default dispatch emergency guard
   from 7 to 11.
 - Confirmation and OpenAI contract tests cover multi-round model-directed
-  closure, bounded best effort, and bypass rejection.
+  closure, bounded best effort, bypass rejection, and recommendation-mode
+  use of every material finding.
 - `docs/BRAIN-API.md` documents normal versus bounded-incomplete outcomes.
 - `STATUS.md`, the ticket, and the human report record the product decision and
   verification.
@@ -17,10 +18,10 @@
 ## Verification
 
 - `node --test tests/answer-confirmation.contract.test.mjs tests/openai.contract.test.mjs`:
-  41/41 pass.
+  43/43 pass.
 - `npm test`: 87/87 pass.
 - `npm run quickstart`: 6/6 pass.
-- `npm run test:legacy`: 921 pass, 15 optional skips, 0 failures, 936 total.
+- `npm run test:legacy`: 923 pass, 15 optional skips, 0 failures, 938 total.
 - `git diff --check`: pass before closeout.
 - All work is provider-free; no credential, private evaluation artifact,
   dataset, sealed U8, or mutable aggregate ledger was accessed.
@@ -50,6 +51,12 @@
   malformed, the adapter preserves one normal forced-commit repair. Real
   host-plus-adapter tests cover both seams. Other rejections and provider
   failures retain their existing behavior.
+- A second independent review found that the thin recommendation commitment
+  returned before the ordinary material-evidence check. A recommendation
+  could therefore mark newer confirmation evidence material but still cite
+  only stale evidence. The host now rejects that contradiction and asks the
+  same model to repair it. Real normal-closure and bounded-incomplete tests
+  prove that the corrected Nova recommendation replaces the stale Atlas one.
 
 ## Risks / Follow-Ups
 

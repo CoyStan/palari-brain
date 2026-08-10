@@ -453,6 +453,19 @@ passes 921 with 15 optional skips and zero failures across 936 tests. No
 provider, credential, private evaluation artifact, dataset, or sealed U8 was
 accessed for BRN-0041.
 
+A second independent review caught the same responsibility boundary missing
+from the thin recommendation commitment. The model could correctly mark newer
+confirmation evidence material, then submit a recommendation citing only
+older evidence; that early return skipped the ordinary commitment check. The
+host now rejects only that contradiction and returns control to the model for
+its normal one repair. It still does not decide materiality or recency for the
+model. Real host-plus-OpenAI tests cover both normal clean closure and
+bounded-incomplete closure: a stale Atlas-only recommendation is rejected and
+the model's Nova-backed correction is accepted. Focused confirmation/OpenAI
+tests now pass 43/43 and the complete legacy suite passes 923 with 15 optional
+skips and zero failures across 938 tests; core and quickstart remain 87/87 and
+6/6. This correction was also entirely provider-free.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate

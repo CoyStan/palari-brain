@@ -2341,6 +2341,20 @@ export async function answerWithRetrieval(brain, {
           quote,
         })
       }
+      if (confirmationActive && !candidate.abstained) {
+        for (let index = 0;
+          index < confirmationNewInformationEvidenceIds.length;
+          index += 1) {
+          const evidenceId = confirmationNewInformationEvidenceIds[index]
+          if (!setHas(seen, evidenceId)) {
+            throw answerCommitmentError(
+              `Recommendation commitment omitted previously material ` +
+                `evidence ${evidenceId}. Include it in ` +
+                `supportingEvidenceIds.`,
+            )
+          }
+        }
+      }
       const committed = deepFreeze({
         abstained: candidate.abstained,
         bases,

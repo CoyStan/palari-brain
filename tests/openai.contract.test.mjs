@@ -109,6 +109,14 @@ function evidenceAnswer(text, entries) {
   }
 }
 
+function recommendationAnswer(text, rows) {
+  return {
+    abstained: false,
+    supportingEvidenceIds: rows.map((row) => row.evidenceId),
+    text,
+  }
+}
+
 function reductionRequest() {
   return buildMemoryReductionRequest({
     baseRevision: 0,
@@ -1040,6 +1048,235 @@ test('real bounded confirmation repairs one malformed final commitment',
     assert.equal(result.answer, 'You now prefer the Nova.')
     assert.equal(result.answerConfirmation.status, 'bounded_incomplete')
     assert.equal(result.answerConfirmation.reviewCalls, 1)
+  })
+
+test('real recommendation confirmation cannot close while omitting material evidence',
+  async (t) => {
+    const root = await mkdtemp(join(tmpdir(), 'palari-openai-recommendation-'))
+    const brain = await createPalariBrain({
+      memoryEnabled: true,
+      statePath: join(root, 'state.json'),
+      workspaceId: 'openai-recommendation',
+    })
+    t.after(async () => {
+      brain.close()
+      await rm(root, { force: true, recursive: true })
+    })
+    const scope = { palariId: 'palari', userId: 'user' }
+    for (const [sourceMessageId, eventAt, userMessage] of [
+      ['recommend-old:0', '2026-01-01T00:00:00.000Z',
+        'My preferred notebook was the Atlas.'],
+      ['recommend-new:0', '2026-02-01T00:00:00.000Z',
+        'My preferred notebook is now the Nova.'],
+    ]) {
+      await ingestChatTurn(brain, {
+        ...scope,
+        assistantMessage: 'Recorded.',
+        eventAt,
+        retention: 'durable',
+        sourceMessageId,
+        userMessage,
+      })
+    }
+    let oldRow
+    const initialProvider = async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { before: '2026-01-31T23:59:59.999Z', phrase: 'notebook Atlas' },
+        tool: 'memory_search',
+      })
+      oldRow = found.matches.find((row) =>
+        row.speaker === 'user' && row.text.includes('Atlas'))
+      return commitAnswer(recommendationAnswer(
+        'Choose the Atlas.',
+        [oldRow],
+      ))
+    }
+    Object.defineProperty(initialProvider, 'requiresEvidenceCommitment', {
+      value: true,
+    })
+    let dispatch = 0
+    let newRow
+    const confirmationProvider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        dispatch += 1
+        if (dispatch === 1 || dispatch === 3) {
+          return completedCall({
+            arguments: '{"phrase":"current preferred notebook Nova"}',
+            callId: `recommend-search-${dispatch}`,
+            name: 'memory_search',
+          })
+        }
+        if (dispatch === 2) {
+          const output = body.input.find((item) =>
+            item.type === 'function_call_output' &&
+            item.call_id === 'recommend-search-1')
+          const found = JSON.parse(output.output)
+          newRow = found.matches.find((row) =>
+            row.speaker === 'user' && row.text.includes('Nova'))
+          return completedCall({
+            arguments: JSON.stringify({
+              findings: [{
+                candidateNumber: newRow.candidateNumber,
+                reason: 'This newer preference changes the recommendation.',
+              }],
+            }),
+            callId: 'recommend-review',
+            name: 'memory_candidate_review',
+          })
+        }
+        if (dispatch === 4) {
+          return completedCommit(recommendationAnswer(
+            'Choose the Atlas.',
+            [oldRow],
+          ), { callId: 'stale-recommendation' })
+        }
+        assert.deepEqual(body.tool_choice, {
+          name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+          type: 'function',
+        })
+        assert.ok(body.input.some((item) =>
+          item.type === 'function_call_output' &&
+          item.call_id === 'stale-recommendation' &&
+          /omitted previously material evidence/.test(
+            JSON.parse(item.output).rejection,
+          )))
+        return completedCommit(recommendationAnswer(
+          'Choose the Nova.',
+          [newRow],
+        ), { callId: 'corrected-recommendation' })
+      },
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...scope,
+      compositionMode: 'recommend',
+      confirmationProvider,
+      maxConfirmationRetrievalCalls: 2,
+      provider: initialProvider,
+      question: 'Which notebook should I choose?',
+    })
+    assert.equal(dispatch, 5)
+    assert.equal(result.answer, 'Choose the Nova.')
+    assert.equal(
+      result.answerConfirmation.status,
+      'closed_no_new_material_information',
+    )
+    assert.deepEqual(result.selectedEvidenceIds, [
+      newRow.evidenceId,
+    ])
+  })
+
+test('bounded recommendation confirmation cannot omit material evidence',
+  async (t) => {
+    const root = await mkdtemp(join(tmpdir(), 'palari-openai-bounded-recommend-'))
+    const brain = await createPalariBrain({
+      memoryEnabled: true,
+      statePath: join(root, 'state.json'),
+      workspaceId: 'openai-bounded-recommendation',
+    })
+    t.after(async () => {
+      brain.close()
+      await rm(root, { force: true, recursive: true })
+    })
+    const scope = { palariId: 'palari', userId: 'user' }
+    for (const [sourceMessageId, eventAt, userMessage] of [
+      ['bounded-recommend-old:0', '2026-01-01T00:00:00.000Z',
+        'My preferred notebook was the Atlas.'],
+      ['bounded-recommend-new:0', '2026-02-01T00:00:00.000Z',
+        'My preferred notebook is now the Nova.'],
+    ]) {
+      await ingestChatTurn(brain, {
+        ...scope,
+        assistantMessage: 'Recorded.',
+        eventAt,
+        retention: 'durable',
+        sourceMessageId,
+        userMessage,
+      })
+    }
+    let oldRow
+    const initialProvider = async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { before: '2026-01-31T23:59:59.999Z', phrase: 'notebook Atlas' },
+        tool: 'memory_search',
+      })
+      oldRow = found.matches.find((row) =>
+        row.speaker === 'user' && row.text.includes('Atlas'))
+      return commitAnswer(recommendationAnswer(
+        'Choose the Atlas.',
+        [oldRow],
+      ))
+    }
+    Object.defineProperty(initialProvider, 'requiresEvidenceCommitment', {
+      value: true,
+    })
+    let dispatch = 0
+    let newRow
+    const confirmationProvider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        dispatch += 1
+        if (dispatch === 1) {
+          return completedCall({
+            arguments: '{"phrase":"current preferred notebook Nova"}',
+            callId: 'bounded-recommend-search',
+            name: 'memory_search',
+          })
+        }
+        if (dispatch === 2) {
+          const output = body.input.find((item) =>
+            item.type === 'function_call_output' &&
+            item.call_id === 'bounded-recommend-search')
+          const found = JSON.parse(output.output)
+          newRow = found.matches.find((row) =>
+            row.speaker === 'user' && row.text.includes('Nova'))
+          return completedCall({
+            arguments: JSON.stringify({
+              findings: [{
+                candidateNumber: newRow.candidateNumber,
+                reason: 'This newer preference changes the recommendation.',
+              }],
+            }),
+            callId: 'bounded-recommend-review',
+            name: 'memory_candidate_review',
+          })
+        }
+        if (dispatch === 3) {
+          return completedCommit(recommendationAnswer(
+            'Choose the Atlas.',
+            [oldRow],
+          ), { callId: 'stale-bounded-recommendation' })
+        }
+        assert.deepEqual(body.tool_choice, {
+          name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+          type: 'function',
+        })
+        assert.ok(body.input.some((item) =>
+          item.type === 'function_call_output' &&
+          item.call_id === 'stale-bounded-recommendation' &&
+          /omitted previously material evidence/.test(
+            JSON.parse(item.output).rejection,
+          )))
+        return completedCommit(recommendationAnswer(
+          'Choose the Nova.',
+          [newRow],
+        ), { callId: 'corrected-bounded-recommendation' })
+      },
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...scope,
+      compositionMode: 'recommend',
+      confirmationProvider,
+      maxConfirmationRetrievalCalls: 1,
+      provider: initialProvider,
+      question: 'Which notebook should I choose?',
+    })
+    assert.equal(dispatch, 4)
+    assert.equal(result.answer, 'Choose the Nova.')
+    assert.equal(result.answerConfirmation.status, 'bounded_incomplete')
+    assert.deepEqual(result.selectedEvidenceIds, [
+      newRow.evidenceId,
+    ])
   })
 
 test('non-empty fourth retrieval forces only commitment without spending a fifth memory call',
