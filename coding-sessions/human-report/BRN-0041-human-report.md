@@ -26,8 +26,13 @@ for provenance, duplicate exclusion, isolation, bounded work, and exact
 evidence validation. No health-specific rule, semantic ontology, or benchmark
 answer was added.
 
-All work was provider-free. Focused tests pass 39/39, core tests 87/87,
-quickstart 6/6, and legacy 919 pass with 15 optional skips and zero failures.
+Independent review found and provider-free tests reproduced one remaining
+adapter problem: a premature final commitment could lose the instruction to
+review its last candidate page, and a malformed bounded commitment had no
+repair turn. Both paths now return control to the model correctly.
+
+All work was provider-free. Focused tests pass 41/41, core tests 87/87,
+quickstart 6/6, and legacy 921 pass with 15 optional skips and zero failures.
 
 ## What To Check
 

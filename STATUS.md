@@ -441,9 +441,15 @@ commit; it remains a hard emergency ceiling.
 
 Provider-free tests demonstrate three material rounds followed by a fourth
 clean check, emergency best-answer return, and rejection of premature or
-forged bounded commitments. Focused confirmation/OpenAI tests pass 39/39,
+forged bounded commitments. Independent review then caught an adapter seam:
+after the last search, a premature commit could route into bounded completion
+before the latest page was reviewed, and that correct host rejection escaped
+instead of returning control to the model. The adapter now feeds that rejection
+back so the model can review the pending page, and preserves one ordinary
+repair opportunity for a malformed bounded commitment. Real host-plus-OpenAI
+contracts cover both paths. Focused confirmation/OpenAI tests pass 41/41,
 `npm test` passes 87/87, quickstart passes 6/6, and the complete legacy suite
-passes 919 with 15 optional skips and zero failures across 934 tests. No
+passes 921 with 15 optional skips and zero failures across 936 tests. No
 provider, credential, private evaluation artifact, dataset, or sealed U8 was
 accessed for BRN-0041.
 

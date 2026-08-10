@@ -17,10 +17,10 @@
 ## Verification
 
 - `node --test tests/answer-confirmation.contract.test.mjs tests/openai.contract.test.mjs`:
-  39/39 pass.
+  41/41 pass.
 - `npm test`: 87/87 pass.
 - `npm run quickstart`: 6/6 pass.
-- `npm run test:legacy`: 919 pass, 15 optional skips, 0 failures, 934 total.
+- `npm run test:legacy`: 921 pass, 15 optional skips, 0 failures, 936 total.
 - `git diff --check`: pass before closeout.
 - All work is provider-free; no credential, private evaluation artifact,
   dataset, sealed U8, or mutable aggregate ledger was accessed.
@@ -44,8 +44,12 @@
   telemetry.
 - The OpenAI adapter invokes bounded completion only after an ordinary commit
   receives `MEMORY_ANSWER_CONFIRMATION_REQUIRED` and its own retrieval counter
-  is at the host-declared limit. Other rejections and provider failures retain
-  their existing behavior.
+  is at the host-declared limit. If the latest displayed page still needs
+  review, the adapter returns that host rejection to the model and leaves the
+  review tool available. If the page is assessed but the bounded commitment is
+  malformed, the adapter preserves one normal forced-commit repair. Real
+  host-plus-adapter tests cover both seams. Other rejections and provider
+  failures retain their existing behavior.
 
 ## Risks / Follow-Ups
 

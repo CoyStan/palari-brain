@@ -188,8 +188,12 @@ bounded commits, unassessed pages, forged IDs, malformed findings, and all
 other commitment failures remain rejected. Normal clean closure is unchanged.
 
 The default OpenAI dispatch ceiling is 11, leaving room for the model-directed
-review while remaining finite. Focused tests pass 39/39, the core suite passes
-87/87, quickstart passes 6/6, and legacy passes 919 with 15 optional skips and
-zero failures across 934 tests. No provider, credential, private artifact,
-dataset, or sealed U8 was accessed. The committed diff requires independent R2
-review before founder acceptance.
+review while remaining finite. Initial independent review found that a
+premature last-page commit could lose the host's pending-review rejection and
+that malformed bounded commitments skipped their normal repair. The adapter
+now returns the former to the model and gives the latter one repair; real
+host-plus-adapter contracts cover both paths. Focused tests pass 41/41, the
+core suite passes 87/87, quickstart passes 6/6, and legacy passes 921 with 15
+optional skips and zero failures across 936 tests. No provider, credential,
+private artifact, dataset, or sealed U8 was accessed. The corrected committed
+diff requires fresh independent R2 review before founder acceptance.

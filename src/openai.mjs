@@ -937,7 +937,30 @@ export function createOpenAIRetrievalProvider({
         if (rejectionCode === 'MEMORY_ANSWER_CONFIRMATION_REQUIRED') {
           if (retrievalCalls >= retrievalLimit) {
             if (commitIncompleteAnswer) {
-              return commitIncompleteAnswer(clone(commitmentCalls[0].input))
+              try {
+                return commitIncompleteAnswer(
+                  clone(commitmentCalls[0].input),
+                )
+              } catch (error) {
+                const incompleteRejection = commitmentRejection(error)
+                if (String(error?.code ?? '') ===
+                  'MEMORY_ANSWER_CONFIRMATION_REQUIRED') {
+                  forcingCommit = false
+                  finalizing = true
+                  appendCommitmentRepair(input, output, incompleteRejection)
+                  continue
+                }
+                if (repairUsed) {
+                  throw adapterError(
+                    'OPENAI_ANSWER_COMMIT_REPAIR_FAILED',
+                    'OpenAI returned an invalid bounded answer commitment after one repair.',
+                  )
+                }
+                repairUsed = true
+                forcingCommit = true
+                appendCommitmentRepair(input, output, incompleteRejection)
+                continue
+              }
             }
             throw adapterError(
               'OPENAI_ANSWER_CONFIRMATION_INCOMPLETE',

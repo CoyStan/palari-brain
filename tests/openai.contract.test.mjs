@@ -95,6 +95,20 @@ function answerSession(overrides = {}) {
   }
 }
 
+function evidenceAnswer(text, entries) {
+  return {
+    abstained: false,
+    bases: entries.map(({ row, used = true }) => ({
+      consequence_for_answer: used ? 'This determines the answer.' : '',
+      evidenceId: row.evidenceId,
+      not_used_reason: used ? '' : 'This was superseded by newer evidence.',
+      quote: row.text,
+    })),
+    temporaryInferences: [],
+    text,
+  }
+}
+
 function reductionRequest() {
   return buildMemoryReductionRequest({
     baseRevision: 0,
@@ -816,6 +830,216 @@ test('confirmation returns a host-validated bounded answer at its emergency limi
     assert.equal(reviews, 2)
     assert.equal(boundedCommits, 1)
     assert.equal(bodies.length, 5)
+  })
+
+test('real confirmation reviews the last page after a premature bounded commit',
+  async (t) => {
+    const root = await mkdtemp(join(tmpdir(), 'palari-openai-confirmation-'))
+    const brain = await createPalariBrain({
+      memoryEnabled: true,
+      statePath: join(root, 'state.json'),
+      workspaceId: 'openai-confirmation',
+    })
+    t.after(async () => {
+      brain.close()
+      await rm(root, { force: true, recursive: true })
+    })
+    const scope = { palariId: 'palari', userId: 'user' }
+    for (const [sourceMessageId, eventAt, userMessage] of [
+      ['project-old:0', '2026-01-01T00:00:00.000Z',
+        'The project codename was Cedar.'],
+      ['project-new:0', '2026-02-01T00:00:00.000Z',
+        'The project codename is now Juniper.'],
+    ]) {
+      await ingestChatTurn(brain, {
+        ...scope,
+        assistantMessage: 'Recorded.',
+        eventAt,
+        retention: 'durable',
+        sourceMessageId,
+        userMessage,
+      })
+    }
+    let oldRow
+    const initialProvider = async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { before: '2026-01-31T23:59:59.999Z', phrase: 'codename Cedar' },
+        tool: 'memory_search',
+      })
+      oldRow = found.matches.find((row) =>
+        row.speaker === 'user' && row.text.includes('Cedar'))
+      return commitAnswer(evidenceAnswer('The codename was Cedar.', [
+        { row: oldRow },
+      ]))
+    }
+    let dispatch = 0
+    let newRow
+    const confirmationProvider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        dispatch += 1
+        if (dispatch === 1) {
+          return completedCall({
+            arguments: '{"phrase":"current project codename Juniper"}',
+            callId: 'last-search',
+            name: 'memory_search',
+          })
+        }
+        if (dispatch === 2) {
+          const output = body.input.find((item) =>
+            item.type === 'function_call_output' &&
+            item.call_id === 'last-search')
+          const found = JSON.parse(output.output)
+          newRow = found.matches.find((row) =>
+            row.speaker === 'user' && row.text.includes('Juniper'))
+          return completedCommit(evidenceAnswer(
+            'The current codename is Juniper.',
+            [{ row: oldRow, used: false }, { row: newRow }],
+          ), { callId: 'premature-bounded-commit' })
+        }
+        if (dispatch === 3) {
+          assert.ok(body.input.some((item) =>
+            item.type === 'function_call_output' &&
+            item.call_id === 'premature-bounded-commit' &&
+            /fully assessed latest page/.test(
+              JSON.parse(item.output).rejection,
+            )))
+          return completedCall({
+            arguments: JSON.stringify({
+              findings: [{
+                candidateNumber: newRow.candidateNumber,
+                reason: 'This newer user statement changes the answer.',
+              }],
+            }),
+            callId: 'last-review',
+            name: 'memory_candidate_review',
+          })
+        }
+        return completedCommit(evidenceAnswer(
+          'The current codename is Juniper.',
+          [{ row: oldRow, used: false }, { row: newRow }],
+        ), { callId: 'reviewed-bounded-commit' })
+      },
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...scope,
+      confirmationProvider,
+      maxConfirmationRetrievalCalls: 1,
+      provider: initialProvider,
+      question: 'What is the current project codename?',
+    })
+    assert.equal(dispatch, 4)
+    assert.equal(result.answer, 'The current codename is Juniper.')
+    assert.equal(result.answerConfirmation.status, 'bounded_incomplete')
+    assert.equal(result.answerConfirmation.reviewCalls, 1)
+  })
+
+test('real bounded confirmation repairs one malformed final commitment',
+  async (t) => {
+    const root = await mkdtemp(join(tmpdir(), 'palari-openai-bounded-repair-'))
+    const brain = await createPalariBrain({
+      memoryEnabled: true,
+      statePath: join(root, 'state.json'),
+      workspaceId: 'openai-bounded-repair',
+    })
+    t.after(async () => {
+      brain.close()
+      await rm(root, { force: true, recursive: true })
+    })
+    const scope = { palariId: 'palari', userId: 'user' }
+    for (const [sourceMessageId, eventAt, userMessage] of [
+      ['repair-old:0', '2026-01-01T00:00:00.000Z',
+        'My preferred notebook was the Atlas.'],
+      ['repair-new:0', '2026-02-01T00:00:00.000Z',
+        'My preferred notebook is now the Nova.'],
+    ]) {
+      await ingestChatTurn(brain, {
+        ...scope,
+        assistantMessage: 'Recorded.',
+        eventAt,
+        retention: 'durable',
+        sourceMessageId,
+        userMessage,
+      })
+    }
+    let oldRow
+    const initialProvider = async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { before: '2026-01-31T23:59:59.999Z', phrase: 'notebook Atlas' },
+        tool: 'memory_search',
+      })
+      oldRow = found.matches.find((row) =>
+        row.speaker === 'user' && row.text.includes('Atlas'))
+      return commitAnswer(evidenceAnswer('You preferred the Atlas.', [
+        { row: oldRow },
+      ]))
+    }
+    let dispatch = 0
+    let newRow
+    const confirmationProvider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        dispatch += 1
+        if (dispatch === 1) {
+          return completedCall({
+            arguments: '{"phrase":"current preferred notebook Nova"}',
+            callId: 'repair-search',
+            name: 'memory_search',
+          })
+        }
+        if (dispatch === 2) {
+          const output = body.input.find((item) =>
+            item.type === 'function_call_output' &&
+            item.call_id === 'repair-search')
+          const found = JSON.parse(output.output)
+          newRow = found.matches.find((row) =>
+            row.speaker === 'user' && row.text.includes('Nova'))
+          return completedCall({
+            arguments: JSON.stringify({
+              findings: [{
+                candidateNumber: newRow.candidateNumber,
+                reason: 'This is the newer direct preference.',
+              }],
+            }),
+            callId: 'repair-review',
+            name: 'memory_candidate_review',
+          })
+        }
+        if (dispatch === 3) {
+          return completedCommit(evidenceAnswer(
+            'You now prefer the Nova.',
+            [{ row: oldRow, used: false }, {
+              row: { evidenceId: 'unknown-evidence', text: 'Invented.' },
+            }],
+          ), { callId: 'malformed-bounded-commit' })
+        }
+        assert.deepEqual(body.tool_choice, {
+          name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+          type: 'function',
+        })
+        assert.ok(body.input.some((item) =>
+          item.type === 'function_call_output' &&
+          item.call_id === 'malformed-bounded-commit' &&
+          /not returned in this answer session/.test(
+            JSON.parse(item.output).rejection,
+          )))
+        return completedCommit(evidenceAnswer(
+          'You now prefer the Nova.',
+          [{ row: oldRow, used: false }, { row: newRow }],
+        ), { callId: 'repaired-bounded-commit' })
+      },
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...scope,
+      confirmationProvider,
+      maxConfirmationRetrievalCalls: 1,
+      provider: initialProvider,
+      question: 'Which notebook do I currently prefer?',
+    })
+    assert.equal(dispatch, 4)
+    assert.equal(result.answer, 'You now prefer the Nova.')
+    assert.equal(result.answerConfirmation.status, 'bounded_incomplete')
+    assert.equal(result.answerConfirmation.reviewCalls, 1)
   })
 
 test('non-empty fourth retrieval forces only commitment without spending a fifth memory call',
