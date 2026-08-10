@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0044
 children: []
-status: in-review
+status: accepted
 risk: R2
 priority: P0
 agents_allowed: 2
@@ -165,3 +165,14 @@ cannot produce a valid answer.
 - No provider, credential, private alpha artifact, dataset, sealed U8 item,
   durable memory, production service, or live campaign was accessed from the
   ticket worktree. Live failed-case continuation remains outside this ticket.
+
+## Acceptance
+
+- Founder acceptance: the founder directed the agent to fix this failure,
+  initiate a ticket, and rerun the failed S60 questions in the same campaign.
+- Accepted candidate: `c34a0b2d3260cc2382b400c6e08ad11154823785`.
+- Fresh independent rereview: ACCEPT with no unresolved P0-P3 findings. The
+  rereviewer directly verified the prior mixed-tool P1 in both output orders,
+  the unchanged one-repair behavior, and the `normal + 2` physical-call bound.
+- The accepted ticket may now move to `tickets/closed/`, merge to `main`, and
+  push before the founder-authorized live continuation starts.

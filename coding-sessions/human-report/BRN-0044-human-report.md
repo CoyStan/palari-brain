@@ -22,10 +22,17 @@ empty output, forbidden tools, and a failed repaired commitment still stop the
 answer. The maximum physical provider calls increase from the configured
 normal limit to that limit plus two closure calls.
 
+## Review And Acceptance
+
+- The first review found one mixed forbidden-tool repair defect. It was fixed.
+- A fresh independent rereviewer accepted exact commit `c34a0b2` with no
+  unresolved P0-P3 findings. It verified both mixed-tool output orders, zero
+  forbidden retrieval, the one-repair rule, and the `normal + 2` call bound.
+- The founder directed this fix, ticket, merge, and same-campaign rerun. That
+  direction is recorded as acceptance after the clean independent review.
+
 ## What To Check
 
-- Confirm that the independent reviewer finds no evidence-boundary or call-cap
-  regression.
 - After merge, rerun only the recorded dispatch-budget failures once, then
   continue the remaining S60 questions under the existing `$90` aggregate cap.
 - Keep the first failures visible and label the product-commit boundary in the
@@ -33,5 +40,5 @@ normal limit to that limit plus two closure calls.
 
 ## Recommended Next Move
 
-Accept and merge only after a fresh R2 review recommends acceptance. Then run
-the founder-authorized live continuation outside the ticket worktree.
+Merge and push the accepted ticket. Then run the founder-authorized live
+continuation outside the ticket worktree.
