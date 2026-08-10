@@ -20,9 +20,11 @@ does not increase retrieval calls or the existing two-call closure allowance.
 The first independent review found that malformed JSON or non-object review
 arguments failed before the repair path. That P2 issue is fixed. Both forms
 now receive the same one review-only repair, and a second malformed response
-is terminal. Focused contracts pass 72/72, core passes 91/91, quickstart
-passes 6/6, and legacy passes 959 with 15 optional skips and zero failures
-across 974 tests.
+is terminal. The first rereview found that a malformed review mixed with an
+answer commit could enter commit repair. Mixed candidate-review responses now
+fail before either repair path. Focused contracts pass 77/77, core passes
+91/91, quickstart passes 6/6, and legacy passes 964 with 15 optional skips
+and zero failures across 979 tests.
 The active answer-wire accounting pin was refreshed for the changed compact
 schema; the consumed BRN-0025 compatibility pins remain exact and unchanged.
 No provider, credential, private artifact, dataset, or sealed U8 item was

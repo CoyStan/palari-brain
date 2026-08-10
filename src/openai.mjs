@@ -1401,12 +1401,21 @@ export function createOpenAIRetrievalProvider({
         if (closureOnly) throw error
         const attemptedFunctionCalls = output.filter((item) =>
           item?.type === 'function_call')
+        const attemptedCandidateReviewCalls = attemptedFunctionCalls.filter(
+          (item) => item?.name ===
+            MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME,
+        )
+        if (attemptedCandidateReviewCalls.length > 0 &&
+          attemptedFunctionCalls.length !== 1) {
+          throw adapterError(
+            'OPENAI_CONFIRMATION_REVIEW_MIXED_CALLS',
+            'OpenAI memory_candidate_review must be the only function call in its response.',
+          )
+        }
         const attemptedCandidateReview =
           String(error?.code ?? '') ===
             'OPENAI_FUNCTION_ARGUMENTS_INVALID' &&
-          attemptedFunctionCalls.length === 1 &&
-          attemptedFunctionCalls[0]?.name ===
-            MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME
+          attemptedCandidateReviewCalls.length === 1
         if (attemptedCandidateReview) {
           if (candidateReviewRepairUsed) {
             throw adapterError(

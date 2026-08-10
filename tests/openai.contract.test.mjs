@@ -1481,6 +1481,91 @@ test('malformed candidate-review arguments get one review-only repair',
     }
   })
 
+test('malformed candidate review mixed with another call is terminal',
+  async (t) => {
+    for (const malformedArguments of ['{"findings":[', '[]']) {
+      for (const otherName of [
+        OPENAI_ANSWER_COMMIT_TOOL_NAME,
+        'memory_search',
+      ]) {
+        await t.test([
+          malformedArguments === '[]' ? 'non-object' : 'invalid-json',
+          otherName,
+        ].join('-'), async () => {
+          let dispatches = 0
+          let searches = 0
+          let reviews = 0
+          const provider = createOpenAIRetrievalProvider({
+            maxModelDispatches: 5,
+            async invoke() {
+              dispatches += 1
+              if (dispatches === 1) {
+                return completedCall({
+                  arguments: '{"phrase":"pending page"}',
+                  callId: 'search-before-mixed-review',
+                  name: 'memory_search',
+                })
+              }
+              const response = completedCall({
+                arguments: malformedArguments,
+                callId: 'malformed-mixed-review',
+                name: 'memory_candidate_review',
+              })
+              response.output.push(completedCall({
+                arguments: otherName === 'memory_search'
+                  ? '{"phrase":"must not run"}'
+                  : JSON.stringify(numberedEvidenceAnswer(
+                      'The key is in the violet folder.',
+                      [{
+                        row: {
+                          evidenceId: 'evidence-1',
+                          text: 'violet folder',
+                        },
+                      }],
+                    )),
+                callId: 'mixed-other-call',
+                name: otherName,
+              }).output[1])
+              return response
+            },
+          })
+
+          await assert.rejects(
+            provider(answerSession({
+              answerConfirmationClosed: () => false,
+              answerEvidenceCount: () => 1,
+              answerPriorEvidence: [{
+                evidenceId: 'evidence-1',
+                text: 'violet folder',
+              }],
+              maxRetrievalCalls: 1,
+              retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
+              async retrieve({ tool }) {
+                if (tool === 'memory_search') {
+                  searches += 1
+                  return {
+                    matches: [{
+                      candidateNumber: 1,
+                      evidenceId: 'candidate-1',
+                      text: 'one pending candidate',
+                    }],
+                  }
+                }
+                reviews += 1
+                return { closed: true, continueSearch: false }
+              },
+            })),
+            (error) => error.code ===
+              'OPENAI_CONFIRMATION_REVIEW_MIXED_CALLS',
+          )
+          assert.equal(dispatches, 2)
+          assert.equal(searches, 1)
+          assert.equal(reviews, 0)
+        })
+      }
+    }
+  })
+
 test('candidate review repair fails closed without retrieval or closure growth',
   async (t) => {
     for (const scenario of [

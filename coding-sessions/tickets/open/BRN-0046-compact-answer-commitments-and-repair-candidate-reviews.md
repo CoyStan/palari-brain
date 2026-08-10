@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0046
 children: []
-status: in-review
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 2
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-10T20:51:26Z
 target_branch: "main"
 branch: "ticket/BRN-0046-compact-answer-commitments-and-repair-candidate-reviews"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0046-compact-answer-commitments-and-repair-candidate-reviews"
@@ -154,7 +154,10 @@ candidate review without starting another search.
   candidate-review arguments failed before the repair path. Both forms now
   enter the same single review-only repair, and another malformed response is
   terminal.
-- Focused contracts pass 72/72, core passes 91/91, quickstart passes 6/6, and
-  legacy passes 959 with 15 optional skips and zero failures across 974 tests.
+- The first rereview found a second P2 parser-order gap: a malformed review
+  mixed with another call could enter answer-commit repair. Any mixed
+  candidate-review response now fails before either repair fallback.
+- Focused contracts pass 77/77, core passes 91/91, quickstart passes 6/6, and
+  legacy passes 964 with 15 optional skips and zero failures across 979 tests.
 - No provider, credential, private artifact, dataset, production service, or
   sealed U8 question was accessed.
