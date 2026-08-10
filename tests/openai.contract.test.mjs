@@ -23,10 +23,12 @@ import {
   buildOpenAIFunctionTools,
   buildOpenAIResponsesRequest,
   buildOpenAIStructuredOutputBody,
+  createOpenAIRatePacer,
   createOpenAIGraphExtractor,
   createOpenAIMemoryReducer,
   createOpenAIRetrievalProvider,
   createOpenAIResponsesTransport,
+  estimateOpenAIRequestUnits,
 } from '../src/openai.mjs'
 
 function completedText(text) {
@@ -350,6 +352,136 @@ test('OpenAI transport is one-shot, bounded, and does not echo credentials',
       }),
       (error) => error.code === 'OPENAI_RESPONSE_TOO_LARGE',
     )
+  })
+
+test('OpenAI request pacing is deterministic, shared, and content-free',
+  async () => {
+    let now = 1_000
+    const delays = []
+    const calls = []
+    const body = {
+      input: 'private words do not appear in the estimate',
+      max_output_tokens: 40,
+      model: OPENAI_LUNA_MODEL,
+      store: false,
+    }
+    const units = estimateOpenAIRequestUnits(body)
+    assert.equal(Number.isSafeInteger(units), true)
+    assert.equal(units > 40, true)
+    assert.equal(estimateOpenAIRequestUnits(structuredClone(body)), units)
+    assert.equal(String(units).includes(body.input), false)
+
+    const pacer = createOpenAIRatePacer({
+      clock: () => now,
+      maxUnits: units,
+      wait: async (delay) => {
+        delays.push(delay)
+        now += delay
+      },
+      windowMs: 1_000,
+    })
+    const fetchImpl = async (url, init) => {
+      calls.push({ init, url })
+      return {
+        ok: true,
+        status: 200,
+        async text() {
+          return JSON.stringify(completedText('ok'))
+        },
+      }
+    }
+    const first = createOpenAIResponsesTransport({
+      apiKey: 'first-key',
+      fetchImpl,
+      pacer,
+    })
+    const second = createOpenAIResponsesTransport({
+      apiKey: 'second-key',
+      fetchImpl,
+      pacer,
+    })
+    await first({ body })
+    await second({ body })
+
+    assert.equal(calls.length, 2)
+    assert.deepEqual(delays, [1_000])
+    assert.deepEqual(pacer.stats, {
+      admittedUnits: units * 2,
+      waitedMs: 1_000,
+      waits: 1,
+    })
+    assert.deepEqual(JSON.parse(calls[0].init.body), body)
+    assert.deepEqual(JSON.parse(calls[1].init.body), body)
+  })
+
+test('OpenAI pacer admits one oversized request only into an empty window',
+  async () => {
+    let now = 0
+    const pacer = createOpenAIRatePacer({
+      clock: () => now,
+      maxUnits: 10,
+      wait: async (delay) => { now += delay },
+      windowMs: 100,
+    })
+    await pacer.pace(20)
+    await pacer.pace(1)
+    assert.deepEqual(pacer.stats, {
+      admittedUnits: 21,
+      waitedMs: 100,
+      waits: 1,
+    })
+    await assert.rejects(pacer.pace(0), /positive safe integer/u)
+  })
+
+test('OpenAI 429 errors expose only bounded allowlisted metadata and do not retry',
+  async () => {
+    const apiKey = 'rate-limit-secret'
+    const responseBody = 'private provider failure body'
+    let calls = 0
+    const values = new Map([
+      ['retry-after', '3'],
+      ['x-request-id', 'req_rate_test'],
+      ['x-ratelimit-limit-requests', '500'],
+      ['x-ratelimit-remaining-requests', '0'],
+      ['x-ratelimit-reset-requests', '3s'],
+      ['x-unsafe-provider-debug', responseBody],
+    ])
+    const transport = createOpenAIResponsesTransport({
+      apiKey,
+      async fetchImpl() {
+        calls += 1
+        return {
+          headers: { get: (name) => values.get(name) ?? null },
+          ok: false,
+          status: 429,
+          async text() { return responseBody },
+        }
+      },
+    })
+    await assert.rejects(
+      transport({
+        body: { input: 'hello', model: OPENAI_LUNA_MODEL, store: false },
+      }),
+      (error) => {
+        assert.equal(error.code, 'OPENAI_HTTP_ERROR')
+        assert.deepEqual(error.metadata, {
+          rateLimitHeaders: {
+            'x-ratelimit-limit-requests': '500',
+            'x-ratelimit-remaining-requests': '0',
+            'x-ratelimit-reset-requests': '3s',
+          },
+          requestId: 'req_rate_test',
+          retryAfter: '3',
+          status: 429,
+        })
+        assert.equal(Object.isFrozen(error.metadata), true)
+        assert.equal(JSON.stringify(error).includes(apiKey), false)
+        assert.equal(JSON.stringify(error).includes(responseBody), false)
+        assert.equal('x-unsafe-provider-debug' in error.metadata, false)
+        return true
+      },
+    )
+    assert.equal(calls, 1)
   })
 
 test('retrieval provider preserves reasoning and tool output across Responses',

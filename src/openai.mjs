@@ -152,6 +152,126 @@ function adapterError(code, message) {
   return new OpenAIResponsesError(code, message)
 }
 
+function defaultPacerWait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
+}
+
+export function estimateOpenAIRequestUnits(body) {
+  if (!plainObject(body)) {
+    throw new TypeError('OpenAI request-unit estimation requires a body object.')
+  }
+  let serialized
+  try {
+    serialized = JSON.stringify(body)
+  } catch {
+    throw new TypeError('OpenAI request body must be JSON serializable.')
+  }
+  if (typeof serialized !== 'string') {
+    throw new TypeError('OpenAI request body must be JSON serializable.')
+  }
+  const requestBytes = new TextEncoder().encode(serialized).byteLength
+  const declaredOutput = body.max_output_tokens === undefined
+    ? 0
+    : nonNegativeInteger(
+        body.max_output_tokens,
+        'OpenAI max_output_tokens',
+      )
+  const units = requestBytes + declaredOutput
+  if (!Number.isSafeInteger(units) || units < 1) {
+    throw new TypeError('OpenAI request-unit estimate is outside safe bounds.')
+  }
+  return units
+}
+
+export function createOpenAIRatePacer({
+  clock = Date.now,
+  maxUnits,
+  wait = defaultPacerWait,
+  windowMs = 60_000,
+} = {}) {
+  const maximum = positiveInteger(maxUnits, 'maxUnits')
+  const window = positiveInteger(windowMs, 'windowMs')
+  if (typeof clock !== 'function' || typeof wait !== 'function') {
+    throw new TypeError('OpenAI rate pacer requires clock and wait functions.')
+  }
+  const events = []
+  let admittedUnits = 0
+  let waitedMs = 0
+  let waits = 0
+
+  function prune(now) {
+    while (events.length > 0 && now - events[0].at >= window) {
+      events.shift()
+    }
+  }
+
+  return Object.freeze({
+    async pace(rawUnits) {
+      const units = positiveInteger(rawUnits, 'units')
+      for (;;) {
+        const now = Number(clock())
+        if (!Number.isFinite(now)) {
+          throw new TypeError('OpenAI rate pacer clock must be finite.')
+        }
+        prune(now)
+        const active = events.reduce(
+          (total, event) => total + event.units,
+          0,
+        )
+        // One request larger than the configured ceiling must still make
+        // progress, but only when no other request occupies the window.
+        if (events.length === 0 || active + units <= maximum) {
+          events.push({ at: now, units })
+          admittedUnits += units
+          return
+        }
+        const delay = Math.max(1, events[0].at + window - now)
+        if (delay > window) {
+          throw new Error('OpenAI rate pacer computed an invalid wait.')
+        }
+        waits += 1
+        waitedMs += delay
+        await wait(delay)
+      }
+    },
+    get stats() {
+      return Object.freeze({ admittedUnits, waitedMs, waits })
+    },
+  })
+}
+
+const OPENAI_RATE_LIMIT_HEADERS = Object.freeze([
+  'x-ratelimit-limit-requests',
+  'x-ratelimit-limit-tokens',
+  'x-ratelimit-remaining-requests',
+  'x-ratelimit-remaining-tokens',
+  'x-ratelimit-reset-requests',
+  'x-ratelimit-reset-tokens',
+])
+
+function boundedHeader(response, name) {
+  const raw = response?.headers?.get?.(name)
+  if (raw === null || raw === undefined) return ''
+  return String(raw).trim().slice(0, 512)
+}
+
+function rateLimitMetadata(response, status) {
+  const metadata = { status }
+  const requestId = boundedHeader(response, 'x-request-id')
+  const retryAfter = boundedHeader(response, 'retry-after')
+  if (requestId) metadata.requestId = requestId
+  if (retryAfter) metadata.retryAfter = retryAfter
+  const rateLimitHeaders = {}
+  for (const name of OPENAI_RATE_LIMIT_HEADERS) {
+    const value = boundedHeader(response, name)
+    if (value) rateLimitHeaders[name] = value
+  }
+  if (Object.keys(rateLimitHeaders).length > 0) {
+    metadata.rateLimitHeaders = rateLimitHeaders
+  }
+  return deepFreeze(metadata)
+}
+
 async function boundedResponseText(response, maxBytes) {
   const reader = response?.body?.getReader?.()
   if (!reader) {
@@ -250,6 +370,7 @@ export function createOpenAIResponsesTransport({
   apiKey,
   fetchImpl = globalThis.fetch,
   maxResponseBytes = OPENAI_MAX_RESPONSE_BYTES,
+  pacer = null,
   timeoutMs = OPENAI_DEFAULT_TIMEOUT_MS,
 } = {}) {
   const key = nonEmpty(apiKey, 'OpenAI API key')
@@ -263,12 +384,18 @@ export function createOpenAIResponsesTransport({
     )
   }
   const timeout = positiveInteger(timeoutMs, 'timeoutMs')
+  if (pacer !== null && typeof pacer?.pace !== 'function') {
+    throw new TypeError('OpenAI transport pacer must expose pace(units).')
+  }
 
   return async function invokeOpenAI({ body } = {}) {
     const request = buildOpenAIResponsesRequest({
       apiKey: key,
       body,
     })
+    if (pacer) {
+      await pacer.pace(estimateOpenAIRequestUnits(body))
+    }
     let response
     try {
       response = await fetchImpl(request.url, {
@@ -284,10 +411,14 @@ export function createOpenAIResponsesTransport({
 
     if (!response?.ok) {
       const status = Number(response?.status)
-      throw adapterError(
+      const error = adapterError(
         'OPENAI_HTTP_ERROR',
         `OpenAI Responses returned HTTP ${Number.isFinite(status) ? status : 'error'}.`,
       )
+      if (status === 429) {
+        error.metadata = rateLimitMetadata(response, status)
+      }
+      throw error
     }
 
     let text
