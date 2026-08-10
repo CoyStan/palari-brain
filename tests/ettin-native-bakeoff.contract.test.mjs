@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdir, mkdtemp, symlink, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
@@ -10,6 +10,7 @@ import {
   ETTIN_RUNTIME_IDENTITY,
   hashRuntimeClosure,
   main,
+  runEttinNativeProfile,
   verifyEttinRuntime,
 } from '../evals/run-ettin-native-bakeoff.mjs'
 
@@ -64,12 +65,24 @@ test('execution modes require complete external paths and verify is inert', asyn
     '..',
     'runtime.mjs',
   )
-  await assert.rejects(() => main([]), /Choose --verify, --smoke, or --run/)
+  await assert.rejects(
+    () => main([]),
+    /Choose --verify, --smoke, --run, or --profile/,
+  )
   await assert.rejects(
     () => main(['--verify', '--cache', '/tmp/x']),
     /accepts no execution arguments/,
   )
   await assert.rejects(() => main(['--smoke']), /--cache is required/)
+  await assert.rejects(
+    () => main(['--profile', '--iterations', '0']),
+    /--iterations must be an integer from 1 to 100/,
+  )
+  await assert.rejects(
+    () => main(['--run', '--iterations', '2']),
+    /accepted only with --profile/,
+  )
+  await assert.rejects(() => main(['--profile']), /--cache is required/)
   await assert.rejects(
     () => main([
       '--run',
@@ -81,3 +94,43 @@ test('execution modes require complete external paths and verify is inert', asyn
   )
   await assert.rejects(() => main(['--unknown']), /Unknown argument/)
 })
+
+test('native profile records close failure instead of claiming completion',
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), 'ettin-profile-close-'))
+    const resultPath = join(root, 'result.json')
+    const configure = async (_options, mode, { onMetrics }) => {
+      assert.equal(mode, 'profile')
+      const reranker = async (_query, documents) => {
+        onMetrics({
+          batchCount: 1,
+          batches: [{ paddedTokens: 32, paddedTokenWork: 51_200, size: 50 }],
+          maxPairTokens: 32,
+          maxRss: 100,
+          rssAfter: 90,
+        })
+        return documents.map((_document, index) => index)
+      }
+      Object.defineProperties(reranker, {
+        close: { value: async () => { throw new Error('release failed') } },
+        model: { value: { id: 'fixture' } },
+        warm: { value: async () => {} },
+      })
+      return {
+        reranker,
+        resultPath,
+        runtimeIdentity: { name: 'fixture-runtime' },
+      }
+    }
+    const result = await runEttinNativeProfile(
+      { iterations: '1' },
+      configure,
+    )
+    assert.equal(result.status, 'failed')
+    assert.equal(result.failureCode, 'RERANKER_CLOSE_FAILED')
+    assert.match(result.failure, /release failed/)
+    assert.deepEqual(
+      JSON.parse(await readFile(resultPath, 'utf8')),
+      result,
+    )
+  })

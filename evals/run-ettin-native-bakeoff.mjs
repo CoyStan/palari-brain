@@ -89,12 +89,12 @@ function parseArgs(argv) {
   const options = {}
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
-    if (['--verify', '--smoke', '--run'].includes(token)) {
+    if (['--verify', '--smoke', '--run', '--profile'].includes(token)) {
       if (options.mode) throw new TypeError('Choose exactly one mode.')
       options.mode = token.slice(2)
       continue
     }
-    if (!['--cache', '--result', '--runtime'].includes(token)) {
+    if (!['--cache', '--iterations', '--result', '--runtime'].includes(token)) {
       throw new TypeError(`Unknown argument: ${token}`)
     }
     const value = argv[index + 1]
@@ -170,14 +170,130 @@ export async function verifyEttinRuntime(runtimePath) {
   return Object.freeze({ runtime, runtimeIdentity: ETTIN_RUNTIME_IDENTITY })
 }
 
-async function configuredReranker(options, mode) {
+async function configuredReranker(options, mode, rerankerOptions = {}) {
   const paths = requiredPaths(options, mode)
   const { runtime, runtimeIdentity } = await verifyEttinRuntime(paths.runtimePath)
   const reranker = createEttinReranker({
     cacheDir: paths.cacheDir,
     loadRuntime: async () => runtime,
+    ...rerankerOptions,
   })
   return { ...paths, reranker, runtimeIdentity }
+}
+
+function profileIterations(value) {
+  if (value === undefined) return 20
+  if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 100) {
+    throw new TypeError('--iterations must be an integer from 1 to 100.')
+  }
+  return Number(value)
+}
+
+function profileDocuments() {
+  return Object.freeze(Array.from({ length: 50 }, (_, index) => {
+    const repetitions = index === 49 ? 800 : 20 + (index % 10) * 35
+    return `Provider-free memory profile row ${index}. ` +
+      'Ordinary remembered detail with stable wording. '.repeat(repetitions)
+  }))
+}
+
+export async function runEttinNativeProfile(
+  options,
+  configure = configuredReranker,
+) {
+  const iterations = profileIterations(options.iterations)
+  const runMetrics = []
+  const configured = await configure(options, 'profile', {
+    onMetrics(metrics) { runMetrics.push(metrics) },
+  })
+  const state = common(configured.reranker, configured.runtimeIdentity)
+  let result
+  try {
+    await configured.reranker.warm()
+    const documents = profileDocuments()
+    const query = 'Which remembered detail is relevant to this request?'
+    let reference
+    let referenceOrder
+    let maximumScoreDelta = 0
+    let stableOrder = true
+    const started = performance.now()
+    for (let iteration = 0; iteration < iterations; iteration += 1) {
+      const scores = await configured.reranker(query, documents)
+      const order = scores.map((score, index) => ({ index, score }))
+        .sort((left, right) => right.score - left.score || left.index - right.index)
+        .map(({ index }) => index)
+      if (!reference) {
+        reference = scores
+        referenceOrder = order
+      } else {
+        for (let index = 0; index < scores.length; index += 1) {
+          maximumScoreDelta = Math.max(
+            maximumScoreDelta,
+            Math.abs(scores[index] - reference[index]),
+          )
+        }
+        if (JSON.stringify(order) !== JSON.stringify(referenceOrder)) {
+          stableOrder = false
+        }
+      }
+    }
+    const rssValues = runMetrics.map(({ maxRss }) => maxRss)
+    const secondHalf = rssValues.slice(Math.floor(rssValues.length / 2))
+    result = {
+      ...state,
+      completedAt: new Date().toISOString(),
+      iterations,
+      latency: {
+        totalMilliseconds: performance.now() - started,
+      },
+      maximumScoreDelta,
+      memory: {
+        finalRss: runMetrics.at(-1)?.rssAfter ?? process.memoryUsage().rss,
+        peakObservedRss: Math.max(...rssValues),
+        secondHalfRssRange: secondHalf.length > 0
+          ? Math.max(...secondHalf) - Math.min(...secondHalf)
+          : 0,
+      },
+      schedule: runMetrics.map(({
+        batchCount,
+        batches,
+        maxPairTokens,
+        maxRss,
+      }) => ({
+        batchCount,
+        batches,
+        maxPairTokens,
+        maxRss,
+      })),
+      scoreCount: reference.length,
+      stableOrder,
+      status: 'completed',
+    }
+  } catch (error) {
+    result = {
+      ...state,
+      completedAt: new Date().toISOString(),
+      failure: error instanceof Error ? error.message : String(error),
+      iterations,
+      status: 'failed',
+    }
+  }
+  try {
+    await configured.reranker.close()
+  } catch (error) {
+    const closeFailure = error instanceof Error ? error.message : String(error)
+    result = {
+      ...result,
+      completedAt: new Date().toISOString(),
+      failure: result.status === 'failed'
+        ? `${result.failure}; reranker close failed: ${closeFailure}`
+        : `Reranker close failed: ${closeFailure}`,
+      failureCode: 'RERANKER_CLOSE_FAILED',
+      status: 'failed',
+    }
+  }
+  await writeExclusive(configured.resultPath, result)
+  return result
 }
 
 function common(reranker, runtimeIdentity) {
@@ -322,9 +438,13 @@ export async function main(argv = process.argv.slice(2)) {
       selectionRule: RERANKER_SELECTION_RULE,
     }
   }
+  if (options.iterations !== undefined && options.mode !== 'profile') {
+    throw new TypeError('--iterations is accepted only with --profile.')
+  }
   if (options.mode === 'smoke') return runSmoke(options)
   if (options.mode === 'run') return runBank(options)
-  throw new TypeError('Choose --verify, --smoke, or --run.')
+  if (options.mode === 'profile') return runEttinNativeProfile(options)
+  throw new TypeError('Choose --verify, --smoke, --run, or --profile.')
 }
 
 const invokedPath = process.argv[1]

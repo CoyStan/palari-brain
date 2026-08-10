@@ -7,6 +7,7 @@ import test from 'node:test'
 
 import {
   ETTIN_HEAD_ARTIFACTS,
+  ETTIN_RERANKER_EXECUTION_LIMITS,
   ETTIN_RERANKER_MODEL,
   createEttinReranker,
   ettinGelu,
@@ -120,6 +121,11 @@ test('model and three external head artifacts are exact and licensed', () => {
       },
     ],
   )
+  assert.deepEqual(ETTIN_RERANKER_EXECUTION_LIMITS, {
+    maxBatchSize: 8,
+    maxPaddedTokenWork: 2 ** 24,
+    maxTokens: 7_999,
+  })
   for (const artifact of ETTIN_HEAD_ARTIFACTS) {
     assert.match(artifact.url, new RegExp(ETTIN_RERANKER_MODEL.revision))
   }
@@ -265,19 +271,36 @@ test('native head uses CLS, exact orientation, GELU, LayerNorm, and final bias',
 
 test('adapter is lazy, pair-batched, base-model only, and loads once', async () => {
   const { cacheDir, modelDir } = await modelCacheFixture()
-  const calls = { factories: [], tokenizer: [] }
+  const calls = {
+    disposedInputs: 0,
+    disposedOutputs: 0,
+    factories: [],
+    tokenizer: [],
+  }
   const head = identityHead()
   let headLoads = 0
   let runtimeLoads = 0
   const tokenizer = async (...args) => {
     calls.tokenizer.push(args)
-    return { input_ids: 'encoded' }
+    return {
+      documents: args[1].text_pair,
+      input_ids: { dispose() { calls.disposedInputs += 1 } },
+    }
   }
-  const transformer = async () => {
-    const data = new Float32Array(2 * 2 * 256)
-    data[0] = 1
-    data[2 * 256] = -1
-    return { last_hidden_state: { data, dims: [2, 2, 256] } }
+  tokenizer.encode = (_query, { text_pair }) =>
+    Array(text_pair.length + 2).fill(1)
+  const transformer = async ({ documents }) => {
+    const data = new Float32Array(documents.length * 2 * 256)
+    for (let index = 0; index < documents.length; index += 1) {
+      data[index * 2 * 256] = documents[index] === 'first' ? 1 : -1
+    }
+    return {
+      last_hidden_state: {
+        data,
+        dims: [documents.length, 2, 256],
+        dispose() { calls.disposedOutputs += 1 },
+      },
+    }
   }
   const rerank = createEttinReranker({
     cacheDir,
@@ -321,9 +344,39 @@ test('adapter is lazy, pair-batched, base-model only, and loads once', async () 
   assert.equal(calls.factories[1][2].revision, undefined)
   assert.deepEqual(calls.tokenizer[0], [
     ['which?', 'which?'],
-    { padding: true, text_pair: ['first', 'second'], truncation: true },
+    {
+      max_length: 7_999,
+      padding: true,
+      text_pair: ['first', 'second'],
+      truncation: true,
+    },
   ])
+  assert.equal(calls.disposedInputs, 2)
+  assert.equal(calls.disposedOutputs, 2)
 })
+
+test('native adapter rolls back a model when another component fails to load',
+  async () => {
+    const { cacheDir } = await modelCacheFixture('ettin-load-rollback-')
+    let modelDisposals = 0
+    const transformer = async () => ({})
+    transformer.dispose = () => { modelDisposals += 1 }
+    const rerank = createEttinReranker({
+      cacheDir,
+      loadHead: async () => identityHead(),
+      loadRuntime: async () => ({
+        AutoModel: {
+          async from_pretrained() { return transformer },
+        },
+        AutoTokenizer: {
+          from_pretrained() { throw new Error('tokenizer load failed') },
+        },
+      }),
+    })
+    await assert.rejects(() => rerank.warm(), /tokenizer load failed/)
+    await rerank.close()
+    assert.equal(modelDisposals, 1)
+  })
 
 test('adapter and artifact cache reject bounds, bad shape, and corrupt bytes', async () => {
   assert.throws(() => createEttinReranker({ cacheDir: 'relative' }), /absolute/)
@@ -337,7 +390,11 @@ test('adapter and artifact cache reject bounds, bad shape, and corrupt bytes', a
           last_hidden_state: { data: new Float32Array(1), dims: [1, 1, 1] },
         })
       } },
-      AutoTokenizer: { async from_pretrained() { return async () => ({}) } },
+      AutoTokenizer: { async from_pretrained() {
+        const tokenizer = async () => ({})
+        tokenizer.encode = () => [1, 2]
+        return tokenizer
+      } },
     }),
   })
   await assert.rejects(() => rerank('', ['a']), /non-empty/)

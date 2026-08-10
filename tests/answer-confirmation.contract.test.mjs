@@ -37,10 +37,11 @@ function requireCommitment(provider) {
   return provider
 }
 
-async function openBrain(t) {
+async function openBrain(t, options = {}) {
   const root = await mkdtemp(join(tmpdir(), 'palari-answer-confirmation-'))
   const brain = await createPalariBrain({
     memoryEnabled: true,
+    ...options,
     statePath: join(root, 'state.json'),
     workspaceId: 'answer-confirmation',
   })
@@ -593,6 +594,62 @@ test('a complete top-k review can close despite a lower-ranked tail',
       result.answerConfirmation.closureLowerRankedCandidatesAvailable,
       true,
     )
+  })
+
+test('confirmation filters a broad pool before bounded reranker dispatch',
+  async (t) => {
+    const rerankBatchSizes = []
+    const brain = await openBrain(t, {
+      async reranker(_query, texts) {
+        rerankBatchSizes.push(texts.length)
+        return texts.map((_, index) => -index)
+      },
+    })
+    for (let index = 0; index < 80; index += 1) {
+      await seed(
+        brain,
+        `Archive record ${index} has unique catalog value ${10_000 + index}.`,
+        `bounded-rerank:${index}`,
+      )
+    }
+    let originalRows
+    const provider = requireCommitment(async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { limit: 20, phrase: 'archive record unique catalog value' },
+        tool: 'memory_search',
+      })
+      originalRows = found.matches
+      assert.equal(originalRows.length, 20)
+      return commitAnswer(proposal(
+        'The first reviewed archive records are retained.',
+        originalRows,
+      ))
+    })
+    const confirmationProvider = requireCommitment(async (context) => {
+      const candidates = await context.retrieve({
+        input: { phrase: 'archive record unique catalog value' },
+        tool: 'memory_search',
+      })
+      assert.equal(candidates.rerankCandidates, 50)
+      assert.equal(candidates.matches.length, 20)
+      assert.equal(candidates.candidatePageComplete, true)
+      assert.equal(candidates.lowerRankedCandidatesAvailable, true)
+      await reviewCandidates(context, candidates.matches, 'not_used')
+      return context.commitAnswer(proposal(
+        'The first reviewed archive records are retained.',
+        originalRows,
+      ))
+    })
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      confirmationProvider,
+      provider,
+      question: 'Which archive records were reviewed?',
+    })
+    assert.equal(result.answerConfirmation.closureReason,
+      'no_material_findings')
+    assert.ok(rerankBatchSizes.includes(50))
+    assert.ok(rerankBatchSizes.every((size) => size <= 50))
   })
 
 test('character-truncated confirmation stays open and pages compact user evidence',
