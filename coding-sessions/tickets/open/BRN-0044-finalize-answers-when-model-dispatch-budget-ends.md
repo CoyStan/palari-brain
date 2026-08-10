@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0044
 children: []
-status: open
+status: in-review
 risk: R2
 priority: P0
 agents_allowed: 2
@@ -139,3 +139,23 @@ cannot produce a valid answer.
   closure dispatches, or making a provider call during implementation.
 - Stop if the focused contracts show that the closure path can hide an invalid
   commitment, an unassessed confirmation page, or a provider refusal.
+
+## Specialist Closeout
+
+- Added two closure-only dispatch slots after the configured normal model-work
+  ceiling. The first can assess an already-returned confirmation page or
+  commit; the second forces the existing answer-commit repair. Neither can
+  start another memory retrieval or plan.
+- Kept the existing four-call retrieval limit, 11 normal-dispatch maximum,
+  5,120-token output maximum, host-owned evidence-number translation, exact
+  canonical excerpt binding, one-repair rule, and terminal refusal/invalid
+  behavior.
+- Added provider-free contracts for no-evidence text closure, confirmation
+  review then bounded-incomplete commit, invalid commitment repair, and exact
+  `normal + 2` physical-call exhaustion.
+- Verification passes focused OpenAI 39/39, alpha 90/90, quickstart 6/6, and
+  legacy 939 pass / 15 optional skip / 0 fail across 954 tests. Ticket scope
+  and diff checks pass.
+- No provider, credential, private alpha artifact, dataset, sealed U8 item,
+  durable memory, production service, or live campaign was accessed from the
+  ticket worktree. Live failed-case continuation remains outside this ticket.

@@ -2,6 +2,23 @@
 
 ## 2026-08-10 current handoff
 
+BRN-0044 adds a provider-free candidate for graceful model-dispatch closure.
+The configured limit still bounds normal planning, retrieval, confirmation,
+and answer work. If that limit ends without an accepted answer, the OpenAI
+adapter now allows at most two additional closure-only calls: the first may
+assess an already-returned confirmation page or commit, and the second is
+commit-only for the existing single repair. These calls cannot start another
+memory retrieval. Evidence-backed output still requires the unchanged
+host-owned memory-number translation and commitment validation; invalid
+closure remains terminal. Focused OpenAI contracts pass 39/39, including
+tool-disabled no-evidence closure, pending-page review, repaired commitment,
+and exact physical-call exhaustion. The alpha gate passes 90/90, quickstart
+passes 6/6, and the complete legacy tier passes 939 with 15 optional skips and
+zero failures across 954 tests. No provider, credential, private alpha
+artifact, dataset, or sealed U8 question was accessed in the ticket worktree.
+The paused S60 alpha campaign and any founder-authorized failed-case rerun are
+outside the ticket and remain pending review, acceptance, merge, and push.
+
 The repository now presents Palari Brain as an evidence-first memory kernel
 with the tagline “Memory that can show its work.” A current read-only survey of
 Mem0, Letta, Graphiti, and Supermemory informed the README structure: one clear
