@@ -100,7 +100,7 @@ test('sparse candidate reviews reject invalid numbers and close with no findings
   async (t) => {
     assert.equal(
       MEMORY_ANSWER_CONFIRMATION_SCHEMA,
-      'palari-answer-confirmation/v8',
+      'palari-answer-confirmation/v9',
     )
     const reviewSchema = MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL.parameters
     assert.deepEqual(Object.keys(reviewSchema.properties), ['findings'])
@@ -831,7 +831,81 @@ test('same words from Palari cannot hide direct user evidence', async (t) => {
   assert.equal(result.answerConfirmation.newInformationEvidenceIds.length, 1)
 })
 
-test('confirmation fails closed when its final bounded round finds novelty',
+test('the default reviewer can follow three material rounds with a clean check',
+  async (t) => {
+    const brain = await openBrain(t)
+    const facts = [
+      ['The obsidian lighthouse code is 813.', 'model-loop:0'],
+      ['The amber greenhouse code is 274.', 'model-loop:1'],
+      ['The cobalt observatory code is 659.', 'model-loop:2'],
+      ['The silver foundry code is 402.', 'model-loop:3'],
+    ]
+    for (const [text, sourceMessageId] of facts) {
+      await seed(brain, text, sourceMessageId)
+    }
+    let original
+    const provider = requireCommitment(async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { limit: 1, phrase: 'obsidian lighthouse 813' },
+        tool: 'memory_search',
+      })
+      original = found.matches.find((row) => row.speaker === 'user')
+      assert.ok(original)
+      return commitAnswer(proposal('The first code is 813.', [original]))
+    })
+    const materialRows = []
+    const confirmationProvider = requireCommitment(async (context) => {
+      for (const phrase of [
+        'amber greenhouse 274',
+        'cobalt observatory 659',
+        'silver foundry 402',
+      ]) {
+        const found = await context.retrieve({
+          input: { phrase },
+          tool: 'memory_search',
+        })
+        const row = found.matches.find((candidate) =>
+          candidate.speaker === 'user' &&
+          candidate.text.includes(phrase.split(' ')[1]))
+        assert.ok(row)
+        materialRows.push(row)
+        const review = await context.retrieve({
+          input: {
+            findings: [{
+              candidateNumber: row.candidateNumber,
+              reason: 'This is another requested code.',
+            }],
+          },
+          tool: 'memory_candidate_review',
+        })
+        assert.equal(review.continueSearch, true)
+      }
+      const closed = await context.retrieve({
+        input: { phrase: 'silver foundry 402' },
+        tool: 'memory_search',
+      })
+      assert.deepEqual(closed.matches, [])
+      return context.commitAnswer(proposal(
+        'The four codes are 813, 274, 659, and 402.',
+        [original, ...materialRows],
+      ))
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      confirmationProvider,
+      provider,
+      question: 'What are the four location codes?',
+    })
+    assert.equal(result.answerConfirmation.complete, true)
+    assert.equal(result.answerConfirmation.exhausted, false)
+    assert.equal(result.answerConfirmation.maxRetrievalCalls, 4)
+    assert.equal(result.answerConfirmation.retrievalCalls, 4)
+    assert.equal(result.answerConfirmation.reviewCalls, 3)
+    assert.match(result.answer, /813, 274, 659, and 402/)
+  })
+
+test('confirmation returns the latest valid answer when its emergency bound is reached',
   async (t) => {
     const brain = await openBrain(t)
     await seed(brain, 'The project codename was Cedar.', 'project-old:0')
@@ -850,24 +924,138 @@ test('confirmation fails closed when its final bounded round finds novelty',
       ]))
       return provisional
     })
+    let newRow
     const confirmationProvider = requireCommitment(async (context) => {
+      assert.throws(
+        () => context.commitIncompleteAnswer(provisional),
+        (error) => error.code === 'MEMORY_ANSWER_CONFIRMATION_REQUIRED',
+      )
       const novel = await context.retrieve({
         input: { limit: 20, phrase: 'current project codename' },
         tool: 'memory_search',
       })
-      assert.ok(novel.matches.some((row) => row.text.includes('Juniper')))
+      newRow = novel.matches.find((row) => row.text.includes('Juniper'))
+      assert.ok(newRow)
+      assert.throws(
+        () => context.commitIncompleteAnswer(proposal(
+          'The codename is Juniper.',
+          [oldRow, newRow],
+        )),
+        (error) => error.code === 'MEMORY_ANSWER_CONFIRMATION_REQUIRED',
+      )
       await reviewCandidates(context, novel.matches, 'material')
-      return provisional
+      assert.throws(
+        () => context.commitAnswer(proposal(
+          'The codename is Juniper.',
+          [oldRow, newRow],
+        )),
+        (error) => error.code === 'MEMORY_ANSWER_CONFIRMATION_REQUIRED',
+      )
+      assert.throws(
+        () => context.commitIncompleteAnswer(proposal(
+          'A forged answer.',
+          [{ evidenceId: 'unknown-evidence', text: 'Invented.' }],
+        )),
+        /not returned in this answer session/,
+      )
+      return context.commitIncompleteAnswer(proposal(
+        'The codename is Juniper.',
+        [oldRow, newRow],
+      ))
     })
 
-    await assert.rejects(
-      answerWithRetrieval(brain, {
-        ...SCOPE,
-        confirmationProvider,
-        maxConfirmationRetrievalCalls: 1,
-        provider,
-        question: 'What is the current project codename?',
-      }),
-      (error) => error.code === 'MEMORY_ANSWER_CONFIRMATION_INCOMPLETE',
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      confirmationProvider,
+      maxConfirmationRetrievalCalls: 1,
+      provider,
+      question: 'What is the current project codename?',
+    })
+    assert.equal(result.answer, 'The codename is Juniper.')
+    assert.equal(result.answerConfirmation.complete, false)
+    assert.equal(result.answerConfirmation.exhausted, true)
+    assert.equal(result.answerConfirmation.closureReason, 'emergency_bound')
+    assert.equal(result.answerConfirmation.status, 'bounded_incomplete')
+    assert.deepEqual(
+      result.selectedEvidenceIds,
+      [oldRow.evidenceId, newRow.evidenceId],
     )
+  })
+
+test('bounded confirmation cannot commit while its final search is outstanding',
+  async (t) => {
+    const brain = await openBrain(t)
+    for (let index = 0; index < 22; index += 1) {
+      await seed(
+        brain,
+        `Race archive item ${index} stores marker ${1000 + index}.`,
+        `pending-search:${index}`,
+      )
+    }
+    let original
+    const provider = requireCommitment(async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { limit: 1, phrase: 'Race archive item 0 marker 1000' },
+        tool: 'memory_search',
+      })
+      original = found.matches.find((row) =>
+        row.speaker === 'user' && row.text.includes('marker 1000'))
+      assert.ok(original)
+      return commitAnswer(proposal('The first marker is 1000.', [
+        original,
+      ]))
+    })
+    let finalRow
+    const confirmationProvider = requireCommitment(async (context) => {
+      const first = await context.retrieve({
+        input: { phrase: 'Race archive item stores marker' },
+        tool: 'memory_search',
+      })
+      assert.equal(first.matches.length, 20)
+      const firstMaterialRow = first.matches[0]
+      await reviewCandidates(context, [firstMaterialRow], 'material')
+
+      const outstanding = context.retrieve({
+        input: { phrase: 'Race archive item stores marker' },
+        tool: 'memory_search',
+      })
+      assert.throws(
+        () => context.commitIncompleteAnswer(proposal(
+          'Twenty-one archive markers are currently accounted for.',
+          [original, firstMaterialRow],
+        )),
+        (error) => error.code === 'MEMORY_ANSWER_CONFIRMATION_REQUIRED' &&
+          /no outstanding search/.test(error.message),
+      )
+
+      const final = await outstanding
+      finalRow = final.matches.find((row) => row.speaker === 'user')
+      assert.ok(finalRow)
+      assert.ok(!first.matches.some((row) =>
+        row.evidenceId === finalRow.evidenceId))
+      assert.throws(
+        () => context.commitIncompleteAnswer(proposal(
+          'Twenty-one archive markers are currently accounted for.',
+          [original, firstMaterialRow],
+        )),
+        (error) => error.code === 'MEMORY_ANSWER_CONFIRMATION_REQUIRED',
+      )
+      await reviewCandidates(context, [finalRow], 'material')
+      return context.commitIncompleteAnswer(proposal(
+        'The reviewed archive markers are accounted for.',
+        [original, firstMaterialRow, finalRow],
+      ))
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      confirmationProvider,
+      maxConfirmationRetrievalCalls: 2,
+      provider,
+      question: 'What are all the race archive markers?',
+    })
+    assert.equal(result.answerConfirmation.status, 'bounded_incomplete')
+    assert.equal(result.answerConfirmation.retrievalCalls, 2)
+    assert.equal(result.answerConfirmation.reviewCalls, 2)
+    assert.ok(result.selectedEvidenceIds.includes(finalRow.evidenceId))
   })

@@ -557,22 +557,31 @@ const result = await answerWithRetrieval(brain, {
 Product callers can opt into a second, fresh answer-review dispatch by passing
 `confirmationProvider` (the same provider function may be reused) and
 `maxConfirmationRetrievalCalls` from 1 through 4. The first response is then
-provisional. The reviewer receives that draft plus every canonical memory
-already returned, collapsed to one representative per information identity.
+provisional. The default is the full four-search emergency allowance, not a
+two-search semantic workflow. The reviewer receives that draft plus every
+canonical memory already returned, collapsed to one representative per
+information identity.
 That identity combines normalized text with speaker, optional author, and
 observation time. Its only retrieval tool is a host-filtered `memory_search`
 that removes both previously returned evidence IDs and duplicate information
 before result truncation, and also collapses duplicate information within the
-new result. Any novel result reopens the answer; the reviewer must assess or
-revise it and search again. The host accepts a new commitment only after the
-latest confirmation search returns no novel information. If the bounded
-review ends on novelty, the call fails closed with
-`MEMORY_ANSWER_CONFIRMATION_INCOMPLETE` rather than releasing an unconfirmed
-answer.
+new result. Search matches are candidates: the reviewer reports only material
+findings with short page-local numbers, revises from those findings, and
+chooses another unseen query while work remains. A complete reviewed page with
+no material finding, or an empty search, closes confirmation normally. If the
+emergency allowance ends after a fully assessed material page, the reviewer
+may commit its latest host-valid evidence-backed revision. The answer is
+returned rather than erased and its confirmation status is explicitly
+`bounded_incomplete`; invalid evidence and unassessed displayed candidates
+still fail closed.
 
-Successful results expose ephemeral `answerConfirmation` telemetry, including
+Results expose ephemeral `answerConfirmation` telemetry, including
 the independent retrieval frontier, prior and suppressed duplicate counts,
-novel information evidence IDs, closure round, and zero durable writes.
+novel information evidence IDs, closure round, a `complete` boolean, and zero
+durable writes. Normal closure reports
+`closed_no_new_material_information`; emergency best effort reports
+`bounded_incomplete` with `closureReason: "emergency_bound"` and
+`exhausted: true`.
 Authority and time are deliberately part of identity: a direct user statement
 cannot be hidden by identical Palari speech, and a later repetition remains
 available as fresh temporal evidence. The host conservatively does not merge
@@ -613,7 +622,7 @@ const provider = createOpenAIRetrievalProvider({ invoke })
 ```
 
 The default is `gpt-5.6-luna` through `POST /v1/responses`, `store: false`,
-low reasoning effort, and at most seven model dispatches as an emergency
+low reasoning effort, and at most eleven model dispatches as an emergency
 protocol ceiling. The normal answer path permits at most four memory-tool
 calls. Palari's provider-neutral function
 schemas are preserved under explicit OpenAI `strict: false`, because their
@@ -624,7 +633,7 @@ tool, and records the result. Every Responses output item is replayed with the
 tool result so GPT-5.6 reasoning state is not dropped. Because the adapter is
 stateless (`store: false`), it explicitly requests
 `reasoning.encrypted_content` and replays that encrypted item unchanged.
-Public configuration may lower, but cannot raise, the seven-dispatch ceiling.
+Public configuration may lower, but cannot raise, the eleven-dispatch ceiling.
 It also cannot raise the four-call memory budget.
 
 The OpenAI adapter declares the additive evidence-commit capability. Its
@@ -686,11 +695,15 @@ mode exposes one user-facing surface:
 ```
 
 A non-abstaining recommendation cites one to twenty unique evidence IDs; an
-honest abstention cites none. The host checks only that each generated ID was
+honest abstention cites none. The host checks that each generated ID was
 actually returned inside the current scoped answer session, then derives the
-canonical evidence trace itself. It does not ask the model to copy quotes,
-duplicate a proposal in structured fields, or generate prose that passes an
-exact-string equivalence check. It never rewrites the recommendation.
+canonical evidence trace itself. During answer confirmation, a non-abstaining
+recommendation must also cite every evidence ID that the reviewer itself
+marked material. The host does not decide materiality; this prevents the
+model's final commitment from silently contradicting its own review. The host
+does not ask the model to copy quotes, duplicate a proposal in structured
+fields, or generate prose that passes an exact-string equivalence check. It
+never rewrites the recommendation.
 
 The model-facing policy still asks for a useful concrete proposal, a safe
 category-level answer when current inventory is unknown, and an explicit
@@ -715,7 +728,7 @@ the same commit-only finalization applies. When retrieval was genuinely empty,
 finalization remains tool-disabled and can return an honest plain-text
 absence. Direct digest-only and zero-through-three-call answers with no
 returned canonical row retain their prior path. The commitment repair can add
-one dispatch, but it cannot exceed the absolute seven-dispatch ceiling.
+one dispatch, but it cannot exceed the absolute eleven-dispatch ceiling.
 
 The same subpath exports `createOpenAIMemoryReducer` and
 `createOpenAIGraphExtractor`. Their model-facing outputs use strict root-object

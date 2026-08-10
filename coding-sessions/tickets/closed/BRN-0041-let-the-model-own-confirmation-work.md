@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0041
 children: []
-status: open
+status: accepted
 risk: R2
 priority: P0
 agents_allowed: 1
@@ -54,7 +54,7 @@ verification:
   - "npm run test:legacy"
   - "npm run ticket -- check BRN-0041"
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-10
 ---
 
 # BRN-0041 Let the model own confirmation work
@@ -170,3 +170,59 @@ emergency work bound without discarding the latest valid answer.
   access.
 - Stop if the model-owned loop would weaken canonical evidence validation,
   duplicate exclusion, user/workspace isolation, or the emergency hard bound.
+
+## Specialist Closeout
+
+Confirmation v9 removes two searches as the normal workflow. The independent
+reviewer now receives the existing full four-search allowance by default and
+owns its semantic queries, sparse findings, revisions, and stopping decision.
+The host continues to exclude previously returned and duplicate information,
+bind short candidate numbers to canonical IDs, require complete page review,
+and validate every committed evidence basis.
+
+When the emergency allowance ends after the latest page was assessed, the
+OpenAI adapter asks the host to validate the model's newest commitment as
+bounded best effort. A valid commitment returns with explicit
+`bounded_incomplete` telemetry instead of becoming an exception. Premature
+bounded commits, unassessed pages, forged IDs, malformed findings, and all
+other commitment failures remain rejected. Normal clean closure is unchanged.
+
+The default OpenAI dispatch ceiling is 11, leaving room for the model-directed
+review while remaining finite. Initial independent review found that a
+premature last-page commit could lose the host's pending-review rejection and
+that malformed bounded commitments skipped their normal repair. The adapter
+now returns the former to the model and gives the latter one repair; real
+host-plus-adapter contracts cover both paths. Focused tests pass 41/41, the
+core suite passes 87/87, quickstart passes 6/6, and legacy passes 921 with 15
+optional skips and zero failures across 936 tests. No provider, credential,
+private artifact, dataset, or sealed U8 was accessed. The corrected committed
+diff requires fresh independent R2 review before founder acceptance.
+
+A second independent review found that recommendation-mode commitments
+returned before the material-evidence completeness check. The host could
+therefore accept an Atlas-only recommendation after the model had already
+marked the newer Nova preference material. The fix does not decide semantic
+materiality: it simply requires a non-abstaining recommendation to cite each
+finding the reviewer itself marked material. Real OpenAI integration tests
+cover both clean closure and bounded-incomplete repair. Focused tests now pass
+43/43; core remains 87/87; quickstart remains 6/6; legacy passes 923 with 15
+optional skips and zero failures across 938 tests. Fresh independent review is
+still required.
+
+A fourth independent review found no remaining P0 or P1 code defect and
+reopened only two stale API statements. The API now uses the actual
+eleven-dispatch emergency ceiling and documents the confirmation-only rule
+that non-abstaining recommendations cite evidence the reviewer itself marked
+material. The correction requires documentation verification before founder
+acceptance.
+
+A third independent review found a race available to custom providers that do
+not await retrieval: the final allowed search incremented the call count
+before its new page replaced the previously assessed page, so bounded commit
+could pass while that search was outstanding. The host now tracks pending
+confirmation searches, rejects concurrent searches, and rejects bounded
+completion until no search is pending. A real 20-plus-one candidate regression
+proves the final unseen item must settle and be reviewed. Focused tests pass
+44/44, core passes 88/88, quickstart passes 6/6, and legacy passes 924 with 15
+optional skips and zero failures across 939 tests. Fresh independent review is
+still required.

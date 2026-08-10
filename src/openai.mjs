@@ -49,7 +49,7 @@ import {
 export const OPENAI_LUNA_MODEL = 'gpt-5.6-luna'
 export const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses'
 export const OPENAI_DEFAULT_REASONING_EFFORT = 'low'
-export const OPENAI_DEFAULT_MAX_MODEL_DISPATCHES = 7
+export const OPENAI_DEFAULT_MAX_MODEL_DISPATCHES = 11
 export const OPENAI_DEFAULT_TIMEOUT_MS = 60_000
 export const OPENAI_MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 export const OPENAI_REDUCER_MAX_OUTPUT_TOKENS = 2_000
@@ -746,6 +746,11 @@ export function createOpenAIRetrievalProvider({
     if (typeof session.commitAnswer !== 'function') {
       throw new TypeError('OpenAI retrieval provider requires commitAnswer.')
     }
+    const commitIncompleteAnswer = session.commitIncompleteAnswer ?? null
+    if (commitIncompleteAnswer !== null &&
+      typeof commitIncompleteAnswer !== 'function') {
+      throw new TypeError('commitIncompleteAnswer must be a function.')
+    }
     if (typeof session.answerEvidenceCount !== 'function') {
       throw new TypeError(
         'OpenAI retrieval provider requires answerEvidenceCount.',
@@ -931,6 +936,32 @@ export function createOpenAIRetrievalProvider({
         if (!rejection) return committed
         if (rejectionCode === 'MEMORY_ANSWER_CONFIRMATION_REQUIRED') {
           if (retrievalCalls >= retrievalLimit) {
+            if (commitIncompleteAnswer) {
+              try {
+                return commitIncompleteAnswer(
+                  clone(commitmentCalls[0].input),
+                )
+              } catch (error) {
+                const incompleteRejection = commitmentRejection(error)
+                if (String(error?.code ?? '') ===
+                  'MEMORY_ANSWER_CONFIRMATION_REQUIRED') {
+                  forcingCommit = false
+                  finalizing = true
+                  appendCommitmentRepair(input, output, incompleteRejection)
+                  continue
+                }
+                if (repairUsed) {
+                  throw adapterError(
+                    'OPENAI_ANSWER_COMMIT_REPAIR_FAILED',
+                    'OpenAI returned an invalid bounded answer commitment after one repair.',
+                  )
+                }
+                repairUsed = true
+                forcingCommit = true
+                appendCommitmentRepair(input, output, incompleteRejection)
+                continue
+              }
+            }
             throw adapterError(
               'OPENAI_ANSWER_CONFIRMATION_INCOMPLETE',
               'OpenAI exhausted the confirmation retrieval budget before a no-new-information round.',

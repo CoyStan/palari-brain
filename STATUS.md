@@ -412,6 +412,79 @@ passes 6/6, and the complete legacy suite passes 917 with 15 optional skips
 and zero failures across 932 tests. No provider or private artifact was
 accessed and the private ledger remains `$37.21155714`.
 
+BRN-0041 simplifies that confirmation design after a live alpha diagnostic
+showed the reviewer behaving correctly while the host discarded its progress.
+Two consecutive confirmation searches each found material health-device
+information. The reviewer revised the answer, but the old special two-search
+limit left no clean closure round and converted the latest evidence-backed
+commitment into an exception. The mistake was the control policy, not the
+reviewer's materiality judgment.
+
+Confirmation schema `palari-answer-confirmation/v9` now treats the reviewer as
+one model-owned reasoning loop. It chooses unseen queries, reports sparse
+material findings, revises, and continues while work remains. The default is
+the existing full four-search retrieval allowance rather than a special limit
+of two. The host still binds page-local numbers to immutable evidence IDs,
+removes previously returned and duplicate information, requires every
+displayed page to be assessed, and validates final raw evidence.
+
+The work bound is now an emergency boundary rather than a semantic workflow.
+After the latest displayed page has been assessed and the allowance is spent,
+the reviewer may return its newest host-valid evidence commitment. Palari
+returns that answer with `status: "bounded_incomplete"`, `complete: false`,
+`exhausted: true`, and `closureReason: "emergency_bound"` instead of erasing
+the answer. Normal empty-search or no-material-findings closure remains
+`closed_no_new_material_information`. Invalid evidence, malformed findings,
+and unassessed pages still fail closed. The default OpenAI dispatch guard grew
+from 7 to 11 so normal model-directed review has room to search, assess, and
+commit; it remains a hard emergency ceiling.
+
+Provider-free tests demonstrate three material rounds followed by a fourth
+clean check, emergency best-answer return, and rejection of premature or
+forged bounded commitments. Independent review then caught an adapter seam:
+after the last search, a premature commit could route into bounded completion
+before the latest page was reviewed, and that correct host rejection escaped
+instead of returning control to the model. The adapter now feeds that rejection
+back so the model can review the pending page, and preserves one ordinary
+repair opportunity for a malformed bounded commitment. Real host-plus-OpenAI
+contracts cover both paths. Focused confirmation/OpenAI tests pass 41/41,
+`npm test` passes 87/87, quickstart passes 6/6, and the complete legacy suite
+passes 921 with 15 optional skips and zero failures across 936 tests. No
+provider, credential, private evaluation artifact, dataset, or sealed U8 was
+accessed for BRN-0041.
+
+A second independent review caught the same responsibility boundary missing
+from the thin recommendation commitment. The model could correctly mark newer
+confirmation evidence material, then submit a recommendation citing only
+older evidence; that early return skipped the ordinary commitment check. The
+host now rejects only that contradiction and returns control to the model for
+its normal one repair. It still does not decide materiality or recency for the
+model. Real host-plus-OpenAI tests cover both normal clean closure and
+bounded-incomplete closure: a stale Atlas-only recommendation is rejected and
+the model's Nova-backed correction is accepted. Focused confirmation/OpenAI
+tests now pass 43/43 and the complete legacy suite passes 923 with 15 optional
+skips and zero failures across 938 tests; core and quickstart remain 87/87 and
+6/6. This correction was also entirely provider-free.
+
+A third independent review found a custom-provider race at the same emergency
+boundary. A provider could launch the last search without awaiting it and ask
+for bounded completion while the search counter was exhausted but the new
+page had not yet replaced the previously assessed page. The host now tracks
+outstanding confirmation searches synchronously, refuses concurrent searches,
+and refuses bounded completion until the final search has settled. A real
+provider-free regression fills one 20-item page, launches a final search that
+returns one genuinely unseen item, and proves commitment stays blocked until
+that item is reviewed. Focused tests now pass 44/44, core passes 88/88,
+quickstart passes 6/6, and legacy passes 924 with 15 optional skips and zero
+failures across 939 tests.
+
+A fourth independent review found no remaining P0 or P1 code issue. It found
+two stale public API statements: three references to the former seven-dispatch
+ceiling and an incomplete description of recommendation evidence validation.
+The API now states the actual eleven-dispatch emergency ceiling and explains
+that a non-abstaining recommendation must cite evidence its own confirmation
+reviewer marked material. The host still does not decide materiality.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate
