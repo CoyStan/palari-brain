@@ -6,12 +6,12 @@ level: 2
 parent_id: BRN-0042
 root_id: BRN-0042
 children: []
-status: claimed
+status: in-review
 risk: R1
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-08-10T04:28:05Z
+claimed_by:
+claimed_at:
 target_branch: "ticket/BRN-0042-bind-final-answer-evidence-in-the-host"
 branch: "ticket/BRN-0042-B-refresh-active-answer-wire-accounting-pin"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0042-B-refresh-active-answer-wire-accounting-pin"
@@ -95,3 +95,17 @@ compatibility pins.
 - Stop if the work needs a path outside `allowed_paths` or touches `forbidden_paths`.
 - Stop if any historical consumed pin would need to change or accounting would
   stop projecting the active body exactly once.
+
+## Specialist Closeout
+
+- Updated only the active generation and count-projection byte/hash pins. Each
+  active request body is 24 bytes smaller after the parent removes provider-
+  authored quote fields; all historical BRN-0025 pins remain unchanged.
+- Focused verification passed: 16/16 tests in
+  `tests/openai-counted-responses.contract.test.mjs`.
+- Complete legacy verification passed against the combined parent plus
+  BRN-0042-A and BRN-0042-B candidate: 943 tests, 928 passed, 15 optional
+  skips, 0 failed. The temporary composite fixture commit was reverted after
+  verification so this child remains inside its declared path scope.
+- No paid provider call, private artifact access, dataset execution, or sealed
+  U8 access occurred.
