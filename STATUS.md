@@ -527,6 +527,64 @@ After the decimal correction, `npm test` passes 89/89, quickstart passes 6/6,
 and the complete legacy suite passes 937 with 3 skips and zero failures across
 940 tests.
 
+The founder-authorized non-health hard follow-up then selected the frozen
+instrument, Rachel-relocation, and charity-composition cases with no retries,
+no inter-case tuning, 5,120 output tokens, and confirmation v9. The first
+multi-case process completed the instrument and Rachel attempts, then the host
+OOM-killed `t3code.service` during charity. The machine's 6 GB swapfile was
+full. The source stores contain only 474--511 canonical rows and about 1.6 MB
+each, while the later isolated charity process measured a 4,101,484 KB peak;
+the failure was host-wide memory pressure around a heavy local evaluation
+stack, not corpus size or a provider-credit failure. With founder approval,
+five stale preview servers rooted in deleted worktrees exited cleanly on
+`SIGTERM`, freeing about 1.0 GB resident memory and 2.3 GB of swap. No other
+process was signalled. Future hard cases on this host should use one fresh
+process per case.
+
+The instrument case is unjudged. Three searches led Luna to a substantively
+incomplete proposal of Fender Stratocaster, Yamaha FG800, and Korg B1 while
+omitting the still-owned Pearl Export drum set. More importantly, the main
+answer commitment mistyped the Korg row's opaque evidence ID in both its first
+attempt and sole repair, so the host correctly released no answer before
+confirmation or judging. The failure artifact has no structured retrieval
+transcript, so this attempt's marked-span retrieval coverage is ungraded. This
+exposes the same interface defect previously removed from candidate review:
+the main commitment still asks the model to reproduce long evidence IDs.
+
+Rachel completed but remained incorrect. All 3/3 dataset-marked spans,
+including the later suburbs update, were retrieved; Luna selected and used
+only the older Chicago statement. Its independent confirmation inspected one
+character-complete page of 20 unique evidence IDs with zero overlap with main
+retrieval, marked all 20 non-material, and closed normally. This is not a
+fresh-retrieval miss: the decisive correction was already in prior evidence,
+and the model failed to resolve that conflict. Main retrieval still had two
+calls remaining, with no bridge, stagnation, or budget refusal.
+
+Charity completed correctly in a fresh single-case process after the OOM
+interruption. Palari answered **4** and named Dance for a Cause, Walk for
+Wildlife, the July 17 charity golf tournament, and Food for Thought. All 6/6
+dataset-marked spans were retrieved; 4/6 marked spans were selected, while all
+4/4 smallest decisive event facts were retrieved, selected, and materially
+used. Confirmation achieved the intended clean stop: one complete page of 20
+unique, entirely new evidence IDs, zero material findings, and normal
+`no_material_findings` closure without exhausting its allowance. The official
+judge returned `Yes`. No hard case used `memory_bridge` or made a durable
+write, so this adds no positive evidence for learned co-use edges.
+
+The three-case work is alpha diagnostic evidence, not a benchmark regrade:
+two cases completed and reached the judge (one correct, one incorrect), while
+the instrument case is an unjudged infrastructure failure. Conservative
+accounting retained `$0.70` for the instrument failure and `$0.70` for the
+OOM-interrupted charity attempt. The isolated charity completion cost
+`$0.02002410`; known measured provider spend across the instrument, Rachel,
+and completed charity attempts was `$0.04341935`, while provider spend inside
+the abruptly killed attempt is unknown and remains covered by its retained
+reservation. The aggregate ledger is `$40.08181199` under the founder's
+rounded `$41` ceiling. All three frozen source hashes remain unchanged.
+`npm test` passes 89/89 and quickstart passes 6/6. The legacy suite was not
+rerun because this diagnostic changed no product behavior or historical
+evaluator compatibility.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate
@@ -1328,6 +1386,15 @@ Alpha debug logs, local adapters, and aggregate budget state belong in
 benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
+
+Before replaying the instrument case, remove opaque evidence-ID reproduction
+from the main answer commitment just as candidate review already did. Give the
+model short answer-local references and let the host bind them to immutable
+canonical IDs while retaining exact quote, provenance, scope, and material-use
+validation. Prove that provider-free against malformed, duplicate, stale, and
+unknown references; do not spend another call merely to retest the known ID
+failure. Run future hard cases as separate processes on this host so native
+reranker memory is reclaimed at each case boundary.
 
 Do not tune retrieval further for `0a995998`: all three original statements
 were returned and enumerated. The general policy now treats an action phrased
