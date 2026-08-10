@@ -20,9 +20,13 @@ extra field, stale cleanup did not compare the complete owner twice, and lock
 retry could exceed the window. Exact state shapes, atomic complete lock
 publication, full stale-owner rechecks, and retry validation now cover those
 findings. The conflicting generated token-name ticket rules were corrected on
-target `main` without changing any credential or secret exclusion. Focused
-contracts pass 26/26, core passes 102/102, quickstart passes 6/6, and legacy
-passes 979 with 15 optional skips and zero failures across 994 tests. No
+target `main` without changing any credential or secret exclusion. The first
+rereview then found a final check-to-delete race. Stale cleanup now uses one
+owned recovery claim and atomically quarantines the exact path before
+validation; it never deletes a later live replacement. Direct late-replacement
+and simultaneous-recoverer contracts pass. Focused contracts pass 28/28, core
+passes 104/104, quickstart passes 6/6, and legacy passes 981 with 15 optional
+skips and zero failures across 996 tests. No
 provider, credential, private dataset, result artifact, or sealed U8 item was
 accessed during this ticket implementation.
 

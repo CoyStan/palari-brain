@@ -18,11 +18,11 @@
 
 ## Verification
 
-- Focused alpha and pacer contracts: PASS, 26/26.
-- `npm test`: PASS, 102/102.
+- Focused alpha and pacer contracts: PASS, 28/28.
+- `npm test`: PASS, 104/104.
 - `npm run quickstart`: PASS, 6/6.
-- `npm run test:legacy`: PASS, 979 passed, 15 optional skips, 0 failed across
-  994 tests.
+- `npm run test:legacy`: PASS, 981 passed, 15 optional skips, 0 failed across
+  996 tests.
 - Six real child processes sharing one state path: PASS. The durable active
   window remained at or below 100 units and two requests.
 - Five additional repetitions of the child-process contract: PASS.
@@ -47,3 +47,8 @@
   Lock retry above the window is rejected. The contradictory generated
   token-name scope rules were corrected in target `main` at `d2bf26f` while
   every credential, key, secret, private-data, and production rule remained.
+- The first rereview reopened exact commit `83119b4` for the remaining
+  check-to-delete race. Recovery now serializes on one owned claim, atomically
+  moves the exact lock pathname to quarantine, and deletes only the captured
+  stale identity. A late live replacement remains at the lock path, and two
+  stale recoverers cannot both enter recovery.

@@ -102,6 +102,7 @@ export function createFileRollingTokenPacer({
   }
   const resolvedStatePath = statePath.trim()
   const lockPath = `${resolvedStatePath}.lock`
+  const recoveryPath = `${lockPath}.recovery`
   const policy = Object.freeze({ maxRequests: requests, maxUnits: maximum, windowMs: window })
   let admittedUnits = 0
   let admittedRequests = 0
@@ -122,10 +123,10 @@ export function createFileRollingTokenPacer({
     }
   }
 
-  async function readLock() {
+  async function readOwned(path) {
     let handle
     try {
-      handle = await open(lockPath, 'r')
+      handle = await open(path, 'r')
       const info = await handle.stat()
       const raw = await handle.readFile('utf8')
       let owner = null
@@ -149,63 +150,118 @@ export function createFileRollingTokenPacer({
     }
   }
 
+  async function publishOwned(path) {
+    const token = randomUUID()
+    const temporary = `${path}.candidate-${process.pid}-${token}`
+    let handle
+    try {
+      handle = await open(temporary, 'wx', 0o600)
+      try {
+        await handle.writeFile(`${JSON.stringify({
+          schema: SHARED_SCHEMA,
+          pid: process.pid,
+          token,
+        })}\n`, 'utf8')
+        await handle.sync()
+      } finally {
+        await handle.close()
+        handle = null
+      }
+      try {
+        await link(temporary, path)
+      } catch (error) {
+        if (error?.code === 'EEXIST') return null
+        throw error
+      }
+      return { temporary, token }
+    } finally {
+      await handle?.close().catch(() => {})
+      // A failed removal after publication leaves only a content-free hard
+      // link. The owner receives its path, and release tries once more.
+      await unlink(temporary).catch(() => {})
+    }
+  }
+
+  async function releaseOwned(path, ownership) {
+    const current = await readOwned(path)
+    if (current?.owner?.token !== ownership.token) {
+      throw new Error('shared rolling pacer lock ownership changed.')
+    }
+    await unlink(path)
+    await unlink(ownership.temporary).catch(() => {})
+  }
+
   async function acquire() {
     await mkdir(dirname(resolvedStatePath), { recursive: true })
     for (;;) {
-      const token = randomUUID()
-      const temporary = `${lockPath}.candidate-${process.pid}-${token}`
-      let handle
-      let linked = false
-      try {
-        handle = await open(temporary, 'wx', 0o600)
-        try {
-          await handle.writeFile(`${JSON.stringify({
-            schema: SHARED_SCHEMA,
-            pid: process.pid,
-            token,
-          })}\n`, 'utf8')
-          await handle.sync()
-        } finally {
-          await handle.close()
-          handle = null
+      const existingRecovery = await readOwned(recoveryPath)
+      if (existingRecovery) {
+        if (Date.now() - existingRecovery.info.mtimeMs >= stale &&
+            !ownerIsAlive(existingRecovery.owner?.pid)) {
+          throw new Error('shared rolling pacer recovery claim is abandoned.')
         }
-        try {
-          await link(temporary, lockPath)
-          linked = true
-        } catch (error) {
-          if (error?.code !== 'EEXIST') throw error
-        }
-        if (linked) {
-          try {
-            await unlink(temporary)
-          } catch (error) {
-            await unlink(lockPath).catch(() => {})
-            throw error
-          }
-          return { token }
-        }
-      } catch (error) {
-        if (error?.code !== 'EEXIST') throw error
-      } finally {
-        await handle?.close().catch(() => {})
-        await unlink(temporary).catch(() => {})
+        lockWaits += 1
+        lockWaitedMs += retry
+        await wait(retry)
+        continue
       }
 
-      const observed = await readLock()
+      const ownership = await publishOwned(lockPath)
+      if (ownership) return ownership
+
+      const observed = await readOwned(lockPath)
       if (!observed) continue
       if (Date.now() - observed.info.mtimeMs >= stale &&
           !ownerIsAlive(observed.owner?.pid)) {
-        const current = await readLock()
-        if (current && current.info.ino === observed.info.ino &&
-            current.info.dev === observed.info.dev &&
-            current.raw === observed.raw &&
-            Date.now() - current.info.mtimeMs >= stale &&
-            !ownerIsAlive(current.owner?.pid)) {
-          await unlink(lockPath).catch((unlinkError) => {
-            if (unlinkError?.code !== 'ENOENT') throw unlinkError
-          })
+        const recovery = await publishOwned(recoveryPath)
+        if (!recovery) {
+          const activeRecovery = await readOwned(recoveryPath)
+          if (!activeRecovery) continue
+          if (Date.now() - activeRecovery.info.mtimeMs >= stale &&
+              !ownerIsAlive(activeRecovery.owner?.pid)) {
+            throw new Error('shared rolling pacer recovery claim is abandoned.')
+          }
+          lockWaits += 1
+          lockWaitedMs += retry
+          await wait(retry)
           continue
         }
+        try {
+          const quarantine = `${lockPath}.stale-${recovery.token}`
+          let moved = false
+          try {
+            await rename(lockPath, quarantine)
+            moved = true
+          } catch (error) {
+            if (error?.code !== 'ENOENT') throw error
+          }
+          if (moved) {
+            try {
+              const captured = await readOwned(quarantine)
+              const isObservedDeadLock = captured &&
+                captured.info.ino === observed.info.ino &&
+                captured.info.dev === observed.info.dev &&
+                captured.raw === observed.raw &&
+                Date.now() - captured.info.mtimeMs >= stale &&
+                !ownerIsAlive(captured.owner?.pid)
+              if (!isObservedDeadLock) {
+                await link(quarantine, lockPath).catch((error) => {
+                  if (error?.code !== 'EEXIST') throw error
+                })
+              }
+              await unlink(quarantine)
+            } catch (error) {
+              await link(quarantine, lockPath).catch((error) => {
+                if (error?.code !== 'EEXIST') throw error
+              })
+              await unlink(quarantine).catch(() => {})
+              throw error
+            }
+          }
+        } finally {
+          await releaseOwned(recoveryPath, recovery)
+        }
+        continue
       }
       lockWaits += 1
       lockWaitedMs += retry
@@ -213,14 +269,8 @@ export function createFileRollingTokenPacer({
     }
   }
 
-  async function release({ token }) {
-    const current = await readLock()
-    if (current?.owner?.token !== token) {
-      throw new Error('shared rolling pacer lock ownership changed.')
-    }
-    await unlink(lockPath).catch((error) => {
-      if (error?.code !== 'ENOENT') throw error
-    })
+  async function release(ownership) {
+    await releaseOwned(lockPath, ownership)
   }
 
   async function load() {

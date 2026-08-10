@@ -25,9 +25,13 @@ the window. These points are now covered by direct tests. The ticket's two
 explicit token-rate files also now have a non-conflicting scope contract on
 `main`; secret and credential exclusions did not change.
 
+The first rereviewer found one last race between checking a stale file and
+deleting its path. Recovery now moves the exact path to quarantine under one
+owned claim. A later live lock stays in place, and two recoverers serialize.
+
 ## What To Check
 
-Focused 26/26, core 102/102, quickstart 6/6, and legacy 979 pass with 15
+Focused 28/28, core 104/104, quickstart 6/6, and legacy 981 pass with 15
 optional skips and zero failures. A six-process test and five more stress
 repetitions stayed inside the shared ceiling.
 
