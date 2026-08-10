@@ -19,7 +19,8 @@
   985 tests.
 - Provider-free recorded-response replay: reproduced 13/13 responses and the
   exact missing-material host rejection with zero network calls.
-- Ticket, report, scope, and diff gates: pending after candidate commit.
+- Ticket, report, committed-plus-dirty scope, and diff gates: PASS before the
+  reviewer note, which is expected only after this review-state commit.
 - Independent review: pending.
 
 ## Risks / Follow-Ups
