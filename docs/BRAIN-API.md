@@ -611,15 +611,36 @@ OpenAI consumers can use the additive `palari-brain/openai` subpath instead:
 
 ```js
 import {
+  createOpenAIRatePacer,
   createOpenAIRetrievalProvider,
   createOpenAIResponsesTransport,
 } from 'palari-brain/openai'
 
+const pacer = createOpenAIRatePacer({
+  maxUnits: 500_000,
+  windowMs: 60_000,
+})
 const invoke = createOpenAIResponsesTransport({
   apiKey: process.env.OPENAI_API_KEY,
+  pacer,
 })
 const provider = createOpenAIRetrievalProvider({ invoke })
 ```
+
+The optional pacer is explicit. Palari does not select an account tier or a
+default rate ceiling. One pacer instance can coordinate multiple transports
+in the same process. Before each physical request, the transport charges a
+conservative content-free unit estimate: serialized request bytes plus the
+declared `max_output_tokens`. The rolling pacer records admitted units, waits,
+and total waited milliseconds. A request larger than its ceiling is admitted
+only into an empty window, so it cannot deadlock. This local pacer does not
+coordinate independent processes or hosts.
+
+The transport still makes one physical request and never retries. HTTP 429 is
+terminal. Its typed error includes only bounded allowlisted metadata when the
+provider supplies it: status, request ID, `retry-after`, and the request/token
+limit, remaining, and reset headers. The adapter does not read or include the
+provider response body in this error.
 
 The default is `gpt-5.6-luna` through `POST /v1/responses`, `store: false`,
 low reasoning effort, and at most eleven model dispatches for normal planning,

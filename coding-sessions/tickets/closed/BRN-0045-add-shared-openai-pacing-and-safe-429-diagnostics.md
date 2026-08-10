@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0045
 children: []
-status: open
+status: accepted
 risk: R2
 priority: P1
 agents_allowed: 2
@@ -118,3 +118,39 @@ failures without adding automatic retries or changing request semantics.
 - Stop if the work needs a path outside `allowed_paths` or touches `forbidden_paths`.
 - Stop if pacing requires reading account limits from a credentialed provider,
   silently retrying a failed call, or choosing a hidden default usage tier.
+
+## Specialist Closeout
+
+- Added an explicit rolling pacer that one or more OpenAI transports can share
+  in the same process. It records admitted units, waits, and waited time.
+- Added deterministic conservative units from serialized UTF-8 request bytes
+  plus declared output tokens. One oversized request can enter only an empty
+  window.
+- The transport awaits an optional pacer once before `fetch`, keeps the wire
+  unchanged, and performs no retry.
+- HTTP 429 remains terminal. Its typed error contains only bounded allowlisted
+  status, request ID, retry-after, and rate-limit header metadata. The response
+  body and credentials are absent.
+- Focused OpenAI contracts pass 45/45, alpha passes 90/90, quickstart passes
+  6/6, and legacy passes 945 with 15 optional skips and zero failures across
+  960 tests.
+- An initial legacy failure showed that a main-entry re-export changed frozen
+  import graphs. That unnecessary export was removed. The supported public API
+  remains on `palari-brain/openai`, and the affected focused test passes.
+- No provider, credential, private artifact, dataset, production service, or
+  sealed U8 question was accessed.
+
+## Acceptance
+
+- Founder acceptance: the founder authorized execution of BRN-0045,
+  BRN-0046, and BRN-0047 and directed merge after clean independent review.
+- Accepted candidate: `242b05cf10f3c942adbacbd785804bed4eda5b79`.
+- The first independent review reopened the ticket for trailing whitespace in
+  two ticket metadata lines. The defect was fixed and the failing diff gate
+  now passes.
+- A fresh independent rereviewer recommends ACCEPT with no unresolved P0-P3
+  findings. Focused 45/45, alpha 90/90, quickstart 6/6, legacy 945 pass with
+  15 optional skips, ticket, report, scope, diff, concurrency, and 429 safety
+  checks pass.
+- The accepted ticket may move to `tickets/closed/`, merge to `main`, and
+  push before BRN-0046 starts.

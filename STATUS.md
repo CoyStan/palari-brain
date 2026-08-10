@@ -2,6 +2,25 @@
 
 ## 2026-08-10 current handoff
 
+BRN-0045 has a provider-free candidate for shared OpenAI request pacing and
+safe rate-limit diagnostics. Callers can create one explicit rolling pacer and
+share it across transports in the same process. Each transport awaits it once
+before its one physical request; no retry or request mutation was added. The
+pacer charges serialized request bytes plus the declared output ceiling,
+admits an oversized request only into an empty window, and reports only unit
+and wait totals. HTTP 429 remains terminal and now carries bounded allowlisted
+status, request ID, retry-after, and rate-limit headers without reading the
+response body. No tier or rate ceiling is selected by Palari. No provider,
+credential, private artifact, dataset, or sealed U8 item was accessed during
+implementation.
+Focused OpenAI contracts pass 45/45, the alpha gate passes 90/90, quickstart
+passes 6/6, and the complete legacy tier passes 945 with 15 optional skips
+and zero failures across 960 tests. An initial legacy run found that exporting
+the pacer from the main package entry changed frozen historical import graphs;
+the unnecessary main-entry export was removed, the OpenAI subpath remains the
+documented public surface, and both the affected focused contract and full
+legacy rerun pass.
+
 BRN-0044 is accepted, merged, and pushed. It adds graceful model-dispatch
 closure.
 The configured limit still bounds normal planning, retrieval, confirmation,
