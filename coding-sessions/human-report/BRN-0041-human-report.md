@@ -44,6 +44,10 @@ search finishes and its new page is reviewed. This does not add another model
 reasoning rule; it only prevents unfinished work from being mistaken for
 finished work.
 
+The final review found the public API guide still described the old limits.
+It now states the actual eleven-dispatch emergency ceiling and explains that a
+recommendation cannot omit evidence its own reviewer called material.
+
 All work was provider-free. Focused tests pass 44/44, core tests 88/88,
 quickstart 6/6, and legacy 924 pass with 15 optional skips and zero failures.
 

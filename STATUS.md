@@ -478,6 +478,13 @@ that item is reviewed. Focused tests now pass 44/44, core passes 88/88,
 quickstart passes 6/6, and legacy passes 924 with 15 optional skips and zero
 failures across 939 tests.
 
+A fourth independent review found no remaining P0 or P1 code issue. It found
+two stale public API statements: three references to the former seven-dispatch
+ceiling and an incomplete description of recommendation evidence validation.
+The API now states the actual eleven-dispatch emergency ceiling and explains
+that a non-abstaining recommendation must cite evidence its own confirmation
+reviewer marked material. The host still does not decide materiality.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate

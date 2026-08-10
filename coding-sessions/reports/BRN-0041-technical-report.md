@@ -63,6 +63,11 @@
   refuses concurrent confirmation searches, and refuses bounded completion
   until the final search settles. A real 20-item page plus one final unseen
   item proves the final item must be assessed before commitment.
+- A fourth independent review found two stale public API statements rather
+  than a code defect: the old seven-dispatch ceiling and the pre-confirmation
+  recommendation-ID rule. The API now documents the eleven-dispatch emergency
+  ceiling and the conditional requirement to cite evidence the reviewer
+  itself marked material.
 
 ## Risks / Follow-Ups
 

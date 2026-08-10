@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0041
 children: []
-status: in-review
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-10T00:31:53Z
 target_branch: "main"
 branch: "ticket/BRN-0041-let-the-model-own-confirmation-work"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0041-let-the-model-own-confirmation-work"
@@ -208,6 +208,13 @@ cover both clean closure and bounded-incomplete repair. Focused tests now pass
 43/43; core remains 87/87; quickstart remains 6/6; legacy passes 923 with 15
 optional skips and zero failures across 938 tests. Fresh independent review is
 still required.
+
+A fourth independent review found no remaining P0 or P1 code defect and
+reopened only two stale API statements. The API now uses the actual
+eleven-dispatch emergency ceiling and documents the confirmation-only rule
+that non-abstaining recommendations cite evidence the reviewer itself marked
+material. The correction requires documentation verification before founder
+acceptance.
 
 A third independent review found a race available to custom providers that do
 not await retrieval: the final allowed search incremented the call count
