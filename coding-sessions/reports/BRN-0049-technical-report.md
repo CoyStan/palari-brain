@@ -60,5 +60,10 @@
 - The gate rereview found no implementation defect but reopened exact commit
   `beb5e1e` for the missing required three-actor regression. The new test uses
   a real child publisher while stale recovery holds the gate and a live
-  replacement appears. The child waits, the replacement is not stolen, and
-  both later admissions remain within the request and unit ceilings.
+  replacement appears.
+- The acceptance rereview reopened exact commit `613fa42` because that test
+  used an in-process synthetic live owner. The strengthened test now uses a
+  real live-owner child and a separate publisher child. It proves no admission
+  before the owner releases its lock, both later admissions remain within the
+  request and unit ceilings, and no derived lock, gate, candidate, or
+  quarantine path remains.

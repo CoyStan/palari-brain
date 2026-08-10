@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { utimesSync, writeFileSync } from 'node:fs'
-import { access, mkdtemp, readFile, unlink, utimes, writeFile } from 'node:fs/promises'
+import { existsSync, utimesSync, writeFileSync } from 'node:fs'
+import { access, mkdtemp, readFile, readdir, unlink, utimes, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -445,12 +445,17 @@ test('an abandoned acquisition gate fails closed without publishing a lock', asy
   await assert.rejects(access(`${statePath}.lock`), /ENOENT/u)
 })
 
-test('gate serializes stale recovery, live replacement, and a child publisher', async () => {
+test('gate serializes a stale observer, live-owner child, and publisher child', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-pacer-three-actor-'))
   const statePath = path.join(directory, 'pacer.json')
   const lockPath = `${statePath}.lock`
-  const startPath = path.join(directory, 'start')
-  const readyPath = path.join(directory, 'ready')
+  const ownerStartPath = path.join(directory, 'owner-start')
+  const ownerReadyPath = path.join(directory, 'owner-ready')
+  const ownerLivePath = path.join(directory, 'owner-live')
+  const ownerReleasePath = path.join(directory, 'owner-release')
+  const ownerDonePath = path.join(directory, 'owner-done')
+  const publisherStartPath = path.join(directory, 'publisher-start')
+  const publisherReadyPath = path.join(directory, 'publisher-ready')
   const deadPid = 2_147_483_647
   const old = new Date(Date.now() - 60_000)
   await writeFile(lockPath, `${JSON.stringify({
@@ -461,7 +466,24 @@ test('gate serializes stale recovery, live replacement, and a child publisher', 
   await utimes(lockPath, old, old)
 
   const moduleUrl = new URL('../evals/rolling-token-pacer.mjs', import.meta.url).href
-  const worker = `
+  const ownerWorker = `
+    import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+    import { setTimeout as delay } from 'node:timers/promises'
+    const [lockPath, startPath, readyPath, livePath, releasePath, donePath] = process.argv.slice(1)
+    writeFileSync(readyPath, 'ready', { mode: 0o600 })
+    while (!existsSync(startPath)) await delay(1)
+    writeFileSync(lockPath, JSON.stringify({
+      schema: 'palari-shared-rolling-pacer/v1',
+      pid: process.pid,
+      token: 'live-owner',
+    }) + '\\n', { mode: 0o600 })
+    writeFileSync(livePath, 'live', { mode: 0o600 })
+    while (!existsSync(releasePath)) await delay(1)
+    const owner = JSON.parse(readFileSync(lockPath, 'utf8'))
+    if (owner.pid === process.pid && owner.token === 'live-owner') unlinkSync(lockPath)
+    writeFileSync(donePath, 'done', { mode: 0o600 })
+  `
+  const publisherWorker = `
     import { existsSync, writeFileSync } from 'node:fs'
     import { setTimeout as delay } from 'node:timers/promises'
     import { createFileRollingTokenPacer } from ${JSON.stringify(moduleUrl)}
@@ -478,33 +500,46 @@ test('gate serializes stale recovery, live replacement, and a child publisher', 
     await pacer.pace(1)
     process.stdout.write(JSON.stringify(pacer.stats))
   `
-  const childRun = childResult(spawn(process.execPath, [
-    '--input-type=module', '--eval', worker, statePath, startPath, readyPath,
+  const ownerRun = childResult(spawn(process.execPath, [
+    '--input-type=module', '--eval', ownerWorker,
+    lockPath, ownerStartPath, ownerReadyPath, ownerLivePath, ownerReleasePath, ownerDonePath,
+  ], { stdio: ['ignore', 'pipe', 'pipe'] }))
+  const publisherRun = childResult(spawn(process.execPath, [
+    '--input-type=module', '--eval', publisherWorker,
+    statePath, publisherStartPath, publisherReadyPath,
   ], { stdio: ['ignore', 'pipe', 'pipe'] }))
   const readyDeadline = Date.now() + 5_000
-  for (;;) {
-    try {
-      await access(readyPath)
-      break
-    } catch {
-      if (Date.now() >= readyDeadline) assert.fail('child publisher did not become ready.')
-      await new Promise((resolve) => setTimeout(resolve, 5))
+  for (const [readyPath, label] of [
+    [ownerReadyPath, 'owner'],
+    [publisherReadyPath, 'publisher'],
+  ]) {
+    for (;;) {
+      try {
+        await access(readyPath)
+        break
+      } catch {
+        if (Date.now() >= readyDeadline) assert.fail(`${label} child did not become ready.`)
+        await new Promise((resolve) => setTimeout(resolve, 5))
+      }
     }
   }
 
   const originalKill = process.kill
   let deadChecks = 0
-  let liveLockReleased = false
+  let ownerReleased = false
+  let noAdmissionBeforeRelease = false
   process.kill = (pid, signal) => {
     if (pid === deadPid && signal === 0) {
       deadChecks += 1
       if (deadChecks === 2) {
-        writeFileSync(lockPath, `${JSON.stringify({
-          schema: 'palari-shared-rolling-pacer/v1',
-          pid: process.pid,
-          token: 'live-owner',
-        })}\n`)
-        writeFileSync(startPath, 'start')
+        writeFileSync(ownerStartPath, 'start')
+        const ownerDeadline = Date.now() + 5_000
+        const waitArray = new Int32Array(new SharedArrayBuffer(4))
+        while (!existsSync(ownerLivePath)) {
+          if (Date.now() >= ownerDeadline) throw new Error('owner child did not publish its live lock.')
+          Atomics.wait(waitArray, 0, 0, 2)
+        }
+        writeFileSync(publisherStartPath, 'start')
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100)
       }
       const error = new Error('dead synthetic owner')
@@ -521,14 +556,27 @@ test('gate serializes stale recovery, live replacement, and a child publisher', 
       maxUnits: 2,
       statePath,
       wait: async () => {
-        try {
-          const owner = JSON.parse(await readFile(lockPath, 'utf8'))
-          if (owner.token === 'live-owner') {
-            await unlink(lockPath)
-            liveLockReleased = true
+        if (!ownerReleased) {
+          try {
+            await access(statePath)
+            noAdmissionBeforeRelease = false
+          } catch (error) {
+            if (error?.code !== 'ENOENT') throw error
+            noAdmissionBeforeRelease = true
           }
-        } catch (error) {
-          if (error?.code !== 'ENOENT') throw error
+          await writeFile(ownerReleasePath, 'release', { mode: 0o600 })
+          const ownerDeadline = Date.now() + 5_000
+          for (;;) {
+            try {
+              await access(ownerDonePath)
+              break
+            } catch (error) {
+              if (error?.code !== 'ENOENT') throw error
+              if (Date.now() >= ownerDeadline) assert.fail('owner child did not release its lock.')
+              await new Promise((resolve) => setTimeout(resolve, 1))
+            }
+          }
+          ownerReleased = true
         }
         await new Promise((resolve) => setImmediate(resolve))
       },
@@ -537,12 +585,18 @@ test('gate serializes stale recovery, live replacement, and a child publisher', 
   } finally {
     process.kill = originalKill
   }
-  const child = await childRun
-  assert.equal(child.status, 0, child.stderr)
-  assert.ok(JSON.parse(child.stdout).lockWaits > 0)
+  const [owner, publisher] = await Promise.all([ownerRun, publisherRun])
+  assert.equal(owner.status, 0, owner.stderr)
+  assert.equal(publisher.status, 0, publisher.stderr)
+  assert.ok(JSON.parse(publisher.stdout).lockWaits > 0)
   assert.equal(deadChecks, 2)
-  assert.equal(liveLockReleased, true)
+  assert.equal(ownerReleased, true)
+  assert.equal(noAdmissionBeforeRelease, true)
   const state = JSON.parse(await readFile(statePath, 'utf8'))
   assert.equal(state.events.length, 2)
   assert.equal(state.events.reduce((sum, event) => sum + event.units, 0), 2)
+  assert.deepEqual(
+    (await readdir(directory)).filter((name) => name.startsWith('pacer.json.')),
+    [],
+  )
 })

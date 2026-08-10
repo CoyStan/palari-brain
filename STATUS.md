@@ -37,10 +37,12 @@ or recovered publication. An abandoned gate is terminal instead of being
 stolen. This removes the check-to-publication gap and keeps the no-retry
 provider boundary unchanged.
 
-The gate rereview found no new implementation defect but required a direct
-three-actor regression. A real child publisher now contends while a stale
-owner is quarantined and a live replacement appears. It waits on the gate;
-both later admissions stay within the shared ceilings.
+The gate rereviews found no new implementation defect but required a direct
+three-actor regression. The final test uses one real live-owner child and one
+real publisher child while the parent holds a stale observation. It proves
+that neither worker admits work before the owner releases its lock, both later
+admissions stay within the shared ceilings, and every derived lock, gate,
+candidate, and quarantine path is removed.
 
 BRN-0048 has a provider-free candidate for the remaining instrument
 commitment failure. A local replay of all 13 recorded model responses made

@@ -32,7 +32,9 @@ owned claim. A later live lock stays in place, and two recoverers serialize.
 The next reviewer found that publishing a new lock did not own that same
 claim. Now all acquisition and recovery work uses one common gate. A worker
 cannot publish while another worker is deciding how to recover a stale lock.
-The required real child-process test now proves this three-actor case.
+The final test uses a real owner child and a separate publisher child. It
+proves that no work starts before the owner releases the lock. It also proves
+that no temporary lock or recovery path remains.
 
 ## What To Check
 
