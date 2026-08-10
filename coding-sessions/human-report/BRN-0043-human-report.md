@@ -41,7 +41,7 @@ cgroup or container boundary.
 
 ## Recommended Next Move
 
-Accept only after a clean independent review. Then run the native profile in a
-supervised process before deciding whether a separate 512-token passage/MaxP
-or AVX2 uint8 challenger is worthwhile. Do not resume paid hard cases merely
-because the mock and product contracts pass.
+Accept only after a clean independent review. Then run the frozen bank and
+native profile in a supervised process before deciding whether a separate
+512-token passage/MaxP or AVX2 uint8 challenger is worthwhile. Do not resume
+paid hard cases merely because the mock and product contracts pass.

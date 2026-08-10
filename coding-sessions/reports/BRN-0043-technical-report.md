@@ -36,9 +36,10 @@
 - `npm run ettin-bakeoff`: PASS, inert identity verification; same model,
   artifacts, 16-case bank, and audited runtime closure pins.
 - `git diff --check`: PASS.
-- Native `--profile`: NOT RUN. It requires explicit audited runtime/cache paths
-  outside the worktree. The ticket forbids private alpha artifacts and makes no
-  native RSS claim without that execution.
+- Native frozen-bank `--run` and `--profile`: NOT RUN. Both require explicit
+  audited runtime/cache paths outside the worktree. The ticket forbids private
+  alpha artifacts and makes no historical-rank or native-RSS claim without
+  those executions.
 - Paid/live tests: NOT RUN and forbidden by ticket scope.
 
 ## Risks / Follow-Ups

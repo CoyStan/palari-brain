@@ -44,8 +44,8 @@ state, so OS-level worker containment remains a separate operations step.
 Likewise 512-token Ettin passage windows, MaxP, AVX2 uint8, fused-head ONNX,
 candidate reduction below 50, and model/runtime replacement remain separate
 quality challengers after the full-context FP32 safety baseline receives its
-native profile and independent review. No provider, credential, dataset,
-private alpha artifact, or sealed U8 question was accessed.
+frozen-bank parity run, native profile, and independent review. No provider,
+credential, dataset, private alpha artifact, or sealed U8 question was accessed.
 
 The OpenAI final-answer wire no longer asks the model to transcribe evidence
 IDs or quote text already held by the host. For every answer base, the model
