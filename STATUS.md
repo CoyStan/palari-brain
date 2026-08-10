@@ -2,7 +2,8 @@
 
 ## 2026-08-10 current handoff
 
-BRN-0044 adds a provider-free candidate for graceful model-dispatch closure.
+BRN-0044 is accepted, merged, and pushed. It adds graceful model-dispatch
+closure.
 The configured limit still bounds normal planning, retrieval, confirmation,
 and answer work. If that limit ends without an accepted answer, the OpenAI
 adapter now allows at most two additional closure-only calls: the first may
@@ -19,8 +20,32 @@ exact physical-call exhaustion. The alpha gate passes 90/90, quickstart passes
 6/6, and the complete legacy tier passes 942 with 15 optional skips and zero
 failures across 957 tests. No provider, credential, private alpha
 artifact, dataset, or sealed U8 question was accessed in the ticket worktree.
-The paused S60 alpha campaign and any founder-authorized failed-case rerun are
-outside the ticket and remain pending review, acceptance, merge, and push.
+
+The founder-authorized S60 alpha diagnostic is complete with all 60 questions
+terminal and sealed U8 excluded. Of 51 delivered and judged answers, 47 were
+correct and 4 incorrect: 92.2% judged-answer accuracy. Strict end-to-end
+accounting treats 9 unjudged execution failures as non-successes, giving
+47/60, or 78.3%. A separate founder-requested manual directional review found
+7 of those 9 failed cases directionally correct, 1 directionally incorrect,
+and 1 without an answer to review. That informal inclusive diagnostic is
+54/60, or 90.0%; it is not a benchmark regrade and does not replace the
+recorded judge or failure artifacts.
+
+The 9 effective execution failures comprise four HTTP 429 responses, one
+malformed candidate review, three commitments that remained host-invalid
+after one repair, and one invalid retrieval-frontier anchor before any answer.
+The content of the three invalid commitments and the malformed-review case was
+directionally correct, which supports simplifying repeated free-text evidence
+dispositions without weakening host evidence coverage. Original failures
+remain preserved. The five recorded pre-fix dispatch failures received one
+founder-authorized post-merge repair attempt: four completed and were judged
+correct; one produced a directionally useful answer but ended on HTTP 429.
+The remaining questions ran after merge commit `587eb8f`, with a separate
+provider-free recovery namespace for numeric-only ID `65240037`. Private
+timing-only OpenAI pacing was added after observed 429 bursts; it did not retry
+requests or change prompts, models, retrieval, commitments, or judging. The
+aggregate ledger moved from `$47.5013642` to `$61.0304734`, an accounted S60
+increase of `$13.5291092`, below the approved `$90.00` ceiling.
 
 The repository now presents Palari Brain as an evidence-first memory kernel
 with the tagline “Memory that can show its work.” A current read-only survey of
