@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -275,6 +275,45 @@ test('CLI budget persists across two invocations and stops at the aggregate cap'
   )
   const state = JSON.parse(await readFile(path.join(directory, '.palari-alpha/budget.json'), 'utf8'))
   assert.equal(state.accountedUsd, 0.04)
+})
+
+test('CLI admits an exact decimal cap boundary without exceeding it', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-alpha-decimal-cap-'))
+  const adapterPath = path.join(directory, 'adapter.mjs')
+  const alphaDirectory = path.join(directory, '.palari-alpha')
+  await mkdir(alphaDirectory)
+  await writeFile(path.join(alphaDirectory, 'budget.json'), JSON.stringify({
+    schema: 'palari-alpha-budget/v1',
+    accountedUsd: 38.61155714,
+  }))
+  await writeFile(adapterPath, `
+    export function createAlphaRun() {
+      return {
+        questions: [{ id: 'q1' }],
+        dependencies: {
+          writer: () => 'memory',
+          answer: { maxCostUsd: 0.70, invoke: () => ({ output: 'answer', costUsd: 0 }) },
+        },
+      }
+    }
+  `)
+  const runner = new URL('../evals/run-alpha-memory-debug.mjs', import.meta.url).pathname
+  const result = spawnSync(process.execPath, [
+    runner,
+    '--adapter', adapterPath,
+    '--max-dollar', '39.31155714',
+  ], { cwd: directory, encoding: 'utf8' })
+  assert.equal(result.status, 0, result.stderr)
+  const summary = JSON.parse(result.stdout)
+  assert.equal(summary.completed, 1)
+  assert.equal(summary.stoppedForBudget, false)
+  assert.equal(summary.openingAccountedUsd, 38.61155714)
+  assert.equal(summary.spentUsd, 38.61155714)
+  const state = JSON.parse(await readFile(
+    path.join(alphaDirectory, 'budget.json'),
+    'utf8',
+  ))
+  assert.ok(state.accountedUsd <= 39.31155714)
 })
 
 test('failed CLI stage retains reservation and later caps use it', async () => {

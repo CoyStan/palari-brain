@@ -485,6 +485,48 @@ The API now states the actual eleven-dispatch emergency ceiling and explains
 that a non-abstaining recommendation must cite evidence its own confirmation
 reviewer marked material. The host still does not decide materiality.
 
+The founder then authorized one fresh no-retry health-device diagnostic on
+merged BRN-0041 under aggregate ceiling `$39.31155714`. The first v11
+invocation made no provider call and spent nothing: binary floating-point
+addition represented the exact `$38.61155714 + $0.70` reservation a few
+quadrillionths above the decimal cap, so the alpha runner stopped before the
+answer stage. The runner now compares dollar boundaries with a one-billionth
+of a dollar tolerance and normalizes persisted arithmetic to twelve decimal
+places. A focused exact-boundary CLI contract proves the reservation is
+admitted without storing a value above the authorized cap.
+
+The fresh v12 diagnostic then completed `gpt4_31ff4165` once with no retry or
+inter-case tuning. Palari answered **4**—Accu-Chek Aviva Nano, Fitbit Versa 3,
+nebulizer machine, and Phonak BTE hearing aids—and the official judge returned
+`Yes`. All 6/6 dataset-marked spans were consulted. The four smallest decisive
+device facts were retrieved, selected, and materially used; one additional
+hearing-aid battery span was selected as corroborating but explicitly not used
+as another device. This is a successful alpha diagnostic, not a benchmark
+regrade.
+
+Confirmation used all four searches and four sparse reviews. Its 71 returned
+candidates were 71 unique evidence IDs across disjoint 20/18/14/19 pages; all
+four generated queries were distinct, 69 candidates were ignored without
+recurrence, and there were zero confirmation budget refusals or durable
+writes. Round one found direct current hearing-aid use and changed the answer
+to four; round two found corroborating hearing-aid battery evidence; rounds
+three and four found nothing material. The final pages were character-
+truncated, so Palari correctly did not claim a clean no-new-information round.
+BRN-0041 preserved the latest host-valid answer as `bounded_incomplete` with
+`closureReason: "emergency_bound"` instead of discarding it. No bridge was
+needed, so this case still provides no positive evidence for learned co-use
+edges.
+
+Measured fresh spend was `$0.03903765`: `$0.00011505` Gemini embedding,
+`$0.03841760` Luna across the main and independent confirmation sessions, and
+`$0.00050500` for the official judge. The aggregate ledger closed at
+`$38.65059479`, leaving `$0.66096235` below the approved ceiling. The frozen
+source database remained exactly
+`b1ac32ef9e5ce86cd7509eec1891e0080a80a1b7dc269b2f2c1c0efca3a1f70b`.
+After the decimal correction, `npm test` passes 89/89, quickstart passes 6/6,
+and the complete legacy suite passes 937 with 3 skips and zero failures across
+940 tests.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate

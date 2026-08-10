@@ -6,6 +6,7 @@ const DEFAULT_LOG_PATH = '.palari-alpha/memory-debug.jsonl'
 const DEFAULT_BUDGET_PATH = '.palari-alpha/budget.json'
 const BUDGET_SCHEMA = 'palari-alpha-budget/v1'
 const STAGES = ['writer', 'embedder', 'reranker', 'answer']
+const USD_COMPARISON_TOLERANCE = 1e-9
 
 function finiteNonnegative(value, label) {
   const parsed = Number(value)
@@ -13,6 +14,10 @@ function finiteNonnegative(value, label) {
     throw new Error(`${label} must be a finite nonnegative number.`)
   }
   return parsed
+}
+
+function normalizedUsd(value) {
+  return Math.round(value * 1e12) / 1e12
 }
 
 function normalizeDependency(dependency, name, required) {
@@ -83,17 +88,20 @@ export function createFileBudgetStore(budgetPath = DEFAULT_BUDGET_PATH) {
     },
     async reserve(amountUsd, capUsd) {
       const current = await readBudgetState(absolute)
-      if (current + amountUsd > capUsd + Number.EPSILON) return null
-      const accountedUsd = current + amountUsd
+      const requestedUsd = current + amountUsd
+      if (requestedUsd > capUsd + USD_COMPARISON_TOLERANCE) return null
+      const accountedUsd = normalizedUsd(Math.min(requestedUsd, capUsd))
       await writeBudgetState(absolute, accountedUsd)
       return accountedUsd
     },
     async settle(reservedUsd, actualUsd) {
       const current = await readBudgetState(absolute)
-      if (current + Number.EPSILON < reservedUsd) {
+      if (current + USD_COMPARISON_TOLERANCE < reservedUsd) {
         throw new Error('budget state is smaller than the active reservation.')
       }
-      const accountedUsd = Math.max(0, current - reservedUsd + actualUsd)
+      const accountedUsd = normalizedUsd(
+        Math.max(0, current - reservedUsd + actualUsd),
+      )
       await writeBudgetState(absolute, accountedUsd)
       return accountedUsd
     },
@@ -105,12 +113,15 @@ function createMemoryBudgetStore() {
   return {
     async load() { return accountedUsd },
     async reserve(amountUsd, capUsd) {
-      if (accountedUsd + amountUsd > capUsd + Number.EPSILON) return null
-      accountedUsd += amountUsd
+      const requestedUsd = accountedUsd + amountUsd
+      if (requestedUsd > capUsd + USD_COMPARISON_TOLERANCE) return null
+      accountedUsd = normalizedUsd(Math.min(requestedUsd, capUsd))
       return accountedUsd
     },
     async settle(reservedUsd, actualUsd) {
-      accountedUsd = Math.max(0, accountedUsd - reservedUsd + actualUsd)
+      accountedUsd = normalizedUsd(
+        Math.max(0, accountedUsd - reservedUsd + actualUsd),
+      )
       return accountedUsd
     },
   }
@@ -212,7 +223,7 @@ export async function runAlphaMemoryDebug({
     throw new Error('budgetStore must provide load, reserve, and settle.')
   }
   const openingAccountedUsd = finiteNonnegative(await budgetStore.load(), 'opening accounted spend')
-  if (openingAccountedUsd > capUsd + Number.EPSILON) {
+  if (openingAccountedUsd > capUsd + USD_COMPARISON_TOLERANCE) {
     throw new Error(`maxDollar $${capUsd} is below prior accounted spend $${openingAccountedUsd}.`)
   }
   let spentUsd = openingAccountedUsd
