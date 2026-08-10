@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0043
 children: []
-status: claimed
+status: in-review
 risk: R2
 priority: P0
 agents_allowed: 2
-claimed_by: "quetza"
-claimed_at: 2026-08-10T09:50:29Z
+claimed_by: 
+claimed_at: 
 target_branch: "main"
 branch: "ticket/BRN-0043-bound-native-reranker-memory"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0043-bound-native-reranker-memory"
