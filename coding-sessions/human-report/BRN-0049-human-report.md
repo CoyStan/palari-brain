@@ -44,5 +44,5 @@ repetitions stayed inside the shared ceiling.
 
 ## Recommended Next Move
 
-Complete independent review. If accepted, merge and push. Then rerun only the
-two remaining live cases under the existing founder-approved aggregate cap.
+Merge and push the accepted ticket. Then rerun only the two remaining live
+cases under the existing founder-approved aggregate cap.

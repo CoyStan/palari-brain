@@ -43,6 +43,9 @@ real publisher child while the parent holds a stale observation. It proves
 that neither worker admits work before the owner releases its lock, both later
 admissions stay within the shared ceilings, and every derived lock, gate,
 candidate, and quarantine path is removed.
+Final independent review accepted exact commit `38e9187` with no unresolved
+P0-P3 issue. Founder acceptance is recorded under the approved reliability
+cycle.
 
 BRN-0048 has a provider-free candidate for the remaining instrument
 commitment failure. A local replay of all 13 recorded model responses made

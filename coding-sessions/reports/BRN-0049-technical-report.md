@@ -67,3 +67,5 @@
   before the owner releases its lock, both later admissions remain within the
   request and unit ceilings, and no derived lock, gate, candidate, or
   quarantine path remains.
+- Final independent review accepted exact commit `38e9187` with no unresolved
+  P0-P3 finding. It reran every declared test and governance gate.
