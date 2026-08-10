@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0046
 children: []
-status: open
+status: accepted
 risk: R2
 priority: P0
 agents_allowed: 2
@@ -20,6 +20,7 @@ allowed_paths:
   - "src/retrieval-answer.mjs"
   - "tests/openai.contract.test.mjs"
   - "tests/answer-confirmation.contract.test.mjs"
+  - "tests/openai-counted-responses.contract.test.mjs"
   - "docs/BRAIN-API.md"
   - "STATUS.md"
   - "coding-sessions/tickets/open/BRN-0046-*.md"
@@ -126,3 +127,53 @@ candidate review without starting another search.
 - Stop if simplification permits silent omission of reviewer-marked material
   evidence, host-authored facts, another retrieval call, or more than one
   review-format repair.
+
+## Specialist Closeout
+
+- Replaced the model-facing detailed `bases` array with `usedMemories` and
+  `excludedMaterialMemories`. Used entries contain one short contribution.
+  Excluded material entries contain one of six fixed reason codes. Unrelated
+  returned rows can be omitted.
+- Kept the host boundary unchanged. The adapter resolves answer-local memory
+  numbers to host-owned evidence IDs and exact bounded excerpts. It rejects
+  unknown, duplicate, unreturned, or unsupported references. A
+  non-abstaining answer still needs at least one used memory.
+- Kept a used-only legacy parser shape for previously captured callers. The
+  declared model tool does not expose that shape, and legacy free-text
+  exclusions are not accepted.
+- Added one normal-budget, review-only repair for a malformed candidate
+  review. It uses the same pending page and cannot search, plan, bridge, read,
+  graph, timeline, or commit an answer. A second invalid review, refusal,
+  empty response, forbidden tool, or exhausted normal budget is terminal.
+- Updated host operation auditing so only the first malformed review is
+  recoverable after a later valid review of the same pending page. No search
+  or closure allowance is added.
+- Refreshed only the active answer-wire byte and hash pin for the changed
+  schema. The consumed BRN-0025 compatibility pins remain unchanged.
+- The first independent review found one P2 gap: malformed JSON or non-object
+  candidate-review arguments failed before the repair path. Both forms now
+  enter the same single review-only repair, and another malformed response is
+  terminal.
+- The first rereview found a second P2 parser-order gap: a malformed review
+  mixed with another call could enter answer-commit repair. Any mixed
+  candidate-review response now fails before either repair fallback.
+- Focused contracts pass 77/77, core passes 91/91, quickstart passes 6/6, and
+  legacy passes 964 with 15 optional skips and zero failures across 979 tests.
+- No provider, credential, private artifact, dataset, production service, or
+  sealed U8 question was accessed.
+
+## Acceptance
+
+- Founder acceptance: the founder authorized execution of BRN-0045,
+  BRN-0046, and BRN-0047 and directed merge after clean independent review.
+- Accepted candidate: `40d8d2029d8e46c65ff12698c76c56677323ab98`.
+- The first independent review reopened the ticket for malformed JSON and
+  non-object candidate-review arguments that failed before repair. The first
+  rereview reopened it because mixed malformed reviews could enter
+  answer-commit repair. Both P2 findings are fixed with direct contracts.
+- A fresh final rereviewer recommends ACCEPT with no unresolved P0-P3
+  findings. Focused 77/77, core 91/91, quickstart 6/6, legacy 964 pass with
+  15 optional skips, governance gates, and an independent eight-case
+  mixed-call order matrix pass.
+- The accepted ticket may move to `tickets/closed/`, merge to `main`, and
+  push before BRN-0047 starts.

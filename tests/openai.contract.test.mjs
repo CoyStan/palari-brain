@@ -103,7 +103,7 @@ function evidenceAnswer(text, entries) {
     bases: entries.map(({ row, used = true }) => ({
       consequence_for_answer: used ? 'This determines the answer.' : '',
       evidenceId: row.evidenceId,
-      not_used_reason: used ? '' : 'This was superseded by newer evidence.',
+      not_used_reason: used ? '' : 'superseded',
       quote: row.text,
     })),
     temporaryInferences: [],
@@ -114,15 +114,20 @@ function evidenceAnswer(text, entries) {
 function numberedEvidenceAnswer(text, entries) {
   return {
     abstained: false,
-    bases: entries.map(({ row, used = true }, index) => ({
-      disposition: used ? 'used' : 'not_used',
-      memoryNumber: row.memoryNumber ?? index + 1,
-      rationale: used
-        ? 'This determines the answer.'
-        : 'This was superseded by newer evidence.',
-    })),
+    excludedMaterialMemories: entries
+      .map(({ row, used = true }, index) => ({
+        memoryNumber: row.memoryNumber ?? index + 1,
+        reasonCode: used ? null : 'superseded',
+      }))
+      .filter(({ reasonCode }) => reasonCode),
     temporaryInferences: [],
     text,
+    usedMemories: entries
+      .map(({ row, used = true }, index) => ({
+        contribution: used ? 'This determines the answer.' : '',
+        memoryNumber: row.memoryNumber ?? index + 1,
+      }))
+      .filter(({ contribution }) => contribution),
   }
 }
 
@@ -555,22 +560,67 @@ test('OpenAI answer commitment wire distinguishes use, non-use, and temporary in
       tool.name === OPENAI_ANSWER_COMMIT_TOOL_NAME)
     assert.deepEqual(commit.parameters.required, [
       'abstained',
-      'bases',
+      'usedMemories',
+      'excludedMaterialMemories',
       'temporaryInferences',
       'text',
     ])
-    assert.deepEqual(commit.parameters.properties.bases.items.required, [
+    assert.deepEqual(commit.parameters.properties.usedMemories.items.required, [
       'memoryNumber',
-      'disposition',
-      'rationale',
+      'contribution',
+    ])
+    assert.deepEqual(
+      commit.parameters.properties.excludedMaterialMemories.items.required,
+      [
+        'memoryNumber',
+        'reasonCode',
+      ],
+    )
+    assert.deepEqual(
+      commit.parameters.properties.excludedMaterialMemories.items.properties
+        .reasonCode.enum,
+      [
+        'duplicate',
+        'superseded',
+        'outside-time-range',
+        'conflict',
+        'insufficient-authority',
+        'not-relevant',
+      ],
+    )
+    assert.deepEqual(commit.parameters.properties.usedMemories.minItems, 0)
+    assert.deepEqual(
+      commit.parameters.properties.excludedMaterialMemories.minItems,
+      0,
+    )
+    assert.deepEqual(
+      commit.parameters.properties.usedMemories.items.properties.contribution
+        .maxLength,
+      2_000,
+    )
+    assert.deepEqual(
+      commit.parameters.properties.excludedMaterialMemories.items.properties
+        .reasonCode.type,
+      'string',
+    )
+    assert.equal(
+      'rationale' in commit.parameters.properties.usedMemories.items.properties,
+      false,
+    )
+    assert.equal(
+      'rationale' in commit.parameters.properties.excludedMaterialMemories
+        .items.properties,
+      false,
+    )
+    assert.deepEqual(commit.parameters.properties.temporaryInferences.items.required, [
+      'statement',
+      'provenanceMemoryNumbers',
+      'revisable',
+      'consequence_for_answer',
     ])
     const commitSchema = JSON.stringify(commit.parameters)
     assert.ok(!commitSchema.includes('evidenceId'))
     assert.ok(!commitSchema.includes('quote'))
-    assert.deepEqual(
-      commit.parameters.properties.bases.items.properties.disposition.enum,
-      ['used', 'not_used'],
-    )
     assert.ok(commit.parameters.properties.temporaryInferences.items.required
       .includes('provenanceMemoryNumbers'))
     assert.deepEqual(
@@ -578,7 +628,7 @@ test('OpenAI answer commitment wire distinguishes use, non-use, and temporary in
         .revisable.enum,
       [true],
     )
-    assert.match(commit.description, /not every retrieved row/i)
+    assert.match(commit.description, /omit unrelated retrieved rows/i)
     assert.match(commit.description, /temporary/i)
   })
 
@@ -615,10 +665,10 @@ test('OpenAI binds stable memory numbers across all answer commitment surfaces',
         )
         return completedCommit({
           abstained: false,
-          bases: [{
-            disposition: 'used',
+          excludedMaterialMemories: [],
+          usedMemories: [{
+            contribution: 'Alpha is included.',
             memoryNumber: 1,
-            rationale: 'Alpha is included.',
           }],
           enumeration: {
             ambiguousCount: 0,
@@ -697,7 +747,7 @@ test('OpenAI rejects provider-authored quotes and repairs with host-owned text',
       [{ row }],
     )
     const stale = structuredClone(valid)
-    stale.bases[0].quote = 'provider-authored copy'
+    stale.usedMemories[0].quote = 'provider-authored copy'
     const provider = createOpenAIRetrievalProvider({
       async invoke({ body }) {
         bodies.push(body)
@@ -726,8 +776,100 @@ test('OpenAI rejects provider-authored quotes and repairs with host-owned text',
       item.type === 'function_call_output' && item.call_id === 'stale-quote')
     assert.match(
       JSON.parse(rejection.output).rejection,
-      /memoryNumber, disposition, and rationale/,
+      /memoryNumber and contribution/,
     )
+  })
+
+test('compact commitments reject duplicate memory numbers across both lists',
+  async () => {
+    const bodies = []
+    let evidenceCount = 0
+    const row = {
+      evidenceId: 'opaque-duplicate-check',
+      text: 'The passport is in the steel drawer.',
+    }
+    const valid = numberedEvidenceAnswer(
+      'The passport is in the steel drawer.',
+      [{ row }],
+    )
+    const duplicate = structuredClone(valid)
+    duplicate.excludedMaterialMemories.push({
+      memoryNumber: 1,
+      reasonCode: 'conflict',
+    })
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) return completedCall()
+        return completedCommit(bodies.length === 2 ? duplicate : valid, {
+          callId: bodies.length === 2 ? 'duplicate-commit' : 'fixed-commit',
+        })
+      },
+    })
+    const result = await provider(answerSession({
+      answerEvidenceCount: () => evidenceCount,
+      commitAnswer(proposal) {
+        return Object.freeze(proposal)
+      },
+      async retrieve() {
+        evidenceCount = 1
+        return { matches: [row] }
+      },
+    }))
+
+    assert.equal(result.text, 'The passport is in the steel drawer.')
+    assert.equal(bodies.length, 3)
+    const rejection = bodies[2].input.find((item) =>
+      item.type === 'function_call_output' &&
+      item.call_id === 'duplicate-commit')
+    assert.match(JSON.parse(rejection.output).rejection, /appear only once/)
+  })
+
+test('compact non-abstaining commitments require at least one used memory',
+  async () => {
+    const bodies = []
+    let evidenceCount = 0
+    const row = {
+      evidenceId: 'opaque-used-check',
+      text: 'The passport is in the steel drawer.',
+    }
+    const valid = numberedEvidenceAnswer(
+      'The passport is in the steel drawer.',
+      [{ row }],
+    )
+    const excludedOnly = {
+      ...structuredClone(valid),
+      excludedMaterialMemories: [{
+        memoryNumber: 1,
+        reasonCode: 'not-relevant',
+      }],
+      usedMemories: [],
+    }
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) return completedCall()
+        return completedCommit(bodies.length === 2 ? excludedOnly : valid, {
+          callId: bodies.length === 2 ? 'excluded-only' : 'used-memory',
+        })
+      },
+    })
+    const result = await provider(answerSession({
+      answerEvidenceCount: () => evidenceCount,
+      commitAnswer(proposal) {
+        return Object.freeze(proposal)
+      },
+      async retrieve() {
+        evidenceCount = 1
+        return { matches: [row] }
+      },
+    }))
+
+    assert.equal(result.text, 'The passport is in the steel drawer.')
+    assert.equal(bodies.length, 3)
+    const rejection = bodies[2].input.find((item) =>
+      item.type === 'function_call_output' && item.call_id === 'excluded-only')
+    assert.match(JSON.parse(rejection.output).rejection, /used memory/)
   })
 
 test('OpenAI translates recommendation memory numbers to host evidence IDs',
@@ -960,9 +1102,9 @@ test('invalid commitment gets one repair and a second invalid result is terminal
       }])
       const valid = numberedEvidenceAnswer(
         'The returned memory is about a yellow raincoat, not the requested item.',
-        [{ row, used: false }],
+        [{ row }],
       )
-      const validHost = evidenceAnswer(valid.text, [{ row, used: false }])
+      const validHost = evidenceAnswer(valid.text, [{ row }])
       const provider = createOpenAIRetrievalProvider({
         async invoke({ body }) {
           bodies.push(body)
@@ -1139,6 +1281,402 @@ test('confirmation candidate review is ephemeral and remains available after the
       name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
       type: 'function',
     })
+  })
+
+test('one malformed candidate review gets one normal-budget review-only repair',
+  async () => {
+    const bodies = []
+    let searches = 0
+    let reviews = 0
+    let closed = false
+    const row = { evidenceId: 'evidence-1', text: 'violet folder' }
+    const proposal = evidenceAnswer(
+      'The key is in the violet folder.',
+      [{ row }],
+    )
+    const wireProposal = numberedEvidenceAnswer(proposal.text, [{ row }])
+    const provider = createOpenAIRetrievalProvider({
+      maxModelDispatches: 5,
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) {
+          return completedCall({
+            arguments: '{"phrase":"check current key location"}',
+            callId: 'review-repair-search',
+            name: 'memory_search',
+          })
+        }
+        if (bodies.length === 2) {
+          return completedCall({
+            arguments: JSON.stringify({
+              findings: [{
+                candidateNumber: 2,
+                reason: 'Outside the pending page.',
+              }],
+            }),
+            callId: 'malformed-review',
+            name: 'memory_candidate_review',
+          })
+        }
+        if (bodies.length === 3) {
+          assert.deepEqual(
+            body.tools.map(({ name }) => name),
+            ['memory_candidate_review'],
+          )
+          assert.deepEqual(body.tool_choice, {
+            name: 'memory_candidate_review',
+            type: 'function',
+          })
+          assert.match(body.instructions, /same pending candidate page/i)
+          assert.match(body.instructions, /No answer commitment, search/i)
+          const rejection = body.input.find((item) =>
+            item.type === 'function_call_output' &&
+            item.call_id === 'malformed-review')
+          assert.match(
+            JSON.parse(rejection.output).rejection,
+            /latest page integer from 1 to 1/,
+          )
+          return completedCall({
+            arguments: '{"findings":[]}',
+            callId: 'repaired-review',
+            name: 'memory_candidate_review',
+          })
+        }
+        return completedCommit(wireProposal, {
+          callId: 'commit-after-review-repair',
+        })
+      },
+    })
+
+    const result = await provider(answerSession({
+      answerConfirmationClosed: () => closed,
+      answerEvidenceCount: () => 1,
+      answerPriorEvidence: [row],
+      maxRetrievalCalls: 1,
+      retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
+      async retrieve({ input, tool }) {
+        if (tool === 'memory_search') {
+          searches += 1
+          return {
+            matches: [{
+              candidateNumber: 1,
+              evidenceId: 'candidate-1',
+              text: 'one pending candidate',
+            }],
+          }
+        }
+        reviews += 1
+        if (input.findings[0]?.candidateNumber === 2) {
+          const error = new TypeError(
+            'Candidate review finding 0 candidateNumber must be a latest page integer from 1 to 1.',
+          )
+          error.code = 'MEMORY_ANSWER_COMMITMENT_INVALID'
+          throw error
+        }
+        closed = true
+        return { closed: true, continueSearch: false }
+      },
+    }))
+
+    assert.deepEqual(result, proposal)
+    assert.equal(searches, 1)
+    assert.equal(reviews, 2)
+    assert.equal(bodies.length, 4)
+  })
+
+test('malformed candidate-review arguments get one review-only repair',
+  async (t) => {
+    for (const malformedArguments of ['{"findings":[', '[]']) {
+      await t.test(malformedArguments === '[]' ? 'non-object' : 'invalid-json',
+        async () => {
+          const bodies = []
+          let searches = 0
+          let reviews = 0
+          let closed = false
+          const row = { evidenceId: 'evidence-1', text: 'violet folder' }
+          const proposal = evidenceAnswer(
+            'The key is in the violet folder.',
+            [{ row }],
+          )
+          const wireProposal = numberedEvidenceAnswer(
+            proposal.text,
+            [{ row }],
+          )
+          const provider = createOpenAIRetrievalProvider({
+            maxModelDispatches: 5,
+            async invoke({ body }) {
+              bodies.push(body)
+              if (bodies.length === 1) {
+                return completedCall({
+                  arguments: '{"phrase":"pending page"}',
+                  callId: 'search-before-malformed-arguments',
+                  name: 'memory_search',
+                })
+              }
+              if (bodies.length === 2) {
+                return completedCall({
+                  arguments: malformedArguments,
+                  callId: 'malformed-review-arguments',
+                  name: 'memory_candidate_review',
+                })
+              }
+              if (bodies.length === 3) {
+                assert.deepEqual(
+                  body.tools.map(({ name }) => name),
+                  ['memory_candidate_review'],
+                )
+                assert.deepEqual(body.tool_choice, {
+                  name: 'memory_candidate_review',
+                  type: 'function',
+                })
+                const rejection = body.input.find((item) =>
+                  item.type === 'function_call_output' &&
+                  item.call_id === 'malformed-review-arguments')
+                assert.match(
+                  JSON.parse(rejection.output).rejection,
+                  malformedArguments === '[]'
+                    ? /must decode to one JSON object/
+                    : /malformed JSON/,
+                )
+                return completedCall({
+                  arguments: '{"findings":[]}',
+                  callId: 'repaired-review-arguments',
+                  name: 'memory_candidate_review',
+                })
+              }
+              return completedCommit(wireProposal, {
+                callId: 'commit-after-argument-repair',
+              })
+            },
+          })
+
+          const result = await provider(answerSession({
+            answerConfirmationClosed: () => closed,
+            answerEvidenceCount: () => 1,
+            answerPriorEvidence: [row],
+            maxRetrievalCalls: 1,
+            retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
+            async retrieve({ tool }) {
+              if (tool === 'memory_search') {
+                searches += 1
+                return {
+                  matches: [{
+                    candidateNumber: 1,
+                    evidenceId: 'candidate-1',
+                    text: 'one pending candidate',
+                  }],
+                }
+              }
+              reviews += 1
+              closed = true
+              return { closed: true, continueSearch: false }
+            },
+          }))
+
+          assert.deepEqual(result, proposal)
+          assert.equal(searches, 1)
+          assert.equal(reviews, 1)
+          assert.equal(bodies.length, 4)
+        })
+    }
+  })
+
+test('malformed candidate review mixed with another call is terminal',
+  async (t) => {
+    for (const malformedArguments of ['{"findings":[', '[]']) {
+      for (const otherName of [
+        OPENAI_ANSWER_COMMIT_TOOL_NAME,
+        'memory_search',
+      ]) {
+        await t.test([
+          malformedArguments === '[]' ? 'non-object' : 'invalid-json',
+          otherName,
+        ].join('-'), async () => {
+          let dispatches = 0
+          let searches = 0
+          let reviews = 0
+          const provider = createOpenAIRetrievalProvider({
+            maxModelDispatches: 5,
+            async invoke() {
+              dispatches += 1
+              if (dispatches === 1) {
+                return completedCall({
+                  arguments: '{"phrase":"pending page"}',
+                  callId: 'search-before-mixed-review',
+                  name: 'memory_search',
+                })
+              }
+              const response = completedCall({
+                arguments: malformedArguments,
+                callId: 'malformed-mixed-review',
+                name: 'memory_candidate_review',
+              })
+              response.output.push(completedCall({
+                arguments: otherName === 'memory_search'
+                  ? '{"phrase":"must not run"}'
+                  : JSON.stringify(numberedEvidenceAnswer(
+                      'The key is in the violet folder.',
+                      [{
+                        row: {
+                          evidenceId: 'evidence-1',
+                          text: 'violet folder',
+                        },
+                      }],
+                    )),
+                callId: 'mixed-other-call',
+                name: otherName,
+              }).output[1])
+              return response
+            },
+          })
+
+          await assert.rejects(
+            provider(answerSession({
+              answerConfirmationClosed: () => false,
+              answerEvidenceCount: () => 1,
+              answerPriorEvidence: [{
+                evidenceId: 'evidence-1',
+                text: 'violet folder',
+              }],
+              maxRetrievalCalls: 1,
+              retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
+              async retrieve({ tool }) {
+                if (tool === 'memory_search') {
+                  searches += 1
+                  return {
+                    matches: [{
+                      candidateNumber: 1,
+                      evidenceId: 'candidate-1',
+                      text: 'one pending candidate',
+                    }],
+                  }
+                }
+                reviews += 1
+                return { closed: true, continueSearch: false }
+              },
+            })),
+            (error) => error.code ===
+              'OPENAI_CONFIRMATION_REVIEW_MIXED_CALLS',
+          )
+          assert.equal(dispatches, 2)
+          assert.equal(searches, 1)
+          assert.equal(reviews, 0)
+        })
+      }
+    }
+  })
+
+test('candidate review repair fails closed without retrieval or closure growth',
+  async (t) => {
+    for (const scenario of [
+      { expected: 'OPENAI_CONFIRMATION_REVIEW_REPAIR_FAILED', name: 'second-invalid' },
+      { expected: 'OPENAI_CONFIRMATION_REVIEW_REPAIR_FAILED', name: 'second-malformed-json' },
+      { expected: 'OPENAI_FUNCTION_UNKNOWN', name: 'forbidden-search' },
+      { expected: 'OPENAI_CONFIRMATION_REVIEW_REPAIR_FAILED', name: 'empty-response' },
+      { expected: 'OPENAI_RESPONSE_REFUSED', name: 'refusal' },
+      {
+        expected: 'OPENAI_CONFIRMATION_REVIEW_REPAIR_BUDGET_EXHAUSTED',
+        maxModelDispatches: 2,
+        name: 'normal-budget-exhausted',
+      },
+    ]) {
+      await t.test(scenario.name, async () => {
+        let dispatches = 0
+        let searches = 0
+        let reviews = 0
+        const provider = createOpenAIRetrievalProvider({
+          maxModelDispatches: scenario.maxModelDispatches ?? 5,
+          async invoke() {
+            dispatches += 1
+            if (dispatches === 1) {
+              return completedCall({
+                arguments: '{"phrase":"pending page"}',
+                callId: 'search-before-bad-review',
+                name: 'memory_search',
+              })
+            }
+            if (scenario.name === 'second-malformed-json') {
+              return completedCall({
+                arguments: '{"findings":[',
+                callId: `malformed-json-review-${dispatches}`,
+                name: 'memory_candidate_review',
+              })
+            }
+            if (dispatches === 2 || scenario.name === 'second-invalid') {
+              return completedCall({
+                arguments: '{"findings":[{"candidateNumber":2,"reason":"bad"}]}',
+                callId: `bad-review-${dispatches}`,
+                name: 'memory_candidate_review',
+              })
+            }
+            if (scenario.name === 'empty-response') {
+              return { output: [], status: 'completed' }
+            }
+            if (scenario.name === 'refusal') {
+              return {
+                output: [{
+                  content: [{ refusal: 'no', type: 'refusal' }],
+                  role: 'assistant',
+                  type: 'message',
+                }],
+                status: 'completed',
+              }
+            }
+            return completedCall({
+              arguments: '{"phrase":"forbidden"}',
+              callId: 'forbidden-repair-search',
+              name: 'memory_search',
+            })
+          },
+        })
+        await assert.rejects(
+          provider(answerSession({
+            answerConfirmationClosed: () => false,
+            answerEvidenceCount: () => 1,
+            answerPriorEvidence: [{
+              evidenceId: 'prior-evidence',
+              text: 'prior evidence',
+            }],
+            maxRetrievalCalls: 1,
+            retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
+            async retrieve({ input, tool }) {
+              if (tool === 'memory_search') {
+                searches += 1
+                return {
+                  matches: [{
+                    candidateNumber: 1,
+                    evidenceId: 'candidate-1',
+                    text: 'one candidate',
+                  }],
+                }
+              }
+              reviews += 1
+              if (input.findings[0]?.candidateNumber === 2) {
+                const error = new TypeError('Malformed candidate review.')
+                error.code = 'MEMORY_ANSWER_COMMITMENT_INVALID'
+                throw error
+              }
+              return { closed: true, continueSearch: false }
+            },
+          })),
+          (error) => {
+            assert.equal(error.code, scenario.expected)
+            return true
+          },
+        )
+        assert.equal(searches, 1)
+        assert.equal(
+          reviews,
+          scenario.name === 'second-invalid'
+            ? 2
+            : scenario.name === 'second-malformed-json' ? 0 : 1,
+        )
+        assert.equal(
+          dispatches,
+          scenario.name === 'normal-budget-exhausted' ? 2 : 3,
+        )
+      })
+    }
   })
 
 test('confirmation returns a host-validated bounded answer at its emergency limit',
@@ -1916,13 +2454,10 @@ test('dispatch closure preserves one host commitment repair without reopening re
           })
         }
         if (bodies.length === 2) {
+          const invalid = structuredClone(wireProposal)
+          invalid.usedMemories[0].memoryNumber = 99
           return completedCommit({
-            ...wireProposal,
-            bases: [{
-              disposition: 'used',
-              memoryNumber: 99,
-              rationale: 'This determines the answer.',
-            }],
+            ...invalid,
           }, { callId: 'invalid-closure-commit' })
         }
         return completedCommit(wireProposal, {
@@ -2223,10 +2758,10 @@ test('OpenAI retrieval provider composes with the real bounded answer path',
         const found = JSON.parse(retrievalOutput.output)
         return completedCommit({
           abstained: false,
-          bases: [{
-            disposition: 'used',
+          excludedMaterialMemories: [],
+          usedMemories: [{
+            contribution: 'This determines the answer.',
             memoryNumber: found.matches[0].memoryNumber,
-            rationale: 'This determines the answer.',
           }],
           temporaryInferences: [],
           text: 'You like jasmine tea.',
