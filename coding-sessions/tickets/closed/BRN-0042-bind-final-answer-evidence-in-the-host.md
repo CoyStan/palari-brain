@@ -8,7 +8,7 @@ root_id: BRN-0042
 children:
   - BRN-0042-A
   - BRN-0042-B
-status: in-review
+status: accepted
 risk: R2
 priority: P0
 agents_allowed: 1
