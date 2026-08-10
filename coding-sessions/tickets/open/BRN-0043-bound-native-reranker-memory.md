@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0043
 children: []
-status: reopened
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 2
-claimed_by: 
-claimed_at: 
+claimed_by: "quetza"
+claimed_at: 2026-08-10T13:05:05Z
 target_branch: "main"
 branch: "ticket/BRN-0043-bound-native-reranker-memory"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0043-bound-native-reranker-memory"
@@ -194,20 +194,23 @@ serialized, explicitly released, and measurable provider-free.
   candidate text, candidate limit, Ettin 7,999-token ceiling, modular head,
   and original-order score contract.
 - Added deterministic success/failure tensor cleanup, single-flight execution,
-  warm/idempotent-close lifecycle, content-free timing/RSS metrics, and a
-  provider-free native profile mode that requires explicit audited external
-  runtime/cache paths.
+  transactional component-load rollback, warm/idempotent-close lifecycle,
+  content-free timing/RSS metrics, and a provider-free native profile mode that
+  requires explicit audited external runtime/cache paths and fails closed when
+  model shutdown fails.
 - Fixed confirmation's latent adapter-contract mismatch: cheap candidate
   gathering and information filtering may reach 200, but the reranker receives
   at most the first 50 stable fused candidates. An 80-row regression proves
   the bounded dispatch and complete 20-item page.
-- Verification passes focused 74/74, core 90/90, quickstart 6/6, and legacy
-  932 pass / 15 optional skip / 0 fail across 947. The inert Ettin identity
+- Verification passes focused 77/77, core 90/90, quickstart 6/6, and legacy
+  935 pass / 15 optional skip / 0 fail across 950. The inert Ettin identity
   verification remains unchanged.
 - The native mixed-length profile was not executed because this ticket forbids
   private alpha artifacts and no audited runtime/cache path was placed inside
-  scope. No native RSS ceiling, paid result, benchmark regrade, 512-token Ettin
-  window policy, quantization result, or OS containment claim is made.
+  scope. The frozen-bank native parity run was likewise not executed. No native
+  RSS ceiling, historical rank result, paid result, benchmark regrade,
+  512-token Ettin window policy, quantization result, or OS containment claim
+  is made.
 - No provider, credential, private artifact, dataset, sealed U8 question,
   durable memory write, production service, cgroup, or container was accessed
   or changed.

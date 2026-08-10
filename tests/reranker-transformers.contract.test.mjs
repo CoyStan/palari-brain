@@ -240,6 +240,46 @@ test('adapter microbatches, restores order, serializes calls, and closes once',
     )
   })
 
+test('component loading rolls back partial success and invalid assemblies',
+  async () => {
+    let partialDisposals = 0
+    const partialClassifier = async () => ({})
+    partialClassifier.dispose = () => { partialDisposals += 1 }
+    const partial = createTransformersReranker({
+      loadRuntime: async () => ({
+        AutoModelForSequenceClassification: {
+          async from_pretrained() { return partialClassifier },
+        },
+        AutoTokenizer: {
+          from_pretrained() { throw new Error('tokenizer load failed') },
+        },
+      }),
+    })
+    await assert.rejects(() => partial.warm(), /tokenizer load failed/)
+    await partial.close()
+    assert.equal(partialDisposals, 1)
+
+    const invalidDisposals = { classifier: 0, tokenizer: 0 }
+    const invalidClassifier = async () => ({})
+    invalidClassifier.dispose = () => { invalidDisposals.classifier += 1 }
+    const invalidTokenizer = {
+      dispose() { invalidDisposals.tokenizer += 1 },
+    }
+    const invalid = createTransformersReranker({
+      loadRuntime: async () => ({
+        AutoModelForSequenceClassification: {
+          async from_pretrained() { return invalidClassifier },
+        },
+        AutoTokenizer: {
+          async from_pretrained() { return invalidTokenizer },
+        },
+      }),
+    })
+    await assert.rejects(() => invalid.warm(), /invalid model components/)
+    await invalid.close()
+    assert.deepEqual(invalidDisposals, { classifier: 1, tokenizer: 1 })
+  })
+
 test('microbatch cleanup covers inference, scoring, and disposal failures',
   async () => {
     const disposed = { inputs: 0, outputs: 0 }

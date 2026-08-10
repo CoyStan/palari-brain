@@ -197,10 +197,13 @@ function profileDocuments() {
   }))
 }
 
-async function runProfile(options) {
+export async function runEttinNativeProfile(
+  options,
+  configure = configuredReranker,
+) {
   const iterations = profileIterations(options.iterations)
   const runMetrics = []
-  const configured = await configuredReranker(options, 'profile', {
+  const configured = await configure(options, 'profile', {
     onMetrics(metrics) { runMetrics.push(metrics) },
   })
   const state = common(configured.reranker, configured.runtimeIdentity)
@@ -274,8 +277,20 @@ async function runProfile(options) {
       iterations,
       status: 'failed',
     }
-  } finally {
-    await configured.reranker.close().catch(() => {})
+  }
+  try {
+    await configured.reranker.close()
+  } catch (error) {
+    const closeFailure = error instanceof Error ? error.message : String(error)
+    result = {
+      ...result,
+      completedAt: new Date().toISOString(),
+      failure: result.status === 'failed'
+        ? `${result.failure}; reranker close failed: ${closeFailure}`
+        : `Reranker close failed: ${closeFailure}`,
+      failureCode: 'RERANKER_CLOSE_FAILED',
+      status: 'failed',
+    }
   }
   await writeExclusive(configured.resultPath, result)
   return result
@@ -428,7 +443,7 @@ export async function main(argv = process.argv.slice(2)) {
   }
   if (options.mode === 'smoke') return runSmoke(options)
   if (options.mode === 'run') return runBank(options)
-  if (options.mode === 'profile') return runProfile(options)
+  if (options.mode === 'profile') return runEttinNativeProfile(options)
   throw new TypeError('Choose --verify, --smoke, --run, or --profile.')
 }
 

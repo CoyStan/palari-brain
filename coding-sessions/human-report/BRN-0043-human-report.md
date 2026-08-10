@@ -15,14 +15,18 @@ original candidate order, and releases native input/output tensors after each
 batch. Confirmation can search broadly but cannot send more than 50 rows into
 the reranker.
 
+Loading is transactional too: if any tokenizer, model, or head factory fails,
+Palari releases every component that did finish loading. A profile shutdown
+failure is recorded as a failure rather than a successful run.
+
 The adapters also expose explicit warm/close lifecycle and content-free memory
 metrics. An offline native profile command is ready for the audited model
 cache, but this ticket did not enter private artifacts or run paid questions.
 
 ## What I Should Know
 
-The provider-free product suite is green: focused 74/74, core 90/90,
-quickstart 6/6, and legacy 932 pass with 15 optional skips and zero failures.
+The provider-free product suite is green: focused 77/77, core 90/90,
+quickstart 6/6, and legacy 935 pass with 15 optional skips and zero failures.
 This proves the scheduling and product contracts, not the final native RSS
 number. T3 still has a 6 GiB service memory limit; this code does not install a
 cgroup or container boundary.
@@ -31,8 +35,9 @@ cgroup or container boundary.
 
 - Independent review of scheduler math, cleanup paths, ordering, and the
   confirmation shortlist.
-- One provider-free native `--profile` run using the audited external runtime
-  and model cache, confirming unchanged ordering and a stable RSS plateau.
+- One provider-free frozen-bank `--run` using the audited external runtime and
+  model cache for historical rank parity, followed by `--profile` for repeat
+  stability and a stable RSS plateau.
 
 ## Recommended Next Move
 

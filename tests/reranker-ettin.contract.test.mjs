@@ -355,6 +355,29 @@ test('adapter is lazy, pair-batched, base-model only, and loads once', async () 
   assert.equal(calls.disposedOutputs, 2)
 })
 
+test('native adapter rolls back a model when another component fails to load',
+  async () => {
+    const { cacheDir } = await modelCacheFixture('ettin-load-rollback-')
+    let modelDisposals = 0
+    const transformer = async () => ({})
+    transformer.dispose = () => { modelDisposals += 1 }
+    const rerank = createEttinReranker({
+      cacheDir,
+      loadHead: async () => identityHead(),
+      loadRuntime: async () => ({
+        AutoModel: {
+          async from_pretrained() { return transformer },
+        },
+        AutoTokenizer: {
+          from_pretrained() { throw new Error('tokenizer load failed') },
+        },
+      }),
+    })
+    await assert.rejects(() => rerank.warm(), /tokenizer load failed/)
+    await rerank.close()
+    assert.equal(modelDisposals, 1)
+  })
+
 test('adapter and artifact cache reject bounds, bad shape, and corrupt bytes', async () => {
   assert.throws(() => createEttinReranker({ cacheDir: 'relative' }), /absolute/)
   const { cacheDir: modelCacheDir } = await modelCacheFixture()

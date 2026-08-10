@@ -16,18 +16,27 @@ process high-water RSS. Confirmation may still gather and information-filter
 up to 200 cheap candidates, but only the first 50 in stable fused order can
 cross the public reranker boundary.
 
-Focused provider-free contracts pass 74/74, core tests pass 90/90, quickstart
-passes 6/6, and the complete legacy tier passes 932 with 15 optional skips and
-zero failures across 947 tests. The inert Ettin identity verifier still pins
+Focused provider-free contracts pass 77/77, core tests pass 90/90, quickstart
+passes 6/6, and the complete legacy tier passes 935 with 15 optional skips and
+zero failures across 950 tests. The inert Ettin identity verifier still pins
 the same model, three modular-head artifacts, 16-case bank, and audited
 Transformers.js 4.2.0 closure. A new external-path `--profile` mode can repeat
-a mixed-length 50-pair native workload and record score/order stability,
+a mixed-length 50-pair native workload and record within-run repeat stability,
 schedule shapes, latency, and RSS, but it was not executed in this ticket
 because the audited runtime and model cache are intentionally outside the
 ticket worktree and private alpha artifacts are forbidden. Accordingly this
 work proves scheduling, cleanup, ordering, lifecycle, and the confirmation
 boundary; it does not yet claim a measured native RSS ceiling or resume any
-paid hard case.
+paid hard case. Historical rank parity separately requires the frozen-bank
+`--run`, which also was not executed in this ticket.
+
+Independent review reopened the first candidate after finding that one
+successfully loaded native component could be orphaned when a parallel factory
+failed, and that profile shutdown failure was suppressed. Component loading is
+now transactional across synchronous throws, asynchronous rejection, and
+post-load validation: every fulfilled disposable component is rolled back
+before the load error escapes. The profile now records a typed failed result
+when close fails. Provider-free regressions reproduce both findings.
 
 The active T3 service currently exposes a 6 GiB memory limit and 512 MiB swap
 limit. BRN-0043 does not mutate systemd, cgroups, containers, T3, or deployment

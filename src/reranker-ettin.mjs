@@ -6,6 +6,7 @@ import {
   RERANKER_EXECUTION_LIMITS,
   TRANSFORMERS_RERANKER_LIMITS,
   createRerankerLifecycle,
+  loadRerankerComponents,
   runBatchedReranker,
 } from './reranker-transformers.mjs'
 
@@ -501,22 +502,24 @@ export function createEttinReranker({
         const options = {
           local_files_only: true,
         }
-        const [tokenizer, transformer, head] = await Promise.all([
-          runtime.AutoTokenizer.from_pretrained(localModelDir, options),
-          runtime.AutoModel.from_pretrained(localModelDir, {
+        return loadRerankerComponents([
+          () => runtime.AutoTokenizer.from_pretrained(localModelDir, options),
+          () => runtime.AutoModel.from_pretrained(localModelDir, {
             ...options,
             dtype: ETTIN_RERANKER_MODEL.dtype,
           }),
-          loadHead({ cacheDir, fetchImpl, loadArtifact }),
-        ])
-        if (typeof tokenizer !== 'function' || typeof transformer !== 'function') {
-          throw new TypeError('Ettin runtime loaded invalid model components.')
-        }
-        return {
-          head,
-          tokenizer,
-          transformer,
-        }
+          () => loadHead({ cacheDir, fetchImpl, loadArtifact }),
+        ], ([tokenizer, transformer, head]) => {
+          if (typeof tokenizer !== 'function' ||
+            typeof transformer !== 'function') {
+            throw new TypeError('Ettin runtime loaded invalid model components.')
+          }
+          return {
+            head,
+            tokenizer,
+            transformer,
+          }
+        })
       })()
     }
     return loading

@@ -15,6 +15,43 @@ export const RERANKER_EXECUTION_LIMITS = Object.freeze({
   transformersMaxTokens: 512,
 })
 
+async function rollbackLoadedComponents(components, loadFailure) {
+  try {
+    await disposeComponents(components)
+  } catch (rollbackFailure) {
+    const error = new AggregateError(
+      [loadFailure, rollbackFailure],
+      'Reranker load failed and component rollback was incomplete.',
+    )
+    error.code = 'RERANKER_LOAD_ROLLBACK_FAILED'
+    throw error
+  }
+  throw loadFailure
+}
+
+export async function loadRerankerComponents(loaders, assemble) {
+  if (!Array.isArray(loaders) || loaders.length < 1 ||
+    loaders.some((loader) => typeof loader !== 'function') ||
+    typeof assemble !== 'function') {
+    throw new TypeError('Reranker component loaders and assembler are required.')
+  }
+  const settled = await Promise.allSettled(loaders.map((loader) =>
+    Promise.resolve().then(loader)))
+  const fulfilled = settled
+    .filter(({ status }) => status === 'fulfilled')
+    .map(({ value }) => value)
+  const rejected = settled.find(({ status }) => status === 'rejected')
+  if (rejected) {
+    return rollbackLoadedComponents(fulfilled, rejected.reason)
+  }
+  const values = settled.map(({ value }) => value)
+  try {
+    return await assemble(values)
+  } catch (error) {
+    return rollbackLoadedComponents(values, error)
+  }
+}
+
 export const TRANSFORMERS_RERANKER_MODELS = Object.freeze({
   'cross-encoder/ms-marco-MiniLM-L6-v2': Object.freeze({
     dtype: 'fp32',
@@ -398,17 +435,24 @@ export function createTransformersReranker({
           ...(cacheDir ? { cache_dir: cacheDir } : {}),
           revision: model.revision,
         }
-        const [tokenizer, classifier] = await Promise.all([
-          runtime.AutoTokenizer.from_pretrained(modelId, options),
-          runtime.AutoModelForSequenceClassification.from_pretrained(modelId, {
-            ...options,
-            dtype: model.dtype,
-          }),
-        ])
-        if (typeof tokenizer !== 'function' || typeof classifier !== 'function') {
-          throw new TypeError('Reranker runtime loaded invalid model components.')
-        }
-        return { classifier, tokenizer }
+        return loadRerankerComponents([
+          () => runtime.AutoTokenizer.from_pretrained(modelId, options),
+          () => runtime.AutoModelForSequenceClassification.from_pretrained(
+            modelId,
+            {
+              ...options,
+              dtype: model.dtype,
+            },
+          ),
+        ], ([tokenizer, classifier]) => {
+          if (typeof tokenizer !== 'function' ||
+            typeof classifier !== 'function') {
+            throw new TypeError(
+              'Reranker runtime loaded invalid model components.',
+            )
+          }
+          return { classifier, tokenizer }
+        })
       })()
     }
     return loading
