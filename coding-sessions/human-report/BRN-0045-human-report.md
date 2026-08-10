@@ -26,9 +26,13 @@ units are conservative scheduling units, not exact provider billing tokens.
 ## Review And Acceptance
 
 - Provider-free focused, core, quickstart, and legacy tests pass.
-- Independent review is pending.
-- The founder authorized execution of this ticket and merge after a clean
-  independent review.
+- The first review found one P3 ticket-metadata whitespace defect. It was
+  fixed without changing product behavior.
+- A fresh independent rereviewer accepted exact commit `242b05c` with no
+  unresolved P0-P3 findings.
+- The founder authorized execution of these three tickets and merge after a
+  clean independent review. That direction records acceptance of this clean
+  candidate.
 
 ## What To Check
 
@@ -39,5 +43,5 @@ units are conservative scheduling units, not exact provider billing tokens.
 
 ## Recommended Next Move
 
-Complete independent review. If the reviewer accepts the exact candidate,
-record founder acceptance, close the ticket, merge it to `main`, and push.
+Merge and push the accepted ticket. Then start BRN-0046 from the updated
+`main` branch.

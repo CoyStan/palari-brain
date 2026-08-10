@@ -25,7 +25,10 @@
   8 passed and 1 optional skip across 9.
 - `npm run test:legacy`: PASS, 945 passed, 15 optional skips, 0 failed across
   960 tests.
-- Ticket lint, scope, report, and diff gates will be recorded before review.
+- Ticket lint, scope, report, and diff gates: PASS.
+- Fresh independent rereview of exact commit `242b05c`: ACCEPT with no
+  unresolved P0-P3 findings. The rereviewer also ran deterministic concurrent
+  admission and bounded terminal 429 redaction checks.
 
 ## Risks / Follow-Ups
 

@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0045
 children: []
-status: in-review
+status: accepted
 risk: R2
 priority: P1
 agents_allowed: 2
@@ -139,3 +139,18 @@ failures without adding automatic retries or changing request semantics.
   remains on `palari-brain/openai`, and the affected focused test passes.
 - No provider, credential, private artifact, dataset, production service, or
   sealed U8 question was accessed.
+
+## Acceptance
+
+- Founder acceptance: the founder authorized execution of BRN-0045,
+  BRN-0046, and BRN-0047 and directed merge after clean independent review.
+- Accepted candidate: `242b05cf10f3c942adbacbd785804bed4eda5b79`.
+- The first independent review reopened the ticket for trailing whitespace in
+  two ticket metadata lines. The defect was fixed and the failing diff gate
+  now passes.
+- A fresh independent rereviewer recommends ACCEPT with no unresolved P0-P3
+  findings. Focused 45/45, alpha 90/90, quickstart 6/6, legacy 945 pass with
+  15 optional skips, ticket, report, scope, diff, concurrency, and 429 safety
+  checks pass.
+- The accepted ticket may move to `tickets/closed/`, merge to `main`, and
+  push before BRN-0046 starts.
