@@ -7,6 +7,7 @@ parent_id:
 root_id: BRN-0042
 children:
   - BRN-0042-A
+  - BRN-0042-B
 status: claimed
 risk: R2
 priority: P0
