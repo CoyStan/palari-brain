@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0043
 children: []
-status: in-review
+status: accepted
 risk: R2
 priority: P0
 agents_allowed: 2
@@ -214,3 +214,11 @@ serialized, explicitly released, and measurable provider-free.
 - No provider, credential, private artifact, dataset, sealed U8 question,
   durable memory write, production service, cgroup, or container was accessed
   or changed.
+
+## Acceptance
+
+- Fresh independent R2 rereview at
+  `fd5935ec9776afb1d4d90859616886777a4873e2` recommends `accept` with no
+  P0--P3 findings.
+- The founder's prior conditional instruction authorized acceptance and merge
+  once independent review recommended acceptance. That condition is satisfied.
