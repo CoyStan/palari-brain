@@ -2,6 +2,24 @@
 
 ## 2026-08-10 current handoff
 
+BRN-0049 has a provider-free candidate for the last two S60 diagnostic
+failures. Shared alpha logs now retain bounded host-rejection details and
+allowlisted HTTP 429 request/rate-limit metadata. Both failure classes replace
+the original error text with a generic message, and arbitrary metadata and
+provider bodies are not copied.
+
+Isolated workers can now opt into one file-backed rolling pacer. Its atomic
+lock coordinates both request and unit ceilings across processes. State stores
+only the fixed policy and timestamp/unit events. Locks store only process and
+ownership data. Policy mismatch and corrupt state fail closed; an old lock is
+recovered only when its local owner is no longer alive. The existing
+single-process pacer remains unchanged, and no retry was added. A six-process
+contract and five additional stress repetitions stayed inside the shared
+ceiling. Focused contracts pass 25/25, core passes 101/101, quickstart passes
+6/6, and legacy passes 978 with 15 optional skips and zero failures across 993
+tests. No provider, credential, private dataset, result artifact, or sealed U8
+item was accessed during this ticket implementation.
+
 BRN-0048 has a provider-free candidate for the remaining instrument
 commitment failure. A local replay of all 13 recorded model responses made
 zero provider calls and reproduced the exact host reason: the correct answer

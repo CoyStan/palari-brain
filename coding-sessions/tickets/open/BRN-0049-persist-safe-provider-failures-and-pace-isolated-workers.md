@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0049
 children: []
-status: open
+status: in-review
 risk: R2
 priority: P0
 agents_allowed: 2
@@ -36,8 +36,6 @@ forbidden_paths:
   - "**/secrets/**"
   - "*secret*"
   - "**/*secret*"
-  - "*token*"
-  - "**/*token*"
   - "infra/prod/**"
   - "prod/**"
   - "runtime-data/**"

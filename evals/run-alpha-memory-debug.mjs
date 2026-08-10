@@ -178,10 +178,49 @@ function defaultClock() {
 }
 
 function safeError(error) {
-  return {
-    name: String(error?.name ?? 'Error'),
-    message: String(error?.message ?? error),
+  const rawCode = String(error?.code ?? '').trim().slice(0, 100)
+  const metadata = error?.metadata
+  const isRateLimit = rawCode === 'OPENAI_HTTP_ERROR' && Number(metadata?.status) === 429
+  const hasHostRejection = error?.hostRejection && typeof error.hostRejection === 'object'
+  const safe = {
+    name: String(error?.name ?? 'Error').slice(0, 100),
+    message: isRateLimit
+      ? 'OpenAI request failed with HTTP 429.'
+      : hasHostRejection
+        ? 'Host rejected the model response.'
+        : String(error?.message ?? error).slice(0, 1_000),
   }
+  const code = rawCode
+  if (code) safe.code = code
+  const rejection = error?.hostRejection
+  if (rejection && typeof rejection === 'object') {
+    const rejectionCode = String(rejection.code ?? '').trim().slice(0, 100)
+    const reason = String(rejection.reason ?? '').trim().slice(0, 1_000)
+    if (rejectionCode && reason) safe.hostRejection = { code: rejectionCode, reason }
+  }
+  if (isRateLimit) {
+    const allowedHeaders = new Set([
+      'x-ratelimit-limit-requests', 'x-ratelimit-limit-tokens',
+      'x-ratelimit-remaining-requests', 'x-ratelimit-remaining-tokens',
+      'x-ratelimit-reset-requests', 'x-ratelimit-reset-tokens',
+    ])
+    const rateLimitHeaders = {}
+    for (const [rawName, value] of Object.entries(metadata.rateLimitHeaders ?? {})) {
+      const name = rawName.toLowerCase()
+      if (allowedHeaders.has(name) && ['string', 'number'].includes(typeof value)) {
+        rateLimitHeaders[name] = String(value).slice(0, 512)
+      }
+    }
+    safe.metadata = { status: 429 }
+    for (const name of ['requestId', 'retryAfter']) {
+      const rawValue = metadata[name]
+      if (!['string', 'number'].includes(typeof rawValue)) continue
+      const value = String(rawValue).trim().slice(0, 512)
+      if (value) safe.metadata[name] = value
+    }
+    if (Object.keys(rateLimitHeaders).length) safe.metadata.rateLimitHeaders = rateLimitHeaders
+  }
+  return safe
 }
 
 export async function runAlphaMemoryDebug({

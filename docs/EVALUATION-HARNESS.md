@@ -1,5 +1,34 @@
 # Evaluation Harness Boundaries
 
+## Shared diagnostic pacing and failure records
+
+`createFileRollingTokenPacer(...)` is the opt-in pacing boundary for alpha
+workers that run in separate processes. Workers that use the same `statePath`
+also use one rolling policy. The file lock makes unit and request admission
+atomic. A different policy on the same path fails closed. Separate state paths
+remain independent.
+
+The durable state contains only its schema, the unit and request ceilings, the
+window duration, and `{ at, units }` events. The lock contains only its schema,
+owner process ID, and a random ownership value. It contains no prompt, answer,
+evidence, request body, response body, or credential. A stale lock is removed
+only after its age ceiling passes and its local owner process is no longer
+alive. Release also checks its ownership value, so an old worker cannot remove
+a newer lock. Corrupt state and policy mismatches are terminal.
+
+An oversized dispatch can enter only when the rolling window is empty. A wait
+never exceeds one configured window. Pacing changes dispatch time only; it
+does not retry or change a provider request. The original in-memory pacer stays
+the default for one-process use.
+
+Shared alpha diagnostic logs retain the usual bounded error name and message.
+Host commitment failures replace the original message with a generic message
+and may add only a bounded host rejection code and reason. HTTP 429 failures
+also use a generic message and may add only status, request ID, retry-after,
+and the six allowlisted request/token limit, remaining, and reset headers.
+Provider bodies, arbitrary metadata, prompts, evidence, and credentials are
+not copied into these structured failure records.
+
 ## Structured OpenAI input reservation
 
 OpenAI's Responses input-count endpoint is the exact counting surface for a
