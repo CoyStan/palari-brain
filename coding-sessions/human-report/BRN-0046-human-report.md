@@ -37,17 +37,18 @@ No paid provider was called. The full provider-free legacy suite passes.
   are now terminal before either repair path.
 - Focused contracts pass 77/77, core passes 91/91, quickstart passes 6/6, and
   legacy passes 964 with 15 optional skips and zero failures.
-- Fresh independent rereview is pending.
+- A fresh final independent rereviewer accepted exact commit `40d8d20` with
+  no unresolved P0-P3 findings. Its additional eight-case mixed-call order
+  check passed.
 - The founder authorized execution of BRN-0045, BRN-0046, and BRN-0047 and
   directed merge after a clean independent review.
 
 ## What To Check
 
-- Confirm that the independent reviewer finds no unresolved P0-P3 issue.
 - In a later paid diagnostic, compare format-failure rate and answer quality
   with the previous detailed commitment wire.
 
 ## Recommended Next Move
 
-Commit the provider-free candidate and request independent review. If the
-review accepts it, record founder acceptance, merge it, and begin BRN-0047.
+Merge and push the accepted ticket. Then start BRN-0047 from the updated
+`main` branch.

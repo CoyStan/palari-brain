@@ -27,6 +27,10 @@ fail before either repair path. Focused contracts pass 77/77, core passes
 and zero failures across 979 tests.
 The active answer-wire accounting pin was refreshed for the changed compact
 schema; the consumed BRN-0025 compatibility pins remain exact and unchanged.
+The final independent rereviewer accepted exact commit `40d8d20` with no
+unresolved P0-P3 finding after an additional eight-case mixed-call order
+matrix passed. Founder acceptance is recorded under the prior direction to
+execute and merge BRN-0045 through BRN-0047 after clean review.
 No provider, credential, private artifact, dataset, or sealed U8 item was
 accessed during implementation.
 

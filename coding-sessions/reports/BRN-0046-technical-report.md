@@ -30,15 +30,16 @@
 - `node --test tests/retrieval-answer.contract.test.mjs`: PASS, 44/44.
 - `npm run test:legacy`: PASS, 964 passed, 15 optional skips, 0 failed across
   979 tests.
-- Ticket, report, committed-plus-dirty scope, and diff gates: pending after
-  the candidate commit.
+- Ticket, report, committed-plus-dirty scope, and diff gates: PASS.
 - The first independent review reopened exact commit `82f1fdf` for one P2:
   malformed JSON and non-object candidate-review arguments failed before the
   repair path. That gap is fixed.
 - The first rereview reopened exact commit `96d4206` for one P2: a malformed
   candidate review mixed with another function could enter answer-commit
   repair. Mixed candidate-review responses are now terminal before either
-  repair path. Fresh independent rereview is pending.
+  repair path.
+- A fresh final rereviewer accepted exact commit `40d8d20` with no unresolved
+  P0-P3 findings. Its independent eight-case mixed-call order matrix passed.
 
 ## Risks / Follow-Ups
 

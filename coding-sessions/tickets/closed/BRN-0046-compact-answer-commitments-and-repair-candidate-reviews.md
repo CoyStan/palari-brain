@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0046
 children: []
-status: in-review
+status: accepted
 risk: R2
 priority: P0
 agents_allowed: 2
@@ -161,3 +161,19 @@ candidate review without starting another search.
   legacy passes 964 with 15 optional skips and zero failures across 979 tests.
 - No provider, credential, private artifact, dataset, production service, or
   sealed U8 question was accessed.
+
+## Acceptance
+
+- Founder acceptance: the founder authorized execution of BRN-0045,
+  BRN-0046, and BRN-0047 and directed merge after clean independent review.
+- Accepted candidate: `40d8d2029d8e46c65ff12698c76c56677323ab98`.
+- The first independent review reopened the ticket for malformed JSON and
+  non-object candidate-review arguments that failed before repair. The first
+  rereview reopened it because mixed malformed reviews could enter
+  answer-commit repair. Both P2 findings are fixed with direct contracts.
+- A fresh final rereviewer recommends ACCEPT with no unresolved P0-P3
+  findings. Focused 77/77, core 91/91, quickstart 6/6, legacy 964 pass with
+  15 optional skips, governance gates, and an independent eight-case
+  mixed-call order matrix pass.
+- The accepted ticket may move to `tickets/closed/`, merge to `main`, and
+  push before BRN-0047 starts.
