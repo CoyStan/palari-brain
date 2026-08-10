@@ -39,6 +39,9 @@ const MEMORY_ANSWER_CONFIRMATION_MAX_CHARS = 20_000
 const MEMORY_ANSWER_CONFIRMATION_CANONICAL_MATCHES = Symbol(
   'memory-answer-confirmation-canonical-matches',
 )
+export const MEMORY_ANSWER_MISSING_MATERIAL_EVIDENCE_IDS = Symbol(
+  'memory-answer-missing-material-evidence-ids',
+)
 // Deprecated compatibility exports from the removed dual recommendation
 // surface. Recommendation mode no longer consumes these limits.
 export const MEMORY_ANSWER_MAX_RECOMMENDATION_ITEMS = 10
@@ -225,9 +228,19 @@ function hasExactKeys(value, expected) {
   return true
 }
 
-function answerCommitmentError(message) {
+function answerCommitmentError(message, missingMaterialEvidenceIds = null) {
   const error = new TypeError(message)
   error.code = 'MEMORY_ANSWER_COMMITMENT_INVALID'
+  if (arrayIsArray(missingMaterialEvidenceIds) &&
+    missingMaterialEvidenceIds.length > 0) {
+    const ids = []
+    for (let index = 0; index < missingMaterialEvidenceIds.length; index += 1) {
+      arrayPush(ids, missingMaterialEvidenceIds[index])
+    }
+    objectDefineProperty(error, MEMORY_ANSWER_MISSING_MATERIAL_EVIDENCE_IDS, {
+      value: objectFreeze(ids),
+    })
+  }
   return error
 }
 
@@ -2373,17 +2386,20 @@ export async function answerWithRetrieval(brain, {
         })
       }
       if (confirmationActive && !candidate.abstained) {
+        const missingMaterialEvidenceIds = []
         for (let index = 0;
           index < confirmationNewInformationEvidenceIds.length;
           index += 1) {
           const evidenceId = confirmationNewInformationEvidenceIds[index]
           if (!setHas(seen, evidenceId)) {
-            throw answerCommitmentError(
-              'Recommendation commitment omitted a previously material ' +
-                'returned memory. Include every material confirmation ' +
-                'finding in the supporting memories.',
-            )
+            arrayPush(missingMaterialEvidenceIds, evidenceId)
           }
+        }
+        if (missingMaterialEvidenceIds.length > 0) {
+          throw answerCommitmentError(
+            'Recommendation commitment omitted previously material returned memories.',
+            missingMaterialEvidenceIds,
+          )
         }
       }
       const committed = deepFreeze({
@@ -2730,6 +2746,7 @@ export async function answerWithRetrieval(brain, {
     })
     if (confirmationActive) {
       const assessedConfirmationIds = new setConstructor()
+      const missingMaterialEvidenceIds = []
       for (let index = 0; index < evidenceCommitments.length; index += 1) {
         const assessment = evidenceCommitments[index]
         setAdd(assessedConfirmationIds, assessment.evidenceId)
@@ -2739,11 +2756,16 @@ export async function answerWithRetrieval(brain, {
         index += 1) {
         const evidenceId = confirmationNewInformationEvidenceIds[index]
         if (!setHas(assessedConfirmationIds, evidenceId)) {
-          arrayPush(lateErrors,
-            'Confirmation commitment omitted a previously material returned ' +
-              'memory. Assess every material confirmation finding as used ' +
-              'or with a specific not_used_reason.')
+          arrayPush(missingMaterialEvidenceIds, evidenceId)
         }
+      }
+      if (missingMaterialEvidenceIds.length > 0) {
+        arrayPush(lateErrors,
+          'Confirmation commitment omitted previously material returned memories.')
+        throw answerCommitmentError(
+          arrayJoin(lateErrors, ' '),
+          missingMaterialEvidenceIds,
+        )
       }
     }
     if (lateErrors.length) {

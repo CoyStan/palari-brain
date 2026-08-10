@@ -13,6 +13,9 @@ import {
   ingestChatTurn,
 } from '../src/index.mjs'
 import {
+  MEMORY_ANSWER_MISSING_MATERIAL_EVIDENCE_IDS,
+} from '../src/retrieval-answer.mjs'
+import {
   OPENAI_DEFAULT_REASONING_EFFORT,
   OPENAI_ANSWER_COMMIT_TOOL_NAME,
   OPENAI_GRAPH_RESPONSE_SCHEMA,
@@ -1234,6 +1237,69 @@ test('terminal commitment repair preserves only the last bounded host rejection'
     }
   })
 
+test('commitment repair names each missing material memory number once',
+  async () => {
+    const rows = [
+      { evidenceId: 'private-material-a', text: 'First private row.' },
+      { evidenceId: 'private-material-b', text: 'Second private row.' },
+      { evidenceId: 'private-material-c', text: 'Third private row.' },
+    ]
+    let dispatches = 0
+    let hostAttempts = 0
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        dispatches += 1
+        if (dispatches === 1) {
+          return completedCommit(numberedEvidenceAnswer(
+            'Incomplete assessment.',
+            [{ row: rows[0] }],
+          ), { callId: 'missing-material-first' })
+        }
+        const rejection = body.input.find((item) =>
+          item.type === 'function_call_output' &&
+          item.call_id === 'missing-material-first')
+        const rejectionText = JSON.parse(rejection.output).rejection
+        assert.match(rejectionText, /material memoryNumbers: 2, 3\b/)
+        assert.equal(rejectionText.match(/\b2\b/g)?.length, 1)
+        assert.equal(rejectionText.match(/\b3\b/g)?.length, 1)
+        for (const row of rows) {
+          assert.doesNotMatch(rejectionText, new RegExp(row.evidenceId))
+          assert.doesNotMatch(rejectionText, new RegExp(row.text))
+        }
+        return completedCommit(numberedEvidenceAnswer(
+          'Complete assessment.',
+          rows.map((row) => ({ row })),
+        ), { callId: 'missing-material-repair' })
+      },
+    })
+    const committed = await provider(answerSession({
+      answerEvidenceCount: () => rows.length,
+      answerPriorEvidence: rows,
+      commitAnswer(proposal) {
+        hostAttempts += 1
+        if (hostAttempts === 1) {
+          const error = new TypeError('Material evidence was omitted.')
+          error.code = 'MEMORY_ANSWER_COMMITMENT_INVALID'
+          Object.defineProperty(
+            error,
+            MEMORY_ANSWER_MISSING_MATERIAL_EVIDENCE_IDS,
+            { value: Object.freeze([
+              rows[1].evidenceId,
+              rows[2].evidenceId,
+              rows[1].evidenceId,
+            ]) },
+          )
+          throw error
+        }
+        return Object.freeze(structuredClone(proposal))
+      },
+      maxRetrievalCalls: 0,
+    }))
+    assert.equal(dispatches, 2)
+    assert.equal(hostAttempts, 2)
+    assert.equal(committed.bases.length, 3)
+  })
+
 test('confirmation rejection reopens retrieval instead of forcing commit repair',
   async () => {
     const bodies = []
@@ -2148,7 +2214,15 @@ test('real recommendation confirmation cannot close while omitting material evid
           item.type === 'function_call_output' &&
           item.call_id === 'stale-recommendation')
         const rejectionText = JSON.parse(rejection.output).rejection
-        assert.match(rejectionText, /omitted a previously material returned memory/)
+        assert.match(
+          rejectionText,
+          new RegExp(`material memoryNumbers: ${newRow.memoryNumber}\\b`),
+        )
+        assert.equal(
+          rejectionText.match(new RegExp(`\\b${newRow.memoryNumber}\\b`, 'g'))
+            ?.length,
+          1,
+        )
         assert.doesNotMatch(rejectionText, /supportingEvidenceIds/)
         assert.ok(!rejectionText.includes(newRow.evidenceId))
         return completedCommit(numberedRecommendationAnswer(
@@ -2269,7 +2343,15 @@ test('bounded recommendation confirmation cannot omit material evidence',
           item.type === 'function_call_output' &&
           item.call_id === 'stale-bounded-recommendation')
         const rejectionText = JSON.parse(rejection.output).rejection
-        assert.match(rejectionText, /omitted a previously material returned memory/)
+        assert.match(
+          rejectionText,
+          new RegExp(`material memoryNumbers: ${newRow.memoryNumber}\\b`),
+        )
+        assert.equal(
+          rejectionText.match(new RegExp(`\\b${newRow.memoryNumber}\\b`, 'g'))
+            ?.length,
+          1,
+        )
         assert.doesNotMatch(rejectionText, /supportingEvidenceIds/)
         assert.ok(!rejectionText.includes(newRow.evidenceId))
         return completedCommit(numberedRecommendationAnswer(

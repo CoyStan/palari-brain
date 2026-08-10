@@ -2,6 +2,20 @@
 
 ## 2026-08-10 current handoff
 
+BRN-0048 has a provider-free candidate for the remaining instrument
+commitment failure. A local replay of all 13 recorded model responses made
+zero provider calls and reproduced the exact host reason: the correct answer
+commitment omitted evidence that its own candidate reviews had marked
+material. The host now carries those missing canonical IDs through a
+non-enumerable symbol only long enough for the OpenAI adapter to translate
+them into bounded answer-local `memoryNumber` values. The one existing repair
+names each missing number once. It includes no canonical ID, quote, source
+text, or automatic disposition and adds no dispatch. A second invalid
+commitment remains terminal. Focused contracts pass 81/81, core passes 93/93,
+quickstart passes 6/6, and legacy passes 970 with 15 optional skips and zero
+failures across 985 tests. No provider call or sealed U8 access occurred in
+the ticket worktree.
+
 The founder-requested current-product rerun of only the nine S60 execution
 failures is complete at main commit `b66d9fb`. Seven answers completed and all
 seven were judged correct: 77.8% execution success and 100% judged-answer

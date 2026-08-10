@@ -40,6 +40,7 @@ import {
   MEMORY_ANSWER_MAX_QUOTE_CHARS,
   MEMORY_ANSWER_MAX_TEMPORARY_INFERENCES,
   MEMORY_ANSWER_MAX_TEXT_CHARS,
+  MEMORY_ANSWER_MISSING_MATERIAL_EVIDENCE_IDS,
   MEMORY_RETRIEVAL_FINALIZATION_INSTRUCTIONS,
 } from './retrieval-answer.mjs'
 import {
@@ -673,6 +674,22 @@ function createAnswerEvidenceReferences() {
     ))
   }
 
+  const memoryNumbersForEvidenceIds = (values) => {
+    if (!Array.isArray(values)) return []
+    const numbers = []
+    const seen = new Set()
+    for (let index = 0; index < values.length; index += 1) {
+      const memoryNumber = numberByEvidenceId.get(values[index])
+      if (!Number.isSafeInteger(memoryNumber) || seen.has(memoryNumber)) {
+        continue
+      }
+      seen.add(memoryNumber)
+      numbers.push(memoryNumber)
+    }
+    numbers.sort((left, right) => left - right)
+    return numbers
+  }
+
   const translateCommitment = (proposal, {
     enumerationRequired = false,
     supportingEvidenceOnly = false,
@@ -907,7 +924,12 @@ function createAnswerEvidenceReferences() {
     }
   }
 
-  return Object.freeze({ decorateResult, decorateRows, translateCommitment })
+  return Object.freeze({
+    decorateResult,
+    decorateRows,
+    memoryNumbersForEvidenceIds,
+    translateCommitment,
+  })
 }
 
 const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
@@ -1167,6 +1189,16 @@ function commitmentEvidenceCount(session) {
 function commitmentRejection(error) {
   const message = String(error?.message ?? error ?? '').trim()
   return (message || 'The answer commitment was invalid.').slice(0, 1_000)
+}
+
+function answerCommitmentRejection(error, evidenceReferences) {
+  const missingMemoryNumbers = evidenceReferences.memoryNumbersForEvidenceIds(
+    error?.[MEMORY_ANSWER_MISSING_MATERIAL_EVIDENCE_IDS],
+  )
+  if (missingMemoryNumbers.length < 1) return commitmentRejection(error)
+  return `Answer commitment omitted material memoryNumbers: ` +
+    `${missingMemoryNumbers.join(', ')}. Assess each named memory as used ` +
+    `or excluded before committing again.`
 }
 
 function answerCommitRepairError(message, rejectionCode, rejectionReason) {
@@ -1509,7 +1541,7 @@ export function createOpenAIRetrievalProvider({
             )
             committed = session.commitAnswer(clone(hostCommitment))
           } catch (error) {
-            rejection = commitmentRejection(error)
+            rejection = answerCommitmentRejection(error, evidenceReferences)
             rejectionCode = String(error?.code ?? '')
           }
         }
@@ -1520,7 +1552,10 @@ export function createOpenAIRetrievalProvider({
               try {
                 return commitIncompleteAnswer(clone(hostCommitment))
               } catch (error) {
-                const incompleteRejection = commitmentRejection(error)
+                const incompleteRejection = answerCommitmentRejection(
+                  error,
+                  evidenceReferences,
+                )
                 if (String(error?.code ?? '') ===
                   'MEMORY_ANSWER_CONFIRMATION_REQUIRED') {
                   forcingCommit = false
