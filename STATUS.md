@@ -8,6 +8,49 @@ queries, exact-session navigation from prior Palari answers, `memory_bridge`,
 and an ephemeral retrieval frontier. No fixed semantic schema or persistent
 successful-co-use edge was added.
 
+The OpenAI answer wire now gives each citable returned memory a stable,
+answer-local integer and asks Luna to commit those short numbers rather than
+copy opaque evidence IDs. The adapter translates them back before the
+unchanged host validation boundary, so exact quotes, provenance, scope,
+enumeration, temporary-inference provenance, recommendation support, and
+material confirmation evidence remain canonical-ID checked. Confirmation
+seeds prior evidence into the same mapping before fresh results extend it;
+page-local `candidateNumber` remains separate. Unknown numbers use the existing
+single repair. Custom providers retain the historical evidence-ID contract,
+and old BRN-0025 request hashes remain historical while the new active wire has
+its own pin. Two independent reviews found and closed prompt/rejection ID leaks,
+confirmation seeding, bounded-callback isolation, and adjacent-fixture gaps.
+Provider-free validation passes 84/84 adjacent contracts, `npm test` 89/89,
+quickstart 6/6, and the complete legacy suite 939 with 3 optional skips.
+
+The founder-authorized isolated instrument rerun then completed once with zero
+retries under the rounded `$42` aggregate cap. The interface fix worked:
+all four main/confirmation commitments used short integer memory numbers, the
+host accepted the final answer, and the prior malformed-Korg-ID failure did not
+recur. All 4/4 dataset-marked spans were retrieved; 2/4 exact marked spans were
+selected and materially used, while alternative direct raw rows made all 4/4
+smallest decisive instrument facts retrieved, selected, and materially used.
+No bridge call, frontier refusal, stagnation, or durable write occurred.
+
+The completed answer was still judged incorrect. Palari definitively counted
+the Fender Stratocaster, Korg B1, and Yamaha FG800, but classified the Pearl
+Export drum set as ambiguous because the user was preparing to sell it and no
+later memory confirmed whether the sale completed. It answered three confirmed
+and four if still owned; the reference expects four. Confirmation performed two
+searches and two sparse reviews over 40 genuinely unseen candidates, found six
+material ownership-related rows in the first page, then closed normally after
+a second page had no material findings. This converts an unjudged interface
+failure into a clean semantic answer-interpretation miss; it is not a retrieval,
+bridge, or source-custody failure and is not a benchmark regrade.
+
+Fresh accounted spend was `$0.02288860`: `$0.02211530` OpenAI across eleven
+answer/reviewer dispatches, `$0.00008580` for four embedding inputs, and
+`$0.00068750` for the official judge. The aggregate ledger is now
+`$40.10470059`, leaving `$1.89529941` under the approved `$42` ceiling. The
+isolated process exited normally with a 3,481,812 KB peak resident set and no
+swaps. The 1,556,480-byte frozen source remains exactly
+`68180eb61d7afda6f9bc799527daae723b562b9147d89e718fb49ee8c94c9303`.
+
 GPT-5.6 Standard settlement now accounts for cache-write tokens as a distinct
 input subset at 1.25 times ordinary input, while preserving historical
 zero-write Luna and Sol behavior. The provider-free correction increased the
@@ -1387,14 +1430,13 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Before replaying the instrument case, remove opaque evidence-ID reproduction
-from the main answer commitment just as candidate review already did. Give the
-model short answer-local references and let the host bind them to immutable
-canonical IDs while retaining exact quote, provenance, scope, and material-use
-validation. Prove that provider-free against malformed, duplicate, stale, and
-unknown references; do not spend another call merely to retest the known ID
-failure. Run future hard cases as separate processes on this host so native
-reranker memory is reclaimed at each case boundary.
+Do not replay the instrument case merely to tune its answer. The short-reference
+boundary is now proven live; the remaining Pearl-set disagreement is a semantic
+interpretation choice over fully retrieved direct evidence. Treat future work
+on ownership, planned sales, and current-status uncertainty as general answer
+reasoning, not more identifier plumbing or retrieval machinery. Run future hard
+cases as separate processes on this host so native reranker memory is reclaimed
+at each case boundary.
 
 Do not tune retrieval further for `0a995998`: all three original statements
 were returned and enumerated. The general policy now treats an action phrased
