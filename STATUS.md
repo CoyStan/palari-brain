@@ -17,8 +17,12 @@ pending page inside the normal dispatch budget. That call offers no answer or
 retrieval tool. A second malformed review, forbidden tool, refusal, empty
 response, or exhausted normal budget remains terminal. A successful repair
 does not increase retrieval calls or the existing two-call closure allowance.
-Focused contracts pass 68/68, core passes 91/91, quickstart passes 6/6, and
-legacy passes 955 with 15 optional skips and zero failures across 970 tests.
+The first independent review found that malformed JSON or non-object review
+arguments failed before the repair path. That P2 issue is fixed. Both forms
+now receive the same one review-only repair, and a second malformed response
+is terminal. Focused contracts pass 72/72, core passes 91/91, quickstart
+passes 6/6, and legacy passes 959 with 15 optional skips and zero failures
+across 974 tests.
 The active answer-wire accounting pin was refreshed for the changed compact
 schema; the consumed BRN-0025 compatibility pins remain exact and unchanged.
 No provider, credential, private artifact, dataset, or sealed U8 item was

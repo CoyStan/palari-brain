@@ -29,9 +29,12 @@ No paid provider was called. The full provider-free legacy suite passes.
 
 ## Review And Acceptance
 
-- Focused contracts pass 68/68, core passes 91/91, quickstart passes 6/6, and
-  legacy passes 955 with 15 optional skips and zero failures.
-- Independent review is pending.
+- The first independent review found one P2 gap. Malformed JSON or non-object
+  review arguments did not enter the repair path. The gap is fixed, with
+  direct tests for both forms and a terminal second malformed response.
+- Focused contracts pass 72/72, core passes 91/91, quickstart passes 6/6, and
+  legacy passes 959 with 15 optional skips and zero failures.
+- Fresh independent rereview is pending.
 - The founder authorized execution of BRN-0045, BRN-0046, and BRN-0047 and
   directed merge after a clean independent review.
 

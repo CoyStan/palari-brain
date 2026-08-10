@@ -7,7 +7,8 @@
 - `src/retrieval-answer.mjs` — update model instructions and allow the host to
   audit one recovered malformed review on the same pending page.
 - `tests/openai.contract.test.mjs` — prove schema, translation, omission,
-  duplicate and used-evidence checks, and terminal repair limits.
+  duplicate and used-evidence checks, malformed review arguments, and
+  terminal repair limits.
 - `tests/answer-confirmation.contract.test.mjs` — prove the real host accepts
   one same-page review repair without another search.
 - `tests/openai-counted-responses.contract.test.mjs` — refresh the active wire
@@ -22,16 +23,19 @@
 ## Verification
 
 - `node --test tests/openai.contract.test.mjs tests/answer-confirmation.contract.test.mjs`:
-  PASS, 68/68.
+  PASS, 72/72.
 - `npm test`: PASS, 91/91.
 - `npm run quickstart`: PASS, 6/6.
 - `node --test tests/openai-counted-responses.contract.test.mjs`: PASS, 16/16.
 - `node --test tests/retrieval-answer.contract.test.mjs`: PASS, 44/44.
-- `npm run test:legacy`: PASS, 955 passed, 15 optional skips, 0 failed across
-  970 tests.
+- `npm run test:legacy`: PASS, 959 passed, 15 optional skips, 0 failed across
+  974 tests.
 - Ticket, report, committed-plus-dirty scope, and diff gates: pending after
   the candidate commit.
-- Independent review: pending.
+- The first independent review reopened exact commit `82f1fdf` for one P2:
+  malformed JSON and non-object candidate-review arguments failed before the
+  repair path. The candidate now repairs both forms and makes a second
+  malformed response terminal. Fresh independent rereview is pending.
 
 ## Risks / Follow-Ups
 

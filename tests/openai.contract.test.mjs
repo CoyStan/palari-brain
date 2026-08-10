@@ -1384,10 +1384,108 @@ test('one malformed candidate review gets one normal-budget review-only repair',
     assert.equal(bodies.length, 4)
   })
 
+test('malformed candidate-review arguments get one review-only repair',
+  async (t) => {
+    for (const malformedArguments of ['{"findings":[', '[]']) {
+      await t.test(malformedArguments === '[]' ? 'non-object' : 'invalid-json',
+        async () => {
+          const bodies = []
+          let searches = 0
+          let reviews = 0
+          let closed = false
+          const row = { evidenceId: 'evidence-1', text: 'violet folder' }
+          const proposal = evidenceAnswer(
+            'The key is in the violet folder.',
+            [{ row }],
+          )
+          const wireProposal = numberedEvidenceAnswer(
+            proposal.text,
+            [{ row }],
+          )
+          const provider = createOpenAIRetrievalProvider({
+            maxModelDispatches: 5,
+            async invoke({ body }) {
+              bodies.push(body)
+              if (bodies.length === 1) {
+                return completedCall({
+                  arguments: '{"phrase":"pending page"}',
+                  callId: 'search-before-malformed-arguments',
+                  name: 'memory_search',
+                })
+              }
+              if (bodies.length === 2) {
+                return completedCall({
+                  arguments: malformedArguments,
+                  callId: 'malformed-review-arguments',
+                  name: 'memory_candidate_review',
+                })
+              }
+              if (bodies.length === 3) {
+                assert.deepEqual(
+                  body.tools.map(({ name }) => name),
+                  ['memory_candidate_review'],
+                )
+                assert.deepEqual(body.tool_choice, {
+                  name: 'memory_candidate_review',
+                  type: 'function',
+                })
+                const rejection = body.input.find((item) =>
+                  item.type === 'function_call_output' &&
+                  item.call_id === 'malformed-review-arguments')
+                assert.match(
+                  JSON.parse(rejection.output).rejection,
+                  malformedArguments === '[]'
+                    ? /must decode to one JSON object/
+                    : /malformed JSON/,
+                )
+                return completedCall({
+                  arguments: '{"findings":[]}',
+                  callId: 'repaired-review-arguments',
+                  name: 'memory_candidate_review',
+                })
+              }
+              return completedCommit(wireProposal, {
+                callId: 'commit-after-argument-repair',
+              })
+            },
+          })
+
+          const result = await provider(answerSession({
+            answerConfirmationClosed: () => closed,
+            answerEvidenceCount: () => 1,
+            answerPriorEvidence: [row],
+            maxRetrievalCalls: 1,
+            retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
+            async retrieve({ tool }) {
+              if (tool === 'memory_search') {
+                searches += 1
+                return {
+                  matches: [{
+                    candidateNumber: 1,
+                    evidenceId: 'candidate-1',
+                    text: 'one pending candidate',
+                  }],
+                }
+              }
+              reviews += 1
+              closed = true
+              return { closed: true, continueSearch: false }
+            },
+          }))
+
+          assert.deepEqual(result, proposal)
+          assert.equal(searches, 1)
+          assert.equal(reviews, 1)
+          assert.equal(bodies.length, 4)
+        })
+    }
+  })
+
 test('candidate review repair fails closed without retrieval or closure growth',
   async (t) => {
     for (const scenario of [
       { expected: 'OPENAI_CONFIRMATION_REVIEW_REPAIR_FAILED', name: 'second-invalid' },
+      { expected: 'OPENAI_CONFIRMATION_REVIEW_REPAIR_FAILED', name: 'second-malformed-json' },
       { expected: 'OPENAI_FUNCTION_UNKNOWN', name: 'forbidden-search' },
       { expected: 'OPENAI_CONFIRMATION_REVIEW_REPAIR_FAILED', name: 'empty-response' },
       { expected: 'OPENAI_RESPONSE_REFUSED', name: 'refusal' },
@@ -1410,6 +1508,13 @@ test('candidate review repair fails closed without retrieval or closure growth',
                 arguments: '{"phrase":"pending page"}',
                 callId: 'search-before-bad-review',
                 name: 'memory_search',
+              })
+            }
+            if (scenario.name === 'second-malformed-json') {
+              return completedCall({
+                arguments: '{"findings":[',
+                callId: `malformed-json-review-${dispatches}`,
+                name: 'memory_candidate_review',
               })
             }
             if (dispatches === 2 || scenario.name === 'second-invalid') {
@@ -1475,7 +1580,12 @@ test('candidate review repair fails closed without retrieval or closure growth',
           },
         )
         assert.equal(searches, 1)
-        assert.equal(reviews, scenario.name === 'second-invalid' ? 2 : 1)
+        assert.equal(
+          reviews,
+          scenario.name === 'second-invalid'
+            ? 2
+            : scenario.name === 'second-malformed-json' ? 0 : 1,
+        )
         assert.equal(
           dispatches,
           scenario.name === 'normal-budget-exhausted' ? 2 : 3,

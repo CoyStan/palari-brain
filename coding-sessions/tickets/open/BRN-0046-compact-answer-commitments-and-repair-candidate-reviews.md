@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0046
 children: []
-status: in-review
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 2
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-10T20:43:52Z
 target_branch: "main"
 branch: "ticket/BRN-0046-compact-answer-commitments-and-repair-candidate-reviews"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0046-compact-answer-commitments-and-repair-candidate-reviews"
@@ -150,7 +150,11 @@ candidate review without starting another search.
   or closure allowance is added.
 - Refreshed only the active answer-wire byte and hash pin for the changed
   schema. The consumed BRN-0025 compatibility pins remain unchanged.
-- Focused contracts pass 68/68, core passes 91/91, quickstart passes 6/6, and
-  legacy passes 955 with 15 optional skips and zero failures across 970 tests.
+- The first independent review found one P2 gap: malformed JSON or non-object
+  candidate-review arguments failed before the repair path. Both forms now
+  enter the same single review-only repair, and another malformed response is
+  terminal.
+- Focused contracts pass 72/72, core passes 91/91, quickstart passes 6/6, and
+  legacy passes 959 with 15 optional skips and zero failures across 974 tests.
 - No provider, credential, private artifact, dataset, production service, or
   sealed U8 question was accessed.

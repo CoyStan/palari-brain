@@ -1399,6 +1399,30 @@ export function createOpenAIRetrievalProvider({
         calls = functionCalls(output, callableNames)
       } catch (error) {
         if (closureOnly) throw error
+        const attemptedFunctionCalls = output.filter((item) =>
+          item?.type === 'function_call')
+        const attemptedCandidateReview =
+          String(error?.code ?? '') ===
+            'OPENAI_FUNCTION_ARGUMENTS_INVALID' &&
+          attemptedFunctionCalls.length === 1 &&
+          attemptedFunctionCalls[0]?.name ===
+            MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME
+        if (attemptedCandidateReview) {
+          if (candidateReviewRepairUsed) {
+            throw adapterError(
+              'OPENAI_CONFIRMATION_REVIEW_REPAIR_FAILED',
+              'OpenAI returned malformed candidate-review arguments after one repair.',
+            )
+          }
+          candidateReviewRepairUsed = true
+          candidateReviewRepairPending = true
+          appendCommitmentRepair(
+            input,
+            output,
+            commitmentRejection(error),
+          )
+          continue
+        }
         const attemptedCommit = output.some((item) =>
           item?.type === 'function_call' &&
           item?.name === OPENAI_ANSWER_COMMIT_TOOL_NAME)
