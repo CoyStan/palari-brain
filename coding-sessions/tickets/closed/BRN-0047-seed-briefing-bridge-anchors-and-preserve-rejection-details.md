@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0047
 children: []
-status: in-review
+status: accepted
 risk: R2
 priority: P1
 agents_allowed: 2
@@ -136,3 +136,16 @@ future validation failures directly diagnosable.
   legacy passes 969 with 15 optional skips and zero failures across 984 tests.
 - No provider, credential, private artifact, dataset, production service, or
   sealed U8 question was accessed.
+
+## Acceptance
+
+- Founder acceptance: the founder authorized execution of BRN-0045,
+  BRN-0046, and BRN-0047 and directed merge after clean independent review.
+- Accepted candidate: `d2e26029f7fbb7b25dd599b015af59e0f2182ba8`.
+- A fresh independent reviewer recommends ACCEPT with no unresolved P0-P3
+  findings. Focused 82/82, core 93/93, quickstart 6/6, legacy 969 pass with
+  15 optional skips, ticket, report, scope, and diff gates pass.
+- The reviewer also confirmed with an independent cross-user test that a real
+  foreign canonical evidence ID remains invalid in the active scope.
+- The accepted ticket may move to `tickets/closed/`, merge to `main`, and
+  push.

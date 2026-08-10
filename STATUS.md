@@ -2,8 +2,8 @@
 
 ## 2026-08-10 current handoff
 
-BRN-0047 has a provider-free candidate for two remaining infrastructure
-failures. A raw `canonical_message` already present in a scoped
+BRN-0047 has a provider-free accepted implementation for two remaining
+infrastructure failures. A raw `canonical_message` already present in a scoped
 canonical-fallback briefing can now anchor `memory_bridge` on the first
 retrieval call. Seeding changes only bridge eligibility. It creates no
 frontier round, attempt, returned evidence, novelty, selected evidence, or
@@ -18,6 +18,11 @@ provider body, or credential is included. Focused contracts pass 82/82, core
 passes 93/93, quickstart passes 6/6, and legacy passes 969 with 15 optional
 skips and zero failures across 984 tests. No provider, credential, private
 artifact, dataset, or sealed U8 item was accessed.
+Independent review accepted exact commit `d2e2602` with no unresolved P0-P3
+finding. Its added cross-user test confirmed that a real canonical ID from a
+different user cannot become an anchor in the active scope. Founder acceptance
+is recorded under the prior direction to execute and merge BRN-0045 through
+BRN-0047 after clean review.
 
 BRN-0046 has a provider-free candidate that reduces answer bookkeeping
 without weakening the host evidence boundary. The normal OpenAI detailed

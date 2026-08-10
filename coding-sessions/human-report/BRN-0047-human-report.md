@@ -30,18 +30,17 @@ evidence body, provider body, or credential.
 
 - Focused contracts pass 82/82, core passes 93/93, quickstart passes 6/6, and
   legacy passes 969 with 15 optional skips and zero failures.
-- Independent review is pending.
+- A fresh independent reviewer accepted exact commit `d2e2602` with no
+  unresolved P0-P3 finding. Its added cross-user check confirmed that a real
+  evidence ID from another user is rejected.
 - The founder authorized execution of BRN-0045, BRN-0046, and BRN-0047 and
   directed merge after a clean independent review.
 
 ## What To Check
 
-- Confirm that the independent reviewer finds no unresolved P0-P3 issue.
 - In a later paid diagnostic, confirm that the failed bridge case can now
   continue and that the final rejection detail is useful when a commit fails.
 
 ## Recommended Next Move
 
-Commit the provider-free candidate and request independent review. If the
-review accepts it, record founder acceptance, merge it, and run final checks
-on `main`.
+Merge and push the accepted ticket, then run final checks on `main`.

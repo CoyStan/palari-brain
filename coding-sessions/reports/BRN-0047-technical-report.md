@@ -28,7 +28,9 @@
 - `npm run test:legacy`: PASS, 969 passed, 15 optional skips, 0 failed across
   984 tests.
 - Ticket, report, committed-plus-dirty scope, and diff gates: PASS.
-- Independent review: pending.
+- Independent review: ACCEPT at exact commit `d2e2602`, with no unresolved
+  P0-P3 finding. The reviewer also confirmed cross-user anchor rejection with
+  an independent test.
 
 ## Risks / Follow-Ups
 
