@@ -622,9 +622,18 @@ const provider = createOpenAIRetrievalProvider({ invoke })
 ```
 
 The default is `gpt-5.6-luna` through `POST /v1/responses`, `store: false`,
-low reasoning effort, and at most eleven model dispatches as an emergency
-protocol ceiling. The normal answer path permits at most four memory-tool
-calls. Palari's provider-neutral function
+low reasoning effort, and at most eleven model dispatches for normal planning,
+retrieval, confirmation, and answer work. The normal answer path permits at
+most four memory-tool calls. When the normal dispatch ceiling is reached,
+Palari permits at most two additional closure-only dispatches rather than
+discarding the evidence and provisional answer. The first closure dispatch
+may assess an already-returned confirmation page or commit the best supported
+answer. The second is answer-commit only and exists for the unchanged single
+commitment repair. Closure cannot plan or retrieve new memory. With no returned
+evidence it is tool-disabled; with evidence it must cross the same host-owned
+commitment and exact-evidence boundary. A refusal, invalid repaired commitment,
+forbidden tool call, empty response, or exhausted closure remains terminal.
+Palari's provider-neutral function
 schemas are preserved under explicit OpenAI `strict: false`, because their
 optional fields and `memory_read` root-property `anyOf` do not meet OpenAI's
 strict-schema subset. The host remains strict: it recognizes the function
@@ -633,8 +642,10 @@ tool, and records the result. Every Responses output item is replayed with the
 tool result so GPT-5.6 reasoning state is not dropped. Because the adapter is
 stateless (`store: false`), it explicitly requests
 `reasoning.encrypted_content` and replays that encrypted item unchanged.
-Public configuration may lower, but cannot raise, the eleven-dispatch ceiling.
-It also cannot raise the four-call memory budget.
+Public configuration may lower, but cannot raise, the eleven normal-dispatch
+ceiling. The physical call ceiling is therefore the configured normal ceiling
+plus two bounded closure calls. Configuration also cannot raise the four-call
+memory budget.
 
 The OpenAI adapter declares the additive evidence-commit capability. Its
 normal tool set contains six memory tools plus the private strict

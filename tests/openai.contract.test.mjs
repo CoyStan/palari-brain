@@ -1646,6 +1646,300 @@ test('retrieval provider forces one tool-disabled finalization after four calls'
     }
   })
 
+test('dispatch exhaustion reserves bounded answer closure instead of dropping the result',
+  async () => {
+    const bodies = []
+    let retrievals = 0
+    const provider = createOpenAIRetrievalProvider({
+      maxModelDispatches: 1,
+      async invoke({ body }) {
+        bodies.push(body)
+        return bodies.length === 1
+          ? completedCall({
+              arguments: '{"phrase":"tea"}',
+              callId: 'search-before-cap',
+              name: 'memory_search',
+            })
+          : completedText('The information collected so far is insufficient.')
+      },
+    })
+
+    const result = await provider(answerSession({
+      async retrieve() {
+        retrievals += 1
+        return { matches: [] }
+      },
+    }))
+
+    assert.equal(result.text,
+      'The information collected so far is insufficient.')
+    assert.equal(retrievals, 1)
+    assert.equal(bodies.length, 2)
+    assert.equal(bodies[1].tool_choice, 'none')
+    assert.equal(Object.hasOwn(bodies[1], 'tools'), false)
+    assert.match(bodies[1].instructions, /Retrieval is complete/)
+  })
+
+test('dispatch closure reviews only a pending page then commits bounded-incomplete',
+  async () => {
+    const bodies = []
+    const row = {
+      evidenceId: 'prior-evidence',
+      text: 'The stored preference is jasmine tea.',
+    }
+    const proposal = evidenceAnswer('The user prefers jasmine tea.', [{ row }])
+    const wireProposal = numberedEvidenceAnswer(proposal.text, [{ row }])
+    let incompleteCommits = 0
+    let reviews = 0
+    let searches = 0
+    const provider = createOpenAIRetrievalProvider({
+      maxModelDispatches: 1,
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) {
+          return completedCall({
+            arguments: '{"phrase":"current tea preference"}',
+            callId: 'confirmation-search',
+            name: 'memory_search',
+          })
+        }
+        if (bodies.length === 2) {
+          return completedCall({
+            arguments: '{"findings":[]}',
+            callId: 'confirmation-review',
+            name: 'memory_candidate_review',
+          })
+        }
+        return completedCommit(wireProposal, { callId: 'bounded-commit' })
+      },
+    })
+
+    const result = await provider(answerSession({
+      answerConfirmationClosed: () => false,
+      answerEvidenceCount: () => 1,
+      answerPriorEvidence: [row],
+      commitAnswer() {
+        const error = new TypeError('Confirmation is bounded but incomplete.')
+        error.code = 'MEMORY_ANSWER_CONFIRMATION_REQUIRED'
+        throw error
+      },
+      commitIncompleteAnswer(received) {
+        incompleteCommits += 1
+        return Object.freeze(received)
+      },
+      maxRetrievalCalls: 1,
+      retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
+      async retrieve({ tool }) {
+        if (tool === 'memory_search') {
+          searches += 1
+          return { matches: [{
+            candidateNumber: 1,
+            evidenceId: 'confirmation-candidate',
+            text: 'No newer tea preference was recorded.',
+          }] }
+        }
+        reviews += 1
+        return { closed: false, continueSearch: true }
+      },
+    }))
+
+    assert.deepEqual(result, proposal)
+    assert.equal(searches, 1)
+    assert.equal(reviews, 1)
+    assert.equal(incompleteCommits, 1)
+    assert.equal(bodies.length, 3)
+    assert.deepEqual(
+      bodies[1].tools.map(({ name }) => name),
+      ['memory_candidate_review', OPENAI_ANSWER_COMMIT_TOOL_NAME],
+    )
+    assert.deepEqual(bodies[2].tool_choice, {
+      name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
+      type: 'function',
+    })
+    assert.deepEqual(
+      bodies[2].tools.map(({ name }) => name),
+      [OPENAI_ANSWER_COMMIT_TOOL_NAME],
+    )
+  })
+
+test('dispatch closure preserves one host commitment repair without reopening retrieval',
+  async () => {
+    const bodies = []
+    let evidenceCount = 0
+    const row = {
+      evidenceId: 'tea-evidence',
+      text: 'The user likes jasmine tea.',
+    }
+    const proposal = evidenceAnswer('The user likes jasmine tea.', [{ row }])
+    const wireProposal = numberedEvidenceAnswer(proposal.text, [{ row }])
+    const provider = createOpenAIRetrievalProvider({
+      maxModelDispatches: 1,
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) {
+          return completedCall({
+            arguments: '{"phrase":"tea"}',
+            callId: 'search-before-repair',
+            name: 'memory_search',
+          })
+        }
+        if (bodies.length === 2) {
+          return completedCommit({
+            ...wireProposal,
+            bases: [{
+              disposition: 'used',
+              memoryNumber: 99,
+              rationale: 'This determines the answer.',
+            }],
+          }, { callId: 'invalid-closure-commit' })
+        }
+        return completedCommit(wireProposal, {
+          callId: 'repaired-closure-commit',
+        })
+      },
+    })
+
+    const result = await provider(answerSession({
+      answerEvidenceCount: () => evidenceCount,
+      commitAnswer(received) {
+        return Object.freeze(received)
+      },
+      async retrieve() {
+        evidenceCount = 1
+        return { matches: [row] }
+      },
+    }))
+
+    assert.deepEqual(result, proposal)
+    assert.equal(bodies.length, 3)
+    assert.ok(bodies.slice(1).every((body) =>
+      body.tools.length === 1 &&
+      body.tools[0].name === OPENAI_ANSWER_COMMIT_TOOL_NAME))
+    assert.match(
+      JSON.stringify(bodies[2].input),
+      /must be an answer-local memoryNumber already shown/,
+    )
+  })
+
+test('dispatch closure rejects mixed non-offered and unknown tools without repair',
+  async (t) => {
+    for (const forbiddenName of ['memory_search', 'not_a_real_tool']) {
+      await t.test(forbiddenName, async () => {
+        const bodies = []
+        let evidenceCount = 0
+        let retrievals = 0
+        const row = {
+          evidenceId: 'tea-evidence',
+          text: 'The user likes jasmine tea.',
+        }
+        const wireProposal = numberedEvidenceAnswer(
+          'The user likes jasmine tea.',
+          [{ row }],
+        )
+        const provider = createOpenAIRetrievalProvider({
+          maxModelDispatches: 1,
+          async invoke({ body }) {
+            bodies.push(body)
+            if (bodies.length === 1) {
+              return completedCall({
+                arguments: '{"phrase":"tea"}',
+                callId: 'search-before-closure',
+                name: 'memory_search',
+              })
+            }
+            const response = completedCommit(wireProposal, {
+              callId: 'mixed-commit',
+            })
+            response.output.push(completedCall({
+              arguments: forbiddenName === 'memory_search'
+                ? '{"phrase":"forbidden new search"}'
+                : '{}',
+              callId: 'mixed-forbidden-tool',
+              name: forbiddenName,
+            }).output[1])
+            return response
+          },
+        })
+
+        await assert.rejects(
+          provider(answerSession({
+            answerEvidenceCount: () => evidenceCount,
+            async retrieve() {
+              retrievals += 1
+              evidenceCount = 1
+              return { matches: [row] }
+            },
+          })),
+          (error) => error.code === 'OPENAI_FUNCTION_UNKNOWN',
+        )
+        assert.equal(bodies.length, 2)
+        assert.equal(retrievals, 1)
+      })
+    }
+  })
+
+test('dispatch closure remains terminal after its two physical calls',
+  async () => {
+    const bodies = []
+    const row = {
+      evidenceId: 'prior-evidence',
+      text: 'The stored preference is jasmine tea.',
+    }
+    const wireProposal = numberedEvidenceAnswer(
+      'The user prefers jasmine tea.',
+      [{ row }],
+    )
+    const provider = createOpenAIRetrievalProvider({
+      maxModelDispatches: 1,
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) {
+          return completedCall({
+            arguments: '{"phrase":"current tea preference"}',
+            callId: 'confirmation-search',
+            name: 'memory_search',
+          })
+        }
+        if (bodies.length === 2) {
+          return completedCall({
+            arguments: '{"findings":[]}',
+            callId: 'confirmation-review',
+            name: 'memory_candidate_review',
+          })
+        }
+        return completedCommit(wireProposal, { callId: 'bounded-commit' })
+      },
+    })
+    const confirmationRequired = () => {
+      const error = new TypeError('A newer commitment is still required.')
+      error.code = 'MEMORY_ANSWER_CONFIRMATION_REQUIRED'
+      throw error
+    }
+
+    await assert.rejects(
+      provider(answerSession({
+        answerConfirmationClosed: () => false,
+        answerEvidenceCount: () => 1,
+        answerPriorEvidence: [row],
+        commitAnswer: confirmationRequired,
+        commitIncompleteAnswer: confirmationRequired,
+        maxRetrievalCalls: 1,
+        retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
+        async retrieve({ tool }) {
+          return tool === 'memory_search'
+            ? { matches: [{
+                candidateNumber: 1,
+                evidenceId: 'confirmation-candidate',
+                text: 'A candidate was returned.',
+              }] }
+            : { closed: false, continueSearch: true }
+        },
+      })),
+      (error) => error.code === 'OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED',
+    )
+    assert.equal(bodies.length, 3)
+  })
+
 test('retrieval provider preserves early answers from zero through three calls',
   async () => {
     for (let answerAfter = 0; answerAfter <= 3; answerAfter += 1) {
@@ -1864,7 +2158,7 @@ test('retrieval provider fails closed on unknown calls, refusals, and caps',
     })
     await assert.rejects(
       capped(answerSession()),
-      (error) => error.code === 'OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED',
+      (error) => error.code === 'OPENAI_FUNCTION_UNKNOWN',
     )
     assert.throws(
       () => createOpenAIRetrievalProvider({

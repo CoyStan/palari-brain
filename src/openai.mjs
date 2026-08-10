@@ -56,6 +56,8 @@ export const OPENAI_REDUCER_MAX_OUTPUT_TOKENS = 2_000
 export const OPENAI_GRAPH_MAX_OUTPUT_TOKENS = 2_000
 export const OPENAI_ANSWER_COMMIT_TOOL_NAME = 'palari_answer_commit'
 
+const OPENAI_MODEL_CLOSURE_DISPATCHES = 2
+
 const OPENAI_ANSWER_BASIS_DISPOSITIONS = Object.freeze([
   'used',
   'not_used',
@@ -1059,16 +1061,26 @@ export function createOpenAIRetrievalProvider({
     let finalizing = retrievalLimit === 0
     let forcingCommit = false
     let repairUsed = false
+    let closureDispatches = 0
 
     for (;;) {
-      if (dispatch >= dispatchLimit) {
-        throw adapterError(
-          'OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED',
-          'OpenAI retrieval provider exhausted its model-dispatch budget.',
-        )
-      }
       const evidenceAvailable = commitmentEvidenceCount(session) > 0
       const hostClosed = answerConfirmationClosed?.() === true
+      const closureOnly = dispatch >= dispatchLimit
+      if (dispatch >= dispatchLimit) {
+        if (closureDispatches >= OPENAI_MODEL_CLOSURE_DISPATCHES) {
+          throw adapterError(
+            'OPENAI_MODEL_DISPATCH_BUDGET_EXHAUSTED',
+            'OpenAI retrieval provider exhausted its bounded closure after ' +
+              'the normal model-dispatch budget.',
+          )
+        }
+        closureDispatches += 1
+        finalizing = true
+        if (closureDispatches === OPENAI_MODEL_CLOSURE_DISPATCHES) {
+          forcingCommit = evidenceAvailable
+        }
+      }
       const ending = finalizing || hostClosed
       const reviewMayBePending = Boolean(confirmationReviewTool) && !hostClosed
       const commitOnly = forcingCommit ||
@@ -1079,6 +1091,9 @@ export function createOpenAIRetrievalProvider({
         : finalizing && reviewMayBePending
           ? [confirmationReviewTool, commitTool]
           : tools
+      const callableNames = closureOnly
+        ? new Set((toolDisabled ? [] : offeredTools).map(({ name }) => name))
+        : allowedNames
       const body = {
         include: ['reasoning.encrypted_content'],
         input: clone(input),
@@ -1121,8 +1136,9 @@ export function createOpenAIRetrievalProvider({
       assertNoRefusal(output)
       let calls
       try {
-        calls = functionCalls(output, allowedNames)
+        calls = functionCalls(output, callableNames)
       } catch (error) {
+        if (closureOnly) throw error
         const attemptedCommit = output.some((item) =>
           item?.type === 'function_call' &&
           item?.name === OPENAI_ANSWER_COMMIT_TOOL_NAME)
