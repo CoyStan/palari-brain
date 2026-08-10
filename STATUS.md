@@ -82,6 +82,24 @@ approved `$90.00` cap. This includes `$0.08783105` measured for seven completed
 cases and two conservative `$0.70` failed-case reservations. Sealed U8 question
 `1568498a` was excluded.
 
+After accepted BRN-0048 and BRN-0049 merged at `b33b3f2`, the founder-authorized
+successor diagnostic reran only those two remaining failures once. Both
+completed and both pinned GPT-4o judgments were correct. The instrument answer
+reported three certain instruments and four if the unsold drum set remained;
+the judge accepted it against reference `4`. The airline answer was `$800`,
+exactly the reference. The shared file pacer held OpenAI traffic to eight
+requests and 450,000 estimated units per rolling minute. It inserted one wait
+for the instrument case and three waits for the airline case; no HTTP 429
+occurred and no provider call was retried.
+
+The failed-nine successor sequence is now 9/9 completed and 9/9 judged correct.
+Combining each S60 question's latest completed attempt gives 56 correct and 4
+incorrect across 60, or 93.3%. This combines the original run with targeted
+successor diagnostics. It is not a one-shot benchmark regrade, and the original
+47/60 strict score remains historical. Accounted aggregate spend is now
+`$62.57099046`; these two cases cost `$0.05268601` under the approved `$90.00`
+cap. The original failures remain unchanged, and sealed U8 was not executed.
+
 BRN-0047 has a provider-free accepted implementation for two remaining
 infrastructure failures. A raw `canonical_message` already present in a scoped
 canonical-fallback briefing can now anchor `memory_bridge` on the first
