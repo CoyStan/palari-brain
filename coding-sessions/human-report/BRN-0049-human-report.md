@@ -29,9 +29,13 @@ The first rereviewer found one last race between checking a stale file and
 deleting its path. Recovery now moves the exact path to quarantine under one
 owned claim. A later live lock stays in place, and two recoverers serialize.
 
+The next reviewer found that publishing a new lock did not own that same
+claim. Now all acquisition and recovery work uses one common gate. A worker
+cannot publish while another worker is deciding how to recover a stale lock.
+
 ## What To Check
 
-Focused 28/28, core 104/104, quickstart 6/6, and legacy 981 pass with 15
+Focused 29/29, core 105/105, quickstart 6/6, and legacy 982 pass with 15
 optional skips and zero failures. A six-process test and five more stress
 repetitions stayed inside the shared ceiling.
 

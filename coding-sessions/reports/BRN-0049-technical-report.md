@@ -18,11 +18,11 @@
 
 ## Verification
 
-- Focused alpha and pacer contracts: PASS, 28/28.
-- `npm test`: PASS, 104/104.
+- Focused alpha and pacer contracts: PASS, 29/29.
+- `npm test`: PASS, 105/105.
 - `npm run quickstart`: PASS, 6/6.
-- `npm run test:legacy`: PASS, 981 passed, 15 optional skips, 0 failed across
-  996 tests.
+- `npm run test:legacy`: PASS, 982 passed, 15 optional skips, 0 failed across
+  997 tests.
 - Six real child processes sharing one state path: PASS. The durable active
   window remained at or below 100 units and two requests.
 - Five additional repetitions of the child-process contract: PASS.
@@ -52,3 +52,8 @@
   moves the exact lock pathname to quarantine, and deletes only the captured
   stale identity. A late live replacement remains at the lock path, and two
   stale recoverers cannot both enter recovery.
+- The next rereview reopened exact commit `8525b98` because the recovery-claim
+  check and a new lock publication were not one atomic protocol. All
+  publication and recovery work now runs under the same acquisition gate.
+  This removes stale-observer, live-owner, and later-publisher interleavings;
+  an abandoned gate fails closed.

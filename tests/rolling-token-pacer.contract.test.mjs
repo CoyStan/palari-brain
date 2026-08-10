@@ -423,3 +423,24 @@ test('two stale recoverers serialize before both admissions', async () => {
   assert.equal(state.events.length, 2)
   assert.equal(state.events.reduce((sum, event) => sum + event.units, 0), 2)
 })
+
+test('an abandoned acquisition gate fails closed without publishing a lock', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-pacer-gate-'))
+  const statePath = path.join(directory, 'pacer.json')
+  const gatePath = `${statePath}.lock.gate`
+  const old = new Date(Date.now() - 60_000)
+  await writeFile(gatePath, `${JSON.stringify({
+    schema: 'palari-shared-rolling-pacer/v1',
+    pid: 2_147_483_647,
+    token: 'abandoned-gate',
+  })}\n`)
+  await utimes(gatePath, old, old)
+  const pacer = createFileRollingTokenPacer({
+    lockStaleMs: 10,
+    maxRequests: 1,
+    maxUnits: 1,
+    statePath,
+  })
+  await assert.rejects(pacer.pace(1), /acquisition gate is abandoned/u)
+  await assert.rejects(access(`${statePath}.lock`), /ENOENT/u)
+})

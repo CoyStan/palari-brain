@@ -13,13 +13,14 @@ shape. Loaded events are rebuilt from those two fields before use. Extra fields
 are corrupt state and fail closed. The lock contains only its schema, owner
 process ID, and a random ownership value. Its complete synced record is
 published atomically. It contains no prompt, answer, evidence, request body,
-response body, or credential. Stale recovery first publishes one owned recovery
-claim. It then atomically moves the lock path to a private quarantine name and
-deletes only a captured file that matches the observed device, inode, bytes,
-dead owner, and stale age. A live replacement is restored without overwrite.
-Other recoverers wait on the claim, and an abandoned recovery claim fails
-closed. Release also checks its ownership value, so an old worker cannot remove
-a newer lock. Corrupt state and policy mismatches are terminal.
+response body, or credential. Every lock publication and stale observation
+first owns the same acquisition gate. Stale recovery atomically moves the lock
+path to a private quarantine name and deletes only a captured file that matches
+the observed device, inode, bytes, dead owner, and stale age. A live replacement
+is restored without overwrite. Other acquirers wait on the gate, and an
+abandoned gate fails closed. Release also checks its ownership value, so an old
+worker cannot remove a newer lock. Corrupt state and policy mismatches are
+terminal.
 
 An oversized dispatch can enter only when the rolling window is empty. Lock
 retry configuration above one window is rejected, and a wait never exceeds

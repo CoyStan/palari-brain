@@ -102,7 +102,7 @@ export function createFileRollingTokenPacer({
   }
   const resolvedStatePath = statePath.trim()
   const lockPath = `${resolvedStatePath}.lock`
-  const recoveryPath = `${lockPath}.recovery`
+  const gatePath = `${lockPath}.gate`
   const policy = Object.freeze({ maxRequests: requests, maxUnits: maximum, windowMs: window })
   let admittedUnits = 0
   let admittedRequests = 0
@@ -194,11 +194,13 @@ export function createFileRollingTokenPacer({
   async function acquire() {
     await mkdir(dirname(resolvedStatePath), { recursive: true })
     for (;;) {
-      const existingRecovery = await readOwned(recoveryPath)
-      if (existingRecovery) {
-        if (Date.now() - existingRecovery.info.mtimeMs >= stale &&
-            !ownerIsAlive(existingRecovery.owner?.pid)) {
-          throw new Error('shared rolling pacer recovery claim is abandoned.')
+      const gate = await publishOwned(gatePath)
+      if (!gate) {
+        const existingGate = await readOwned(gatePath)
+        if (!existingGate) continue
+        if (Date.now() - existingGate.info.mtimeMs >= stale &&
+            !ownerIsAlive(existingGate.owner?.pid)) {
+          throw new Error('shared rolling pacer acquisition gate is abandoned.')
         }
         lockWaits += 1
         lockWaitedMs += retry
@@ -206,66 +208,68 @@ export function createFileRollingTokenPacer({
         continue
       }
 
-      const ownership = await publishOwned(lockPath)
-      if (ownership) return ownership
-
-      const observed = await readOwned(lockPath)
-      if (!observed) continue
-      if (Date.now() - observed.info.mtimeMs >= stale &&
-          !ownerIsAlive(observed.owner?.pid)) {
-        const recovery = await publishOwned(recoveryPath)
-        if (!recovery) {
-          const activeRecovery = await readOwned(recoveryPath)
-          if (!activeRecovery) continue
-          if (Date.now() - activeRecovery.info.mtimeMs >= stale &&
-              !ownerIsAlive(activeRecovery.owner?.pid)) {
-            throw new Error('shared rolling pacer recovery claim is abandoned.')
-          }
-          lockWaits += 1
-          lockWaitedMs += retry
-          await wait(retry)
-          continue
-        }
-        try {
-          const quarantine = `${lockPath}.stale-${recovery.token}`
-          let moved = false
-          try {
-            await rename(lockPath, quarantine)
-            moved = true
-          } catch (error) {
-            if (error?.code !== 'ENOENT') throw error
-          }
-          if (moved) {
+      let acquired = null
+      let shouldWait = false
+      try {
+        acquired = await publishOwned(lockPath)
+        if (!acquired) {
+          const observed = await readOwned(lockPath)
+          if (observed && Date.now() - observed.info.mtimeMs >= stale &&
+              !ownerIsAlive(observed.owner?.pid)) {
+            const quarantine = `${lockPath}.stale-${gate.token}`
+            let moved = false
             try {
-              const captured = await readOwned(quarantine)
-              const isObservedDeadLock = captured &&
-                captured.info.ino === observed.info.ino &&
-                captured.info.dev === observed.info.dev &&
-                captured.raw === observed.raw &&
-                Date.now() - captured.info.mtimeMs >= stale &&
-                !ownerIsAlive(captured.owner?.pid)
-              if (!isObservedDeadLock) {
+              await rename(lockPath, quarantine)
+              moved = true
+            } catch (error) {
+              if (error?.code !== 'ENOENT') throw error
+            }
+            if (moved) {
+              try {
+                const captured = await readOwned(quarantine)
+                const isObservedDeadLock = captured &&
+                  captured.info.ino === observed.info.ino &&
+                  captured.info.dev === observed.info.dev &&
+                  captured.raw === observed.raw &&
+                  Date.now() - captured.info.mtimeMs >= stale &&
+                  !ownerIsAlive(captured.owner?.pid)
+                if (!isObservedDeadLock) {
+                  await link(quarantine, lockPath).catch((error) => {
+                    if (error?.code !== 'EEXIST') throw error
+                  })
+                  shouldWait = true
+                }
+                await unlink(quarantine)
+                if (isObservedDeadLock) {
+                  acquired = await publishOwned(lockPath)
+                  shouldWait = !acquired
+                }
+              } catch (error) {
                 await link(quarantine, lockPath).catch((error) => {
                   if (error?.code !== 'EEXIST') throw error
                 })
+                await unlink(quarantine).catch(() => {})
+                throw error
               }
-              await unlink(quarantine)
-            } catch (error) {
-              await link(quarantine, lockPath).catch((error) => {
-                if (error?.code !== 'EEXIST') throw error
-              })
-              await unlink(quarantine).catch(() => {})
-              throw error
             }
+          } else if (observed) {
+            shouldWait = true
           }
-        } finally {
-          await releaseOwned(recoveryPath, recovery)
         }
-        continue
+      } finally {
+        try {
+          await releaseOwned(gatePath, gate)
+        } catch (error) {
+          if (acquired) await releaseOwned(lockPath, acquired).catch(() => {})
+          throw error
+        }
       }
-      lockWaits += 1
-      lockWaitedMs += retry
-      await wait(retry)
+      if (acquired) return acquired
+      if (shouldWait) {
+        lockWaits += 1
+        lockWaitedMs += retry
+        await wait(retry)
+      }
     }
   }
 
