@@ -238,10 +238,9 @@ test('OpenAI provider accepts an old-only commitment and reports telemetry',
         if (bodies.length === 3) {
           return completedCall({
             args: commitment({ bases: [{
-              consequence_for_answer: 'This evidence controls the answer.',
+              disposition: 'used',
               memoryNumber: earlyRow.memoryNumber,
-              not_used_reason: '',
-              quote: earlyRow.text,
+              rationale: 'This evidence controls the answer.',
             }] }),
             callId: 'old-commit',
             name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
