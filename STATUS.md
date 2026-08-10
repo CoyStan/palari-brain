@@ -2,6 +2,25 @@
 
 ## 2026-08-10 current handoff
 
+The founder-requested current-product rerun of only the nine S60 execution
+failures is complete at main commit `b66d9fb`. Seven answers completed and all
+seven were judged correct: 77.8% execution success and 100% judged-answer
+accuracy. Two cases remained unjudged. `gpt4_194be4b3` again ended after an
+invalid answer commitment and one repair; its last candidate answered `4` and
+listed the same four instruments as the reference. `7527f7e2` ended on HTTP
+429 after thirteen recorded OpenAI calls; its repeated answer candidate was
+`$800`, exactly the reference. Founder-requested manual inclusion is therefore
+9/9 directionally correct, but it is not a benchmark regrade and does not
+replace the two execution failures.
+
+Each case ran in a separate process with no automatic retry, a full rate-window
+gap between cases, the fixed 450,000-unit local OpenAI pacer, and the existing
+bounded native reranker. The original failure artifacts remain unchanged.
+Accounted aggregate spend moved from `$61.0304734` to `$62.51830445` under the
+approved `$90.00` cap. This includes `$0.08783105` measured for seven completed
+cases and two conservative `$0.70` failed-case reservations. Sealed U8 question
+`1568498a` was excluded.
+
 BRN-0047 has a provider-free accepted implementation for two remaining
 infrastructure failures. A raw `canonical_message` already present in a scoped
 canonical-fallback briefing can now anchor `memory_bridge` on the first
