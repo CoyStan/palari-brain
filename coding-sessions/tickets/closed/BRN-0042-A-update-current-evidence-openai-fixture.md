@@ -6,7 +6,7 @@ level: 2
 parent_id: BRN-0042
 root_id: BRN-0042
 children: []
-status: in-review
+status: accepted
 risk: R1
 priority: P0
 agents_allowed: 1
