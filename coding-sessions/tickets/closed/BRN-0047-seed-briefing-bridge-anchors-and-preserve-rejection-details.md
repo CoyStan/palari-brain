@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0047
 children: []
-status: open
+status: accepted
 risk: R2
 priority: P1
 agents_allowed: 2
@@ -115,3 +115,37 @@ future validation failures directly diagnosable.
 - Stop if the work needs a path outside `allowed_paths` or touches `forbidden_paths`.
 - Stop if briefing seeding changes retrieval counts, permits unregistered
   anchors, or rejection logging would expose source or provider content.
+
+## Specialist Closeout
+
+- Added a separate ephemeral bridge-eligibility set. Every memory-tool result
+  enters it as before. Raw `canonical_message` rows from the scoped
+  canonical-fallback briefing are seeded before the provider runs.
+- Briefing seeding does not enter searched evidence, answer-commit evidence,
+  selected evidence, rounds, attempts, returned counts, novelty, or budget
+  accounting. Derived digest rows do not enter this set.
+- A first-call `memory_bridge` can use one eligible briefing ID and still
+  consumes one normal retrieval call. Optional reranking receives the
+  host-held canonical briefing text as bounded routing context.
+- Unknown and provider-invented IDs still fail with
+  `MEMORY_RETRIEVAL_FRONTIER_ANCHOR_INVALID`.
+- Terminal `OPENAI_ANSWER_COMMIT_REPAIR_FAILED` errors now expose one frozen
+  `hostRejection` object with only the final bounded host `code` and `reason`.
+  Normal and bounded-incomplete commitment paths use the same safe detail.
+- Focused contracts pass 82/82, core passes 93/93, quickstart passes 6/6, and
+  legacy passes 969 with 15 optional skips and zero failures across 984 tests.
+- No provider, credential, private artifact, dataset, production service, or
+  sealed U8 question was accessed.
+
+## Acceptance
+
+- Founder acceptance: the founder authorized execution of BRN-0045,
+  BRN-0046, and BRN-0047 and directed merge after clean independent review.
+- Accepted candidate: `d2e26029f7fbb7b25dd599b015af59e0f2182ba8`.
+- A fresh independent reviewer recommends ACCEPT with no unresolved P0-P3
+  findings. Focused 82/82, core 93/93, quickstart 6/6, legacy 969 pass with
+  15 optional skips, ticket, report, scope, and diff gates pass.
+- The reviewer also confirmed with an independent cross-user test that a real
+  foreign canonical evidence ID remains invalid in the active scope.
+- The accepted ticket may move to `tickets/closed/`, merge to `main`, and
+  push.

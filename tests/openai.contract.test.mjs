@@ -1155,6 +1155,85 @@ test('invalid commitment gets one repair and a second invalid result is terminal
     }
   })
 
+test('terminal commitment repair preserves only the last bounded host rejection',
+  async (t) => {
+    for (const boundedIncomplete of [false, true]) {
+      await t.test(boundedIncomplete ? 'bounded-incomplete' : 'normal',
+        async () => {
+          const row = {
+            evidenceId: 'private-evidence-id',
+            text: 'PRIVATE_EVIDENCE_BODY_DO_NOT_COPY',
+          }
+          const wireProposal = numberedEvidenceAnswer(
+            'A bounded answer.',
+            [{ row }],
+          )
+          let dispatches = 0
+          let hostAttempts = 0
+          const finalReason = `Final host rejection: ${'r'.repeat(1_100)}`
+          const provider = createOpenAIRetrievalProvider({
+            async invoke() {
+              dispatches += 1
+              return completedCommit(wireProposal, {
+                callId: `rejected-commit-${dispatches}`,
+              })
+            },
+          })
+          await assert.rejects(
+            provider(answerSession({
+              answerEvidenceCount: () => 1,
+              answerPriorEvidence: [row],
+              commitAnswer() {
+                hostAttempts += 1
+                const error = new TypeError(boundedIncomplete
+                  ? 'Confirmation is still required.'
+                  : hostAttempts === 1
+                    ? 'First host rejection.'
+                    : finalReason)
+                error.code = boundedIncomplete
+                  ? 'MEMORY_ANSWER_CONFIRMATION_REQUIRED'
+                  : hostAttempts === 1
+                    ? 'HOST_FIRST_REJECTION'
+                    : 'HOST_FINAL_REJECTION'
+                throw error
+              },
+              ...(boundedIncomplete
+                ? {
+                    commitIncompleteAnswer() {
+                      const error = new TypeError(finalReason)
+                      error.code = 'HOST_FINAL_BOUNDED_REJECTION'
+                      throw error
+                    },
+                  }
+                : {}),
+              maxRetrievalCalls: 0,
+            })),
+            (error) => {
+              assert.equal(error.code, 'OPENAI_ANSWER_COMMIT_REPAIR_FAILED')
+              assert.deepEqual(error.hostRejection, {
+                code: boundedIncomplete
+                  ? 'HOST_FINAL_BOUNDED_REJECTION'
+                  : 'HOST_FINAL_REJECTION',
+                reason: finalReason.slice(0, 1_000),
+              })
+              assert.equal(Object.isFrozen(error.hostRejection), true)
+              assert.deepEqual(Object.keys(error.hostRejection), [
+                'code',
+                'reason',
+              ])
+              const serialized = JSON.stringify(error)
+              assert.doesNotMatch(serialized, /PRIVATE_EVIDENCE_BODY_DO_NOT_COPY/)
+              assert.doesNotMatch(serialized, /private-evidence-id/)
+              assert.doesNotMatch(serialized, /Bearer|prompt|provider/i)
+              return true
+            },
+          )
+          assert.equal(dispatches, 2)
+          assert.equal(hostAttempts, 2)
+        })
+    }
+  })
+
 test('confirmation rejection reopens retrieval instead of forcing commit repair',
   async () => {
     const bodies = []

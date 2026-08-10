@@ -2,6 +2,28 @@
 
 ## 2026-08-10 current handoff
 
+BRN-0047 has a provider-free accepted implementation for two remaining
+infrastructure failures. A raw `canonical_message` already present in a scoped
+canonical-fallback briefing can now anchor `memory_bridge` on the first
+retrieval call. Seeding changes only bridge eligibility. It creates no
+frontier round, attempt, returned evidence, novelty, selected evidence, or
+budget charge. Derived digest rows and unknown IDs remain ineligible. The
+bridge call still uses one normal retrieval call, and optional reranking uses
+the host-held raw briefing text as bounded routing context.
+
+When the first answer commitment and its single repair both fail host
+validation, the terminal error now carries the last bounded host rejection
+code and reason in a frozen `hostRejection` object. No prompt, evidence body,
+provider body, or credential is included. Focused contracts pass 82/82, core
+passes 93/93, quickstart passes 6/6, and legacy passes 969 with 15 optional
+skips and zero failures across 984 tests. No provider, credential, private
+artifact, dataset, or sealed U8 item was accessed.
+Independent review accepted exact commit `d2e2602` with no unresolved P0-P3
+finding. Its added cross-user test confirmed that a real canonical ID from a
+different user cannot become an anchor in the active scope. Founder acceptance
+is recorded under the prior direction to execute and merge BRN-0045 through
+BRN-0047 after clean review.
+
 BRN-0046 has a provider-free candidate that reduces answer bookkeeping
 without weakening the host evidence boundary. The normal OpenAI detailed
 commitment now has two compact lists: used memories carry one short

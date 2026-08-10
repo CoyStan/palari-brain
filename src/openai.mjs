@@ -1169,6 +1169,15 @@ function commitmentRejection(error) {
   return (message || 'The answer commitment was invalid.').slice(0, 1_000)
 }
 
+function answerCommitRepairError(message, rejectionCode, rejectionReason) {
+  const error = adapterError('OPENAI_ANSWER_COMMIT_REPAIR_FAILED', message)
+  error.hostRejection = deepFreeze({
+    code: String(rejectionCode ?? '').trim().slice(0, 100),
+    reason: commitmentRejection(rejectionReason),
+  })
+  return error
+}
+
 function appendCommitmentRepair(input, output, rejection) {
   input.push(...clone(output))
   const calls = output.filter((item) =>
@@ -1520,9 +1529,10 @@ export function createOpenAIRetrievalProvider({
                   continue
                 }
                 if (repairUsed) {
-                  throw adapterError(
-                    'OPENAI_ANSWER_COMMIT_REPAIR_FAILED',
+                  throw answerCommitRepairError(
                     'OpenAI returned an invalid bounded answer commitment after one repair.',
+                    error?.code,
+                    incompleteRejection,
                   )
                 }
                 repairUsed = true
@@ -1542,9 +1552,10 @@ export function createOpenAIRetrievalProvider({
           continue
         }
         if (repairUsed) {
-          throw adapterError(
-            'OPENAI_ANSWER_COMMIT_REPAIR_FAILED',
+          throw answerCommitRepairError(
             'OpenAI returned an invalid answer commitment after one repair.',
+            rejectionCode,
+            rejection,
           )
         }
         repairUsed = true

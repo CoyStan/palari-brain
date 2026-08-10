@@ -825,6 +825,7 @@ function copyFrontierArray(values) {
 function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
   const seenEvidenceSet = new setConstructor()
   const seenEvidenceIds = []
+  const bridgeEligibleEvidenceSet = new setConstructor()
   const anchorEvidenceSet = new setConstructor()
   const anchorEvidenceIds = []
   const attemptedQuerySet = new setConstructor()
@@ -859,6 +860,7 @@ function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
       const evidenceId = evidence[index].evidenceId
       if (setHas(roundEvidenceSet, evidenceId)) continue
       setAdd(roundEvidenceSet, evidenceId)
+      setAdd(bridgeEligibleEvidenceSet, evidenceId)
       arrayPush(returnedEvidenceIds, evidenceId)
       if (setHas(seenEvidenceSet, evidenceId)) {
         arrayPush(repeatedEvidenceIds, evidenceId)
@@ -917,6 +919,23 @@ function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
     budgetRefusals += 1
   }
 
+  const seedBridgeEligibility = (values) => {
+    if (!arrayIsArray(values)) {
+      throw new TypeError(
+        'Retrieval frontier bridge eligibility must be an array of evidence IDs.',
+      )
+    }
+    for (let index = 0; index < values.length; index += 1) {
+      const evidenceId = stringTrim(stringFrom(values[index] ?? ''))
+      if (!evidenceId) {
+        throw new TypeError(
+          'Retrieval frontier bridge eligibility requires non-empty evidence IDs.',
+        )
+      }
+      setAdd(bridgeEligibleEvidenceSet, evidenceId)
+    }
+  }
+
   const markAnchors = (values) => {
     if (!arrayIsArray(values)) {
       const error = new TypeError(
@@ -927,9 +946,9 @@ function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
     }
     for (let index = 0; index < values.length; index += 1) {
       const evidenceId = stringTrim(stringFrom(values[index] ?? ''))
-      if (!evidenceId || !setHas(seenEvidenceSet, evidenceId)) {
+      if (!evidenceId || !setHas(bridgeEligibleEvidenceSet, evidenceId)) {
         const error = new TypeError(
-          'Retrieval frontier anchors must already exist in returned evidence.',
+          'Retrieval frontier anchors must already exist in canonical briefing or returned evidence.',
         )
         error.code = 'MEMORY_RETRIEVAL_FRONTIER_ANCHOR_INVALID'
         throw error
@@ -1032,7 +1051,13 @@ function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
     })
   }
 
-  return { markAnchors, record, refuseForBudget, snapshot }
+  return {
+    markAnchors,
+    record,
+    refuseForBudget,
+    seedBridgeEligibility,
+    snapshot,
+  }
 }
 
 function boundedInteger(value, fallback, maximum, label) {
@@ -1221,6 +1246,7 @@ function boundedBridgeRerankExcerpt(value, maximum) {
 
 function bridgeRerankQuery({
   anchorEvidenceIds,
+  briefingAnchorRegistry,
   evidenceRegistry,
   primaryProbe,
   question,
@@ -1229,7 +1255,8 @@ function bridgeRerankQuery({
   const anchorLabels = []
   for (let index = 0; index < anchorEvidenceIds.length; index += 1) {
     const evidenceId = anchorEvidenceIds[index]
-    const sources = mapGet(evidenceRegistry, evidenceId)
+    const sources = mapGet(evidenceRegistry, evidenceId) ??
+      mapGet(briefingAnchorRegistry, evidenceId)
     if (!sources || typeof sources[0] !== 'string' || !sources[0]) {
       throw memoryBridgeError(
         'memory_bridge anchor has no registered canonical text.',
@@ -2158,6 +2185,7 @@ export async function answerWithRetrieval(brain, {
   const confirmationCommittedResponses = new WeakSet()
   const confirmationIncompleteCommittedResponses = new WeakSet()
   const evidenceRegistry = new Map()
+  const briefingAnchorRegistry = new Map()
   const evidenceRegistryIds = []
   const evidenceInformationIndex = new Map()
   const returnedInformationKeySet = new setConstructor()
@@ -2764,6 +2792,7 @@ export async function answerWithRetrieval(brain, {
       const rerankQuery = capabilities.reranking
         ? bridgeRerankQuery({
             anchorEvidenceIds: normalized.anchorEvidenceIds,
+            briefingAnchorRegistry,
             evidenceRegistry,
             primaryProbe: normalized.probes[0],
             question: routingQuestion,
@@ -2904,6 +2933,20 @@ export async function answerWithRetrieval(brain, {
   }
 
   const briefing = recallMemory(brain, scope, { maxChars })
+  if (briefing.briefingMode === 'canonical_fallback') {
+    const briefingAnchorEvidenceIds = []
+    for (let index = 0; index < briefing.included.length; index += 1) {
+      const row = briefing.included[index]
+      const evidenceId = stringTrim(stringFrom(row?.id ?? ''))
+      const text = stringFrom(row?.content ?? '')
+      if (row?.evidenceKind !== 'canonical_message' || !evidenceId || !text) {
+        continue
+      }
+      mapSet(briefingAnchorRegistry, evidenceId, [text])
+      arrayPush(briefingAnchorEvidenceIds, evidenceId)
+    }
+    frontier.seedBridgeEligibility(briefingAnchorEvidenceIds)
+  }
   let calls = 0
   let exhausted = false
   let retrievalOpen = true

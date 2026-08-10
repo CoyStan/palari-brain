@@ -268,6 +268,186 @@ test('same-session recovery does not attach an unrelated user resource',
     )
   })
 
+test('raw canonical briefing evidence can anchor the first bridge call',
+  async (t) => {
+    const rerankQueries = []
+    const brain = await openBrain(t, {
+      async reranker(query, texts) {
+        rerankQueries.push(query)
+        return texts.map(() => 0)
+      },
+    })
+    await ingestChatTurn(brain, {
+      ...SCOPE,
+      assistantMessage: 'I will remember the Kestrel note.',
+      eventAt: '2025-03-01T00:00:00.000Z',
+      retention: 'durable',
+      sourceMessageId: 'briefing-anchor:0',
+      userMessage:
+        'Project Kestrel is the navigation anchor for the earlier codename.',
+    })
+
+    let anchorEvidenceId
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      iterativeRetrieval: true,
+      async provider({
+        answerEvidenceCount,
+        briefing,
+        retrievalFrontier,
+        retrieve,
+      }) {
+        assert.equal(briefing.briefingMode, 'canonical_fallback')
+        const anchor = briefing.included.find((row) =>
+          row.evidenceKind === 'canonical_message' &&
+          row.speaker === 'user')
+        assert.ok(anchor)
+        anchorEvidenceId = anchor.id
+        assert.equal(answerEvidenceCount(), 0)
+        assert.deepEqual(retrievalFrontier(), {
+          anchorEvidenceIds: [],
+          attemptedQueryKeys: [],
+          bridgeLineage: [],
+          budgetRefusals: 0,
+          consecutiveNoNewEvidenceRounds: 0,
+          durableWrites: 0,
+          ephemeral: true,
+          exhausted: false,
+          exhaustionReason: null,
+          maxRetrievalCalls: 4,
+          remainingRetrievalCalls: 4,
+          repeatedQueryAttempts: 0,
+          routingOnlyEvidenceIds: [],
+          roundCount: 0,
+          rounds: [],
+          schema: MEMORY_RETRIEVAL_FRONTIER_SCHEMA,
+          seenEvidenceIds: [],
+          selectedEvidenceIds: [],
+          selectedRoutingLineage: [],
+          stagnant: false,
+          status: 'open',
+          unseenSelectedEvidenceIds: [],
+        })
+        const bridged = await retrieve({
+          input: {
+            anchorEvidenceIds: [anchor.id],
+            probes: [
+              'earlier project codename linked to Kestrel',
+              'name used before the Kestrel project',
+            ],
+          },
+          tool: 'memory_bridge',
+        })
+        assert.equal(bridged.retrievalFrontier.roundCount, 1)
+        assert.deepEqual(
+          bridged.retrievalFrontier.anchorEvidenceIds,
+          [anchor.id],
+        )
+        assert.equal(bridged.rerankConditioning.applied, true)
+        return { text: 'The briefing anchor was used only for routing.' }
+      },
+      question: 'What codename came before Project Kestrel?',
+    })
+
+    assert.equal(result.retrievalCalls, 1)
+    assert.deepEqual(
+      result.retrievalTranscript.map(({ tool }) => tool),
+      ['memory_bridge'],
+    )
+    assert.deepEqual(result.selectedEvidenceIds, [])
+    assert.deepEqual(
+      result.retrievalFrontier.anchorEvidenceIds,
+      [anchorEvidenceId],
+    )
+    assert.equal(result.retrievalFrontier.roundCount, 1)
+    assert.equal(result.retrievalFrontier.bridgeLineage[0]
+      .retrievalRoundOrdinal, 1)
+    assert.equal(rerankQueries.length, 1)
+    assert.match(rerankQueries[0], /Project Kestrel is the navigation anchor/)
+
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        iterativeRetrieval: true,
+        async provider({ retrieve }) {
+          await retrieve({
+            input: {
+              anchorEvidenceIds: ['not-in-this-briefing'],
+              probes: ['earlier project name', 'previous codename'],
+            },
+            tool: 'memory_bridge',
+          })
+          return { text: 'unreachable' }
+        },
+        question: 'What codename came before Project Kestrel?',
+      }),
+      (error) => error.code ===
+        'MEMORY_RETRIEVAL_FRONTIER_ANCHOR_INVALID',
+    )
+  })
+
+test('model-derived digest briefing rows are not bridge anchors',
+  async (t) => {
+    const brain = await openBrain(t)
+    await ingestChatTurn(brain, {
+      ...SCOPE,
+      assistantMessage: 'I will remember the digest statement.',
+      eventAt: '2025-03-02T00:00:00.000Z',
+      retention: 'durable',
+      sourceMessageId: 'derived-briefing:0',
+      userMessage: 'Project Finch is a derived digest example.',
+    }, {
+      reducer({ request }) {
+        const evidence = request.input.evidence[0]
+        return {
+          actions: [{
+            basis: [{
+              id: evidence.id,
+              kind: 'evidence',
+              quote: evidence.text,
+            }],
+            epistemic: 'asserted',
+            op: 'add',
+            relation: null,
+            statement: 'The user named Project Finch.',
+            targetIds: [],
+            timeBasis: null,
+            topic: 'project name',
+          }],
+          baseRevision: request.input.baseRevision,
+          dispositions: request.input.evidence.map((row) => ({
+            evidenceId: row.id,
+            outcome: row.id === evidence.id ? 'used' : 'no_memory',
+          })),
+        }
+      },
+      reducerId: 'retrieval-frontier-derived/v1',
+    })
+
+    await assert.rejects(
+      answerWithRetrieval(brain, {
+        ...SCOPE,
+        iterativeRetrieval: true,
+        async provider({ briefing, retrievalFrontier, retrieve }) {
+          assert.equal(briefing.briefingMode, 'incremental_digest')
+          assert.equal(briefing.included.length, 1)
+          assert.equal(retrievalFrontier().roundCount, 0)
+          await retrieve({
+            input: {
+              anchorEvidenceIds: [briefing.included[0].id],
+              probes: ['earlier project name', 'previous codename'],
+            },
+            tool: 'memory_bridge',
+          })
+          return { text: 'unreachable' }
+        },
+        question: 'What came before Project Finch?',
+      }),
+      (error) => error.code ===
+        'MEMORY_RETRIEVAL_FRONTIER_ANCHOR_INVALID',
+    )
+  })
+
 test('memory_bridge batches generated semantic probes and returns raw evidence',
   async (t) => {
     const embedCalls = []
