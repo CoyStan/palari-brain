@@ -8,16 +8,19 @@ also use one rolling policy. The file lock makes unit and request admission
 atomic. A different policy on the same path fails closed. Separate state paths
 remain independent.
 
-The durable state contains only its schema, the unit and request ceilings, the
-window duration, and `{ at, units }` events. The lock contains only its schema,
-owner process ID, and a random ownership value. It contains no prompt, answer,
-evidence, request body, response body, or credential. A stale lock is removed
-only after its age ceiling passes and its local owner process is no longer
-alive. Release also checks its ownership value, so an old worker cannot remove
-a newer lock. Corrupt state and policy mismatches are terminal.
+The durable state accepts an exact root, policy, and `{ at, units }` event
+shape. Loaded events are rebuilt from those two fields before use. Extra fields
+are corrupt state and fail closed. The lock contains only its schema, owner
+process ID, and a random ownership value. Its complete synced record is
+published atomically. It contains no prompt, answer, evidence, request body,
+response body, or credential. A stale lock is removed only when two reads have
+the same device, inode, bytes, dead owner, and stale age. Release also checks
+its ownership value, so an old worker cannot remove a newer lock. Corrupt state
+and policy mismatches are terminal.
 
-An oversized dispatch can enter only when the rolling window is empty. A wait
-never exceeds one configured window. Pacing changes dispatch time only; it
+An oversized dispatch can enter only when the rolling window is empty. Lock
+retry configuration above one window is rejected, and a wait never exceeds
+one configured window. Pacing changes dispatch time only; it
 does not retry or change a provider request. The original in-memory pacer stays
 the default for one-process use.
 

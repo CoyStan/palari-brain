@@ -18,11 +18,11 @@
 
 ## Verification
 
-- Focused alpha and pacer contracts: PASS, 25/25.
-- `npm test`: PASS, 101/101.
+- Focused alpha and pacer contracts: PASS, 26/26.
+- `npm test`: PASS, 102/102.
 - `npm run quickstart`: PASS, 6/6.
-- `npm run test:legacy`: PASS, 978 passed, 15 optional skips, 0 failed across
-  993 tests.
+- `npm run test:legacy`: PASS, 979 passed, 15 optional skips, 0 failed across
+  994 tests.
 - Six real child processes sharing one state path: PASS. The durable active
   window remained at or below 100 units and two requests.
 - Five additional repetitions of the child-process contract: PASS.
@@ -37,3 +37,13 @@
   workers on one host, not a network file system shared by many hosts.
 - The live two-case diagnostic remains pending until this ticket receives an
   independent clean review and founder acceptance.
+
+## Review History
+
+- The first independent review reopened exact commit `5d8d060` for two P1 and
+  two P2 findings. Strict state shapes now reject and preserve corrupt input
+  without re-saving it. Locks publish complete owner bytes atomically and
+  stale recovery rechecks the same bytes, inode, device, age, and dead owner.
+  Lock retry above the window is rejected. The contradictory generated
+  token-name scope rules were corrected in target `main` at `d2bf26f` while
+  every credential, key, secret, private-data, and production rule remained.

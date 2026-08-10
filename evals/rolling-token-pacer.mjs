@@ -2,10 +2,17 @@
 // it never retries, rewrites, or inspects a provider response.
 
 import { randomUUID } from 'node:crypto'
-import { mkdir, open, readFile, rename, unlink, writeFile } from 'node:fs/promises'
+import { link, mkdir, open, readFile, rename, unlink, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
 const SHARED_SCHEMA = 'palari-shared-rolling-pacer/v1'
+
+function exactKeys(value, expected) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const actual = Object.keys(value).sort()
+  return actual.length === expected.length &&
+    actual.every((key, index) => key === expected[index])
+}
 
 function positiveSafeInteger(value, label) {
   const number = Number(value)
@@ -84,6 +91,9 @@ export function createFileRollingTokenPacer({
   const window = positiveSafeInteger(windowMs, 'windowMs')
   const retry = positiveSafeInteger(lockRetryMs, 'lockRetryMs')
   const stale = positiveSafeInteger(lockStaleMs, 'lockStaleMs')
+  if (retry > window) {
+    throw new TypeError('lockRetryMs must not exceed windowMs.')
+  }
   if (typeof statePath !== 'string' || !statePath.trim()) {
     throw new TypeError('statePath must be a non-empty string.')
   }
@@ -117,18 +127,20 @@ export function createFileRollingTokenPacer({
     try {
       handle = await open(lockPath, 'r')
       const info = await handle.stat()
+      const raw = await handle.readFile('utf8')
       let owner = null
       try {
-        owner = JSON.parse(await handle.readFile('utf8'))
+        owner = JSON.parse(raw)
       } catch (error) {
         if (!(error instanceof SyntaxError)) throw error
       }
-      if (owner?.schema !== SHARED_SCHEMA ||
+      if (!exactKeys(owner, ['pid', 'schema', 'token']) ||
+          owner.schema !== SHARED_SCHEMA ||
           !Number.isSafeInteger(owner.pid) || owner.pid < 1 ||
           typeof owner.token !== 'string' || !owner.token) {
-        return { info, owner: null }
+        return { info, owner: null, raw }
       }
-      return { info, owner }
+      return { info, owner, raw }
     } catch (error) {
       if (error?.code === 'ENOENT') return null
       throw error
@@ -141,8 +153,11 @@ export function createFileRollingTokenPacer({
     await mkdir(dirname(resolvedStatePath), { recursive: true })
     for (;;) {
       const token = randomUUID()
+      const temporary = `${lockPath}.candidate-${process.pid}-${token}`
+      let handle
+      let linked = false
       try {
-        const handle = await open(lockPath, 'wx', 0o600)
+        handle = await open(temporary, 'wx', 0o600)
         try {
           await handle.writeFile(`${JSON.stringify({
             schema: SHARED_SCHEMA,
@@ -150,36 +165,55 @@ export function createFileRollingTokenPacer({
             token,
           })}\n`, 'utf8')
           await handle.sync()
-          return { handle, token }
+        } finally {
+          await handle.close()
+          handle = null
+        }
+        try {
+          await link(temporary, lockPath)
+          linked = true
         } catch (error) {
-          await handle.close().catch(() => {})
-          await unlink(lockPath).catch(() => {})
-          throw error
+          if (error?.code !== 'EEXIST') throw error
+        }
+        if (linked) {
+          try {
+            await unlink(temporary)
+          } catch (error) {
+            await unlink(lockPath).catch(() => {})
+            throw error
+          }
+          return { token }
         }
       } catch (error) {
         if (error?.code !== 'EEXIST') throw error
-        const observed = await readLock()
-        if (!observed) continue
-        if (Date.now() - observed.info.mtimeMs >= stale &&
-            !ownerIsAlive(observed.owner?.pid)) {
-          const current = await readLock()
-          if (current && current.info.ino === observed.info.ino &&
-              current.info.dev === observed.info.dev) {
-            await unlink(lockPath).catch((unlinkError) => {
-              if (unlinkError?.code !== 'ENOENT') throw unlinkError
-            })
-            continue
-          }
-        }
-        lockWaits += 1
-        lockWaitedMs += retry
-        await wait(retry)
+      } finally {
+        await handle?.close().catch(() => {})
+        await unlink(temporary).catch(() => {})
       }
+
+      const observed = await readLock()
+      if (!observed) continue
+      if (Date.now() - observed.info.mtimeMs >= stale &&
+          !ownerIsAlive(observed.owner?.pid)) {
+        const current = await readLock()
+        if (current && current.info.ino === observed.info.ino &&
+            current.info.dev === observed.info.dev &&
+            current.raw === observed.raw &&
+            Date.now() - current.info.mtimeMs >= stale &&
+            !ownerIsAlive(current.owner?.pid)) {
+          await unlink(lockPath).catch((unlinkError) => {
+            if (unlinkError?.code !== 'ENOENT') throw unlinkError
+          })
+          continue
+        }
+      }
+      lockWaits += 1
+      lockWaitedMs += retry
+      await wait(retry)
     }
   }
 
-  async function release({ handle, token }) {
-    await handle.close()
+  async function release({ token }) {
     const current = await readLock()
     if (current?.owner?.token !== token) {
       throw new Error('shared rolling pacer lock ownership changed.')
@@ -192,15 +226,19 @@ export function createFileRollingTokenPacer({
   async function load() {
     try {
       const parsed = JSON.parse(await readFile(resolvedStatePath, 'utf8'))
-      if (parsed?.schema !== SHARED_SCHEMA || !Array.isArray(parsed.events) ||
+      if (!exactKeys(parsed, ['events', 'policy', 'schema']) ||
+        parsed.schema !== SHARED_SCHEMA || !Array.isArray(parsed.events) ||
+        !exactKeys(parsed.policy, ['maxRequests', 'maxUnits', 'windowMs']) ||
         parsed.policy?.maxRequests !== policy.maxRequests ||
         parsed.policy?.maxUnits !== policy.maxUnits ||
         parsed.policy?.windowMs !== policy.windowMs ||
-        parsed.events.some((event) => !Number.isFinite(event?.at) ||
-          !Number.isSafeInteger(event?.units) || event.units < 1)) {
+        parsed.events.length > requests ||
+        parsed.events.some((event) => !exactKeys(event, ['at', 'units']) ||
+          !Number.isFinite(event.at) ||
+          !Number.isSafeInteger(event.units) || event.units < 1)) {
         throw new Error('shared rolling pacer state is invalid.')
       }
-      return parsed.events
+      return parsed.events.map(({ at, units }) => ({ at, units }))
     } catch (error) {
       if (error?.code === 'ENOENT') return []
       if (error instanceof SyntaxError) {

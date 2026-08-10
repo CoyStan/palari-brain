@@ -15,10 +15,16 @@ ownership data. Policy mismatch and corrupt state fail closed; an old lock is
 recovered only when its local owner is no longer alive. The existing
 single-process pacer remains unchanged, and no retry was added. A six-process
 contract and five additional stress repetitions stayed inside the shared
-ceiling. Focused contracts pass 25/25, core passes 101/101, quickstart passes
-6/6, and legacy passes 978 with 15 optional skips and zero failures across 993
-tests. No provider, credential, private dataset, result artifact, or sealed U8
-item was accessed during this ticket implementation.
+ceiling. The first independent review found that corrupt state could retain an
+extra field, stale cleanup did not compare the complete owner twice, and lock
+retry could exceed the window. Exact state shapes, atomic complete lock
+publication, full stale-owner rechecks, and retry validation now cover those
+findings. The conflicting generated token-name ticket rules were corrected on
+target `main` without changing any credential or secret exclusion. Focused
+contracts pass 26/26, core passes 102/102, quickstart passes 6/6, and legacy
+passes 979 with 15 optional skips and zero failures across 994 tests. No
+provider, credential, private dataset, result artifact, or sealed U8 item was
+accessed during this ticket implementation.
 
 BRN-0048 has a provider-free candidate for the remaining instrument
 commitment failure. A local replay of all 13 recorded model responses made
