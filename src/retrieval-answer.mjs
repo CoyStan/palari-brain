@@ -1904,19 +1904,22 @@ async function hybridSearch(
     candidates.push(candidate)
   }
 
-  let ordered = candidates
-  if (capabilities.reranking && candidates.length > 0) {
-    const texts = Object.freeze(candidates.map((candidate) => candidate.text))
+  const rerankPool = capabilities.reranking
+    ? candidates.slice(0, MAX_HYBRID_LIMIT)
+    : candidates
+  let ordered = rerankPool
+  if (capabilities.reranking && rerankPool.length > 0) {
+    const texts = Object.freeze(rerankPool.map((candidate) => candidate.text))
     const effectiveRerankQuery = rerankQuery === null
       ? phrase
       : searchPhrase(rerankQuery)
     const scores = await brain.rerankEvidence(effectiveRerankQuery, texts)
-    if (!Array.isArray(scores) || scores.length !== candidates.length) {
+    if (!Array.isArray(scores) || scores.length !== rerankPool.length) {
       throw new TypeError(
         'reranker must return one numeric score per canonical candidate.',
       )
     }
-    const scored = candidates.map((candidate, index) => {
+    const scored = rerankPool.map((candidate, index) => {
       const score = scores[index]
       if (typeof score !== 'number' || !Number.isFinite(score)) {
         throw new TypeError(
@@ -1937,7 +1940,7 @@ async function hybridSearch(
       for (let index = 0; index < ordered.length; index += 1) {
         mapSet(scoredById, ordered[index].evidenceId, ordered[index])
       }
-      const coverageOrder = candidates.map(({ evidenceId }) => ({ evidenceId }))
+      const coverageOrder = rerankPool.map(({ evidenceId }) => ({ evidenceId }))
       const rerankOrder = ordered.map(({ evidenceId }) => ({ evidenceId }))
       const originalUserOrder = ordered
         .filter(({ speaker }) => speaker === 'user')
@@ -1954,7 +1957,7 @@ async function hybridSearch(
       }
       const blended = reciprocalRankFuse(
         completionRankings,
-        { limit: candidates.length },
+        { limit: rerankPool.length },
       )
       ordered = blended.map((entry) => ({
         ...mapGet(scoredById, entry.evidenceId),
@@ -2018,7 +2021,7 @@ async function hybridSearch(
     operation: 'memory_search',
     phrase,
     rankedCandidates: ranked.matches.length,
-    rerankCandidates: capabilities.reranking ? candidates.length : 0,
+    rerankCandidates: capabilities.reranking ? rerankPool.length : 0,
     reranked: capabilities.reranking,
     semanticCandidates: semantic.length,
     ...(semanticProbeResults.length

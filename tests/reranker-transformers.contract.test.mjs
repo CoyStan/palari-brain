@@ -3,9 +3,12 @@ import test from 'node:test'
 
 import {
   DEFAULT_TRANSFORMERS_RERANKER_MODEL,
+  RERANKER_EXECUTION_LIMITS,
   TRANSFORMERS_RERANKER_LIMITS,
   TRANSFORMERS_RERANKER_MODELS,
   createTransformersReranker,
+  planRerankerBatches,
+  runBatchedReranker,
 } from '../src/reranker-transformers.mjs'
 
 const expectedModels = {
@@ -30,15 +33,35 @@ const expectedModels = {
 }
 
 function fakeRuntime({ logits = [[0.1], [0.9]] } = {}) {
-  const calls = { classifier: [], factory: [], tokenizer: [] }
+  const calls = {
+    classifier: [],
+    disposedInputs: 0,
+    disposedModels: 0,
+    disposedOutputs: 0,
+    factory: [],
+    tokenizer: [],
+  }
   const tokenizer = async (...args) => {
     calls.tokenizer.push(args)
-    return { input_ids: 'encoded' }
+    return {
+      documents: args[1].text_pair,
+      input_ids: {
+        dispose() { calls.disposedInputs += 1 },
+      },
+    }
   }
+  tokenizer.encode = (_query, { text_pair: document }) =>
+    Array(Math.max(3, document.length + 2)).fill(1)
   const classifier = async (input) => {
     calls.classifier.push(input)
-    return { logits: { tolist: () => logits } }
+    return {
+      logits: {
+        dispose() { calls.disposedOutputs += 1 },
+        tolist: () => logits.slice(0, input.documents.length),
+      },
+    }
   }
+  classifier.dispose = () => { calls.disposedModels += 1 }
   return {
     calls,
     runtime: {
@@ -68,6 +91,11 @@ test('model allowlist pins exact licensed revisions', () => {
     candidates: 50,
     documentChars: 100_000,
     queryChars: 500,
+  })
+  assert.deepEqual(RERANKER_EXECUTION_LIMITS, {
+    maxBatchSize: 8,
+    maxPaddedTokenWork: 2 ** 24,
+    transformersMaxTokens: 512,
   })
   assert.throws(
     () => createTransformersReranker({ modelId: 'latest' }),
@@ -110,11 +138,177 @@ test('adapter is lazy, pinned, pair-batched, and loads exactly once',
     assert.deepEqual(fake.calls.tokenizer[0], [
       ['which note?', 'which note?'],
       {
+        max_length: 512,
         padding: true,
         text_pair: ['first', 'second'],
         truncation: true,
       },
     ])
+    assert.equal(fake.calls.disposedInputs, 2)
+    assert.equal(fake.calls.disposedOutputs, 2)
+  })
+
+test('quadratic scheduler buckets stably and reports over-target singletons', () => {
+  assert.deepEqual(
+    planRerankerBatches([20, 5, 100, 6], {
+      maxBatchSize: 2,
+      maxPaddedTokenWork: 500,
+    }),
+    [
+      {
+        indexes: [1, 3],
+        overTarget: false,
+        paddedTokens: 6,
+        paddedTokenWork: 72,
+        size: 2,
+      },
+      {
+        indexes: [0],
+        overTarget: false,
+        paddedTokens: 20,
+        paddedTokenWork: 400,
+        size: 1,
+      },
+      {
+        indexes: [2],
+        overTarget: true,
+        paddedTokens: 100,
+        paddedTokenWork: 10_000,
+        size: 1,
+      },
+    ],
+  )
+})
+
+test('adapter microbatches, restores order, serializes calls, and closes once',
+  async () => {
+    const fake = fakeRuntime({
+      logits: [[0], [0]],
+    })
+    let active = 0
+    let maximumActive = 0
+    fake.runtime.AutoModelForSequenceClassification.from_pretrained =
+      async (...args) => {
+        fake.calls.factory.push(['model', ...args])
+        const classifier = async (input) => {
+          fake.calls.classifier.push(input)
+          active += 1
+          maximumActive = Math.max(maximumActive, active)
+          await new Promise((resolve) => setImmediate(resolve))
+          active -= 1
+          return {
+            logits: {
+              dispose() { fake.calls.disposedOutputs += 1 },
+              tolist: () => input.documents.map((document) => [document.length]),
+            },
+          }
+        }
+        classifier.dispose = () => { fake.calls.disposedModels += 1 }
+        return classifier
+      }
+    const metrics = []
+    const rerank = createTransformersReranker({
+      loadRuntime: async () => fake.runtime,
+      maxBatchSize: 2,
+      maxPaddedTokenWork: 500,
+      onMetrics(value) {
+        metrics.push(value)
+        throw new Error('diagnostic observer failed')
+      },
+    })
+    const documents = ['long-value', 'x', 'medium']
+    const [first, second] = await Promise.all([
+      rerank('q', documents),
+      rerank('q', documents),
+    ])
+    assert.deepEqual(first, documents.map((value) => value.length))
+    assert.deepEqual(second, first)
+    assert.equal(maximumActive, 1)
+    assert.equal(fake.calls.classifier.length, 4)
+    assert.equal(fake.calls.disposedInputs, 4)
+    assert.equal(fake.calls.disposedOutputs, 4)
+    assert.equal(metrics.length, 2)
+    assert.ok(metrics.every(({ candidateCount }) => candidateCount === 3))
+    assert.ok(metrics.every((value) =>
+      JSON.stringify(value).includes('long-value') === false))
+    await rerank.close()
+    await rerank.close()
+    assert.equal(fake.calls.disposedModels, 1)
+    await assert.rejects(
+      () => rerank('q', ['x']),
+      (error) => error?.code === 'RERANKER_CLOSED',
+    )
+  })
+
+test('microbatch cleanup covers inference, scoring, and disposal failures',
+  async () => {
+    const disposed = { inputs: 0, outputs: 0 }
+    const tokenizer = async () => ({
+      input_ids: { dispose() { disposed.inputs += 1 } },
+    })
+    tokenizer.encode = () => [1, 2, 3]
+    const common = {
+      documents: ['document'],
+      maxTokens: 512,
+      query: 'query',
+      tokenizer,
+    }
+    await assert.rejects(
+      () => runBatchedReranker({
+        ...common,
+        async infer() { throw new Error('native inference failed') },
+        score() { return [1] },
+      }),
+      /native inference failed/,
+    )
+    assert.deepEqual(disposed, { inputs: 1, outputs: 0 })
+
+    await assert.rejects(
+      () => runBatchedReranker({
+        ...common,
+        async infer() {
+          return { logits: { dispose() { disposed.outputs += 1 } } }
+        },
+        score() { throw new Error('head scoring failed') },
+      }),
+      /head scoring failed/,
+    )
+    assert.deepEqual(disposed, { inputs: 2, outputs: 1 })
+
+    const brokenTokenizer = async () => {
+      throw new Error('tokenization failed')
+    }
+    brokenTokenizer.encode = () => [1, 2, 3]
+    await assert.rejects(
+      () => runBatchedReranker({
+        ...common,
+        async infer() { return {} },
+        score() { return [1] },
+        tokenizer: brokenTokenizer,
+      }),
+      /tokenization failed/,
+    )
+    assert.deepEqual(disposed, { inputs: 2, outputs: 1 })
+
+    await assert.rejects(
+      () => runBatchedReranker({
+        ...common,
+        async infer() {
+          return { logits: { dispose() { disposed.outputs += 1 } } }
+        },
+        score() { return [1] },
+        tokenizer: Object.assign(async () => ({
+          input_ids: {
+            dispose() {
+              disposed.inputs += 1
+              throw new Error('input release failed')
+            },
+          },
+        }), { encode: () => [1, 2, 3] }),
+      }),
+      (error) => error?.code === 'RERANKER_DISPOSAL_FAILED',
+    )
+    assert.deepEqual(disposed, { inputs: 3, outputs: 2 })
   })
 
 test('adapter rejects overbounds and malformed runtime outputs', async () => {

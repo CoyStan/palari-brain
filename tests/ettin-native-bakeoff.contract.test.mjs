@@ -64,12 +64,24 @@ test('execution modes require complete external paths and verify is inert', asyn
     '..',
     'runtime.mjs',
   )
-  await assert.rejects(() => main([]), /Choose --verify, --smoke, or --run/)
+  await assert.rejects(
+    () => main([]),
+    /Choose --verify, --smoke, --run, or --profile/,
+  )
   await assert.rejects(
     () => main(['--verify', '--cache', '/tmp/x']),
     /accepts no execution arguments/,
   )
   await assert.rejects(() => main(['--smoke']), /--cache is required/)
+  await assert.rejects(
+    () => main(['--profile', '--iterations', '0']),
+    /--iterations must be an integer from 1 to 100/,
+  )
+  await assert.rejects(
+    () => main(['--run', '--iterations', '2']),
+    /accepted only with --profile/,
+  )
+  await assert.rejects(() => main(['--profile']), /--cache is required/)
   await assert.rejects(
     () => main([
       '--run',

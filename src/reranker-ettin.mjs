@@ -2,7 +2,12 @@ import { createHash } from 'node:crypto'
 import { lstat, mkdir, open, readFile, realpath, rename, unlink } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 
-import { TRANSFORMERS_RERANKER_LIMITS } from './reranker-transformers.mjs'
+import {
+  RERANKER_EXECUTION_LIMITS,
+  TRANSFORMERS_RERANKER_LIMITS,
+  createRerankerLifecycle,
+  runBatchedReranker,
+} from './reranker-transformers.mjs'
 
 export const ETTIN_RERANKER_MODEL = Object.freeze({
   dtype: 'fp32',
@@ -13,6 +18,12 @@ export const ETTIN_RERANKER_MODEL = Object.freeze({
   license: 'Apache-2.0',
   pooling: 'cls',
   revision: '9e4aa35321a6dd1a43ca313f500c4b4f7cfb5cc6',
+})
+
+export const ETTIN_RERANKER_EXECUTION_LIMITS = Object.freeze({
+  maxBatchSize: RERANKER_EXECUTION_LIMITS.maxBatchSize,
+  maxPaddedTokenWork: RERANKER_EXECUTION_LIMITS.maxPaddedTokenWork,
+  maxTokens: 7_999,
 })
 
 const artifactBase =
@@ -451,7 +462,10 @@ export function createEttinReranker({
   loadArtifact = loadEttinArtifact,
   loadHead = loadEttinHead,
   loadRuntime = defaultRuntimeLoader,
+  maxBatchSize = ETTIN_RERANKER_EXECUTION_LIMITS.maxBatchSize,
+  maxPaddedTokenWork = ETTIN_RERANKER_EXECUTION_LIMITS.maxPaddedTokenWork,
   modelDir,
+  onMetrics,
 } = {}) {
   requestedModelDirectory(cacheDir, modelDir)
   if (typeof loadArtifact !== 'function' || typeof loadHead !== 'function' ||
@@ -459,6 +473,15 @@ export function createEttinReranker({
     throw new TypeError(
       'loadArtifact, loadHead, and loadRuntime must be functions.',
     )
+  }
+  if (!Number.isSafeInteger(maxBatchSize) || maxBatchSize < 1 ||
+    !Number.isSafeInteger(maxPaddedTokenWork) || maxPaddedTokenWork < 1) {
+    throw new TypeError(
+      'maxBatchSize and maxPaddedTokenWork must be positive safe integers.',
+    )
+  }
+  if (onMetrics !== undefined && typeof onMetrics !== 'function') {
+    throw new TypeError('onMetrics must be a function when provided.')
   }
   let loading
   const load = async () => {
@@ -499,6 +522,15 @@ export function createEttinReranker({
     return loading
   }
 
+  const lifecycle = createRerankerLifecycle(
+    load,
+    async () => {
+      if (!loading) return []
+      const loaded = await loading
+      return [loaded.transformer, loaded.tokenizer]
+    },
+  )
+
   const rerank = async (query, candidateTexts) => {
     const normalizedQuery = boundedText(
       query,
@@ -514,27 +546,35 @@ export function createEttinReranker({
         `${TRANSFORMERS_RERANKER_LIMITS.candidates} entries.`,
       )
     }
-    if (candidateTexts.length === 0) return []
     const documents = candidateTexts.map((text, index) => boundedText(
       text,
       `candidateTexts[${index}]`,
       TRANSFORMERS_RERANKER_LIMITS.documentChars,
     ))
-    const { head, tokenizer, transformer } = await load()
-    const encoded = await tokenizer(
-      documents.map(() => normalizedQuery),
-      { padding: true, text_pair: documents, truncation: true },
-    )
-    const output = await transformer(encoded)
-    return scoreEttinHiddenStates(
-      output?.last_hidden_state,
-      head,
-      documents.length,
-    )
+    return lifecycle.enqueue(async () => {
+      if (documents.length === 0) return []
+      const { head, tokenizer, transformer } = await load()
+      return runBatchedReranker({
+        documents,
+        infer: transformer,
+        maxBatchSize,
+        maxPaddedTokenWork,
+        maxTokens: ETTIN_RERANKER_EXECUTION_LIMITS.maxTokens,
+        onMetrics,
+        query: normalizedQuery,
+        score: (output, expected) => scoreEttinHiddenStates(
+          output?.last_hidden_state,
+          head,
+          expected,
+        ),
+        tokenizer,
+      })
+    })
   }
   Object.defineProperties(rerank, {
+    close: { value: lifecycle.close },
     model: { value: ETTIN_RERANKER_MODEL },
-    warm: { value: load },
+    warm: { value: lifecycle.warm },
   })
   return Object.freeze(rerank)
 }

@@ -845,7 +845,13 @@ response metadata.
 The Transformers adapter pins its small Apache-2.0 cross-encoders by exact
 repository revision, lazily loads at most one tokenizer/model pair, caps the
 query at 500 characters, the pool at 50 messages, and each complete message
-at 100,000 characters. It makes no generation or credential request. Palari
+at 100,000 characters. It explicitly caps generic cross-encoder pairs at 512
+tokens. Before native inference it uses the loaded tokenizer to measure every
+pair, stably buckets pairs by length, and forms batches of at most eight under
+a quadratic padded-token work target. Scores are restored to caller order.
+Only one inference call per adapter runs at a time, and encoded inputs plus
+model outputs are disposed after every microbatch, including failure paths.
+It makes no generation or credential request. Palari
 does not depend on `@huggingface/transformers`: its 4.2.0 Node dependency
 tree had five high-severity audit findings when evaluated for BRN-0008.
 Applications that opt in must install and audit a compatible runtime in their
@@ -915,9 +921,27 @@ runtime, initial model download, cache lifecycle, and dependency audit.
 
 This native export preserves the same 500-character query, 50-candidate,
 100,000-character canonical-message bounds and fail-closed result contract.
-It is English-only and fp32-only. Quantization, alternate Ettin sizes, Python
-sidecars, and runtime substitutions are not implied. Its measured/default
-result is 14/15 top-1, 0.9667 MRR, 15/15 recall@5, and 26.14 warm ms/case on
+Its previously implicit 7,999-token model ceiling is now passed explicitly.
+It uses the same stable length-bucketed scheduler as the generic adapter: at
+most eight pairs per microbatch, a quadratic padded-token work target, and an
+explicitly reported singleton when one pair alone exceeds that target. This
+preserves the current text and context while preventing one long pair from
+padding the other 49. `reranker.warm()` loads once; `reranker.close()` waits
+for queued work, releases the loaded model when supported, is idempotent, and
+causes later work to fail with `RERANKER_CLOSED`.
+
+Both factories accept optional `maxBatchSize`, `maxPaddedTokenWork`, and
+`onMetrics` settings. Metrics contain numbers and state only: candidate count,
+pair-token range, batch size/padded work, duration, boundary RSS, and process
+high-water RSS. They never contain query or document text, and callback
+failure cannot change a score or search result. Lower token ceilings and
+long-document passage policies are separate quality experiments rather than
+implicit behavior changes.
+
+The native adapter is English-only and fp32-only. Quantization, alternate
+Ettin sizes, Python sidecars, and runtime substitutions are not implied. Its
+measured/default result is 14/15 top-1, 0.9667 MRR, 15/15 recall@5, and 26.14
+warm ms/case on
 the frozen synthetic bank. It dominates all three BRN-0008 models under the
 preregistered quality/latency rule and is therefore Palari's recommended
 optional local reranker. This remains an ordering measurement, not generated
