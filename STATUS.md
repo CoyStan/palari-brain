@@ -24,9 +24,9 @@ target `main` without changing any credential or secret exclusion. The first
 rereview then found a final check-to-delete race. Stale cleanup now uses one
 owned recovery claim and atomically quarantines the exact path before
 validation; it never deletes a later live replacement. Direct late-replacement
-and simultaneous-recoverer contracts pass. Focused contracts pass 29/29, core
-passes 105/105, quickstart passes 6/6, and legacy passes 982 with 15 optional
-skips and zero failures across 997 tests. No provider, credential, private
+and simultaneous-recoverer contracts pass. Focused contracts pass 30/30, core
+passes 106/106, quickstart passes 6/6, and legacy passes 983 with 15 optional
+skips and zero failures across 998 tests. No provider, credential, private
 dataset, result artifact, or sealed U8 item was
 accessed during this ticket implementation.
 
@@ -36,6 +36,11 @@ every worker owns it before lock publication, stale observation, quarantine,
 or recovered publication. An abandoned gate is terminal instead of being
 stolen. This removes the check-to-publication gap and keeps the no-retry
 provider boundary unchanged.
+
+The gate rereview found no new implementation defect but required a direct
+three-actor regression. A real child publisher now contends while a stale
+owner is quarantined and a live replacement appears. It waits on the gate;
+both later admissions stay within the shared ceilings.
 
 BRN-0048 has a provider-free candidate for the remaining instrument
 commitment failure. A local replay of all 13 recorded model responses made

@@ -32,10 +32,11 @@ owned claim. A later live lock stays in place, and two recoverers serialize.
 The next reviewer found that publishing a new lock did not own that same
 claim. Now all acquisition and recovery work uses one common gate. A worker
 cannot publish while another worker is deciding how to recover a stale lock.
+The required real child-process test now proves this three-actor case.
 
 ## What To Check
 
-Focused 29/29, core 105/105, quickstart 6/6, and legacy 982 pass with 15
+Focused 30/30, core 106/106, quickstart 6/6, and legacy 983 pass with 15
 optional skips and zero failures. A six-process test and five more stress
 repetitions stayed inside the shared ceiling.
 

@@ -18,11 +18,11 @@
 
 ## Verification
 
-- Focused alpha and pacer contracts: PASS, 29/29.
-- `npm test`: PASS, 105/105.
+- Focused alpha and pacer contracts: PASS, 30/30.
+- `npm test`: PASS, 106/106.
 - `npm run quickstart`: PASS, 6/6.
-- `npm run test:legacy`: PASS, 982 passed, 15 optional skips, 0 failed across
-  997 tests.
+- `npm run test:legacy`: PASS, 983 passed, 15 optional skips, 0 failed across
+  998 tests.
 - Six real child processes sharing one state path: PASS. The durable active
   window remained at or below 100 units and two requests.
 - Five additional repetitions of the child-process contract: PASS.
@@ -57,3 +57,8 @@
   publication and recovery work now runs under the same acquisition gate.
   This removes stale-observer, live-owner, and later-publisher interleavings;
   an abandoned gate fails closed.
+- The gate rereview found no implementation defect but reopened exact commit
+  `beb5e1e` for the missing required three-actor regression. The new test uses
+  a real child publisher while stale recovery holds the gate and a live
+  replacement appears. The child waits, the replacement is not stolen, and
+  both later admissions remain within the request and unit ceilings.
