@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0046
 children: []
-status: open
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 2
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-10T20:23:01Z
 target_branch: "main"
 branch: "ticket/BRN-0046-compact-answer-commitments-and-repair-candidate-reviews"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0046-compact-answer-commitments-and-repair-candidate-reviews"
@@ -20,6 +20,7 @@ allowed_paths:
   - "src/retrieval-answer.mjs"
   - "tests/openai.contract.test.mjs"
   - "tests/answer-confirmation.contract.test.mjs"
+  - "tests/openai-counted-responses.contract.test.mjs"
   - "docs/BRAIN-API.md"
   - "STATUS.md"
   - "coding-sessions/tickets/open/BRN-0046-*.md"
@@ -126,3 +127,30 @@ candidate review without starting another search.
 - Stop if simplification permits silent omission of reviewer-marked material
   evidence, host-authored facts, another retrieval call, or more than one
   review-format repair.
+
+## Specialist Closeout
+
+- Replaced the model-facing detailed `bases` array with `usedMemories` and
+  `excludedMaterialMemories`. Used entries contain one short contribution.
+  Excluded material entries contain one of six fixed reason codes. Unrelated
+  returned rows can be omitted.
+- Kept the host boundary unchanged. The adapter resolves answer-local memory
+  numbers to host-owned evidence IDs and exact bounded excerpts. It rejects
+  unknown, duplicate, unreturned, or unsupported references. A
+  non-abstaining answer still needs at least one used memory.
+- Kept a used-only legacy parser shape for previously captured callers. The
+  declared model tool does not expose that shape, and legacy free-text
+  exclusions are not accepted.
+- Added one normal-budget, review-only repair for a malformed candidate
+  review. It uses the same pending page and cannot search, plan, bridge, read,
+  graph, timeline, or commit an answer. A second invalid review, refusal,
+  empty response, forbidden tool, or exhausted normal budget is terminal.
+- Updated host operation auditing so only the first malformed review is
+  recoverable after a later valid review of the same pending page. No search
+  or closure allowance is added.
+- Refreshed only the active answer-wire byte and hash pin for the changed
+  schema. The consumed BRN-0025 compatibility pins remain unchanged.
+- Focused contracts pass 68/68, core passes 91/91, quickstart passes 6/6, and
+  legacy passes 955 with 15 optional skips and zero failures across 970 tests.
+- No provider, credential, private artifact, dataset, production service, or
+  sealed U8 question was accessed.

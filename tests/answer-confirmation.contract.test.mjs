@@ -259,6 +259,71 @@ test('sparse candidate reviews reject invalid numbers and close with no findings
       'no_material_findings')
   })
 
+test('one malformed candidate review can be repaired on the same pending page',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seed(brain, 'My archive key is in the violet folder.',
+      'review-repair-old:0')
+    await seed(brain, 'My spare archive key is in the amber drawer.',
+      'review-repair-new:0')
+    let original
+    const provider = requireCommitment(async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { limit: 1, phrase: 'archive key violet folder' },
+        tool: 'memory_search',
+      })
+      original = found.matches.find((row) =>
+        row.speaker === 'user' && row.text.includes('violet folder'))
+      return commitAnswer(proposal('The key is in the violet folder.', [
+        original,
+      ]))
+    })
+    let candidateCount = 0
+    const confirmationProvider = requireCommitment(async (context) => {
+      const candidates = await context.retrieve({
+        input: { phrase: 'spare archive key amber drawer' },
+        tool: 'memory_search',
+      })
+      candidateCount = candidates.matches.length
+      await assert.rejects(
+        context.retrieve({
+          input: {
+            findings: [{
+              candidateNumber: candidateCount + 1,
+              reason: 'Outside the pending page.',
+            }],
+          },
+          tool: 'memory_candidate_review',
+        }),
+        (error) => {
+          assert.equal(error.code, 'MEMORY_ANSWER_COMMITMENT_INVALID')
+          return true
+        },
+      )
+      const repaired = await context.retrieve({
+        input: { findings: [] },
+        tool: 'memory_candidate_review',
+      })
+      assert.equal(repaired.closed, true)
+      return context.commitAnswer(proposal(
+        'The key is in the violet folder.',
+        [original],
+      ))
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      confirmationProvider,
+      provider,
+      question: 'Where is my archive key?',
+    })
+
+    assert.ok(candidateCount > 0)
+    assert.equal(result.answerConfirmation.reviewCalls, 1)
+    assert.equal(result.answerConfirmation.retrievalCalls, 1)
+    assert.equal(result.answer, 'The key is in the violet folder.')
+  })
+
 test('sparse findings bind explicit candidate numbers independent of order',
   async (t) => {
     const brain = await openBrain(t)

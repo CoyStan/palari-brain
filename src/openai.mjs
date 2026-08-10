@@ -58,9 +58,13 @@ export const OPENAI_ANSWER_COMMIT_TOOL_NAME = 'palari_answer_commit'
 
 const OPENAI_MODEL_CLOSURE_DISPATCHES = 2
 
-const OPENAI_ANSWER_BASIS_DISPOSITIONS = Object.freeze([
-  'used',
-  'not_used',
+const OPENAI_ANSWER_EXCLUSION_CODES = Object.freeze([
+  'duplicate',
+  'superseded',
+  'outside-time-range',
+  'conflict',
+  'insufficient-authority',
+  'not-relevant',
 ])
 
 const REASONING_EFFORTS = new Set([
@@ -698,47 +702,131 @@ function createAnswerEvidenceReferences() {
         text: proposal.text,
       }
     }
-    const expected = enumerationRequired
+    // Keep the previous used-only parser shape additive for callers that
+    // captured it before this wire simplification. The declared model tool no
+    // longer exposes `bases`, and free-text non-use is never accepted here.
+    const legacyExpected = enumerationRequired
       ? ['abstained', 'bases', 'enumeration', 'temporaryInferences', 'text']
       : ['abstained', 'bases', 'temporaryInferences', 'text']
-    if (!exactKeys(proposal, expected) || !Array.isArray(proposal.bases) ||
+    if (exactKeys(proposal, legacyExpected) && Array.isArray(proposal.bases)) {
+      let usedOnly = true
+      for (let index = 0; index < proposal.bases.length; index += 1) {
+        const basis = proposal.bases[index]
+        if (!exactKeys(basis, [
+          'memoryNumber',
+          'disposition',
+          'rationale',
+        ]) || basis.disposition !== 'used') {
+          usedOnly = false
+          break
+        }
+      }
+      if (usedOnly) {
+        proposal = {
+          abstained: proposal.abstained,
+          excludedMaterialMemories: [],
+          ...(enumerationRequired ? { enumeration: proposal.enumeration } : {}),
+          temporaryInferences: proposal.temporaryInferences,
+          text: proposal.text,
+          usedMemories: proposal.bases.map((basis) => ({
+            contribution: basis.rationale,
+            memoryNumber: basis.memoryNumber,
+          })),
+        }
+      }
+    }
+    const expected = enumerationRequired
+      ? [
+          'abstained',
+          'enumeration',
+          'excludedMaterialMemories',
+          'temporaryInferences',
+          'text',
+          'usedMemories',
+        ]
+      : [
+          'abstained',
+          'excludedMaterialMemories',
+          'temporaryInferences',
+          'text',
+          'usedMemories',
+        ]
+    if (!exactKeys(proposal, expected) ||
+      !Array.isArray(proposal.usedMemories) ||
+      !Array.isArray(proposal.excludedMaterialMemories) ||
       !Array.isArray(proposal.temporaryInferences)) {
       throw adapterError(
         'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
         'The answer commitment must use answer-local memoryNumber references.',
       )
     }
-    const bases = proposal.bases.map((basis, index) => {
-      if (!exactKeys(basis, [
-        'memoryNumber',
-        'disposition',
-        'rationale',
-      ])) {
+    if (proposal.usedMemories.length +
+      proposal.excludedMaterialMemories.length > MEMORY_ANSWER_MAX_BASES) {
+      throw adapterError(
+        'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+        `The answer commitment may assess at most ` +
+          `${MEMORY_ANSWER_MAX_BASES} memories.`,
+      )
+    }
+    if (proposal.abstained === false && proposal.usedMemories.length < 1) {
+      throw adapterError(
+        'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+        'A non-abstaining answer commitment must contain a used memory.',
+      )
+    }
+    const assessedMemoryNumbers = new Set()
+    const uniqueEvidenceBinding = (memoryNumber, label) => {
+      const binding = evidenceBinding(memoryNumber, label)
+      if (assessedMemoryNumbers.has(memoryNumber)) {
         throw adapterError(
           'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
-          `Answer basis ${index} must use memoryNumber, disposition, and rationale.`,
+          `${label} must appear only once across used and excluded memories.`,
         )
       }
-      if (basis.disposition !== 'used' &&
-        basis.disposition !== 'not_used') {
+      assessedMemoryNumbers.add(memoryNumber)
+      return binding
+    }
+    const bases = proposal.usedMemories.map((basis, index) => {
+      if (!exactKeys(basis, ['memoryNumber', 'contribution'])) {
         throw adapterError(
           'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
-          `Answer basis ${index} disposition must be used or not_used.`,
+          `Used memory ${index} must use memoryNumber and contribution.`,
         )
       }
-      const binding = evidenceBinding(
+      const binding = uniqueEvidenceBinding(
         basis.memoryNumber,
-        `Answer basis ${index} memoryNumber`,
+        `Used memory ${index} memoryNumber`,
       )
       return {
-        consequence_for_answer:
-          basis.disposition === 'used' ? basis.rationale : '',
+        consequence_for_answer: basis.contribution,
         evidenceId: binding.evidenceId,
-        not_used_reason:
-          basis.disposition === 'not_used' ? basis.rationale : '',
+        not_used_reason: '',
         quote: binding.quote,
       }
     })
+    for (let index = 0;
+      index < proposal.excludedMaterialMemories.length;
+      index += 1) {
+      const excluded = proposal.excludedMaterialMemories[index]
+      if (!exactKeys(excluded, ['memoryNumber', 'reasonCode']) ||
+        !OPENAI_ANSWER_EXCLUSION_CODES.includes(excluded.reasonCode)) {
+        throw adapterError(
+          'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+          `Excluded material memory ${index} must use memoryNumber and one ` +
+            `supported reasonCode.`,
+        )
+      }
+      const binding = uniqueEvidenceBinding(
+        excluded.memoryNumber,
+        `Excluded material memory ${index} memoryNumber`,
+      )
+      bases.push({
+        consequence_for_answer: '',
+        evidenceId: binding.evidenceId,
+        not_used_reason: excluded.reasonCode,
+        quote: binding.quote,
+      })
+    }
     const temporaryInferences = proposal.temporaryInferences.map(
       (inference, index) => {
         if (!exactKeys(inference, [
@@ -825,8 +913,10 @@ function createAnswerEvidenceReferences() {
 const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
   description: [
     'Commit the final answer after memory evidence was returned.',
-    'Select only memories actually assessed for the answer; not every retrieved row needs a basis.',
-    'Every selected basis must use the short answer-local memoryNumber shown on returned evidence, classify it as used or not_used, and explain that judgment in one non-empty rationale. The host binds the canonical evidence ID and a bounded exact returned excerpt; never reproduce either one.',
+    'List only memories used in the answer and material memories that must be explicitly excluded. Omit unrelated retrieved rows.',
+    'For each used memory, give its short answer-local memoryNumber and one short contribution to the answer.',
+    'For each excluded material memory, give its memoryNumber and one fixed reasonCode. Do not write a free-text exclusion explanation.',
+    'The host binds the canonical evidence ID and a bounded exact returned excerpt; never reproduce either one.',
     'A cross-context inference must remain temporary, cite selected provenance, set revisable true, and state its consequence; never report it as a canonical user fact.',
     'Use abstained true when selected evidence does not support an answer.',
   ].join(' '),
@@ -835,33 +925,39 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
     additionalProperties: false,
     properties: {
       abstained: { type: 'boolean' },
-      bases: {
+      usedMemories: {
         items: {
           additionalProperties: false,
           properties: {
             memoryNumber: { minimum: 1, type: 'integer' },
-            disposition: {
-              enum: [...OPENAI_ANSWER_BASIS_DISPOSITIONS],
-              type: 'string',
-            },
-            rationale: {
-              maxLength: Math.max(
-                MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS,
-                MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
-              ),
+            contribution: {
+              maxLength: MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS,
               minLength: 1,
               type: 'string',
             },
           },
-          required: [
-            'memoryNumber',
-            'disposition',
-            'rationale',
-          ],
+          required: ['memoryNumber', 'contribution'],
           type: 'object',
         },
         maxItems: MEMORY_ANSWER_MAX_BASES,
-        minItems: 1,
+        minItems: 0,
+        type: 'array',
+      },
+      excludedMaterialMemories: {
+        items: {
+          additionalProperties: false,
+          properties: {
+            memoryNumber: { minimum: 1, type: 'integer' },
+            reasonCode: {
+              enum: [...OPENAI_ANSWER_EXCLUSION_CODES],
+              type: 'string',
+            },
+          },
+          required: ['memoryNumber', 'reasonCode'],
+          type: 'object',
+        },
+        maxItems: MEMORY_ANSWER_MAX_BASES,
+        minItems: 0,
         type: 'array',
       },
       text: {
@@ -903,7 +999,13 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
         type: 'array',
       },
     },
-    required: ['abstained', 'bases', 'temporaryInferences', 'text'],
+    required: [
+      'abstained',
+      'usedMemories',
+      'excludedMaterialMemories',
+      'temporaryInferences',
+      'text',
+    ],
     type: 'object',
   },
   strict: true,
@@ -976,7 +1078,8 @@ const OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL = deepFreeze({
     },
     required: [
       'abstained',
-      'bases',
+      'usedMemories',
+      'excludedMaterialMemories',
       'temporaryInferences',
       'text',
       'enumeration',
@@ -1019,10 +1122,18 @@ const OPENAI_ANSWER_SUPPORTED_COMMIT_TOOL = deepFreeze({
 const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
   'Return the final answer only by calling palari_answer_commit.',
   'Use only short answer-local memoryNumber values from evidence already returned in this answer session; the host binds canonical IDs and bounded exact returned excerpts, so never reproduce either one.',
-  'Use each memoryNumber at most once; combine multiple implications from one canonical message into one basis.',
-  'For each selected basis set disposition to used or not_used and give one non-empty rationale; leave unrelated retrieved rows unselected.',
+  'Use each memoryNumber at most once across usedMemories and excludedMaterialMemories.',
+  'For each used memory, give one short contribution. For each excluded material memory, use one fixed reasonCode. Omit unrelated rows.',
   'Keep cross-context inferences temporary, provenance-linked, and revisable.',
   'No memory tool is available during this repair.',
+].join(' ')
+
+const CANDIDATE_REVIEW_REPAIR_INSTRUCTIONS = [
+  'Repair only the malformed memory_candidate_review for the same pending candidate page.',
+  'Call memory_candidate_review exactly once with a findings array.',
+  'Each material finding must contain one unique page-local candidateNumber and one short reason.',
+  'Return an empty findings array when no candidate is material.',
+  'No answer commitment, search, bridge, read, timeline, graph, or plan tool is available during this repair.',
 ].join(' ')
 
 const ANSWER_SUPPORTED_COMMIT_REPAIR_INSTRUCTIONS = [
@@ -1192,11 +1303,19 @@ export function createOpenAIRetrievalProvider({
     let finalizing = retrievalLimit === 0
     let forcingCommit = false
     let repairUsed = false
+    let candidateReviewRepairPending = false
+    let candidateReviewRepairUsed = false
     let closureDispatches = 0
 
     for (;;) {
       const evidenceAvailable = commitmentEvidenceCount(session) > 0
       const hostClosed = answerConfirmationClosed?.() === true
+      if (candidateReviewRepairPending && dispatch >= dispatchLimit) {
+        throw adapterError(
+          'OPENAI_CONFIRMATION_REVIEW_REPAIR_BUDGET_EXHAUSTED',
+          'OpenAI cannot repair the candidate review outside the normal model-dispatch budget.',
+        )
+      }
       const closureOnly = dispatch >= dispatchLimit
       if (dispatch >= dispatchLimit) {
         if (closureDispatches >= OPENAI_MODEL_CLOSURE_DISPATCHES) {
@@ -1217,12 +1336,14 @@ export function createOpenAIRetrievalProvider({
       const commitOnly = forcingCommit ||
         (ending && evidenceAvailable && !reviewMayBePending)
       const toolDisabled = ending && !evidenceAvailable
-      const offeredTools = commitOnly
-        ? [commitTool]
-        : finalizing && reviewMayBePending
-          ? [confirmationReviewTool, commitTool]
-          : tools
-      const callableNames = closureOnly
+      const offeredTools = candidateReviewRepairPending
+        ? [confirmationReviewTool]
+        : commitOnly
+          ? [commitTool]
+          : finalizing && reviewMayBePending
+            ? [confirmationReviewTool, commitTool]
+            : tools
+      const callableNames = closureOnly || candidateReviewRepairPending
         ? new Set((toolDisabled ? [] : offeredTools).map(({ name }) => name))
         : allowedNames
       const body = {
@@ -1243,13 +1364,21 @@ export function createOpenAIRetrievalProvider({
           commitOnly && supportingEvidenceOnly
             ? 'Write the recommendation once in text and cite returned supporting memory numbers; use no duplicate proposal surface.'
             : '',
+          candidateReviewRepairPending
+            ? CANDIDATE_REVIEW_REPAIR_INSTRUCTIONS
+            : '',
         ].filter(Boolean).join('\n\n'),
         max_output_tokens: maxOutputTokens,
         model: modelId,
         parallel_tool_calls: false,
         reasoning: { effort },
         store: false,
-        tool_choice: commitOnly
+        tool_choice: candidateReviewRepairPending
+          ? {
+              name: MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME,
+              type: 'function',
+            }
+          : commitOnly
           ? { name: OPENAI_ANSWER_COMMIT_TOOL_NAME, type: 'function' }
           : toolDisabled ? 'none' : 'auto',
         ...(toolDisabled
@@ -1284,6 +1413,12 @@ export function createOpenAIRetrievalProvider({
         continue
       }
       if (!calls.length) {
+        if (candidateReviewRepairPending) {
+          throw adapterError(
+            'OPENAI_CONFIRMATION_REVIEW_REPAIR_FAILED',
+            'OpenAI did not return a valid candidate review after one repair.',
+          )
+        }
         const text = responseText(response, output)
         if (!text) {
           throw adapterError(
@@ -1431,17 +1566,47 @@ export function createOpenAIRetrievalProvider({
       // the entire output array in provider order, then append the host-owned
       // function outputs in call order.
       input.push(...clone(output))
+      let candidateReviewRejected = false
       for (const call of calls) {
-        const result = await session.retrieve({
-          input: clone(call.input),
-          tool: call.name,
-        })
+        let result
+        try {
+          result = await session.retrieve({
+            input: clone(call.input),
+            tool: call.name,
+          })
+        } catch (error) {
+          if (call.name !== MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME ||
+            String(error?.code ?? '') !==
+              'MEMORY_ANSWER_COMMITMENT_INVALID' ||
+            closureOnly) {
+            throw error
+          }
+          if (candidateReviewRepairUsed) {
+            throw adapterError(
+              'OPENAI_CONFIRMATION_REVIEW_REPAIR_FAILED',
+              'OpenAI returned an invalid candidate review after one repair.',
+            )
+          }
+          candidateReviewRepairUsed = true
+          candidateReviewRepairPending = true
+          input.push({
+            call_id: call.callId,
+            output: JSON.stringify({
+              accepted: false,
+              rejection: commitmentRejection(error),
+            }),
+            type: 'function_call_output',
+          })
+          candidateReviewRejected = true
+          break
+        }
         if (call.name === MEMORY_RETRIEVAL_PLAN_TOOL_NAME) {
           planningCalls += 1
         } else if (call.name ===
           MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME) {
           // Ephemeral classification controls whether another retrieval is
           // needed; it is not itself a memory retrieval call.
+          candidateReviewRepairPending = false
         } else {
           retrievalCalls += 1
         }
@@ -1451,6 +1616,7 @@ export function createOpenAIRetrievalProvider({
           type: 'function_call_output',
         })
       }
+      if (candidateReviewRejected) continue
       if (retrievalCalls >= retrievalLimit) finalizing = true
     }
   }

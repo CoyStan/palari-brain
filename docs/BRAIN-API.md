@@ -689,18 +689,29 @@ fields, and copied or mutated callback results fail closed.
 The OpenAI wire does not ask the model to reproduce those opaque IDs or copy
 returned evidence text. Each citable row receives a stable, answer-local,
 one-based `memoryNumber`; repeats of the same evidence keep the same number.
-For a detailed answer, each provider-facing basis contains only that number,
-an explicit `used` or `not_used` disposition, and one non-empty rationale.
+For a detailed answer, `usedMemories` contains a number and one short
+`contribution`. `excludedMaterialMemories` contains a number and one fixed
+`reasonCode`: `duplicate`, `superseded`, `outside-time-range`, `conflict`,
+`insufficient-authority`, or `not-relevant`. The model writes no free-text
+explanation for excluded evidence. Unrelated returned rows are omitted.
 Enumeration items likewise select their evidence by number without a quote.
 The adapter translates each number back to the exact returned evidence ID,
 attaches a bounded exact excerpt from the host-held returned text, and maps the
-disposition and rationale into the existing `consequence_for_answer` or
+two compact lists into the existing `consequence_for_answer` or
 `not_used_reason` fields before calling the unchanged provider-neutral
 `commitAnswer()` or bounded `commitIncompleteAnswer()` boundary. Temporary
 inference provenance and recommendation support also use memory numbers.
 Confirmation seeds its prior evidence into the same mapping before new
-searches extend it. Unknown numbers, stale provider-authored quote fields, and
-malformed dispositions use the existing single repair and then fail closed.
+searches extend it. Unknown, duplicate, unreturned, or provider-authored quote
+fields use the existing single commitment repair and then fail closed.
+
+If one `memory_candidate_review` has malformed content, the OpenAI adapter can
+use one normal-budget repair for the same pending page. That repair offers
+only `memory_candidate_review`. It cannot commit an answer or call search,
+bridge, read, timeline, graph, or planning tools. A second malformed review,
+refusal, empty response, forbidden tool, or exhausted normal dispatch budget
+is terminal. A recovered review does not add a retrieval call or enlarge the
+existing closure allowance.
 
 Product callers may set `compositionMode: 'auto'` or `'enumerate'` for count
 and complete-list questions. The commitment then includes every distinct

@@ -2,6 +2,28 @@
 
 ## 2026-08-10 current handoff
 
+BRN-0046 has a provider-free candidate that reduces answer bookkeeping
+without weakening the host evidence boundary. The normal OpenAI detailed
+commitment now has two compact lists: used memories carry one short
+contribution, while excluded material memories carry one of six fixed reason
+codes. Unrelated retrieved rows are omitted. The adapter still binds every
+selected memory number to the host-owned evidence ID and exact bounded
+excerpt, and the unchanged host commitment checks duplicate, returned,
+material-confirmation, inference, enumeration, and non-abstaining support
+rules. Recommendation commitments are unchanged.
+
+One malformed candidate review can now use one review-only repair on the same
+pending page inside the normal dispatch budget. That call offers no answer or
+retrieval tool. A second malformed review, forbidden tool, refusal, empty
+response, or exhausted normal budget remains terminal. A successful repair
+does not increase retrieval calls or the existing two-call closure allowance.
+Focused contracts pass 68/68, core passes 91/91, quickstart passes 6/6, and
+legacy passes 955 with 15 optional skips and zero failures across 970 tests.
+The active answer-wire accounting pin was refreshed for the changed compact
+schema; the consumed BRN-0025 compatibility pins remain exact and unchanged.
+No provider, credential, private artifact, dataset, or sealed U8 item was
+accessed during implementation.
+
 BRN-0045 has a provider-free candidate for shared OpenAI request pacing and
 safe rate-limit diagnostics. Callers can create one explicit rolling pacer and
 share it across transports in the same process. Each transport awaits it once

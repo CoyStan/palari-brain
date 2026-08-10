@@ -665,7 +665,7 @@ export const MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS = [
   'A relevant prior Palari answer may reveal the vocabulary or source session for user-specific resources, preferences, goals, relationships, or preparations, but it is navigation rather than proof. When such a Palari row is returned and retrieval budget remains, read its source session with memory_read before answering so the direct user context can support the answer. If that session does not recover the needed user evidence, continue through memory_bridge. Do not expand a generic prior Palari answer that contains no user-specific claim relevant to the question.',
   'For a total, count, or supposedly complete list, one relevance-ranked result is not exhaustive. Use complementary bounded searches inside the planned time range; if completeness is still unproven, report a partial result or insufficient evidence instead of a definitive total.',
   'Do not transfer a value across mismatched named people, places, objects, or relationships. Evidence about a different named entity may justify insufficiency or non-use, but cannot answer the requested entity.',
-  'Select each returned memory at most once in an answer commitment. When one message supports several points, choose one exact quote and combine its consequences in one basis.',
+  'Select each returned memory at most once in an answer commitment. Omit unrelated rows. When one message supports several points, combine its contributions in one used-memory entry.',
 ].join(' ')
 
 export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
@@ -1565,7 +1565,7 @@ export const MEMORY_BRIDGE_INSTRUCTIONS = [
 ].join(' ')
 
 const MEMORY_RETRIEVAL_DETAILED_EVIDENCE_INSTRUCTION =
-  'Select only memories you actually assessed for the answer. For each selected memory, state either its concrete consequence_for_answer or a specific not_used_reason; never both. Retrieved rows that were not selected need no commitment.'
+  'List only memories used in the answer and material memories that require an explicit exclusion. Give each used memory one concrete contribution. Give each material exclusion one fixed reason code. Omit unrelated retrieved rows.'
 const MEMORY_RETRIEVAL_TEMPORARY_INFERENCE_INSTRUCTION =
   'A consequence_for_answer is a declaration to audit, not proof of material use. Cross-context transfer must be a temporary provenance-linked inference marked revisable, never a canonical user fact.'
 const MEMORY_RETRIEVAL_SUPPORTING_EVIDENCE_INSTRUCTION =
@@ -3070,6 +3070,9 @@ export async function answerWithRetrieval(brain, {
     const suppressedDuplicateInformationEvidenceIds = []
     let confirmationCalls = 0
     let confirmationReviewCalls = 0
+    let confirmationReviewFormatFailures = 0
+    let confirmationSearchGeneration = 0
+    let confirmationLastSuccessfulReviewGeneration = -1
     let confirmationSearchesPending = 0
     let confirmationExhausted = false
     let confirmationOpen = true
@@ -3099,8 +3102,11 @@ export async function answerWithRetrieval(brain, {
       if (!confirmationOpen) {
         return promiseReject(new TypeError('Memory confirmation is closed.'))
       }
+      const operationName = stringFrom(request?.tool ?? '')
+      const reviewCallsBefore = confirmationReviewCalls
+      const searchGeneration = confirmationSearchGeneration
       const operation = (async () => {
-        const name = stringFrom(request?.tool ?? '')
+        const name = operationName
         const input = request?.input ?? {}
         if (name === MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME) {
           if (!confirmationSearchPerformed || confirmationLatestAssessed ||
@@ -3177,6 +3183,8 @@ export async function answerWithRetrieval(brain, {
             }
           }
           confirmationReviewCalls += 1
+          confirmationLastSuccessfulReviewGeneration =
+            confirmationSearchGeneration
           confirmationLatestAssessed = true
           confirmationClosed = materialEvidenceIds.length === 0 &&
             !confirmationLatestPageIncomplete
@@ -3285,6 +3293,7 @@ export async function answerWithRetrieval(brain, {
           tool: name,
         })
         confirmationSearchPerformed = true
+        confirmationSearchGeneration += 1
         confirmationLatestEvidenceIds = []
         for (let index = 0; index < result.matches.length; index += 1) {
           arrayPush(
@@ -3308,13 +3317,27 @@ export async function answerWithRetrieval(brain, {
       objectDefineProperty(operation, 'constructor', {
         value: promiseSpeciesCarrier,
       })
-      const record = { completion: null, outcome: null }
+      const record = {
+        completion: null,
+        outcome: null,
+        recoverableCandidateReview: false,
+        reviewCallsBefore,
+        searchGeneration,
+      }
       const completion = promiseThen(
         operation,
         () => {
           record.outcome = { status: 'fulfilled' }
         },
         (reason) => {
+          if (operationName ===
+            MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME &&
+            String(reason?.code ?? '') ===
+              'MEMORY_ANSWER_COMMITMENT_INVALID') {
+            confirmationReviewFormatFailures += 1
+            record.recoverableCandidateReview =
+              confirmationReviewFormatFailures === 1
+          }
           record.outcome = { reason, status: 'rejected' }
         },
       )
@@ -3382,6 +3405,13 @@ export async function answerWithRetrieval(brain, {
     for (let index = 0; index < confirmationOperations.length; index += 1) {
       const record = confirmationOperations[index]
       await record.completion
+      if (record.outcome.status === 'rejected' &&
+        record.recoverableCandidateReview &&
+        confirmationReviewCalls > record.reviewCallsBefore &&
+        confirmationLastSuccessfulReviewGeneration ===
+          record.searchGeneration) {
+        continue
+      }
       if (record.outcome.status === 'rejected' &&
         confirmationRetrievalError === null) {
         confirmationRetrievalError = record.outcome.reason
