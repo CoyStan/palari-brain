@@ -13,12 +13,14 @@ page-local review number remain stable. Custom providers keep the historical
 canonical-ID and exact-quote contract.
 
 Provider-free validation passes the 52/52 focused parent contracts, 89/89 core
-tests, quickstart 6/6, and the combined complete legacy tier with 928 passes,
-15 optional skips, and 0 failures across 943 tests. The active generation and
-count-projection request bodies are each 24 bytes smaller and have refreshed
-active pins; historical BRN-0025 pins are unchanged. This removes a redundant
-transcription/plumbing failure mode. It does not claim a semantic ownership,
-airline, or other reasoning fix, and it does not regrade a benchmark.
+tests, quickstart 6/6, and the final integrated complete legacy tier with 940
+passes, 3 optional skips, and 0 failures across 943 tests. The independent
+detached review environment observed the same 943-test tier with 928 passes and
+15 optional skips. The active generation and count-projection request bodies
+are each 24 bytes smaller and have refreshed active pins; historical BRN-0025
+pins are unchanged. This removes a redundant transcription/plumbing failure
+mode. It does not claim a semantic ownership, airline, or other reasoning fix,
+and it does not regrade a benchmark.
 
 Recovery of the interrupted super-hard diagnostic found ten planned cases:
 seven had started and three never started. Of the seven starts, two produced
