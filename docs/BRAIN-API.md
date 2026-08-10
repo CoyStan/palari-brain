@@ -654,6 +654,17 @@ fabricated quotes, duplicate bases, ambiguous use/non-use, extra
 provider-authored provenance, malformed
 fields, and copied or mutated callback results fail closed.
 
+The OpenAI wire does not ask the model to reproduce those opaque IDs. Each
+citable returned row also receives a stable, answer-local, one-based
+`memoryNumber`; repeats of the same evidence keep the same number. The strict
+commit schema uses that short number for bases, enumeration items, temporary
+inference provenance, and recommendation support. The adapter translates the
+numbers back to the exact returned evidence IDs before calling the unchanged
+provider-neutral `commitAnswer()` or bounded `commitIncompleteAnswer()` host
+boundary. Confirmation seeds its prior evidence into the same mapping before
+new searches extend it. Unknown numbers use the existing single repair and
+then fail closed.
+
 Product callers may set `compositionMode: 'auto'` or `'enumerate'` for count
 and complete-list questions. The commitment then includes every distinct
 direct-evidence candidate with an `included`, `excluded`, or `ambiguous`
@@ -683,8 +694,9 @@ schema or a claim that Palari understands arbitrary semantic equivalence.
 The same auto path resolves recommendation and suggestion questions to
 `compositionMode: 'recommend'`. Explicit count and list forms still resolve to
 enumeration first, while explicit `compositionMode: 'standard'` preserves the
-prior wire. For providers using the evidence-commitment boundary, recommendation
-mode exposes one user-facing surface:
+prior wire. For custom providers using the provider-neutral
+evidence-commitment boundary, recommendation mode exposes one user-facing
+surface:
 
 ```js
 {
@@ -693,6 +705,9 @@ mode exposes one user-facing surface:
   text: 'The complete recommendation, written once.',
 }
 ```
+
+The corresponding OpenAI model-facing commitment uses
+`supportingMemoryNumbers: [1]`; the adapter restores the host shape above.
 
 A non-abstaining recommendation cites one to twenty unique evidence IDs; an
 honest abstention cites none. The host checks that each generated ID was

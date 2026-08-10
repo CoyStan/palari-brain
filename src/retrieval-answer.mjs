@@ -665,7 +665,7 @@ export const MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS = [
   'A relevant prior Palari answer may reveal the vocabulary or source session for user-specific resources, preferences, goals, relationships, or preparations, but it is navigation rather than proof. When such a Palari row is returned and retrieval budget remains, read its source session with memory_read before answering so the direct user context can support the answer. If that session does not recover the needed user evidence, continue through memory_bridge. Do not expand a generic prior Palari answer that contains no user-specific claim relevant to the question.',
   'For a total, count, or supposedly complete list, one relevance-ranked result is not exhaustive. Use complementary bounded searches inside the planned time range; if completeness is still unproven, report a partial result or insufficient evidence instead of a definitive total.',
   'Do not transfer a value across mismatched named people, places, objects, or relationships. Evidence about a different named entity may justify insufficiency or non-use, but cannot answer the requested entity.',
-  'Select each canonical evidence ID at most once in an answer commitment. When one message supports several points, choose one exact quote and combine its consequences in one basis.',
+  'Select each returned memory at most once in an answer commitment. When one message supports several points, choose one exact quote and combine its consequences in one basis.',
 ].join(' ')
 
 export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
@@ -1569,7 +1569,7 @@ const MEMORY_RETRIEVAL_DETAILED_EVIDENCE_INSTRUCTION =
 const MEMORY_RETRIEVAL_TEMPORARY_INFERENCE_INSTRUCTION =
   'A consequence_for_answer is a declaration to audit, not proof of material use. Cross-context transfer must be a temporary provenance-linked inference marked revisable, never a canonical user fact.'
 const MEMORY_RETRIEVAL_SUPPORTING_EVIDENCE_INSTRUCTION =
-  'Cite only returned memories that materially support the recommendation; the commitment asks for supporting evidence IDs, not copied quotes or consequence fields.'
+  'Cite only returned memories that materially support the recommendation; the commitment asks for supporting references, not copied quotes or consequence fields.'
 const MEMORY_RETRIEVAL_EPHEMERAL_REASONING_INSTRUCTION =
   'A model-declared evidence link is an auditable claim, not proof of material use. Answer-time reasoning never becomes canonical memory without passing the write admission gate.'
 
@@ -2348,9 +2348,9 @@ export async function answerWithRetrieval(brain, {
           const evidenceId = confirmationNewInformationEvidenceIds[index]
           if (!setHas(seen, evidenceId)) {
             throw answerCommitmentError(
-              `Recommendation commitment omitted previously material ` +
-                `evidence ${evidenceId}. Include it in ` +
-                `supportingEvidenceIds.`,
+              'Recommendation commitment omitted a previously material ' +
+                'returned memory. Include every material confirmation ' +
+                'finding in the supporting memories.',
             )
           }
         }
@@ -2709,9 +2709,9 @@ export async function answerWithRetrieval(brain, {
         const evidenceId = confirmationNewInformationEvidenceIds[index]
         if (!setHas(assessedConfirmationIds, evidenceId)) {
           arrayPush(lateErrors,
-            `Confirmation commitment omitted previously material evidence ` +
-              `${evidenceId}. Assess it as used or with a specific ` +
-              `not_used_reason.`)
+            'Confirmation commitment omitted a previously material returned ' +
+              'memory. Assess every material confirmation finding as used ' +
+              'or with a specific not_used_reason.')
         }
       }
     }
@@ -3341,6 +3341,7 @@ export async function answerWithRetrieval(brain, {
         commitIncompleteAnswer,
         maxRetrievalCalls: confirmationBudget,
         maxRetrievalPlanningCalls: 0,
+        answerPriorEvidence: priorEvidence,
         memoryText: JSON.stringify({
           previouslyReturnedEvidence: priorEvidence,
           provisionalAnswer: answerCommitted

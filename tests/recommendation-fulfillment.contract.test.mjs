@@ -185,7 +185,7 @@ test('OpenAI recommendation commitment has no duplicate proposal surface',
           tool.name === OPENAI_ANSWER_COMMIT_TOOL_NAME)
         assert.ok(commitTool)
         assert.ok(
-          commitTool.parameters.required.includes('supportingEvidenceIds'),
+          commitTool.parameters.required.includes('supportingMemoryNumbers'),
         )
         assert.ok(!commitTool.parameters.required.includes('recommendation'))
         assert.ok(!commitTool.parameters.required.includes('bases'))
@@ -202,10 +202,11 @@ test('OpenAI recommendation commitment has no duplicate proposal surface',
         const found = JSON.parse(searchOutput.output)
         const row = onlyUserMatch(found.matches)
         return completedCall({
-          args: supportedCommitment({
-            supportingEvidenceIds: [row.evidenceId],
+          args: {
+            abstained: false,
+            supportingMemoryNumbers: [row.memoryNumber],
             text: answer,
-          }),
+          },
           callId: 'thin-answer',
           name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
         })
@@ -253,15 +254,16 @@ test('OpenAI recommendation repair stays on the thin commitment schema',
         const row = onlyUserMatch(found.matches)
         if (bodies.length === 2) {
           return completedCall({
-            args: supportedCommitment({
-              supportingEvidenceIds: ['not-returned'],
+            args: {
+              abstained: false,
+              supportingMemoryNumbers: [2],
               text: answer,
-            }),
+            },
             callId: 'invalid-support',
             name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
           })
         }
-        assert.match(body.instructions, /supportingEvidenceIds/)
+        assert.match(body.instructions, /supportingMemoryNumbers/)
         assert.doesNotMatch(body.instructions, /copy an exact contiguous quote/)
         assert.doesNotMatch(body.instructions, /consequence_for_answer/)
         const rejection = body.input.find((item) =>
@@ -269,13 +271,14 @@ test('OpenAI recommendation repair stays on the thin commitment schema',
           item.call_id === 'invalid-support')
         assert.match(
           JSON.parse(rejection.output).rejection,
-          /not returned in this answer session/,
+          /memoryNumber.*shown/,
         )
         return completedCall({
-          args: supportedCommitment({
-            supportingEvidenceIds: [row.evidenceId],
+          args: {
+            abstained: false,
+            supportingMemoryNumbers: [row.memoryNumber],
             text: answer,
-          }),
+          },
           callId: 'repaired-support',
           name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
         })

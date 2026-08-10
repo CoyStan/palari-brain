@@ -1109,7 +1109,7 @@ test('optional completeness guidance is bounded and provider-neutral',
     assert.match(observed, /both the current situational constraints/)
     assert.match(observed, /one relevance-ranked result is not exhaustive/)
     assert.match(observed, /mismatched named people, places, objects, or relationships/)
-    assert.match(observed, /each canonical evidence ID at most once/)
+    assert.match(observed, /each returned memory at most once/)
     await assert.rejects(
       answerWithRetrieval(brain, {
         ...SCOPE,

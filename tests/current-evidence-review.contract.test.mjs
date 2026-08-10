@@ -237,7 +237,12 @@ test('OpenAI provider accepts an old-only commitment and reports telemetry',
         findText(found.matches, late)
         if (bodies.length === 3) {
           return completedCall({
-            args: commitment({ bases: [used(earlyRow)] }),
+            args: commitment({ bases: [{
+              consequence_for_answer: 'This evidence controls the answer.',
+              memoryNumber: earlyRow.memoryNumber,
+              not_used_reason: '',
+              quote: earlyRow.text,
+            }] }),
             callId: 'old-commit',
             name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
           })
@@ -315,7 +320,7 @@ test('recommendations leave semantic current-evidence judgment to one answer',
         return completedCall({
           args: {
             abstained: false,
-            supportingEvidenceIds: [earlyRow.evidenceId],
+            supportingMemoryNumbers: [earlyRow.memoryNumber],
             text: answer,
           },
           callId: 'thin-recommendation',

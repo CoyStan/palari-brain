@@ -27,6 +27,12 @@ const BRN0025_COMPATIBILITY_COUNT_SHA256 =
   'd77ba2aaa9521a0c3445ca73e1112955e7bc26fd5eb61a1dd5dd7ce76561838d'
 const BRN0025_COMPATIBILITY_GENERATION_BYTES = 11_593
 const BRN0025_COMPATIBILITY_COUNT_BYTES = 11_488
+const ACTIVE_ANSWER_WIRE_GENERATION_BYTES = 11_622
+const ACTIVE_ANSWER_WIRE_GENERATION_SHA256 =
+  '042cc77c4d2e2363b02d2af63c03b2af3f324ef78011ac844e516e6c6b69b4d8'
+const ACTIVE_ANSWER_WIRE_COUNT_BYTES = 11_517
+const ACTIVE_ANSWER_WIRE_COUNT_SHA256 =
+  '0246e1514d60a10805280b0dca4d7a9c499392012353979f56cacd408cee7a52'
 const BRN0025_OBSERVED_400 = Object.freeze({
   bodySha256: BRN0025_COMPATIBILITY_GENERATION_SHA256,
   error: Object.freeze({
@@ -43,8 +49,8 @@ function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
 }
 
-async function exactBrn0025CompatibilityBody() {
-  const stop = new Error('captured exact BRN-0025 compatibility body')
+async function activeAnswerWireBody() {
+  const stop = new Error('captured active answer wire body')
   let captured
   const provider = createOpenAIRetrievalProvider({
     async invoke({ body: request }) {
@@ -302,19 +308,21 @@ test('observed include 400 is repaired while unknown fields fail closed', async 
   assert.deepEqual(unknown.events, [])
 })
 
-test('exact consumed BRN-0025 compatibility body projects and generates once', async () => {
-  const source = await exactBrn0025CompatibilityBody()
+test('active answer wire projects once without rewriting consumed BRN-0025 pins', async () => {
+  const source = await activeAnswerWireBody()
   const generationText = JSON.stringify(source)
   const projection = projectOpenAIResponsesInputCountBody(source)
   const original = structuredClone(source)
 
   assert.equal(Buffer.byteLength(generationText),
-    BRN0025_COMPATIBILITY_GENERATION_BYTES)
+    ACTIVE_ANSWER_WIRE_GENERATION_BYTES)
   assert.equal(sha256(generationText),
-    BRN0025_COMPATIBILITY_GENERATION_SHA256)
+    ACTIVE_ANSWER_WIRE_GENERATION_SHA256)
   assert.equal(Buffer.byteLength(projection.bodyText),
-    BRN0025_COMPATIBILITY_COUNT_BYTES)
-  assert.equal(sha256(projection.bodyText), BRN0025_COMPATIBILITY_COUNT_SHA256)
+    ACTIVE_ANSWER_WIRE_COUNT_BYTES)
+  assert.equal(sha256(projection.bodyText), ACTIVE_ANSWER_WIRE_COUNT_SHA256)
+  assert.equal(BRN0025_COMPATIBILITY_GENERATION_BYTES, 11_593)
+  assert.equal(BRN0025_COMPATIBILITY_COUNT_BYTES, 11_488)
   assert.equal(source.tools.length, 7)
   assert.deepEqual(source.tools.map(({ name }) => name), [
     'memory_timeline',
@@ -367,18 +375,18 @@ test('exact consumed BRN-0025 compatibility body projects and generates once', a
       countCalls += 1
       assert.equal(JSON.stringify(request.body), projection.bodyText)
       assert.equal(request.countBodySha256,
-        BRN0025_COMPATIBILITY_COUNT_SHA256)
+        ACTIVE_ANSWER_WIRE_COUNT_SHA256)
       assert.equal(request.generationBodySha256,
-        BRN0025_COMPATIBILITY_GENERATION_SHA256)
+        ACTIVE_ANSWER_WIRE_GENERATION_SHA256)
       return { object: 'response.input_tokens', input_tokens: 2_766 }
     },
     async invokeResponse(request) {
       generationCalls += 1
       assert.equal(JSON.stringify(request.body), generationText)
       assert.equal(request.countBodySha256,
-        BRN0025_COMPATIBILITY_COUNT_SHA256)
+        ACTIVE_ANSWER_WIRE_COUNT_SHA256)
       assert.equal(request.generationBodySha256,
-        BRN0025_COMPATIBILITY_GENERATION_SHA256)
+        ACTIVE_ANSWER_WIRE_GENERATION_SHA256)
       return { id: 'exact-compatibility-generation' }
     },
   })
@@ -390,9 +398,9 @@ test('exact consumed BRN-0025 compatibility body projects and generates once', a
   assert.equal(countCalls, 1)
   assert.equal(generationCalls, 1)
   assert.equal(terminal.audit.countBodySha256,
-    BRN0025_COMPATIBILITY_COUNT_SHA256)
+    ACTIVE_ANSWER_WIRE_COUNT_SHA256)
   assert.equal(terminal.audit.generationBodySha256,
-    BRN0025_COMPATIBILITY_GENERATION_SHA256)
+    ACTIVE_ANSWER_WIRE_GENERATION_SHA256)
   assert.deepEqual(source, original)
 })
 

@@ -109,12 +109,43 @@ function evidenceAnswer(text, entries) {
   }
 }
 
+function numberedEvidenceAnswer(text, entries) {
+  return {
+    abstained: false,
+    bases: entries.map(({ row, used = true }, index) => ({
+      consequence_for_answer: used ? 'This determines the answer.' : '',
+      memoryNumber: row.memoryNumber ?? index + 1,
+      not_used_reason: used ? '' : 'This was superseded by newer evidence.',
+      quote: row.text,
+    })),
+    temporaryInferences: [],
+    text,
+  }
+}
+
 function recommendationAnswer(text, rows) {
   return {
     abstained: false,
     supportingEvidenceIds: rows.map((row) => row.evidenceId),
     text,
   }
+}
+
+function numberedRecommendationAnswer(text, rows) {
+  return {
+    abstained: false,
+    supportingMemoryNumbers: rows.map((row, index) =>
+      row.memoryNumber ?? index + 1),
+    text,
+  }
+}
+
+function priorMemoryNumber(body, evidenceId) {
+  const context = JSON.parse(body.input[0].content.split('\n\n')[0])
+  const row = context.previouslyReturnedEvidence.find((candidate) =>
+    candidate.evidenceId === evidenceId)
+  assert.ok(row, `Missing prior evidence ${evidenceId}`)
+  return row.memoryNumber
 }
 
 function reductionRequest() {
@@ -396,11 +427,14 @@ test('OpenAI answer commitment wire distinguishes use, non-use, and temporary in
       'text',
     ])
     assert.deepEqual(commit.parameters.properties.bases.items.required, [
-      'evidenceId',
+      'memoryNumber',
       'quote',
       'consequence_for_answer',
       'not_used_reason',
     ])
+    assert.ok(!JSON.stringify(commit.parameters).includes('evidenceId'))
+    assert.ok(commit.parameters.properties.temporaryInferences.items.required
+      .includes('provenanceMemoryNumbers'))
     assert.deepEqual(
       commit.parameters.properties.temporaryInferences.items.properties
         .revisable.enum,
@@ -408,6 +442,138 @@ test('OpenAI answer commitment wire distinguishes use, non-use, and temporary in
     )
     assert.match(commit.description, /not every retrieved row/i)
     assert.match(commit.description, /temporary/i)
+  })
+
+test('OpenAI binds stable memory numbers across all answer commitment surfaces',
+  async () => {
+    const bodies = []
+    let evidenceCount = 0
+    let retrievalRound = 0
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) {
+          return completedCall({
+            arguments: '{"phrase":"alpha beta"}',
+            name: 'memory_search',
+          })
+        }
+        if (bodies.length === 2) {
+          const found = JSON.parse(body.input.at(-1).output)
+          assert.deepEqual(
+            found.matches.map((row) => row.memoryNumber ?? null),
+            [1, 2, 1, null],
+          )
+          return completedCall({
+            arguments: '{"phrase":"alpha gamma"}',
+            callId: 'second-search',
+            name: 'memory_search',
+          })
+        }
+        const second = JSON.parse(body.input.at(-1).output)
+        assert.deepEqual(
+          second.matches.map((row) => row.memoryNumber),
+          [1, 3],
+        )
+        return completedCommit({
+          abstained: false,
+          bases: [{
+            consequence_for_answer: 'Alpha is included.',
+            memoryNumber: 1,
+            not_used_reason: '',
+            quote: 'Alpha memory.',
+          }],
+          enumeration: {
+            ambiguousCount: 0,
+            includedCount: 1,
+            items: [{
+              action: 'Use beta.',
+              disposition: 'included',
+              label: 'Beta',
+              memoryNumber: 2,
+              quote: 'Beta memory.',
+              reason: 'It is directly supported.',
+            }],
+            referencedCount: 1,
+          },
+          temporaryInferences: [{
+            consequence_for_answer: 'The memories may be related.',
+            provenanceMemoryNumbers: [1, 3],
+            revisable: true,
+            statement: 'Alpha and gamma may form one plan.',
+          }],
+          text: 'Use alpha and beta.',
+        })
+      },
+    })
+    const result = await provider(answerSession({
+      answerEnumerationRequired: true,
+      answerEvidenceCount: () => evidenceCount,
+      commitAnswer(proposal) {
+        assert.equal(proposal.bases[0].evidenceId, 'opaque-alpha')
+        assert.equal(proposal.enumeration.items[0].evidenceId, 'opaque-beta')
+        assert.deepEqual(
+          proposal.temporaryInferences[0].provenanceEvidenceIds,
+          ['opaque-alpha', 'opaque-gamma'],
+        )
+        return Object.freeze(proposal)
+      },
+      async retrieve() {
+        retrievalRound += 1
+        evidenceCount = retrievalRound === 1 ? 2 : 3
+        return retrievalRound === 1
+          ? {
+              matches: [
+                { evidenceId: 'opaque-alpha', text: 'Alpha memory.' },
+                { evidenceId: 'opaque-beta', text: 'Beta memory.' },
+                { evidenceId: 'opaque-alpha', text: 'Alpha memory.' },
+                { evidenceId: 'metadata-only' },
+              ],
+            }
+          : {
+              matches: [
+                { evidenceId: 'opaque-alpha', text: 'Alpha memory.' },
+                { evidenceId: 'opaque-gamma', text: 'Gamma memory.' },
+              ],
+            }
+      },
+    }))
+
+    assert.equal(result.text, 'Use alpha and beta.')
+    assert.equal(bodies.length, 3)
+  })
+
+test('OpenAI translates recommendation memory numbers to host evidence IDs',
+  async () => {
+    let evidenceCount = 0
+    const row = { evidenceId: 'opaque-preference', text: 'Prefer the Nova.' }
+    let dispatch = 0
+    const provider = createOpenAIRetrievalProvider({
+      async invoke() {
+        dispatch += 1
+        return dispatch === 1
+          ? completedCall({ name: 'memory_search' })
+          : completedCommit({
+              abstained: false,
+              supportingMemoryNumbers: [1],
+              text: 'Choose the Nova.',
+            })
+      },
+    })
+    const result = await provider(answerSession({
+      answerEvidenceCount: () => evidenceCount,
+      answerSupportingEvidenceOnly: true,
+      commitAnswer(proposal) {
+        assert.deepEqual(proposal.supportingEvidenceIds, [row.evidenceId])
+        return Object.freeze(proposal)
+      },
+      async retrieve() {
+        evidenceCount = 1
+        return { matches: [row] }
+      },
+    }))
+
+    assert.equal(result.text, 'Choose the Nova.')
   })
 
 test('OpenAI adds exhaustive enumeration only for an enumeration answer session',
@@ -492,14 +658,15 @@ test('retrieval provider commits cited evidence without another model dispatch',
     const bodies = []
     let evidenceCount = 0
     let retrievals = 0
-    const proposal = {
-      abstained: false,
-      bases: [{
-        evidenceId: 'evidence-cedar',
-        quote: 'cedar cabinet',
-      }],
-      text: 'The apron is in the cedar cabinet.',
+    const row = {
+      evidenceId: 'evidence-cedar',
+      text: 'The workshop apron is in the cedar cabinet.',
     }
+    const proposal = evidenceAnswer(
+      'The apron is in the cedar cabinet.',
+      [{ row }],
+    )
+    const wireProposal = numberedEvidenceAnswer(proposal.text, [{ row }])
     const committed = Object.freeze(structuredClone(proposal))
     const provider = createOpenAIRetrievalProvider({
       async invoke({ body }) {
@@ -509,7 +676,7 @@ test('retrieval provider commits cited evidence without another model dispatch',
               arguments: '{"phrase":"workshop apron"}',
               name: 'memory_search',
             })
-          : completedCommit(proposal)
+          : completedCommit(wireProposal)
       },
     })
     const result = await provider(answerSession({
@@ -524,10 +691,7 @@ test('retrieval provider commits cited evidence without another model dispatch',
         retrievals += 1
         evidenceCount = 1
         return {
-          matches: [{
-            evidenceId: 'evidence-cedar',
-            text: 'The workshop apron is in the cedar cabinet.',
-          }],
+          matches: [row],
         }
       },
     }))
@@ -535,6 +699,9 @@ test('retrieval provider commits cited evidence without another model dispatch',
     assert.equal(result, committed)
     assert.equal(retrievals, 1)
     assert.equal(bodies.length, 2)
+    const returned = JSON.parse(bodies[1].input.at(-1).output)
+    assert.equal(returned.matches[0].memoryNumber, 1)
+    assert.equal(returned.matches[0].evidenceId, 'evidence-cedar')
     assert.equal(bodies[1].tool_choice, 'auto')
     assert.equal(bodies[1].tools.length, MEMORY_RETRIEVAL_TOOLS.length + 1)
   })
@@ -543,11 +710,15 @@ test('raw post-retrieval text gets one forced cited-commit repair',
   async () => {
     const bodies = []
     let evidenceCount = 0
-    const proposal = {
-      abstained: false,
-      bases: [{ evidenceId: 'evidence-1', quote: 'green tool chest' }],
-      text: 'It is in the green tool chest.',
+    const row = {
+      evidenceId: 'evidence-1',
+      text: 'The spare gauge is in the green tool chest.',
     }
+    const proposal = evidenceAnswer(
+      'It is in the green tool chest.',
+      [{ row }],
+    )
+    const wireProposal = numberedEvidenceAnswer(proposal.text, [{ row }])
     const provider = createOpenAIRetrievalProvider({
       async invoke({ body }) {
         bodies.push(body)
@@ -558,7 +729,7 @@ test('raw post-retrieval text gets one forced cited-commit repair',
           })
         }
         if (bodies.length === 2) return completedText('Uncited raw answer.')
-        return completedCommit(proposal)
+        return completedCommit(wireProposal)
       },
     })
     const result = await provider(answerSession({
@@ -567,10 +738,7 @@ test('raw post-retrieval text gets one forced cited-commit repair',
       async retrieve() {
         evidenceCount = 1
         return {
-          matches: [{
-            evidenceId: 'evidence-1',
-            text: 'The spare gauge is in the green tool chest.',
-          }],
+          matches: [row],
         }
       },
     }))
@@ -596,16 +764,18 @@ test('invalid commitment gets one repair and a second invalid result is terminal
       const bodies = []
       let evidenceCount = 0
       let commits = 0
-      const invalid = {
-        abstained: false,
-        bases: [{ evidenceId: 'unknown', quote: 'fabricated quote' }],
-        text: 'Unsupported answer.',
+      const row = {
+        evidenceId: 'evidence-2',
+        text: 'I packed a yellow raincoat.',
       }
-      const valid = {
-        abstained: true,
-        bases: [{ evidenceId: 'evidence-2', quote: 'yellow raincoat' }],
-        text: 'The returned memory is about a yellow raincoat, not the requested item.',
-      }
+      const invalid = numberedEvidenceAnswer('Unsupported answer.', [{
+        row: { memoryNumber: 2, text: 'fabricated quote' },
+      }])
+      const valid = numberedEvidenceAnswer(
+        'The returned memory is about a yellow raincoat, not the requested item.',
+        [{ row, used: false }],
+      )
+      const validHost = evidenceAnswer(valid.text, [{ row, used: false }])
       const provider = createOpenAIRetrievalProvider({
         async invoke({ body }) {
           bodies.push(body)
@@ -638,13 +808,13 @@ test('invalid commitment gets one repair and a second invalid result is terminal
         },
       }))
       if (repaired) {
-        assert.deepEqual(await operation, valid)
+        assert.deepEqual(await operation, validHost)
       } else {
         await assert.rejects(operation,
           (error) => error.code === 'OPENAI_ANSWER_COMMIT_REPAIR_FAILED')
       }
       assert.equal(bodies.length, 3)
-      assert.equal(commits, 2)
+      assert.equal(commits, repaired ? 1 : 0)
       assert.deepEqual(bodies[2].tool_choice, {
         name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
         type: 'function',
@@ -652,7 +822,7 @@ test('invalid commitment gets one repair and a second invalid result is terminal
       const rejection = bodies[2].input.find((item) =>
         item.type === 'function_call_output' &&
         item.call_id === 'call_invalid')
-      assert.match(JSON.parse(rejection.output).rejection, /not returned/)
+      assert.match(JSON.parse(rejection.output).rejection, /memoryNumber.*shown/)
     }
   })
 
@@ -660,16 +830,17 @@ test('confirmation rejection reopens retrieval instead of forcing commit repair'
   async () => {
     const bodies = []
     let searched = false
-    const proposal = {
-      abstained: false,
-      bases: [{ evidenceId: 'evidence-1', quote: 'violet folder' }],
-      text: 'The key is in the violet folder.',
-    }
+    const row = { evidenceId: 'evidence-1', text: 'violet folder' }
+    const proposal = evidenceAnswer(
+      'The key is in the violet folder.',
+      [{ row }],
+    )
+    const wireProposal = numberedEvidenceAnswer(proposal.text, [{ row }])
     const provider = createOpenAIRetrievalProvider({
       async invoke({ body }) {
         bodies.push(body)
         if (bodies.length === 1) {
-          return completedCommit(proposal, { callId: 'premature_commit' })
+          return completedCommit(wireProposal, { callId: 'premature_commit' })
         }
         if (bodies.length === 2) {
           return completedCall({
@@ -678,11 +849,12 @@ test('confirmation rejection reopens retrieval instead of forcing commit repair'
             name: 'memory_search',
           })
         }
-        return completedCommit(proposal, { callId: 'closed_commit' })
+        return completedCommit(wireProposal, { callId: 'closed_commit' })
       },
     })
     const result = await provider(answerSession({
       answerEvidenceCount: () => 1,
+      answerPriorEvidence: [row],
       commitAnswer(received) {
         if (!searched) {
           const error = new TypeError('Search unseen memory before commit.')
@@ -714,11 +886,12 @@ test('confirmation candidate review is ephemeral and remains available after the
     let searches = 0
     let reviews = 0
     let closed = false
-    const proposal = {
-      abstained: false,
-      bases: [{ evidenceId: 'evidence-1', quote: 'violet folder' }],
-      text: 'The key is in the violet folder.',
-    }
+    const row = { evidenceId: 'evidence-1', text: 'violet folder' }
+    const proposal = evidenceAnswer(
+      'The key is in the violet folder.',
+      [{ row }],
+    )
+    const wireProposal = numberedEvidenceAnswer(proposal.text, [{ row }])
     const provider = createOpenAIRetrievalProvider({
       async invoke({ body }) {
         bodies.push(body)
@@ -741,18 +914,25 @@ test('confirmation candidate review is ephemeral and remains available after the
             name: 'memory_candidate_review',
           })
         }
-        return completedCommit(proposal, { callId: 'closed-commit' })
+        return completedCommit(wireProposal, { callId: 'closed-commit' })
       },
     })
     const result = await provider(answerSession({
       answerConfirmationClosed: () => closed,
       answerEvidenceCount: () => 1,
+      answerPriorEvidence: [row],
       maxRetrievalCalls: 2,
       retrievalTools: MEMORY_ANSWER_CONFIRMATION_TOOLS,
       async retrieve({ tool }) {
         if (tool === 'memory_search') {
           searches += 1
-          return { matches: [{ evidenceId: `candidate-${searches}` }] }
+          return {
+            matches: [{
+              candidateNumber: 1,
+              evidenceId: `candidate-${searches}`,
+              text: `candidate text ${searches}`,
+            }],
+          }
         }
         reviews += 1
         closed = reviews === 2
@@ -780,11 +960,9 @@ test('confirmation returns a host-validated bounded answer at its emergency limi
     let searches = 0
     let reviews = 0
     let boundedCommits = 0
-    const proposal = {
-      abstained: false,
-      bases: [{ evidenceId: 'evidence-1', quote: 'four devices' }],
-      text: 'You use four devices.',
-    }
+    const row = { evidenceId: 'evidence-1', text: 'four devices' }
+    const proposal = evidenceAnswer('You use four devices.', [{ row }])
+    const wireProposal = numberedEvidenceAnswer(proposal.text, [{ row }])
     const provider = createOpenAIRetrievalProvider({
       async invoke({ body }) {
         bodies.push(body)
@@ -807,12 +985,13 @@ test('confirmation returns a host-validated bounded answer at its emergency limi
             name: 'memory_candidate_review',
           })
         }
-        return completedCommit(proposal, { callId: 'bounded-commit' })
+        return completedCommit(wireProposal, { callId: 'bounded-commit' })
       },
     })
     const result = await provider(answerSession({
       answerConfirmationClosed: () => false,
       answerEvidenceCount: () => 1,
+      answerPriorEvidence: [row],
       commitAnswer() {
         const error = new TypeError('Continue confirmation.')
         error.code = 'MEMORY_ANSWER_CONFIRMATION_REQUIRED'
@@ -828,7 +1007,13 @@ test('confirmation returns a host-validated bounded answer at its emergency limi
         if (tool === 'memory_search') searches += 1
         else reviews += 1
         return tool === 'memory_search'
-          ? { matches: [{ evidenceId: `candidate-${searches}` }] }
+          ? {
+              matches: [{
+                candidateNumber: 1,
+                evidenceId: `candidate-${searches}`,
+                text: `candidate text ${searches}`,
+              }],
+            }
           : { closed: false, continueSearch: true }
       },
     }))
@@ -886,6 +1071,15 @@ test('real confirmation reviews the last page after a premature bounded commit',
       async invoke({ body }) {
         dispatch += 1
         if (dispatch === 1) {
+          const context = JSON.parse(body.input[0].content.split('\n\n')[0])
+          assert.equal(
+            context.previouslyReturnedEvidence[0].evidenceId,
+            oldRow.evidenceId,
+          )
+          assert.equal(
+            context.previouslyReturnedEvidence[0].memoryNumber,
+            1,
+          )
           return completedCall({
             arguments: '{"phrase":"current project codename Juniper"}',
             callId: 'last-search',
@@ -899,7 +1093,9 @@ test('real confirmation reviews the last page after a premature bounded commit',
           const found = JSON.parse(output.output)
           newRow = found.matches.find((row) =>
             row.speaker === 'user' && row.text.includes('Juniper'))
-          return completedCommit(evidenceAnswer(
+          assert.equal(newRow.candidateNumber, 1)
+          assert.equal(newRow.memoryNumber, 2)
+          return completedCommit(numberedEvidenceAnswer(
             'The current codename is Juniper.',
             [{ row: oldRow, used: false }, { row: newRow }],
           ), { callId: 'premature-bounded-commit' })
@@ -922,7 +1118,7 @@ test('real confirmation reviews the last page after a premature bounded commit',
             name: 'memory_candidate_review',
           })
         }
-        return completedCommit(evidenceAnswer(
+        return completedCommit(numberedEvidenceAnswer(
           'The current codename is Juniper.',
           [{ row: oldRow, used: false }, { row: newRow }],
         ), { callId: 'reviewed-bounded-commit' })
@@ -988,6 +1184,10 @@ test('real bounded confirmation repairs one malformed final commitment',
       async invoke({ body }) {
         dispatch += 1
         if (dispatch === 1) {
+          oldRow = {
+            ...oldRow,
+            memoryNumber: priorMemoryNumber(body, oldRow.evidenceId),
+          }
           return completedCall({
             arguments: '{"phrase":"current preferred notebook Nova"}',
             callId: 'repair-search',
@@ -1013,10 +1213,10 @@ test('real bounded confirmation repairs one malformed final commitment',
           })
         }
         if (dispatch === 3) {
-          return completedCommit(evidenceAnswer(
+          return completedCommit(numberedEvidenceAnswer(
             'You now prefer the Nova.',
             [{ row: oldRow, used: false }, {
-              row: { evidenceId: 'unknown-evidence', text: 'Invented.' },
+              row: { memoryNumber: 99, text: 'Invented.' },
             }],
           ), { callId: 'malformed-bounded-commit' })
         }
@@ -1027,10 +1227,10 @@ test('real bounded confirmation repairs one malformed final commitment',
         assert.ok(body.input.some((item) =>
           item.type === 'function_call_output' &&
           item.call_id === 'malformed-bounded-commit' &&
-          /not returned in this answer session/.test(
+          /memoryNumber.*shown/.test(
             JSON.parse(item.output).rejection,
           )))
-        return completedCommit(evidenceAnswer(
+        return completedCommit(numberedEvidenceAnswer(
           'You now prefer the Nova.',
           [{ row: oldRow, used: false }, { row: newRow }],
         ), { callId: 'repaired-bounded-commit' })
@@ -1100,6 +1300,12 @@ test('real recommendation confirmation cannot close while omitting material evid
       async invoke({ body }) {
         dispatch += 1
         if (dispatch === 1 || dispatch === 3) {
+          if (dispatch === 1) {
+            oldRow = {
+              ...oldRow,
+              memoryNumber: priorMemoryNumber(body, oldRow.evidenceId),
+            }
+          }
           return completedCall({
             arguments: '{"phrase":"current preferred notebook Nova"}',
             callId: `recommend-search-${dispatch}`,
@@ -1125,7 +1331,7 @@ test('real recommendation confirmation cannot close while omitting material evid
           })
         }
         if (dispatch === 4) {
-          return completedCommit(recommendationAnswer(
+          return completedCommit(numberedRecommendationAnswer(
             'Choose the Atlas.',
             [oldRow],
           ), { callId: 'stale-recommendation' })
@@ -1134,13 +1340,14 @@ test('real recommendation confirmation cannot close while omitting material evid
           name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
           type: 'function',
         })
-        assert.ok(body.input.some((item) =>
+        const rejection = body.input.find((item) =>
           item.type === 'function_call_output' &&
-          item.call_id === 'stale-recommendation' &&
-          /omitted previously material evidence/.test(
-            JSON.parse(item.output).rejection,
-          )))
-        return completedCommit(recommendationAnswer(
+          item.call_id === 'stale-recommendation')
+        const rejectionText = JSON.parse(rejection.output).rejection
+        assert.match(rejectionText, /omitted a previously material returned memory/)
+        assert.doesNotMatch(rejectionText, /supportingEvidenceIds/)
+        assert.ok(!rejectionText.includes(newRow.evidenceId))
+        return completedCommit(numberedRecommendationAnswer(
           'Choose the Nova.',
           [newRow],
         ), { callId: 'corrected-recommendation' })
@@ -1216,6 +1423,10 @@ test('bounded recommendation confirmation cannot omit material evidence',
       async invoke({ body }) {
         dispatch += 1
         if (dispatch === 1) {
+          oldRow = {
+            ...oldRow,
+            memoryNumber: priorMemoryNumber(body, oldRow.evidenceId),
+          }
           return completedCall({
             arguments: '{"phrase":"current preferred notebook Nova"}',
             callId: 'bounded-recommend-search',
@@ -1241,7 +1452,7 @@ test('bounded recommendation confirmation cannot omit material evidence',
           })
         }
         if (dispatch === 3) {
-          return completedCommit(recommendationAnswer(
+          return completedCommit(numberedRecommendationAnswer(
             'Choose the Atlas.',
             [oldRow],
           ), { callId: 'stale-bounded-recommendation' })
@@ -1250,13 +1461,14 @@ test('bounded recommendation confirmation cannot omit material evidence',
           name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
           type: 'function',
         })
-        assert.ok(body.input.some((item) =>
+        const rejection = body.input.find((item) =>
           item.type === 'function_call_output' &&
-          item.call_id === 'stale-bounded-recommendation' &&
-          /omitted previously material evidence/.test(
-            JSON.parse(item.output).rejection,
-          )))
-        return completedCommit(recommendationAnswer(
+          item.call_id === 'stale-bounded-recommendation')
+        const rejectionText = JSON.parse(rejection.output).rejection
+        assert.match(rejectionText, /omitted a previously material returned memory/)
+        assert.doesNotMatch(rejectionText, /supportingEvidenceIds/)
+        assert.ok(!rejectionText.includes(newRow.evidenceId))
+        return completedCommit(numberedRecommendationAnswer(
           'Choose the Nova.',
           [newRow],
         ), { callId: 'corrected-bounded-recommendation' })
@@ -1284,17 +1496,21 @@ test('non-empty fourth retrieval forces only commitment without spending a fifth
     const bodies = []
     let evidenceCount = 0
     let retrievals = 0
-    const proposal = {
-      abstained: false,
-      bases: [{ evidenceId: 'evidence-final', quote: 'violet folder' }],
-      text: 'The record points to the violet folder.',
+    const row = {
+      evidenceId: 'evidence-final',
+      text: 'The warranty record is in the violet folder.',
     }
+    const proposal = evidenceAnswer(
+      'The record points to the violet folder.',
+      [{ row }],
+    )
+    const wireProposal = numberedEvidenceAnswer(proposal.text, [{ row }])
     const provider = createOpenAIRetrievalProvider({
       async invoke({ body }) {
         bodies.push(body)
         return bodies.length <= 4
           ? completedCall({ callId: `call_${bodies.length}` })
-          : completedCommit(proposal, { callId: 'call_commit' })
+          : completedCommit(wireProposal, { callId: 'call_commit' })
       },
     })
     const result = await provider(answerSession({
@@ -1304,10 +1520,7 @@ test('non-empty fourth retrieval forces only commitment without spending a fifth
         retrievals += 1
         evidenceCount = 1
         return {
-          messages: [{
-            evidenceId: 'evidence-final',
-            text: 'The warranty record is in the violet folder.',
-          }],
+          messages: [row],
         }
       },
     }))
@@ -1530,9 +1743,12 @@ test('OpenAI retrieval provider composes with the real bounded answer path',
         return completedCommit({
           abstained: false,
           bases: [{
-            evidenceId: found.matches[0].evidenceId,
+            consequence_for_answer: 'This determines the answer.',
+            memoryNumber: found.matches[0].memoryNumber,
+            not_used_reason: '',
             quote: found.matches[0].snippet,
           }],
+          temporaryInferences: [],
           text: 'You like jasmine tea.',
         })
       },

@@ -442,11 +442,224 @@ function answerInput({ memoryText, questionText }) {
   }]
 }
 
+function createAnswerEvidenceReferences() {
+  const evidenceIdByNumber = []
+  const numberByEvidenceId = new Map()
+
+  const register = (rawEvidenceId) => {
+    const evidenceId = String(rawEvidenceId ?? '').trim()
+    if (!evidenceId) return null
+    const existing = numberByEvidenceId.get(evidenceId)
+    if (existing !== undefined) return existing
+    const memoryNumber = evidenceIdByNumber.length + 1
+    evidenceIdByNumber.push(evidenceId)
+    numberByEvidenceId.set(evidenceId, memoryNumber)
+    return memoryNumber
+  }
+
+  const decorateRows = (rows) => {
+    if (!Array.isArray(rows)) return clone(rows)
+    return rows.map((row) => {
+      const copy = clone(row)
+      const citableText = typeof copy?.text === 'string'
+        ? copy.text
+        : typeof copy?.snippet === 'string'
+          ? copy.snippet
+          : typeof copy?.quote === 'string'
+            ? copy.quote
+            : ''
+      if (!plainObject(copy) || typeof copy.evidenceId !== 'string' ||
+        !citableText.trim()) {
+        return copy
+      }
+      const memoryNumber = register(copy.evidenceId)
+      return memoryNumber === null ? copy : { ...copy, memoryNumber }
+    })
+  }
+
+  const decorateResult = (result) => {
+    const copy = clone(result)
+    if (!plainObject(copy)) return copy
+    for (const key of ['matches', 'messages', 'edges']) {
+      if (Array.isArray(copy[key])) copy[key] = decorateRows(copy[key])
+    }
+    return copy
+  }
+
+  const evidenceId = (value, label) => {
+    if (!Number.isSafeInteger(value) || value < 1 ||
+      value > evidenceIdByNumber.length) {
+      throw adapterError(
+        'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+        `${label} must be an answer-local memoryNumber already shown on ` +
+          `returned evidence.`,
+      )
+    }
+    return evidenceIdByNumber[value - 1]
+  }
+
+  const numberedArray = (value, label) => {
+    if (!Array.isArray(value)) {
+      throw adapterError(
+        'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+        `${label} must be an array of answer-local memoryNumber values.`,
+      )
+    }
+    return value.map((memoryNumber, index) => evidenceId(
+      memoryNumber,
+      `${label} item ${index}`,
+    ))
+  }
+
+  const translateCommitment = (proposal, {
+    enumerationRequired = false,
+    supportingEvidenceOnly = false,
+  } = {}) => {
+    if (!plainObject(proposal)) {
+      throw adapterError(
+        'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+        'The answer commitment must be one JSON object.',
+      )
+    }
+    if (supportingEvidenceOnly) {
+      if (!exactKeys(
+        proposal,
+        ['abstained', 'supportingMemoryNumbers', 'text'],
+      )) {
+        throw adapterError(
+          'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+          'The recommendation commitment must use supportingMemoryNumbers.',
+        )
+      }
+      return {
+        abstained: proposal.abstained,
+        supportingEvidenceIds: numberedArray(
+          proposal.supportingMemoryNumbers,
+          'supportingMemoryNumbers',
+        ),
+        text: proposal.text,
+      }
+    }
+    const expected = enumerationRequired
+      ? ['abstained', 'bases', 'enumeration', 'temporaryInferences', 'text']
+      : ['abstained', 'bases', 'temporaryInferences', 'text']
+    if (!exactKeys(proposal, expected) || !Array.isArray(proposal.bases) ||
+      !Array.isArray(proposal.temporaryInferences)) {
+      throw adapterError(
+        'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+        'The answer commitment must use answer-local memoryNumber references.',
+      )
+    }
+    const bases = proposal.bases.map((basis, index) => {
+      if (!exactKeys(basis, [
+        'memoryNumber',
+        'quote',
+        'consequence_for_answer',
+        'not_used_reason',
+      ])) {
+        throw adapterError(
+          'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+          `Answer basis ${index} must use memoryNumber.`,
+        )
+      }
+      return {
+        consequence_for_answer: basis.consequence_for_answer,
+        evidenceId: evidenceId(
+          basis.memoryNumber,
+          `Answer basis ${index} memoryNumber`,
+        ),
+        not_used_reason: basis.not_used_reason,
+        quote: basis.quote,
+      }
+    })
+    const temporaryInferences = proposal.temporaryInferences.map(
+      (inference, index) => {
+        if (!exactKeys(inference, [
+          'statement',
+          'provenanceMemoryNumbers',
+          'revisable',
+          'consequence_for_answer',
+        ])) {
+          throw adapterError(
+            'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+            `Temporary inference ${index} must use ` +
+              `provenanceMemoryNumbers.`,
+          )
+        }
+        return {
+          consequence_for_answer: inference.consequence_for_answer,
+          provenanceEvidenceIds: numberedArray(
+            inference.provenanceMemoryNumbers,
+            `Temporary inference ${index} provenanceMemoryNumbers`,
+          ),
+          revisable: inference.revisable,
+          statement: inference.statement,
+        }
+      },
+    )
+    let enumeration
+    if (enumerationRequired) {
+      const proposed = proposal.enumeration
+      if (!exactKeys(proposed, [
+        'items',
+        'referencedCount',
+        'includedCount',
+        'ambiguousCount',
+      ]) || !Array.isArray(proposed.items)) {
+        throw adapterError(
+          'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+          'The answer enumeration must use answer-local memoryNumber references.',
+        )
+      }
+      enumeration = {
+        ambiguousCount: proposed.ambiguousCount,
+        includedCount: proposed.includedCount,
+        items: proposed.items.map((item, index) => {
+          if (!exactKeys(item, [
+            'label',
+            'action',
+            'memoryNumber',
+            'quote',
+            'disposition',
+            'reason',
+          ])) {
+            throw adapterError(
+              'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+              `Enumeration item ${index} must use memoryNumber.`,
+            )
+          }
+          return {
+            action: item.action,
+            disposition: item.disposition,
+            evidenceId: evidenceId(
+              item.memoryNumber,
+              `Enumeration item ${index} memoryNumber`,
+            ),
+            label: item.label,
+            quote: item.quote,
+            reason: item.reason,
+          }
+        }),
+        referencedCount: proposed.referencedCount,
+      }
+    }
+    return {
+      abstained: proposal.abstained,
+      bases,
+      ...(enumerationRequired ? { enumeration } : {}),
+      temporaryInferences,
+      text: proposal.text,
+    }
+  }
+
+  return Object.freeze({ decorateResult, decorateRows, translateCommitment })
+}
+
 const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
   description: [
     'Commit the final answer after memory evidence was returned.',
     'Select only memories actually assessed for the answer; not every retrieved row needs a basis.',
-    'Every selected basis must use an evidenceId returned in this answer session, copy an exact contiguous quote, and set exactly one non-empty consequence_for_answer or not_used_reason.',
+    'Every selected basis must use the short answer-local memoryNumber shown on returned evidence, copy an exact contiguous quote, and set exactly one non-empty consequence_for_answer or not_used_reason. Never reproduce an opaque evidenceId.',
     'A cross-context inference must remain temporary, cite selected provenance, set revisable true, and state its consequence; never report it as a canonical user fact.',
     'Use abstained true when selected evidence does not support an answer.',
   ].join(' '),
@@ -459,7 +672,7 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
         items: {
           additionalProperties: false,
           properties: {
-            evidenceId: { maxLength: 500, minLength: 1, type: 'string' },
+            memoryNumber: { minimum: 1, type: 'integer' },
             quote: {
               maxLength: MEMORY_ANSWER_MAX_QUOTE_CHARS,
               minLength: 1,
@@ -475,7 +688,7 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
             },
           },
           required: [
-            'evidenceId',
+            'memoryNumber',
             'quote',
             'consequence_for_answer',
             'not_used_reason',
@@ -500,8 +713,8 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
               minLength: 1,
               type: 'string',
             },
-            provenanceEvidenceIds: {
-              items: { maxLength: 500, minLength: 1, type: 'string' },
+            provenanceMemoryNumbers: {
+              items: { minimum: 1, type: 'integer' },
               maxItems: MEMORY_ANSWER_MAX_BASES,
               minItems: 1,
               type: 'array',
@@ -515,7 +728,7 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
           },
           required: [
             'statement',
-            'provenanceEvidenceIds',
+            'provenanceMemoryNumbers',
             'revisable',
             'consequence_for_answer',
           ],
@@ -559,11 +772,7 @@ const OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL = deepFreeze({
                   minLength: 1,
                   type: 'string',
                 },
-                evidenceId: {
-                  maxLength: 500,
-                  minLength: 1,
-                  type: 'string',
-                },
+                memoryNumber: { minimum: 1, type: 'integer' },
                 quote: {
                   maxLength: MEMORY_ANSWER_MAX_QUOTE_CHARS,
                   minLength: 1,
@@ -582,7 +791,7 @@ const OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL = deepFreeze({
               required: [
                 'label',
                 'action',
-                'evidenceId',
+                'memoryNumber',
                 'quote',
                 'disposition',
                 'reason',
@@ -620,8 +829,8 @@ const OPENAI_ANSWER_SUPPORTED_COMMIT_TOOL = deepFreeze({
   description: [
     'Commit one final answer after memory evidence was returned.',
     'Write the complete user-facing recommendation once in text.',
-    'supportingEvidenceIds may contain only evidence IDs returned in this answer session that materially support the answer.',
-    'Use abstained true with no supporting evidence IDs when returned memory cannot support a recommendation.',
+    'supportingMemoryNumbers may contain only short answer-local memory numbers shown on evidence returned in this answer session that materially supports the answer. Never reproduce an opaque evidenceId.',
+    'Use abstained true with no supporting memory numbers when returned memory cannot support a recommendation.',
     MEMORY_ANSWER_RECOMMENDATION_INSTRUCTIONS,
   ].join(' '),
   name: OPENAI_ANSWER_COMMIT_TOOL_NAME,
@@ -629,8 +838,8 @@ const OPENAI_ANSWER_SUPPORTED_COMMIT_TOOL = deepFreeze({
     additionalProperties: false,
     properties: {
       abstained: { type: 'boolean' },
-      supportingEvidenceIds: {
-        items: { maxLength: 500, minLength: 1, type: 'string' },
+      supportingMemoryNumbers: {
+        items: { minimum: 1, type: 'integer' },
         maxItems: MEMORY_ANSWER_MAX_BASES,
         minItems: 0,
         type: 'array',
@@ -641,7 +850,7 @@ const OPENAI_ANSWER_SUPPORTED_COMMIT_TOOL = deepFreeze({
         type: 'string',
       },
     },
-    required: ['abstained', 'supportingEvidenceIds', 'text'],
+    required: ['abstained', 'supportingMemoryNumbers', 'text'],
     type: 'object',
   },
   strict: true,
@@ -650,8 +859,8 @@ const OPENAI_ANSWER_SUPPORTED_COMMIT_TOOL = deepFreeze({
 
 const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
   'Return the final answer only by calling palari_answer_commit.',
-  'Use only evidence IDs and exact contiguous quotes from memory results already returned in this answer session.',
-  'Use each evidence ID at most once; combine multiple implications from one canonical message into one basis.',
+  'Use only short answer-local memoryNumber values and exact contiguous quotes from memory results already returned in this answer session; never reproduce an opaque evidenceId.',
+  'Use each memoryNumber at most once; combine multiple implications from one canonical message into one basis.',
   'For each selected basis set exactly one non-empty consequence_for_answer or not_used_reason; leave unrelated retrieved rows unselected.',
   'Keep cross-context inferences temporary, provenance-linked, and revisable.',
   'No memory tool is available during this repair.',
@@ -660,8 +869,8 @@ const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
 const ANSWER_SUPPORTED_COMMIT_REPAIR_INSTRUCTIONS = [
   'Return the final answer only by calling palari_answer_commit.',
   'Write the complete user-facing recommendation once in text.',
-  'For a non-abstaining answer, cite one or more unique supportingEvidenceIds returned in this answer session.',
-  'For an abstaining answer, cite no supportingEvidenceIds.',
+  'For a non-abstaining answer, cite one or more unique supportingMemoryNumbers shown on evidence returned in this answer session.',
+  'For an abstaining answer, cite no supportingMemoryNumbers.',
   'Do not copy quotes or create a second structured proposal surface.',
   'No memory tool is available during this repair.',
 ].join(' ')
@@ -767,6 +976,19 @@ export function createOpenAIRetrievalProvider({
       typeof answerConfirmationClosed !== 'function') {
       throw new TypeError('answerConfirmationClosed must be a function.')
     }
+    const evidenceReferences = createAnswerEvidenceReferences()
+    let modelMemoryText = session.memoryText
+    if (session.answerPriorEvidence !== undefined) {
+      if (!Array.isArray(session.answerPriorEvidence)) {
+        throw new TypeError('answerPriorEvidence must be an array.')
+      }
+      modelMemoryText = JSON.stringify({
+        previouslyReturnedEvidence: evidenceReferences.decorateRows(
+          session.answerPriorEvidence,
+        ),
+        provisionalAnswer: String(session.provisionalAnswer ?? ''),
+      })
+    }
     const enumerationRequired = session.answerEnumerationRequired === true
     const supportingEvidenceOnly =
       session.answerSupportingEvidenceOnly === true
@@ -801,7 +1023,10 @@ export function createOpenAIRetrievalProvider({
     if (planningLimit > 1) {
       throw new TypeError('maxRetrievalPlanningCalls cannot exceed 1.')
     }
-    const input = answerInput(session)
+    const input = answerInput({
+      ...session,
+      memoryText: modelMemoryText,
+    })
     let dispatch = 0
     let planningCalls = 0
     let retrievalCalls = 0
@@ -844,7 +1069,7 @@ export function createOpenAIRetrievalProvider({
             ? 'The commitment must enumerate every evidence-supported candidate and its included, excluded, or ambiguous disposition with exact counts.'
             : '',
           commitOnly && supportingEvidenceOnly
-            ? 'Write the recommendation once in text and cite returned supporting evidence IDs; use no duplicate proposal surface.'
+            ? 'Write the recommendation once in text and cite returned supporting memory numbers; use no duplicate proposal surface.'
             : '',
         ].filter(Boolean).join('\n\n'),
         max_output_tokens: maxOutputTokens,
@@ -923,11 +1148,16 @@ export function createOpenAIRetrievalProvider({
         let rejection = null
         let rejectionCode = null
         let committed
+        let hostCommitment
         if (calls.length !== 1 || commitmentCalls.length !== 1) {
           rejection = 'An answer commitment must be the only function call in its response.'
         } else {
           try {
-            committed = session.commitAnswer(clone(commitmentCalls[0].input))
+            hostCommitment = evidenceReferences.translateCommitment(
+              clone(commitmentCalls[0].input),
+              { enumerationRequired, supportingEvidenceOnly },
+            )
+            committed = session.commitAnswer(clone(hostCommitment))
           } catch (error) {
             rejection = commitmentRejection(error)
             rejectionCode = String(error?.code ?? '')
@@ -938,9 +1168,7 @@ export function createOpenAIRetrievalProvider({
           if (retrievalCalls >= retrievalLimit) {
             if (commitIncompleteAnswer) {
               try {
-                return commitIncompleteAnswer(
-                  clone(commitmentCalls[0].input),
-                )
+                return commitIncompleteAnswer(clone(hostCommitment))
               } catch (error) {
                 const incompleteRejection = commitmentRejection(error)
                 if (String(error?.code ?? '') ===
@@ -1046,7 +1274,7 @@ export function createOpenAIRetrievalProvider({
         }
         input.push({
           call_id: call.callId,
-          output: JSON.stringify(result),
+          output: JSON.stringify(evidenceReferences.decorateResult(result)),
           type: 'function_call_output',
         })
       }
