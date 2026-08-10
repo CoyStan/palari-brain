@@ -6,7 +6,7 @@ level: 2
 parent_id: BRN-0042
 root_id: BRN-0042
 children: []
-status: in-review
+status: open
 risk: R1
 priority: P0
 agents_allowed: 1
@@ -94,16 +94,3 @@ host-owned answer evidence wire.
 - Stop if the work needs a path outside `allowed_paths` or touches `forbidden_paths`.
 - Stop if the fixture change would alter the current-evidence product contract
   rather than only exercising the parent wire.
-
-## Specialist Closeout
-
-The one adjacent current-evidence fixture now sends the parent OpenAI wire's
-`memoryNumber`, `used` disposition, and rationale instead of copying the
-canonical evidence ID and exact text. Its original behavior remains intact:
-the old-only answer commits without a repair, the host attaches the exact
-returned excerpt, and the later current row remains unresolved diagnostic
-telemetry.
-
-The focused file passes 8/8 and the core suite passes 89/89. Scope and diff
-checks pass. No product source, provider, private artifact, dataset, credential,
-or sealed U8 data was accessed by this child.
