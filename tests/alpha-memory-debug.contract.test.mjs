@@ -178,6 +178,68 @@ test('diagnostic log shape has no benchmark grade', async () => {
   assert.equal(records.some((record) => Object.hasOwn(record, 'grade')), false)
 })
 
+test('diagnostic logs keep bounded host rejection details and drop arbitrary fields', async () => {
+  const records = []
+  const secret = 'DO-NOT-PERSIST-THIS-PROVIDER-BODY'
+  const failure = new Error(secret)
+  failure.code = 'OPENAI_ANSWER_COMMIT_REPAIR_FAILED'
+  failure.hostRejection = {
+    code: 'MEMORY_ANSWER_COMMITMENT_INVALID',
+    reason: `Answer omitted memoryNumbers: 2, 3.${'x'.repeat(2_000)}`,
+    prompt: secret,
+  }
+  failure.metadata = { arbitrary: secret }
+  await runAlphaMemoryDebug({
+    questions: questions.slice(0, 1),
+    dependencies: dependencies({ answer: () => { throw failure } }),
+    maxDollar: 1,
+    appendLog: async (record) => records.push(record),
+  })
+  const logged = records.find(({ type }) => type === 'attempt-error').error
+  assert.deepEqual(Object.keys(logged).sort(), ['code', 'hostRejection', 'message', 'name'])
+  assert.equal(logged.message, 'Host rejected the model response.')
+  assert.equal(logged.hostRejection.code, 'MEMORY_ANSWER_COMMITMENT_INVALID')
+  assert.equal(logged.hostRejection.reason.length, 1_000)
+  assert.equal(JSON.stringify(logged).includes(secret), false)
+})
+
+test('diagnostic logs keep allowlisted HTTP 429 metadata without provider bodies', async () => {
+  const records = []
+  const secret = 'DO-NOT-PERSIST-THIS-RATE-LIMIT-BODY'
+  const failure = new Error(secret)
+  failure.code = 'OPENAI_HTTP_ERROR'
+  failure.metadata = {
+    status: 429,
+    requestId: 'req-safe',
+    retryAfter: '2s',
+    providerBody: secret,
+    rateLimitHeaders: {
+      'X-RateLimit-Limit-Requests': '500',
+      'x-ratelimit-reset-tokens': '1s',
+      authorization: secret,
+      'x-ratelimit-limit-tokens': { secret },
+    },
+  }
+  await runAlphaMemoryDebug({
+    questions: questions.slice(0, 1),
+    dependencies: dependencies({ answer: () => { throw failure } }),
+    maxDollar: 1,
+    appendLog: async (record) => records.push(record),
+  })
+  const logged = records.find(({ type }) => type === 'attempt-error').error
+  assert.equal(logged.message, 'OpenAI request failed with HTTP 429.')
+  assert.deepEqual(logged.metadata, {
+    status: 429,
+    requestId: 'req-safe',
+    retryAfter: '2s',
+    rateLimitHeaders: {
+      'x-ratelimit-limit-requests': '500',
+      'x-ratelimit-reset-tokens': '1s',
+    },
+  })
+  assert.equal(JSON.stringify(logged).includes(secret), false)
+})
+
 test('CLI loads one injected adapter and prints a diagnostic summary', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-alpha-cli-'))
   const adapterPath = path.join(directory, 'adapter.mjs')

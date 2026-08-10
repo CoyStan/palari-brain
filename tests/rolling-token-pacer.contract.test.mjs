@@ -1,7 +1,26 @@
 import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
+import { existsSync, utimesSync, writeFileSync } from 'node:fs'
+import { access, mkdtemp, readFile, readdir, unlink, utimes, writeFile } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
 import test from 'node:test'
 
-import { createRollingTokenPacer } from '../evals/rolling-token-pacer.mjs'
+import {
+  createFileRollingTokenPacer,
+  createRollingTokenPacer,
+} from '../evals/rolling-token-pacer.mjs'
+
+function childResult(child) {
+  return new Promise((resolve, reject) => {
+    let stdout = ''
+    let stderr = ''
+    child.stdout.on('data', (chunk) => { stdout += chunk })
+    child.stderr.on('data', (chunk) => { stderr += chunk })
+    child.on('error', reject)
+    child.on('close', (status) => resolve({ status, stderr, stdout }))
+  })
+}
 
 test('rolling token pacer admits within the window and waits before overflow', async () => {
   let now = 1_000
@@ -47,4 +66,537 @@ test('invalid pacing inputs fail before waiting', async () => {
   assert.throws(() => createRollingTokenPacer(), /maxUnits/u)
   const pacer = createRollingTokenPacer({ maxUnits: 1 })
   await assert.rejects(pacer.pace(0), /positive safe integer/u)
+  assert.throws(() => createFileRollingTokenPacer({
+    lockRetryMs: 101,
+    maxRequests: 1,
+    maxUnits: 1,
+    statePath: '/tmp/not-opened-pacer-state',
+    windowMs: 100,
+  }), /must not exceed windowMs/u)
+})
+
+test('file pacers serialize concurrent unit admission through one state path', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-shared-pacer-'))
+  const statePath = path.join(directory, 'pacer.json')
+  let now = 1_000
+  const waits = []
+  const options = {
+    clock: () => now,
+    lockRetryMs: 1,
+    maxRequests: 10,
+    maxUnits: 100,
+    statePath,
+    wait: async (delay) => {
+      if (delay === 1) {
+        await new Promise((resolve) => setImmediate(resolve))
+        return
+      }
+      waits.push(delay)
+      now += delay
+    },
+    windowMs: 1_000,
+  }
+  const first = createFileRollingTokenPacer(options)
+  const second = createFileRollingTokenPacer(options)
+  await Promise.all([first.pace(60), second.pace(60)])
+  assert.deepEqual(waits, [1_000])
+  assert.equal(first.stats.admittedUnits + second.stats.admittedUnits, 120)
+  const state = JSON.parse(await readFile(statePath, 'utf8'))
+  assert.deepEqual(state, {
+    schema: 'palari-shared-rolling-pacer/v1',
+    policy: { maxRequests: 10, maxUnits: 100, windowMs: 1_000 },
+    events: [{ at: 2_000, units: 60 }],
+  })
+})
+
+test('separate processes share one atomic rolling ceiling', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-process-pacer-'))
+  const statePath = path.join(directory, 'pacer.json')
+  const startPath = path.join(directory, 'start')
+  const moduleUrl = new URL('../evals/rolling-token-pacer.mjs', import.meta.url).href
+  const worker = `
+    import { existsSync, writeFileSync } from 'node:fs'
+    import { setTimeout as delay } from 'node:timers/promises'
+    import { createFileRollingTokenPacer } from ${JSON.stringify(moduleUrl)}
+    const [statePath, startPath, readyPath] = process.argv.slice(1)
+    writeFileSync(readyPath, 'ready', { mode: 0o600 })
+    while (!existsSync(startPath)) await delay(2)
+    const pacer = createFileRollingTokenPacer({
+      maxRequests: 3,
+      maxUnits: 100,
+      statePath,
+      windowMs: 200,
+    })
+    await pacer.pace(40)
+    process.stdout.write(JSON.stringify(pacer.stats))
+  `
+  const runs = Array.from({ length: 6 }, (_, index) => childResult(spawn(process.execPath, [
+    '--input-type=module',
+    '--eval', worker,
+    statePath,
+    startPath,
+    path.join(directory, `ready-${index}`),
+  ], { stdio: ['ignore', 'pipe', 'pipe'] })))
+  const readyDeadline = Date.now() + 5_000
+  for (;;) {
+    const ready = await Promise.all(Array.from({ length: 6 }, async (_, index) => {
+      try {
+        await access(path.join(directory, `ready-${index}`))
+        return true
+      } catch {
+        return false
+      }
+    }))
+    if (ready.every(Boolean)) break
+    if (Date.now() >= readyDeadline) assert.fail('pacer workers did not become ready.')
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+  await writeFile(startPath, 'start')
+  const results = await Promise.all(runs)
+  assert.ok(results.every(({ status }) => status === 0), JSON.stringify(results))
+  const stats = results.map(({ stdout }) => JSON.parse(stdout))
+  assert.ok(stats.reduce((sum, item) => sum + item.waits, 0) >= 4)
+  const state = JSON.parse(await readFile(statePath, 'utf8'))
+  assert.ok(state.events.length <= 2)
+  assert.ok(state.events.reduce((sum, event) => sum + event.units, 0) <= 100)
+})
+
+test('file pacers share a request ceiling but different paths are independent', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-request-pacer-'))
+  let now = 0
+  const delays = []
+  const make = (name) => createFileRollingTokenPacer({
+    clock: () => now,
+    maxRequests: 1,
+    maxUnits: 1_000,
+    statePath: path.join(directory, `${name}.json`),
+    wait: async (delay) => {
+      delays.push(delay)
+      now += delay
+    },
+    windowMs: 100,
+  })
+  const first = make('shared')
+  const second = make('shared')
+  const independent = make('independent')
+  await first.pace(1)
+  await independent.pace(2_000)
+  await second.pace(1)
+  assert.deepEqual(delays, [100])
+  assert.equal(second.stats.waits, 1)
+  assert.equal(independent.stats.waits, 0)
+})
+
+test('file pacer state is content-free and corrupted state fails closed', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-pacer-state-'))
+  const statePath = path.join(directory, 'pacer.json')
+  const pacer = createFileRollingTokenPacer({
+    maxRequests: 2,
+    maxUnits: 100,
+    statePath,
+  })
+  await pacer.pace(25)
+  const raw = await readFile(statePath, 'utf8')
+  assert.deepEqual(Object.keys(JSON.parse(raw)).sort(), ['events', 'policy', 'schema'])
+  assert.equal(raw.includes('prompt'), false)
+  assert.equal(raw.includes('response'), false)
+
+  await writeFile(statePath, '{not-json')
+  await assert.rejects(pacer.pace(1), /state is invalid/u)
+
+  const secret = 'SYNTHETIC-REQUEST-CONTENT'
+  const malformedStates = [
+    {
+      schema: 'palari-shared-rolling-pacer/v1',
+      policy: { maxRequests: 2, maxUnits: 100, windowMs: 60_000 },
+      events: [{ at: Date.now(), units: 1, prompt: secret }],
+    },
+    {
+      schema: 'palari-shared-rolling-pacer/v1',
+      policy: { maxRequests: 2, maxUnits: 100, windowMs: 60_000, prompt: secret },
+      events: [],
+    },
+    {
+      schema: 'palari-shared-rolling-pacer/v1',
+      policy: { maxRequests: 2, maxUnits: 100, windowMs: 60_000 },
+      events: [],
+      prompt: secret,
+    },
+  ]
+  for (const malformed of malformedStates) {
+    const before = `${JSON.stringify(malformed)}\n`
+    await writeFile(statePath, before)
+    await assert.rejects(pacer.pace(1), /state is invalid/u)
+    assert.equal(await readFile(statePath, 'utf8'), before)
+  }
+})
+
+test('file pacers fail closed when one state path receives a different policy', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-pacer-policy-'))
+  const statePath = path.join(directory, 'pacer.json')
+  await createFileRollingTokenPacer({
+    maxRequests: 2,
+    maxUnits: 100,
+    statePath,
+  }).pace(1)
+  const mismatched = createFileRollingTokenPacer({
+    maxRequests: 3,
+    maxUnits: 100,
+    statePath,
+  })
+  await assert.rejects(mismatched.pace(1), /state is invalid/u)
+})
+
+test('file pacer recovers a dead stale lock but never steals a live lock', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-pacer-lock-'))
+  const statePath = path.join(directory, 'pacer.json')
+  const lockPath = `${statePath}.lock`
+  const old = new Date(Date.now() - 60_000)
+  await writeFile(lockPath, `${JSON.stringify({
+    schema: 'palari-shared-rolling-pacer/v1',
+    pid: 2_147_483_647,
+    token: 'dead-owner',
+  })}\n`)
+  await utimes(lockPath, old, old)
+  const recovered = createFileRollingTokenPacer({
+    lockStaleMs: 10,
+    maxRequests: 1,
+    maxUnits: 1,
+    statePath,
+  })
+  await recovered.pace(1)
+  assert.equal(recovered.stats.lockWaits, 0)
+
+  const liveStatePath = path.join(directory, 'live-pacer.json')
+  const liveLockPath = `${liveStatePath}.lock`
+  await writeFile(liveLockPath, `${JSON.stringify({
+    schema: 'palari-shared-rolling-pacer/v1',
+    pid: process.pid,
+    token: 'live-owner',
+  })}\n`)
+  await utimes(liveLockPath, old, old)
+  let released = false
+  const guarded = createFileRollingTokenPacer({
+    lockRetryMs: 1,
+    lockStaleMs: 10,
+    maxRequests: 2,
+    maxUnits: 2,
+    statePath: liveStatePath,
+    wait: async () => {
+      released = true
+      await unlink(liveLockPath)
+    },
+  })
+  await guarded.pace(1)
+  assert.equal(released, true)
+  assert.equal(guarded.stats.lockWaits, 1)
+})
+
+test('stale recovery rechecks same-inode owner bytes before unlinking', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-pacer-lock-race-'))
+  const statePath = path.join(directory, 'pacer.json')
+  const lockPath = `${statePath}.lock`
+  const deadPid = 2_147_483_647
+  const old = new Date(Date.now() - 60_000)
+  await writeFile(lockPath, `${JSON.stringify({
+    schema: 'palari-shared-rolling-pacer/v1',
+    pid: deadPid,
+    token: 'dead-owner',
+  })}\n`)
+  await utimes(lockPath, old, old)
+  const originalKill = process.kill
+  let replaced = false
+  process.kill = (pid, signal) => {
+    if (pid === deadPid && signal === 0 && !replaced) {
+      replaced = true
+      writeFileSync(lockPath, `${JSON.stringify({
+        schema: 'palari-shared-rolling-pacer/v1',
+        pid: process.pid,
+        token: 'new-live-owner',
+      })}\n`)
+      utimesSync(lockPath, old, old)
+      const error = new Error('dead synthetic owner')
+      error.code = 'ESRCH'
+      throw error
+    }
+    return originalKill(pid, signal)
+  }
+  let liveLockObserved = false
+  try {
+    const pacer = createFileRollingTokenPacer({
+      lockRetryMs: 1,
+      lockStaleMs: 10,
+      maxRequests: 1,
+      maxUnits: 1,
+      statePath,
+      wait: async () => {
+        const owner = JSON.parse(await readFile(lockPath, 'utf8'))
+        liveLockObserved = owner.token === 'new-live-owner'
+        await unlink(lockPath)
+      },
+    })
+    await pacer.pace(1)
+    assert.equal(pacer.stats.lockWaits, 1)
+  } finally {
+    process.kill = originalKill
+  }
+  assert.equal(replaced, true)
+  assert.equal(liveLockObserved, true)
+})
+
+test('atomic stale recovery preserves a live replacement after its final check', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-pacer-final-race-'))
+  const statePath = path.join(directory, 'pacer.json')
+  const lockPath = `${statePath}.lock`
+  const deadPid = 2_147_483_647
+  const old = new Date(Date.now() - 60_000)
+  await writeFile(lockPath, `${JSON.stringify({
+    schema: 'palari-shared-rolling-pacer/v1',
+    pid: deadPid,
+    token: 'dead-owner',
+  })}\n`)
+  await utimes(lockPath, old, old)
+  const originalKill = process.kill
+  let deadChecks = 0
+  process.kill = (pid, signal) => {
+    if (pid === deadPid && signal === 0) {
+      deadChecks += 1
+      if (deadChecks === 2) {
+        writeFileSync(lockPath, `${JSON.stringify({
+          schema: 'palari-shared-rolling-pacer/v1',
+          pid: process.pid,
+          token: 'late-live-owner',
+        })}\n`)
+      }
+      const error = new Error('dead synthetic owner')
+      error.code = 'ESRCH'
+      throw error
+    }
+    return originalKill(pid, signal)
+  }
+  let liveLockObserved = false
+  try {
+    const pacer = createFileRollingTokenPacer({
+      lockRetryMs: 1,
+      lockStaleMs: 10,
+      maxRequests: 1,
+      maxUnits: 1,
+      statePath,
+      wait: async () => {
+        const owner = JSON.parse(await readFile(lockPath, 'utf8'))
+        liveLockObserved = owner.token === 'late-live-owner'
+        await unlink(lockPath)
+      },
+    })
+    await pacer.pace(1)
+    assert.equal(pacer.stats.lockWaits, 1)
+  } finally {
+    process.kill = originalKill
+  }
+  assert.equal(deadChecks, 2)
+  assert.equal(liveLockObserved, true)
+})
+
+test('two stale recoverers serialize before both admissions', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-pacer-recoverers-'))
+  const statePath = path.join(directory, 'pacer.json')
+  const lockPath = `${statePath}.lock`
+  const old = new Date(Date.now() - 60_000)
+  await writeFile(lockPath, `${JSON.stringify({
+    schema: 'palari-shared-rolling-pacer/v1',
+    pid: 2_147_483_647,
+    token: 'dead-owner',
+  })}\n`)
+  await utimes(lockPath, old, old)
+  const options = {
+    lockRetryMs: 1,
+    lockStaleMs: 10,
+    maxRequests: 2,
+    maxUnits: 2,
+    statePath,
+    wait: async () => new Promise((resolve) => setImmediate(resolve)),
+  }
+  const first = createFileRollingTokenPacer(options)
+  const second = createFileRollingTokenPacer(options)
+  await Promise.all([first.pace(1), second.pace(1)])
+  const state = JSON.parse(await readFile(statePath, 'utf8'))
+  assert.equal(state.events.length, 2)
+  assert.equal(state.events.reduce((sum, event) => sum + event.units, 0), 2)
+})
+
+test('an abandoned acquisition gate fails closed without publishing a lock', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-pacer-gate-'))
+  const statePath = path.join(directory, 'pacer.json')
+  const gatePath = `${statePath}.lock.gate`
+  const old = new Date(Date.now() - 60_000)
+  await writeFile(gatePath, `${JSON.stringify({
+    schema: 'palari-shared-rolling-pacer/v1',
+    pid: 2_147_483_647,
+    token: 'abandoned-gate',
+  })}\n`)
+  await utimes(gatePath, old, old)
+  const pacer = createFileRollingTokenPacer({
+    lockStaleMs: 10,
+    maxRequests: 1,
+    maxUnits: 1,
+    statePath,
+  })
+  await assert.rejects(pacer.pace(1), /acquisition gate is abandoned/u)
+  await assert.rejects(access(`${statePath}.lock`), /ENOENT/u)
+})
+
+test('gate serializes a stale observer, live-owner child, and publisher child', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'palari-pacer-three-actor-'))
+  const statePath = path.join(directory, 'pacer.json')
+  const lockPath = `${statePath}.lock`
+  const ownerStartPath = path.join(directory, 'owner-start')
+  const ownerReadyPath = path.join(directory, 'owner-ready')
+  const ownerLivePath = path.join(directory, 'owner-live')
+  const ownerReleasePath = path.join(directory, 'owner-release')
+  const ownerDonePath = path.join(directory, 'owner-done')
+  const publisherStartPath = path.join(directory, 'publisher-start')
+  const publisherReadyPath = path.join(directory, 'publisher-ready')
+  const deadPid = 2_147_483_647
+  const old = new Date(Date.now() - 60_000)
+  await writeFile(lockPath, `${JSON.stringify({
+    schema: 'palari-shared-rolling-pacer/v1',
+    pid: deadPid,
+    token: 'dead-owner',
+  })}\n`)
+  await utimes(lockPath, old, old)
+
+  const moduleUrl = new URL('../evals/rolling-token-pacer.mjs', import.meta.url).href
+  const ownerWorker = `
+    import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+    import { setTimeout as delay } from 'node:timers/promises'
+    const [lockPath, startPath, readyPath, livePath, releasePath, donePath] = process.argv.slice(1)
+    writeFileSync(readyPath, 'ready', { mode: 0o600 })
+    while (!existsSync(startPath)) await delay(1)
+    writeFileSync(lockPath, JSON.stringify({
+      schema: 'palari-shared-rolling-pacer/v1',
+      pid: process.pid,
+      token: 'live-owner',
+    }) + '\\n', { mode: 0o600 })
+    writeFileSync(livePath, 'live', { mode: 0o600 })
+    while (!existsSync(releasePath)) await delay(1)
+    const owner = JSON.parse(readFileSync(lockPath, 'utf8'))
+    if (owner.pid === process.pid && owner.token === 'live-owner') unlinkSync(lockPath)
+    writeFileSync(donePath, 'done', { mode: 0o600 })
+  `
+  const publisherWorker = `
+    import { existsSync, writeFileSync } from 'node:fs'
+    import { setTimeout as delay } from 'node:timers/promises'
+    import { createFileRollingTokenPacer } from ${JSON.stringify(moduleUrl)}
+    const [statePath, startPath, readyPath] = process.argv.slice(1)
+    writeFileSync(readyPath, 'ready', { mode: 0o600 })
+    while (!existsSync(startPath)) await delay(1)
+    const pacer = createFileRollingTokenPacer({
+      lockRetryMs: 1,
+      lockStaleMs: 10,
+      maxRequests: 2,
+      maxUnits: 2,
+      statePath,
+    })
+    await pacer.pace(1)
+    process.stdout.write(JSON.stringify(pacer.stats))
+  `
+  const ownerRun = childResult(spawn(process.execPath, [
+    '--input-type=module', '--eval', ownerWorker,
+    lockPath, ownerStartPath, ownerReadyPath, ownerLivePath, ownerReleasePath, ownerDonePath,
+  ], { stdio: ['ignore', 'pipe', 'pipe'] }))
+  const publisherRun = childResult(spawn(process.execPath, [
+    '--input-type=module', '--eval', publisherWorker,
+    statePath, publisherStartPath, publisherReadyPath,
+  ], { stdio: ['ignore', 'pipe', 'pipe'] }))
+  const readyDeadline = Date.now() + 5_000
+  for (const [readyPath, label] of [
+    [ownerReadyPath, 'owner'],
+    [publisherReadyPath, 'publisher'],
+  ]) {
+    for (;;) {
+      try {
+        await access(readyPath)
+        break
+      } catch {
+        if (Date.now() >= readyDeadline) assert.fail(`${label} child did not become ready.`)
+        await new Promise((resolve) => setTimeout(resolve, 5))
+      }
+    }
+  }
+
+  const originalKill = process.kill
+  let deadChecks = 0
+  let ownerReleased = false
+  let noAdmissionBeforeRelease = false
+  process.kill = (pid, signal) => {
+    if (pid === deadPid && signal === 0) {
+      deadChecks += 1
+      if (deadChecks === 2) {
+        writeFileSync(ownerStartPath, 'start')
+        const ownerDeadline = Date.now() + 5_000
+        const waitArray = new Int32Array(new SharedArrayBuffer(4))
+        while (!existsSync(ownerLivePath)) {
+          if (Date.now() >= ownerDeadline) throw new Error('owner child did not publish its live lock.')
+          Atomics.wait(waitArray, 0, 0, 2)
+        }
+        writeFileSync(publisherStartPath, 'start')
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100)
+      }
+      const error = new Error('dead synthetic owner')
+      error.code = 'ESRCH'
+      throw error
+    }
+    return originalKill(pid, signal)
+  }
+  try {
+    const parent = createFileRollingTokenPacer({
+      lockRetryMs: 1,
+      lockStaleMs: 10,
+      maxRequests: 2,
+      maxUnits: 2,
+      statePath,
+      wait: async () => {
+        if (!ownerReleased) {
+          try {
+            await access(statePath)
+            noAdmissionBeforeRelease = false
+          } catch (error) {
+            if (error?.code !== 'ENOENT') throw error
+            noAdmissionBeforeRelease = true
+          }
+          await writeFile(ownerReleasePath, 'release', { mode: 0o600 })
+          const ownerDeadline = Date.now() + 5_000
+          for (;;) {
+            try {
+              await access(ownerDonePath)
+              break
+            } catch (error) {
+              if (error?.code !== 'ENOENT') throw error
+              if (Date.now() >= ownerDeadline) assert.fail('owner child did not release its lock.')
+              await new Promise((resolve) => setTimeout(resolve, 1))
+            }
+          }
+          ownerReleased = true
+        }
+        await new Promise((resolve) => setImmediate(resolve))
+      },
+    })
+    await parent.pace(1)
+  } finally {
+    process.kill = originalKill
+  }
+  const [owner, publisher] = await Promise.all([ownerRun, publisherRun])
+  assert.equal(owner.status, 0, owner.stderr)
+  assert.equal(publisher.status, 0, publisher.stderr)
+  assert.ok(JSON.parse(publisher.stdout).lockWaits > 0)
+  assert.equal(deadChecks, 2)
+  assert.equal(ownerReleased, true)
+  assert.equal(noAdmissionBeforeRelease, true)
+  const state = JSON.parse(await readFile(statePath, 'utf8'))
+  assert.equal(state.events.length, 2)
+  assert.equal(state.events.reduce((sum, event) => sum + event.units, 0), 2)
+  assert.deepEqual(
+    (await readdir(directory)).filter((name) => name.startsWith('pacer.json.')),
+    [],
+  )
 })

@@ -1,0 +1,71 @@
+# BRN-0049 Technical Report
+
+## Files Changed
+
+- `evals/run-alpha-memory-debug.mjs` — serialize bounded host-rejection and
+  allowlisted HTTP 429 details without copying provider bodies or arbitrary
+  metadata.
+- `evals/rolling-token-pacer.mjs` — add an opt-in file-backed pacer with atomic
+  cross-process request and unit admission, policy binding, and owned stale
+  lock recovery.
+- `tests/alpha-memory-debug.contract.test.mjs` — prove host and 429 field
+  allowlists, bounds, generic messages, and provider-body exclusion.
+- `tests/rolling-token-pacer.contract.test.mjs` — prove same-path concurrency,
+  real child-process admission, independent paths, request ceilings, policy
+  mismatch, corrupt state, and live/dead lock behavior.
+- `docs/EVALUATION-HARNESS.md` and `STATUS.md` — document the boundary and
+  verification evidence.
+
+## Verification
+
+- Focused alpha and pacer contracts: PASS, 30/30.
+- `npm test`: PASS, 106/106.
+- `npm run quickstart`: PASS, 6/6.
+- `npm run test:legacy`: PASS, 983 passed, 15 optional skips, 0 failed across
+  998 tests.
+- Six real child processes sharing one state path: PASS. The durable active
+  window remained at or below 100 units and two requests.
+- Five additional repetitions of the child-process contract: PASS.
+- No provider, credential, private artifact, dataset, result artifact, or
+  sealed U8 access occurred.
+
+## Risks / Follow-Ups
+
+- File pacing is opt-in. Every isolated worker must receive the same state path
+  and policy to share one ceiling. A mismatch is terminal.
+- Stale-lock owner checks use local process IDs. The implementation is for
+  workers on one host, not a network file system shared by many hosts.
+- The live two-case diagnostic remains pending until this ticket receives an
+  independent clean review and founder acceptance.
+
+## Review History
+
+- The first independent review reopened exact commit `5d8d060` for two P1 and
+  two P2 findings. Strict state shapes now reject and preserve corrupt input
+  without re-saving it. Locks publish complete owner bytes atomically and
+  stale recovery rechecks the same bytes, inode, device, age, and dead owner.
+  Lock retry above the window is rejected. The contradictory generated
+  token-name scope rules were corrected in target `main` at `d2bf26f` while
+  every credential, key, secret, private-data, and production rule remained.
+- The first rereview reopened exact commit `83119b4` for the remaining
+  check-to-delete race. Recovery now serializes on one owned claim, atomically
+  moves the exact lock pathname to quarantine, and deletes only the captured
+  stale identity. A late live replacement remains at the lock path, and two
+  stale recoverers cannot both enter recovery.
+- The next rereview reopened exact commit `8525b98` because the recovery-claim
+  check and a new lock publication were not one atomic protocol. All
+  publication and recovery work now runs under the same acquisition gate.
+  This removes stale-observer, live-owner, and later-publisher interleavings;
+  an abandoned gate fails closed.
+- The gate rereview found no implementation defect but reopened exact commit
+  `beb5e1e` for the missing required three-actor regression. The new test uses
+  a real child publisher while stale recovery holds the gate and a live
+  replacement appears.
+- The acceptance rereview reopened exact commit `613fa42` because that test
+  used an in-process synthetic live owner. The strengthened test now uses a
+  real live-owner child and a separate publisher child. It proves no admission
+  before the owner releases its lock, both later admissions remain within the
+  request and unit ceilings, and no derived lock, gate, candidate, or
+  quarantine path remains.
+- Final independent review accepted exact commit `38e9187` with no unresolved
+  P0-P3 finding. It reran every declared test and governance gate.

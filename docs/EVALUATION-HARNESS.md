@@ -1,5 +1,41 @@
 # Evaluation Harness Boundaries
 
+## Shared diagnostic pacing and failure records
+
+`createFileRollingTokenPacer(...)` is the opt-in pacing boundary for alpha
+workers that run in separate processes. Workers that use the same `statePath`
+also use one rolling policy. The file lock makes unit and request admission
+atomic. A different policy on the same path fails closed. Separate state paths
+remain independent.
+
+The durable state accepts an exact root, policy, and `{ at, units }` event
+shape. Loaded events are rebuilt from those two fields before use. Extra fields
+are corrupt state and fail closed. The lock contains only its schema, owner
+process ID, and a random ownership value. Its complete synced record is
+published atomically. It contains no prompt, answer, evidence, request body,
+response body, or credential. Every lock publication and stale observation
+first owns the same acquisition gate. Stale recovery atomically moves the lock
+path to a private quarantine name and deletes only a captured file that matches
+the observed device, inode, bytes, dead owner, and stale age. A live replacement
+is restored without overwrite. Other acquirers wait on the gate, and an
+abandoned gate fails closed. Release also checks its ownership value, so an old
+worker cannot remove a newer lock. Corrupt state and policy mismatches are
+terminal.
+
+An oversized dispatch can enter only when the rolling window is empty. Lock
+retry configuration above one window is rejected, and a wait never exceeds
+one configured window. Pacing changes dispatch time only; it
+does not retry or change a provider request. The original in-memory pacer stays
+the default for one-process use.
+
+Shared alpha diagnostic logs retain the usual bounded error name and message.
+Host commitment failures replace the original message with a generic message
+and may add only a bounded host rejection code and reason. HTTP 429 failures
+also use a generic message and may add only status, request ID, retry-after,
+and the six allowlisted request/token limit, remaining, and reset headers.
+Provider bodies, arbitrary metadata, prompts, evidence, and credentials are
+not copied into these structured failure records.
+
 ## Structured OpenAI input reservation
 
 OpenAI's Responses input-count endpoint is the exact counting surface for a

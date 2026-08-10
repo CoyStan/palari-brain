@@ -2,6 +2,51 @@
 
 ## 2026-08-10 current handoff
 
+BRN-0049 has a provider-free candidate for the last two S60 diagnostic
+failures. Shared alpha logs now retain bounded host-rejection details and
+allowlisted HTTP 429 request/rate-limit metadata. Both failure classes replace
+the original error text with a generic message, and arbitrary metadata and
+provider bodies are not copied.
+
+Isolated workers can now opt into one file-backed rolling pacer. Its atomic
+lock coordinates both request and unit ceilings across processes. State stores
+only the fixed policy and timestamp/unit events. Locks store only process and
+ownership data. Policy mismatch and corrupt state fail closed; an old lock is
+recovered only when its local owner is no longer alive. The existing
+single-process pacer remains unchanged, and no retry was added. A six-process
+contract and five additional stress repetitions stayed inside the shared
+ceiling. The first independent review found that corrupt state could retain an
+extra field, stale cleanup did not compare the complete owner twice, and lock
+retry could exceed the window. Exact state shapes, atomic complete lock
+publication, full stale-owner rechecks, and retry validation now cover those
+findings. The conflicting generated token-name ticket rules were corrected on
+target `main` without changing any credential or secret exclusion. The first
+rereview then found a final check-to-delete race. Stale cleanup now uses one
+owned recovery claim and atomically quarantines the exact path before
+validation; it never deletes a later live replacement. Direct late-replacement
+and simultaneous-recoverer contracts pass. Focused contracts pass 30/30, core
+passes 106/106, quickstart passes 6/6, and legacy passes 983 with 15 optional
+skips and zero failures across 998 tests. No provider, credential, private
+dataset, result artifact, or sealed U8 item was
+accessed during this ticket implementation.
+
+The next rereview found that a stale observer and a new publisher could still
+interleave around the recovery claim. Acquisition now has one common gate:
+every worker owns it before lock publication, stale observation, quarantine,
+or recovered publication. An abandoned gate is terminal instead of being
+stolen. This removes the check-to-publication gap and keeps the no-retry
+provider boundary unchanged.
+
+The gate rereviews found no new implementation defect but required a direct
+three-actor regression. The final test uses one real live-owner child and one
+real publisher child while the parent holds a stale observation. It proves
+that neither worker admits work before the owner releases its lock, both later
+admissions stay within the shared ceilings, and every derived lock, gate,
+candidate, and quarantine path is removed.
+Final independent review accepted exact commit `38e9187` with no unresolved
+P0-P3 issue. Founder acceptance is recorded under the approved reliability
+cycle.
+
 BRN-0048 has a provider-free candidate for the remaining instrument
 commitment failure. A local replay of all 13 recorded model responses made
 zero provider calls and reproduced the exact host reason: the correct answer
