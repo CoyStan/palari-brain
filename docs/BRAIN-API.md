@@ -704,6 +704,12 @@ inference provenance and recommendation support also use memory numbers.
 Confirmation seeds its prior evidence into the same mapping before new
 searches extend it. Unknown, duplicate, unreturned, or provider-authored quote
 fields use the existing single commitment repair and then fail closed.
+If host validation rejects both the first commitment and its one repair, the
+terminal `OPENAI_ANSWER_COMMIT_REPAIR_FAILED` error includes a frozen
+`hostRejection` object. It contains only the last bounded host `code` and
+`reason`. It does not contain prompts, evidence bodies, provider bodies, or
+credentials. The same detail is present when bounded-incomplete commitment
+validation fails after repair.
 
 If one `memory_candidate_review` has malformed content, the OpenAI adapter can
 use one normal-budget repair for the same pending page. That repair offers
@@ -818,7 +824,7 @@ It supplies the digest first and exposes six base tools plus one opt-in tool:
 | `memory_plan` | One ephemeral anchor/relation/category/time-range plan; no evidence and no retrieval-budget charge |
 | `memory_search` | Reciprocal-rank fusion of ranked and optional semantic hits, followed by canonical reads |
 | `memory_graph` | Read-only traversal of previously admitted quoted edges |
-| `memory_bridge` (opt-in) | One bounded batch of 2–4 provider-generated relational probes, linked to already-returned anchors |
+| `memory_bridge` (opt-in) | One bounded batch of 2–4 provider-generated relational probes, linked to an eligible canonical briefing or already-returned anchor |
 
 `memory_search` reports `semanticUsed`. If no embedder was configured, it
 falls back honestly to ranked-only search instead of dialing out or claiming
@@ -828,18 +834,21 @@ is an explicit earlier `brain.indexGraph(scope)` operation.
 `memory_bridge` is the iterative-retrieval surface. Callers enable it with
 `answerWithRetrieval(..., { iterativeRetrieval: true })`; the default preserves
 the historical retrieval instructions and six-tool wire exactly. Once enabled,
-the tool accepts calls only after at least one canonical evidence ID has already
-been returned in the same answer. The provider supplies that anchor ID plus
-2–4 distinct natural-language probes generated from the question and raw
-anchor text; the host does not predefine a relation taxonomy or guess the
-missing answer. The first probe is
+the tool accepts calls only with a scoped canonical evidence ID that is either
+already present as a raw `canonical_message` in the canonical-fallback
+briefing or was returned by a memory tool in the same answer. This lets the
+first retrieval call bridge from raw briefing evidence. Derived incremental
+digest records are not bridge anchors. The provider supplies the eligible
+anchor ID plus 2–4 distinct natural-language probes generated from the
+question and raw anchor text; the host does not predefine a relation taxonomy
+or guess the missing answer. The first probe is
 the primary bridge probe, every probe contributes a local ranked surface,
 and—when semantic retrieval is configured—all query embeddings are requested
 in one batch and the vector bank is scanned once. Results are fused,
 deduplicated, and read from the canonical journal. When a reranker is
 configured, it runs once with a host-bounded query containing the current
-question, the primary probe, and an excerpt from every already-returned raw
-anchor. The query preserves both ends of longer fields and never exceeds 500
+question, the primary probe, and an excerpt from every eligible raw anchor.
+The query preserves both ends of longer fields and never exceeds 500
 characters. Anchor text is routing context only: it is not added as evidence
 for a missing fact, and an answer commitment must still cite independently
 returned canonical evidence that supports its claim.
@@ -1015,6 +1024,12 @@ count as a frontier round because it returns navigation metadata rather than
 evidence. The frontier is discarded after the answer and always reports
 `ephemeral: true` and `durableWrites: 0`.
 
+Registering raw canonical briefing anchors changes only bridge eligibility.
+It does not add a retrieval round, attempted query, returned or new evidence,
+selected evidence, novelty, or retrieval-budget charge. A bridge call still
+uses one normal retrieval call and creates the first frontier round. Unknown,
+cross-scope, derived-digest, or provider-invented IDs remain terminal.
+
 Version 2 also records each bridge call in `bridgeLineage`, using only
 host-observed canonical evidence IDs: the bridge anchors, newly discovered
 evidence, all returned evidence, and both bridge and retrieval-round ordinals.
@@ -1026,11 +1041,12 @@ to support the final answer. This lineage is ephemeral telemetry, not a
 semantic relationship, learned edge, or durable memory write.
 
 The provider callback `markRetrievalAnchors(evidenceIds)` adds an ephemeral
-navigation anchor only after that canonical evidence ID has been returned in
-the same answer session. Unknown or provider-invented IDs fail closed. This
-contract and `memory_bridge` implement iterative search without predefining
-what relations, attributes, or categories are important at write time. The
-provider still authors the temporary probes. On bridge calls only, Palari now
+navigation anchor only when that canonical evidence ID is eligible from the
+raw canonical briefing or a memory-tool result in the same answer. Unknown or
+provider-invented IDs fail closed. This contract and `memory_bridge` implement
+iterative search without predefining what relations, attributes, or categories
+are important at write time. The provider still authors the temporary probes.
+On bridge calls only, Palari now
 conditions the optional reranker on the question, primary probe, and bounded
 returned raw anchor excerpts. This conditioning is a locating signal rather
 than testimony. Palari does not yet reinforce durable graph edges.
