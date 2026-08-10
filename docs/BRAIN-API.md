@@ -704,6 +704,11 @@ inference provenance and recommendation support also use memory numbers.
 Confirmation seeds its prior evidence into the same mapping before new
 searches extend it. Unknown, duplicate, unreturned, or provider-authored quote
 fields use the existing single commitment repair and then fail closed.
+When host validation finds that a commitment omitted evidence that the model
+previously marked material, the repair names the missing answer-local
+`memoryNumber` values once. It does not expose canonical evidence IDs, quotes,
+or source text. The model must still classify every named memory as used or
+with one fixed exclusion code; the host does not classify it automatically.
 If host validation rejects both the first commitment and its one repair, the
 terminal `OPENAI_ANSWER_COMMIT_REPAIR_FAILED` error includes a frozen
 `hostRejection` object. It contains only the last bounded host `code` and

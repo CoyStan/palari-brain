@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0048
 children: []
-status: open
+status: accepted
 risk: R2
 priority: P0
 agents_allowed: 2
@@ -16,6 +16,7 @@ target_branch: "main"
 branch: "ticket/BRN-0048-name-missing-material-memories-during-answer-repair"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0048-name-missing-material-memories-during-answer-repair"
 allowed_paths:
+  - "src/openai.mjs"
   - "src/retrieval-answer.mjs"
   - "tests/answer-confirmation.contract.test.mjs"
   - "tests/openai.contract.test.mjs"
@@ -107,3 +108,31 @@ another model call.
 - Stop if the work needs a path outside `allowed_paths` or touches `forbidden_paths`.
 - Stop if the change classifies omitted evidence for the model, exposes
   canonical IDs or content, adds another repair, or changes retrieval.
+
+## Specialist Closeout
+
+- Reproduced the instrument failure provider-free from all 13 recorded model
+  responses. The exact host rejection was omitted material confirmation
+  evidence, not a wrong answer or missing retrieval.
+- Added a non-enumerable symbol carrying only host-internal missing evidence
+  IDs from validation to the adapter. The adapter translates them to stable
+  answer-local memory numbers and names each number once in the existing
+  repair.
+- The repair contains no canonical ID, quote, or source text. It does not
+  select used/excluded status for the model and does not add a dispatch.
+- Normal and bounded-incomplete commitment paths use the same translation.
+  Another incomplete commitment remains terminal.
+- Focused contracts pass 81/81, core passes 93/93, quickstart passes 6/6, and
+  legacy passes 970 with 15 optional skips and zero failures across 985 tests.
+- No provider, credential, dataset, production service, or sealed U8 question
+  was accessed in the ticket worktree.
+
+## Acceptance
+
+- Founder acceptance: the founder approved the proposed reliability cycle and
+  directed execution.
+- Accepted candidate: `52802c4495f63d3f498155c5614958c9695d1617`.
+- Fresh independent review recommends ACCEPT with no unresolved P0-P3 issue.
+- Focused 81/81, core 93/93, quickstart 6/6, legacy 970 pass with 15 optional
+  skips, and governance gates pass.
+- The ticket may close, merge, and push.
