@@ -2,9 +2,26 @@
   "name": "palari-brain",
   "version": "0.1.0",
   "private": true,
-  "description": "Chat memory with a canonical dialogue journal, bounded per-interaction reduction, host-verified provenance, and exact-ID forgetting.",
+  "description": "Evidence-first memory for chat assistants: canonical dialogue, bounded recall, source-backed answers, and scoped forgetting.",
   "type": "module",
   "license": "MIT",
+  "homepage": "https://github.com/CoyStan/palari-brain#readme",
+  "bugs": {
+    "url": "https://github.com/CoyStan/palari-brain/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CoyStan/palari-brain.git"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "chatbot",
+    "long-term-memory",
+    "memory",
+    "provenance",
+    "retrieval"
+  ],
   "main": "src/index.mjs",
   "exports": {
     ".": "./src/index.mjs",
@@ -38,6 +55,7 @@
     "src/statement-extraction.mjs",
     "src/store.mjs",
     "src/util.mjs",
+    "assets/brand",
     "examples",
     "docs/BRAIN-API.md",
     "docs/CONSUMER-SEAM.md",

@@ -2,6 +2,18 @@
 
 ## 2026-08-10 current handoff
 
+The repository now presents Palari Brain as an evidence-first memory kernel
+with the tagline “Memory that can show its work.” A current read-only survey of
+Mem0, Letta, Graphiti, and Supermemory informed the README structure: one clear
+position, an early quick start, a compact feature scan, and a visible system
+path. Palari keeps its own trust-led category position rather than copying a
+hosted-platform or benchmark-leader claim. Original generated mark and header
+artwork live under `assets/brand/`, with palette, prompt, and processing notes.
+The README's missing architecture link is removed, package metadata now carries
+repository discovery fields, and dry packaging includes the brand assets. This
+change does not alter memory behavior. All local README links pass, the focused
+provider-free gate passes 90/90, and quickstart passes 6/6.
+
 BRN-0043 now has a provider-free score-preserving native-reranker safety
 candidate. The generic Transformers and modular Ettin adapters measure exact
 query/document pair lengths with their loaded tokenizer, pass explicit

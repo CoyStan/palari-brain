@@ -1,79 +1,118 @@
-# Palari Brain
+<p align="center">
+  <img src="assets/brand/palari-mark-512.png" width="112" alt="Palari Brain mark">
+</p>
 
-Palari is an alpha memory kernel for a chat assistant. Its target journey is
-simple: store something worth remembering, recall it later, accept a
-correction or deletion, and behave correctly afterward.
+<h1 align="center">Palari Brain</h1>
 
-The trusted host stores complete visible messages in a canonical journal. A
-bounded reducer maintains compact working memory. Retrieval can locate exact,
-ranked, semantic, or temporal-graph candidates, but every answerable item is
-read back from canonical evidence with host-recorded speaker and time.
+<p align="center"><strong>Memory that can show its work.</strong></p>
 
-One product law remains non-negotiable: **an index may locate evidence; it may
-never be evidence.** Durable writes still pass through the admission gate;
-retrieval and inferred relationships do not become canonical user facts.
+<p align="center">
+  An evidence-first memory kernel for chat assistants: exact dialogue,
+  bounded recall, source-backed answers, and scoped forgetting.
+</p>
 
-## Start here
+<p align="center">
+  <img alt="Status: alpha" src="https://img.shields.io/badge/status-alpha-ff6b5e?style=flat-square">
+  <img alt="Node.js 22.5 or newer" src="https://img.shields.io/badge/Node.js-%E2%89%A522.5-66e3c4?style=flat-square&logo=nodedotjs&logoColor=101528">
+  <img alt="Provider-neutral core" src="https://img.shields.io/badge/core-provider--neutral-f4efe5?style=flat-square">
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-101528?style=flat-square"></a>
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="docs/BRAIN-API.md">Active contract</a> ·
+  <a href="docs/README.md">Docs</a> ·
+  <a href="STATUS.md">Status</a>
+</p>
+
+<p align="center">
+  <img src="assets/brand/palari-header.png" width="100%" alt="A canonical evidence line with recall paths that return to their source">
+</p>
+
+Palari gives a long-lived assistant useful memory without turning a model-made
+summary into truth. The trusted host keeps complete visible dialogue in a
+canonical journal. A bounded digest makes recall fast. Every answerable memory
+is read back from exact, role-labelled, time-labelled source evidence.
+
+> **An index may locate evidence. It may never become evidence.**
+
+Palari is an alpha library, not a hosted service. Its provider adapters are
+injected, and the core does not dial out by itself.
+
+## Why Palari
+
+| Exact by default | Bounded by design | Honest by construction |
+|---|---|---|
+| Visible dialogue is the source of truth, with speaker, time, scope, and stable identity. | Working memory, retrieval, reranking, confirmation, and provider use all have explicit ceilings. | Answers bind claims to canonical evidence. Uncertain information can stay uncertain. |
+| Corrections and deletions act on canonical records. | Long chats do not require an unbounded prompt. | User and workspace isolation stay at the host boundary. |
+
+## The memory path
+
+```text
+say something worth remembering
+              │
+              ▼
+       admission gate
+              │
+              ▼
+   canonical dialogue journal ◀──── correct / delete
+              │
+              ▼
+      bounded active digest
+              │
+              ▼
+ exact + semantic + temporal recall
+              │
+              ▼
+   canonical evidence read-back
+              │
+              ▼
+    host-verified answer commitment
+```
+
+The digest and retrieval indexes are working views. They help find information;
+they do not replace the journal that proves it.
+
+## Quick start
+
+Requires Node.js 22.5 or newer.
 
 ```bash
+git clone https://github.com/CoyStan/palari-brain.git
+cd palari-brain
 npm install
 npm test
 npm run quickstart
 ```
 
-`npm test` is now the small provider-free alpha gate. `npm run quickstart`
-exercises the six-step storage, recall, correction, and deletion journey. The
-complete historical suite remains available as `npm run test:legacy`; it is
-not required after every small prototype edit.
+`npm test` runs the small provider-free alpha gate. `npm run quickstart`
+exercises the full product journey: store, recall, correct, delete, and verify
+the behavior afterward. The complete historical suite is available through
+`npm run test:legacy`.
 
-## Debug the real loop
-
-Use the single reusable runner instead of creating another frozen launcher:
-
-```bash
-npm run alpha:debug -- \
-  --adapter .palari-alpha/my-adapter.mjs \
-  --questions 11-20 \
-  --retries 2 \
-  --max-dollar 0.50
-```
-
-The adapter exports `createAlphaRun()` and injects questions plus writer,
-answer, and optional embedder/reranker components. `.palari-alpha/` is
-gitignored. Its JSONL files are mutable diagnostic logs and never update a
-historical benchmark grade. File-backed logs cannot escape that namespace.
-The runner continues after a broken row by default and bounds retries to
-three. CLI runs persist each component's conservative reservation to
-`.palari-alpha/budget.json` before calling it, so reruns share one aggregate
-cap. Run only one alpha CLI process at a time.
-
-See [the alpha architecture](docs/ALPHA-ARCHITECTURE.md) for the component
-contract and [the 20-repository survey](docs/ALPHA-FRAMEWORK-RESEARCH.md) for
-why Palari adopts a few small patterns without installing a framework.
-
-## Product API
+## Use the library
 
 ```js
 import {
+  answerQuestion,
   createPalariBrain,
   ingestChatTurn,
-  answerQuestion,
 } from 'palari-brain'
 
 const brain = await createPalariBrain({
   memoryEnabled: true,
-  statePath: '/path/to/state.json',
+  statePath: '/path/to/state.sqlite',
   workspaceId: 'workspace',
 })
 
 await ingestChatTurn(brain, {
-  userMessage,
   assistantMessage,
   eventAt,
   palariId,
   retention: 'durable',
-  userId,
   sourceMessageId,
+  userId,
+  userMessage,
 }, {
   reducer: async ({ request }) => callMemoryReducerModel(request),
   reducerId: 'my-reducer/v1',
@@ -89,32 +128,70 @@ const result = await answerQuestion(brain, {
 })
 ```
 
-Provider adapters are injected. The core does not dial out by itself.
+The application owns the provider calls. Palari owns the memory boundaries,
+evidence checks, scope rules, and local state transitions.
 
-## Important modules
+## What is inside
+
+- **Canonical journal** — exact visible user and assistant messages with
+  provenance, chronology, and private scope.
+- **Bounded digest** — compact active memory that can be corrected without
+  replacing the source record.
+- **Evidence-first retrieval** — exact, ranked, semantic, and temporal-graph
+  paths that resolve back to canonical dialogue.
+- **Careful answers** — structured evidence commitments, bounded confirmation,
+  and explicit uncertainty.
+- **Scoped forgetting** — deletion by exact identity without weakening
+  user/workspace isolation.
+- **Provider seams** — OpenAI, Gemini, embedding, and reranker adapters remain
+  replaceable components around a provider-neutral core.
+
+## Debug the real loop
+
+Use the reusable alpha runner for reversible diagnostics:
+
+```bash
+npm run alpha:debug -- \
+  --adapter .palari-alpha/my-adapter.mjs \
+  --questions 11-20 \
+  --retries 2 \
+  --max-dollar 0.50
+```
+
+`.palari-alpha/` is gitignored. Its JSONL logs are mutable diagnostics, not
+benchmark grades. The runner shares one conservative spend ledger, limits
+retries to three, and keeps artifacts inside that private namespace. Run only
+one alpha process at a time.
+
+## Project map
 
 | Area | Location |
 |---|---|
-| Brain orchestration | `src/brain.mjs`, `src/index.mjs` |
+| Active API and orchestration | `src/index.mjs`, `src/brain.mjs` |
 | Canonical dialogue and admission | `src/dialogue-evidence.mjs`, `src/memory-store.mjs` |
-| Working memory and reducer | `src/memory-digest-store.mjs`, `src/memory-reducer.mjs` |
+| Working memory and reduction | `src/memory-digest-store.mjs`, `src/memory-reducer.mjs` |
 | Retrieval and answers | `src/memory-exploration.mjs`, `src/memory-search.mjs`, `src/memory-semantic.mjs`, `src/memory-graph.mjs`, `src/retrieval-answer.mjs` |
 | Provider seams | `src/gemini.mjs`, `src/openai.mjs`, `src/reranker-ettin.mjs` |
 | Alpha diagnostics | `evals/run-alpha-memory-debug.mjs` |
-| Historical evaluation | `evals/` plus `npm run test:legacy` |
+| Historical evaluation | `evals/`, with its map in `evals/README.md` |
+
+Start with the [active Brain API contract](docs/BRAIN-API.md). The
+[documentation map](docs/README.md) separates current behavior from historical
+design and evaluation records. The [repository survey](docs/ALPHA-FRAMEWORK-RESEARCH.md)
+explains why Palari borrows small patterns from larger frameworks without
+installing their authority models.
 
 ## Alpha policy
 
-Ordinary debugging may be repeated and repaired within an approved aggregate
-dollar cap. Tickets, immutable evidence, preregistration, exact accounting,
-and one-shot identities are reserved for genuinely risky work or an explicitly
-declared release benchmark. Secrets, user isolation, destructive writes, and
-paid-provider caps remain hard boundaries.
+Ordinary debugging can be repeated and repaired inside an approved aggregate
+cost cap. Tickets and immutable run machinery are reserved for risky work or
+an explicitly declared release benchmark. Credentials, private scope,
+destructive operations, durable-write admission, and provider spend limits
+remain hard boundaries.
 
-The repository immediately before this policy reset is recoverable at
-annotated Git tag `pre-alpha-governance-reset-2026-08-07`. No legacy code or
-historical result was deleted by the reset.
+The repository immediately before the alpha policy reset is available at the
+annotated tag `pre-alpha-governance-reset-2026-08-07`.
 
 ## Licence
 
-MIT
+[MIT](LICENSE)
