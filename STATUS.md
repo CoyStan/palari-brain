@@ -1,5 +1,37 @@
 # STATUS — Palari alpha
 
+## 2026-08-10 current handoff
+
+The OpenAI final-answer wire no longer asks the model to transcribe evidence
+IDs or quote text already held by the host. For every answer base, the model
+now sends a stable answer-local `memoryNumber`, a `used` or `not_used`
+disposition, and one rationale. The adapter binds that number to the canonical
+ID and a bounded exact excerpt of the returned text before the unchanged host
+validator runs. Enumeration uses the same boundary while retaining its label,
+action, classification, and reason. Confirmation numbering and the distinct
+page-local review number remain stable. Custom providers keep the historical
+canonical-ID and exact-quote contract.
+
+Provider-free validation passes the 52/52 focused parent contracts, 89/89 core
+tests, quickstart 6/6, and the combined complete legacy tier with 928 passes,
+15 optional skips, and 0 failures across 943 tests. The active generation and
+count-projection request bodies are each 24 bytes smaller and have refreshed
+active pins; historical BRN-0025 pins are unchanged. This removes a redundant
+transcription/plumbing failure mode. It does not claim a semantic ownership,
+airline, or other reasoning fix, and it does not regrade a benchmark.
+
+Recovery of the interrupted super-hard diagnostic found ten planned cases:
+seven had started and three never started. Of the seven starts, two produced
+judge results (the music-companion case correct and the airline case incorrect),
+three recorded failures (two invalid bounded commitments after one repair and
+one dispatch-budget exhaustion), and two stopped with only `inflight` markers.
+The airline run returned all 3/3 marked spans but selected none. The honest
+summary is therefore 1/2 among judged answers, five started but unjudged, and
+three not run. No diagnostic process remains active. The recovered private
+ledger was `$43.75766948` under its recorded `$48` cap. BRN-0042 made no paid
+call, did not retry the diagnostic, and did not read or modify its private
+artifacts.
+
 ## 2026-08-09 current handoff
 
 The latest practical-memory path still uses canonical raw dialogue with
@@ -1430,13 +1462,13 @@ benchmark grades. Run only one alpha CLI process at a time.
 
 ## Next
 
-Do not replay the instrument case merely to tune its answer. The short-reference
-boundary is now proven live; the remaining Pearl-set disagreement is a semantic
-interpretation choice over fully retrieved direct evidence. Treat future work
-on ownership, planned sales, and current-status uncertainty as general answer
-reasoning, not more identifier plumbing or retrieval machinery. Run future hard
-cases as separate processes on this host so native reranker memory is reclaimed
-at each case boundary.
+Do not retry the interrupted hard cases merely to test quote plumbing. The new
+host-owned evidence boundary is proven provider-free; remaining ownership,
+airline, and other misses should be treated as semantic selection or reasoning
+work unless new evidence shows otherwise. Any live continuation needs its own
+explicit founder-approved aggregate cap and process plan. Run future hard cases
+as separate processes on this host so native reranker memory is reclaimed at
+each case boundary.
 
 Do not tune retrieval further for `0a995998`: all three original statements
 were returned and enumerated. The general policy now treats an action phrased

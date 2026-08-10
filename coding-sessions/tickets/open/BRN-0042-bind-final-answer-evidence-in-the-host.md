@@ -8,12 +8,12 @@ root_id: BRN-0042
 children:
   - BRN-0042-A
   - BRN-0042-B
-status: claimed
+status: in-review
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-08-10T04:14:34Z
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0042-bind-final-answer-evidence-in-the-host"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0042-bind-final-answer-evidence-in-the-host"
@@ -165,3 +165,21 @@ and exact returned text before the unchanged host validation boundary.
   access.
 - Stop if host-owned binding would lose exact returned evidence, weaken
   canonical provenance, or change non-OpenAI provider behavior.
+
+## Specialist Closeout
+
+- Replaced provider-authored evidence IDs and quotes on the OpenAI answer wire
+  with `memoryNumber`, `disposition`, and `rationale`; the adapter now binds the
+  canonical ID and a bounded exact returned excerpt before the unchanged host
+  validator runs. Enumeration follows the same rule. Custom providers remain
+  on the historical host-native contract.
+- Added provider-free coverage for schemas, stable binding, enumeration,
+  confirmation, stale quote rejection and one-repair recovery. The focused
+  parent contracts pass 52/52 and quickstart passes 6/6.
+- Kept adjacent compatibility work isolated in accepted children BRN-0042-A
+  (one current-evidence fixture) and BRN-0042-B (only active request byte/hash
+  pins). On the exact combined candidate, core tests pass 89/89 and the legacy
+  tier reports 928 passes, 15 optional skips, and 0 failures across 943 tests.
+- Recorded the interrupted diagnostic as ungraded recovery context only. No
+  provider call, diagnostic retry, private artifact access, dataset execution,
+  benchmark regrade, sealed U8 access, or durable write occurred.
