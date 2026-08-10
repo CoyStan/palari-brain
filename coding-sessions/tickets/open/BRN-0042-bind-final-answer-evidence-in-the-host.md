@@ -5,7 +5,8 @@ stream: memory
 level: 1
 parent_id: 
 root_id: BRN-0042
-children: []
+children:
+  - BRN-0042-A
 status: open
 risk: R2
 priority: P0
