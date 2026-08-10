@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0045
 children: []
-status: claimed
+status: in-review
 risk: R2
 priority: P1
 agents_allowed: 2
-claimed_by: "quetza"
-claimed_at: 2026-08-10T20:08:24Z
+claimed_by: 
+claimed_at: 
 target_branch: "main"
 branch: "ticket/BRN-0045-add-shared-openai-pacing-and-safe-429-diagnostics"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0045-add-shared-openai-pacing-and-safe-429-diagnostics"
