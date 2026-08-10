@@ -15,11 +15,12 @@
 
 ## Verification
 
-- `node --test tests/openai.contract.test.mjs`: PASS, 39/39.
+- `node --test tests/openai.contract.test.mjs`: PASS, 42/42 across 40
+  top-level tests.
 - `npm test`: PASS, 90/90.
 - `npm run quickstart`: PASS, 6/6.
-- `npm run test:legacy`: PASS, 939 passed, 15 optional skips, 0 failed across
-  954 tests.
+- `npm run test:legacy`: PASS, 942 passed, 15 optional skips, 0 failed across
+  957 tests.
 - `npm run ticket -- ticket-lint BRN-0044`: PASS.
 - `npm run ticket -- scope-check --committed-plus-dirty --target main BRN-0044`:
   PASS.
@@ -27,6 +28,11 @@
 - `git diff --check`: PASS.
 
 ## Risks / Follow-Ups
+
+- The first independent review found that a commitment mixed with a forbidden
+  or unknown function could enter commitment repair. Closure parsing now uses
+  the exact tool set offered for that dispatch. Two provider-free regression
+  contracts prove both mixed responses are terminal and execute no retrieval.
 
 - A provider can still refuse, return an empty response, call a forbidden
   tool, or fail both closure commitments. Those paths remain typed terminal

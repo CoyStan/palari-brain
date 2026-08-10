@@ -1066,6 +1066,7 @@ export function createOpenAIRetrievalProvider({
     for (;;) {
       const evidenceAvailable = commitmentEvidenceCount(session) > 0
       const hostClosed = answerConfirmationClosed?.() === true
+      const closureOnly = dispatch >= dispatchLimit
       if (dispatch >= dispatchLimit) {
         if (closureDispatches >= OPENAI_MODEL_CLOSURE_DISPATCHES) {
           throw adapterError(
@@ -1090,6 +1091,9 @@ export function createOpenAIRetrievalProvider({
         : finalizing && reviewMayBePending
           ? [confirmationReviewTool, commitTool]
           : tools
+      const callableNames = closureOnly
+        ? new Set((toolDisabled ? [] : offeredTools).map(({ name }) => name))
+        : allowedNames
       const body = {
         include: ['reasoning.encrypted_content'],
         input: clone(input),
@@ -1132,8 +1136,9 @@ export function createOpenAIRetrievalProvider({
       assertNoRefusal(output)
       let calls
       try {
-        calls = functionCalls(output, allowedNames)
+        calls = functionCalls(output, callableNames)
       } catch (error) {
+        if (closureOnly) throw error
         const attemptedCommit = output.some((item) =>
           item?.type === 'function_call' &&
           item?.name === OPENAI_ANSWER_COMMIT_TOOL_NAME)

@@ -10,11 +10,14 @@ assess an already-returned confirmation page or commit, and the second is
 commit-only for the existing single repair. These calls cannot start another
 memory retrieval. Evidence-backed output still requires the unchanged
 host-owned memory-number translation and commitment validation; invalid
-closure remains terminal. Focused OpenAI contracts pass 39/39, including
-tool-disabled no-evidence closure, pending-page review, repaired commitment,
-and exact physical-call exhaustion. The alpha gate passes 90/90, quickstart
-passes 6/6, and the complete legacy tier passes 939 with 15 optional skips and
-zero failures across 954 tests. No provider, credential, private alpha
+closure remains terminal. Closure responses are now validated against the
+exact tools offered for that call, so a commitment mixed with a memory or
+unknown tool fails before the repair path. Focused OpenAI contracts pass 42/42
+across 40 top-level tests, including tool-disabled no-evidence closure,
+pending-page review, repaired commitment, mixed forbidden-tool rejection, and
+exact physical-call exhaustion. The alpha gate passes 90/90, quickstart passes
+6/6, and the complete legacy tier passes 942 with 15 optional skips and zero
+failures across 957 tests. No provider, credential, private alpha
 artifact, dataset, or sealed U8 question was accessed in the ticket worktree.
 The paused S60 alpha campaign and any founder-authorized failed-case rerun are
 outside the ticket and remain pending review, acceptance, merge, and push.

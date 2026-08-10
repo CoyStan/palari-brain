@@ -151,10 +151,16 @@ cannot produce a valid answer.
   canonical excerpt binding, one-repair rule, and terminal refusal/invalid
   behavior.
 - Added provider-free contracts for no-evidence text closure, confirmation
-  review then bounded-incomplete commit, invalid commitment repair, and exact
-  `normal + 2` physical-call exhaustion.
-- Verification passes focused OpenAI 39/39, alpha 90/90, quickstart 6/6, and
-  legacy 939 pass / 15 optional skip / 0 fail across 954 tests. Ticket scope
+  review then bounded-incomplete commit, invalid commitment repair, mixed
+  commitment plus forbidden-tool rejection, and exact `normal + 2`
+  physical-call exhaustion.
+- The first independent review found that mixed forbidden calls could enter
+  commitment repair. Closure parsing now validates against the exact tools
+  offered for that dispatch, so declared-but-not-offered and unknown functions
+  are terminal before repair. The original reviewer note is preserved.
+- Verification passes focused OpenAI 42/42 across 40 top-level tests, alpha
+  90/90, quickstart 6/6, and legacy 942 pass / 15 optional skip / 0 fail across
+  957 tests. Ticket scope
   and diff checks pass.
 - No provider, credential, private alpha artifact, dataset, sealed U8 item,
   durable memory, production service, or live campaign was accessed from the

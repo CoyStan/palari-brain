@@ -1821,6 +1821,63 @@ test('dispatch closure preserves one host commitment repair without reopening re
     )
   })
 
+test('dispatch closure rejects mixed non-offered and unknown tools without repair',
+  async (t) => {
+    for (const forbiddenName of ['memory_search', 'not_a_real_tool']) {
+      await t.test(forbiddenName, async () => {
+        const bodies = []
+        let evidenceCount = 0
+        let retrievals = 0
+        const row = {
+          evidenceId: 'tea-evidence',
+          text: 'The user likes jasmine tea.',
+        }
+        const wireProposal = numberedEvidenceAnswer(
+          'The user likes jasmine tea.',
+          [{ row }],
+        )
+        const provider = createOpenAIRetrievalProvider({
+          maxModelDispatches: 1,
+          async invoke({ body }) {
+            bodies.push(body)
+            if (bodies.length === 1) {
+              return completedCall({
+                arguments: '{"phrase":"tea"}',
+                callId: 'search-before-closure',
+                name: 'memory_search',
+              })
+            }
+            const response = completedCommit(wireProposal, {
+              callId: 'mixed-commit',
+            })
+            response.output.push(completedCall({
+              arguments: forbiddenName === 'memory_search'
+                ? '{"phrase":"forbidden new search"}'
+                : '{}',
+              callId: 'mixed-forbidden-tool',
+              name: forbiddenName,
+            }).output[1])
+            return response
+          },
+        })
+
+        await assert.rejects(
+          provider(answerSession({
+            answerEvidenceCount: () => evidenceCount,
+            async retrieve() {
+              retrievals += 1
+              evidenceCount = 1
+              return { matches: [row] }
+            },
+          })),
+          (error) => error.code === 'OPENAI_FUNCTION_UNKNOWN',
+        )
+        assert.equal(bodies.length, 2)
+        assert.equal(retrievals, 1)
+      })
+    }
+  })
+
 test('dispatch closure remains terminal after its two physical calls',
   async () => {
     const bodies = []
@@ -2101,7 +2158,7 @@ test('retrieval provider fails closed on unknown calls, refusals, and caps',
     })
     await assert.rejects(
       capped(answerSession()),
-      (error) => error.code === 'OPENAI_FINALIZATION_TOOL_CALL',
+      (error) => error.code === 'OPENAI_FUNCTION_UNKNOWN',
     )
     assert.throws(
       () => createOpenAIRetrievalProvider({
