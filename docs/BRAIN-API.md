@@ -654,16 +654,21 @@ fabricated quotes, duplicate bases, ambiguous use/non-use, extra
 provider-authored provenance, malformed
 fields, and copied or mutated callback results fail closed.
 
-The OpenAI wire does not ask the model to reproduce those opaque IDs. Each
-citable returned row also receives a stable, answer-local, one-based
-`memoryNumber`; repeats of the same evidence keep the same number. The strict
-commit schema uses that short number for bases, enumeration items, temporary
-inference provenance, and recommendation support. The adapter translates the
-numbers back to the exact returned evidence IDs before calling the unchanged
-provider-neutral `commitAnswer()` or bounded `commitIncompleteAnswer()` host
-boundary. Confirmation seeds its prior evidence into the same mapping before
-new searches extend it. Unknown numbers use the existing single repair and
-then fail closed.
+The OpenAI wire does not ask the model to reproduce those opaque IDs or copy
+returned evidence text. Each citable row receives a stable, answer-local,
+one-based `memoryNumber`; repeats of the same evidence keep the same number.
+For a detailed answer, each provider-facing basis contains only that number,
+an explicit `used` or `not_used` disposition, and one non-empty rationale.
+Enumeration items likewise select their evidence by number without a quote.
+The adapter translates each number back to the exact returned evidence ID,
+attaches a bounded exact excerpt from the host-held returned text, and maps the
+disposition and rationale into the existing `consequence_for_answer` or
+`not_used_reason` fields before calling the unchanged provider-neutral
+`commitAnswer()` or bounded `commitIncompleteAnswer()` boundary. Temporary
+inference provenance and recommendation support also use memory numbers.
+Confirmation seeds its prior evidence into the same mapping before new
+searches extend it. Unknown numbers, stale provider-authored quote fields, and
+malformed dispositions use the existing single repair and then fail closed.
 
 Product callers may set `compositionMode: 'auto'` or `'enumerate'` for count
 and complete-list questions. The commitment then includes every distinct
@@ -972,10 +977,10 @@ messages. This is general navigation guidance, not a host keyword classifier.
 
 `result.answerCommitted` reports whether the provider returned the exact
 host-created commitment object. `result.evidenceCommitments` preserves every
-selected memory with its exact quote and normalized consequence or non-use
-reason. `result.selectedEvidenceIds` is derived from those host-accepted
-commitments. `result.answerEvidence` remains the compatibility surface and
-contains only `{ evidenceId, quote }` entries declared used (legacy custom
+selected memory with its host-bound exact excerpt and normalized consequence
+or non-use reason. `result.selectedEvidenceIds` is derived from those
+host-accepted commitments. `result.answerEvidence` remains the compatibility
+surface and contains only `{ evidenceId, quote }` entries declared used (legacy custom
 providers retain their historical basis behavior). `result.temporaryInferences`
 contains only the validated ephemeral inference envelope described above.
 For an accepted active auto/current commitment, `result.currentEvidenceReview`
@@ -993,11 +998,11 @@ host-captured returned excerpt for each one.
 
 These are auditable provider declarations. Recommendation mode proves only
 that each supporting ID was returned in the scoped answer session. Detailed
-standard and enumeration commitments additionally prove that their copied
-quotes were returned and their fields are structurally coherent. Neither an ID
-selection nor a declared `consequence_for_answer` proves that the answer
-materially depended on that memory; semantic material use remains an
-independently judged label.
+standard and enumeration commitments additionally prove that each selected
+number was host-bound to returned canonical evidence and that the model's
+disposition fields are structurally coherent. Neither an ID selection nor a
+declared rationale proves that the answer materially depended on that memory;
+semantic material use remains an independently judged label.
 
 The provider-free evaluator in `evals/retrieval-evidence-metrics.mjs` therefore
 keeps five surfaces separate: session recall from returned canonical sessions,
@@ -1026,8 +1031,11 @@ later tool results as one evidence stream:
 
 These remain semantic instructions, not a host-side lexical answer grader.
 Providers that opt into the additive commitment capability also cross the
-structural exact-ID/exact-quote/use-declaration boundary described above. That
-proves declared selection and use/non-use, not semantic correctness. The host continues to preserve
+structural exact-ID/exact-quote/use-declaration boundary described above. On
+the OpenAI wire the host derives the exact ID and quote from the model's short
+memory-number selection; custom providers retain their historical direct
+commitment shape. That proves declared selection and use/non-use, not semantic
+correctness. The host continues to preserve
 canonical bytes, speaker, time, evidence identity, scope, and the bounded
 retrieval transcript; a separately authorized live measurement is required to
 measure generated-answer behavior. One normal valid commitment adds no model
