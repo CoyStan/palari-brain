@@ -55,6 +55,11 @@ updated: 2026-08-10
 
 # BRN-0049 Persist safe provider failures and pace isolated workers
 
+The two explicitly allowed `rolling-token-pacer` paths use “token” as a rate
+unit, not as a credential name. The generated broad token-name exclusions were
+removed on `main` before rereview because they contradicted those exact paths.
+All credential, key, secret, private-data, and production exclusions remain.
+
 ## Goal
 
 Keep safe host and HTTP 429 diagnostics in the shared alpha log, and let
