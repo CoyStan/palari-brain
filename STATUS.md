@@ -34,6 +34,33 @@ ledger was `$43.75766948` under its recorded `$48` cap. BRN-0042 made no paid
 call, did not retry the diagnostic, and did not read or modify its private
 artifacts.
 
+The founder then authorized one clean-scratch rerun of the same frozen ten on
+the merged host-owned-evidence product at commit `850ae69`, with no retries or
+inter-case tuning and a new `$50` aggregate ceiling. All ten received exactly
+one start. Six completed, reached the judge, and all six were judged correct:
+museum ordering, concert ordering, Valentine's-Day airline, shoes cleaned,
+music-event companion, and model-kit count. The honest result is 6/6 among
+judged answers plus four unjudged `inflight` interruptions—not 6/10. The
+airline-ordering process ended with the chat-session crash; the final charity,
+fitness-class, and furniture cases were killed by the host with exit 137 under
+memory pressure. None was retried and no diagnostic process remains active.
+
+Across the six completed answers, all 21/21 dataset-marked spans were returned,
+17/21 were selected, and 15/21 were materially used. All source-custody hashes
+verified, confirmation made no durable write, and no completed answer failed
+the new host-owned commitment boundary. The previously incorrect
+Valentine's-Day airline case now returned and selected all 3/3 marked spans,
+materially used the decisive airline evidence, and was judged correct. This is
+encouraging live evidence that redundant quote transcription is gone, but one
+nondeterministic rerun does not prove that the wire change caused every answer
+improvement.
+
+Measured spend for the six completions was `$0.15372462`: `$0.14934137` for
+OpenAI answer dispatches, `$0.00040575` for embeddings, and `$0.00397750` for
+six judge calls. Four interrupted cases conservatively retained `$2.80` in
+reservations, so the aggregate ledger advanced by `$2.95372462` to
+`$46.71139410`, leaving `$3.28860590` under the approved `$50` ceiling.
+
 ## 2026-08-09 current handoff
 
 The latest practical-memory path still uses canonical raw dialogue with
@@ -1471,6 +1498,12 @@ work unless new evidence shows otherwise. Any live continuation needs its own
 explicit founder-approved aggregate cap and process plan. Run future hard cases
 as separate processes on this host so native reranker memory is reclaimed at
 each case boundary.
+
+Before any continuation of the four newly unjudged cases, diagnose the host
+memory ceiling provider-free. Three separate processes still died with exit
+137, so another identical paid rerun would likely spend reservations without
+producing grades. Any continuation remains a new run requiring an explicit
+aggregate cap; do not reuse or reinterpret the `inflight` artifacts.
 
 Do not tune retrieval further for `0a995998`: all three original statements
 were returned and enumerated. The general policy now treats an action phrased
