@@ -20,8 +20,11 @@ no model call. A second invalid commitment still fails.
 ## What To Check
 
 Focused 81/81, core 93/93, quickstart 6/6, and legacy 970 pass with 15
-optional skips and zero failures. Independent review is pending.
+optional skips and zero failures.
+
+A fresh independent reviewer accepted exact commit `52802c4` with no
+unresolved P0-P3 issue.
 
 ## Recommended Next Move
 
-Request independent review. If accepted, merge before BRN-0049 begins.
+Merge and push, then begin BRN-0049.

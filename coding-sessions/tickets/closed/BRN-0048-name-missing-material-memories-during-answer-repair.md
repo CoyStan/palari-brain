@@ -6,7 +6,7 @@ level: 1
 parent_id: 
 root_id: BRN-0048
 children: []
-status: in-review
+status: accepted
 risk: R2
 priority: P0
 agents_allowed: 2
@@ -126,3 +126,13 @@ another model call.
   legacy passes 970 with 15 optional skips and zero failures across 985 tests.
 - No provider, credential, dataset, production service, or sealed U8 question
   was accessed in the ticket worktree.
+
+## Acceptance
+
+- Founder acceptance: the founder approved the proposed reliability cycle and
+  directed execution.
+- Accepted candidate: `52802c4495f63d3f498155c5614958c9695d1617`.
+- Fresh independent review recommends ACCEPT with no unresolved P0-P3 issue.
+- Focused 81/81, core 93/93, quickstart 6/6, legacy 970 pass with 15 optional
+  skips, and governance gates pass.
+- The ticket may close, merge, and push.

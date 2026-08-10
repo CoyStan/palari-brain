@@ -21,7 +21,8 @@
   exact missing-material host rejection with zero network calls.
 - Ticket, report, committed-plus-dirty scope, and diff gates: PASS before the
   reviewer note, which is expected only after this review-state commit.
-- Independent review: pending.
+- Independent review: ACCEPT at exact commit `52802c4`, with no unresolved
+  P0-P3 issue. Additional adversarial normal and bounded paths passed.
 
 ## Risks / Follow-Ups
 
