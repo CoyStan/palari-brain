@@ -3067,6 +3067,7 @@ export async function answerWithRetrieval(brain, {
     const suppressedDuplicateInformationEvidenceIds = []
     let confirmationCalls = 0
     let confirmationReviewCalls = 0
+    let confirmationSearchesPending = 0
     let confirmationExhausted = false
     let confirmationOpen = true
     confirmationActive = true
@@ -3074,10 +3075,11 @@ export async function answerWithRetrieval(brain, {
 
     const commitIncompleteAnswer = (proposal) => {
       if (confirmationClosed) return commitAnswer(proposal)
-      if (confirmationCalls < confirmationBudget ||
+      if (confirmationSearchesPending > 0 ||
+        confirmationCalls < confirmationBudget ||
         !confirmationSearchPerformed || !confirmationLatestAssessed) {
         throw answerConfirmationError(
-          'A bounded-incomplete answer requires an exhausted confirmation budget and a fully assessed latest page.',
+          'A bounded-incomplete answer requires no outstanding search, an exhausted confirmation budget, and a fully assessed latest page.',
           'MEMORY_ANSWER_CONFIRMATION_REQUIRED',
         )
       }
@@ -3205,6 +3207,11 @@ export async function answerWithRetrieval(brain, {
             'Memory confirmation is closed; commit the reviewed answer.',
           )
         }
+        if (confirmationSearchesPending > 0) {
+          throw answerCommitmentError(
+            'Await the outstanding confirmation search before starting another.',
+          )
+        }
         if (confirmationSearchPerformed && !confirmationLatestAssessed) {
           throw answerCommitmentError(
             'Assess every candidate from the latest confirmation search before searching again.',
@@ -3219,6 +3226,7 @@ export async function answerWithRetrieval(brain, {
           }
         }
         confirmationCalls += 1
+        confirmationSearchesPending += 1
         const excludedEvidenceIds = new setConstructor()
         for (let index = 0; index < evidenceRegistryIds.length; index += 1) {
           setAdd(excludedEvidenceIds, evidenceRegistryIds[index])
@@ -3237,19 +3245,24 @@ export async function answerWithRetrieval(brain, {
           limit: MEMORY_ANSWER_MAX_BASES,
           maxChars: MEMORY_ANSWER_CONFIRMATION_MAX_CHARS,
         }
-        const internalResult = await hybridSearch(
-          brain,
-          scope,
-          capabilities,
-          effectiveSearchInput,
-          referenceTime,
-          [],
-          [],
-          null,
-          excludedEvidenceIds,
-          excludedInformationKeys,
-          { confirmationView: true },
-        )
+        let internalResult
+        try {
+          internalResult = await hybridSearch(
+            brain,
+            scope,
+            capabilities,
+            effectiveSearchInput,
+            referenceTime,
+            [],
+            [],
+            null,
+            excludedEvidenceIds,
+            excludedInformationKeys,
+            { confirmationView: true },
+          )
+        } finally {
+          confirmationSearchesPending -= 1
+        }
         const canonicalMatches = internalResult[
           MEMORY_ANSWER_CONFIRMATION_CANONICAL_MATCHES
         ]

@@ -37,8 +37,15 @@ memory. The host now rejects that internal contradiction and lets the model
 correct its recommendation. This is evidence bookkeeping, not a host-authored
 decision about which memory is semantically important.
 
-All work was provider-free. Focused tests pass 43/43, core tests 87/87,
-quickstart 6/6, and legacy 923 pass with 15 optional skips and zero failures.
+Another review found a narrow concurrency looph available to custom provider
+code: it could launch the last search without waiting for the result, then try
+to commit against the previous page. Palari now refuses that commit until the
+search finishes and its new page is reviewed. This does not add another model
+reasoning rule; it only prevents unfinished work from being mistaken for
+finished work.
+
+All work was provider-free. Focused tests pass 44/44, core tests 88/88,
+quickstart 6/6, and legacy 924 pass with 15 optional skips and zero failures.
 
 ## What To Check
 

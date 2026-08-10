@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0041
 children: []
-status: in-review
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-10T00:21:56Z
 target_branch: "main"
 branch: "ticket/BRN-0041-let-the-model-own-confirmation-work"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0041-let-the-model-own-confirmation-work"
@@ -207,4 +207,15 @@ finding the reviewer itself marked material. Real OpenAI integration tests
 cover both clean closure and bounded-incomplete repair. Focused tests now pass
 43/43; core remains 87/87; quickstart remains 6/6; legacy passes 923 with 15
 optional skips and zero failures across 938 tests. Fresh independent review is
+still required.
+
+A third independent review found a race available to custom providers that do
+not await retrieval: the final allowed search incremented the call count
+before its new page replaced the previously assessed page, so bounded commit
+could pass while that search was outstanding. The host now tracks pending
+confirmation searches, rejects concurrent searches, and rejects bounded
+completion until no search is pending. A real 20-plus-one candidate regression
+proves the final unseen item must settle and be reviewed. Focused tests pass
+44/44, core passes 88/88, quickstart passes 6/6, and legacy passes 924 with 15
+optional skips and zero failures across 939 tests. Fresh independent review is
 still required.

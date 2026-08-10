@@ -466,6 +466,18 @@ tests now pass 43/43 and the complete legacy suite passes 923 with 15 optional
 skips and zero failures across 938 tests; core and quickstart remain 87/87 and
 6/6. This correction was also entirely provider-free.
 
+A third independent review found a custom-provider race at the same emergency
+boundary. A provider could launch the last search without awaiting it and ask
+for bounded completion while the search counter was exhausted but the new
+page had not yet replaced the previously assessed page. The host now tracks
+outstanding confirmation searches synchronously, refuses concurrent searches,
+and refuses bounded completion until the final search has settled. A real
+provider-free regression fills one 20-item page, launches a final search that
+returns one genuinely unseen item, and proves commitment stays blocked until
+that item is reviewed. Focused tests now pass 44/44, core passes 88/88,
+quickstart passes 6/6, and legacy passes 924 with 15 optional skips and zero
+failures across 939 tests.
+
 ## Current state
 
 BRN-0035 is independently accepted and merged at `23da4f1`. The default gate

@@ -18,10 +18,10 @@
 ## Verification
 
 - `node --test tests/answer-confirmation.contract.test.mjs tests/openai.contract.test.mjs`:
-  43/43 pass.
-- `npm test`: 87/87 pass.
+  44/44 pass.
+- `npm test`: 88/88 pass.
 - `npm run quickstart`: 6/6 pass.
-- `npm run test:legacy`: 923 pass, 15 optional skips, 0 failures, 938 total.
+- `npm run test:legacy`: 924 pass, 15 optional skips, 0 failures, 939 total.
 - `git diff --check`: pass before closeout.
 - All work is provider-free; no credential, private evaluation artifact,
   dataset, sealed U8, or mutable aggregate ledger was accessed.
@@ -57,6 +57,12 @@
   only stale evidence. The host now rejects that contradiction and asks the
   same model to repair it. Real normal-closure and bounded-incomplete tests
   prove that the corrected Nova recommendation replaces the stale Atlas one.
+- A third independent review found that a custom provider could start its last
+  search without awaiting it and commit against the previously assessed page
+  while that search was still running. The host now tracks pending searches,
+  refuses concurrent confirmation searches, and refuses bounded completion
+  until the final search settles. A real 20-item page plus one final unseen
+  item proves the final item must be assessed before commitment.
 
 ## Risks / Follow-Ups
 

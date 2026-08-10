@@ -981,3 +981,81 @@ test('confirmation returns the latest valid answer when its emergency bound is r
       [oldRow.evidenceId, newRow.evidenceId],
     )
   })
+
+test('bounded confirmation cannot commit while its final search is outstanding',
+  async (t) => {
+    const brain = await openBrain(t)
+    for (let index = 0; index < 22; index += 1) {
+      await seed(
+        brain,
+        `Race archive item ${index} stores marker ${1000 + index}.`,
+        `pending-search:${index}`,
+      )
+    }
+    let original
+    const provider = requireCommitment(async ({ commitAnswer, retrieve }) => {
+      const found = await retrieve({
+        input: { limit: 1, phrase: 'Race archive item 0 marker 1000' },
+        tool: 'memory_search',
+      })
+      original = found.matches.find((row) =>
+        row.speaker === 'user' && row.text.includes('marker 1000'))
+      assert.ok(original)
+      return commitAnswer(proposal('The first marker is 1000.', [
+        original,
+      ]))
+    })
+    let finalRow
+    const confirmationProvider = requireCommitment(async (context) => {
+      const first = await context.retrieve({
+        input: { phrase: 'Race archive item stores marker' },
+        tool: 'memory_search',
+      })
+      assert.equal(first.matches.length, 20)
+      const firstMaterialRow = first.matches[0]
+      await reviewCandidates(context, [firstMaterialRow], 'material')
+
+      const outstanding = context.retrieve({
+        input: { phrase: 'Race archive item stores marker' },
+        tool: 'memory_search',
+      })
+      assert.throws(
+        () => context.commitIncompleteAnswer(proposal(
+          'Twenty-one archive markers are currently accounted for.',
+          [original, firstMaterialRow],
+        )),
+        (error) => error.code === 'MEMORY_ANSWER_CONFIRMATION_REQUIRED' &&
+          /no outstanding search/.test(error.message),
+      )
+
+      const final = await outstanding
+      finalRow = final.matches.find((row) => row.speaker === 'user')
+      assert.ok(finalRow)
+      assert.ok(!first.matches.some((row) =>
+        row.evidenceId === finalRow.evidenceId))
+      assert.throws(
+        () => context.commitIncompleteAnswer(proposal(
+          'Twenty-one archive markers are currently accounted for.',
+          [original, firstMaterialRow],
+        )),
+        (error) => error.code === 'MEMORY_ANSWER_CONFIRMATION_REQUIRED',
+      )
+      await reviewCandidates(context, [finalRow], 'material')
+      return context.commitIncompleteAnswer(proposal(
+        'The reviewed archive markers are accounted for.',
+        [original, firstMaterialRow, finalRow],
+      ))
+    })
+
+    const result = await answerWithRetrieval(brain, {
+      ...SCOPE,
+      confirmationProvider,
+      maxConfirmationRetrievalCalls: 2,
+      provider,
+      question: 'What are all the race archive markers?',
+    })
+    assert.equal(result.answerConfirmation.status, 'bounded_incomplete')
+    assert.equal(result.answerConfirmation.retrievalCalls, 2)
+    assert.equal(result.answerConfirmation.reviewCalls, 2)
+    assert.ok(result.selectedEvidenceIds.includes(finalRow.evidenceId))
+  })
