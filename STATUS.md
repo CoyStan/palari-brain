@@ -22,13 +22,14 @@ zero failures across 950 tests. The inert Ettin identity verifier still pins
 the same model, three modular-head artifacts, 16-case bank, and audited
 Transformers.js 4.2.0 closure. A new external-path `--profile` mode can repeat
 a mixed-length 50-pair native workload and record within-run repeat stability,
-schedule shapes, latency, and RSS, but it was not executed in this ticket
-because the audited runtime and model cache are intentionally outside the
-ticket worktree and private alpha artifacts are forbidden. Accordingly this
-work proves scheduling, cleanup, ordering, lifecycle, and the confirmation
-boundary; it does not yet claim a measured native RSS ceiling or resume any
-paid hard case. Historical rank parity separately requires the frozen-bank
-`--run`, which also was not executed in this ticket.
+schedule shapes, latency, and RSS. After the ticket merge, the frozen bank and
+native profile ran against the audited external runtime and model cache. The
+frozen bank kept recall@5 at 15/15, placed the expected result first in 14/15
+cases, and measured MRR 0.9667. Its 37.51 ms warm mean was 43.5% slower than
+the prior 26.14 ms run. The 20-by-50-pair profile was stable, had zero score
+change, and reached a 3.19 GiB process RSS high-water mark. It used 13 batches
+per iteration; the longest pair had 6,421 tokens. These are local diagnostic
+measurements, not a release benchmark regrade.
 
 Independent review reopened the first candidate after finding that one
 successfully loaded native component could be orphaned when a parallel factory
@@ -38,14 +39,13 @@ post-load validation: every fulfilled disposable component is rolled back
 before the load error escapes. The profile now records a typed failed result
 when close fails. Provider-free regressions reproduce both findings.
 
-The active T3 service currently exposes a 6 GiB memory limit and 512 MiB swap
-limit. BRN-0043 does not mutate systemd, cgroups, containers, T3, or deployment
-state, so OS-level worker containment remains a separate operations step.
-Likewise 512-token Ettin passage windows, MaxP, AVX2 uint8, fused-head ONNX,
-candidate reduction below 50, and model/runtime replacement remain separate
-quality challengers after the full-context FP32 safety baseline receives its
-frozen-bank parity run, native profile, and independent review. No provider,
-credential, dataset, private alpha artifact, or sealed U8 question was accessed.
+The active T3 service exposed a 12 GiB memory limit during post-merge native
+validation. BRN-0043 does not mutate systemd, cgroups, containers, T3, or
+deployment state, so OS-level worker containment remains a separate operations
+step. Likewise 512-token Ettin passage windows, MaxP, AVX2 uint8, fused-head
+ONNX, candidate reduction below 50, and model/runtime replacement remain
+separate quality challengers. No provider, credential, dataset, private alpha
+artifact, or sealed U8 question was accessed during the ticket review itself.
 
 The OpenAI final-answer wire no longer asks the model to transcribe evidence
 IDs or quote text already held by the host. For every answer base, the model
@@ -105,6 +105,23 @@ OpenAI answer dispatches, `$0.00040575` for embeddings, and `$0.00397750` for
 six judge calls. Four interrupted cases conservatively retained `$2.80` in
 reservations, so the aggregate ledger advanced by `$2.95372462` to
 `$46.71139410`, leaving `$3.28860590` under the approved `$50` ceiling.
+
+After the native safety checks passed, the founder approved one no-retry canary
+and then the other three interrupted cases as separate processes. The charity
+canary answered two months and was judged correct. The fitness case answered
+five classes and was judged correct. The furniture case answered three; the
+reference is four, so the judge marked it incorrect. The final airline case
+did not reach an answer or judge because OpenAI returned HTTP 429. It was not
+retried. The honest continuation result is therefore two correct and one
+incorrect among three judged answers, plus one unjudged provider failure.
+
+All four processes exited without host memory pressure. Their process RSS
+high-water marks ranged from 1.23 GiB to 1.62 GiB, and the T3 cgroup recorded
+zero `memory.max`, OOM, and OOM-kill events throughout. This removes the prior
+exit-137 infrastructure blocker for these workloads on the current host. The
+three completed cases measured `$0.06219460`. The provider failure retained
+its full `$0.70` reservation, so the aggregate ledger advanced by `$0.76219460`
+to `$47.47358870`, leaving `$2.52641130` under the approved `$50` ceiling.
 
 ## 2026-08-09 current handoff
 
@@ -1544,11 +1561,13 @@ explicit founder-approved aggregate cap and process plan. Run future hard cases
 as separate processes on this host so native reranker memory is reclaimed at
 each case boundary.
 
-Before any continuation of the four newly unjudged cases, diagnose the host
-memory ceiling provider-free. Three separate processes still died with exit
-137, so another identical paid rerun would likely spend reservations without
-producing grades. Any continuation remains a new run requiring an explicit
-aggregate cap; do not reuse or reinterpret the `inflight` artifacts.
+The four interrupted cases have now received one clean continuation under
+the bounded reranker. Do not replay the three completed cases. Treat the
+furniture result as a semantic count/ownership miss: inspect provider-free why
+the ordered mattress was excluded before changing retrieval or answer policy.
+The airline case remains unjudged because of HTTP 429. Do not retry it without
+a new explicit process plan; do not reuse or reinterpret an old `inflight`
+artifact.
 
 Do not tune retrieval further for `0a995998`: all three original statements
 were returned and enumerated. The general policy now treats an action phrased
