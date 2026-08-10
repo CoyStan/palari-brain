@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0042
 children: []
-status: open
+status: claimed
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by:
-claimed_at:
+claimed_by: "quetza"
+claimed_at: 2026-08-10T04:14:34Z
 target_branch: "main"
 branch: "ticket/BRN-0042-bind-final-answer-evidence-in-the-host"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0042-bind-final-answer-evidence-in-the-host"

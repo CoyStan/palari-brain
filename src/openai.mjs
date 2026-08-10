@@ -3,8 +3,8 @@
 // This module is inert until a caller invokes one of the returned functions.
 // It never reads environment variables, imports a provider SDK, retries a
 // request, or grants a model memory authority. The host still owns scope,
-// provenance, exact-quote checks, admission, revision control, deletion, and
-// every retrieval call.
+// provenance, canonical evidence binding, admission, revision control,
+// deletion, and every retrieval call.
 
 import {
   markReducerFailureTerminal,
@@ -55,6 +55,11 @@ export const OPENAI_MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 export const OPENAI_REDUCER_MAX_OUTPUT_TOKENS = 2_000
 export const OPENAI_GRAPH_MAX_OUTPUT_TOKENS = 2_000
 export const OPENAI_ANSWER_COMMIT_TOOL_NAME = 'palari_answer_commit'
+
+const OPENAI_ANSWER_BASIS_DISPOSITIONS = Object.freeze([
+  'used',
+  'not_used',
+])
 
 const REASONING_EFFORTS = new Set([
   'none',
@@ -445,11 +450,19 @@ function answerInput({ memoryText, questionText }) {
 function createAnswerEvidenceReferences() {
   const evidenceIdByNumber = []
   const numberByEvidenceId = new Map()
+  const quoteByEvidenceId = new Map()
 
-  const register = (rawEvidenceId) => {
+  const register = (rawEvidenceId, rawQuote = '') => {
     const evidenceId = String(rawEvidenceId ?? '').trim()
     if (!evidenceId) return null
     const existing = numberByEvidenceId.get(evidenceId)
+    const quote = String(rawQuote ?? '').trim().slice(
+      0,
+      MEMORY_ANSWER_MAX_QUOTE_CHARS,
+    )
+    if (quote && !quoteByEvidenceId.has(evidenceId)) {
+      quoteByEvidenceId.set(evidenceId, quote)
+    }
     if (existing !== undefined) return existing
     const memoryNumber = evidenceIdByNumber.length + 1
     evidenceIdByNumber.push(evidenceId)
@@ -472,7 +485,7 @@ function createAnswerEvidenceReferences() {
         !citableText.trim()) {
         return copy
       }
-      const memoryNumber = register(copy.evidenceId)
+      const memoryNumber = register(copy.evidenceId, citableText)
       return memoryNumber === null ? copy : { ...copy, memoryNumber }
     })
   }
@@ -496,6 +509,18 @@ function createAnswerEvidenceReferences() {
       )
     }
     return evidenceIdByNumber[value - 1]
+  }
+
+  const evidenceBinding = (value, label) => {
+    const boundEvidenceId = evidenceId(value, label)
+    const quote = quoteByEvidenceId.get(boundEvidenceId)
+    if (!quote) {
+      throw adapterError(
+        'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+        `${label} does not have host-owned returned evidence text.`,
+      )
+    }
+    return { evidenceId: boundEvidenceId, quote }
   }
 
   const numberedArray = (value, label) => {
@@ -553,23 +578,32 @@ function createAnswerEvidenceReferences() {
     const bases = proposal.bases.map((basis, index) => {
       if (!exactKeys(basis, [
         'memoryNumber',
-        'quote',
-        'consequence_for_answer',
-        'not_used_reason',
+        'disposition',
+        'rationale',
       ])) {
         throw adapterError(
           'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
-          `Answer basis ${index} must use memoryNumber.`,
+          `Answer basis ${index} must use memoryNumber, disposition, and rationale.`,
         )
       }
+      if (basis.disposition !== 'used' &&
+        basis.disposition !== 'not_used') {
+        throw adapterError(
+          'OPENAI_ANSWER_MEMORY_REFERENCE_INVALID',
+          `Answer basis ${index} disposition must be used or not_used.`,
+        )
+      }
+      const binding = evidenceBinding(
+        basis.memoryNumber,
+        `Answer basis ${index} memoryNumber`,
+      )
       return {
-        consequence_for_answer: basis.consequence_for_answer,
-        evidenceId: evidenceId(
-          basis.memoryNumber,
-          `Answer basis ${index} memoryNumber`,
-        ),
-        not_used_reason: basis.not_used_reason,
-        quote: basis.quote,
+        consequence_for_answer:
+          basis.disposition === 'used' ? basis.rationale : '',
+        evidenceId: binding.evidenceId,
+        not_used_reason:
+          basis.disposition === 'not_used' ? basis.rationale : '',
+        quote: binding.quote,
       }
     })
     const temporaryInferences = proposal.temporaryInferences.map(
@@ -619,7 +653,6 @@ function createAnswerEvidenceReferences() {
             'label',
             'action',
             'memoryNumber',
-            'quote',
             'disposition',
             'reason',
           ])) {
@@ -628,15 +661,16 @@ function createAnswerEvidenceReferences() {
               `Enumeration item ${index} must use memoryNumber.`,
             )
           }
+          const binding = evidenceBinding(
+            item.memoryNumber,
+            `Enumeration item ${index} memoryNumber`,
+          )
           return {
             action: item.action,
             disposition: item.disposition,
-            evidenceId: evidenceId(
-              item.memoryNumber,
-              `Enumeration item ${index} memoryNumber`,
-            ),
+            evidenceId: binding.evidenceId,
             label: item.label,
-            quote: item.quote,
+            quote: binding.quote,
             reason: item.reason,
           }
         }),
@@ -659,7 +693,7 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
   description: [
     'Commit the final answer after memory evidence was returned.',
     'Select only memories actually assessed for the answer; not every retrieved row needs a basis.',
-    'Every selected basis must use the short answer-local memoryNumber shown on returned evidence, copy an exact contiguous quote, and set exactly one non-empty consequence_for_answer or not_used_reason. Never reproduce an opaque evidenceId.',
+    'Every selected basis must use the short answer-local memoryNumber shown on returned evidence, classify it as used or not_used, and explain that judgment in one non-empty rationale. The host binds the canonical evidence ID and a bounded exact returned excerpt; never reproduce either one.',
     'A cross-context inference must remain temporary, cite selected provenance, set revisable true, and state its consequence; never report it as a canonical user fact.',
     'Use abstained true when selected evidence does not support an answer.',
   ].join(' '),
@@ -673,25 +707,23 @@ const OPENAI_ANSWER_COMMIT_TOOL = deepFreeze({
           additionalProperties: false,
           properties: {
             memoryNumber: { minimum: 1, type: 'integer' },
-            quote: {
-              maxLength: MEMORY_ANSWER_MAX_QUOTE_CHARS,
+            disposition: {
+              enum: [...OPENAI_ANSWER_BASIS_DISPOSITIONS],
+              type: 'string',
+            },
+            rationale: {
+              maxLength: Math.max(
+                MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS,
+                MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
+              ),
               minLength: 1,
-              type: 'string',
-            },
-            consequence_for_answer: {
-              maxLength: MEMORY_ANSWER_MAX_CONSEQUENCE_CHARS,
-              type: 'string',
-            },
-            not_used_reason: {
-              maxLength: MEMORY_ANSWER_MAX_NOT_USED_REASON_CHARS,
               type: 'string',
             },
           },
           required: [
             'memoryNumber',
-            'quote',
-            'consequence_for_answer',
-            'not_used_reason',
+            'disposition',
+            'rationale',
           ],
           type: 'object',
         },
@@ -773,11 +805,6 @@ const OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL = deepFreeze({
                   type: 'string',
                 },
                 memoryNumber: { minimum: 1, type: 'integer' },
-                quote: {
-                  maxLength: MEMORY_ANSWER_MAX_QUOTE_CHARS,
-                  minLength: 1,
-                  type: 'string',
-                },
                 disposition: {
                   enum: [...MEMORY_ANSWER_ENUMERATION_DISPOSITIONS],
                   type: 'string',
@@ -792,7 +819,6 @@ const OPENAI_ANSWER_ENUMERATION_COMMIT_TOOL = deepFreeze({
                 'label',
                 'action',
                 'memoryNumber',
-                'quote',
                 'disposition',
                 'reason',
               ],
@@ -859,9 +885,9 @@ const OPENAI_ANSWER_SUPPORTED_COMMIT_TOOL = deepFreeze({
 
 const ANSWER_COMMIT_REPAIR_INSTRUCTIONS = [
   'Return the final answer only by calling palari_answer_commit.',
-  'Use only short answer-local memoryNumber values and exact contiguous quotes from memory results already returned in this answer session; never reproduce an opaque evidenceId.',
+  'Use only short answer-local memoryNumber values from evidence already returned in this answer session; the host binds canonical IDs and bounded exact returned excerpts, so never reproduce either one.',
   'Use each memoryNumber at most once; combine multiple implications from one canonical message into one basis.',
-  'For each selected basis set exactly one non-empty consequence_for_answer or not_used_reason; leave unrelated retrieved rows unselected.',
+  'For each selected basis set disposition to used or not_used and give one non-empty rationale; leave unrelated retrieved rows unselected.',
   'Keep cross-context inferences temporary, provenance-linked, and revisable.',
   'No memory tool is available during this repair.',
 ].join(' ')

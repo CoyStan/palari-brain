@@ -113,10 +113,11 @@ function numberedEvidenceAnswer(text, entries) {
   return {
     abstained: false,
     bases: entries.map(({ row, used = true }, index) => ({
-      consequence_for_answer: used ? 'This determines the answer.' : '',
+      disposition: used ? 'used' : 'not_used',
       memoryNumber: row.memoryNumber ?? index + 1,
-      not_used_reason: used ? '' : 'This was superseded by newer evidence.',
-      quote: row.text,
+      rationale: used
+        ? 'This determines the answer.'
+        : 'This was superseded by newer evidence.',
     })),
     temporaryInferences: [],
     text,
@@ -428,11 +429,16 @@ test('OpenAI answer commitment wire distinguishes use, non-use, and temporary in
     ])
     assert.deepEqual(commit.parameters.properties.bases.items.required, [
       'memoryNumber',
-      'quote',
-      'consequence_for_answer',
-      'not_used_reason',
+      'disposition',
+      'rationale',
     ])
-    assert.ok(!JSON.stringify(commit.parameters).includes('evidenceId'))
+    const commitSchema = JSON.stringify(commit.parameters)
+    assert.ok(!commitSchema.includes('evidenceId'))
+    assert.ok(!commitSchema.includes('quote'))
+    assert.deepEqual(
+      commit.parameters.properties.bases.items.properties.disposition.enum,
+      ['used', 'not_used'],
+    )
     assert.ok(commit.parameters.properties.temporaryInferences.items.required
       .includes('provenanceMemoryNumbers'))
     assert.deepEqual(
@@ -478,10 +484,9 @@ test('OpenAI binds stable memory numbers across all answer commitment surfaces',
         return completedCommit({
           abstained: false,
           bases: [{
-            consequence_for_answer: 'Alpha is included.',
+            disposition: 'used',
             memoryNumber: 1,
-            not_used_reason: '',
-            quote: 'Alpha memory.',
+            rationale: 'Alpha is included.',
           }],
           enumeration: {
             ambiguousCount: 0,
@@ -491,7 +496,6 @@ test('OpenAI binds stable memory numbers across all answer commitment surfaces',
               disposition: 'included',
               label: 'Beta',
               memoryNumber: 2,
-              quote: 'Beta memory.',
               reason: 'It is directly supported.',
             }],
             referencedCount: 1,
@@ -511,7 +515,12 @@ test('OpenAI binds stable memory numbers across all answer commitment surfaces',
       answerEvidenceCount: () => evidenceCount,
       commitAnswer(proposal) {
         assert.equal(proposal.bases[0].evidenceId, 'opaque-alpha')
+        assert.equal(proposal.bases[0].quote, 'Alpha memory.')
+        assert.equal(proposal.bases[0].consequence_for_answer,
+          'Alpha is included.')
+        assert.equal(proposal.bases[0].not_used_reason, '')
         assert.equal(proposal.enumeration.items[0].evidenceId, 'opaque-beta')
+        assert.equal(proposal.enumeration.items[0].quote, 'Beta memory.')
         assert.deepEqual(
           proposal.temporaryInferences[0].provenanceEvidenceIds,
           ['opaque-alpha', 'opaque-gamma'],
@@ -541,6 +550,52 @@ test('OpenAI binds stable memory numbers across all answer commitment surfaces',
 
     assert.equal(result.text, 'Use alpha and beta.')
     assert.equal(bodies.length, 3)
+  })
+
+test('OpenAI rejects provider-authored quotes and repairs with host-owned text',
+  async () => {
+    const bodies = []
+    let evidenceCount = 0
+    const row = {
+      evidenceId: 'opaque-host-bound',
+      text: 'The spare key is inside the blue drawer.',
+    }
+    const valid = numberedEvidenceAnswer(
+      'The spare key is inside the blue drawer.',
+      [{ row }],
+    )
+    const stale = structuredClone(valid)
+    stale.bases[0].quote = 'provider-authored copy'
+    const provider = createOpenAIRetrievalProvider({
+      async invoke({ body }) {
+        bodies.push(body)
+        if (bodies.length === 1) return completedCall()
+        return completedCommit(bodies.length === 2 ? stale : valid, {
+          callId: bodies.length === 2 ? 'stale-quote' : 'repaired-commit',
+        })
+      },
+    })
+    const result = await provider(answerSession({
+      answerEvidenceCount: () => evidenceCount,
+      commitAnswer(proposal) {
+        assert.equal(proposal.bases[0].evidenceId, row.evidenceId)
+        assert.equal(proposal.bases[0].quote, row.text)
+        return Object.freeze(proposal)
+      },
+      async retrieve() {
+        evidenceCount = 1
+        return { matches: [row] }
+      },
+    }))
+
+    assert.equal(result.text, 'The spare key is inside the blue drawer.')
+    assert.equal(bodies.length, 3)
+    const rejection = bodies[2].input.find((item) =>
+      item.type === 'function_call_output' && item.call_id === 'stale-quote')
+    assert.match(
+      JSON.parse(rejection.output).rejection,
+      /memoryNumber, disposition, and rationale/,
+    )
   })
 
 test('OpenAI translates recommendation memory numbers to host evidence IDs',
@@ -769,7 +824,7 @@ test('invalid commitment gets one repair and a second invalid result is terminal
         text: 'I packed a yellow raincoat.',
       }
       const invalid = numberedEvidenceAnswer('Unsupported answer.', [{
-        row: { memoryNumber: 2, text: 'fabricated quote' },
+        row: { memoryNumber: 2 },
       }])
       const valid = numberedEvidenceAnswer(
         'The returned memory is about a yellow raincoat, not the requested item.',
@@ -1743,10 +1798,9 @@ test('OpenAI retrieval provider composes with the real bounded answer path',
         return completedCommit({
           abstained: false,
           bases: [{
-            consequence_for_answer: 'This determines the answer.',
+            disposition: 'used',
             memoryNumber: found.matches[0].memoryNumber,
-            not_used_reason: '',
-            quote: found.matches[0].snippet,
+            rationale: 'This determines the answer.',
           }],
           temporaryInferences: [],
           text: 'You like jasmine tea.',
