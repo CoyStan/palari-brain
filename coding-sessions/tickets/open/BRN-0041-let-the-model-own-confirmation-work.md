@@ -6,12 +6,12 @@ level: 1
 parent_id: 
 root_id: BRN-0041
 children: []
-status: claimed
+status: in-review
 risk: R2
 priority: P0
 agents_allowed: 1
-claimed_by: "quetza"
-claimed_at: 2026-08-09T23:44:22Z
+claimed_by:
+claimed_at:
 target_branch: "main"
 branch: "ticket/BRN-0041-let-the-model-own-confirmation-work"
 worktree: "/home/quetza/palari-brain-worktrees/BRN-0041-let-the-model-own-confirmation-work"
@@ -54,7 +54,7 @@ verification:
   - "npm run test:legacy"
   - "npm run ticket -- check BRN-0041"
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-10
 ---
 
 # BRN-0041 Let the model own confirmation work
