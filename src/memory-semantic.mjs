@@ -22,11 +22,18 @@
 // embedded by the same model yields the same ranking, with chronology
 // breaking ties.
 
+import {
+  semanticVectorLocatorKey,
+} from './semantic-hnsw.mjs'
+
 const VECTOR_TABLE = 'dialogue_evidence_vectors'
 const VECTOR_PENDING_TABLE = 'dialogue_evidence_vector_pending'
+const VECTOR_SCOPE_VERSION_TABLE = 'dialogue_evidence_vector_scope_versions'
+const HNSW_SNAPSHOT_TABLE = 'dialogue_evidence_hnsw_snapshots'
 const MAX_SEMANTIC_BATCH_PHRASES = 16
 const DEFAULT_SEMANTIC_CATCH_UP_ROWS = 64
 const MAX_SEMANTIC_CATCH_UP_ROWS = 200
+const semanticReadyDatabases = new WeakSet()
 
 // Internal identity used by the answer orchestrator. The public error still
 // has a stable string code; the symbol prevents an unrelated embedder error
@@ -36,20 +43,18 @@ export const SEMANTIC_INDEX_CATCHING_UP = Symbol(
 )
 
 function ensureSemanticIndex(db) {
-  const table = db.prepare(`
-    SELECT 1 AS present
-    FROM sqlite_master
-    WHERE type = 'table' AND name = ?
-  `)
-  const needsSeed = !table.get(VECTOR_TABLE)?.present ||
-    !table.get(VECTOR_PENDING_TABLE)?.present
-  if (needsSeed) db.exec('BEGIN IMMEDIATE')
+  if (semanticReadyDatabases.has(db)) return
+  db.exec('BEGIN IMMEDIATE')
   try {
+    // The earlier trigger watched content only. Recreate it under the same
+    // stable name so scope moves cannot retain a vector bound to its old key.
+    db.exec(`DROP TRIGGER IF EXISTS ${VECTOR_TABLE}_au`)
     db.exec(`
       CREATE TABLE IF NOT EXISTS ${VECTOR_TABLE} (
         evidence_id TEXT PRIMARY KEY,
         dims INTEGER NOT NULL,
-        vector BLOB NOT NULL
+        vector BLOB NOT NULL,
+        locator_key TEXT
       );
       CREATE TABLE IF NOT EXISTS ${VECTOR_PENDING_TABLE} (
         evidence_id TEXT PRIMARY KEY,
@@ -57,6 +62,8 @@ function ensureSemanticIndex(db) {
         user_id TEXT NOT NULL,
         dialogue_order INTEGER NOT NULL
       );
+      CREATE INDEX IF NOT EXISTS ${VECTOR_TABLE}_locator_key
+        ON ${VECTOR_TABLE} (locator_key);
       CREATE INDEX IF NOT EXISTS ${VECTOR_PENDING_TABLE}_scope_order
         ON ${VECTOR_PENDING_TABLE} (
           palari_id,
@@ -64,12 +71,31 @@ function ensureSemanticIndex(db) {
           dialogue_order,
           evidence_id
         );
+      CREATE TABLE IF NOT EXISTS ${VECTOR_SCOPE_VERSION_TABLE} (
+        palari_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        revision INTEGER NOT NULL,
+        PRIMARY KEY (palari_id, user_id)
+      );
+      CREATE TABLE IF NOT EXISTS ${HNSW_SNAPSHOT_TABLE} (
+        palari_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        revision INTEGER NOT NULL,
+        entries INTEGER NOT NULL,
+        index_entries INTEGER NOT NULL,
+        source_dims INTEGER NOT NULL,
+        format TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        file_bytes INTEGER NOT NULL,
+        file_sha256 TEXT NOT NULL,
+        PRIMARY KEY (palari_id, user_id)
+      );
       CREATE TRIGGER IF NOT EXISTS ${VECTOR_TABLE}_ad
       AFTER DELETE ON dialogue_evidence BEGIN
         DELETE FROM ${VECTOR_TABLE} WHERE evidence_id = old.id;
       END;
       CREATE TRIGGER IF NOT EXISTS ${VECTOR_TABLE}_au
-      AFTER UPDATE OF content ON dialogue_evidence BEGIN
+      AFTER UPDATE OF content, palari_id, user_id ON dialogue_evidence BEGIN
         DELETE FROM ${VECTOR_TABLE} WHERE evidence_id = old.id;
       END;
       CREATE TRIGGER IF NOT EXISTS ${VECTOR_PENDING_TABLE}_ai
@@ -89,28 +115,116 @@ function ensureSemanticIndex(db) {
       AFTER DELETE ON dialogue_evidence BEGIN
         DELETE FROM ${VECTOR_PENDING_TABLE} WHERE evidence_id = old.id;
       END;
+      CREATE TRIGGER IF NOT EXISTS ${VECTOR_SCOPE_VERSION_TABLE}_ai
+      AFTER INSERT ON dialogue_evidence BEGIN
+        INSERT INTO ${VECTOR_SCOPE_VERSION_TABLE}
+          (palari_id, user_id, revision)
+        VALUES (new.palari_id, new.user_id, 1)
+        ON CONFLICT (palari_id, user_id) DO UPDATE SET
+          revision = revision + 1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS ${VECTOR_SCOPE_VERSION_TABLE}_au_same
+      AFTER UPDATE OF content, palari_id, user_id, dialogue_order
+      ON dialogue_evidence
+      WHEN old.palari_id = new.palari_id AND old.user_id = new.user_id BEGIN
+        INSERT INTO ${VECTOR_SCOPE_VERSION_TABLE}
+          (palari_id, user_id, revision)
+        VALUES (new.palari_id, new.user_id, 1)
+        ON CONFLICT (palari_id, user_id) DO UPDATE SET
+          revision = revision + 1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS ${VECTOR_SCOPE_VERSION_TABLE}_au_old
+      AFTER UPDATE OF content, palari_id, user_id, dialogue_order
+      ON dialogue_evidence
+      WHEN old.palari_id <> new.palari_id OR old.user_id <> new.user_id BEGIN
+        INSERT INTO ${VECTOR_SCOPE_VERSION_TABLE}
+          (palari_id, user_id, revision)
+        VALUES (old.palari_id, old.user_id, 1)
+        ON CONFLICT (palari_id, user_id) DO UPDATE SET
+          revision = revision + 1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS ${VECTOR_SCOPE_VERSION_TABLE}_au_new
+      AFTER UPDATE OF content, palari_id, user_id, dialogue_order
+      ON dialogue_evidence
+      WHEN old.palari_id <> new.palari_id OR old.user_id <> new.user_id BEGIN
+        INSERT INTO ${VECTOR_SCOPE_VERSION_TABLE}
+          (palari_id, user_id, revision)
+        VALUES (new.palari_id, new.user_id, 1)
+        ON CONFLICT (palari_id, user_id) DO UPDATE SET
+          revision = revision + 1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS ${VECTOR_SCOPE_VERSION_TABLE}_ad
+      AFTER DELETE ON dialogue_evidence BEGIN
+        INSERT INTO ${VECTOR_SCOPE_VERSION_TABLE}
+          (palari_id, user_id, revision)
+        VALUES (old.palari_id, old.user_id, 1)
+        ON CONFLICT (palari_id, user_id) DO UPDATE SET
+          revision = revision + 1;
+      END;
     `)
-    if (needsSeed) {
-      db.exec(`
-        INSERT OR IGNORE INTO ${VECTOR_PENDING_TABLE} (
-          evidence_id,
-          palari_id,
-          user_id,
-          dialogue_order
-        )
-        SELECT
-          e.id,
-          e.palari_id,
-          e.user_id,
-          e.dialogue_order
-        FROM dialogue_evidence e
-        LEFT JOIN ${VECTOR_TABLE} v ON v.evidence_id = e.id
-        WHERE v.evidence_id IS NULL;
-      `)
-      db.exec('COMMIT')
+    const vectorColumns = new Set(
+      db.prepare(`PRAGMA table_info(${VECTOR_TABLE})`).all()
+        .map((column) => String(column.name)),
+    )
+    if (!vectorColumns.has('locator_key')) {
+      db.exec(`ALTER TABLE ${VECTOR_TABLE} ADD COLUMN locator_key TEXT`)
     }
+    const snapshotColumns = new Set(
+      db.prepare(`PRAGMA table_info(${HNSW_SNAPSHOT_TABLE})`).all()
+        .map((column) => String(column.name)),
+    )
+    if (!snapshotColumns.has('index_entries')) {
+      db.exec(`
+        ALTER TABLE ${HNSW_SNAPSHOT_TABLE}
+        ADD COLUMN index_entries INTEGER NOT NULL DEFAULT 0
+      `)
+    }
+    db.exec(`
+      INSERT OR IGNORE INTO ${VECTOR_PENDING_TABLE} (
+        evidence_id,
+        palari_id,
+        user_id,
+        dialogue_order
+      )
+      SELECT
+        e.id,
+        e.palari_id,
+        e.user_id,
+        e.dialogue_order
+      FROM dialogue_evidence e
+      LEFT JOIN ${VECTOR_TABLE} v ON v.evidence_id = e.id
+      WHERE v.evidence_id IS NULL;
+
+      INSERT OR IGNORE INTO ${VECTOR_SCOPE_VERSION_TABLE} (
+        palari_id,
+        user_id,
+        revision
+      )
+      SELECT DISTINCT palari_id, user_id, 0
+      FROM dialogue_evidence;
+    `)
+    const missingKeys = db.prepare(`
+      SELECT v.evidence_id, e.palari_id, e.user_id
+      FROM ${VECTOR_TABLE} v
+      JOIN dialogue_evidence e ON e.id = v.evidence_id
+      WHERE v.locator_key IS NULL
+      ORDER BY v.evidence_id ASC
+    `).all()
+    const bindKey = db.prepare(`
+      UPDATE ${VECTOR_TABLE}
+      SET locator_key = ?
+      WHERE evidence_id = ?
+    `)
+    for (const row of missingKeys) {
+      bindKey.run(semanticVectorLocatorKey({
+        palariId: row.palari_id,
+        userId: row.user_id,
+      }, fromBlob(row.vector)), row.evidence_id)
+    }
+    db.exec('COMMIT')
+    semanticReadyDatabases.add(db)
   } catch (error) {
-    if (needsSeed) db.exec('ROLLBACK')
+    db.exec('ROLLBACK')
     throw error
   }
 }
@@ -186,6 +300,14 @@ function hasMissingVectors(db, { scope, visibleStatementsSql }) {
   )?.missing)
 }
 
+function semanticScopeRevision(db, scope) {
+  return Number(db.prepare(`
+    SELECT revision
+    FROM ${VECTOR_SCOPE_VERSION_TABLE}
+    WHERE palari_id = ? AND user_id = ?
+  `).get(scope.palariId, scope.userId)?.revision ?? 0)
+}
+
 // Index at most one bounded batch of visible journal rows. Repeating this
 // explicit maintenance operation drains a historical backlog; a query also
 // performs at most one such batch before deciding whether its scoped bank is
@@ -224,8 +346,12 @@ export async function indexEvidenceVectors(db, {
   const vectors = await embed(missing.map((row) => String(row.content)))
   assertVectors(vectors, missing.length, 'embed')
   const insert = db.prepare(`
-    INSERT OR REPLACE INTO ${VECTOR_TABLE} (evidence_id, dims, vector)
-    VALUES (?, ?, ?)
+    INSERT INTO ${VECTOR_TABLE} (evidence_id, dims, vector, locator_key)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT (evidence_id) DO UPDATE SET
+      dims = excluded.dims,
+      vector = excluded.vector,
+      locator_key = excluded.locator_key
   `)
   const current = db.prepare(`
     SELECT content
@@ -243,7 +369,12 @@ export async function indexEvidenceVectors(db, {
       const present = current.get(row.id)
       if (!present || String(present.content) !== String(row.content)) continue
       if (remove.run(row.id).changes !== 1) continue
-      insert.run(row.id, vectors[index].length, toBlob(vectors[index]))
+      insert.run(
+        row.id,
+        vectors[index].length,
+        toBlob(vectors[index]),
+        semanticVectorLocatorKey(scope, vectors[index]),
+      )
       indexed += 1
     }
     db.exec('COMMIT')
@@ -279,6 +410,7 @@ function catchingUp(progress) {
 export async function semanticFindEvidenceBatch(db, {
   embed,
   limit = 20,
+  locator = null,
   phrases,
   scope,
   visibleStatementsSql,
@@ -319,41 +451,100 @@ export async function semanticFindEvidenceBatch(db, {
       )
     }
   }
+  const boundedLimit = Math.max(1, Math.min(Number(limit) || 20, 200))
+  let locatorPlan = null
+  if (locator && typeof locator.candidateKeys === 'function') {
+    try {
+      locatorPlan = await locator.candidateKeys(db, {
+        limit: boundedLimit,
+        queryVectors,
+        scope,
+        visibleStatementsSql,
+      })
+    } catch {
+      // HNSW is a disposable optimization. Any failure takes the exact path.
+      locatorPlan = null
+    }
+  }
   // Query embedding is asynchronous, so a canonical write may land after the
   // first completeness check. Pin the final check and vector read to one WAL
   // snapshot; a successful result then covers that complete scoped snapshot.
-  let rows
+  let rowsByQuery = null
   let transactionOpen = true
   db.exec('BEGIN')
   try {
+    const revision = semanticScopeRevision(db, scope)
     if (hasMissingVectors(db, { scope, visibleStatementsSql })) {
       db.exec('ROLLBACK')
       transactionOpen = false
       throw catchingUp(indexProgress(progress.indexed, false))
     }
-    rows = db.prepare(`
-      WITH visible AS (${visibleStatementsSql})
-      SELECT visible.*, v.vector AS semantic_vector
-      FROM visible
-      JOIN ${VECTOR_TABLE} v ON v.evidence_id = visible.id
-    `).all(scope.palariId, scope.userId)
+    if (
+      locatorPlan &&
+      Number(locatorPlan.revision) === revision &&
+      Array.isArray(locatorPlan.candidateKeys) &&
+      locatorPlan.candidateKeys.length === queryVectors.length
+    ) {
+      const keys = [...new Set(locatorPlan.candidateKeys.flat())]
+      if (keys.length) {
+        const placeholders = keys.map(() => '?').join(', ')
+        const candidateRows = db.prepare(`
+          WITH
+            visible AS (${visibleStatementsSql}),
+            candidates AS (
+              SELECT
+                visible.*,
+                v.locator_key AS semantic_locator_key,
+                v.vector AS semantic_vector,
+                ROW_NUMBER() OVER (
+                  PARTITION BY v.locator_key
+                  ORDER BY
+                    visible.event_at ASC,
+                    visible.dialogue_order ASC,
+                    visible.id ASC
+                ) AS semantic_duplicate_rank
+              FROM visible
+              JOIN ${VECTOR_TABLE} v ON v.evidence_id = visible.id
+              WHERE v.locator_key IN (${placeholders})
+            )
+          SELECT *
+          FROM candidates
+          WHERE semantic_duplicate_rank <= ?
+        `).all(scope.palariId, scope.userId, ...keys, boundedLimit)
+        const byKey = new Map()
+        for (const row of candidateRows) {
+          const key = String(row.semantic_locator_key)
+          const group = byKey.get(key) ?? []
+          group.push(row)
+          byKey.set(key, group)
+        }
+        if (keys.every((key) => byKey.has(String(key)))) {
+          rowsByQuery = locatorPlan.candidateKeys.map((queryKeys) =>
+            queryKeys.flatMap((key) => byKey.get(String(key))))
+        }
+      }
+    }
+    if (!rowsByQuery) {
+      const exactRows = db.prepare(`
+        WITH visible AS (${visibleStatementsSql})
+        SELECT visible.*, v.vector AS semantic_vector
+        FROM visible
+        JOIN ${VECTOR_TABLE} v ON v.evidence_id = visible.id
+      `).all(scope.palariId, scope.userId)
+      rowsByQuery = queryVectors.map(() => exactRows)
+    }
     db.exec('COMMIT')
     transactionOpen = false
   } catch (error) {
     if (transactionOpen) db.exec('ROLLBACK')
     throw error
   }
-  const vectorRows = rows.map((row) => ({
-    row,
-    vector: fromBlob(row.semantic_vector),
-  }))
-  const boundedLimit = Math.max(1, Math.min(Number(limit) || 20, 200))
-  return queryVectors.map((queryVector) => {
+  return queryVectors.map((queryVector, queryIndex) => {
     const query = Float32Array.from(queryVector, Number)
-    return vectorRows
-      .map(({ row, vector }) => ({
+    return rowsByQuery[queryIndex]
+      .map((row) => ({
         row,
-        similarity: cosine(query, vector),
+        similarity: cosine(query, fromBlob(row.semantic_vector)),
       }))
       .sort((left, right) =>
         right.similarity - left.similarity ||
@@ -361,7 +552,12 @@ export async function semanticFindEvidenceBatch(db, {
         Number(left.row.dialogue_order) - Number(right.row.dialogue_order))
       .slice(0, boundedLimit)
       .map(({ row, similarity }) => {
-        const { semantic_vector: _vector, ...canonical } = row
+        const {
+          semantic_locator_key: _locatorKey,
+          semantic_duplicate_rank: _duplicateRank,
+          semantic_vector: _vector,
+          ...canonical
+        } = row
         return { ...canonical, similarity }
       })
   })

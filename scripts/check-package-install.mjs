@@ -121,6 +121,7 @@ try {
     'install',
     '--offline',
     '--ignore-scripts',
+    '--omit=optional',
     '--no-audit',
     '--no-fund',
     '--package-lock=false',

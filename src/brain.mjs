@@ -206,7 +206,10 @@ export async function createPalariBrain(options = {}) {
       semantic: typeof options.embedder === 'function',
     })
     return Object.freeze({
-      close: () => store.close(),
+      close: () => {
+        gate.closeDerivedIndexes()
+        store.close()
+      },
       enabled: Boolean(store.enabled),
       forgetById: gate.forgetById,
       forgetRequest: gate.forgetRequest,

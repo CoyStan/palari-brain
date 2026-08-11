@@ -55,6 +55,7 @@
     "src/retrieval-answer.mjs",
     "src/retrieval-frontier.mjs",
     "src/retrieval-plan.mjs",
+    "src/semantic-hnsw.mjs",
     "src/statement-extraction.mjs",
     "src/store.mjs",
     "src/util.mjs",
@@ -68,8 +69,8 @@
     "node": ">=22.5"
   },
   "scripts": {
-    "test": "node --test tests/alpha-memory-debug.contract.test.mjs tests/answer-confirmation.contract.test.mjs tests/content-addressed-embedding-cache.contract.test.mjs tests/current-evidence-review.contract.test.mjs tests/derived-vector-locator.contract.test.mjs tests/embedder-chunked.contract.test.mjs tests/locator-quality-corpus.contract.test.mjs tests/locator-quality-evaluation.contract.test.mjs tests/memory-semantic.contract.test.mjs tests/memory-stage-audit.contract.test.mjs tests/openai-embedding-adapter.contract.test.mjs tests/openai-embedding-representation.contract.test.mjs tests/openai-locator-quality.contract.test.mjs tests/recommendation-fulfillment.contract.test.mjs tests/retrieval-bridge-controls.contract.test.mjs tests/retrieval-frontier.contract.test.mjs tests/retrieval-time-generalization.contract.test.mjs tests/rolling-token-pacer.contract.test.mjs tests/scale-probe.contract.test.mjs tests/scale05-cached-vectors.contract.test.mjs tests/usearch-hnsw-locator.contract.test.mjs",
-    "alpha:check": "node --test tests/alpha-memory-debug.contract.test.mjs tests/answer-confirmation.contract.test.mjs tests/content-addressed-embedding-cache.contract.test.mjs tests/current-evidence-review.contract.test.mjs tests/derived-vector-locator.contract.test.mjs tests/embedder-chunked.contract.test.mjs tests/locator-quality-corpus.contract.test.mjs tests/locator-quality-evaluation.contract.test.mjs tests/memory-semantic.contract.test.mjs tests/memory-stage-audit.contract.test.mjs tests/openai-embedding-adapter.contract.test.mjs tests/openai-embedding-representation.contract.test.mjs tests/openai-locator-quality.contract.test.mjs tests/recommendation-fulfillment.contract.test.mjs tests/retrieval-bridge-controls.contract.test.mjs tests/retrieval-frontier.contract.test.mjs tests/retrieval-time-generalization.contract.test.mjs tests/rolling-token-pacer.contract.test.mjs tests/scale-probe.contract.test.mjs tests/scale05-cached-vectors.contract.test.mjs tests/usearch-hnsw-locator.contract.test.mjs",
+    "test": "node --test tests/alpha-memory-debug.contract.test.mjs tests/answer-confirmation.contract.test.mjs tests/content-addressed-embedding-cache.contract.test.mjs tests/current-evidence-review.contract.test.mjs tests/derived-vector-locator.contract.test.mjs tests/embedder-chunked.contract.test.mjs tests/locator-quality-corpus.contract.test.mjs tests/locator-quality-evaluation.contract.test.mjs tests/memory-semantic.contract.test.mjs tests/memory-stage-audit.contract.test.mjs tests/openai-embedding-adapter.contract.test.mjs tests/openai-embedding-representation.contract.test.mjs tests/openai-locator-quality.contract.test.mjs tests/recommendation-fulfillment.contract.test.mjs tests/retrieval-bridge-controls.contract.test.mjs tests/retrieval-frontier.contract.test.mjs tests/retrieval-time-generalization.contract.test.mjs tests/rolling-token-pacer.contract.test.mjs tests/scale-probe.contract.test.mjs tests/scale05-cached-vectors.contract.test.mjs tests/semantic-hnsw.contract.test.mjs tests/usearch-hnsw-locator.contract.test.mjs",
+    "alpha:check": "node --test tests/alpha-memory-debug.contract.test.mjs tests/answer-confirmation.contract.test.mjs tests/content-addressed-embedding-cache.contract.test.mjs tests/current-evidence-review.contract.test.mjs tests/derived-vector-locator.contract.test.mjs tests/embedder-chunked.contract.test.mjs tests/locator-quality-corpus.contract.test.mjs tests/locator-quality-evaluation.contract.test.mjs tests/memory-semantic.contract.test.mjs tests/memory-stage-audit.contract.test.mjs tests/openai-embedding-adapter.contract.test.mjs tests/openai-embedding-representation.contract.test.mjs tests/openai-locator-quality.contract.test.mjs tests/recommendation-fulfillment.contract.test.mjs tests/retrieval-bridge-controls.contract.test.mjs tests/retrieval-frontier.contract.test.mjs tests/retrieval-time-generalization.contract.test.mjs tests/rolling-token-pacer.contract.test.mjs tests/scale-probe.contract.test.mjs tests/scale05-cached-vectors.contract.test.mjs tests/semantic-hnsw.contract.test.mjs tests/usearch-hnsw-locator.contract.test.mjs",
     "alpha:debug": "node evals/run-alpha-memory-debug.mjs",
     "test:legacy": "node --test",
     "quickstart": "node examples/quickstart.mjs",
@@ -83,7 +84,7 @@
     "reranker-bakeoff": "node evals/run-reranker-bakeoff.mjs --verify",
     "ettin-bakeoff": "node evals/run-ettin-native-bakeoff.mjs --verify"
   },
-  "devDependencies": {
+  "optionalDependencies": {
     "usearch": "2.26.0"
   }
 }

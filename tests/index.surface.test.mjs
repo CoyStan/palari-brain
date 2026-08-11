@@ -113,6 +113,7 @@ test('the package includes every module loaded by its public entry point',
       'src/retrieval-answer.mjs',
       'src/retrieval-frontier.mjs',
       'src/retrieval-plan.mjs',
+      'src/semantic-hnsw.mjs',
     ]) {
       assert.ok(
         packageJson.files.includes(path),

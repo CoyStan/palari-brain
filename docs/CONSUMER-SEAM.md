@@ -124,6 +124,14 @@ a local model, provided stored rows and queries use the same embedding model.
 Changing that model requires rebuilding the derived vector table; canonical
 dialogue is unaffected.
 
+For sufficiently large scopes, Palari can use optional native USearch as a
+private candidate locator. Consumers do not configure or call it. The package
+still installs and runs with optional dependencies omitted; in that case
+semantic retrieval uses the exact SQLite vector path. Supported installs may
+create checksum- and revision-bound HNSW snapshots beside the workspace
+database. They are disposable derived state, and full-vector exact reranking
+remains authoritative.
+
 All OpenAI adapter contracts are provider-free until a consumer actually
 invokes the transport. Offline tests establish request construction and host
 behavior, not account access, live wire acceptance, answer quality, latency,
@@ -233,7 +241,8 @@ change canonical evidence IDs, or reinterpret existing bytes. The
 `author_id` migration follows that rule; old rows remain unattributed.
 
 Indexes and projections are derived. Exact-quote/FTS annotations, semantic
-vectors, and temporal graph tables may be dropped and rebuilt from visible
+vectors, private HNSW snapshots, and temporal graph tables may be dropped and
+rebuilt from visible
 canonical evidence. Their scores, traversal state, or generated text never
 become testimony merely because they are stored. Tombstones, scope identity,
 canonical content and hashes, chronology, host receipt time, and reduction

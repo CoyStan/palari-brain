@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Semantic retrieval can privately use a version-bound 512-dimensional/i8
+  HNSW candidate index for qualifying scopes, followed by exact full-vector
+  reranking from scoped SQLite rows.
+- USearch is an optional native dependency. Missing or unsupported native
+  installs, small scopes, stale/corrupt snapshots, and wide result requests
+  retain exact semantic search without changing the public API.
+- Exact duplicate full vectors share one disposable graph node, preventing
+  repeated acknowledgements from degrading HNSW connectivity while canonical
+  dialogue and full vectors remain unchanged.
+
 ## 0.1.0-alpha.1 — 2026-08-11
 
 First public alpha release of Palari Brain, an evidence-first memory kernel for

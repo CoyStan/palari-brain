@@ -185,7 +185,7 @@ one alpha process at a time.
 | Canonical dialogue and admission | `src/dialogue-evidence.mjs`, `src/memory-store.mjs` |
 | Working memory and reduction | `src/memory-digest-store.mjs`, `src/memory-reducer.mjs` |
 | Retrieval and answers | `src/memory-exploration.mjs`, `src/retrieval-plan.mjs`, `src/retrieval-frontier.mjs`, `src/retrieval-answer.mjs` |
-| Retrieval indexes | `src/memory-search.mjs`, `src/memory-semantic.mjs`, `src/memory-graph.mjs` |
+| Retrieval indexes | `src/memory-search.mjs`, `src/memory-semantic.mjs`, `src/semantic-hnsw.mjs`, `src/memory-graph.mjs` |
 | Provider seams | `src/gemini.mjs`, `src/openai.mjs`, `src/reranker-ettin.mjs` |
 | Local diagnostics | `evals/`, with its map in `evals/README.md` |
 

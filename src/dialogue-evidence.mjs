@@ -17,6 +17,7 @@ import {
   semanticFindEvidence,
   semanticFindEvidenceBatch,
 } from './memory-semantic.mjs'
+import { createSemanticHnsw } from './semantic-hnsw.mjs'
 import { extractGraph, graphFind } from './memory-graph.mjs'
 import { statementQuoteOrigins } from './statement-extraction.mjs'
 
@@ -551,6 +552,7 @@ export function createDialogueGate(store, {
 } = {}) {
   ensureActiveSchema(store, clock)
   const digest = createMemoryDigestStore(store, { clock })
+  const semanticLocator = createSemanticHnsw({ dbPath: store?.dbPath })
 
   // Monotonic per-scope chronology ordinal. The watermark only ever moves
   // forward, so an ordinal freed by deletion is never handed out again and
@@ -1353,6 +1355,7 @@ export function createDialogueGate(store, {
     appendCandidates,
     appendEvidence,
     applyReduction: digest.applyReduction,
+    closeDerivedIndexes: () => semanticLocator.close(),
     digestFreshness: digest.freshness,
     digestStatus: digest.status,
     forgetById,
@@ -1470,6 +1473,7 @@ export function createDialogueGate(store, {
       const rows = await semanticFindEvidence(store.db, {
         embed: embedder,
         limit: options.limit,
+        locator: semanticLocator,
         phrase: options.phrase,
         scope: scoped,
         visibleStatementsSql,
@@ -1500,6 +1504,7 @@ export function createDialogueGate(store, {
       const batches = await semanticFindEvidenceBatch(store.db, {
         embed: embedder,
         limit: options.limit,
+        locator: semanticLocator,
         phrases,
         scope: scoped,
         visibleStatementsSql,

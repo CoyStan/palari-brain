@@ -2,7 +2,7 @@
 // Zero-dependency: node:test + node:assert. Run: npm test (node --test tests/).
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, access } from 'node:fs/promises'
+import { access, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
@@ -162,7 +162,15 @@ test('ownership: one SQLite file per workspace; deletable as a unit (C19)', asyn
   addFixture(store)
   assert.ok(store.dbPath.endsWith('ownership-check.memory.sqlite'))
   assert.ok(await pathExists(store.dbPath), 'store is a real file on disk')
+  const derivedRoot = `${store.dbPath}.semantic-hnsw`
+  await mkdir(derivedRoot)
+  await writeFile(join(derivedRoot, 'derived-snapshot'), 'disposable')
   store.close()
   await deleteKernelStoreFile({ statePath, workspaceId: 'ownership-check' })
   assert.equal(await pathExists(store.dbPath), false, 'whole store deletable as a unit')
+  assert.equal(
+    await pathExists(derivedRoot),
+    false,
+    'whole-store deletion also removes its derived HNSW snapshots',
+  )
 })

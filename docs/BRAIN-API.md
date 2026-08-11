@@ -1317,10 +1317,35 @@ policy and `createChunkedEmbedder`.
 
 `await brain.exploreSemanticBatch(scope, { phrases, limit })` returns one
 canonical ranking per phrase. It accepts at most 16 phrases, embeds all query
-phrases in one provider/local-model call, and scans the visible vector bank
-once. This is the query-time primitive used by `memory_bridge`; incremental
-indexing performs at most one bounded embedding batch when canonical rows have
-not yet been indexed.
+phrases in one provider/local-model call. This is the query-time primitive
+used by `memory_bridge`; incremental indexing performs at most one bounded
+embedding batch when canonical rows have not yet been indexed.
+
+Semantic ranking remains exact for scopes below 5,000 visible vectors, stored
+vectors below 512 dimensions, or requests above 20 results. For other scopes,
+Palari may privately use optional USearch HNSW to propose 160 candidate vector
+groups. The locator uses a normalized 512-dimensional prefix and i8 graph
+storage; candidate rows are then reread inside the caller's scoped SQLite
+snapshot and reranked with the complete stored vectors. HNSW never returns
+evidence directly and is never the final ranking authority.
+
+Byte-identical full vectors share one graph node. If that node is returned,
+Palari expands it to at most the requested number of earliest canonical rows
+before exact reranking. This prevents repeated acknowledgements from forming a
+large zero-distance graph cluster without deleting or merging canonical
+dialogue or full vectors.
+
+The native `usearch` package is an optional dependency. A missing or
+unsupported native build silently retains the exact path. Qualifying scopes
+persist private snapshots beside the workspace database under
+`<database>.semantic-hnsw/`; files are written through a temporary name,
+renamed atomically, permissioned `0600` inside a `0700` directory, checksum
+verified on reload, and bound to a per-scope SQLite revision. Canonical
+insert, content/scope correction, and deletion advance that revision. A stale,
+missing, corrupt, mismatched, or concurrently superseded snapshot falls back
+to the same exact scoped read. Whole-store deletion also removes this derived
+directory. The first qualifying query after a missing or stale snapshot may
+pay the synchronous rebuild cost; there is no public locator API.
 
 `brain.retrievalCapabilities.semantic` tells an answer orchestrator whether
 the optional semantic surface is configured. `answerWithRetrieval` uses that

@@ -298,6 +298,7 @@ export async function deleteWorkspaceMemoryDatabase(options = {}) {
     rm(dbPath, { force: true }),
     rm(`${dbPath}-shm`, { force: true }),
     rm(`${dbPath}-wal`, { force: true }),
+    rm(`${dbPath}.semantic-hnsw`, { force: true, recursive: true }),
   ])
   return { dbPath, removed: true }
 }

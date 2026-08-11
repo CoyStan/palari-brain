@@ -350,6 +350,59 @@ unchanged. Final validation passes: core 144/144, quickstart 6/6, broader
 compatibility 422/422, the repeated SCALE-06 diagnostic, and the clean offline
 package-install gate. Release tag `v0.1.0-alpha.1` remains unchanged.
 
+## 2026-08-11 private runtime HNSW acceleration
+
+SCALE-08 connects the selected locator to product semantic retrieval without
+adding a public API or making native code a package requirement:
+
+- SQLite remains sole truth for canonical dialogue and full vectors. For a
+  qualifying scope, private USearch HNSW proposes 160 vector-group keys from a
+  normalized 512-dimensional prefix stored as i8; the caller's scoped SQLite
+  snapshot rereads those rows and exact-ranks their complete stored vectors;
+- exact search remains the path below 5,000 visible vectors, below 512 source
+  dimensions, and above a requested top 20. It is also the automatic fallback
+  when USearch is absent or unsupported, or a snapshot is missing, stale,
+  corrupt, checksum-invalid, dimension-invalid, or superseded during a query;
+- canonical insert, content/scope correction, and deletion advance a derived
+  per-scope revision. HNSW snapshots are saved under a unique temporary name,
+  renamed atomically, checksum-bound to SQLite metadata, and accepted only if
+  the revision is still current. Restart reload, correction, exact deletion,
+  corruption rejection, concurrent revision recheck, and whole-store cleanup
+  are covered by focused contracts; and
+- exact duplicate full vectors share one HNSW node, while SQLite retains every
+  canonical row and vector. A returned group expands to only the earliest
+  bounded canonical rows before exact ranking. This fixed a real diagnostic
+  failure where thousands of identical acknowledgements formed a degenerate
+  graph: the first naive runtime pass retained only 7/25 planted targets in
+  each query column; the grouped design restored both columns to 25/25.
+
+The native policy is optional acceleration. `usearch@2.26.0` remains pinned,
+but moved from a development-only dependency to `optionalDependencies` and is
+loaded dynamically. A clean installed consumer is explicitly tested with
+optional dependencies omitted. On this checkout the optional native package
+and its small transitive dependencies occupy about 24.7 MB; they are ignored
+working-tree state and are not bundled into Palari's source tarball.
+
+The provider-free end-to-end runtime diagnostic reused all 5,050 cached
+OpenAI vectors (5,050 hits, zero misses/writes/provider inputs/calls). At 5,000
+unique rows, exact full-vector search found 47/50 labeled targets. The runtime
+HNSW candidate path retained 45/50, reproduced 97.5% of exact top-20 IDs, and
+took 5.12/9.63 ms median/p95 including scoped SQLite candidate reread and exact
+reranking, versus 86.61/132.62 ms for the exact runtime path. The first graph
+build plus query took 1.23 seconds and produced the same 3,302,688-byte index
+measured in SCALE-07. These remain small local diagnostics, not release
+benchmarks or proof of 100M-token performance.
+
+No public export name changed. The release source tarball gains one private
+runtime module but does not bundle a native binary. The tracked checkout will
+contain 121 files. The tarball contains 37 files / 992,763 packed bytes /
+1,497,361 unpacked bytes and all 140 public exports remain unchanged. Final
+validation passes: core 151/151, quickstart 6/6, broader compatibility
+429/429, and a clean offline package install with optional dependencies
+omitted imports all six public entry points. No paid provider, private dataset,
+credential, or sealed case was accessed. Release tag `v0.1.0-alpha.1` remains
+unchanged.
+
 ## Product state
 
 The basic journey remains:
@@ -383,11 +436,11 @@ npm run scale:hnsw-representations
 
 Take the next smallest product-memory behavior unit from real user feedback.
 Do not tune the sparse-sign locator further. If the scale-readiness track
-continues, SCALE-08 should be a narrow runtime-design unit for the selected
-512d/i8 candidate: agree native dependency/platform policy and define one
-private per-scope derived-index lifecycle with canonical SQLite as sole truth,
-exact reranking, an exact fallback, atomic rebuild/version binding, and
-correction/delete synchronization. Do not expose a locator API or make HNSW a
-ranking authority. Any new paid adapter or changed corpus requires a new
-explicit aggregate cap. Do not replay sealed or already-successful benchmark
-cases merely to tune them.
+continues, SCALE-09 should test the now-real runtime path at a materially
+larger cardinality with genuine embeddings, then exercise concurrent queries,
+write churn, restart/rebuild interruption, and high-duplicate scopes. It
+should decide whether HNSW construction moves into explicit maintenance and
+whether exact duplicate vectors should also share SQLite payload storage. Any
+new paid adapter or changed corpus requires a new explicit aggregate cap. Do
+not expose a locator API, make HNSW a ranking authority, replay sealed cases,
+or claim 100M-token proof from the 5,000-row diagnostics.
