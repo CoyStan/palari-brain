@@ -100,6 +100,32 @@ successor diagnostics. It is not a one-shot benchmark regrade, and the original
 `$62.57099046`; these two cases cost `$0.05268601` under the approved `$90.00`
 cap. The original failures remain unchanged, and sealed U8 was not executed.
 
+The founder-requested harder diagnostic selected 20 previously unused questions
+from metadata only. It excluded S60, every prior terminal artifact, and sealed
+U8 before locking selection SHA-256 `a43b29fc...f2b8`. The set contains four
+cases each for near-match abstention, preference application, knowledge updates,
+temporal reasoning, and multi-session synthesis. It includes up to 58 sessions,
+566 turns, and five answer-bearing sessions per question.
+
+Nineteen answers completed: 17 were judged correct and two incorrect, for 89.5%
+judged-answer accuracy. One candidate-review protocol failure gives a strict
+end-to-end result of 17/20, or 85.0%. Manual review found that the commute answer
+matched the reference and was a judge false negative. The egg-tart answer was
+directionally correct and explicitly warned that absence from the record was
+not proof, but its opening phrase stated a recorded count of zero instead of
+only saying the information was insufficient. The failed cuisine case first
+proposed the correct reference count `4`, then drifted to `5` by treating a
+future intention to try a Thai dish as completed experience; its latest candidate
+was therefore manually incorrect. The manual directional result is 19/20, or
+95.0%, reported separately from the judge and strict scores.
+
+All four knowledge-update and all four temporal-reasoning cases were judged
+correct. There were no OOM, HTTP 429, or budget-stop failures and no automatic
+retries. The run added `$2.31005565`, including one conservative `$0.70` failed
+reservation, bringing aggregate accounted spend to `$64.88104611` under the
+approved `$90.00` cap. This remains an alpha diagnostic, not a release benchmark.
+Sealed U8 was not executed.
+
 BRN-0047 has a provider-free accepted implementation for two remaining
 infrastructure failures. A raw `canonical_message` already present in a scoped
 canonical-fallback briefing can now anchor `memory_bridge` on the first
