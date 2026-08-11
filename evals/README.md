@@ -17,6 +17,16 @@ Palari Brain product. None of it is required by an installed package.
 Supporting modules provide the content-addressed embedding cache, rolling
 request pacer, retrieval-evidence metrics, and the small reranker fixture.
 
+The scale probe reports an assumption-labelled lifetime-token envelope before
+measuring ingest, steady-state SQLite bytes per message, and median/p95 recall
+latency. Use `npm run scale-probe -- --tiers 50,500,2500` for an independently
+created database at each turn count, `--lifetime-tokens <count>` to change the
+analytical envelope, or `--embedder <module>` to include the optional semantic
+surface. `--synthetic-vectors <dimensions>` instead exercises semantic index
+size and brute-force query latency without a provider; its planted equivalence
+vectors validate plumbing, not embedding quality. A tiered run is a repeatable
+local diagnostic, not an extrapolated benchmark grade.
+
 Diagnostics may write only to caller-selected temporary paths or gitignored
 `.palari-alpha/` state. They are not benchmark grades. Any paid provider call
 still requires a founder-approved aggregate dollar cap, and sealed U8 question

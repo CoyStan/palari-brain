@@ -17,7 +17,15 @@
 //
 //   npm run scale-probe            # 2,500 turns
 //   npm run scale-probe -- --turns 500
+//   npm run scale-probe -- --tiers 50,500,2500
+//   npm run scale-probe -- --lifetime-tokens 100000000
+//   npm run scale-probe -- --turns 500 --synthetic-vectors 64
 //   npm run scale-probe -- --embedder ./my-embedder.mjs
+//
+// The lifetime-token envelope is arithmetic over explicit message/chunk
+// assumptions, not a tokenizer measurement or benchmark grade. Multi-tier
+// runs use fresh databases so each row is an independently repeatable local
+// diagnostic.
 //
 // `--embedder <path>` re-measures BOTH paraphrase columns through the
 // semantic surface as well. The module must export `createEmbedder()`
@@ -35,8 +43,14 @@ import {
   createPalariBrain,
   ingestChatTurn,
 } from '../src/index.mjs'
+import { workspaceMemoryDbPath } from '../src/store.mjs'
 
 const SCOPE = { palariId: 'scale-palari', userId: 'scale-user' }
+const WORKSPACE_ID = 'scale'
+
+export const DEFAULT_LIFETIME_TOKENS = 100_000_000
+export const SCALE_MESSAGE_TOKEN_RANGE = Object.freeze([50, 200])
+export const SCALE_CHUNK_TOKEN_RANGE = Object.freeze([256, 512])
 
 const FILLER = [
   'Can you check the weather for tomorrow morning?',
@@ -114,11 +128,161 @@ function keepNothing({ request }) {
   }
 }
 
+function positiveSafeInteger(value, label) {
+  const number = Number(value)
+  if (!Number.isSafeInteger(number) || number < 1) {
+    throw new TypeError(`${label} must be a positive integer.`)
+  }
+  return number
+}
+
+export function estimateLifetimeEnvelope({
+  lifetimeTokens = DEFAULT_LIFETIME_TOKENS,
+} = {}) {
+  const tokens = positiveSafeInteger(lifetimeTokens, 'lifetimeTokens')
+  const [messageMinTokens, messageMaxTokens] = SCALE_MESSAGE_TOKEN_RANGE
+  const [chunkMinTokens, chunkMaxTokens] = SCALE_CHUNK_TOKEN_RANGE
+  return Object.freeze({
+    chunkTokens: SCALE_CHUNK_TOKEN_RANGE,
+    chunkVectors: Object.freeze({
+      max: Math.ceil(tokens / chunkMinTokens),
+      min: Math.ceil(tokens / chunkMaxTokens),
+    }),
+    lifetimeTokens: tokens,
+    messageTokens: SCALE_MESSAGE_TOKEN_RANGE,
+    messageVectors: Object.freeze({
+      max: Math.ceil(tokens / messageMinTokens),
+      min: Math.ceil(tokens / messageMaxTokens),
+    }),
+  })
+}
+
+function fnv1a(value) {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return hash >>> 0
+}
+
+function normalizedSyntheticVector(key, dimensions) {
+  let state = fnv1a(key) || 0x9e3779b9
+  const vector = []
+  let squaredMagnitude = 0
+  for (let index = 0; index < dimensions; index += 1) {
+    state ^= state << 13
+    state ^= state >>> 17
+    state ^= state << 5
+    const value = ((state >>> 0) / 0xffffffff) * 2 - 1
+    vector.push(value)
+    squaredMagnitude += value * value
+  }
+  const magnitude = Math.sqrt(squaredMagnitude) || 1
+  return Object.freeze(vector.map((value) => value / magnitude))
+}
+
+// Deterministic vector plumbing for capacity/latency diagnostics only. The
+// three texts in each planted row intentionally share a vector so the probe
+// can still verify canonical ID read-back. This is not an embedding-quality
+// result and the CLI labels it accordingly.
+export function createSyntheticScaleEmbedder({ dimensions = 64 } = {}) {
+  const size = positiveSafeInteger(dimensions, 'dimensions')
+  const plantedKeys = new Map()
+  for (const [index, row] of PLANTED.entries()) {
+    for (const text of row) plantedKeys.set(text, `planted:${index}`)
+  }
+  const vectors = new Map()
+  return (texts) => texts.map((raw) => {
+    const text = String(raw)
+    const key = plantedKeys.get(text) ?? `literal:${text}`
+    if (!vectors.has(key)) {
+      vectors.set(key, normalizedSyntheticVector(key, size))
+    }
+    return vectors.get(key)
+  })
+}
+
+function normalizedTiers(values) {
+  if (!Array.isArray(values) || values.length < 1) {
+    throw new TypeError('tiers must contain at least one turn count.')
+  }
+  const tiers = values.map((value) => positiveSafeInteger(value, 'tier'))
+  if (tiers.some((value) => value < 50)) {
+    throw new TypeError('each tier must contain at least 50 turns.')
+  }
+  return [...new Set(tiers)].sort((left, right) => left - right)
+}
+
+function parseTiers(value) {
+  const raw = String(value ?? '').trim()
+  if (!raw) throw new TypeError('--tiers requires comma-separated turns.')
+  return normalizedTiers(raw.split(',').map((item) => Number(item.trim())))
+}
+
+function latencyStats(latencies) {
+  const sorted = [...latencies].sort((left, right) => left - right)
+  return {
+    medianMs: sorted[Math.floor(sorted.length / 2)],
+    p95Ms: sorted[Math.ceil(sorted.length * 0.95) - 1],
+  }
+}
+
+async function sqliteFootprintBytes(dbPath) {
+  let bytes = 0
+  for (const path of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) {
+    try {
+      bytes += (await stat(path)).size
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error
+    }
+  }
+  return bytes
+}
+
+function formatInteger(value) {
+  return Number(value).toLocaleString('en-US')
+}
+
+function logEnvelope(log, envelope) {
+  log(`${formatInteger(envelope.lifetimeTokens)}-token lifetime envelope ` +
+    `(assumptions, not measured):`)
+  log(`  one vector per ${envelope.messageTokens[0]}–` +
+    `${envelope.messageTokens[1]}-token message: ` +
+    `${formatInteger(envelope.messageVectors.min)}–` +
+    `${formatInteger(envelope.messageVectors.max)} message vectors`)
+  log(`  fixed ${envelope.chunkTokens[0]}–${envelope.chunkTokens[1]}-token ` +
+    `chunks: ${formatInteger(envelope.chunkVectors.min)}–` +
+    `${formatInteger(envelope.chunkVectors.max)} chunk vectors`)
+}
+
 function parseArgs(argv) {
-  const options = { turns: 2_500 }
+  const options = {
+    lifetimeTokens: DEFAULT_LIFETIME_TOKENS,
+    turns: 2_500,
+  }
+  let turnsSelected = false
+  let tiersSelected = false
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === '--turns') {
       options.turns = Number(argv[index + 1])
+      turnsSelected = true
+      index += 1
+      continue
+    }
+    if (argv[index] === '--tiers') {
+      options.tiers = parseTiers(argv[index + 1])
+      tiersSelected = true
+      index += 1
+      continue
+    }
+    if (argv[index] === '--lifetime-tokens') {
+      options.lifetimeTokens = Number(argv[index + 1])
+      index += 1
+      continue
+    }
+    if (argv[index] === '--synthetic-vectors') {
+      options.syntheticVectorDimensions = Number(argv[index + 1])
       index += 1
       continue
     }
@@ -129,8 +293,23 @@ function parseArgs(argv) {
     }
     throw new TypeError(`Unknown scale-probe flag: ${argv[index]}`)
   }
+  if (turnsSelected && tiersSelected) {
+    throw new TypeError('--turns and --tiers are mutually exclusive.')
+  }
+  if (options.embedderPath && options.syntheticVectorDimensions !== undefined) {
+    throw new TypeError(
+      '--embedder and --synthetic-vectors are mutually exclusive.',
+    )
+  }
   if (!Number.isSafeInteger(options.turns) || options.turns < 50) {
     throw new TypeError('--turns must be an integer of at least 50.')
+  }
+  positiveSafeInteger(options.lifetimeTokens, '--lifetime-tokens')
+  if (options.syntheticVectorDimensions !== undefined) {
+    positiveSafeInteger(
+      options.syntheticVectorDimensions,
+      '--synthetic-vectors',
+    )
   }
   return options
 }
@@ -157,19 +336,22 @@ async function loadEmbedder(embedderPath) {
 export async function runScaleProbe({
   embedder = null,
   log = console.log,
+  semanticLabel = 'embedder supplied',
   turns = 2_500,
 } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'palari-scale-'))
   const statePath = join(root, 'state.json')
+  const dbPath = workspaceMemoryDbPath({ statePath, workspaceId: WORKSPACE_ID })
   const brain = await createPalariBrain({
     embedder,
     memoryEnabled: true,
     statePath,
-    workspaceId: 'scale',
+    workspaceId: WORKSPACE_ID,
   })
 
   const plantEvery = Math.floor(turns / (PLANTED.length + 1))
   const ingestStart = performance.now()
+  let contentChars = 0
   let planted = 0
   for (let index = 0; index < turns; index += 1) {
     const isPlant = planted < PLANTED.length &&
@@ -178,6 +360,7 @@ export async function runScaleProbe({
       ? PLANTED[planted][0]
       : FILLER[index % FILLER.length]
     if (isPlant) planted += 1
+    contentChars += userMessage.length + 'Done.'.length
     await ingestChatTurn(brain, {
       assistantMessage: 'Done.',
       eventAt: new Date(Date.UTC(2025, 0, 1) + index * 600_000).toISOString(),
@@ -211,10 +394,9 @@ export async function runScaleProbe({
         return read.messages[0]?.text === target
       })) hits += 1
     }
-    latencies.sort((left, right) => left - right)
     return {
       hits,
-      medianMs: latencies[Math.floor(latencies.length / 2)],
+      ...latencyStats(latencies),
       total: PLANTED.length,
     }
   }
@@ -251,10 +433,9 @@ export async function runScaleProbe({
           return read.messages[0]?.text === row[0]
         })) hits += 1
       }
-      latencies.sort((left, right) => left - right)
       return {
         hits,
-        medianMs: latencies[Math.floor(latencies.length / 2)],
+        ...latencyStats(latencies),
         total: PLANTED.length,
       }
     }
@@ -266,28 +447,34 @@ export async function runScaleProbe({
     }
   }
 
-  const files = (await import('node:fs')).readdirSync(root)
-  let dbBytes = 0
-  for (const name of files) {
-    dbBytes += (await stat(join(root, name))).size
-  }
+  brain.close()
+  const dbBytes = await sqliteFootprintBytes(dbPath)
 
   const summary = {
+    contentChars,
+    contentCharsPerMessage: Number((contentChars / (turns * 2)).toFixed(1)),
+    dbBytes,
+    dbBytesPerMessage: Number((dbBytes / (turns * 2)).toFixed(1)),
     dbMb: Number((dbBytes / 1e6).toFixed(2)),
     ingestMsPerTurn: Number((ingestMs / turns).toFixed(2)),
     messages: turns * 2,
     sharedTokenRecall: `${shared.hits}/${shared.total}`,
     sharedMedianMs: Number(shared.medianMs.toFixed(1)),
+    sharedP95Ms: Number(shared.p95Ms.toFixed(1)),
     turns,
     zeroOverlapRecall: `${zero.hits}/${zero.total}`,
     zeroMedianMs: Number(zero.medianMs.toFixed(1)),
+    zeroP95Ms: Number(zero.p95Ms.toFixed(1)),
   }
   log(`scale probe — ${summary.messages} messages (${turns} turns)`)
-  log(`  ingest: ${summary.ingestMsPerTurn} ms/turn, db ${summary.dbMb} MB`)
+  log(`  ingest: ${summary.ingestMsPerTurn} ms/turn`)
+  log(`  storage: ${summary.dbMb} MB, ${summary.dbBytesPerMessage} ` +
+    `bytes/message (${summary.contentCharsPerMessage} content chars/message)`)
   log(`  shared-token paraphrase recall: ${summary.sharedTokenRecall} ` +
-    `(median find ${summary.sharedMedianMs} ms)`)
+    `(median/p95 find ${summary.sharedMedianMs}/${summary.sharedP95Ms} ms)`)
   log(`  zero-overlap paraphrase recall: ${summary.zeroOverlapRecall} ` +
-    `(median find ${summary.zeroMedianMs} ms) — the lexical boundary; ` +
+    `(median/p95 find ${summary.zeroMedianMs}/${summary.zeroP95Ms} ms) — ` +
+    `the lexical boundary; ` +
     `the semantic finding aid exists to close this`)
   if (semantic) {
     summary.semanticSharedRecall =
@@ -295,27 +482,69 @@ export async function runScaleProbe({
     summary.semanticZeroRecall =
       `${semantic.zero.hits}/${semantic.zero.total}`
     summary.vectorIndexMs = Number(semantic.vectorIndexMs.toFixed(0))
-    log(`  semantic surface (embedder supplied): vector indexing ` +
-      `${summary.vectorIndexMs} ms`)
+    summary.vectorIndexMsPerMessage =
+      Number((semantic.vectorIndexMs / summary.messages).toFixed(3))
+    summary.semanticSharedMedianMs =
+      Number(semantic.shared.medianMs.toFixed(1))
+    summary.semanticSharedP95Ms = Number(semantic.shared.p95Ms.toFixed(1))
+    summary.semanticZeroMedianMs = Number(semantic.zero.medianMs.toFixed(1))
+    summary.semanticZeroP95Ms = Number(semantic.zero.p95Ms.toFixed(1))
+    log(`  semantic surface (${semanticLabel}): vector indexing ` +
+      `${summary.vectorIndexMs} ms ` +
+      `(${summary.vectorIndexMsPerMessage} ms/message)`)
     log(`    shared-token via semantic: ${summary.semanticSharedRecall} ` +
-      `(median ${semantic.shared.medianMs.toFixed(1)} ms)`)
+      `(median/p95 ${summary.semanticSharedMedianMs}/` +
+      `${summary.semanticSharedP95Ms} ms)`)
     log(`    zero-overlap via semantic: ${summary.semanticZeroRecall} ` +
-      `(median ${semantic.zero.medianMs.toFixed(1)} ms)`)
+      `(median/p95 ${summary.semanticZeroMedianMs}/` +
+      `${summary.semanticZeroP95Ms} ms)`)
   }
 
-  brain.close()
   await rm(root, { force: true, recursive: true })
   return summary
+}
+
+export async function runScaleCurve({
+  embedder = null,
+  lifetimeTokens = DEFAULT_LIFETIME_TOKENS,
+  log = console.log,
+  semanticLabel = 'embedder supplied',
+  tiers = [2_500],
+} = {}) {
+  const envelope = estimateLifetimeEnvelope({ lifetimeTokens })
+  const normalized = normalizedTiers(tiers)
+  logEnvelope(log, envelope)
+  const measurements = []
+  for (const turns of normalized) {
+    measurements.push(await runScaleProbe({
+      embedder,
+      log,
+      semanticLabel,
+      turns,
+    }))
+  }
+  return Object.freeze({ envelope, measurements })
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     const options = parseArgs(process.argv.slice(2))
-    await runScaleProbe({
-      embedder: options.embedderPath
-        ? await loadEmbedder(options.embedderPath)
-        : null,
-      turns: options.turns,
+    let embedder = null
+    let semanticLabel = 'embedder supplied'
+    if (options.embedderPath) {
+      embedder = await loadEmbedder(options.embedderPath)
+    } else if (options.syntheticVectorDimensions !== undefined) {
+      embedder = createSyntheticScaleEmbedder({
+        dimensions: options.syntheticVectorDimensions,
+      })
+      semanticLabel = `synthetic ${options.syntheticVectorDimensions}d ` +
+        `capacity fixture; recall is plumbing-only`
+    }
+    await runScaleCurve({
+      embedder,
+      lifetimeTokens: options.lifetimeTokens,
+      semanticLabel,
+      tiers: options.tiers ?? [options.turns],
     })
   } catch (error) {
     console.error(`SCALE_PROBE_FAILED: ${error?.message ?? error}`)

@@ -57,6 +57,38 @@ public export names remain unchanged. Final validation passes: core 106/106,
 quickstart 6/6, broader compatibility 390/390, and the new package gate 6/6.
 Ignored runtime state was not deleted or inspected.
 
+## 2026-08-11 scale-readiness baseline
+
+SCALE-01 made the existing offline scale probe useful for the 100M
+lifetime-token question without changing product behavior or adding a
+provider, tokenizer, ANN dependency, or release claim:
+
+- the assumption-labelled envelope keeps units separate: 100M tokens at
+  50-200 tokens per canonical message implies 500,000-2,000,000 message
+  vectors, while independent 256-512-token chunks would imply
+  195,313-390,625 chunk vectors;
+- `--tiers` now creates a fresh database per turn count and reports ingest,
+  real steady-state SQLite bytes per message, and median/p95 recall latency;
+- the prior `db 0 MB` output was false because it measured the temporary
+  parent directory rather than the nested workspace database; and
+- `--synthetic-vectors <dimensions>` exercises vector storage, indexing, the
+  current brute-force scan, and canonical ID read-back without a provider.
+  Its planted equivalences are explicitly plumbing-only, not evidence of
+  embedding quality.
+
+On one repeatable local 100/1,000/5,000-message diagnostic, the 5,000-message
+lexical database was 6.83 MB and lexical p95 was 4.5-6.0 ms. With the labelled
+64-dimensional synthetic vector fixture it was 9.18 MB, first vector catch-up
+was about 9.9 seconds, and semantic p95 was about 65-72 ms. These observations
+are diagnostic evidence that query-time catch-up and full vector scanning are
+the next scale boundaries; they are not production extrapolations or benchmark
+grades.
+
+Three provider-free contracts cover the envelope, actual workspace footprint,
+latency tail, and synthetic semantic label. Validation passes: core 109/109,
+quickstart 6/6, broader compatibility 393/393, and the offline package-install
+gate imports all six public entry points with unchanged export counts.
+
 ## Product state
 
 The basic journey remains:
@@ -87,5 +119,9 @@ npm run scale-probe
 ## Next
 
 Take the next smallest product-memory behavior unit from real user feedback.
-Future paid diagnostics require a new explicit aggregate cap. Do not replay
-sealed or already-successful benchmark cases merely to tune them.
+If the scale-readiness track continues, SCALE-02 is to prevent one semantic
+query from performing unbounded historical vector catch-up while retaining
+the exact scoped fallback. Do not add an ANN dependency until a later private
+adapter comparison justifies it. Future paid diagnostics require a new
+explicit aggregate cap. Do not replay sealed or already-successful benchmark
+cases merely to tune them.
