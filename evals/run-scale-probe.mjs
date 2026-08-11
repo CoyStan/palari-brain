@@ -20,6 +20,7 @@
 //   npm run scale-probe -- --tiers 50,500,2500
 //   npm run scale-probe -- --lifetime-tokens 100000000
 //   npm run scale-probe -- --turns 500 --synthetic-vectors 64
+//   npm run scale-probe -- --tiers 250,1000 --scan-dimensions 384,768,1536
 //   npm run scale-probe -- --embedder ./my-embedder.mjs
 //
 // The lifetime-token envelope is arithmetic over explicit message/chunk
@@ -51,6 +52,12 @@ const WORKSPACE_ID = 'scale'
 export const DEFAULT_LIFETIME_TOKENS = 100_000_000
 export const SCALE_MESSAGE_TOKEN_RANGE = Object.freeze([50, 200])
 export const SCALE_CHUNK_TOKEN_RANGE = Object.freeze([256, 512])
+export const DEFAULT_EXACT_SCAN_DIMENSIONS = Object.freeze([384, 768, 1_536])
+export const DEFAULT_EXACT_SCAN_REVIEW_P95_MS = 100
+
+const FLOAT32_BYTES = Float32Array.BYTES_PER_ELEMENT
+const MAX_EXACT_SCAN_DIMENSION_COUNT = 8
+const MAX_EXACT_SCAN_DIMENSIONS = 4_096
 
 const FILLER = [
   'Can you check the weather for tomorrow morning?',
@@ -157,6 +164,138 @@ export function estimateLifetimeEnvelope({
   })
 }
 
+function normalizedDimensions(values) {
+  if (!Array.isArray(values) || values.length < 1 ||
+    values.length > MAX_EXACT_SCAN_DIMENSION_COUNT) {
+    throw new TypeError(
+      `dimensions must contain 1 to ` +
+        `${MAX_EXACT_SCAN_DIMENSION_COUNT} values.`,
+    )
+  }
+  const dimensions = values.map((value) =>
+    positiveSafeInteger(value, 'dimension'))
+  if (dimensions.some((value) => value > MAX_EXACT_SCAN_DIMENSIONS)) {
+    throw new TypeError(
+      `each dimension must be at most ${MAX_EXACT_SCAN_DIMENSIONS}.`,
+    )
+  }
+  return [...new Set(dimensions)].sort((left, right) => left - right)
+}
+
+function safeProduct(values, label) {
+  const product = values.reduce((total, value) => total * value, 1)
+  if (!Number.isSafeInteger(product)) {
+    throw new TypeError(`${label} exceeds safe integer arithmetic.`)
+  }
+  return product
+}
+
+export function estimateExactScanEnvelope({
+  dimensions = DEFAULT_EXACT_SCAN_DIMENSIONS,
+  lifetimeTokens = DEFAULT_LIFETIME_TOKENS,
+} = {}) {
+  const lifetime = estimateLifetimeEnvelope({ lifetimeTokens })
+  const scans = normalizedDimensions(dimensions).map((size) => {
+    const vectorComponents = Object.freeze({
+      max: safeProduct(
+        [lifetime.messageVectors.max, size],
+        'maximum vector components',
+      ),
+      min: safeProduct(
+        [lifetime.messageVectors.min, size],
+        'minimum vector components',
+      ),
+    })
+    return Object.freeze({
+      dimensions: size,
+      rawVectorBytes: Object.freeze({
+        max: safeProduct(
+          [vectorComponents.max, FLOAT32_BYTES],
+          'maximum raw vector bytes',
+        ),
+        min: safeProduct(
+          [vectorComponents.min, FLOAT32_BYTES],
+          'minimum raw vector bytes',
+        ),
+      }),
+      vectorComponents,
+    })
+  })
+  return Object.freeze({
+    floatBytes: FLOAT32_BYTES,
+    lifetimeTokens: lifetime.lifetimeTokens,
+    messageTokens: lifetime.messageTokens,
+    messageVectors: lifetime.messageVectors,
+    scans: Object.freeze(scans),
+  })
+}
+
+function positiveFiniteNumber(value, label) {
+  const number = Number(value)
+  if (!Number.isFinite(number) || number <= 0) {
+    throw new TypeError(`${label} must be a positive finite number.`)
+  }
+  return number
+}
+
+export function summarizeExactScanThreshold(measurements, {
+  p95BudgetMs = DEFAULT_EXACT_SCAN_REVIEW_P95_MS,
+} = {}) {
+  if (!Array.isArray(measurements) || measurements.length < 1) {
+    throw new TypeError('measurements must contain at least one scan cell.')
+  }
+  const budget = positiveFiniteNumber(p95BudgetMs, 'p95BudgetMs')
+  const grouped = new Map()
+  for (const measurement of measurements) {
+    const dimensions = positiveSafeInteger(
+      measurement?.vectorDimensions,
+      'measurement.vectorDimensions',
+    )
+    const messages = positiveSafeInteger(
+      measurement?.messages,
+      'measurement.messages',
+    )
+    const shared = Number(measurement?.semanticSharedP95Ms)
+    const zero = Number(measurement?.semanticZeroP95Ms)
+    if (!Number.isFinite(shared) || shared < 0 ||
+      !Number.isFinite(zero) || zero < 0) {
+      throw new TypeError('measurement semantic p95 values must be finite.')
+    }
+    const cells = grouped.get(dimensions) ?? []
+    cells.push({ messages, p95Ms: Math.max(shared, zero) })
+    grouped.set(dimensions, cells)
+  }
+
+  const byDimension = [...grouped.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([dimensions, cells]) => {
+      cells.sort((left, right) => left.messages - right.messages)
+      const firstIndex = cells.findIndex((cell) => cell.p95Ms > budget)
+      const first = firstIndex < 0 ? null : cells[firstIndex]
+      const lastWithin = (firstIndex < 0
+        ? cells
+        : cells.slice(0, firstIndex))
+        .filter((cell) => cell.p95Ms <= budget)
+        .at(-1) ?? null
+      return Object.freeze({
+        dimensions,
+        firstObservedOverBudgetMessages: first?.messages ?? null,
+        firstObservedP95Ms: first?.p95Ms ?? null,
+        lastObservedWithinBudgetMessages: lastWithin?.messages ?? null,
+        measuredThroughMessages: cells.at(-1).messages,
+        status: first ? 'comparison_justified' : 'not_observed',
+      })
+    })
+  return Object.freeze({
+    byDimension: Object.freeze(byDimension),
+    p95BudgetMs: budget,
+    status: byDimension.some(({ status }) =>
+      status === 'comparison_justified')
+      ? 'comparison_justified'
+      : 'not_observed',
+  })
+}
+
 function fnv1a(value) {
   let hash = 0x811c9dc5
   for (let index = 0; index < value.length; index += 1) {
@@ -220,6 +359,16 @@ function parseTiers(value) {
   return normalizedTiers(raw.split(',').map((item) => Number(item.trim())))
 }
 
+function parseDimensions(value) {
+  const raw = String(value ?? '').trim()
+  if (!raw) {
+    throw new TypeError('--scan-dimensions requires comma-separated values.')
+  }
+  return normalizedDimensions(
+    raw.split(',').map((item) => Number(item.trim())),
+  )
+}
+
 function latencyStats(latencies) {
   const sorted = [...latencies].sort((left, right) => left - right)
   return {
@@ -256,6 +405,25 @@ function logEnvelope(log, envelope) {
     `${formatInteger(envelope.chunkVectors.max)} chunk vectors`)
 }
 
+function decimalGigabytes(bytes) {
+  return Number((Number(bytes) / 1e9).toFixed(2))
+}
+
+function logExactScanEnvelope(log, envelope) {
+  log('current one-vector-per-message exact-scan envelope ' +
+    '(arithmetic, no latency extrapolation):')
+  for (const scan of envelope.scans) {
+    log(`  ${formatInteger(scan.dimensions)}d: ` +
+      `${decimalGigabytes(scan.rawVectorBytes.min)}–` +
+      `${decimalGigabytes(scan.rawVectorBytes.max)} GB raw Float32 payload; ` +
+      `${formatInteger(scan.vectorComponents.min)}–` +
+      `${formatInteger(scan.vectorComponents.max)} ` +
+      `component visits/query; ` +
+      `${formatInteger(envelope.messageVectors.min)}–` +
+      `${formatInteger(envelope.messageVectors.max)} candidates fully ranked`)
+  }
+}
+
 function parseArgs(argv) {
   const options = {
     lifetimeTokens: DEFAULT_LIFETIME_TOKENS,
@@ -286,6 +454,16 @@ function parseArgs(argv) {
       index += 1
       continue
     }
+    if (argv[index] === '--scan-dimensions') {
+      options.scanDimensions = parseDimensions(argv[index + 1])
+      index += 1
+      continue
+    }
+    if (argv[index] === '--scan-p95-budget-ms') {
+      options.scanP95BudgetMs = Number(argv[index + 1])
+      index += 1
+      continue
+    }
     if (argv[index] === '--embedder') {
       options.embedderPath = String(argv[index + 1] ?? '')
       index += 1
@@ -296,9 +474,20 @@ function parseArgs(argv) {
   if (turnsSelected && tiersSelected) {
     throw new TypeError('--turns and --tiers are mutually exclusive.')
   }
-  if (options.embedderPath && options.syntheticVectorDimensions !== undefined) {
+  const semanticModes = [
+    Boolean(options.embedderPath),
+    options.syntheticVectorDimensions !== undefined,
+    options.scanDimensions !== undefined,
+  ].filter(Boolean).length
+  if (semanticModes > 1) {
     throw new TypeError(
-      '--embedder and --synthetic-vectors are mutually exclusive.',
+      '--embedder, --synthetic-vectors, and --scan-dimensions are ' +
+        'mutually exclusive.',
+    )
+  }
+  if (options.scanP95BudgetMs !== undefined && !options.scanDimensions) {
+    throw new TypeError(
+      '--scan-p95-budget-ms requires --scan-dimensions.',
     )
   }
   if (!Number.isSafeInteger(options.turns) || options.turns < 50) {
@@ -309,6 +498,12 @@ function parseArgs(argv) {
     positiveSafeInteger(
       options.syntheticVectorDimensions,
       '--synthetic-vectors',
+    )
+  }
+  if (options.scanP95BudgetMs !== undefined) {
+    positiveFiniteNumber(
+      options.scanP95BudgetMs,
+      '--scan-p95-budget-ms',
     )
   }
   return options
@@ -541,26 +736,119 @@ export async function runScaleCurve({
   return Object.freeze({ envelope, measurements })
 }
 
+export async function runSemanticScanMatrix({
+  dimensions = DEFAULT_EXACT_SCAN_DIMENSIONS,
+  lifetimeTokens = DEFAULT_LIFETIME_TOKENS,
+  log = console.log,
+  p95BudgetMs = DEFAULT_EXACT_SCAN_REVIEW_P95_MS,
+  tiers = [2_500],
+} = {}) {
+  const sizes = normalizedDimensions(dimensions)
+  const normalized = normalizedTiers(tiers)
+  const budget = positiveFiniteNumber(p95BudgetMs, 'p95BudgetMs')
+  const envelope = estimateExactScanEnvelope({
+    dimensions: sizes,
+    lifetimeTokens,
+  })
+  logEnvelope(log, estimateLifetimeEnvelope({ lifetimeTokens }))
+  logExactScanEnvelope(log, envelope)
+  log(`exact-scan p95 review budget: ${budget} ms ` +
+    '(diagnostic assumption, not a product SLO)')
+
+  const measurements = []
+  for (const vectorDimensions of sizes) {
+    for (const turns of normalized) {
+      const measured = await runScaleProbe({
+        embedder: createSyntheticScaleEmbedder({
+          dimensions: vectorDimensions,
+        }),
+        log,
+        semanticLabel: `synthetic ${vectorDimensions}d exact-scan fixture; ` +
+          `recall is plumbing-only`,
+        turns,
+      })
+      const vectorComponents = safeProduct(
+        [measured.messages, vectorDimensions],
+        'measured vector components',
+      )
+      const exactScanP95Ms = Math.max(
+        measured.semanticSharedP95Ms,
+        measured.semanticZeroP95Ms,
+      )
+      measurements.push(Object.freeze({
+        ...measured,
+        exactScanP95Ms,
+        rawVectorBytes: safeProduct(
+          [vectorComponents, FLOAT32_BYTES],
+          'measured raw vector bytes',
+        ),
+        reviewBudgetExceeded: exactScanP95Ms > budget,
+        vectorComponents,
+        vectorDimensions,
+      }))
+    }
+  }
+  const threshold = summarizeExactScanThreshold(measurements, {
+    p95BudgetMs: budget,
+  })
+  for (const observed of threshold.byDimension) {
+    if (observed.status === 'comparison_justified') {
+      const first = formatInteger(
+        observed.firstObservedOverBudgetMessages,
+      )
+      if (observed.lastObservedWithinBudgetMessages === null) {
+        log(`  ${observed.dimensions}d locator comparison justified at ` +
+          `the first measured ${first}-message cell ` +
+          `(${observed.firstObservedP95Ms} ms p95)`)
+      } else {
+        log(`  ${observed.dimensions}d locator comparison bracket: ` +
+          `${formatInteger(
+            observed.lastObservedWithinBudgetMessages,
+          )}–${first} messages; first over-budget cell ` +
+          `${observed.firstObservedP95Ms} ms p95`)
+      }
+    } else {
+      log(`  ${observed.dimensions}d review threshold not observed through ` +
+        `${formatInteger(observed.measuredThroughMessages)} messages`)
+    }
+  }
+  return Object.freeze({
+    envelope,
+    measurements: Object.freeze(measurements),
+    threshold,
+  })
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     const options = parseArgs(process.argv.slice(2))
-    let embedder = null
-    let semanticLabel = 'embedder supplied'
-    if (options.embedderPath) {
-      embedder = await loadEmbedder(options.embedderPath)
-    } else if (options.syntheticVectorDimensions !== undefined) {
-      embedder = createSyntheticScaleEmbedder({
-        dimensions: options.syntheticVectorDimensions,
+    if (options.scanDimensions) {
+      await runSemanticScanMatrix({
+        dimensions: options.scanDimensions,
+        lifetimeTokens: options.lifetimeTokens,
+        p95BudgetMs: options.scanP95BudgetMs ??
+          DEFAULT_EXACT_SCAN_REVIEW_P95_MS,
+        tiers: options.tiers ?? [options.turns],
       })
-      semanticLabel = `synthetic ${options.syntheticVectorDimensions}d ` +
-        `capacity fixture; recall is plumbing-only`
+    } else {
+      let embedder = null
+      let semanticLabel = 'embedder supplied'
+      if (options.embedderPath) {
+        embedder = await loadEmbedder(options.embedderPath)
+      } else if (options.syntheticVectorDimensions !== undefined) {
+        embedder = createSyntheticScaleEmbedder({
+          dimensions: options.syntheticVectorDimensions,
+        })
+        semanticLabel = `synthetic ${options.syntheticVectorDimensions}d ` +
+          `capacity fixture; recall is plumbing-only`
+      }
+      await runScaleCurve({
+        embedder,
+        lifetimeTokens: options.lifetimeTokens,
+        semanticLabel,
+        tiers: options.tiers ?? [options.turns],
+      })
     }
-    await runScaleCurve({
-      embedder,
-      lifetimeTokens: options.lifetimeTokens,
-      semanticLabel,
-      tiers: options.tiers ?? [options.turns],
-    })
   } catch (error) {
     console.error(`SCALE_PROBE_FAILED: ${error?.message ?? error}`)
     process.exitCode = 1

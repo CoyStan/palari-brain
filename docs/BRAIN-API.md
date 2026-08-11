@@ -1358,6 +1358,9 @@ timeQuote? }] }`.
 ### Measurement commands
 
 `npm run scale-probe` measures 5,000-message behavior;
+`npm run scale-probe -- --tiers 250,1000,2500 --scan-dimensions 384,768,1536`
+measures the real exact semantic surface across cardinality and dimensions,
+with an explicit diagnostic p95 review budget and no provider or ANN;
 `npm run answer-interpretation-regression` exercises structural answer
 semantics; `npm run memory-stage-audit` classifies observed failures; and the
 reranker commands verify optional ranking adapters. See `evals/README.md`.

@@ -124,6 +124,45 @@ quickstart 6/6, broader compatibility 396/396, and the offline package gate
 imports all six unchanged public entry points (36 files / 984,790 packed bytes
 / 1,468,372 unpacked bytes). Release tag `v0.1.0-alpha.1` remains unchanged.
 
+## 2026-08-11 exact-scan characterization
+
+SCALE-03 characterizes the remaining linear semantic scan without changing
+product behavior or adding an ANN dependency:
+
+- the provider-free dimension matrix runs the real semantic surface—SQLite
+  vector reads, Float32 decoding, cosine scoring, full ranking, and canonical
+  row mapping—at each requested cardinality and dimension;
+- the 100M-token arithmetic reports raw vector payload and component visits,
+  but deliberately makes no latency extrapolation;
+- representative dimensions are 384, 768, and 1,536; a configurable 100 ms
+  p95 review budget is labelled as a local diagnostic assumption, not a
+  product SLO; and
+- the threshold report records the last measured cardinality within budget
+  and first measured cardinality over it. Crossing justifies a private locator
+  comparison; it does not switch runtime behavior or claim ANN quality.
+
+For the current one-vector-per-canonical-message design, 100M lifetime tokens
+at the existing 50-200-token message assumption imply 500,000-2,000,000 scan
+candidates. The raw Float32 envelope is 0.77-3.07 GB at 384d, 1.54-6.14 GB at
+768d, and 3.07-12.29 GB at 1,536d. One exact query visits 192M-768M, 384M-1.536B,
+or 768M-3.072B vector components respectively, then fully ranks every
+candidate. Those are arithmetic work units, not projected timings.
+
+On the repeatable local synthetic-plumbing matrix, all three dimensions stayed
+within the assumed 100 ms p95 budget through 2,000 messages (worst 47.7 ms).
+At 5,000 messages, 384d remained just within it at 98.3 ms, while 768d crossed
+at 115.2 ms and 1,536d crossed at 149.7 ms. Plumbing recall remained 25/25 in
+both labelled columns. The observed locator-comparison bracket is therefore
+2,000–5,000 messages for 768d and 1,536d on this machine; it is not a universal
+cutoff.
+
+Three focused contracts cover exact lifetime arithmetic, observed threshold
+classification, and the real dimension-matrix surface. Final validation
+passes: core 121/121, quickstart 6/6, broader compatibility 399/399, and the
+offline package gate imports all six unchanged public entry points (36 files /
+984,906 packed bytes / 1,468,596 unpacked bytes). Release tag
+`v0.1.0-alpha.1` remains unchanged.
+
 ## Product state
 
 The basic journey remains:
@@ -154,9 +193,10 @@ npm run scale-probe
 ## Next
 
 Take the next smallest product-memory behavior unit from real user feedback.
-If the scale-readiness track continues, SCALE-03 is to characterize the still
-linear exact vector scan by cardinality and realistic adapter dimensions, then
-define the evidence threshold for an optional derived locator. Do not add an
-ANN dependency until a later private adapter comparison justifies it. Future
-paid diagnostics require a new explicit aggregate cap. Do not replay sealed or
-already-successful benchmark cases merely to tune them.
+If the scale-readiness track continues, SCALE-04 is a narrow private derived-
+locator comparison at the observed 2,000/5,000-message bracket and 768d/1,536d.
+Agree its review plan before implementation; compare scoped ID recall, p95,
+update/delete correctness, package weight, and build portability. Do not add a
+runtime ANN dependency or public locator API unless that evidence justifies
+one. Future paid diagnostics require a new explicit aggregate cap. Do not
+replay sealed or already-successful benchmark cases merely to tune them.

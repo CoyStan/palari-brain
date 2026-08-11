@@ -25,7 +25,12 @@ analytical envelope, or `--embedder <module>` to include the optional semantic
 surface. `--synthetic-vectors <dimensions>` instead exercises semantic index
 size, bounded catch-up call count, and brute-force query latency without a
 provider; its planted equivalence vectors validate plumbing, not embedding
-quality. A tiered run is a repeatable local diagnostic, not an extrapolated
+quality. `--scan-dimensions 384,768,1536` runs that same real exact-search
+surface for every requested tier and dimension. It reports raw Float32 bytes,
+component visits, and the first measured cardinality crossing the explicit
+`--scan-p95-budget-ms` review assumption (100 ms by default). That budget is
+not a product SLO, and the lifetime-token arithmetic never extrapolates
+latency. A tiered run is a repeatable local diagnostic, not an extrapolated
 benchmark grade.
 
 Diagnostics may write only to caller-selected temporary paths or gitignored
