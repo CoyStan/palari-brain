@@ -1,10 +1,9 @@
-// Kernel store surface (KERNEL-API §3) — U3, Fable 5, 2026-07-18.
+// Kernel store surface — U3, Fable 5, 2026-07-18.
 // Wraps the extracted baseline store (./memory-store.mjs, verbatim from
 // palari-v05 @ 190a4ad2) and adds the two kernel-only operations:
-//   - topicForget: composed per SOURCE-MAP finding 2 (no baseline
-//     method exists) — contract C18.
-//   - deleteKernelStoreFile: kernel-named whole-store deletion (C19).
-// No baseline behavior is altered here; the gate lands in U4.
+//   - topicForget: a composed operation absent from the baseline;
+//   - deleteKernelStoreFile: kernel-named whole-store deletion.
+// Full extraction provenance remains at release tag v0.1.0-alpha.1.
 
 import {
   acquisitionModes,

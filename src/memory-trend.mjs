@@ -17,8 +17,8 @@
 //   stable        present both recently and historically, similar density
 //   stale         nothing in the recent window at all
 
-export const TREND_RECENT_DAYS = 30
-export const TREND_OLD_DAYS = 90
+const TREND_RECENT_DAYS = 30
+const TREND_OLD_DAYS = 90
 
 const DAY_MS = 24 * 60 * 60 * 1000
 

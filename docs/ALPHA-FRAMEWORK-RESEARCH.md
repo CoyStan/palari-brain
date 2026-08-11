@@ -49,5 +49,6 @@ The default path is now a provider-free contract test plus one reusable debug
 runner. The runner accepts injected questions and dependencies, writes mutable
 diagnostic JSONL, bounds retries, continues after row failures when requested,
 and reserves a declared worst-case cost before each stage. Debug output is not
-a benchmark grade. Historical machinery remains available through
-`npm run test:legacy` and the recovery tag.
+a benchmark grade. The broader product suite remains available through
+`npm run test:legacy`; superseded machinery remains at release tag
+`v0.1.0-alpha.1`.

@@ -42,12 +42,12 @@ inner-loop gate.
 - Datasets stay gitignored; do not download unclear-licence data.
 - U8 stays sealed: never execute question `1568498a`.
 
-## Tickets and review
+## Review
 
-Tickets are optional for ordinary R0-R1 alpha work. Use the governed workflow
-in `docs/TICKET-WORKFLOW.md` when the founder requests it, independent review
-is useful, work spans owners/sessions, or risk is genuinely R2-R4. Do not turn
-routine debugging into a ticket chain.
+Ordinary R0-R1 alpha work needs no repository ticket or report bundle. For
+R2-R4 work, cross-session ownership, or founder-requested independent review,
+agree on a narrow scope and review plan before implementation. The superseded
+ticket machinery remains recoverable from release tag `v0.1.0-alpha.1`.
 
 ## Release benchmarks
 

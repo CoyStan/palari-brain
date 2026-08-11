@@ -23,9 +23,9 @@
 // breaking ties.
 
 const VECTOR_TABLE = 'dialogue_evidence_vectors'
-export const MAX_SEMANTIC_BATCH_PHRASES = 16
+const MAX_SEMANTIC_BATCH_PHRASES = 16
 
-export function ensureSemanticIndex(db) {
+function ensureSemanticIndex(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS ${VECTOR_TABLE} (
       evidence_id TEXT PRIMARY KEY,
@@ -80,7 +80,7 @@ function assertVectors(vectors, expected, label) {
 // Embed every visible journal row that has no vector yet. Incremental and
 // idempotent: steady-state cost is one SELECT. Batching is the embedder's
 // concern; this passes at most `batchSize` texts per call.
-export async function indexEvidenceVectors(db, {
+async function indexEvidenceVectors(db, {
   batchSize = 64,
   embed,
   scope,

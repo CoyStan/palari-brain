@@ -53,15 +53,15 @@
     "src/reranker-ettin.mjs",
     "src/reranker-transformers.mjs",
     "src/retrieval-answer.mjs",
+    "src/retrieval-plan.mjs",
     "src/statement-extraction.mjs",
     "src/store.mjs",
     "src/util.mjs",
-    "assets/brand",
+    "assets/brand/palari-header.png",
+    "assets/brand/palari-mark-512.png",
     "examples",
     "docs/BRAIN-API.md",
-    "docs/CONSUMER-SEAM.md",
-    "docs/KERNEL-API.md",
-    "docs/KERNEL-CONTRACT.md"
+    "docs/CONSUMER-SEAM.md"
   ],
   "engines": {
     "node": ">=22.5"
@@ -72,20 +72,10 @@
     "alpha:debug": "node evals/run-alpha-memory-debug.mjs",
     "test:legacy": "node --test",
     "quickstart": "node examples/quickstart.mjs",
-    "bakeoff": "node evals/run-bakeoff.mjs",
-    "memory-bench": "node evals/run-offline-memory-bench.mjs",
-    "probe": "node evals/run-dev-provider-probe.mjs",
     "answer-interpretation-regression": "node evals/run-answer-interpretation-regression.mjs",
     "memory-stage-audit": "node evals/run-memory-stage-audit.mjs",
-    "reached-prefix-regression": "node evals/run-reached-prefix-retrieval-regression.mjs",
-    "trust-bench": "node evals/run-trust-benchmark.mjs",
     "scale-probe": "node evals/run-scale-probe.mjs",
     "reranker-bakeoff": "node evals/run-reranker-bakeoff.mjs --verify",
-    "ettin-bakeoff": "node evals/run-ettin-native-bakeoff.mjs --verify",
-    "ticket": "node scripts/ticket-system.mjs"
-  },
-  "devDependencies": {
-    "@google/genai": "1.40.0",
-    "mem0ai": "3.1.1"
+    "ettin-bakeoff": "node evals/run-ettin-native-bakeoff.mjs --verify"
   }
 }

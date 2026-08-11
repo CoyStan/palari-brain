@@ -1,13 +1,11 @@
 // Extracted from palari-v05 @ 190a4ad2f8d5187f5f21222048dd11efb2ad9991
 //   apps/palari-local-workbench/scripts/workspace-backend/memory-store.mjs
 //   (blob 4f67d0fe96dd, 1112 lines) — verbatim except one severed
-//   import: './shared.mjs' -> './util.mjs' (vendored booleanEnv,
-//   slugify; see docs/SOURCE-MAP.md severance ledger).
-// Baseline behavior preserved bugs-and-all per charter; divergences
-// happen only via recorded kernel migrations (docs/KERNEL-API.md §7).
+//   import: './shared.mjs' -> './util.mjs' (vendored booleanEnv and slugify).
+// Full extraction provenance remains at release tag v0.1.0-alpha.1.
 // U3, Fable 5, 2026-07-18.
 import { createHash, randomUUID } from 'node:crypto'
-import { access, mkdir, rm } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { createRequire } from 'node:module'
 import { performance } from 'node:perf_hooks'
@@ -185,7 +183,7 @@ function trigramShingles(value) {
   return shingles
 }
 
-export function trigramShingleSimilarity(left, right) {
+function trigramShingleSimilarity(left, right) {
   const leftShingles = trigramShingles(left)
   const rightShingles = trigramShingles(right)
   if (!leftShingles.size && !rightShingles.size) return 1
@@ -292,15 +290,6 @@ export function workspaceMemoryDbPath({ memoryRootDir = '', statePath = '', work
   const safeWorkspaceId = normalizeWorkspaceId(workspaceId)
   const root = memoryRootDir || join(dirname(statePath), 'palari-memory')
   return join(root, `${safeWorkspaceId}.memory.sqlite`)
-}
-
-export async function pathExists(path) {
-  try {
-    await access(path)
-    return true
-  } catch {
-    return false
-  }
 }
 
 export async function deleteWorkspaceMemoryDatabase(options = {}) {

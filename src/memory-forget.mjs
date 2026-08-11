@@ -30,9 +30,9 @@ import {
   searchDialogueEvidenceRanked,
 } from './memory-search.mjs'
 
-export const FORGET_MAX_PHRASE_CHARS = 200
-export const FORGET_CANDIDATE_LIMIT = 200
-export const FORGET_RESIDUAL_LIMIT = 20
+const FORGET_MAX_PHRASE_CHARS = 200
+const FORGET_CANDIDATE_LIMIT = 200
+const FORGET_RESIDUAL_LIMIT = 20
 const RESIDUAL_SNIPPET_CHARS = 160
 const DELETED_CONTENT_TERM_LIMIT = 12
 

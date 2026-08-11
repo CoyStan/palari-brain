@@ -86,7 +86,8 @@ to `uncertain`; nothing is misrouted.
 3. **Held in reserve, pending pilot evidence:** a content-hash "seen
    before" ingest hint (per-turn SHA-256s already exist in the canonical
    manifests) so an application can decline to store an identical copy.
-   Open a ticket only if pilot usage is demonstrably paste-heavy.
+   Open a scoped, reviewed change only if pilot usage is demonstrably
+   paste-heavy.
 4. **Rejected as a build target:** post-hoc pasted-text classification as
    a routing mechanism. The quote-context guard remains an epistemic
    backstop only.

@@ -1,7 +1,6 @@
 // LongMemEval intake (U6) — Fable 5, 2026-07-18.
-// Parses LongMemEval instances (Wu et al., ICLR 2025, MIT — verdict
-// recorded in docs/DECISIONS.md 2026-07-18) into the kernel session
-// shape. Format pinned from the canonical repo README and generator
+// Parses LongMemEval instances (Wu et al., ICLR 2025, MIT) into the kernel
+// session shape. Format pinned from the canonical repo README and generator
 // (data/custom_history/sample_haystack_and_timestamp.py):
 //   timestamps are "%Y/%m/%d (%a) %H:%M" (e.g. "2023/05/20 (Sat)
 //   02:21") or bare "%Y/%m/%d"; no timezone is specified — treated

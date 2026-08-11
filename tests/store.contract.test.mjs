@@ -1,4 +1,4 @@
-// U3 contract tests — store + schema + FTS (KERNEL-API §3, contract C1/C9/C17/C18/C19).
+// U3 contract tests — store, schema, FTS, deletion, and scope behavior.
 // Zero-dependency: node:test + node:assert. Run: npm test (node --test tests/).
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'

@@ -78,7 +78,7 @@ continue-on-error so one broken row does not hide later diagnoses. Add
 - append or replace local JSONL logs;
 - report attempts and failures, never a benchmark grade;
 - use focused tests during iteration;
-- use a ticket only for risky, broad, or independently reviewed changes.
+- agree on an explicit scope and review plan for risky or broad changes.
 
 ### Release benchmark
 
@@ -99,8 +99,9 @@ or independent grading. Those rules do not leak into ordinary debugging.
 
 - `npm test` and `npm run alpha:check`: the small runner contract tier;
 - `npm run quickstart`: the real basic memory journey;
-- `npm run test:legacy`: the complete historical suite, used before broad
-  merges or when touching legacy behavior, not after every small edit.
+- `npm run test:legacy`: the broader product compatibility suite, used before
+  broad merges or when touching compatibility behavior.
 
 The pre-reset state is recoverable at annotated tag
-`pre-alpha-governance-reset-2026-08-07`. Nothing was deleted in this reset.
+`pre-alpha-governance-reset-2026-08-07`. The complete first-alpha evaluator
+and workflow tree is recoverable at annotated tag `v0.1.0-alpha.1`.

@@ -44,9 +44,9 @@ export const GRAPH_MAX_ASSERTIONS_PER_BATCH = 16
 export const GRAPH_MAX_ENTITY_CHARS = 120
 export const GRAPH_MAX_PREDICATE_CHARS = 60
 export const GRAPH_MAX_QUOTE_CHARS = 500
-export const GRAPH_MAX_HOPS = 3
+const GRAPH_MAX_HOPS = 3
 
-export function graphKey(value) {
+function graphKey(value) {
   return String(value ?? '')
     .normalize('NFC')
     .replace(/\s+/gu, ' ')
@@ -69,7 +69,7 @@ function boundedText(value, label, maxChars) {
   return text
 }
 
-export function ensureGraphSchema(db) {
+function ensureGraphSchema(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS dialogue_graph_edges (
       id TEXT PRIMARY KEY,
@@ -107,7 +107,7 @@ export function ensureGraphSchema(db) {
 // rows the extractor was shown. Everything checkable is checked here; what
 // cannot be checked (whether the triple is a fair reading of the quote) is
 // bounded by the quote riding along on every edge, visible to any consumer.
-export function admitGraphAssertions(db, scope, proposals, evidenceRows) {
+function admitGraphAssertions(db, scope, proposals, evidenceRows) {
   ensureGraphSchema(db)
   const byRef = new Map(evidenceRows.map((row, index) => [
     `e${index}`,

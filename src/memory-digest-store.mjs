@@ -24,11 +24,11 @@ const migrationId = 'CDX-M4-INCREMENTAL-DIGEST'
 // the actionable queue. Retrying helps only for transient faults (transport
 // blips, one malformed completion); past this the unit is a standing defect
 // and blocking every later interaction behind it costs more than the gap.
-export const DEFAULT_REDUCTION_MAX_ATTEMPTS = 3
+const DEFAULT_REDUCTION_MAX_ATTEMPTS = 3
 
 // Failures that are a deterministic property of the unit itself. Retrying
 // cannot change the outcome, so these quarantine on the first failure.
-export const DETERMINISTIC_REDUCTION_FAILURES = Object.freeze([
+const DETERMINISTIC_REDUCTION_FAILURES = Object.freeze([
   'REDUCER_INPUT_CAPACITY',
 ])
 const deterministicFailures = new Set(DETERMINISTIC_REDUCTION_FAILURES)
@@ -228,7 +228,7 @@ function seedExistingEvidence(db, clock) {
   ).run(migrationId, isoNow(clock))
 }
 
-export function ensureMemoryDigestSchema(store, {
+function ensureMemoryDigestSchema(store, {
   clock = () => new Date(),
 } = {}) {
   if (!store?.enabled) return
@@ -739,7 +739,7 @@ function renderedDigestChars(items) {
 // comparison decides what may destroy existing memory. This loosens only the
 // same-topic test — speaker, chronology, provenance, and the single-target
 // rule are unchanged.
-export function normalizedDigestTopic(value) {
+function normalizedDigestTopic(value) {
   return String(value ?? '')
     .normalize('NFC')
     .replace(/\s+/gu, ' ')

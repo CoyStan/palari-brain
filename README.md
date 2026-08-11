@@ -87,8 +87,8 @@ npm run quickstart
 
 `npm test` runs the small provider-free alpha gate. `npm run quickstart`
 exercises the full product journey: store, recall, correct, delete, and verify
-the behavior afterward. The complete historical suite is available through
-`npm run test:legacy`.
+the behavior afterward. The broader product compatibility suite is available
+through `npm run test:legacy`.
 
 ## Alpha release
 
@@ -184,22 +184,21 @@ one alpha process at a time.
 | Working memory and reduction | `src/memory-digest-store.mjs`, `src/memory-reducer.mjs` |
 | Retrieval and answers | `src/memory-exploration.mjs`, `src/memory-search.mjs`, `src/memory-semantic.mjs`, `src/memory-graph.mjs`, `src/retrieval-answer.mjs` |
 | Provider seams | `src/gemini.mjs`, `src/openai.mjs`, `src/reranker-ettin.mjs` |
-| Alpha diagnostics | `evals/run-alpha-memory-debug.mjs` |
-| Historical evaluation | `evals/`, with its map in `evals/README.md` |
+| Local diagnostics | `evals/`, with its map in `evals/README.md` |
 
 Start with the [active Brain API contract](docs/BRAIN-API.md). The
-[documentation map](docs/README.md) separates current behavior from historical
-design and evaluation records. The [repository survey](docs/ALPHA-FRAMEWORK-RESEARCH.md)
-explains why Palari borrows small patterns from larger frameworks without
-installing their authority models.
+[documentation map](docs/README.md) covers the active checkout and its archive
+tags. The [repository survey](docs/ALPHA-FRAMEWORK-RESEARCH.md) explains why
+Palari borrows small patterns from larger frameworks without installing their
+authority models.
 
 ## Alpha policy
 
 Ordinary debugging can be repeated and repaired inside an approved aggregate
-cost cap. Tickets and immutable run machinery are reserved for risky work or
-an explicitly declared release benchmark. Credentials, private scope,
-destructive operations, durable-write admission, and provider spend limits
-remain hard boundaries.
+cost cap. Risky work gets an explicit scope and review plan; immutable run
+machinery is reserved for an explicitly declared release benchmark.
+Credentials, private scope, destructive operations, durable-write admission,
+and provider spend limits remain hard boundaries.
 
 The repository immediately before the alpha policy reset is available at the
 annotated tag `pre-alpha-governance-reset-2026-08-07`.

@@ -1,8 +1,8 @@
 # Palari Brain active contract
 
 This document describes the package root exported by `src/index.mjs`.
-`docs/KERNEL-API.md` and `docs/KERNEL-CONTRACT.md` describe the preserved
-v0.5 comparator, not the active chatbot path.
+The superseded v0.5 comparator contract remains at release tag
+`v0.1.0-alpha.1`; it is not part of the active checkout.
 
 ## The two memory layers
 
@@ -313,9 +313,9 @@ a time. That isolates the offender and lets the rest through. A marked
 terminal provider failure is never isolated this way.
 
 Batching trades recall of rare one-off facts for cost: a wide consolidation
-span makes an unusual fact more likely to be summarised away.
-`npm run memory-bench -- --reduce-every N` measures that trade-off on your
-own data before you commit to a cadence.
+span makes an unusual fact more likely to be summarised away. Measure that
+trade-off with the reusable alpha runner on representative local data before
+committing to a cadence.
 
 ### Quarantine
 
@@ -1341,10 +1341,10 @@ timeQuote? }] }`.
 
 ### Measurement commands
 
-`npm run trust-bench` (five trust cases, CI-pinned 5/5),
-`npm run scale-probe` (5,000-message behavior), `npm run memory-bench`
-(digest structure), `npm run probe` (live wire-format check; the only
-spend-capable command; founder-gated). See `evals/README.md`.
+`npm run scale-probe` measures 5,000-message behavior;
+`npm run answer-interpretation-regression` exercises structural answer
+semantics; `npm run memory-stage-audit` classifies observed failures; and the
+reranker commands verify optional ranking adapters. See `evals/README.md`.
 
 ## Deletion honesty and receipts — added 2026-07-29
 

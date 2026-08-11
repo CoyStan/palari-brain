@@ -25,14 +25,14 @@ import {
   extractMemoryQueryKeywords,
 } from './memory-store.mjs'
 
-export const DIALOGUE_SEARCH_MAX_TERMS = 8
+const DIALOGUE_SEARCH_MAX_TERMS = 8
 
 // Porter stemming on top of the same unicode folding the memory FTS uses.
 // The asker says "hiding", the journal says "hid the spare key": stemming
 // folds both to one term at index AND query time, which is the cheapest
 // real recall win available without any model. Stemming never changes what
 // a hit IS — still a canonical row — only how it is found.
-export const DIALOGUE_SEARCH_TOKENIZER =
+const DIALOGUE_SEARCH_TOKENIZER =
   'porter unicode61 remove_diacritics 2'
 
 function ftsTerm(value) {
