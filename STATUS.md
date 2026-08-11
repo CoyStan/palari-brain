@@ -201,6 +201,45 @@ Final validation passes: core 125/125, quickstart 6/6, broader compatibility
 points (36 files / 984,983 packed bytes / 1,468,829 unpacked bytes). Release
 tag `v0.1.0-alpha.1` remains unchanged.
 
+## 2026-08-11 real-vector locator quality
+
+SCALE-05 replaced the repeated-filler plumbing fixture with a licence-clear
+quality diagnostic without changing product runtime:
+
+- 5,000 unique repository-owned fictional memory statements span 21 generated
+  domains; 25 labeled facts are paired with 50 human-written shared-token and
+  zero-overlap queries, and every target is present by the 2,000-row tier;
+- one content-addressed pass used OpenAI `text-embedding-3-small` at its default
+  1,536 dimensions. The preflight plus full pass billed 150,035 input tokens,
+  or $0.0030007 at the explicitly reviewed $0.02/million price assumption;
+- every dispatch reserved against a dedicated persisted aggregate $1 ceiling,
+  used conservative shared pacing, never retried, and retained its reservation
+  on ambiguous failure. The completed run needed 11 requests and no waits;
+- the resulting 5,050 vectors occupy a 65,073,152-byte gitignored cache that
+  contains hashes and vectors but no source text. The aggregate 23 KB result,
+  budget, pacing state, corpus generator, and evaluator are all excluded from
+  the release package; and
+- exact cosine over the full real-vector corpus recalled 47/50 labeled targets:
+  25/25 shared-token and 22/25 zero-overlap. Its local in-memory p95 was 9.5 ms
+  over 2,000 vectors and 29.8 ms over 5,000; these timings do not include SQLite
+  reads and are comparable only to the locator timings in this diagnostic.
+
+At 5,000 vectors the 8x8 sketch searched 6.6% of rows in 4.0 ms p95 but retained
+only 48.9% of exact target hits and 15.0% of exact top-20 IDs. The 8x6 setting
+searched 21.8% in 9.0 ms but retained 70.2% of target hits and 46.2% of the exact
+top 20. The 12x5 setting searched 42.8% in 15.4 ms for 87.2% / 67.4% retention.
+Only 16x4 reached 100% exact-target retention and 91.3% top-20 coverage, but it
+searched 77.6% of all rows and took 23.9 ms p95. The same tradeoff held at the
+2,000-row tier. No setting met the predeclared quality, candidate-fraction, and
+latency review assumptions.
+
+The private sparse-sign locator therefore remains rejected for runtime use.
+No public export, dependency, durable-memory boundary, or package file changed.
+Final validation passes: core 135/135, quickstart 6/6, broader compatibility
+413/413, and the offline package gate imports all six unchanged public entry
+points (36 files / 985,042 packed bytes / 1,469,291 unpacked bytes). Release tag
+`v0.1.0-alpha.1` remains unchanged.
+
 ## Product state
 
 The basic journey remains:
@@ -231,9 +270,10 @@ npm run scale-probe
 ## Next
 
 Take the next smallest product-memory behavior unit from real user feedback.
-Do not tune another locator against the planted equivalence fixture. If the
-scale-readiness track continues, first agree a narrow SCALE-05 review plan for
-caller-supplied real embedding vectors and a licence-clear corpus; compare
-quality/latency tradeoffs without runtime adoption. Any paid adapter requires
-a new explicit aggregate cap. Do not replay sealed or already-successful
-benchmark cases merely to tune them.
+Do not tune the sparse-sign locator further. If the scale-readiness track
+continues, the smallest useful SCALE-06 is an evaluation-only comparison of one
+mature ANN index against the now-cached real vectors and the same canonical-ID
+quality boundary; it needs no further provider call. Agree dependency and
+review scope before implementation. Any new paid adapter or changed corpus
+requires a new explicit aggregate cap. Do not replay sealed or already-
+successful benchmark cases merely to tune them.
