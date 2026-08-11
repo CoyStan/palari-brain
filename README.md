@@ -90,6 +90,18 @@ exercises the full product journey: store, recall, correct, delete, and verify
 the behavior afterward. The complete historical suite is available through
 `npm run test:legacy`.
 
+## Alpha release
+
+The current public developer preview is `v0.1.0-alpha.1`. Install the exact
+GitHub release with:
+
+```bash
+npm install github:CoyStan/palari-brain#v0.1.0-alpha.1
+```
+
+The package is not published to the npm registry yet. See the
+[release notes](CHANGELOG.md) for validation evidence and known limitations.
+
 ## Use the library
 
 ```js
