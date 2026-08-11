@@ -58,6 +58,8 @@ test('synthetic vectors exercise semantic capacity without claiming quality', as
   assert.equal(measurement.semanticZeroRecall, '25/25')
   assert.ok(measurement.vectorIndexMs >= 0)
   assert.ok(measurement.vectorIndexMsPerMessage >= 0)
+  assert.equal(measurement.vectorRowsIndexed, measurement.messages)
+  assert.ok(measurement.vectorIndexCalls >= 2)
   assert.ok(measurement.semanticSharedP95Ms >=
     measurement.semanticSharedMedianMs)
   assert.ok(measurement.semanticZeroP95Ms >= measurement.semanticZeroMedianMs)

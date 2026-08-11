@@ -13,6 +13,7 @@ import {
   residualMentions,
 } from './memory-forget.mjs'
 import {
+  indexEvidenceVectors,
   semanticFindEvidence,
   semanticFindEvidenceBatch,
 } from './memory-semantic.mjs'
@@ -1364,6 +1365,23 @@ export function createDialogueGate(store, {
       explorer.read(normalizedScope(scope), options),
     exploreTimeline: (scope, options) =>
       explorer.timeline(normalizedScope(scope), options),
+    // Explicit bounded maintenance for historical vector backlogs. Semantic
+    // queries make the same one-batch progress, but never scan a partial bank
+    // as though it covered the complete visible scope.
+    indexSemantic: async (scope, options = {}) => {
+      if (typeof embedder !== 'function') {
+        throw new TypeError(
+          'Semantic indexing requires the brain to be created with an ' +
+          'embedder option.',
+        )
+      }
+      return indexEvidenceVectors(store.db, {
+        batchSize: options.batchSize,
+        embed: embedder,
+        scope: normalizedScope(scope),
+        visibleStatementsSql,
+      })
+    },
     // Derived temporal graph over the journal. Extraction needs the
     // pluggable extractor; querying is pure SQL and always available.
     // Every edge carries a host-verified quote and evidence ID, and

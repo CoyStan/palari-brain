@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import {
+  answerWithRetrieval,
   createPalariBrain,
   forgetMemories,
   ingestChatTurn,
@@ -71,6 +72,37 @@ async function seed(brain, scope = SCOPE) {
   }
 }
 
+function keepNothing({ request }) {
+  return {
+    actions: [],
+    baseRevision: request.input.baseRevision,
+    dispositions: request.input.evidence.map((item) => ({
+      evidenceId: item.id,
+      outcome: 'no_memory',
+    })),
+  }
+}
+
+async function seedHistory(brain, turns = 40) {
+  for (let index = 0; index < turns; index += 1) {
+    await ingestChatTurn(brain, {
+      assistantMessage: 'Noted.',
+      eventAt: new Date(Date.UTC(2025, 0, 1) + index * 60_000)
+        .toISOString(),
+      palariId: SCOPE.palariId,
+      retention: 'durable',
+      sourceMessageId: `history:${index}`,
+      userId: SCOPE.userId,
+      userMessage: index === 0
+        ? 'The backup door key is inside the green kitchen drawer.'
+        : `Ordinary history item ${index}.`,
+    }, {
+      reducer: keepNothing,
+      reducerId: 'semantic-catchup-test/v1',
+    })
+  }
+}
+
 test('semantic find bridges zero-overlap paraphrase to the canonical row',
   async (t) => {
     const brain = await openBrain(t)
@@ -106,7 +138,143 @@ test('semantic results are deterministic and incremental', async (t) => {
   // The second search embeds only the query — rows are already indexed.
   assert.equal(embedCalls, callsAfterFirst + 1)
   assert.match(first[0].text, /wifi password/)
+
+  await ingestChatTurn(brain, {
+    assistantMessage: 'Noted.',
+    eventAt: '2025-01-10T00:00:00.000Z',
+    palariId: SCOPE.palariId,
+    retention: 'durable',
+    sourceMessageId: 'sem:new',
+    userId: SCOPE.userId,
+    userMessage: 'The dentist moved my appointment to Thursday.',
+  })
+  const callsBeforeNewRows = embedCalls
+  const third = await brain.exploreSemantic(SCOPE, {
+    phrase: 'when is my tooth appointment',
+  })
+  // The derived pending checkpoint feeds only the two newly written rows,
+  // followed by the query; it does not rediscover the indexed history.
+  assert.equal(embedCalls, callsBeforeNewRows + 2)
+  assert.match(third[0].text, /dentist moved/)
 })
+
+test('one semantic query performs only one bounded history catch-up batch',
+  async (t) => {
+    const calls = []
+    const brain = await openBrain(t, async (texts) => {
+      calls.push([...texts])
+      return fakeEmbed(texts)
+    })
+    await seedHistory(brain)
+
+    await assert.rejects(
+      brain.exploreSemantic(SCOPE, { phrase: 'backup door key' }),
+      (error) => {
+        assert.equal(error.code, 'SEMANTIC_INDEX_CATCHING_UP')
+        assert.deepEqual(error.semanticIndex, {
+          complete: false,
+          indexed: 64,
+          operation: 'memory_semantic_index',
+          status: 'catching_up',
+        })
+        return true
+      },
+    )
+    // The incomplete query did not embed its query or drain the other 16
+    // rows behind the same provider call.
+    assert.deepEqual(calls.map((texts) => texts.length), [64])
+
+    const completed = await brain.indexSemantic(SCOPE)
+    assert.deepEqual(completed, {
+      complete: true,
+      indexed: 16,
+      operation: 'memory_semantic_index',
+      status: 'ready',
+    })
+    assert.deepEqual(calls.map((texts) => texts.length), [64, 16])
+
+    const rows = await brain.exploreSemantic(SCOPE, {
+      phrase: 'backup door key',
+    })
+    assert.ok(rows.some((row) => /green kitchen drawer/.test(row.text)))
+    assert.deepEqual(calls.map((texts) => texts.length), [64, 16, 1])
+  })
+
+test('hybrid retrieval reports semantic catch-up and keeps scoped ranked recall',
+  async (t) => {
+    const brain = await openBrain(t)
+    await seedHistory(brain)
+
+    let found
+    await answerWithRetrieval(brain, {
+      ...SCOPE,
+      async provider({ retrieve }) {
+        found = await retrieve({
+          input: { phrase: 'backup door key' },
+          tool: 'memory_search',
+        })
+        return { text: 'The backup key is in the green kitchen drawer.' }
+      },
+      question: 'Where is the backup door key?',
+    })
+
+    assert.equal(found.semanticUsed, false)
+    assert.equal(found.semanticCandidates, 0)
+    assert.deepEqual(found.semanticIndex, {
+      complete: false,
+      indexed: 64,
+      operation: 'memory_semantic_index',
+      status: 'catching_up',
+    })
+    assert.ok(found.matches.some((row) =>
+      /green kitchen drawer/.test(row.text)))
+    assert.ok(found.matches.every((row) =>
+      !row.surfaces.some((surface) => surface.startsWith('semantic'))))
+  })
+
+test('a write during query embedding cannot make a partial bank look ready',
+  async (t) => {
+    let brain
+    let injectWrite = false
+    let injected = false
+    brain = await openBrain(t, async (texts) => {
+      if (injectWrite && !injected && texts.length === 1) {
+        injected = true
+        await ingestChatTurn(brain, {
+          assistantMessage: 'Noted.',
+          eventAt: '2025-01-20T00:00:00.000Z',
+          palariId: SCOPE.palariId,
+          retention: 'durable',
+          sourceMessageId: 'during-query:0',
+          userId: SCOPE.userId,
+          userMessage: 'The dentist moved my appointment to Thursday.',
+        })
+      }
+      return fakeEmbed(texts)
+    })
+    await seed(brain)
+    assert.equal((await brain.indexSemantic(SCOPE)).complete, true)
+
+    injectWrite = true
+    await assert.rejects(
+      brain.exploreSemantic(SCOPE, { phrase: 'my tooth appointment' }),
+      (error) => {
+        assert.equal(error.code, 'SEMANTIC_INDEX_CATCHING_UP')
+        assert.deepEqual(error.semanticIndex, {
+          complete: false,
+          indexed: 0,
+          operation: 'memory_semantic_index',
+          status: 'catching_up',
+        })
+        return true
+      },
+    )
+
+    const rows = await brain.exploreSemantic(SCOPE, {
+      phrase: 'my tooth appointment',
+    })
+    assert.match(rows[0].text, /dentist moved/)
+  })
 
 test('semantic batch embeds all probes together and returns one ranking each',
   async (t) => {
@@ -163,6 +331,10 @@ test('without an embedder the surface refuses instead of pretending',
       brain.exploreSemanticBatch(SCOPE, {
         phrases: ['anything', 'something else'],
       }),
+      /requires the brain to be created with an embedder/,
+    )
+    await assert.rejects(
+      brain.indexSemantic(SCOPE),
       /requires the brain to be created with an embedder/,
     )
   })

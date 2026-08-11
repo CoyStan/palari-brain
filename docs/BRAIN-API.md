@@ -1301,17 +1301,33 @@ plus `similarity`. Vectors are derived data in the same SQLite file
 deletion. Without an embedder the surface throws — nothing dials out and
 nothing pretends.
 
+A semantic query catches up at most 64 missing visible rows. It searches only
+when the caller's scoped vector bank is complete; otherwise it throws
+`SEMANTIC_INDEX_CATCHING_UP` with bounded `error.semanticIndex` progress
+instead of presenting a partial bank as complete. Applications can call
+`await brain.indexSemantic(scope, { batchSize })` repeatedly during idle work;
+each call indexes one batch (`batchSize` defaults to 64 and is capped at 200)
+and returns `{ complete, indexed, operation, status }`. Canonical writes never
+wait for this derived maintenance. A small derived pending table is seeded once
+for older databases and maintained by evidence insert/update/delete triggers,
+so later batches do not repeatedly scan already-indexed history.
+The catch-up cap counts canonical rows; per-row long-content limits remain the
+application/embedding-adapter responsibility described by the long-content
+policy and `createChunkedEmbedder`.
+
 `await brain.exploreSemanticBatch(scope, { phrases, limit })` returns one
 canonical ranking per phrase. It accepts at most 16 phrases, embeds all query
 phrases in one provider/local-model call, and scans the visible vector bank
 once. This is the query-time primitive used by `memory_bridge`; incremental
-indexing may still require its own bounded embedding batches when canonical
-rows have not yet been indexed.
+indexing performs at most one bounded embedding batch when canonical rows have
+not yet been indexed.
 
 `brain.retrievalCapabilities.semantic` tells an answer orchestrator whether
 the optional semantic surface is configured. `answerWithRetrieval` uses that
 host-derived capability to decide whether `memory_search` and `memory_bridge`
-run semantic ranking surfaces.
+run semantic ranking surfaces. If the index is catching up, those tools retain
+their fully scoped ranked surface, report `semanticUsed: false` plus the
+`semanticIndex` progress object, and never fuse partial semantic results.
 
 `brain.retrievalCapabilities.reranking` independently reports whether the
 optional cross-encoder stage is configured. Embedding and reranking are

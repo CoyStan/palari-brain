@@ -89,6 +89,41 @@ latency tail, and synthetic semantic label. Validation passes: core 109/109,
 quickstart 6/6, broader compatibility 393/393, and the offline package-install
 gate imports all six public entry points with unchanged export counts.
 
+## 2026-08-11 bounded semantic catch-up
+
+SCALE-02 prevents the first semantic query from embedding an unbounded number
+of historical rows without changing canonical admission, deleting an API, or
+adding an ANN dependency:
+
+- one semantic query indexes at most 64 missing visible rows and searches only
+  when that caller's scoped vector bank is complete;
+- an incomplete bank raises typed `SEMANTIC_INDEX_CATCHING_UP` progress rather
+  than returning a partial semantic ranking as though it covered all memory;
+- hybrid `memory_search` / `memory_bridge` retain their fully scoped ranked
+  surface, report `semanticUsed: false` plus `semanticIndex` progress, and fuse
+  no partial vectors;
+- additive `brain.indexSemantic(scope, { batchSize })` performs exactly one
+  explicit maintenance batch (64 by default, hard-capped at 200), so hosts can
+  amortize historical indexing outside an answer turn; and
+- a derived per-evidence pending checkpoint is seeded once for older stores and
+  maintained by insert/update/delete triggers. It prevents each later batch
+  from rescanning already-indexed history, remains scope-bound, and is
+  rebuildable from canonical dialogue.
+
+In the repeatable provider-free 5,000-message / synthetic-64d diagnostic,
+complete catch-up took 79 bounded calls and about 0.60 seconds total, versus
+about 9.9 seconds for the prior rescan-heavy path. SQLite occupied 9.21 MB;
+semantic p95 was about 70-97 ms and plumbing recall remained 25/25 in both
+labelled columns. These are local diagnostic observations, not production
+extrapolations or embedding-quality claims. Total one-time embedding volume is
+still proportional to canonical history; this unit bounds and schedules that
+work rather than pretending to eliminate it.
+
+Focused semantic contracts pass 9/9. Final validation passes: core 118/118,
+quickstart 6/6, broader compatibility 396/396, and the offline package gate
+imports all six unchanged public entry points (36 files / 984,790 packed bytes
+/ 1,468,372 unpacked bytes). Release tag `v0.1.0-alpha.1` remains unchanged.
+
 ## Product state
 
 The basic journey remains:
@@ -119,9 +154,9 @@ npm run scale-probe
 ## Next
 
 Take the next smallest product-memory behavior unit from real user feedback.
-If the scale-readiness track continues, SCALE-02 is to prevent one semantic
-query from performing unbounded historical vector catch-up while retaining
-the exact scoped fallback. Do not add an ANN dependency until a later private
-adapter comparison justifies it. Future paid diagnostics require a new
-explicit aggregate cap. Do not replay sealed or already-successful benchmark
-cases merely to tune them.
+If the scale-readiness track continues, SCALE-03 is to characterize the still
+linear exact vector scan by cardinality and realistic adapter dimensions, then
+define the evidence threshold for an optional derived locator. Do not add an
+ANN dependency until a later private adapter comparison justifies it. Future
+paid diagnostics require a new explicit aggregate cap. Do not replay sealed or
+already-successful benchmark cases merely to tune them.

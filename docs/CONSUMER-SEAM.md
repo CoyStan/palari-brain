@@ -26,7 +26,8 @@ Applications may depend on these named exports from the package root:
 
 The methods returned by `createPalariBrain` that those functions use are also
 stable: `rememberTurn`, `exploreFind`, `exploreRead`, `exploreTimeline`,
-`exploreSemantic`, `exploreGraph`, `indexGraph`, `listStatements`,
+`exploreSemantic`, `exploreGraph`, `indexGraph`, `indexSemantic`,
+`listStatements`,
 `forgetById`, `forgetRequest`, `digestStatus`, `readReadyDigest`,
 `reducePendingTurns`, `retrievalCapabilities`, `publicStatus`, and `close`.
 An optional capability may refuse clearly when its adapter is absent; for

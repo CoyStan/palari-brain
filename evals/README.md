@@ -23,9 +23,10 @@ latency. Use `npm run scale-probe -- --tiers 50,500,2500` for an independently
 created database at each turn count, `--lifetime-tokens <count>` to change the
 analytical envelope, or `--embedder <module>` to include the optional semantic
 surface. `--synthetic-vectors <dimensions>` instead exercises semantic index
-size and brute-force query latency without a provider; its planted equivalence
-vectors validate plumbing, not embedding quality. A tiered run is a repeatable
-local diagnostic, not an extrapolated benchmark grade.
+size, bounded catch-up call count, and brute-force query latency without a
+provider; its planted equivalence vectors validate plumbing, not embedding
+quality. A tiered run is a repeatable local diagnostic, not an extrapolated
+benchmark grade.
 
 Diagnostics may write only to caller-selected temporary paths or gitignored
 `.palari-alpha/` state. They are not benchmark grades. Any paid provider call

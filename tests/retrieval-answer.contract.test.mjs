@@ -164,6 +164,10 @@ test('hybrid answer retrieval bridges zero-overlap wording to canonical text',
           tool: 'memory_search',
         })
         assert.equal(returned.semanticUsed, true)
+        assert.deepEqual(returned.semanticIndex, {
+          complete: true,
+          status: 'ready',
+        })
         assert.equal(
           returned.matches[0].text,
           'I keep the spare key inside the blue ceramic pot on the balcony.',
@@ -812,6 +816,10 @@ test('hybrid retrieval falls back honestly to ranked search without embedder',
         })
         assert.equal(found.semanticUsed, false)
         assert.equal(found.semanticCandidates, 0)
+        assert.deepEqual(found.semanticIndex, {
+          complete: false,
+          status: 'unavailable',
+        })
         assert.ok(found.matches[0].text.includes('portable power bank'))
         assert.deepEqual(found.matches[0].surfaces, ['ranked'])
         return { text: 'Keep your existing power bank fully charged.' }

@@ -412,10 +412,20 @@ export async function runScaleProbe({
   let semantic = null
   if (embedder) {
     const indexStart = performance.now()
-    // The first semantic call pays for embedding every journal row
-    // (batched, incremental); time it apart from query latency.
-    await brain.exploreSemantic(SCOPE, { phrase: 'warmup' })
+    let vectorIndexCalls = 0
+    let vectorRowsIndexed = 0
+    // Historical catch-up is explicit and bounded. Repeat the one-batch
+    // maintenance primitive here because this diagnostic intentionally wants
+    // a complete bank before measuring steady-state query latency.
+    for (;;) {
+      const progress = await brain.indexSemantic(SCOPE)
+      vectorIndexCalls += 1
+      vectorRowsIndexed += progress.indexed
+      if (progress.complete) break
+    }
     const vectorIndexMs = performance.now() - indexStart
+    // Warm query embedding and the exact scoped scan outside catch-up timing.
+    await brain.exploreSemantic(SCOPE, { phrase: 'warmup' })
 
     async function semanticRecall(column) {
       let hits = 0
@@ -442,7 +452,9 @@ export async function runScaleProbe({
 
     semantic = {
       shared: await semanticRecall(1),
+      vectorIndexCalls,
       vectorIndexMs,
+      vectorRowsIndexed,
       zero: await semanticRecall(2),
     }
   }
@@ -484,14 +496,17 @@ export async function runScaleProbe({
     summary.vectorIndexMs = Number(semantic.vectorIndexMs.toFixed(0))
     summary.vectorIndexMsPerMessage =
       Number((semantic.vectorIndexMs / summary.messages).toFixed(3))
+    summary.vectorIndexCalls = semantic.vectorIndexCalls
+    summary.vectorRowsIndexed = semantic.vectorRowsIndexed
     summary.semanticSharedMedianMs =
       Number(semantic.shared.medianMs.toFixed(1))
     summary.semanticSharedP95Ms = Number(semantic.shared.p95Ms.toFixed(1))
     summary.semanticZeroMedianMs = Number(semantic.zero.medianMs.toFixed(1))
     summary.semanticZeroP95Ms = Number(semantic.zero.p95Ms.toFixed(1))
-    log(`  semantic surface (${semanticLabel}): vector indexing ` +
+    log(`  semantic surface (${semanticLabel}): vector catch-up ` +
       `${summary.vectorIndexMs} ms ` +
-      `(${summary.vectorIndexMsPerMessage} ms/message)`)
+      `(${summary.vectorIndexMsPerMessage} ms/message) in ` +
+      `${summary.vectorIndexCalls} bounded calls`)
     log(`    shared-token via semantic: ${summary.semanticSharedRecall} ` +
       `(median/p95 ${summary.semanticSharedMedianMs}/` +
       `${summary.semanticSharedP95Ms} ms)`)

@@ -20,6 +20,7 @@ import {
   MEMORY_EXPLORATION_INSTRUCTIONS,
   MEMORY_EXPLORATION_TOOLS,
 } from './memory-exploration.mjs'
+import { SEMANTIC_INDEX_CATCHING_UP } from './memory-semantic.mjs'
 import {
   createEphemeralRetrievalFrontier,
   evidenceRows,
@@ -1282,33 +1283,43 @@ async function hybridSearch(
     })
   }
   let semantic = []
+  let semanticIndex = capabilities.semantic
+    ? { complete: true, status: 'ready' }
+    : { complete: false, status: 'unavailable' }
+  let semanticUsed = false
   const semanticProbeResults = []
   if (capabilities.semantic) {
-    if (semanticProbeQueries.length > 0 &&
-      typeof brain.exploreSemanticBatch === 'function') {
-      const batches = await brain.exploreSemanticBatch(scope, {
-        limit: candidateLimit,
-        phrases: semanticProbeQueries.map((query) => query.phrase),
-      })
-      for (let index = 0; index < batches.length; index += 1) {
-        const rows = newRowsOnly(batches[index]
-          .filter((row) => withinBounds(row, after, before)))
-        const query = semanticProbeQueries[index]
-        const surface = `semantic:${stringFrom(query.surface ?? index + 1)}`
-        rankings.push({ rows, surface })
-        semantic.push(...rows)
-        semanticProbeResults.push({
-          candidates: rows.length,
-          phrase: query.phrase,
-          surface,
+    try {
+      if (semanticProbeQueries.length > 0 &&
+        typeof brain.exploreSemanticBatch === 'function') {
+        const batches = await brain.exploreSemanticBatch(scope, {
+          limit: candidateLimit,
+          phrases: semanticProbeQueries.map((query) => query.phrase),
         })
+        for (let index = 0; index < batches.length; index += 1) {
+          const rows = newRowsOnly(batches[index]
+            .filter((row) => withinBounds(row, after, before)))
+          const query = semanticProbeQueries[index]
+          const surface = `semantic:${stringFrom(query.surface ?? index + 1)}`
+          rankings.push({ rows, surface })
+          semantic.push(...rows)
+          semanticProbeResults.push({
+            candidates: rows.length,
+            phrase: query.phrase,
+            surface,
+          })
+        }
+      } else {
+        semantic = newRowsOnly((await brain.exploreSemantic(scope, {
+          limit: candidateLimit,
+          phrase,
+        })).filter((row) => withinBounds(row, after, before)))
+        rankings.push({ rows: semantic, surface: 'semantic' })
       }
-    } else {
-      semantic = newRowsOnly((await brain.exploreSemantic(scope, {
-        limit: candidateLimit,
-        phrase,
-      })).filter((row) => withinBounds(row, after, before)))
-      rankings.push({ rows: semantic, surface: 'semantic' })
+      semanticUsed = true
+    } catch (error) {
+      if (error?.[SEMANTIC_INDEX_CATCHING_UP] !== true) throw error
+      semanticIndex = error.semanticIndex
     }
   }
 
@@ -1473,10 +1484,11 @@ async function hybridSearch(
     rerankCandidates: capabilities.reranking ? rerankPool.length : 0,
     reranked: capabilities.reranking,
     semanticCandidates: semantic.length,
+    semanticIndex,
     ...(semanticProbeResults.length
       ? { semanticProbeQueries: semanticProbeResults }
       : {}),
-    semanticUsed: capabilities.semantic,
+    semanticUsed,
     ...(confirmationView
       ? {
           candidateExcerptChars:

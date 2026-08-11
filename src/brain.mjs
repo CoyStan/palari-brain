@@ -218,6 +218,7 @@ export async function createPalariBrain(options = {}) {
       exploreSemantic: gate.exploreSemantic,
       exploreSemanticBatch: gate.exploreSemanticBatch,
       indexGraph: gate.indexGraph,
+      indexSemantic: gate.indexSemantic,
       exploreTimeline: gate.exploreTimeline,
       listActiveMemories: gate.listActiveMemories,
       listEvidence: gate.listStatements,

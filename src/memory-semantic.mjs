@@ -23,24 +23,96 @@
 // breaking ties.
 
 const VECTOR_TABLE = 'dialogue_evidence_vectors'
+const VECTOR_PENDING_TABLE = 'dialogue_evidence_vector_pending'
 const MAX_SEMANTIC_BATCH_PHRASES = 16
+const DEFAULT_SEMANTIC_CATCH_UP_ROWS = 64
+const MAX_SEMANTIC_CATCH_UP_ROWS = 200
+
+// Internal identity used by the answer orchestrator. The public error still
+// has a stable string code; the symbol prevents an unrelated embedder error
+// with the same text/code from being mistaken for safe fallback.
+export const SEMANTIC_INDEX_CATCHING_UP = Symbol(
+  'semantic-index-catching-up',
+)
 
 function ensureSemanticIndex(db) {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS ${VECTOR_TABLE} (
-      evidence_id TEXT PRIMARY KEY,
-      dims INTEGER NOT NULL,
-      vector BLOB NOT NULL
-    );
-    CREATE TRIGGER IF NOT EXISTS ${VECTOR_TABLE}_ad
-    AFTER DELETE ON dialogue_evidence BEGIN
-      DELETE FROM ${VECTOR_TABLE} WHERE evidence_id = old.id;
-    END;
-    CREATE TRIGGER IF NOT EXISTS ${VECTOR_TABLE}_au
-    AFTER UPDATE OF content ON dialogue_evidence BEGIN
-      DELETE FROM ${VECTOR_TABLE} WHERE evidence_id = old.id;
-    END;
+  const table = db.prepare(`
+    SELECT 1 AS present
+    FROM sqlite_master
+    WHERE type = 'table' AND name = ?
   `)
+  const needsSeed = !table.get(VECTOR_TABLE)?.present ||
+    !table.get(VECTOR_PENDING_TABLE)?.present
+  if (needsSeed) db.exec('BEGIN IMMEDIATE')
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS ${VECTOR_TABLE} (
+        evidence_id TEXT PRIMARY KEY,
+        dims INTEGER NOT NULL,
+        vector BLOB NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS ${VECTOR_PENDING_TABLE} (
+        evidence_id TEXT PRIMARY KEY,
+        palari_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        dialogue_order INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS ${VECTOR_PENDING_TABLE}_scope_order
+        ON ${VECTOR_PENDING_TABLE} (
+          palari_id,
+          user_id,
+          dialogue_order,
+          evidence_id
+        );
+      CREATE TRIGGER IF NOT EXISTS ${VECTOR_TABLE}_ad
+      AFTER DELETE ON dialogue_evidence BEGIN
+        DELETE FROM ${VECTOR_TABLE} WHERE evidence_id = old.id;
+      END;
+      CREATE TRIGGER IF NOT EXISTS ${VECTOR_TABLE}_au
+      AFTER UPDATE OF content ON dialogue_evidence BEGIN
+        DELETE FROM ${VECTOR_TABLE} WHERE evidence_id = old.id;
+      END;
+      CREATE TRIGGER IF NOT EXISTS ${VECTOR_PENDING_TABLE}_ai
+      AFTER INSERT ON dialogue_evidence BEGIN
+        INSERT OR REPLACE INTO ${VECTOR_PENDING_TABLE}
+          (evidence_id, palari_id, user_id, dialogue_order)
+        VALUES (new.id, new.palari_id, new.user_id, new.dialogue_order);
+      END;
+      CREATE TRIGGER IF NOT EXISTS ${VECTOR_PENDING_TABLE}_au
+      AFTER UPDATE OF content, palari_id, user_id, dialogue_order
+      ON dialogue_evidence BEGIN
+        INSERT OR REPLACE INTO ${VECTOR_PENDING_TABLE}
+          (evidence_id, palari_id, user_id, dialogue_order)
+        VALUES (new.id, new.palari_id, new.user_id, new.dialogue_order);
+      END;
+      CREATE TRIGGER IF NOT EXISTS ${VECTOR_PENDING_TABLE}_ad
+      AFTER DELETE ON dialogue_evidence BEGIN
+        DELETE FROM ${VECTOR_PENDING_TABLE} WHERE evidence_id = old.id;
+      END;
+    `)
+    if (needsSeed) {
+      db.exec(`
+        INSERT OR IGNORE INTO ${VECTOR_PENDING_TABLE} (
+          evidence_id,
+          palari_id,
+          user_id,
+          dialogue_order
+        )
+        SELECT
+          e.id,
+          e.palari_id,
+          e.user_id,
+          e.dialogue_order
+        FROM dialogue_evidence e
+        LEFT JOIN ${VECTOR_TABLE} v ON v.evidence_id = e.id
+        WHERE v.evidence_id IS NULL;
+      `)
+      db.exec('COMMIT')
+    }
+  } catch (error) {
+    if (needsSeed) db.exec('ROLLBACK')
+    throw error
+  }
 }
 
 function toBlob(vector) {
@@ -77,11 +149,50 @@ function assertVectors(vectors, expected, label) {
   }
 }
 
-// Embed every visible journal row that has no vector yet. Incremental and
-// idempotent: steady-state cost is one SELECT. Batching is the embedder's
-// concern; this passes at most `batchSize` texts per call.
-async function indexEvidenceVectors(db, {
-  batchSize = 64,
+function boundedCatchUpRows(value = DEFAULT_SEMANTIC_CATCH_UP_ROWS) {
+  const rows = Number(value)
+  if (!Number.isSafeInteger(rows) || rows < 1 ||
+    rows > MAX_SEMANTIC_CATCH_UP_ROWS) {
+    throw new TypeError(
+      `batchSize must be an integer from 1 to ` +
+        `${MAX_SEMANTIC_CATCH_UP_ROWS}.`,
+    )
+  }
+  return rows
+}
+
+function indexProgress(indexed, complete) {
+  return Object.freeze({
+    complete,
+    indexed,
+    operation: 'memory_semantic_index',
+    status: complete ? 'ready' : 'catching_up',
+  })
+}
+
+function hasMissingVectors(db, { scope, visibleStatementsSql }) {
+  return Boolean(db.prepare(`
+    WITH visible AS (${visibleStatementsSql})
+    SELECT 1 AS missing
+    FROM ${VECTOR_PENDING_TABLE} pending
+    JOIN visible ON visible.id = pending.evidence_id
+    WHERE pending.palari_id = ? AND pending.user_id = ?
+    LIMIT 1
+  `).get(
+    scope.palariId,
+    scope.userId,
+    scope.palariId,
+    scope.userId,
+  )?.missing)
+}
+
+// Index at most one bounded batch of visible journal rows. Repeating this
+// explicit maintenance operation drains a historical backlog; a query also
+// performs at most one such batch before deciding whether its scoped bank is
+// complete. The pending table is a small, rebuildable checkpoint: it is
+// seeded once for old databases and maintained alongside evidence by trigger.
+export async function indexEvidenceVectors(db, {
+  batchSize = DEFAULT_SEMANTIC_CATCH_UP_ROWS,
   embed,
   scope,
   visibleStatementsSql,
@@ -90,28 +201,74 @@ async function indexEvidenceVectors(db, {
     throw new TypeError('indexEvidenceVectors requires an embed function.')
   }
   ensureSemanticIndex(db)
+  const limit = boundedCatchUpRows(batchSize)
+  const missing = db.prepare(`
+    WITH visible AS (${visibleStatementsSql})
+    SELECT visible.id, visible.content
+    FROM ${VECTOR_PENDING_TABLE} pending
+    JOIN visible ON visible.id = pending.evidence_id
+    WHERE pending.palari_id = ? AND pending.user_id = ?
+    ORDER BY
+      pending.dialogue_order ASC,
+      pending.evidence_id ASC
+    LIMIT ?
+  `).all(
+    scope.palariId,
+    scope.userId,
+    scope.palariId,
+    scope.userId,
+    limit,
+  )
+  if (!missing.length) return indexProgress(0, true)
+
+  const vectors = await embed(missing.map((row) => String(row.content)))
+  assertVectors(vectors, missing.length, 'embed')
+  const insert = db.prepare(`
+    INSERT OR REPLACE INTO ${VECTOR_TABLE} (evidence_id, dims, vector)
+    VALUES (?, ?, ?)
+  `)
+  const current = db.prepare(`
+    SELECT content
+    FROM dialogue_evidence
+    WHERE id = ?
+  `)
+  const remove = db.prepare(`
+    DELETE FROM ${VECTOR_PENDING_TABLE}
+    WHERE evidence_id = ?
+  `)
   let indexed = 0
-  for (;;) {
-    const missing = db.prepare(`
-      WITH visible AS (${visibleStatementsSql})
-      SELECT visible.id, visible.content
-      FROM visible
-      LEFT JOIN ${VECTOR_TABLE} v ON v.evidence_id = visible.id
-      WHERE v.evidence_id IS NULL
-      LIMIT ?
-    `).all(scope.palariId, scope.userId, batchSize)
-    if (!missing.length) return indexed
-    const vectors = await embed(missing.map((row) => String(row.content)))
-    assertVectors(vectors, missing.length, 'embed')
-    const insert = db.prepare(`
-      INSERT OR REPLACE INTO ${VECTOR_TABLE} (evidence_id, dims, vector)
-      VALUES (?, ?, ?)
-    `)
+  db.exec('BEGIN IMMEDIATE')
+  try {
     for (const [index, row] of missing.entries()) {
+      const present = current.get(row.id)
+      if (!present || String(present.content) !== String(row.content)) continue
+      if (remove.run(row.id).changes !== 1) continue
       insert.run(row.id, vectors[index].length, toBlob(vectors[index]))
+      indexed += 1
     }
-    indexed += missing.length
+    db.exec('COMMIT')
+  } catch (error) {
+    db.exec('ROLLBACK')
+    throw error
   }
+  return indexProgress(
+    indexed,
+    !hasMissingVectors(db, { scope, visibleStatementsSql }),
+  )
+}
+
+function catchingUp(progress) {
+  const error = new Error(
+    'Semantic index is catching up. Retry later or call indexSemantic(); ' +
+      'scoped exact/ranked retrieval remains available.',
+  )
+  error.code = 'SEMANTIC_INDEX_CATCHING_UP'
+  Object.defineProperty(error, SEMANTIC_INDEX_CATCHING_UP, { value: true })
+  Object.defineProperty(error, 'semanticIndex', {
+    enumerable: true,
+    value: progress,
+  })
+  return error
 }
 
 // Cosine top-k over the caller's visible rows, returned as canonical rows
@@ -147,7 +304,12 @@ export async function semanticFindEvidenceBatch(db, {
     }
     return needle
   })
-  await indexEvidenceVectors(db, { embed, scope, visibleStatementsSql })
+  const progress = await indexEvidenceVectors(db, {
+    embed,
+    scope,
+    visibleStatementsSql,
+  })
+  if (!progress.complete) throw catchingUp(progress)
   const queryVectors = await embed(needles)
   assertVectors(queryVectors, needles.length, 'embed')
   for (let index = 0; index < queryVectors.length; index += 1) {
@@ -157,12 +319,30 @@ export async function semanticFindEvidenceBatch(db, {
       )
     }
   }
-  const rows = db.prepare(`
-    WITH visible AS (${visibleStatementsSql})
-    SELECT visible.*, v.vector AS semantic_vector
-    FROM visible
-    JOIN ${VECTOR_TABLE} v ON v.evidence_id = visible.id
-  `).all(scope.palariId, scope.userId)
+  // Query embedding is asynchronous, so a canonical write may land after the
+  // first completeness check. Pin the final check and vector read to one WAL
+  // snapshot; a successful result then covers that complete scoped snapshot.
+  let rows
+  let transactionOpen = true
+  db.exec('BEGIN')
+  try {
+    if (hasMissingVectors(db, { scope, visibleStatementsSql })) {
+      db.exec('ROLLBACK')
+      transactionOpen = false
+      throw catchingUp(indexProgress(progress.indexed, false))
+    }
+    rows = db.prepare(`
+      WITH visible AS (${visibleStatementsSql})
+      SELECT visible.*, v.vector AS semantic_vector
+      FROM visible
+      JOIN ${VECTOR_TABLE} v ON v.evidence_id = visible.id
+    `).all(scope.palariId, scope.userId)
+    db.exec('COMMIT')
+    transactionOpen = false
+  } catch (error) {
+    if (transactionOpen) db.exec('ROLLBACK')
+    throw error
+  }
   const vectorRows = rows.map((row) => ({
     row,
     vector: fromBlob(row.semantic_vector),
