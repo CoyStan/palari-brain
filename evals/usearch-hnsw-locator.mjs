@@ -8,6 +8,7 @@ import { Index } from 'usearch'
 
 const KEY_MASK = (1n << 63n) - 1n
 const KEY_SCHEMA = 'palari-usearch-hnsw-key/v1'
+const SUPPORTED_QUANTIZATIONS = new Set(['bf16', 'f32', 'i8'])
 
 function positiveInteger(value, label, maximum = Number.MAX_SAFE_INTEGER) {
   const number = Number(value)
@@ -69,6 +70,7 @@ export function createUsearchHnswLocator({
   dimensions,
   expansionAdd = 128,
   expansionSearch = 128,
+  quantization = 'f32',
 } = {}) {
   const vectorDimensions = positiveInteger(dimensions, 'dimensions', 65_536)
   const candidates = positiveInteger(candidateLimit, 'candidateLimit', 10_000)
@@ -79,6 +81,12 @@ export function createUsearchHnswLocator({
     'expansionSearch',
     100_000,
   )
+  const scalarKind = String(quantization ?? '').trim().toLowerCase()
+  if (!SUPPORTED_QUANTIZATIONS.has(scalarKind)) {
+    throw new TypeError(
+      'quantization must be one of: bf16, f32, i8.',
+    )
+  }
   const scopes = new Map()
 
   function newState() {
@@ -91,7 +99,7 @@ export function createUsearchHnswLocator({
         expansion_search: searchExpansion,
         metric: 'cos',
         multi: false,
-        quantization: 'f32',
+        quantization: scalarKind,
       }),
       keyToId: new Map(),
     }
@@ -119,8 +127,8 @@ export function createUsearchHnswLocator({
       expansionSearch: searchExpansion,
       logicalKeyBytes: entries * BigUint64Array.BYTES_PER_ELEMENT,
       metric: 'cos',
-      quantization: 'f32',
-      strategy: `usearch-hnsw-m${connections}-ef${searchExpansion}-k${candidates}`,
+      quantization: scalarKind,
+      strategy: `usearch-hnsw-${scalarKind}-m${connections}-ef${searchExpansion}-k${candidates}`,
     })
   }
 

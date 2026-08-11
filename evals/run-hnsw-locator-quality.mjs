@@ -6,18 +6,16 @@ import { mkdir, rename, stat, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { openContentAddressedEmbeddingCache } from './content-addressed-embedding-cache.mjs'
 import { createLocatorQualityCorpus } from './locator-quality-corpus.mjs'
 import { evaluateLocatorQuality } from './locator-quality-evaluation.mjs'
-import {
-  SCALE05_DIMENSIONS,
-  SCALE05_MODEL,
-  scale05EmbeddingCacheNamespace,
-} from './run-openai-locator-quality.mjs'
+import { SCALE05_DIMENSIONS } from './run-openai-locator-quality.mjs'
 import { resolveAlphaFilePath } from './run-alpha-memory-debug.mjs'
+import {
+  loadScale05CachedVectors,
+  SCALE05_CACHE_PATH,
+} from './scale05-cached-vectors.mjs'
 import { createUsearchHnswLocator } from './usearch-hnsw-locator.mjs'
 
-const CACHE_PATH = '.palari-alpha/scale05-openai-embeddings.sqlite'
 const INDEX_PATH = '.palari-alpha/scale06-usearch-5000.index'
 const RESULT_PATH = '.palari-alpha/scale06-hnsw-result.json'
 const SCOPE = Object.freeze({
@@ -62,35 +60,21 @@ async function writeResult(path, value) {
 }
 
 export async function runHnswLocatorQuality({
-  cachePath = CACHE_PATH,
+  cachePath = SCALE05_CACHE_PATH,
   corpus = createLocatorQualityCorpus(),
   indexPath = INDEX_PATH,
   resultPath = RESULT_PATH,
   tiers = [2_000, 5_000],
 } = {}) {
-  const cache = await openContentAddressedEmbeddingCache({
-    embed: async () => {
-      throw new Error('SCALE-06 cache miss: provider access is disabled.')
-    },
-    namespace: scale05EmbeddingCacheNamespace({
-      dimensions: SCALE05_DIMENSIONS,
-      model: SCALE05_MODEL,
-    }),
-    path: resolveAlphaFilePath(cachePath, 'cachePath'),
+  const {
+    cache: cacheStats,
+    queryVectors,
+    recordVectors,
+  } = await loadScale05CachedVectors({
+    cachePath,
+    caller: 'SCALE-06',
+    corpus,
   })
-  let vectors
-  let cacheStats
-  try {
-    vectors = await cache.embed([
-      ...corpus.records.map(({ text }) => text),
-      ...corpus.queries.map(({ text }) => text),
-    ])
-    cacheStats = cache.stats
-  } finally {
-    cache.close()
-  }
-  const recordVectors = vectors.slice(0, corpus.records.length)
-  const queryVectors = vectors.slice(corpus.records.length)
   const evaluation = evaluateLocatorQuality({
     locatorConfigs: CONFIGS,
     locatorFactory: createUsearchHnswLocator,

@@ -12,13 +12,14 @@ const OTHER_SCOPE = Object.freeze({
   userId: 'other-user',
 })
 
-function locator(candidateLimit = 2) {
+function locator(candidateLimit = 2, quantization = 'f32') {
   return createUsearchHnswLocator({
     candidateLimit,
     connectivity: 8,
     dimensions: 4,
     expansionAdd: 32,
     expansionSearch: 32,
+    quantization,
   })
 }
 
@@ -30,7 +31,7 @@ test('USearch HNSW returns IDs only from its independently indexed scope', () =>
   assert.deepEqual(index.locate(SCOPE, [1, 0, 0, 0]), ['own'])
   assert.deepEqual(index.locate(OTHER_SCOPE, [1, 0, 0, 0]), ['other'])
   assert.equal(index.stats(SCOPE).entries, 1)
-  assert.equal(index.stats(SCOPE).strategy, 'usearch-hnsw-m8-ef32-k1')
+  assert.equal(index.stats(SCOPE).strategy, 'usearch-hnsw-f32-m8-ef32-k1')
 })
 
 test('USearch HNSW batch build, correction, and exact deletion stay synchronized', () => {
@@ -91,4 +92,21 @@ test('USearch HNSW fails closed on malformed entries and vector dimensions', () 
   }), /4 dimensions/)
   assert.throws(() => index.locate(SCOPE, [1, 0, Number.NaN, 0]),
     /finite numbers/)
+  assert.throws(() => locator(2, 'b1'), /quantization must be one of/)
+})
+
+test('f32, bf16, and i8 preserve correction and deletion lifecycle behavior', () => {
+  for (const quantization of ['f32', 'bf16', 'i8']) {
+    const index = locator(2, quantization)
+    index.replace(SCOPE, [
+      { evidenceId: 'moving', vector: [1, 0, 0, 0] },
+      { evidenceId: 'stable', vector: [0, 1, 0, 0] },
+    ])
+    assert.equal(index.locate(SCOPE, [1, 0, 0, 0])[0], 'moving')
+    index.upsert(SCOPE, { evidenceId: 'moving', vector: [0, 0, 1, 0] })
+    assert.equal(index.locate(SCOPE, [0, 0, 1, 0])[0], 'moving')
+    assert.equal(index.remove(SCOPE, 'moving'), true)
+    assert.ok(!index.locate(SCOPE, [0, 0, 1, 0]).includes('moving'))
+    assert.equal(index.stats(SCOPE).quantization, quantization)
+  }
 })

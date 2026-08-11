@@ -288,6 +288,68 @@ exports remain unchanged. Final validation passes: core 139/139, quickstart
 imports all six public entry points. Release tag `v0.1.0-alpha.1` remains
 unchanged.
 
+## 2026-08-11 HNSW representation comparison
+
+SCALE-07 selected a smaller candidate representation without a provider call
+or runtime change:
+
+- following OpenAI's documented manual-shortening method, each cached
+  `text-embedding-3-small` vector was reduced by taking its leading dimensions
+  and L2-normalizing the prefix;
+- 256, 512, 768, and 1,536 dimensions were crossed with USearch `i8`, `bf16`,
+  and `f32` storage. All 12 arms used the same deterministic M16/ef256/k160
+  graph setting, so the comparison did not retune HNSW per representation;
+- the original 1,536-dimensional vectors remained the exact top-20 reference
+  and exact candidate-reranking authority. Shortened or quantized vectors only
+  proposed scoped canonical IDs; and
+- a shared cache loader now makes the SCALE-06 and SCALE-07 no-provider
+  boundary reusable and tested. Each full run recorded 5,050 cache hits, zero
+  misses, zero writes, zero provider inputs, and zero provider calls.
+
+Two consecutive deterministic 5,000-vector runs produced identical quality
+counts. The smallest passing arm was 512d/i8: it retained 45/47 exact target
+hits, covered 97.5% of exact top-20 IDs, searched 160 rows or 3.2% of the tier,
+and took 1.15-1.28 ms p95 including prefix conversion and exact full-vector
+reranking, versus 12.47-12.84 ms for the in-memory exact reference. Its build
+took 1.43-1.49 seconds. The smaller 256d/i8 arm retained 46/47 targets but was
+rejected because its exact-top-20 coverage was only 88.6%, below the unchanged
+90% review assumption.
+
+The selected 5,000-vector index is 3,302,688 bytes, compared with 31,462,688
+bytes for 1,536d/f32 under the same graph—a measured 89.5% reduction. Its
+same-layout storage arithmetic is about 330 MB at 500,000 vectors and 1.32 GB
+at 2,000,000, versus 3.15-12.59 GB for 1,536d/f32. These are index-byte
+envelopes, not production latency or capacity claims, and exclude canonical
+dialogue, exact reranking vectors, SQLite, process overhead, snapshots, and
+multi-scope fragmentation. Every arm reproduced 50/50 candidate lists after
+save/load; focused contracts cover prefix validation and `f32`/`bf16`/`i8`
+correction and deletion behavior. Temporary index files were removed after
+measurement and only the gitignored aggregate result remains.
+
+A separate compact-only check asked whether the full vectors could be dropped
+and candidate reranking could also use 512d/f32. It retained only 43/47 exact
+target hits and its final top-20 agreement with the 1,536d reference was 63.3%,
+so that storage interpretation is rejected. The selected HNSW index must sit
+beside the full vectors: at 5,000 rows their combined raw/index bytes are
+34,022,688, about 10.8% above the 30,720,000-byte full-vector payload alone.
+The same-layout combined envelope is roughly 3.40-13.61 GB at
+500,000-2,000,000 vectors, before the other excluded costs. HNSW addresses
+query work here; it does not compress Palari's exact vector authority.
+
+SCALE-07 therefore selects 512d/i8 as the smallest measured derived-index
+candidate for runtime design, not as a product default or canonical vector
+format. Its target-retention margin is one labeled hit and the corpus has only
+50 queries at 5,000 vectors; runtime adoption still requires an exact fallback,
+stale/corrupt-index rebuild, canonical lifecycle binding, and larger-cardinality
+validation.
+
+The tracked checkout will contain 119 files. The release tarball still contains
+no evaluation, test, or USearch implementation files and is 36 files / 985,140
+packed bytes / 1,469,792 unpacked bytes. All 140 public exports remain
+unchanged. Final validation passes: core 144/144, quickstart 6/6, broader
+compatibility 422/422, the repeated SCALE-06 diagnostic, and the clean offline
+package-install gate. Release tag `v0.1.0-alpha.1` remains unchanged.
+
 ## Product state
 
 The basic journey remains:
@@ -314,16 +376,18 @@ npm run answer-interpretation-regression
 npm run memory-stage-audit -- --input <local.json>
 npm run scale-probe
 npm run scale:hnsw-quality
+npm run scale:hnsw-representations
 ```
 
 ## Next
 
 Take the next smallest product-memory behavior unit from real user feedback.
 Do not tune the sparse-sign locator further. If the scale-readiness track
-continues, the smallest useful SCALE-07 is a provider-free representation
-comparison: measure reduced dimensions and supported quantization against the
-1,536-dimensional exact reference, including quality, index bytes, build/load,
-and update/delete behavior. Only after that selection should a separate runtime
-design bind a disposable per-scope HNSW index to the canonical SQLite lifecycle.
-Any new paid adapter or changed corpus requires a new explicit aggregate cap.
-Do not replay sealed or already-successful benchmark cases merely to tune them.
+continues, SCALE-08 should be a narrow runtime-design unit for the selected
+512d/i8 candidate: agree native dependency/platform policy and define one
+private per-scope derived-index lifecycle with canonical SQLite as sole truth,
+exact reranking, an exact fallback, atomic rebuild/version binding, and
+correction/delete synchronization. Do not expose a locator API or make HNSW a
+ranking authority. Any new paid adapter or changed corpus requires a new
+explicit aggregate cap. Do not replay sealed or already-successful benchmark
+cases merely to tune them.

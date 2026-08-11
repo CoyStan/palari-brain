@@ -6,7 +6,7 @@ import { performance } from 'node:perf_hooks'
 
 import { createDerivedVectorLocator } from './derived-vector-locator.mjs'
 
-const EVALUATION_SCOPE = Object.freeze({
+export const LOCATOR_QUALITY_SCOPE = Object.freeze({
   palariId: 'scale-05-palari',
   userId: 'scale-05-user',
 })
@@ -24,6 +24,7 @@ export const LOCATOR_QUALITY_REVIEW = Object.freeze({
   minExactBaselineTargetRecall: 0.9,
   minExactHitRetention: 0.95,
   minExactTop20CandidateRecall: 0.9,
+  minExactTop20RerankRecall: 0.9,
   requireP95LatencyImprovement: true,
 })
 
@@ -124,6 +125,10 @@ function summarizeLocator(observations, groups, tierSize) {
       (total, item) => total + item.coveredExactIds,
       0,
     )
+    const rerankedExactIds = selected.reduce(
+      (total, item) => total + item.rerankedExactIds,
+      0,
+    )
     const exactIds = selected.reduce(
       (total, item) => total + item.exactIds,
       0,
@@ -139,6 +144,7 @@ function summarizeLocator(observations, groups, tierSize) {
         ? rounded(retainedExactHits / exactBaselineHits)
         : null,
       exactTop20CandidateRecall: rounded(coveredExactIds / exactIds),
+      exactTop20RerankRecall: rounded(rerankedExactIds / exactIds),
       maxCandidates: Math.max(...candidateCounts),
       meanCandidateFraction: rounded(meanCandidates / tierSize),
       meanCandidates: rounded(meanCandidates, 1),
@@ -206,6 +212,8 @@ export function evaluateLocatorQuality({
   queryVectors: rawQueryVectors,
   records: rawRecords,
   recordVectors: rawRecordVectors,
+  rerankQueryVectors: rawRerankQueryVectors,
+  rerankRecordVectors: rawRerankRecordVectors,
   review = LOCATOR_QUALITY_REVIEW,
   tiers = [2_000, 5_000],
   topK = 20,
@@ -221,12 +229,50 @@ export function evaluateLocatorQuality({
       rawQueryVectors.length !== queries.length) {
     throw new TypeError('queryVectors must align one-to-one with queries.')
   }
+  if ((rawRerankRecordVectors === undefined) !==
+      (rawRerankQueryVectors === undefined)) {
+    throw new TypeError(
+      'rerankRecordVectors and rerankQueryVectors must be provided together.',
+    )
+  }
   const dimensions = rawRecordVectors[0]?.length ?? 0
   positiveSafeInteger(dimensions, 'vector dimensions')
   const recordVectors = rawRecordVectors.map((vector, index) =>
     finiteUnitVector(vector, dimensions, `recordVectors[${index}]`))
   const queryVectors = rawQueryVectors.map((vector, index) =>
     finiteUnitVector(vector, dimensions, `queryVectors[${index}]`))
+  const rerankRecordDimensions = rawRerankRecordVectors?.[0]?.length ?? dimensions
+  const rerankRecordVectors = rawRerankRecordVectors === undefined
+    ? recordVectors
+    : (() => {
+        if (!Array.isArray(rawRerankRecordVectors) ||
+            rawRerankRecordVectors.length !== records.length) {
+          throw new TypeError(
+            'rerankRecordVectors must align one-to-one with records.',
+          )
+        }
+        positiveSafeInteger(rerankRecordDimensions, 'rerank vector dimensions')
+        return rawRerankRecordVectors.map((vector, index) => finiteUnitVector(
+          vector,
+          rerankRecordDimensions,
+          `rerankRecordVectors[${index}]`,
+        ))
+      })()
+  const rerankQueryVectors = rawRerankQueryVectors === undefined
+    ? queryVectors
+    : (() => {
+        if (!Array.isArray(rawRerankQueryVectors) ||
+            rawRerankQueryVectors.length !== queries.length) {
+          throw new TypeError(
+            'rerankQueryVectors must align one-to-one with queries.',
+          )
+        }
+        return rawRerankQueryVectors.map((vector, index) => finiteUnitVector(
+          vector,
+          rerankRecordDimensions,
+          `rerankQueryVectors[${index}]`,
+        ))
+      })()
   const configs = normalizedConfigs(locatorConfigs)
   if (typeof locatorFactory !== 'function') {
     throw new TypeError('locatorFactory must be a function.')
@@ -242,6 +288,7 @@ export function evaluateLocatorQuality({
   for (const tierSize of tierSizes) {
     const tierRecords = records.slice(0, tierSize)
     const tierVectors = recordVectors.slice(0, tierSize)
+    const tierRerankVectors = rerankRecordVectors.slice(0, tierSize)
     const tierIds = tierRecords.map(({ id }) => id)
     const tierIdSet = new Set(tierIds)
     for (const query of queries) {
@@ -276,13 +323,13 @@ export function evaluateLocatorQuality({
       const locator = locatorFactory(config)
       const buildStarted = performance.now()
       if (typeof locator.replace === 'function') {
-        locator.replace(EVALUATION_SCOPE, tierIds.map((evidenceId, index) => ({
+        locator.replace(LOCATOR_QUALITY_SCOPE, tierIds.map((evidenceId, index) => ({
           evidenceId,
           vector: tierVectors[index],
         })))
       } else {
         for (let index = 0; index < tierSize; index += 1) {
-          locator.upsert(EVALUATION_SCOPE, {
+          locator.upsert(LOCATOR_QUALITY_SCOPE, {
             evidenceId: tierIds[index],
             vector: tierVectors[index],
           })
@@ -292,20 +339,21 @@ export function evaluateLocatorQuality({
       const indexById = new Map(tierIds.map((id, index) => [id, index]))
 
       // Warm this locator's sketch and candidate scoring once.
-      const warmIds = locator.locate(EVALUATION_SCOPE, queryVectors[0])
+      const warmIds = locator.locate(LOCATOR_QUALITY_SCOPE, queryVectors[0])
       rankedIds({
         ids: warmIds,
-        queryVector: queryVectors[0],
-        vectors: warmIds.map((id) => tierVectors[indexById.get(id)]),
+        queryVector: rerankQueryVectors[0],
+        vectors: warmIds.map((id) => tierRerankVectors[indexById.get(id)]),
         topK: limit,
       })
       const observations = queries.map((query, index) => {
         const started = performance.now()
-        const candidateIds = locator.locate(EVALUATION_SCOPE, queryVectors[index])
+        const candidateIds = locator.locate(LOCATOR_QUALITY_SCOPE, queryVectors[index])
         const ids = rankedIds({
           ids: candidateIds,
-          queryVector: queryVectors[index],
-          vectors: candidateIds.map((id) => tierVectors[indexById.get(id)]),
+          queryVector: rerankQueryVectors[index],
+          vectors: candidateIds.map((id) =>
+            tierRerankVectors[indexById.get(id)]),
           topK: limit,
         })
         const latencyMs = performance.now() - started
@@ -318,6 +366,7 @@ export function evaluateLocatorQuality({
           exactTargetHit: exactObservations[index].targetHit,
           family: query.family,
           latencyMs,
+          rerankedExactIds: exactIds.filter((id) => ids.includes(id)).length,
           targetHit: ids.includes(query.targetId),
         })
       })
@@ -333,6 +382,9 @@ export function evaluateLocatorQuality({
           overall.exactHitRetention >= review.minExactHitRetention,
         exactTop20CandidateRecall: overall.exactTop20CandidateRecall >=
           review.minExactTop20CandidateRecall,
+        exactTop20RerankRecall: overall.exactTop20RerankRecall >=
+          (review.minExactTop20RerankRecall ??
+            review.minExactTop20CandidateRecall),
         p95Latency: !review.requireP95LatencyImprovement ||
           overall.p95Ms < exactOverall.p95Ms,
       })
@@ -342,7 +394,7 @@ export function evaluateLocatorQuality({
         passesReviewThresholds: Object.values(reviewResult).every(Boolean),
         quality,
         review: reviewResult,
-        stats: locator.stats(EVALUATION_SCOPE),
+        stats: locator.stats(LOCATOR_QUALITY_SCOPE),
       })
     })
 
@@ -352,6 +404,7 @@ export function evaluateLocatorQuality({
   return Object.freeze({
     dimensions,
     mode: 'diagnostic-not-a-benchmark',
+    rerankDimensions: rerankRecordDimensions,
     review: Object.freeze({ ...review }),
     tiers: Object.freeze(results),
     topK: limit,

@@ -59,3 +59,32 @@ test('quality comparison fails when a tier lacks labeled ground truth', () => {
     tiers: [1],
   }), /does not contain target later/)
 })
+
+test('candidate coverage and compact rerank fidelity are measured separately', () => {
+  let ids = []
+  const result = evaluateLocatorQuality({
+    locatorConfigs: [{ label: 'all candidates' }],
+    locatorFactory: () => ({
+      locate: () => [...ids],
+      replace: (_scope, entries) => {
+        ids = entries.map(({ evidenceId }) => evidenceId)
+      },
+      stats: () => ({ entries: ids.length }),
+    }),
+    queries: [{ family: 'compact', id: 'q', targetId: 'a' }],
+    queryVectors: [[1, 0]],
+    records: [{ id: 'a' }, { id: 'b' }],
+    recordVectors: [[1, 0], [0, 1]],
+    rerankQueryVectors: [[1, 0]],
+    rerankRecordVectors: [[0, 1], [1, 0]],
+    tiers: [2],
+    topK: 1,
+  })
+
+  const quality = result.tiers[0].locators[0].quality.all
+  assert.equal(result.rerankDimensions, 2)
+  assert.equal(quality.exactTop20CandidateRecall, 1)
+  assert.equal(quality.exactTop20RerankRecall, 0)
+  assert.equal(quality.exactHitRetention, 0)
+  assert.equal(result.tiers[0].locators[0].passesReviewThresholds, false)
+})

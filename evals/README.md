@@ -13,6 +13,7 @@ Palari Brain product. None of it is required by an installed package.
 | `npm run scale-probe` | Measure deterministic canonical-journal recall at larger local volumes. |
 | `npm run scale:locator-quality -- --max-dollar <cap> --price-per-million <price>` | Cache one capped OpenAI embedding pass, then compare private locator quality offline. |
 | `npm run scale:hnsw-quality` | Compare evaluation-only USearch HNSW against exact ranking over the complete cached vectors. |
+| `npm run scale:hnsw-representations` | Compare provider-free OpenAI prefix dimensions and USearch quantization against the 1,536d exact reference. |
 | `npm run reranker-bakeoff` | Verify the generic reranker against the small frozen local bank. |
 | `npm run ettin-bakeoff` | Verify the optional native Ettin adapter against the same bank. |
 
@@ -77,6 +78,20 @@ exact-top-20 retention as SCALE-05 plus index build, file size, reload time, and
 query parity. Focused contracts cover scope isolation, corrections, exact
 deletion, persistence binding, and malformed vectors. Passing remains evidence
 for a later runtime-design ticket, never an automatic runtime adoption.
+
+SCALE-07 also has no provider path. Following OpenAI's documented manual
+shortening method, it takes a leading 256/512/768/1,536-dimensional prefix and
+L2-normalizes it, then compares `f32`, `bf16`, and `i8` storage under the same
+M16/ef256/k160 HNSW setting. The original cached 1,536-dimensional vectors
+remain the exact reference and reranking authority. The runner measures the
+5,000-vector quality boundary, temporary serialized-index bytes, save/load,
+and candidate parity, then deletes its temporary indexes and keeps only a
+gitignored aggregate result. A second compact-only check reranks the selected
+index's candidates with shortened vectors and measures final top-20 agreement
+against the 1,536d reference; this determines whether the full vectors could be
+dropped rather than hiding their storage outside the HNSW measurement. Passing
+selects evidence for a later runtime design; it does not alter canonical
+storage or product retrieval.
 
 The J3/J4 live identities, v0.5 comparison arms, predictions, custody meters,
 and terminal artifacts shipped with the first alpha remain recoverable from
