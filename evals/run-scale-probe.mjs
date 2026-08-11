@@ -21,6 +21,8 @@
 //   npm run scale-probe -- --lifetime-tokens 100000000
 //   npm run scale-probe -- --turns 500 --synthetic-vectors 64
 //   npm run scale-probe -- --tiers 250,1000 --scan-dimensions 384,768,1536
+//   npm run scale-probe -- --tiers 1000,2500 --scan-dimensions 768,1536 \
+//     --derived-locator
 //   npm run scale-probe -- --embedder ./my-embedder.mjs
 //
 // The lifetime-token envelope is arithmetic over explicit message/chunk
@@ -45,6 +47,7 @@ import {
   ingestChatTurn,
 } from '../src/index.mjs'
 import { workspaceMemoryDbPath } from '../src/store.mjs'
+import { openDerivedVectorSnapshot } from './derived-vector-locator.mjs'
 
 const SCOPE = { palariId: 'scale-palari', userId: 'scale-user' }
 const WORKSPACE_ID = 'scale'
@@ -464,6 +467,10 @@ function parseArgs(argv) {
       index += 1
       continue
     }
+    if (argv[index] === '--derived-locator') {
+      options.compareDerivedLocator = true
+      continue
+    }
     if (argv[index] === '--embedder') {
       options.embedderPath = String(argv[index + 1] ?? '')
       index += 1
@@ -489,6 +496,9 @@ function parseArgs(argv) {
     throw new TypeError(
       '--scan-p95-budget-ms requires --scan-dimensions.',
     )
+  }
+  if (options.compareDerivedLocator && !options.scanDimensions) {
+    throw new TypeError('--derived-locator requires --scan-dimensions.')
   }
   if (!Number.isSafeInteger(options.turns) || options.turns < 50) {
     throw new TypeError('--turns must be an integer of at least 50.')
@@ -529,11 +539,15 @@ async function loadEmbedder(embedderPath) {
 }
 
 export async function runScaleProbe({
+  compareDerivedLocator = false,
   embedder = null,
   log = console.log,
   semanticLabel = 'embedder supplied',
   turns = 2_500,
 } = {}) {
+  if (compareDerivedLocator && typeof embedder !== 'function') {
+    throw new TypeError('A derived-locator comparison requires an embedder.')
+  }
   const root = await mkdtemp(join(tmpdir(), 'palari-scale-'))
   const statePath = join(root, 'state.json')
   const dbPath = workspaceMemoryDbPath({ statePath, workspaceId: WORKSPACE_ID })
@@ -625,12 +639,14 @@ export async function runScaleProbe({
     async function semanticRecall(column) {
       let hits = 0
       const latencies = []
+      const rankings = []
       for (const row of PLANTED) {
         const started = performance.now()
         const found = await brain.exploreSemantic(SCOPE, {
           phrase: row[column],
         })
         latencies.push(performance.now() - started)
+        rankings.push(found.map(({ evidenceId }) => evidenceId))
         if (found.some((match) => {
           const read = brain.exploreRead(SCOPE, {
             evidenceIds: [match.evidenceId],
@@ -641,6 +657,7 @@ export async function runScaleProbe({
       return {
         hits,
         ...latencyStats(latencies),
+        rankings,
         total: PLANTED.length,
       }
     }
@@ -651,6 +668,65 @@ export async function runScaleProbe({
       vectorIndexMs,
       vectorRowsIndexed,
       zero: await semanticRecall(2),
+    }
+    if (compareDerivedLocator) {
+      const snapshot = openDerivedVectorSnapshot({
+        databasePath: dbPath,
+        scope: SCOPE,
+      })
+      try {
+        const [warmVector] = await embedder(['warmup'])
+        snapshot.search(warmVector)
+
+        async function locatorRecall(column, exactRankings) {
+          let exactIds = 0
+          let exactIdsFound = 0
+          let hits = 0
+          const candidateCounts = []
+          const latencies = []
+          for (const [index, row] of PLANTED.entries()) {
+            const started = performance.now()
+            const [queryVector] = await embedder([row[column]])
+            const found = snapshot.search(queryVector)
+            latencies.push(performance.now() - started)
+            candidateCounts.push(found.scoredCount)
+            if (found.matches.some((match) => match.text === row[0])) hits += 1
+            const actual = new Set(found.matches.map(({ evidenceId }) =>
+              evidenceId))
+            for (const evidenceId of exactRankings[index]) {
+              exactIds += 1
+              if (actual.has(evidenceId)) exactIdsFound += 1
+            }
+          }
+          const candidates = latencyStats(candidateCounts)
+          const latency = latencyStats(latencies)
+          const meanCandidates = candidateCounts.reduce(
+            (total, value) => total + value,
+            0,
+          ) / candidateCounts.length
+          return Object.freeze({
+            exactTop20IdRecall: Number(
+              (exactIdsFound / Math.max(1, exactIds)).toFixed(3),
+            ),
+            maxCandidates: Math.max(...candidateCounts),
+            meanCandidates: Number(meanCandidates.toFixed(1)),
+            medianCandidates: Number(candidates.medianMs.toFixed(1)),
+            medianMs: Number(latency.medianMs.toFixed(1)),
+            p95Candidates: Number(candidates.p95Ms.toFixed(1)),
+            p95Ms: Number(latency.p95Ms.toFixed(1)),
+            targetRecall: `${hits}/${PLANTED.length}`,
+          })
+        }
+
+        semantic.derivedLocator = Object.freeze({
+          ...snapshot.stats,
+          buildMs: Number(snapshot.stats.buildMs.toFixed(1)),
+          shared: await locatorRecall(1, semantic.shared.rankings),
+          zero: await locatorRecall(2, semantic.zero.rankings),
+        })
+      } finally {
+        snapshot.close()
+      }
     }
   }
 
@@ -708,6 +784,22 @@ export async function runScaleProbe({
     log(`    zero-overlap via semantic: ${summary.semanticZeroRecall} ` +
       `(median/p95 ${summary.semanticZeroMedianMs}/` +
       `${summary.semanticZeroP95Ms} ms)`)
+    if (semantic.derivedLocator) {
+      summary.derivedLocator = semantic.derivedLocator
+      const locator = semantic.derivedLocator
+      log(`  private derived locator; plumbing-only recall ` +
+        `(${locator.strategy}): ${locator.entries} scoped IDs, ` +
+        `${locator.buildMs} ms build, ${locator.logicalSketchBytes} ` +
+        `logical sketch bytes, ${locator.bucketReferences} bucket refs`)
+      log(`    shared-token locator: ${locator.shared.targetRecall} target ` +
+        `recall, ${locator.shared.exactTop20IdRecall} exact top-20 ID ` +
+        `recall, ${locator.shared.meanCandidates} mean candidates, ` +
+        `${locator.shared.p95Ms} ms p95`)
+      log(`    zero-overlap locator: ${locator.zero.targetRecall} target ` +
+        `recall, ${locator.zero.exactTop20IdRecall} exact top-20 ID ` +
+        `recall, ${locator.zero.meanCandidates} mean candidates, ` +
+        `${locator.zero.p95Ms} ms p95`)
+    }
   }
 
   await rm(root, { force: true, recursive: true })
@@ -715,6 +807,7 @@ export async function runScaleProbe({
 }
 
 export async function runScaleCurve({
+  compareDerivedLocator = false,
   embedder = null,
   lifetimeTokens = DEFAULT_LIFETIME_TOKENS,
   log = console.log,
@@ -727,6 +820,7 @@ export async function runScaleCurve({
   const measurements = []
   for (const turns of normalized) {
     measurements.push(await runScaleProbe({
+      compareDerivedLocator,
       embedder,
       log,
       semanticLabel,
@@ -737,6 +831,7 @@ export async function runScaleCurve({
 }
 
 export async function runSemanticScanMatrix({
+  compareDerivedLocator = false,
   dimensions = DEFAULT_EXACT_SCAN_DIMENSIONS,
   lifetimeTokens = DEFAULT_LIFETIME_TOKENS,
   log = console.log,
@@ -759,6 +854,7 @@ export async function runSemanticScanMatrix({
   for (const vectorDimensions of sizes) {
     for (const turns of normalized) {
       const measured = await runScaleProbe({
+        compareDerivedLocator,
         embedder: createSyntheticScaleEmbedder({
           dimensions: vectorDimensions,
         }),
@@ -824,6 +920,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const options = parseArgs(process.argv.slice(2))
     if (options.scanDimensions) {
       await runSemanticScanMatrix({
+        compareDerivedLocator: options.compareDerivedLocator ?? false,
         dimensions: options.scanDimensions,
         lifetimeTokens: options.lifetimeTokens,
         p95BudgetMs: options.scanP95BudgetMs ??

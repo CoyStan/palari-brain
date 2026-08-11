@@ -163,6 +163,44 @@ offline package gate imports all six unchanged public entry points (36 files /
 984,906 packed bytes / 1,468,596 unpacked bytes). Release tag
 `v0.1.0-alpha.1` remains unchanged.
 
+## 2026-08-11 private locator comparison
+
+SCALE-04 tested the smallest dependency-free derived locator at the agreed
+2,000/5,000-message bracket and 768d/1,536d without changing product runtime:
+
+- an evaluation-only 64-bit sparse sign sketch splits into eight bands and
+  returns only scoped canonical evidence IDs;
+- candidate vectors are reread from the caller's scoped SQLite snapshot and
+  exact cosine ranking is applied only to that shortlist—the sketch is never
+  evidence or ranking authority;
+- focused contracts prove user-scope isolation, corrected-ID bucket movement,
+  exact deletion, corrupt/dimension mismatch rejection, and the real matrix
+  report; and
+- it uses only Node and the SQLite surface Palari already requires. The
+  prototype and its tests are excluded from the release package and add no
+  dependency or public export.
+
+In this repeatable provider-free comparison, exact/locator p95 was 52.6/3.1 ms
+at 2,000 messages and 96.3/8.7 ms at 5,000 messages for 768d. At 1,536d it was
+72.1/5.0 ms and 151.3/13.1 ms respectively. The locator exact-ranked a mean
+20.9-138.6 candidates rather than all 2,000-5,000 rows, built its snapshot in
+0.34-1.41 seconds, and retained 25/25 planted-target recall in both labelled
+columns. Its logical sketch payload was eight bytes per ID plus eight bucket
+references per ID; that excludes JavaScript object and ID storage overhead.
+
+The decisive negative result is exact top-20 ID overlap: only 8.6% at 768d and
+5.4% at 1,536d. The planted fixture deliberately gives equivalent phrases the
+same vector, so its 25/25 target result validates plumbing but cannot establish
+approximate-neighbor quality. A static evaluation snapshot also does not prove
+runtime maintenance or persistence. SCALE-04 therefore keeps the locator
+private and rejects runtime adoption: no ANN, locator API, or second source of
+truth was added.
+
+Final validation passes: core 125/125, quickstart 6/6, broader compatibility
+403/403, and the offline package gate imports all six unchanged public entry
+points (36 files / 984,983 packed bytes / 1,468,829 unpacked bytes). Release
+tag `v0.1.0-alpha.1` remains unchanged.
+
 ## Product state
 
 The basic journey remains:
@@ -193,10 +231,9 @@ npm run scale-probe
 ## Next
 
 Take the next smallest product-memory behavior unit from real user feedback.
-If the scale-readiness track continues, SCALE-04 is a narrow private derived-
-locator comparison at the observed 2,000/5,000-message bracket and 768d/1,536d.
-Agree its review plan before implementation; compare scoped ID recall, p95,
-update/delete correctness, package weight, and build portability. Do not add a
-runtime ANN dependency or public locator API unless that evidence justifies
-one. Future paid diagnostics require a new explicit aggregate cap. Do not
-replay sealed or already-successful benchmark cases merely to tune them.
+Do not tune another locator against the planted equivalence fixture. If the
+scale-readiness track continues, first agree a narrow SCALE-05 review plan for
+caller-supplied real embedding vectors and a licence-clear corpus; compare
+quality/latency tradeoffs without runtime adoption. Any paid adapter requires
+a new explicit aggregate cap. Do not replay sealed or already-successful
+benchmark cases merely to tune them.

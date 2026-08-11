@@ -30,7 +30,13 @@ surface for every requested tier and dimension. It reports raw Float32 bytes,
 component visits, and the first measured cardinality crossing the explicit
 `--scan-p95-budget-ms` review assumption (100 ms by default). That budget is
 not a product SLO, and the lifetime-token arithmetic never extrapolates
-latency. A tiered run is a repeatable local diagnostic, not an extrapolated
+latency. Add `--derived-locator` to that dimension matrix for the private
+SCALE-04 comparison. The evaluation-only sparse sign sketch returns scoped
+candidate IDs, rereads their canonical vectors, and exact-ranks only that
+shortlist. It reports planted-target recall, exact top-20 ID overlap, shortlist
+size, build time, and logical sketch bytes. The prototype adds no dependency,
+is excluded from the release package, and is not a runtime locator API or an
+ANN claim. A tiered run is a repeatable local diagnostic, not an extrapolated
 benchmark grade.
 
 Diagnostics may write only to caller-selected temporary paths or gitignored

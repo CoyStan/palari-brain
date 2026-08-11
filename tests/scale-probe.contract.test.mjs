@@ -195,3 +195,33 @@ test('dimension matrix measures the real exact surface and labels its review bud
       line.includes('diagnostic assumption, not a product SLO')))
     assert.ok(lines.some((line) => line.includes('component visits/query')))
   })
+
+test('private locator comparison reports scoped recall and shortlist work',
+  async () => {
+    const lines = []
+    const report = await runSemanticScanMatrix({
+      compareDerivedLocator: true,
+      dimensions: [64],
+      log: (line) => lines.push(line),
+      p95BudgetMs: 1_000_000,
+      tiers: [50],
+    })
+    const comparison = report.measurements[0].derivedLocator
+
+    assert.equal(comparison.strategy, 'sparse-sign-64/8x8')
+    assert.equal(comparison.entries, 100)
+    assert.equal(comparison.bucketReferences, 800)
+    assert.equal(comparison.logicalSketchBytes, 800)
+    assert.equal(comparison.shared.targetRecall, '25/25')
+    assert.equal(comparison.zero.targetRecall, '25/25')
+    assert.ok(comparison.shared.meanCandidates >= 1)
+    assert.ok(comparison.shared.meanCandidates <= comparison.entries)
+    assert.ok(comparison.zero.meanCandidates >= 1)
+    assert.ok(comparison.zero.meanCandidates <= comparison.entries)
+    assert.ok(comparison.shared.exactTop20IdRecall >= 0)
+    assert.ok(comparison.shared.exactTop20IdRecall <= 1)
+    assert.ok(comparison.zero.exactTop20IdRecall >= 0)
+    assert.ok(comparison.zero.exactTop20IdRecall <= 1)
+    assert.ok(lines.some((line) =>
+      line.includes('private derived locator; plumbing-only recall')))
+  })
