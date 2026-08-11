@@ -12,6 +12,7 @@ Palari Brain product. None of it is required by an installed package.
 | `npm run memory-stage-audit -- --input <local.json>` | Classify observed write, retrieval, composition, utilization, ambiguity, or success stages. |
 | `npm run scale-probe` | Measure deterministic canonical-journal recall at larger local volumes. |
 | `npm run scale:locator-quality -- --max-dollar <cap> --price-per-million <price>` | Cache one capped OpenAI embedding pass, then compare private locator quality offline. |
+| `npm run scale:hnsw-quality` | Compare evaluation-only USearch HNSW against exact ranking over the complete cached vectors. |
 | `npm run reranker-bakeoff` | Verify the generic reranker against the small frozen local bank. |
 | `npm run ettin-bakeoff` | Verify the optional native Ettin adapter against the same bank. |
 
@@ -66,6 +67,16 @@ by exact content hash under model and dimension namespace; locator comparison
 after that pass makes no provider calls. Aggregate results stay gitignored in
 `.palari-alpha/scale05-openai-result.json`. This diagnostic cannot adopt the
 locator or alter package exports.
+
+SCALE-06 has no provider path. It fails closed unless all 5,050 SCALE-05 vectors
+already exist in the private cache, builds a scope-separated USearch HNSW index,
+and exact-ranks the 80-320 returned canonical IDs. USearch is an Apache-2.0
+development dependency; its native implementation is not shipped or installed
+for release-package consumers. The runner measures the same target and
+exact-top-20 retention as SCALE-05 plus index build, file size, reload time, and
+query parity. Focused contracts cover scope isolation, corrections, exact
+deletion, persistence binding, and malformed vectors. Passing remains evidence
+for a later runtime-design ticket, never an automatic runtime adoption.
 
 The J3/J4 live identities, v0.5 comparison arms, predictions, custody meters,
 and terminal artifacts shipped with the first alpha remain recoverable from

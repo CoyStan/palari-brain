@@ -115,7 +115,7 @@ export function parseOpenAILocatorQualityArgs(argv) {
   return options
 }
 
-function namespace({ dimensions, model }) {
+export function scale05EmbeddingCacheNamespace({ dimensions, model }) {
   return `openai|${model}|dimensions=${dimensions}|encoding=float|scale05-corpus-v1`
 }
 
@@ -233,7 +233,10 @@ export async function runOpenAILocatorQuality({
   })
   const cache = await openContentAddressedEmbeddingCache({
     embed: adapter.embed,
-    namespace: namespace({ dimensions: vectorDimensions, model }),
+    namespace: scale05EmbeddingCacheNamespace({
+      dimensions: vectorDimensions,
+      model,
+    }),
     path: resolveDiagnosticPath(cachePath, 'cachePath'),
   })
 

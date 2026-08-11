@@ -188,23 +188,20 @@ function normalizedConfigs(configs) {
   if (!Array.isArray(configs) || configs.length < 1) {
     throw new TypeError('locatorConfigs must be a non-empty array.')
   }
-  return configs.map((config, index) => ({
-    bands: positiveSafeInteger(config?.bands, `locatorConfigs[${index}].bands`),
-    bitsPerBand: positiveSafeInteger(
-      config?.bitsPerBand,
-      `locatorConfigs[${index}].bitsPerBand`,
-    ),
-    label: String(config?.label ?? '').trim() ||
-      `${config?.bands}x${config?.bitsPerBand}`,
-    projectionLanes: positiveSafeInteger(
-      config?.projectionLanes ?? 4,
-      `locatorConfigs[${index}].projectionLanes`,
-    ),
-  }))
+  return configs.map((config, index) => {
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      throw new TypeError(`locatorConfigs[${index}] must be an object.`)
+    }
+    return {
+      ...config,
+      label: String(config.label ?? '').trim() || `locator-${index + 1}`,
+    }
+  })
 }
 
 export function evaluateLocatorQuality({
   locatorConfigs = DEFAULT_LOCATOR_QUALITY_CONFIGS,
+  locatorFactory = createDerivedVectorLocator,
   queries: rawQueries,
   queryVectors: rawQueryVectors,
   records: rawRecords,
@@ -231,6 +228,9 @@ export function evaluateLocatorQuality({
   const queryVectors = rawQueryVectors.map((vector, index) =>
     finiteUnitVector(vector, dimensions, `queryVectors[${index}]`))
   const configs = normalizedConfigs(locatorConfigs)
+  if (typeof locatorFactory !== 'function') {
+    throw new TypeError('locatorFactory must be a function.')
+  }
   const tierSizes = [...new Set(tiers.map((value) =>
     positiveSafeInteger(value, 'tier')))].sort((left, right) => left - right)
   if (tierSizes.at(-1) > records.length) {
@@ -273,13 +273,20 @@ export function evaluateLocatorQuality({
     })
 
     const locators = configs.map((config) => {
-      const locator = createDerivedVectorLocator(config)
+      const locator = locatorFactory(config)
       const buildStarted = performance.now()
-      for (let index = 0; index < tierSize; index += 1) {
-        locator.upsert(EVALUATION_SCOPE, {
-          evidenceId: tierIds[index],
+      if (typeof locator.replace === 'function') {
+        locator.replace(EVALUATION_SCOPE, tierIds.map((evidenceId, index) => ({
+          evidenceId,
           vector: tierVectors[index],
-        })
+        })))
+      } else {
+        for (let index = 0; index < tierSize; index += 1) {
+          locator.upsert(EVALUATION_SCOPE, {
+            evidenceId: tierIds[index],
+            vector: tierVectors[index],
+          })
+        }
       }
       const buildMs = performance.now() - buildStarted
       const indexById = new Map(tierIds.map((id, index) => [id, index]))

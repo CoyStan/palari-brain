@@ -240,6 +240,54 @@ Final validation passes: core 135/135, quickstart 6/6, broader compatibility
 points (36 files / 985,042 packed bytes / 1,469,291 unpacked bytes). Release tag
 `v0.1.0-alpha.1` remains unchanged.
 
+## 2026-08-11 HNSW locator comparison
+
+SCALE-06 tested one maintained HNSW implementation against the complete cached
+SCALE-05 vectors without changing product runtime or making a provider call:
+
+- USearch 2.26.0 is pinned as an Apache-2.0 development dependency. The
+  evaluation adapter keeps one index per normalized workspace/user scope,
+  returns canonical evidence IDs only, and leaves exact candidate ranking to
+  the caller;
+- batch construction is deliberately single-threaded so the diagnostic graph
+  and quality result are reproducible. Focused contracts cover scope
+  isolation, correction, exact deletion, persistence binding, dimensions,
+  duplicate IDs, and non-finite vectors;
+- the runner read all 5,050 embeddings from the gitignored content-addressed
+  cache in each run: 5,050 hits, zero misses, zero writes, zero provider inputs,
+  and zero provider calls; and
+- three case-blind effort points tested 80, 160, and 320 candidates. The
+  existing review assumptions remained unchanged: at least 95% retention of
+  exact target hits, at least 90% coverage of exact top-20 IDs, at most 25% of
+  rows examined, and lower p95 latency than exact search.
+
+Two consecutive deterministic 5,000-vector runs gave the same quality result.
+M16/ef256/k160 retained 45/47 exact target hits, covered 99.6% of exact top-20
+IDs, searched 3.2% of rows, and took 3.34-3.58 ms p95 versus 13.13-14.09 ms for
+the in-memory exact scan. M32/ef512/k320 retained 47/47, covered 100% of the
+exact top 20, searched 6.4%, and took 6.06-6.20 ms p95. Its deterministic build
+took 15.46-15.47 seconds. The smaller M16/ef128/k80 setting failed the exact-hit
+retention assumption. The same two larger settings passed at 2,000 vectors.
+
+The persisted M32 5,000-vector index is 32,100,308 bytes, reloads in 47.5-62.9
+ms locally, and reproduced all 50 candidate lists after reload. This is strong
+evidence for HNSW as Palari's derived retrieval direction, not evidence that a
+1,536-dimensional index already solves 100M-token storage. A simple same-layout
+byte envelope at 500,000-2,000,000 vectors is roughly 3.21-12.84 GB before
+canonical dialogue and database overhead. Runtime adoption therefore remains
+deferred until representation size, index ownership, rebuilds, and write/delete
+synchronization are designed around canonical SQLite as the sole source of
+truth.
+
+The tracked checkout will contain 114 files. The native development install is
+about 25 MB locally and the diagnostic index/result are gitignored. The release
+tarball contains no evaluation, test, or USearch implementation files and is
+still 36 files / 985,094 packed bytes / 1,469,502 unpacked bytes. All 140 public
+exports remain unchanged. Final validation passes: core 139/139, quickstart
+6/6, broader compatibility 417/417, and the clean offline package-install gate
+imports all six public entry points. Release tag `v0.1.0-alpha.1` remains
+unchanged.
+
 ## Product state
 
 The basic journey remains:
@@ -265,15 +313,17 @@ npm run alpha:debug -- --adapter <module> --max-dollar <cap>
 npm run answer-interpretation-regression
 npm run memory-stage-audit -- --input <local.json>
 npm run scale-probe
+npm run scale:hnsw-quality
 ```
 
 ## Next
 
 Take the next smallest product-memory behavior unit from real user feedback.
 Do not tune the sparse-sign locator further. If the scale-readiness track
-continues, the smallest useful SCALE-06 is an evaluation-only comparison of one
-mature ANN index against the now-cached real vectors and the same canonical-ID
-quality boundary; it needs no further provider call. Agree dependency and
-review scope before implementation. Any new paid adapter or changed corpus
-requires a new explicit aggregate cap. Do not replay sealed or already-
-successful benchmark cases merely to tune them.
+continues, the smallest useful SCALE-07 is a provider-free representation
+comparison: measure reduced dimensions and supported quantization against the
+1,536-dimensional exact reference, including quality, index bytes, build/load,
+and update/delete behavior. Only after that selection should a separate runtime
+design bind a disposable per-scope HNSW index to the canonical SQLite lifecycle.
+Any new paid adapter or changed corpus requires a new explicit aggregate cap.
+Do not replay sealed or already-successful benchmark cases merely to tune them.
