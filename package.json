@@ -1,6 +1,6 @@
 {
   "name": "palari-brain",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "private": true,
   "description": "Evidence-first memory for chat assistants: canonical dialogue, bounded recall, source-backed answers, and scoped forgetting.",
   "type": "module",
@@ -32,6 +32,7 @@
     "./reranker-transformers": "./src/reranker-transformers.mjs"
   },
   "files": [
+    "CHANGELOG.md",
     "src/brain.mjs",
     "src/dialogue-evidence.mjs",
     "src/embedder.mjs",
