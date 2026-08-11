@@ -509,7 +509,9 @@ test('memory_bridge batches generated semantic probes and returns raw evidence',
       anchorEvidenceId = anchor.evidenceId
       const bridged = await retrieve({
         input: {
+          after: '2024-12-31',
           anchorEvidenceIds: [anchor.evidenceId],
+          before: '2025-01-31',
           limit: 6,
           probes,
         },

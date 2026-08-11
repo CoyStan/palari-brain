@@ -20,6 +20,35 @@ import {
   MEMORY_EXPLORATION_INSTRUCTIONS,
   MEMORY_EXPLORATION_TOOLS,
 } from './memory-exploration.mjs'
+import {
+  createEphemeralRetrievalFrontier,
+  evidenceRows,
+  evidenceTexts,
+  frontierText,
+  informationIdentity,
+  normalizedInformationText,
+} from './retrieval-frontier.mjs'
+export {
+  MEMORY_RETRIEVAL_FRONTIER_SCHEMA,
+  MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS,
+} from './retrieval-frontier.mjs'
+import {
+  MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
+  MEMORY_RETRIEVAL_PLAN_INSTRUCTIONS,
+  MEMORY_RETRIEVAL_PLAN_TOOL,
+  MEMORY_RETRIEVAL_PLAN_TOOL_NAME,
+  normalizeRetrievalPlan,
+  normalizeRetrievalPlanInstant,
+  normalizeTrustedRetrievalTimeRange,
+} from './retrieval-plan.mjs'
+export {
+  MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS,
+  MEMORY_RETRIEVAL_PLAN_INSTRUCTIONS,
+  MEMORY_RETRIEVAL_PLAN_RELATIONS,
+  MEMORY_RETRIEVAL_PLAN_TOOL,
+  MEMORY_RETRIEVAL_PLAN_TOOL_NAME,
+  normalizeRetrievalPlan,
+} from './retrieval-plan.mjs'
 export const DEFAULT_RETRIEVAL_CALLS = 4
 export const MEMORY_ANSWER_RECOMMENDED_MAX_OUTPUT_TOKENS = 512
 export const MEMORY_HYBRID_RRF_K = 60
@@ -65,9 +94,6 @@ export const MEMORY_ANSWER_CONFIRMATION_SCHEMA =
   'palari-answer-confirmation/v9'
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_CANDIDATES = 3
 export const MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK = 3
-export const MEMORY_RETRIEVAL_FRONTIER_SCHEMA =
-  'palari-retrieval-frontier/v2'
-export const MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS = 2
 export const MEMORY_BRIDGE_LIMITS = Object.freeze({
   maxAnchors: 4,
   maxProbeChars: 300,
@@ -91,28 +117,8 @@ export const MEMORY_ANSWER_RECOMMENDATION_INSTRUCTIONS = [
   'When exact current inventory, availability, or event listings are not established by returned evidence or another authorized tool, give a safe category-level or strategy-level proposal instead of inventing a live listing.',
   'When a proposal depends on external current availability, state that limitation directly in the answer.',
 ].join(' ')
-export const MEMORY_RETRIEVAL_PLAN_TOOL_NAME = 'memory_plan'
 export const MEMORY_ANSWER_CONFIRMATION_REVIEW_TOOL_NAME =
   'memory_candidate_review'
-export const MEMORY_RETRIEVAL_PLAN_RELATIONS = Object.freeze([
-  'after',
-  'around',
-  'before',
-  'current',
-  'during',
-  'unspecified',
-])
-const MEMORY_RETRIEVAL_PLAN_ACCEPTED_RELATIONS = Object.freeze([
-  ...MEMORY_RETRIEVAL_PLAN_RELATIONS,
-  'between',
-])
-
-const MAX_RETRIEVAL_PLAN_ANCHOR_CHARS = 500
-const MAX_RETRIEVAL_PLAN_CATEGORY_CHARS = 200
-const RETRIEVAL_PLAN_ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})(?:T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,9})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d))?$/u
-const RETRIEVAL_PLAN_MONTH_DAYS = Object.freeze([
-  31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
-])
 const RETRIEVAL_FRONTIER_WHITESPACE = /\s+/gu
 const MEMORY_BRIDGE_INPUT_FIELDS = Object.freeze({
   after: true,
@@ -143,11 +149,6 @@ const ENUMERATION_NAMED_COLLECTION_QUESTION = /^\s*(?:which|what)\s+.{0,120}\b(?
 const ENUMERATION_RELATIONAL_QUESTION = /^\s*(?:which|what)\s+.{1,120}\s+(?:do|does|did|are|were|have|has|had|should|must|can|could|will|would)\b/iu
 const RECOMMENDATION_QUESTION = /\b(?:recommend(?:ation|ations|ed|ing)?|suggest(?:ion|ions|ed|ing)?)\b/iu
 const SCALAR_MEASUREMENT_UNIT = /^(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?|meters?|metres?|kilometers?|kilometres?|miles?|feet|inches?|grams?|kilograms?|pounds?|ounces?|liters?|litres?|gallons?|degrees?|percent|percentage|dollars?|euros?|pounds?\s+sterling|tokens?|characters?|words?)\b/iu
-const INFORMATION_APOSTROPHES = /[\u2018\u2019]/gu
-const INFORMATION_DASHES = /[\u2010-\u2015]/gu
-const INFORMATION_QUOTES = /[\u201c\u201d\u201e]/gu
-const INFORMATION_TRAILING_PERIOD = /\.$/u
-
 // Capture the small set of intrinsics used by the answer-commit boundary
 // before provider code can run in this realm. Provider adapters are local
 // code, but their model-originated payloads must not gain authority by
@@ -156,17 +157,12 @@ const arrayIsArray = Array.isArray
 const arrayJoin = Function.call.bind(Array.prototype.join)
 const arrayPrototype = Array.prototype
 const arrayPush = Function.call.bind(Array.prototype.push)
-const dateConstructor = Date
-const dateGetTime = Function.call.bind(Date.prototype.getTime)
-const dateToISOString = Function.call.bind(Date.prototype.toISOString)
 const mapGet = Function.call.bind(Map.prototype.get)
 const mapSet = Function.call.bind(Map.prototype.set)
 const mapConstructor = Map
 const mathFloor = Math.floor
-const mathMax = Math.max
 const numberConstructor = Number
 const numberIsSafeInteger = Number.isSafeInteger
-const numberIsNaN = Number.isNaN
 const objectDefineProperty = Object.defineProperty
 const objectFreeze = Object.freeze
 const objectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
@@ -185,7 +181,6 @@ const setHas = Function.call.bind(Set.prototype.has)
 const setConstructor = Set
 const stringFrom = String
 const stringIncludes = Function.call.bind(String.prototype.includes)
-const stringNormalize = Function.call.bind(String.prototype.normalize)
 const stringReplace = Function.call.bind(String.prototype.replace)
 const stringSlice = Function.call.bind(String.prototype.slice)
 const stringToLowerCase = Function.call.bind(String.prototype.toLowerCase)
@@ -475,212 +470,6 @@ function boundedOptionalCommitmentText(value, label, maximum) {
   return stringTrim(value)
 }
 
-function retrievalPlanError(message) {
-  const error = new TypeError(message)
-  error.code = 'MEMORY_RETRIEVAL_PLAN_INVALID'
-  return error
-}
-
-function exactRetrievalPlanProperties(value, expected, label) {
-  if (!plainObject(value)) {
-    throw retrievalPlanError(`${label} must be a plain data object.`)
-  }
-  const keys = reflectOwnKeys(value)
-  if (keys.length !== expected.length) {
-    throw retrievalPlanError(`${label} has unsupported or missing fields.`)
-  }
-  for (let index = 0; index < expected.length; index += 1) {
-    const key = expected[index]
-    const descriptor = objectGetOwnPropertyDescriptor(value, key)
-    if (!descriptor || !objectHasOwn(descriptor, 'value') ||
-      descriptor.enumerable !== true) {
-      throw retrievalPlanError(`${label}.${key} must be a data property.`)
-    }
-  }
-}
-
-function retrievalPlanText(value, label, maximum) {
-  if (typeof value !== 'string') {
-    throw retrievalPlanError(`${label} must be a string.`)
-  }
-  const text = stringTrim(value)
-  if (!text || stringIncludes(text, '\u0000') || text.length > maximum) {
-    throw retrievalPlanError(
-      `${label} must be a non-empty string of at most ${maximum} characters.`,
-    )
-  }
-  return text
-}
-
-function retrievalPlanInstant(value, label) {
-  if (value === null) return null
-  if (typeof value !== 'string' || !stringTrim(value)) {
-    throw retrievalPlanError(`${label} must be an ISO-8601 string or null.`)
-  }
-  const match = regexpExec(RETRIEVAL_PLAN_ISO_INSTANT, value)
-  if (!match) {
-    throw retrievalPlanError(`${label} must be an ISO-8601 string or null.`)
-  }
-  const year = numberConstructor(match[1])
-  const month = numberConstructor(match[2])
-  const day = numberConstructor(match[3])
-  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
-  const maximumDay = month === 2 && leap
-    ? 29
-    : RETRIEVAL_PLAN_MONTH_DAYS[month - 1]
-  if (!maximumDay || day < 1 || day > maximumDay) {
-    throw retrievalPlanError(`${label} must be an ISO-8601 string or null.`)
-  }
-  const parsed = new dateConstructor(
-    match[0].length === 10 ? `${value}T00:00:00Z` : value,
-  )
-  if (numberIsNaN(dateGetTime(parsed))) {
-    throw retrievalPlanError(`${label} must be an ISO-8601 string or null.`)
-  }
-  return dateToISOString(parsed)
-}
-
-export function normalizeRetrievalPlan(value) {
-  exactRetrievalPlanProperties(
-    value,
-    ['anchor_event', 'relation', 'category', 'time_range'],
-    'Retrieval plan',
-  )
-  const timeRangeDescriptor = objectGetOwnPropertyDescriptor(value, 'time_range')
-  exactRetrievalPlanProperties(
-    timeRangeDescriptor.value,
-    ['after', 'before'],
-    'Retrieval plan time_range',
-  )
-  let snapshot
-  try {
-    snapshot = structuredCloneValue(value)
-  } catch {
-    throw retrievalPlanError('Retrieval plan must contain only cloneable data.')
-  }
-  exactRetrievalPlanProperties(
-    snapshot,
-    ['anchor_event', 'relation', 'category', 'time_range'],
-    'Retrieval plan',
-  )
-  exactRetrievalPlanProperties(
-    snapshot.time_range,
-    ['after', 'before'],
-    'Retrieval plan time_range',
-  )
-  const anchor_event = retrievalPlanText(
-    snapshot.anchor_event,
-    'Retrieval plan anchor_event',
-    MAX_RETRIEVAL_PLAN_ANCHOR_CHARS,
-  )
-  const category = retrievalPlanText(
-    snapshot.category,
-    'Retrieval plan category',
-    MAX_RETRIEVAL_PLAN_CATEGORY_CHARS,
-  )
-  if (typeof snapshot.relation !== 'string') {
-    throw retrievalPlanError('Retrieval plan relation must be a string.')
-  }
-  const relation = snapshot.relation
-  let supported = false
-  for (let index = 0;
-    index < MEMORY_RETRIEVAL_PLAN_ACCEPTED_RELATIONS.length;
-    index += 1) {
-    if (MEMORY_RETRIEVAL_PLAN_ACCEPTED_RELATIONS[index] === relation) {
-      supported = true
-      break
-    }
-  }
-  if (!supported) throw retrievalPlanError('Retrieval plan relation is unsupported.')
-  const after = retrievalPlanInstant(
-    snapshot.time_range.after,
-    'Retrieval plan time_range.after',
-  )
-  const before = retrievalPlanInstant(
-    snapshot.time_range.before,
-    'Retrieval plan time_range.before',
-  )
-  if (after && before && after > before) {
-    throw retrievalPlanError(
-      'Retrieval plan time_range.after must not exceed before.',
-    )
-  }
-  return deepFreeze({
-    anchor_event,
-    relation,
-    category,
-    time_range: { after, before },
-  })
-}
-
-function normalizeTrustedRetrievalTimeRange(value) {
-  return normalizeRetrievalPlan({
-    anchor_event: 'host-authorized retrieval range',
-    category: 'host retrieval boundary',
-    relation: 'unspecified',
-    time_range: value,
-  }).time_range
-}
-
-export const MEMORY_RETRIEVAL_PLAN_TOOL = deepFreeze({
-  description: [
-    'Register one temporary retrieval plan before navigating a temporal or relational memory question.',
-    'Identify the anchor event, requested relation, evidence category, and explicit time range when known.',
-    'The plan is not evidence, is never stored, and does not consume the memory retrieval-call budget.',
-    'After planning, locate the anchor if necessary, use memory_timeline to orient, then memory_read complete canonical source messages.',
-  ].join(' '),
-  name: MEMORY_RETRIEVAL_PLAN_TOOL_NAME,
-  parameters: {
-    additionalProperties: false,
-    properties: {
-      anchor_event: {
-        description: 'Event, entity, or state that anchors the requested relation.',
-        maxLength: MAX_RETRIEVAL_PLAN_ANCHOR_CHARS,
-        minLength: 1,
-        type: 'string',
-      },
-      relation: {
-        enum: [...MEMORY_RETRIEVAL_PLAN_RELATIONS],
-        type: 'string',
-      },
-      category: {
-        description: 'General kind of evidence needed to answer.',
-        maxLength: MAX_RETRIEVAL_PLAN_CATEGORY_CHARS,
-        minLength: 1,
-        type: 'string',
-      },
-      time_range: {
-        additionalProperties: false,
-        properties: {
-          after: { type: ['string', 'null'] },
-          before: { type: ['string', 'null'] },
-        },
-        required: ['after', 'before'],
-        type: 'object',
-      },
-    },
-    required: ['anchor_event', 'relation', 'category', 'time_range'],
-    type: 'object',
-  },
-})
-
-export const MEMORY_RETRIEVAL_PLAN_INSTRUCTIONS = [
-  'For a temporal or relational question, first register one memory_plan with the anchor event, relation, evidence category, and known time range.',
-  'A plan is navigation metadata, not evidence. Do not cite it or treat it as a remembered fact.',
-  'After planning, locate the anchor when needed, inspect memory_timeline, then use memory_read to recover complete canonical source messages from the relevant sessions.',
-  'Prefer original user statements when the question asks what the user owns, uses, did, or prefers. Old Palari responses prove only prior Palari advice.',
-].join(' ')
-
-export const MEMORY_RETRIEVAL_COMPLETENESS_INSTRUCTIONS = [
-  'Treat the question date as context for relative-time descriptions, not as an automatic retrieval cutoff. Keep retrieval bounds open unless the question itself explicitly asks about a bounded period such as before, after, as of, or during an event.',
-  'For a current value, duration, correction, or knowledge update, do not stop at an older direct value. Use a second targeted retrieval for a later direct user statement about the same entity before inferring; a later direct value takes precedence over arithmetic extrapolated from an older value.',
-  'For a personalized recommendation, retrieve both the current situational constraints and at least one direct user preference relevant to the recommendation category. If no relevant preference is found, say that the result is not personalized rather than inventing one.',
-  'A relevant prior Palari answer may reveal the vocabulary or source session for user-specific resources, preferences, goals, relationships, or preparations, but it is navigation rather than proof. When such a Palari row is returned and retrieval budget remains, read its source session with memory_read before answering so the direct user context can support the answer. If that session does not recover the needed user evidence, continue through memory_bridge. Do not expand a generic prior Palari answer that contains no user-specific claim relevant to the question.',
-  'For a total, count, or supposedly complete list, one relevance-ranked result is not exhaustive. Use complementary bounded searches inside the planned time range; if completeness is still unproven, report a partial result or insufficient evidence instead of a definitive total.',
-  'Do not transfer a value across mismatched named people, places, objects, or relationships. Evidence about a different named entity may justify insufficiency or non-use, but cannot answer the requested entity.',
-  'Select each returned memory at most once in an answer commitment. Omit unrelated rows. When one message supports several points, combine its contributions in one used-memory entry.',
-].join(' ')
-
 export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
   'Act as a fresh, adversarial answer reviewer after another model produced a provisional answer.',
   'Before accepting or revising that draft, call memory_search with a new semantic or relational query designed to uncover omitted, conflicting, newer, or otherwise decisive evidence.',
@@ -692,386 +481,6 @@ export const MEMORY_ANSWER_CONFIRMATION_INSTRUCTIONS = [
   'An empty confirmation search means no new information was found for that adversarial query.',
   'Normally commit after the latest search is empty or a complete displayed page produces no material findings, with all earlier material findings assessed in the final commitment. If the host closes retrieval at its emergency work bound, commit the best evidence-backed revision instead of discarding it; the host will label that result bounded-incomplete rather than fully confirmed. This is bounded review, not proof that no possible memory exists.',
 ].join(' ')
-
-function evidenceRows(result) {
-  const rows = []
-  const rowKeys = ['matches', 'messages', 'edges']
-  for (let keyIndex = 0; keyIndex < rowKeys.length; keyIndex += 1) {
-    const key = rowKeys[keyIndex]
-    const values = result?.[key]
-    if (!arrayIsArray(values)) continue
-    for (let index = 0; index < values.length; index += 1) {
-      arrayPush(rows, values[index])
-    }
-  }
-  return rows
-}
-
-function evidenceTexts(result) {
-  const rows = evidenceRows(result)
-  const evidence = []
-  for (let index = 0; index < rows.length; index += 1) {
-    const row = rows[index]
-    const evidenceId = stringTrim(stringFrom(row?.evidenceId ?? ''))
-    const text = informationText(row)
-    if (evidenceId && text) arrayPush(evidence, { evidenceId, text })
-  }
-  return evidence
-}
-
-function frontierText(value) {
-  if (typeof value !== 'string') return ''
-  return stringReplace(
-    stringToLowerCase(stringTrim(value)),
-    RETRIEVAL_FRONTIER_WHITESPACE,
-    ' ',
-  )
-}
-
-function informationText(row) {
-  return typeof row?.text === 'string'
-    ? row.text
-    : typeof row?.snippet === 'string'
-      ? row.snippet
-      : typeof row?.quote === 'string'
-        ? row.quote
-        : ''
-}
-
-function normalizedInformationText(value) {
-  let normalized = stringNormalize(stringFrom(value ?? ''), 'NFC')
-  normalized = stringReplace(normalized, INFORMATION_APOSTROPHES, "'")
-  normalized = stringReplace(normalized, INFORMATION_QUOTES, '"')
-  normalized = stringReplace(normalized, INFORMATION_DASHES, '-')
-  normalized = frontierText(normalized)
-  return stringReplace(normalized, INFORMATION_TRAILING_PERIOD, '')
-}
-
-function informationIdentity(row) {
-  const text = informationText(row)
-  const normalizedText = normalizedInformationText(text)
-  if (!normalizedText) return null
-  const speaker = frontierText(row?.speaker)
-  const authorId = stringTrim(stringFrom(row?.authorId ?? ''))
-  const observedAt = stringTrim(stringFrom(row?.observedAt ?? ''))
-  return {
-    authorId,
-    key: arrayJoin([
-      speaker,
-      authorId,
-      observedAt,
-      normalizedText,
-    ], '\u0000'),
-    observedAt,
-    speaker,
-    text,
-  }
-}
-
-function frontierAttemptKey(tool, input) {
-  const parts = [stringFrom(tool)]
-  const fields = [
-    'phrase',
-    'entity',
-    'session',
-    'after',
-    'before',
-    'mode',
-    'ranked',
-    'hops',
-    'limit',
-    'maxChars',
-  ]
-  for (let index = 0; index < fields.length; index += 1) {
-    const field = fields[index]
-    const value = input?.[field]
-    if (value === undefined || value === null || value === '') continue
-    const normalized = typeof value === 'string'
-      ? frontierText(value)
-      : stringFrom(value)
-    arrayPush(parts, `${field}=${normalized}`)
-  }
-  const evidenceIds = input?.evidenceIds
-  if (arrayIsArray(evidenceIds)) {
-    const normalizedIds = []
-    for (let index = 0; index < evidenceIds.length; index += 1) {
-      const id = stringTrim(stringFrom(evidenceIds[index] ?? ''))
-      if (id) arrayPush(normalizedIds, id)
-    }
-    if (normalizedIds.length) {
-      arrayPush(parts, `evidenceIds=${arrayJoin(normalizedIds, ',')}`)
-    }
-  }
-  const anchorEvidenceIds = input?.anchorEvidenceIds
-  if (arrayIsArray(anchorEvidenceIds)) {
-    const normalizedIds = []
-    for (let index = 0; index < anchorEvidenceIds.length; index += 1) {
-      const id = stringTrim(stringFrom(anchorEvidenceIds[index] ?? ''))
-      if (id) arrayPush(normalizedIds, id)
-    }
-    if (normalizedIds.length) {
-      arrayPush(parts, `anchorEvidenceIds=${arrayJoin(normalizedIds, ',')}`)
-    }
-  }
-  const probes = input?.probes
-  if (arrayIsArray(probes)) {
-    const normalizedProbes = []
-    for (let index = 0; index < probes.length; index += 1) {
-      const probe = frontierText(probes[index])
-      if (probe) arrayPush(normalizedProbes, probe)
-    }
-    if (normalizedProbes.length) {
-      arrayPush(parts, `probes=${arrayJoin(normalizedProbes, '\u001f')}`)
-    }
-  }
-  return arrayJoin(parts, '|')
-}
-
-function copyFrontierArray(values) {
-  const copied = []
-  for (let index = 0; index < values.length; index += 1) {
-    arrayPush(copied, values[index])
-  }
-  return copied
-}
-
-function createEphemeralRetrievalFrontier(maxRetrievalCalls) {
-  const seenEvidenceSet = new setConstructor()
-  const seenEvidenceIds = []
-  const bridgeEligibleEvidenceSet = new setConstructor()
-  const anchorEvidenceSet = new setConstructor()
-  const anchorEvidenceIds = []
-  const attemptedQuerySet = new setConstructor()
-  const attemptedQueryKeys = []
-  const bridgeLineage = []
-  const discoveryByEvidenceId = new mapConstructor()
-  const rounds = []
-  let budgetRefusals = 0
-  let consecutiveNoNewEvidenceRounds = 0
-  let repeatedQueryAttempts = 0
-
-  const noteQuery = (tool, input) => {
-    const queryKey = frontierAttemptKey(tool, input)
-    const repeatedQuery = setHas(attemptedQuerySet, queryKey)
-    if (repeatedQuery) {
-      repeatedQueryAttempts += 1
-    } else {
-      setAdd(attemptedQuerySet, queryKey)
-      arrayPush(attemptedQueryKeys, queryKey)
-    }
-    return { queryKey, repeatedQuery }
-  }
-
-  const record = ({ input, result, tool }) => {
-    const { queryKey, repeatedQuery } = noteQuery(tool, input)
-    const roundEvidenceSet = new setConstructor()
-    const returnedEvidenceIds = []
-    const newEvidenceIds = []
-    const repeatedEvidenceIds = []
-    const evidence = evidenceTexts(result)
-    for (let index = 0; index < evidence.length; index += 1) {
-      const evidenceId = evidence[index].evidenceId
-      if (setHas(roundEvidenceSet, evidenceId)) continue
-      setAdd(roundEvidenceSet, evidenceId)
-      setAdd(bridgeEligibleEvidenceSet, evidenceId)
-      arrayPush(returnedEvidenceIds, evidenceId)
-      if (setHas(seenEvidenceSet, evidenceId)) {
-        arrayPush(repeatedEvidenceIds, evidenceId)
-      } else {
-        setAdd(seenEvidenceSet, evidenceId)
-        arrayPush(seenEvidenceIds, evidenceId)
-        arrayPush(newEvidenceIds, evidenceId)
-      }
-    }
-    if (newEvidenceIds.length) {
-      consecutiveNoNewEvidenceRounds = 0
-    } else {
-      consecutiveNoNewEvidenceRounds += 1
-    }
-    const ordinal = rounds.length + 1
-    const round = {
-      newEvidenceCount: newEvidenceIds.length,
-      newEvidenceIds,
-      ordinal,
-      queryKey,
-      remainingRetrievalCalls: mathMax(
-        0,
-        maxRetrievalCalls - ordinal,
-      ),
-      repeatedEvidenceCount: repeatedEvidenceIds.length,
-      repeatedEvidenceIds,
-      repeatedQuery,
-      returnedEvidenceCount: returnedEvidenceIds.length,
-      returnedEvidenceIds,
-      tool,
-    }
-    arrayPush(rounds, round)
-    if (tool === 'memory_bridge') {
-      const bridgeAnchors = copyFrontierArray(result.anchorEvidenceIds)
-      const bridgeOrdinal = bridgeLineage.length + 1
-      const bridge = {
-        anchorEvidenceIds: bridgeAnchors,
-        discoveredEvidenceIds: copyFrontierArray(newEvidenceIds),
-        ordinal: bridgeOrdinal,
-        retrievalRoundOrdinal: ordinal,
-        returnedEvidenceIds: copyFrontierArray(returnedEvidenceIds),
-      }
-      arrayPush(bridgeLineage, bridge)
-      for (let index = 0; index < newEvidenceIds.length; index += 1) {
-        mapSet(discoveryByEvidenceId, newEvidenceIds[index], {
-          anchorEvidenceIds: bridgeAnchors,
-          bridgeOrdinal,
-        })
-      }
-    }
-    return round
-  }
-
-  const refuseForBudget = ({ input, tool }) => {
-    noteQuery(tool, input)
-    budgetRefusals += 1
-  }
-
-  const seedBridgeEligibility = (values) => {
-    if (!arrayIsArray(values)) {
-      throw new TypeError(
-        'Retrieval frontier bridge eligibility must be an array of evidence IDs.',
-      )
-    }
-    for (let index = 0; index < values.length; index += 1) {
-      const evidenceId = stringTrim(stringFrom(values[index] ?? ''))
-      if (!evidenceId) {
-        throw new TypeError(
-          'Retrieval frontier bridge eligibility requires non-empty evidence IDs.',
-        )
-      }
-      setAdd(bridgeEligibleEvidenceSet, evidenceId)
-    }
-  }
-
-  const markAnchors = (values) => {
-    if (!arrayIsArray(values)) {
-      const error = new TypeError(
-        'Retrieval frontier anchors must be an array of returned evidence IDs.',
-      )
-      error.code = 'MEMORY_RETRIEVAL_FRONTIER_ANCHOR_INVALID'
-      throw error
-    }
-    for (let index = 0; index < values.length; index += 1) {
-      const evidenceId = stringTrim(stringFrom(values[index] ?? ''))
-      if (!evidenceId || !setHas(bridgeEligibleEvidenceSet, evidenceId)) {
-        const error = new TypeError(
-          'Retrieval frontier anchors must already exist in canonical briefing or returned evidence.',
-        )
-        error.code = 'MEMORY_RETRIEVAL_FRONTIER_ANCHOR_INVALID'
-        throw error
-      }
-      if (setHas(anchorEvidenceSet, evidenceId)) continue
-      setAdd(anchorEvidenceSet, evidenceId)
-      arrayPush(anchorEvidenceIds, evidenceId)
-    }
-    return deepFreeze(copyFrontierArray(anchorEvidenceIds))
-  }
-
-  const snapshot = ({ retrievalOpen, selectedEvidenceIds = [] } = {}) => {
-    const selected = copyFrontierArray(selectedEvidenceIds)
-    const selectedSet = new setConstructor()
-    for (let index = 0; index < selected.length; index += 1) {
-      setAdd(selectedSet, selected[index])
-    }
-    const selectedRoutingLineage = []
-    const routingOnlyEvidenceSet = new setConstructor()
-    const routingOnlyEvidenceIds = []
-    const unseenSelectedEvidenceIds = []
-    for (let index = 0; index < selected.length; index += 1) {
-      if (!setHas(seenEvidenceSet, selected[index])) {
-        arrayPush(unseenSelectedEvidenceIds, selected[index])
-      }
-      const routingEvidenceSet = new setConstructor()
-      const routingEvidenceIds = []
-      const bridgeOrdinalSet = new setConstructor()
-      const bridgeOrdinals = []
-      const visit = (evidenceId) => {
-        const discovery = mapGet(discoveryByEvidenceId, evidenceId)
-        if (!discovery) return
-        for (let anchorIndex = 0;
-          anchorIndex < discovery.anchorEvidenceIds.length;
-          anchorIndex += 1) {
-          const anchorEvidenceId = discovery.anchorEvidenceIds[anchorIndex]
-          if (setHas(routingEvidenceSet, anchorEvidenceId)) continue
-          visit(anchorEvidenceId)
-          setAdd(routingEvidenceSet, anchorEvidenceId)
-          arrayPush(routingEvidenceIds, anchorEvidenceId)
-        }
-        if (!setHas(bridgeOrdinalSet, discovery.bridgeOrdinal)) {
-          setAdd(bridgeOrdinalSet, discovery.bridgeOrdinal)
-          arrayPush(bridgeOrdinals, discovery.bridgeOrdinal)
-        }
-      }
-      visit(selected[index])
-      for (let routingIndex = 0;
-        routingIndex < routingEvidenceIds.length;
-        routingIndex += 1) {
-        const routingEvidenceId = routingEvidenceIds[routingIndex]
-        if (setHas(selectedSet, routingEvidenceId) ||
-          setHas(routingOnlyEvidenceSet, routingEvidenceId)) continue
-        setAdd(routingOnlyEvidenceSet, routingEvidenceId)
-        arrayPush(routingOnlyEvidenceIds, routingEvidenceId)
-      }
-      arrayPush(selectedRoutingLineage, {
-        bridgeOrdinals,
-        routingEvidenceIds,
-        selectedEvidenceId: selected[index],
-      })
-    }
-    const stagnant = consecutiveNoNewEvidenceRounds >=
-      MEMORY_RETRIEVAL_FRONTIER_STAGNANT_ROUNDS
-    const status = budgetRefusals
-      ? 'budget_exhausted'
-      : stagnant
-        ? 'stagnant'
-        : retrievalOpen
-          ? 'open'
-          : 'closed'
-    return deepFreeze({
-      anchorEvidenceIds: copyFrontierArray(anchorEvidenceIds),
-      attemptedQueryKeys: copyFrontierArray(attemptedQueryKeys),
-      bridgeLineage: copyFrontierArray(bridgeLineage),
-      budgetRefusals,
-      consecutiveNoNewEvidenceRounds,
-      durableWrites: 0,
-      ephemeral: true,
-      exhausted: budgetRefusals > 0,
-      exhaustionReason: budgetRefusals
-        ? 'retrieval_budget_exhausted'
-        : null,
-      maxRetrievalCalls,
-      remainingRetrievalCalls: mathMax(
-        0,
-        maxRetrievalCalls - rounds.length,
-      ),
-      repeatedQueryAttempts,
-      routingOnlyEvidenceIds,
-      roundCount: rounds.length,
-      rounds: copyFrontierArray(rounds),
-      schema: MEMORY_RETRIEVAL_FRONTIER_SCHEMA,
-      seenEvidenceIds: copyFrontierArray(seenEvidenceIds),
-      selectedEvidenceIds: selected,
-      selectedRoutingLineage,
-      stagnant,
-      status,
-      unseenSelectedEvidenceIds,
-    })
-  }
-
-  return {
-    markAnchors,
-    record,
-    refuseForBudget,
-    seedBridgeEligibility,
-    snapshot,
-  }
-}
 
 function boundedInteger(value, fallback, maximum, label) {
   if (value === undefined || value === null) return fallback
@@ -1208,7 +617,7 @@ function normalizeMemoryBridgeInput(value) {
       )
     }
     try {
-      normalized[field] = retrievalPlanInstant(
+      normalized[field] = normalizeRetrievalPlanInstant(
         input[field],
         `memory_bridge ${field}`,
       )

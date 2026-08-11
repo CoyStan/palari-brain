@@ -88,7 +88,9 @@ npm run quickstart
 `npm test` runs the small provider-free alpha gate. `npm run quickstart`
 exercises the full product journey: store, recall, correct, delete, and verify
 the behavior afterward. The broader product compatibility suite is available
-through `npm run test:legacy`.
+through `npm run test:legacy`. Before publishing or changing package layout,
+`npm run package:check` packs and installs a clean offline consumer and verifies
+all six public entry points against the reviewed export-name hashes.
 
 ## Alpha release
 
@@ -182,7 +184,8 @@ one alpha process at a time.
 | Active API and orchestration | `src/index.mjs`, `src/brain.mjs` |
 | Canonical dialogue and admission | `src/dialogue-evidence.mjs`, `src/memory-store.mjs` |
 | Working memory and reduction | `src/memory-digest-store.mjs`, `src/memory-reducer.mjs` |
-| Retrieval and answers | `src/memory-exploration.mjs`, `src/memory-search.mjs`, `src/memory-semantic.mjs`, `src/memory-graph.mjs`, `src/retrieval-answer.mjs` |
+| Retrieval and answers | `src/memory-exploration.mjs`, `src/retrieval-plan.mjs`, `src/retrieval-frontier.mjs`, `src/retrieval-answer.mjs` |
+| Retrieval indexes | `src/memory-search.mjs`, `src/memory-semantic.mjs`, `src/memory-graph.mjs` |
 | Provider seams | `src/gemini.mjs`, `src/openai.mjs`, `src/reranker-ettin.mjs` |
 | Local diagnostics | `evals/`, with its map in `evals/README.md` |
 

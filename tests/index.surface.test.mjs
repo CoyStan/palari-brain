@@ -111,6 +111,7 @@ test('the package includes every module loaded by its public entry point',
       'src/memory-trend.mjs',
       'src/quote-context.mjs',
       'src/retrieval-answer.mjs',
+      'src/retrieval-frontier.mjs',
       'src/retrieval-plan.mjs',
     ]) {
       assert.ok(
