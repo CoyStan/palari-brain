@@ -312,6 +312,9 @@ export function normalizeCanonicalEvidenceBatch(batch, scopeInput, {
   const lastOrdinalByConversation = new Map()
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index]
+    if (index > 0 && compareRows(rows[index - 1], row) > 0) {
+      throw invalid('batch rows are not in canonical query order.')
+    }
     if (messageIds.has(row.messageId)) {
       throw invalid('batch contains a duplicate canonical message ID.')
     }
@@ -326,9 +329,6 @@ export function normalizeCanonicalEvidenceBatch(batch, scopeInput, {
       throw invalid('batch conversation ordering is not strictly increasing.')
     }
     lastOrdinalByConversation.set(row.conversationId, row.conversationOrdinal)
-    if (index > 0 && compareRows(rows[index - 1], row) > 0) {
-      throw invalid('batch rows are not in canonical query order.')
-    }
   }
 
   return Object.freeze({

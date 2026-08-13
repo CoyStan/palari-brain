@@ -166,9 +166,14 @@ test('normalization rejects foreign scope, forged attribution, and false order',
   const reversed = [
     row({
       conversationOrdinal: 2,
+      createdAt: '2026-08-13T12:00:00.000000Z',
       messageId: 'message-a-2',
+      updatedAt: '2026-08-13T12:00:00.000000Z',
     }),
-    row(),
+    row({
+      createdAt: '2026-08-13T12:00:01.000000Z',
+      updatedAt: '2026-08-13T12:00:01.000000Z',
+    }),
   ]
   assert.throws(
     () => normalizeCanonicalEvidenceBatch(batch(reversed), scope),
@@ -190,6 +195,35 @@ test('normalization rejects foreign scope, forged attribution, and false order',
   ]
   assert.throws(
     () => normalizeCanonicalEvidenceBatch(batch(microsecondReversed), scope),
+    { code: 'CANONICAL_EVIDENCE_INVALID' },
+  )
+})
+
+test('byte ordering matches PostgreSQL C collation at equal timestamps', () => {
+  const at = '2026-08-13T12:00:00.000000Z'
+  assert.throws(
+    () => normalizeCanonicalEvidenceBatch(batch([
+      row({
+        conversationId: 'conversation-z',
+        createdAt: at,
+        messageId: 'message-z-1',
+        updatedAt: at,
+      }),
+      row({
+        conversationId: 'conversation-A',
+        createdAt: at,
+        messageId: 'message-A-1',
+        updatedAt: at,
+      }),
+    ]), scope),
+    { code: 'CANONICAL_EVIDENCE_INVALID' },
+  )
+
+  assert.throws(
+    () => normalizeCanonicalEvidenceBatch(batch([
+      row({ createdAt: at, messageId: 'message-z', updatedAt: at }),
+      row({ createdAt: at, messageId: 'message-A', updatedAt: at }),
+    ]), scope),
     { code: 'CANONICAL_EVIDENCE_INVALID' },
   )
 })
