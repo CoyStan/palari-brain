@@ -224,7 +224,10 @@ test('byte ordering matches PostgreSQL C collation at equal timestamps', () => {
       row({ createdAt: at, messageId: 'message-z', updatedAt: at }),
       row({ createdAt: at, messageId: 'message-A', updatedAt: at }),
     ]), scope),
-    { code: 'CANONICAL_EVIDENCE_INVALID' },
+    {
+      code: 'CANONICAL_EVIDENCE_INVALID',
+      message: 'batch rows are not in canonical query order.',
+    },
   )
 })
 
