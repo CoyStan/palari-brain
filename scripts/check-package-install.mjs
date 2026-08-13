@@ -18,6 +18,11 @@ const expectedEntries = Object.freeze([
     specifier: 'palari-brain',
   }),
   Object.freeze({
+    count: 4,
+    hash: 'c534349fd6dc948cadfa8086ffd0ba4c8274ce2d357752d91d7b01b216f04046',
+    specifier: 'palari-brain/canonical-evidence',
+  }),
+  Object.freeze({
     count: 1,
     hash: '66c882496bf0f67f08b810060950de54d45cb0cd54c57d49671fa6663c90ec64',
     specifier: 'palari-brain/embedder',

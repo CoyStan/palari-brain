@@ -1,5 +1,20 @@
 # STATUS — Palari alpha
 
+## 2026-08-13 Postgres canonical-evidence seam
+
+APP-0773 adds a provider-neutral asynchronous read boundary for applications
+that already own canonical dialogue in PostgreSQL or another transactional
+store. `palari-brain/canonical-evidence` validates a small versioned envelope,
+keeps the application's canonical message ID, preserves multi-human and Palari
+authorship lineage, and builds the existing untrusted canonical briefing
+without opening SQLite or copying the transcript.
+
+The seam fails closed on foreign scope, malformed attribution, duplicate
+identity/order, lossy text, and truncated reads. It does not authorize callers,
+write memory, run a reducer, call a provider, or alter the existing local Brain
+path. Focused provider-free contract tests cover exact identity, two-human
+attribution, deterministic order, scope rejection, and bounded incompleteness.
+
 ## 2026-08-11 current handoff
 
 Release `v0.1.0-alpha.1` remains an annotated, immutable recovery tag. The

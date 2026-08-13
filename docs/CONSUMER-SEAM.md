@@ -38,6 +38,75 @@ Other root exports support internal contracts, historical comparators, or
 evaluation harnesses. Their presence is not an application integration
 promise unless this document names them.
 
+### Host-owned canonical evidence
+
+Applications whose canonical transcript already lives in a transactional
+store use the additive `palari-brain/canonical-evidence` subpath. This seam is
+asynchronous and does not open SQLite, ingest a second transcript, authorize a
+caller, run a reducer, or call a provider:
+
+```js
+import {
+  canonicalEvidenceContractVersion,
+  createCanonicalEvidenceSource,
+} from 'palari-brain/canonical-evidence'
+
+const source = createCanonicalEvidenceSource({
+  read: async ({ limit, scope }) =>
+    applicationReadCanonicalEvidence({ limit, scope }),
+})
+
+const briefing = await source.recall(
+  { workspaceId, palariId },
+  { maxRows: 500 },
+)
+```
+
+The application must authenticate and authorize before the read, recheck
+authorization before returning it, and supply exactly one
+`palari-canonical-evidence/v1` envelope:
+
+```js
+{
+  contractVersion: canonicalEvidenceContractVersion,
+  hasMore: false,
+  scope: { workspaceId, palariId },
+  rows: [{
+    messageId,
+    workspaceId,
+    palariId,
+    conversationId,
+    conversationOrdinal,
+    messageVersion,
+    authorType,
+    authorUserId,
+    authorWorkspaceMembershipId,
+    authorPalariId,
+    initiatingUserId,
+    initiatingWorkspaceMembershipId,
+    content,
+    createdAt,
+    updatedAt,
+  }],
+}
+```
+
+Every field is exact and versioned. `messageId` remains both the canonical
+evidence ID and source-message ID. Human rows require the authenticated user
+and Workspace-membership lineage; Palari rows require the exact Palari plus
+the initiating human lineage. Unknown fields, foreign scopes, malformed
+attribution, duplicate IDs or conversation ordinals, lossy text, and false
+query order are rejected. Timestamps use canonical UTC ISO text with exactly
+six fractional digits, preserving PostgreSQL microsecond chronology without
+depending on JavaScript `Date` precision.
+
+The reader is bounded to 2,000 rows per call. A host sets `hasMore: true` when
+another canonical row exists beyond the requested limit. In that case Brain
+returns `evidence_incomplete` with no briefing text, so a partial transcript is
+never presented as complete memory. This seam is the canonical-read bridge;
+derived digest storage, deletion invalidation, and application runtime wiring
+remain separate responsibilities.
+
 Provider adapters use additive package subpaths. `palari-brain/gemini`
 contains Gemini wire helpers. `palari-brain/openai` contains the OpenAI
 Responses API transport plus ready callbacks for bounded retrieval answers,
