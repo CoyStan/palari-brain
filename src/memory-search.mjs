@@ -105,6 +105,8 @@ export function ensureDialogueSearchIndex(db) {
 // trigger removes them from the index, and the visible-statements join would
 // exclude them regardless — two independent walls.
 export function searchDialogueEvidenceRanked(db, {
+  after = null,
+  before = null,
   limit,
   phrase,
   scope,
@@ -123,6 +125,8 @@ export function searchDialogueEvidenceRanked(db, {
     SELECT visible.*, hits.search_rank
     FROM visible
     JOIN hits ON hits.evidence_id = visible.id
+    WHERE (? IS NULL OR visible.event_at >= ?)
+      AND (? IS NULL OR visible.event_at <= ?)
     ORDER BY hits.search_rank ASC, visible.event_at ASC,
       visible.dialogue_order ASC
     LIMIT ?
@@ -130,6 +134,7 @@ export function searchDialogueEvidenceRanked(db, {
     scope.palariId,
     scope.userId,
     rankedDialogueQuery(terms),
+    after, after, before, before,
     limit,
   )
   return { rows, terms }

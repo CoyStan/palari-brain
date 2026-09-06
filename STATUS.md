@@ -1,5 +1,13 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 MATH-01 date-filtered retrieval
+
+Exact, ranked, and semantic retrieval now apply date constraints before the
+result limit. Hybrid single/batch probes pass bounds through to semantic
+selection; date-constrained semantic queries exact-rank their eligible subset.
+Four provider-free regressions cover narrow ranges and hybrid crowd-out.
+Core, quickstart, and legacy gates pass. No provider calls or datasets used.
+
 ## 2026-08-13 Postgres canonical-evidence seam
 
 APP-0773 adds a provider-neutral asynchronous read boundary for applications

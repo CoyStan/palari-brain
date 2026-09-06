@@ -1293,6 +1293,8 @@ async function hybridSearch(
       if (semanticProbeQueries.length > 0 &&
         typeof brain.exploreSemanticBatch === 'function') {
         const batches = await brain.exploreSemanticBatch(scope, {
+          after: after || undefined,
+          before: before || undefined,
           limit: candidateLimit,
           phrases: semanticProbeQueries.map((query) => query.phrase),
         })
@@ -1311,6 +1313,8 @@ async function hybridSearch(
         }
       } else {
         semantic = newRowsOnly((await brain.exploreSemantic(scope, {
+          after: after || undefined,
+          before: before || undefined,
           limit: candidateLimit,
           phrase,
         })).filter((row) => withinBounds(row, after, before)))

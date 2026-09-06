@@ -266,6 +266,8 @@ export function createMemoryExplorer(store, {
     let terms = []
     if (ranked) {
       const found = searchDialogueEvidenceRanked(store.db, {
+        after: lowerBound,
+        before: upperBound,
         limit: cap,
         phrase: needle,
         scope,
@@ -285,8 +287,10 @@ export function createMemoryExplorer(store, {
       rows = scoped(
         scope,
         `WHERE instr(lower(content), lower(?)) > 0
+           AND (? IS NULL OR event_at >= ?)
+           AND (? IS NULL OR event_at <= ?)
          ORDER BY event_at ASC, dialogue_order ASC`,
-        [needle],
+        [needle, lowerBound, lowerBound, upperBound, upperBound],
         cap,
       ).map(messageRow).filter(withinBounds)
     }
