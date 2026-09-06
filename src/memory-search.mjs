@@ -101,9 +101,8 @@ export function ensureDialogueSearchIndex(db) {
 }
 
 // Ranked rows in the same shape the exact path produces, restricted to the
-// same visible scope. Deleted journal rows can never appear: the tombstone
-// trigger removes them from the index, and the visible-statements join would
-// exclude them regardless — two independent walls.
+// same visible scope. The per-query index is populated only from currently
+// visible canonical rows, inside the same SQLite snapshot as result read-back.
 export function searchDialogueEvidenceRanked(db, {
   after = null,
   before = null,
@@ -114,28 +113,40 @@ export function searchDialogueEvidenceRanked(db, {
 }) {
   const terms = rankedDialogueQueryTerms(phrase)
   if (!terms.length) return { rows: [], terms }
-  ensureDialogueSearchIndex(db)
-  const rows = db.prepare(`
-    WITH visible AS (${visibleStatementsSql}),
-    hits AS (
-      SELECT evidence_id, bm25(dialogue_evidence_fts) AS search_rank
-      FROM dialogue_evidence_fts
-      WHERE dialogue_evidence_fts MATCH ?
-    )
-    SELECT visible.*, hits.search_rank
-    FROM visible
-    JOIN hits ON hits.evidence_id = visible.id
-    WHERE (? IS NULL OR visible.event_at >= ?)
-      AND (? IS NULL OR visible.event_at <= ?)
-    ORDER BY hits.search_rank ASC, visible.event_at ASC,
-      visible.dialogue_order ASC
-    LIMIT ?
-  `).all(
-    scope.palariId,
-    scope.userId,
-    rankedDialogueQuery(terms),
-    after, after, before, before,
-    limit,
-  )
-  return { rows, terms }
+  // BM25 must see exactly this caller's visible corpus. Filtering global
+  // hits afterward does not scope document frequencies or average length.
+  // A temporary FTS table keeps SQLite's tokenizer/scoring semantics and
+  // leaves no second durable index or cross-scope relevance statistics.
+  db.exec('SAVEPOINT palari_scoped_ranked_search')
+  try {
+    db.exec(`CREATE VIRTUAL TABLE temp.palari_scoped_dialogue_fts USING fts5(
+      evidence_id UNINDEXED, content, tokenize = '${DIALOGUE_SEARCH_TOKENIZER}'
+    )`)
+    db.prepare(`WITH visible AS (${visibleStatementsSql})
+      INSERT INTO temp.palari_scoped_dialogue_fts(evidence_id, content)
+      SELECT id, content FROM visible`).run(scope.palariId, scope.userId)
+    const rows = db.prepare(`
+      WITH visible AS (${visibleStatementsSql}),
+      hits AS (
+        SELECT evidence_id, bm25(palari_scoped_dialogue_fts) AS search_rank
+        FROM temp.palari_scoped_dialogue_fts
+        WHERE palari_scoped_dialogue_fts MATCH ?
+      )
+      SELECT visible.*, hits.search_rank
+      FROM visible JOIN hits ON hits.evidence_id = visible.id
+      WHERE (? IS NULL OR visible.event_at >= ?)
+        AND (? IS NULL OR visible.event_at <= ?)
+      ORDER BY hits.search_rank ASC, visible.event_at ASC,
+        visible.dialogue_order ASC
+      LIMIT ?
+    `).all(scope.palariId, scope.userId, rankedDialogueQuery(terms),
+      after, after, before, before, limit)
+    db.exec('DROP TABLE temp.palari_scoped_dialogue_fts')
+    db.exec('RELEASE palari_scoped_ranked_search')
+    return { rows, terms }
+  } catch (error) {
+    db.exec('ROLLBACK TO palari_scoped_ranked_search')
+    db.exec('RELEASE palari_scoped_ranked_search')
+    throw error
+  }
 }
