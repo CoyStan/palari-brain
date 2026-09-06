@@ -1,5 +1,15 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 MATH-03 experimental chunk retrieval
+
+createChunkedEmbedder accepts opt-in retrieval: max. Scoped child vectors share
+the canonical message lifecycle and exact maximum cosine returns each message
+once with unchanged evidence. Mean composition remains the default. Adapter
+settings participate in configuration identity even with a host ID.
+Four focused contracts cover dilution, dates/scope, correction/deletion, and
+persisted adapter reuse. Core 168/168, quickstart 6/6, legacy 446/446 pass.
+This is provider-free synthetic evidence, not a claim of improved model quality.
+
 ## 2026-09-06 MATH-02 embedding spaces
 
 Semantic vectors now require consistent dimensions and finite Float32 values.
