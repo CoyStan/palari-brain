@@ -47,3 +47,16 @@ ledger published with the first alpha is preserved at annotated tag
 - `pre-alpha-governance-reset-2026-08-07` preserves the earlier process cut.
 - Repository source is MIT licensed. Datasets remain gitignored and are not
   redistributed. Optional external model runtimes are not package dependencies.
+
+## 2026-09-06: Keep evidence correctness independent of answer strategy
+
+The storage kernel owns admission, scope, provenance, correction history,
+forgetting and digest freshness. Optional answer modules own planning,
+confirmation and composition. Existing entrypoints remain compatible.
+
+The one-search baseline reuses the hardened commitment validator and defaults to
+ready digest context plus scoped lexical/optional exact semantic retrieval.
+It does not replace the iterative default without previously unused model-quality
+comparisons. Journal mode is first-class while retaining reduction bookkeeping.
+Advanced retrieval remains opt-in/configurable; the mathematical eligibility and
+scope fixes stay. See [the integration guide](SIMPLIFICATION.md).

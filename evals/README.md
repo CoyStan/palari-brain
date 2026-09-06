@@ -128,3 +128,12 @@ default corpus was already used in earlier evaluations; this report is labelled
 retrospective and is not evidence of unseen generalization. For a fresh study,
 use genuinely unused facts with the generic evaluator and an authorized vector
 source. Existing historical result files and scores are never rewritten.
+
+## Simplification plumbing comparison
+
+`npm run alpha:compare-simple` runs 12 deterministic remember/correct/forget
+cases across journal/digest and single/iterative answer paths. It reports callback
+counts, context characters and elapsed time. Temporary stores are removed; no
+provider, external dataset or sealed question is used. These scripted outcomes
+verify integration, not model quality. See [comparison limits and the next
+quality comparison](../docs/SIMPLIFICATION.md#verification-and-comparison).

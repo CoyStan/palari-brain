@@ -1,5 +1,21 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 SIMP-04 review handoff
+
+Four simplification layers are implemented as stacked PRs, awaiting founder
+merge. New core/answers entrypoints separate storage from answer policy while
+preserving all previous export manifests. The baseline uses one scoped search,
+canonical evidence and shared commitment checks; journal mode, digest-only
+context and simple retrieval are explicit. Lexical status now reports support.
+See docs/SIMPLIFICATION.md and the completed simplification plan.
+
+Final verification: core 196/196, legacy 474/474, both quickstarts, all 12 scripted
+comparison cases, and offline installation of nine entrypoints plus the packaged
+journal example pass. Every layer received independent review. No paid calls or
+new datasets; existing answer defaults remain. The latest lightweight worktree
+uses about 3.2 MB and shares dependencies; prior stack worktrees were removed.
+
+
 ## 2026-09-06 SIMP-03 derived options and comparison
 
 Journal mode explicitly disables reducer execution and digest use while retaining
@@ -550,6 +566,8 @@ isolation remain hard boundaries.
 ```bash
 npm test
 npm run quickstart
+npm run quickstart:simple
+npm run alpha:compare-simple
 npm run test:legacy
 npm run package:check
 npm run alpha:debug -- --adapter <module> --max-dollar <cap>
@@ -564,17 +582,14 @@ node evals/run-top-k-diagnostic.mjs
 
 ## Next
 
-Take the next smallest product-memory behavior unit from real user feedback.
-For the merged retrieval work, prioritize large-scope lexical scoring cost,
-realistic opt-in chunk recall and false positives by message length, and fresh
-fact-group evaluation before changing defaults. Configure embeddingId when
-integrating a model so future model changes cannot silently reuse old vectors.
-Do not tune the sparse-sign locator further. If the scale-readiness track
-continues, SCALE-09 should test the now-real runtime path at a materially
-larger cardinality with genuine embeddings, then exercise concurrent queries,
-write churn, restart/rebuild interruption, and high-duplicate scopes. It
-should decide whether HNSW construction moves into explicit maintenance and
-whether exact duplicate vectors should also share SQLite payload storage. Any
-new paid adapter or changed corpus requires a new explicit aggregate cap. Do
-not expose a locator API, make HNSW a ranking authority, replay sealed cases,
-or claim 100M-token proof from the 5,000-row diagnostics.
+Founder reviews and merges the simplification stack in dependency order. Before
+changing answer defaults, compare the same model on previously unused histories
+using long-context/compaction, a simple profile plus search, and Palari's single
+and iterative paths. Include correction/deletion, grounded correctness, latency
+and aggregate provider cost including reduction/indexing. A paid comparison
+needs a new explicit aggregate cap; scripted diagnostics are not quality grades.
+
+Retain date eligibility, vector binding, scoped scoring, canonical readback and
+isolation. Large-scope BM25 cost and advanced retrieval quality remain open;
+avoid adding scoring machinery before user behavior or measured cost warrants it.
+U8 remains sealed; do not claim 100M-token capacity from existing diagnostics.

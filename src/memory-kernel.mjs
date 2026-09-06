@@ -1,16 +1,7 @@
-// Palari Brain active product path.
-//
-// Write:
-//   trusted visible dialogue -> canonical host-derived speaker evidence ->
-//   optional exact-quote index
-//
-// Read:
-//   complete current scoped set -> provenance briefing -> answer model
-//
-// There is no natural-language regex admission, query keyword extraction,
-// FTS/BM25 recall, fuzzy deduplication, or topic-string deletion here. The
-// preserved v0.5 modules retain those behaviors only as historical eval
-// comparators.
+// Canonical memory kernel: admission, host-owned provenance, scoped storage,
+// correction history, deletion, freshness and derived digest access.
+// Exact/ranked journal search and optional semantic/graph indexes locate
+// canonical evidence. Answer planning and composition live in optional modules.
 
 import { performance } from 'node:perf_hooks'
 import { chmod, mkdir, stat } from 'node:fs/promises'
@@ -251,10 +242,13 @@ export async function createPalariBrain(options = {}) {
         return {
           admission: 'canonical_dialogue_host_role',
           db: status.db,
-          derivedIndex: 'legacy_optional_exact_quotes',
+          derivedIndex: 'optional_quotes_vectors_graph',
+          digestMode,
+          semanticAcceleration,
           enabled: true,
-          lexicalRecall: false,
-          recall: 'incremental_digest_with_canonical_fallback',
+          lexicalRecall: true,
+          recall: digestMode === 'off'
+            ? 'canonical_journal' : 'incremental_digest_with_canonical_fallback',
           status: 'enabled',
         }
       },

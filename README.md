@@ -31,13 +31,30 @@
 
 Palari gives a long-lived assistant useful memory without turning a model-made
 summary into truth. The trusted host keeps complete visible dialogue in a
-canonical journal. A bounded digest makes recall fast. Every answerable memory
+canonical journal. An optional bounded digest supplies compact context. Every answerable memory
 is read back from exact, role-labelled, time-labelled source evidence.
 
 > **An index may locate evidence. It may never become evidence.**
 
 Palari is an alpha library, not a hosted service. Its provider adapters are
 injected, and the core does not dial out by itself.
+
+## Start small
+
+New integrations can import storage operations from `palari-brain/core` and
+choose an answer policy from `palari-brain/answers`. Journal-only operation needs
+no reducer. The explicit `answerWithSingleSearch` baseline performs one scoped
+search and one answer callback with host-checked citations. Existing APIs and
+answer defaults remain supported.
+
+```bash
+npm run quickstart:simple
+npm run alpha:compare-simple
+```
+
+The [simplification guide](docs/SIMPLIFICATION.md) explains correction/deletion,
+optional digests and retrieval components, callback contracts, and comparison
+limits. These offline diagnostics do not establish model-quality equivalence.
 
 ## Why Palari
 
@@ -58,7 +75,7 @@ say something worth remembering
    canonical dialogue journal ◀──── correct / delete
               │
               ▼
-      bounded active digest
+   optional bounded active digest
               │
               ▼
  exact + semantic + temporal recall

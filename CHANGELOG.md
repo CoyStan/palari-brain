@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+Simplification stack (pending founder merge):
+
+- Separate storage from optional answer strategies; private EvidenceSession
+  retains canonical ownership and keeps routing anchors non-citable.
+- Add explicit one-search/one-answer baseline with shared citation validation.
+- Add journal mode, derived-only digest recall, simple retrieval profile and
+  explicit exact semantic acceleration. Existing defaults remain supported.
+- Add `palari-brain/core` and `palari-brain/answers` without removing old exports.
+- Correct lexical capability reporting and add offline journey comparisons.
+  Scripted results are diagnostics, not model-quality or release grades.
+
+
 Merged retrieval improvements from PRs [#6](https://github.com/CoyStan/palari-brain/pull/6)
 through [#12](https://github.com/CoyStan/palari-brain/pull/12):
 

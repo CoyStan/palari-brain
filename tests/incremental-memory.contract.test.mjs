@@ -209,7 +209,7 @@ test('each turn makes one bounded reduction and active memory answers without le
     memories: brain.listActiveMemories(SCOPE),
     status: brain.digestStatus(SCOPE),
   })
-  assert.equal(brain.publicStatus().lexicalRecall, false)
+  assert.equal(brain.publicStatus().lexicalRecall, true)
 
   let providerCalls = 0
   const answer = await answerQuestion(brain, {
@@ -874,7 +874,7 @@ test('hundreds of canonical turns over 100k still answer from a digest under 24k
   })
   assert.equal(providerCalls, 1)
   assert.equal(answer.providerCalled, true)
-  assert.equal(brain.publicStatus().lexicalRecall, false)
+  assert.equal(brain.publicStatus().lexicalRecall, true)
 })
 
 test('one oversized interaction is quarantined, stays canonical, and does not block later reduction', async (t) => {

@@ -5,6 +5,7 @@ an immediate integration boundary.
 
 | Document | Scope |
 | --- | --- |
+| [SIMPLIFICATION.md](SIMPLIFICATION.md) | Core/answer entrypoints, journal mode, optional retrieval and comparison limits. |
 | [BRAIN-API.md](BRAIN-API.md) | Canonical journal, bounded digest, scoped retrieval, embedding identity, experimental chunks, answer commitments, and forgetting. |
 | [CONSUMER-SEAM.md](CONSUMER-SEAM.md) | Supported imports, attribution, scope, SQLite concurrency, and migration discipline. |
 | [ALPHA-ARCHITECTURE.md](ALPHA-ARCHITECTURE.md) | The lightweight diagnostic loop and its safety boundaries. |

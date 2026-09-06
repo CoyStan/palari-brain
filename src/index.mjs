@@ -1,11 +1,8 @@
-// palari-brain — active public entry point.
-//
-// The public product path stores complete visible user and Palari messages as
-// canonical evidence, with speaker provenance assigned by the host. Optional
-// exact quotes are a derived index only. A bounded reducer updates active
-// memory after each interaction; recall sends that complete digest to the
-// answer model, with canonical fallback only while it fits. The lexical v0.5
-// implementation remains only as a historical eval comparator.
+// Compatibility entrypoint: existing exports remain supported.
+// New integrations can use palari-brain/core for storage and
+// palari-brain/answers for explicit answer strategy selection.
+// Scoped lexical retrieval is active; digest, embeddings, graph extraction,
+// chunk retrieval and rerankers are optional derived components.
 
 export {
   answerQuestion,
