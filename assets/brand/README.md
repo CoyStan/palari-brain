@@ -7,7 +7,8 @@ licence.
 |---|---|
 | `palari-mark.png` | 1,254 px transparent master mark |
 | `palari-mark-512.png` | Compact transparent mark for README and UI use |
-| `palari-header.png` | 1,585 × 536 px README header |
+| `palari-header.png` | Original 1,585 × 536 px header artwork |
+| `palari-cover.svg` | Current 1,200 × 460 px README cover, editable vector artwork |
 
 The mark represents one canonical source line with recall paths that return to
 verified evidence. Its negative space forms a subtle `P`.
@@ -43,3 +44,8 @@ Header prompt, condensed:
 > return to the source. Use a deep ink field and the mark's restrained visual
 > language. No text, brand marks, brain icon, database cylinder, robot, code,
 > screenshot, or watermark.
+
+The current cover is hand-authored SVG, added on 2026-09-06. It uses the existing
+palette and an illustrated remember/correct/forget journey. Text remains vector
+text with system-font fallbacks. No remote fonts, scripts, or embedded raster
+images are required.

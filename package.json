@@ -75,7 +75,8 @@
     "src/answer-instructions.mjs",
     "src/core.mjs",
     "src/answers.mjs",
-    "docs/SIMPLIFICATION.md"
+    "docs/SIMPLIFICATION.md",
+    "assets/brand/palari-cover.svg"
   ],
   "engines": {
     "node": ">=22.5"

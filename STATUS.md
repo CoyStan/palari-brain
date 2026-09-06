@@ -1,5 +1,17 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 README presentation
+
+README now opens with a lightweight SVG cover and a concrete memory journey.
+The journal-only quickstart and runnable core example lead into optional answer
+strategies, evidence boundaries and contribution guidance. Release instructions
+distinguish main from the older alpha tag. The new cover uses the existing palette
+and ships with the package. Runtime behavior is unchanged.
+
+Verification: 196 core tests, both quickstarts, offline package installation,
+local README links, SVG rendering and repeated execution of the README example
+pass. Independent review found no blocking issues. No paid provider calls.
+
 ## 2026-09-06 simplification merged handoff
 
 Founder-approved simplification PRs #13 through #16 are merged into main
