@@ -1,5 +1,14 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 SIMP-02 optional answer strategies
+
+Storage now lives independently of answer orchestration; the old brain module
+keeps compatibility exports. An explicit single-search baseline supplies canonical
+evidence to one answer callback and reuses host commitment validation. Empty
+searches skip the provider; explicit abstention can omit citations. Public
+subpaths follow in SIMP-04. Core 189/189, legacy 467/467, quickstart and package
+checks pass, with independent review. No paid calls or default policy changes.
+
 ## 2026-09-06 SIMP-01 evidence session
 
 Canonical evidence ownership, text variants, information identities and review

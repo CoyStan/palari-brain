@@ -7,7 +7,7 @@
 import { createHash } from 'node:crypto'
 import { isProxy } from 'node:util/types'
 
-import { buildMemoryBriefing } from './brain.mjs'
+import { buildMemoryBriefing } from './memory-kernel.mjs'
 
 export const canonicalEvidenceContractVersion =
   'palari-canonical-evidence/v1'

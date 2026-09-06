@@ -8,7 +8,7 @@
 
 import {
   markReducerFailureTerminal,
-} from './brain.mjs'
+} from './memory-kernel.mjs'
 import {
   ACTIVE_MEMORY_ACTION_OPS,
   ACTIVE_MEMORY_BASIS_KINDS,
