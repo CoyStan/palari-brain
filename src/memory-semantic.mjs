@@ -28,6 +28,7 @@ import {
 
 const VECTOR_TABLE = 'dialogue_evidence_vectors'
 const SPACE_TABLE = 'dialogue_evidence_vector_spaces'
+const CHUNK_TABLE = 'dialogue_evidence_chunk_vectors'
 const VECTOR_PENDING_TABLE = 'dialogue_evidence_vector_pending'
 const VECTOR_SCOPE_VERSION_TABLE = 'dialogue_evidence_vector_scope_versions'
 const HNSW_SNAPSHOT_TABLE = 'dialogue_evidence_hnsw_snapshots'
@@ -51,6 +52,10 @@ function ensureSemanticIndex(db) {
     // stable name so scope moves cannot retain a vector bound to its old key.
     db.exec(`DROP TRIGGER IF EXISTS ${VECTOR_TABLE}_au`)
     db.exec(`
+      CREATE TABLE IF NOT EXISTS ${CHUNK_TABLE} (
+        evidence_id TEXT NOT NULL, ordinal INTEGER NOT NULL, vector BLOB NOT NULL,
+        PRIMARY KEY (evidence_id, ordinal)
+      );
       CREATE TABLE IF NOT EXISTS ${SPACE_TABLE} (
         palari_id TEXT NOT NULL, user_id TEXT NOT NULL,
         embedding_id TEXT NOT NULL, generation INTEGER NOT NULL,
@@ -62,6 +67,10 @@ function ensureSemanticIndex(db) {
         vector BLOB NOT NULL,
         locator_key TEXT
       );
+      CREATE TRIGGER IF NOT EXISTS dialogue_evidence_chunk_vectors_ad
+      AFTER DELETE ON ${VECTOR_TABLE} BEGIN
+        DELETE FROM ${CHUNK_TABLE} WHERE evidence_id = old.evidence_id;
+      END;
       CREATE TABLE IF NOT EXISTS ${VECTOR_PENDING_TABLE} (
         evidence_id TEXT PRIMARY KEY,
         palari_id TEXT NOT NULL,
@@ -298,6 +307,19 @@ function assertCurrentSpace(db, scope, expected) {
   return actual
 }
 
+function embeddingSpaceId(embeddingId, embed) {
+  for (const id of [embeddingId, embed.embeddingId ?? null]) {
+    if (id !== null && (typeof id !== 'string' || !id.trim())) {
+      throw new TypeError('embeddingId must be a non-empty configuration identifier.')
+    }
+  }
+  if (embed.embeddingId || typeof embed.embedChunks === 'function') {
+    return JSON.stringify({ host: embeddingId, adapter: embed.embeddingId ?? null,
+      chunks: typeof embed.embedChunks === 'function' })
+  }
+  return embeddingId
+}
+
 function bindSpace(db, scope, embeddingId) {
   if (embeddingId !== null &&
     (typeof embeddingId !== 'string' || !embeddingId.trim())) {
@@ -404,7 +426,7 @@ export async function indexEvidenceVectors(db, {
     throw new TypeError('indexEvidenceVectors requires an embed function.')
   }
   ensureSemanticIndex(db)
-  const space = bindSpace(db, scope, embeddingId)
+  const space = bindSpace(db, scope, embeddingSpaceId(embeddingId, embed))
   const limit = boundedCatchUpRows(batchSize)
   const missing = db.prepare(`
     WITH visible AS (${visibleStatementsSql})
@@ -425,7 +447,18 @@ export async function indexEvidenceVectors(db, {
   )
   if (!missing.length) return indexProgress(0, true)
 
-  const vectors = await embed(missing.map((row) => String(row.content)))
+  const texts = missing.map((row) => String(row.content))
+  const chunks = typeof embed.embedChunks === 'function'
+    ? await embed.embedChunks(texts)
+    : null
+  if (chunks !== null && (!Array.isArray(chunks) || chunks.length !== missing.length ||
+    chunks.some((group) => !Array.isArray(group) || group.length === 0))) {
+    throw new TypeError('Chunk embedder must return a non-empty vector group per input.')
+  }
+  if (chunks) assertVectors(chunks.flat(), chunks.flat().length, 'chunks', space.dims)
+  // A representative keeps the existing pending/revision lifecycle intact.
+  // Max-chunk queries rank all child vectors, never this representative alone.
+  const vectors = chunks ? chunks.map((group) => group[0]) : await embed(texts)
   assertVectors(vectors, missing.length, 'embed', space.dims)
   const insert = db.prepare(`
     INSERT INTO ${VECTOR_TABLE} (evidence_id, dims, vector, locator_key)
@@ -462,6 +495,13 @@ export async function indexEvidenceVectors(db, {
         toBlob(vectors[index]),
         semanticVectorLocatorKey(scope, vectors[index]),
       )
+      db.prepare(`DELETE FROM ${CHUNK_TABLE} WHERE evidence_id = ?`).run(row.id)
+      if (chunks) {
+        const insertChunk = db.prepare(`INSERT INTO ${CHUNK_TABLE} VALUES (?, ?, ?)`)
+        for (const [ordinal, vector] of chunks[index].entries()) {
+          insertChunk.run(row.id, ordinal, toBlob(vector))
+        }
+      }
       indexed += 1
     }
     db.exec('COMMIT')
@@ -526,6 +566,8 @@ export async function semanticFindEvidenceBatch(db, {
     }
     return needle
   })
+  const spaceId = embeddingSpaceId(embeddingId, embed)
+  const chunked = typeof embed.embedChunks === 'function'
   const progress = await indexEvidenceVectors(db, {
     embeddingId,
     embed,
@@ -534,7 +576,7 @@ export async function semanticFindEvidenceBatch(db, {
   })
   if (!progress.complete) throw catchingUp(progress)
   const space = readSpace(db, scope)
-  const identity = embeddingId === null ? 'anonymous' : `explicit:${embeddingId}`
+  const identity = spaceId === null ? 'anonymous' : `explicit:${spaceId}`
   if (space?.embedding_id !== identity) {
     throw new Error('Embedding configuration changed during semantic operation.')
   }
@@ -550,7 +592,7 @@ export async function semanticFindEvidenceBatch(db, {
   const boundedLimit = Math.max(1, Math.min(Number(limit) || 20, 200))
   let locatorPlan = null
   // A global ANN shortlist cannot guarantee recall within a date range.
-  if (after === null && before === null && locator &&
+  if (!chunked && after === null && before === null && locator &&
     typeof locator.candidateKeys === 'function') {
     try {
       locatorPlan = await locator.candidateKeys(db, {
@@ -568,6 +610,7 @@ export async function semanticFindEvidenceBatch(db, {
   // first completeness check. Pin the final check and vector read to one WAL
   // snapshot; a successful result then covers that complete scoped snapshot.
   let rowsByQuery = null
+  const chunksById = new Map()
   let transactionOpen = true
   db.exec('BEGIN')
   try {
@@ -634,6 +677,23 @@ export async function semanticFindEvidenceBatch(db, {
       `).all(scope.palariId, scope.userId, after, after, before, before)
       rowsByQuery = queryVectors.map(() => exactRows)
     }
+    if (chunked) {
+      const chunkRows = db.prepare(`WITH visible AS (${visibleStatementsSql})
+        SELECT c.evidence_id, c.vector FROM ${CHUNK_TABLE} c
+        JOIN visible ON visible.id = c.evidence_id
+        WHERE (? IS NULL OR visible.event_at >= ?)
+          AND (? IS NULL OR visible.event_at <= ?)
+        ORDER BY c.evidence_id, c.ordinal`
+      ).all(scope.palariId, scope.userId, after, after, before, before)
+      for (const row of chunkRows) {
+        const group = chunksById.get(row.evidence_id) ?? []
+        group.push(fromBlob(row.vector))
+        chunksById.set(row.evidence_id, group)
+      }
+      for (const row of rowsByQuery[0]) {
+        if (!chunksById.has(row.id)) throw new Error('Stored chunk vectors are incomplete.')
+      }
+    }
     db.exec('COMMIT')
     transactionOpen = false
   } catch (error) {
@@ -645,7 +705,10 @@ export async function semanticFindEvidenceBatch(db, {
     return rowsByQuery[queryIndex]
       .map((row) => ({
         row,
-        similarity: cosine(query, fromBlob(row.semantic_vector)),
+        similarity: chunked
+          ? chunksById.get(row.id).reduce((best, vector) =>
+            Math.max(best, cosine(query, vector)), -Infinity)
+          : cosine(query, fromBlob(row.semantic_vector)),
       }))
       .sort((left, right) =>
         right.similarity - left.similarity ||

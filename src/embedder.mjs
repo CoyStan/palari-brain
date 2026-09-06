@@ -58,13 +58,21 @@ function normalizedMean(vectors, dimensions) {
   return mean.map((value) => value / magnitude)
 }
 
-export function createChunkedEmbedder({ embed, maxChunkChars } = {}) {
+export function createChunkedEmbedder({
+  embed, maxChunkChars, retrieval = 'mean', embeddingId = null,
+} = {}) {
+  if (!['mean', 'max'].includes(retrieval)) {
+    throw new TypeError('retrieval must be mean or max.')
+  }
+  if (embeddingId !== null && (typeof embeddingId !== 'string' || !embeddingId.trim())) {
+    throw new TypeError('embeddingId must be a non-empty configuration identifier.')
+  }
   if (typeof embed !== 'function') {
     throw new TypeError('createChunkedEmbedder requires embed.')
   }
   const maximum = positiveSafeInteger(maxChunkChars, 'maxChunkChars')
 
-  return async function chunkedEmbed(rawTexts) {
+  async function embedGroups(rawTexts) {
     const texts = normalizedTexts(rawTexts)
     const chunks = []
     const owners = []
@@ -89,6 +97,18 @@ export function createChunkedEmbedder({ embed, maxChunkChars } = {}) {
     for (const [index, vector] of vectors.entries()) {
       grouped[owners[index]].push(vector)
     }
-    return grouped.map((owned) => normalizedMean(owned, dimensions))
+    return grouped
   }
+  const chunkedEmbed = async (rawTexts) => {
+    const grouped = await embedGroups(rawTexts)
+    return grouped.map((owned) => normalizedMean(owned, owned[0].length))
+  }
+  Object.defineProperty(chunkedEmbed, 'embeddingId', { value: JSON.stringify({
+    adapter: 'palari-chunks/v1', model: embeddingId ?? embed.embeddingId ?? null,
+    maxChunkChars: maximum, retrieval,
+  }) })
+  if (retrieval === 'max') {
+    Object.defineProperty(chunkedEmbed, 'embedChunks', { value: embedGroups })
+  }
+  return chunkedEmbed
 }

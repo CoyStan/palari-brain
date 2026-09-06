@@ -1471,3 +1471,27 @@ checks cannot detect a same-dimensional model change without a new identifier.
 Vectors must have consistent dimensions and finite Float32 values. Zero vectors
 remain neutral similarity-zero inputs for compatibility; they convey no semantic
 match. A rejected query does not change canonical memory.
+
+
+### Experimental chunk retrieval
+
+`createChunkedEmbedder({ embed, maxChunkChars, retrieval: 'max', embeddingId })`
+opts into maximum-chunk cosine retrieval. The default `retrieval: 'mean'` keeps
+one averaged vector. Pass the returned adapter as the brain's `embedder`.
+`embeddingId` should identify the underlying model and preprocessing. Chunk size
+and aggregation mode are automatically included in the derived configuration.
+
+Max mode stores each chunk vector under its canonical message ID and returns a
+message once, scored by its strongest chunk. Canonical text, speaker and dates
+remain unchanged. Corrections, scope moves, deletion and configuration changes
+invalidate the derived chunks. Queries exact-score eligible chunks; HNSW is not
+used for this experimental representation. Index batches remain bounded by
+canonical row count, not chunk count, so hosts must bound individual message
+size and provider input volume as they do for the existing chunk adapter.
+
+This prevents mean-vector dilution in synthetic orthogonal-topic fixtures. It
+has not established a real-world recall improvement. Storage and scoring grow
+with chunk count; longer messages have more opportunities for accidental
+matches. Evaluate paired recall and false positives by message length before
+adopting it as a product default. No new embedding calls were purchased for the
+local tests.

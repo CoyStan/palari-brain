@@ -20,7 +20,7 @@ merge them. Report measured evidence separately from proposed quality gains.
   scoped vectors to an optional embedding configuration ID, invalidate derived
   vectors on changes, and test restart, model changes, malformed vectors, and
   asynchronous invalidation. Keep existing anonymous embedders compatible.
-- [ ] MATH-03: Add opt-in chunk embeddings with canonical-ID ownership and
+- [x] MATH-03: Add opt-in chunk embeddings with canonical-ID ownership and
   maximum chunk cosine. Preserve default mean embeddings. Reuse derived vector
   lifecycle and configuration identity; test dilution, correction, deletion,
   scope, restart and unchanged canonical text. Document storage/length bias.
