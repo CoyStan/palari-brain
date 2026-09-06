@@ -1,5 +1,16 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 SIMP-03 derived options and comparison
+
+Journal mode explicitly disables reducer execution and digest use while retaining
+bookkeeping. Digest-only recall exposes freshness without loading the journal.
+The baseline defaults to simple retrieval: scope-local lexical search, optional
+exact semantic search, no graph or reranker. Configured historical defaults remain.
+A provider-free 12-case comparison covers remember/correct/forget across both
+digest modes and answer paths; it is plumbing evidence, not a quality benchmark.
+Core 195/195, legacy 473/473, quickstart and offline package checks pass, with
+independent review. No paid calls.
+
 ## 2026-09-06 SIMP-02 optional answer strategies
 
 Storage now lives independently of answer orchestration; the old brain module

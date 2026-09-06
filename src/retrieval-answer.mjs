@@ -13,7 +13,7 @@ import { createEvidenceSession } from './evidence-session.mjs'
 // received an embedder. Graph lookup is read-only here: extraction remains an
 // explicit indexGraph() operation, so answering cannot create a provider call.
 
-import { recallMemory } from './memory-kernel.mjs'
+import { recallDigest, recallMemory } from './memory-kernel.mjs'
 import { memoryAnswerSystemInstruction } from './answer-instructions.mjs'
 import {
   MEMORY_EXPLORATION_INSTRUCTIONS,
@@ -1306,6 +1306,7 @@ async function hybridSearch(
       if (semanticProbeQueries.length > 0 &&
         typeof brain.exploreSemanticBatch === 'function') {
         const batches = await brain.exploreSemanticBatch(scope, {
+          ...(capabilities.exactSemantic ? { exact: true } : {}),
           after: after || undefined,
           before: before || undefined,
           limit: candidateLimit,
@@ -1326,6 +1327,7 @@ async function hybridSearch(
         }
       } else {
         semantic = newRowsOnly((await brain.exploreSemantic(scope, {
+          ...(capabilities.exactSemantic ? { exact: true } : {}),
           after: after || undefined,
           before: before || undefined,
           limit: candidateLimit,
@@ -1544,6 +1546,8 @@ async function hybridSearch(
 export async function answerWithRetrieval(brain, {
   additionalInstructions = '',
   allowEmptyAbstention = false,
+  briefingPolicy = 'full',
+  retrievalProfile = 'configured',
   compositionMode = 'standard',
   confirmationProvider = null,
   expandPlannedSearches = false,
@@ -1563,6 +1567,12 @@ export async function answerWithRetrieval(brain, {
   }
   if (typeof allowEmptyAbstention !== 'boolean') {
     throw new TypeError('allowEmptyAbstention must be boolean.')
+  }
+  if (!['full', 'digest'].includes(briefingPolicy)) {
+    throw new TypeError('briefingPolicy must be full or digest.')
+  }
+  if (!['configured', 'simple'].includes(retrievalProfile)) {
+    throw new TypeError('retrievalProfile must be configured or simple.')
   }
   if (confirmationProvider !== null &&
     typeof confirmationProvider !== 'function') {
@@ -1637,7 +1647,10 @@ export async function answerWithRetrieval(brain, {
     : normalizeTrustedRetrievalTimeRange(trustedRetrievalTimeRange)
 
   const scope = normalizedScope({ palariId, userId })
-  const capabilities = capabilitiesOf(brain)
+  const configuredCapabilities = capabilitiesOf(brain)
+  const capabilities = retrievalProfile === 'simple'
+    ? objectFreeze({ ...configuredCapabilities, graphQuery: false, reranking: false, exactSemantic: true })
+    : configuredCapabilities
   const consulted = []
   const committedResponses = new WeakSet()
   const confirmationCommittedResponses = new WeakSet()
@@ -2282,6 +2295,9 @@ export async function answerWithRetrieval(brain, {
       })
     },
     memory_graph(input) {
+      if (retrievalProfile === 'simple') {
+        throw new TypeError('Graph retrieval is disabled in the simple profile.')
+      }
       const result = brain.exploreGraph(scope, {
         ...input,
         ...(referenceTime ? { now: referenceTime } : {}),
@@ -2351,7 +2367,9 @@ export async function answerWithRetrieval(brain, {
     },
   }
 
-  const briefing = recallMemory(brain, scope, { maxChars })
+  const briefing = briefingPolicy === 'digest'
+    ? recallDigest(brain, scope, { maxChars })
+    : recallMemory(brain, scope, { maxChars })
   if (briefing.briefingMode === 'canonical_fallback') {
     const briefingAnchorEvidenceIds = []
     for (let index = 0; index < briefing.included.length; index += 1) {

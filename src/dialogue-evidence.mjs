@@ -550,10 +550,12 @@ export function createDialogueGate(store, {
   embedder = null,
   embeddingId = null,
   graphExtractor = null,
+  semanticAcceleration = 'auto',
 } = {}) {
   ensureActiveSchema(store, clock)
   const digest = createMemoryDigestStore(store, { clock })
-  const semanticLocator = createSemanticHnsw({ dbPath: store?.dbPath })
+  const semanticLocator = semanticAcceleration === 'auto' && typeof embedder === 'function'
+    ? createSemanticHnsw({ dbPath: store?.dbPath }) : null
 
   // Monotonic per-scope chronology ordinal. The watermark only ever moves
   // forward, so an ordinal freed by deletion is never handed out again and
@@ -1356,7 +1358,7 @@ export function createDialogueGate(store, {
     appendCandidates,
     appendEvidence,
     applyReduction: digest.applyReduction,
-    closeDerivedIndexes: () => semanticLocator.close(),
+    closeDerivedIndexes: () => semanticLocator?.close(),
     digestFreshness: digest.freshness,
     digestStatus: digest.status,
     forgetById,
@@ -1478,7 +1480,7 @@ export function createDialogueGate(store, {
         embeddingId,
         embed: embedder,
         limit: options.limit,
-        locator: semanticLocator,
+        locator: options.exact === true ? null : semanticLocator,
         phrase: options.phrase,
         scope: scoped,
         visibleStatementsSql,
@@ -1512,7 +1514,7 @@ export function createDialogueGate(store, {
         embeddingId,
         embed: embedder,
         limit: options.limit,
-        locator: semanticLocator,
+        locator: options.exact === true ? null : semanticLocator,
         phrases,
         scope: scoped,
         visibleStatementsSql,

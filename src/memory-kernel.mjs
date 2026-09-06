@@ -180,6 +180,19 @@ async function hardenStoreFiles(prepared) {
 }
 
 export async function createPalariBrain(options = {}) {
+  const digestMode = options.digestMode ?? 'optional'
+  if (!['optional', 'off'].includes(digestMode)) {
+    throw new TypeError('digestMode must be optional or off.')
+  }
+  const semanticAcceleration = options.semanticAcceleration ?? 'auto'
+  if (!['auto', 'exact'].includes(semanticAcceleration)) {
+    throw new TypeError('semanticAcceleration must be auto or exact.')
+  }
+  const checkDigestWriter = (writerOptions) => {
+    if (digestMode === 'off' && writerOptions?.reducer != null) {
+      throw new TypeError('A reducer cannot run with digestMode off.')
+    }
+  }
   const reranker = options.reranker ?? null
   if (reranker !== null && typeof reranker !== 'function') {
     throw new TypeError('reranker must be a function when provided.')
@@ -195,6 +208,7 @@ export async function createPalariBrain(options = {}) {
       embedder: options.embedder ?? null,
       embeddingId: options.embeddingId ?? options.embedder?.embeddingId ?? null,
       graphExtractor: options.graphExtractor ?? null,
+      semanticAcceleration,
     })
     const retrievalCapabilities = Object.freeze({
       graphIndex: typeof options.graphExtractor === 'function',
@@ -208,6 +222,7 @@ export async function createPalariBrain(options = {}) {
         store.close()
       },
       enabled: Boolean(store.enabled),
+      digestEnabled: digestMode !== 'off',
       forgetById: gate.forgetById,
       forgetRequest: gate.forgetRequest,
       digestFreshness: gate.digestFreshness,
@@ -243,11 +258,15 @@ export async function createPalariBrain(options = {}) {
           status: 'enabled',
         }
       },
-      reducePendingTurns: (reducerOptions) =>
-        reducePendingTurns({ gate, store }, reducerOptions),
+      reducePendingTurns: async (reducerOptions) => {
+        checkDigestWriter(reducerOptions)
+        return reducePendingTurns({ gate, store }, reducerOptions)
+      },
       requeueBlockedReductions: gate.requeueBlockedReductions,
-      rememberTurn: async (turn, writerOptions) =>
-        ingestChatTurn({ gate, store }, turn, writerOptions),
+      rememberTurn: async (turn, writerOptions) => {
+        checkDigestWriter(writerOptions)
+        return ingestChatTurn({ gate, store }, turn, writerOptions)
+      },
     })
   } catch (error) {
     if (store && !options.store) {
@@ -871,6 +890,33 @@ export function recallAllStatements(brain, scope, options = {}) {
   }
 }
 
+// A digest is an optional derived view. Never fall back to journal text here.
+export function recallDigest(brain, scope, options = {}) {
+  const scoped = normalizedScope(scope)
+  const maxChars = normalizedMaxChars(options.maxChars)
+  const enabled = brain?.digestEnabled !== false
+  const snapshot = enabled && typeof brain?.readReadyDigest === 'function'
+    ? brain.readReadyDigest(scoped) : null
+  const digest = snapshot?.status ??
+    (typeof brain?.digestStatus === 'function' ? brain.digestStatus(scoped) : null)
+  const available = enabled && digest?.ready && digest.reducerId && snapshot
+  const briefing = available
+    ? buildActiveMemoryBriefing({ maxChars, memories: snapshot.memories })
+    : {
+        briefingMode: 'incremental_digest', chars: 0, complete: false,
+        included: [], lossless: false, requiredChars: 0, text: '', totalCandidates: 0,
+        status: !enabled ? 'disabled' : digest?.reducerId ? 'digest_incomplete' : 'unavailable',
+      }
+  return {
+    ...briefing,
+    contractVersion: digest?.contractVersion ?? null,
+    digestRevision: Number(digest?.digestRevision ?? 0),
+    digestStatus: digest?.status ?? 'unavailable',
+    reductionBlocked: Number(digest?.blocked ?? 0),
+    reductionPending: Number(digest?.pending ?? 0),
+  }
+}
+
 export function recallMemory(brain, scope, options = {}) {
   if (typeof brain?.listStatements !== 'function') {
     throw new TypeError('A Palari Brain instance is required.')
@@ -880,12 +926,13 @@ export function recallMemory(brain, scope, options = {}) {
   const supportsDigest =
     typeof brain.digestStatus === 'function' &&
     typeof brain.listActiveMemories === 'function'
-  const digestSnapshot = typeof brain.readReadyDigest === 'function'
+  const digestSnapshot = brain.digestEnabled !== false &&
+    typeof brain.readReadyDigest === 'function'
     ? brain.readReadyDigest(scope)
     : null
   const digest = digestSnapshot?.status ??
     (supportsDigest ? brain.digestStatus(scope) : null)
-  if (digest?.ready && digest.reducerId) {
+  if (brain.digestEnabled !== false && digest?.ready && digest.reducerId) {
     const briefing = buildActiveMemoryBriefing({
       maxChars: limit,
       memories: digestSnapshot?.memories ??
@@ -907,7 +954,8 @@ export function recallMemory(brain, scope, options = {}) {
   }
 
   const canonical = recallAllStatements(brain, scope, { maxChars: limit })
-  const pendingReducer = Boolean(digest?.reducerId && !digest.ready)
+  const pendingReducer = brain.digestEnabled !== false &&
+    Boolean(digest?.reducerId && !digest.ready)
   if (canonical.status === 'capacity_exceeded' && pendingReducer) {
     return {
       ...canonical,

@@ -241,6 +241,7 @@ export async function answerWithExploration(brain, {
 export async function answerWithSingleSearch(brain, {
   palariId, userId, question, questionDate, provider,
   searchQuery = question,
+  retrievalProfile = 'simple',
   maxChars = 100_000, limit = 20, evidenceMaxChars = 20_000,
   trustedRetrievalTimeRange,
 } = {}) {
@@ -269,6 +270,7 @@ export async function answerWithSingleSearch(brain, {
     palariId, userId, question, questionDate, maxChars,
     trustedRetrievalTimeRange, provider: oneAnswer,
     maxRetrievalCalls: 1, allowEmptyAbstention: true,
+    briefingPolicy: 'digest', retrievalProfile,
   })
   return { ...answer, providerCalled, answerStrategy: 'single_search' }
 }
