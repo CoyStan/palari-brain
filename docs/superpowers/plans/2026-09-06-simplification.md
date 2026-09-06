@@ -16,3 +16,21 @@ Each layer receives focused tests, core/quickstart/legacy gates and package chec
 where exports change. Independent review checks isolation, forged citations,
 correction/deletion, and compatibility. No paid provider or new dataset is used.
 Use shared node_modules and one active lightweight worktree.
+
+## Completed implementation, awaiting founder merge
+
+- SIMP-01: private evidence ownership and immutable snapshots; PR #13.
+- SIMP-02: independent kernel and optional answer policies; PR #14.
+- SIMP-03: explicit digest/retrieval options and paired scripted runner; PR #15.
+- SIMP-04: core/answers entrypoints, truthful status, packaged example and docs.
+
+All six approved recommendations are covered by these four layers. Each layer
+received independent review and provider-free gates. Final checks: core 196/196,
+legacy 474/474, both quickstarts, 12 comparison cases, and offline installation
+with nine export manifests and the installed journal example. Earlier seven
+entrypoints retain their names and export manifests. Existing defaults remain.
+
+The baseline still reuses the advanced orchestrator internally to avoid a second
+commitment validator. Removing that internal dependency or advanced policies
+requires further behavioral evidence. No real-provider quality comparison was
+run, and scripted success does not establish equivalence.

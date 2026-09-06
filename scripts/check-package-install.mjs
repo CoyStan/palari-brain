@@ -13,6 +13,16 @@ const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 
 const expectedEntries = Object.freeze([
   Object.freeze({
+    count: 8,
+    hash: '2cba8b2a685eff9dd4713da1308e25f1462313d073d12b5a85c6a43e02cd5304',
+    specifier: 'palari-brain/core',
+  }),
+  Object.freeze({
+    count: 4,
+    hash: '27e83f9e923fcf461ed78914a1bae81dc866d3d2963e5d4c68daa6ed394b181d',
+    specifier: 'palari-brain/answers',
+  }),
+  Object.freeze({
     count: 96,
     hash: '3cf6e9a5a1e92ad46803e7d09b0379b9f2b462d64024b8a929bb79bc15322431',
     specifier: 'palari-brain',
@@ -138,6 +148,9 @@ try {
   process.stdout.write(run(process.execPath, [consumerCheck], {
     cwd: consumerRoot,
   }))
+  process.stdout.write(run(process.execPath, [
+    join(consumerRoot, 'node_modules/palari-brain/examples/quickstart-simple.mjs'),
+  ], { cwd: consumerRoot }))
   console.log(
     `package: ${manifest.files.length} files, ${manifest.size} packed bytes, ` +
     `${manifest.unpackedSize} unpacked bytes`,

@@ -1,6 +1,8 @@
 # Palari Brain active contract
 
-This document describes the package root exported by `src/index.mjs`.
+This document describes the compatible package root exported by `src/index.mjs`.
+New integrations can use the smaller `palari-brain/core` and `palari-brain/answers`
+entrypoints; see [Choosing a smaller integration](SIMPLIFICATION.md).
 The superseded v0.5 comparator contract remains at release tag
 `v0.1.0-alpha.1`; it is not part of the active checkout.
 
@@ -10,16 +12,40 @@ Palari Brain deliberately keeps two different representations:
 
 1. **Canonical dialogue journal.** Exact, role-labelled visible user and
    Palari messages. This is the lossless, private, deletable source of truth.
-2. **Active memory digest.** A bounded set of model-derived items updated
+2. **Optional active memory digest.** A bounded set of model-derived items updated
    after each durable interaction. This is what a later answer normally sees.
 
 The digest does not replace the journal. It makes a long-lived assistant
 usable without sending hundreds of old messages to the answer model.
 
-The digest-only `answerQuestion` path reads the bounded active digest without
+The `answerQuestion` path reads the bounded active digest, with complete canonical
+fallback when needed and within budget, without
 ranked or vector retrieval. `answerWithRetrieval` and the exploration APIs can
 search the canonical journal through exact, ranked, semantic, and temporal
 paths. The current question is never used to decide what memory is stored.
+
+## Explicit simpler options
+
+`createPalariBrain` accepts `digestMode: 'optional' | 'off'` (default `optional`)
+and `semanticAcceleration: 'auto' | 'exact'` (default `auto`). Off disables digest
+use and rejects supplied reducers before writes; it retains reduction bookkeeping.
+`recallDigest` returns only ready derived context and freshness metadata, never a
+canonical fallback. The package root keeps its previous exports; this new read is
+available from `palari-brain/core`.
+
+`answerWithSingleSearch`, from `palari-brain/answers`, uses one scoped hybrid
+search, canonical readback, one callback and host citation validation. It defaults
+to `retrievalProfile: 'simple'`, bypassing graph, reranking and HNSW. Its callback
+returns `{ abstained, text, bases: [{ evidenceId, quote }] }`; it receives no tools.
+An empty search skips the callback; explicit abstention may have no bases.
+For long questions supply a `searchQuery` of at most 500 characters. The
+[full baseline contract](SIMPLIFICATION.md#answer-policies) lists limits and caveats.
+
+Existing `answerWithRetrieval` defaults remain full briefing and configured
+retrieval. Explicit `briefingPolicy: 'digest'` and `retrievalProfile: 'simple'`
+allow controlled comparisons. Exact quotes validate source ownership, not
+semantic truth. `publicStatus().lexicalRecall` now correctly reports `true` on
+an enabled brain.
 
 ## Canonical write path
 

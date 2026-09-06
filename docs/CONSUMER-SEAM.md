@@ -6,7 +6,13 @@ authorization, product policy, and presentation.
 
 ## Stable imports
 
-Applications may depend on these named exports from the package root:
+For a smaller import surface, use `palari-brain/core` for storage, scoped reads,
+forgetting and digest health; use `palari-brain/answers` for explicit answer policy
+selection. `brain.exploreFind` and `brain.exploreRead` are the find/read operations.
+A correction uses `ingestChatTurn` with a new host-attributed corrective message.
+See [the journal-only example and contracts](SIMPLIFICATION.md).
+
+Applications may continue to depend on these named exports from the package root:
 
 - `createPalariBrain(options)` — opens one local workspace store and returns
   the scoped read/write operations;
