@@ -97,3 +97,34 @@ The J3/J4 live identities, v0.5 comparison arms, predictions, custody meters,
 and terminal artifacts shipped with the first alpha remain recoverable from
 annotated release tag `v0.1.0-alpha.1`; they are intentionally absent from the
 active checkout.
+
+
+## Paired uncertainty and fact holdout
+
+Locator diagnostics now report paired percentile bootstrap intervals for exact
+recall, locator recall, their difference, and retention of exact hits. Whole
+target facts are resampled; all query variants for one fact move together and
+both methods use the same bootstrap draw. Point estimates remain query-weighted.
+The report shows fact/query counts, seed, resamples, undefined retention draws,
+and small-sample limitations. One fact gets no interval. Zero exact hits makes
+retention undefined, not zero. Intervals that omit zero-denominator draws are
+explicitly conditional. Homogeneous observations can produce a degenerate
+interval and do not establish zero risk. Independence between representative
+facts is still an assumption; correlated facts need a coarser grouping.
+
+`evaluateLocatorQuality` accepts
+`queryPartition: { subset: 'development' | 'holdout', holdoutFraction: 0.2, seed: 'fixed-study-seed' }`.
+It partitions by targetId, keeps query vectors and reranking vectors aligned,
+and leaves the complete retrieval corpus available. Fix the corpus and split
+seed first, tune only on development facts, freeze one configuration, then use
+the holdout once for a decision. Do not choose configurations from holdout
+intervals. The tool cannot undo prior exposure or enforce a human tuning policy.
+
+`npm run scale:hnsw-fact-holdout` runs the already selected 512d/i8 HNSW
+configuration against a fixed 20% fact partition of the existing SCALE-05 cache.
+Cache misses fail closed with no provider path. It creates no index snapshot
+and writes JSON to stdout, so redirect only to a new diagnostic path. The
+default corpus was already used in earlier evaluations; this report is labelled
+retrospective and is not evidence of unseen generalization. For a fresh study,
+use genuinely unused facts with the generic evaluator and an authorized vector
+source. Existing historical result files and scores are never rewritten.

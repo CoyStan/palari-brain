@@ -3,6 +3,7 @@
 // is reranked with exact cosine similarity over the candidate vectors.
 
 import { performance } from 'node:perf_hooks'
+import { pairedFactRecall, partitionQueriesByFact } from './paired-retrieval-statistics.mjs'
 
 import { createDerivedVectorLocator } from './derived-vector-locator.mjs'
 
@@ -209,6 +210,7 @@ export function evaluateLocatorQuality({
   locatorConfigs = DEFAULT_LOCATOR_QUALITY_CONFIGS,
   locatorFactory = createDerivedVectorLocator,
   queries: rawQueries,
+  queryPartition = null,
   queryVectors: rawQueryVectors,
   records: rawRecords,
   recordVectors: rawRecordVectors,
@@ -219,7 +221,7 @@ export function evaluateLocatorQuality({
   topK = 20,
 } = {}) {
   const records = normalizedRecords(rawRecords)
-  const queries = normalizedQueries(rawQueries)
+  let queries = normalizedQueries(rawQueries)
   const limit = positiveSafeInteger(topK, 'topK')
   if (!Array.isArray(rawRecordVectors) ||
       rawRecordVectors.length !== records.length) {
@@ -239,7 +241,7 @@ export function evaluateLocatorQuality({
   positiveSafeInteger(dimensions, 'vector dimensions')
   const recordVectors = rawRecordVectors.map((vector, index) =>
     finiteUnitVector(vector, dimensions, `recordVectors[${index}]`))
-  const queryVectors = rawQueryVectors.map((vector, index) =>
+  let queryVectors = rawQueryVectors.map((vector, index) =>
     finiteUnitVector(vector, dimensions, `queryVectors[${index}]`))
   const rerankRecordDimensions = rawRerankRecordVectors?.[0]?.length ?? dimensions
   const rerankRecordVectors = rawRerankRecordVectors === undefined
@@ -258,7 +260,7 @@ export function evaluateLocatorQuality({
           `rerankRecordVectors[${index}]`,
         ))
       })()
-  const rerankQueryVectors = rawRerankQueryVectors === undefined
+  let rerankQueryVectors = rawRerankQueryVectors === undefined
     ? queryVectors
     : (() => {
         if (!Array.isArray(rawRerankQueryVectors) ||
@@ -281,6 +283,19 @@ export function evaluateLocatorQuality({
     positiveSafeInteger(value, 'tier')))].sort((left, right) => left - right)
   if (tierSizes.at(-1) > records.length) {
     throw new TypeError('tiers must not exceed the record count.')
+  }
+  let partition = null
+  if (queryPartition !== null) {
+    if (!['development', 'holdout'].includes(queryPartition.subset)) {
+      throw new TypeError('queryPartition.subset must be development or holdout.')
+    }
+    const split = partitionQueriesByFact(queries, queryPartition)
+    const indices = split[queryPartition.subset]
+    queries = indices.map(index => queries[index])
+    queryVectors = indices.map(index => queryVectors[index])
+    rerankQueryVectors = indices.map(index => rerankQueryVectors[index])
+    partition = { ...split, subset: queryPartition.subset,
+      limitation: 'A split prevents within-run fact overlap; it cannot undo prior evaluation or tuning on these facts.' }
   }
   const groups = queryGroups(queries)
   const results = []
@@ -360,6 +375,7 @@ export function evaluateLocatorQuality({
         const candidateSet = new Set(candidateIds)
         const exactIds = exactObservations[index].ids
         return Object.freeze({
+          factId: query.targetId,
           candidateCount: candidateIds.length,
           coveredExactIds: exactIds.filter((id) => candidateSet.has(id)).length,
           exactIds: exactIds.length,
@@ -392,6 +408,7 @@ export function evaluateLocatorQuality({
         buildMs: rounded(buildMs, 1),
         config: Object.freeze(config),
         passesReviewThresholds: Object.values(reviewResult).every(Boolean),
+        uncertainty: pairedFactRecall(observations),
         quality,
         review: reviewResult,
         stats: locator.stats(LOCATOR_QUALITY_SCOPE),
@@ -404,6 +421,7 @@ export function evaluateLocatorQuality({
   return Object.freeze({
     dimensions,
     mode: 'diagnostic-not-a-benchmark',
+    queryPartition: partition,
     rerankDimensions: rerankRecordDimensions,
     review: Object.freeze({ ...review }),
     tiers: Object.freeze(results),
