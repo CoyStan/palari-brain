@@ -1,5 +1,12 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 SIMP-01 evidence session
+
+Canonical evidence ownership, text variants, information identities and review
+rows now live in a private session. Routing anchors remain non-citable. Existing
+commitment and confirmation policies are unchanged. Core 184/184, legacy
+462/462, quickstart and offline package checks pass; no paid calls.
+
 ## 2026-09-06 merged retrieval handoff
 
 Founder-accepted PRs #6 through #12 are merged into main in stack order. The

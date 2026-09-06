@@ -1,3 +1,4 @@
+import { createEvidenceSession } from './evidence-session.mjs'
 // Bounded retrieval-to-answer orchestration over Palari's active journal.
 //
 // The active digest is still the first context. When it is insufficient, the
@@ -24,7 +25,6 @@ import { SEMANTIC_INDEX_CATCHING_UP } from './memory-semantic.mjs'
 import {
   createEphemeralRetrievalFrontier,
   evidenceRows,
-  evidenceTexts,
   frontierText,
   informationIdentity,
   normalizedInformationText,
@@ -669,8 +669,7 @@ function boundedBridgeRerankExcerpt(value, maximum) {
 
 function bridgeRerankQuery({
   anchorEvidenceIds,
-  briefingAnchorRegistry,
-  evidenceRegistry,
+  evidenceSession,
   primaryProbe,
   question,
 }) {
@@ -678,8 +677,7 @@ function bridgeRerankQuery({
   const anchorLabels = []
   for (let index = 0; index < anchorEvidenceIds.length; index += 1) {
     const evidenceId = anchorEvidenceIds[index]
-    const sources = mapGet(evidenceRegistry, evidenceId) ??
-      mapGet(briefingAnchorRegistry, evidenceId)
+    const sources = evidenceSession.routingSources(evidenceId)
     if (!sources || typeof sources[0] !== 'string' || !sources[0]) {
       throw memoryBridgeError(
         'memory_bridge anchor has no registered canonical text.',
@@ -1642,15 +1640,7 @@ export async function answerWithRetrieval(brain, {
   const committedResponses = new WeakSet()
   const confirmationCommittedResponses = new WeakSet()
   const confirmationIncompleteCommittedResponses = new WeakSet()
-  const evidenceRegistry = new Map()
-  const briefingAnchorRegistry = new Map()
-  const evidenceRegistryIds = []
-  const evidenceInformationIndex = new Map()
-  const returnedInformationKeySet = new setConstructor()
-  const returnedInformationKeys = []
-  const evidenceReviewIndex = new Map()
-  const evidenceReviewRows = []
-  let evidenceCount = 0
+  const evidenceSession = createEvidenceSession()
   let acceptedCurrentEvidenceReview = null
   let confirmationActive = false
   let confirmationClosed = false
@@ -1669,47 +1659,7 @@ export async function answerWithRetrieval(brain, {
   const referenceTime = questionReferenceTime(questionDate)
   const routingQuestion = stringFrom(question)
 
-  const registerEvidence = (result) => {
-    for (const { evidenceId, text } of evidenceTexts(result)) {
-      const current = mapGet(evidenceRegistry, evidenceId)
-      const texts = current ?? []
-      if (!current) {
-        evidenceCount += 1
-        arrayPush(evidenceRegistryIds, evidenceId)
-      }
-      arrayPush(texts, text)
-      mapSet(evidenceRegistry, evidenceId, texts)
-    }
-    const rows = evidenceRows(result)
-    for (let index = 0; index < rows.length; index += 1) {
-      const row = rows[index]
-      const evidenceId = stringTrim(stringFrom(row?.evidenceId ?? ''))
-      const identity = informationIdentity(row)
-      if (evidenceId && identity) {
-        mapSet(evidenceInformationIndex, evidenceId, identity)
-        if (!setHas(returnedInformationKeySet, identity.key)) {
-          setAdd(returnedInformationKeySet, identity.key)
-          arrayPush(returnedInformationKeys, identity.key)
-        }
-      }
-      const order = numberConstructor(row?.order)
-      const speaker = stringToLowerCase(
-        stringTrim(stringFrom(row?.speaker ?? '')),
-      )
-      if (!evidenceId || speaker !== 'user' ||
-        !numberIsSafeInteger(order) || order < 0) continue
-      const rank = index + 1
-      const current = mapGet(evidenceReviewIndex, evidenceId)
-      if (current) {
-        if (rank < current.bestRank) current.bestRank = rank
-        continue
-      }
-      const reviewRow = { bestRank: rank, evidenceId, order }
-      arrayPush(evidenceReviewRows, reviewRow)
-      mapSet(evidenceReviewIndex, evidenceId, reviewRow)
-    }
-    return deepFreeze(result)
-  }
+  const registerEvidence = (result) => deepFreeze(evidenceSession.register(result))
 
   const currentEvidenceReview = ({ assessed, used }) => {
     if (compositionMode !== 'auto' || retrievalPlan?.relation !== 'current') {
@@ -1717,8 +1667,8 @@ export async function answerWithRetrieval(brain, {
     }
     let earliestUsedOrder = null
     const materiallyUsedEvidenceIds = []
-    for (let index = 0; index < evidenceReviewRows.length; index += 1) {
-      const row = evidenceReviewRows[index]
+    for (let index = 0; index < evidenceSession.reviewRows.length; index += 1) {
+      const row = evidenceSession.reviewRows[index]
       if (!setHas(used, row.evidenceId)) continue
       arrayPush(materiallyUsedEvidenceIds, row.evidenceId)
       if (earliestUsedOrder === null || row.order < earliestUsedOrder) {
@@ -1728,8 +1678,8 @@ export async function answerWithRetrieval(brain, {
     const candidateEvidenceIds = []
     const unresolvedEvidenceIds = []
     if (earliestUsedOrder !== null) {
-      for (let index = 0; index < evidenceReviewRows.length; index += 1) {
-        const row = evidenceReviewRows[index]
+      for (let index = 0; index < evidenceSession.reviewRows.length; index += 1) {
+        const row = evidenceSession.reviewRows[index]
         if (row.bestRank > MEMORY_CURRENT_EVIDENCE_REVIEW_MAX_RANK ||
           row.order <= earliestUsedOrder ||
           setHas(used, row.evidenceId)) continue
@@ -1814,7 +1764,7 @@ export async function answerWithRetrieval(brain, {
             `Answer commitment supporting evidence ID ${index} is duplicated.`,
           )
         }
-        const sources = mapGet(evidenceRegistry, evidenceId)
+        const sources = evidenceSession.sources(evidenceId)
         if (!sources) {
           throw answerCommitmentError(
             `Answer commitment supporting evidence ID ${index} was not returned in this answer session.`,
@@ -1930,7 +1880,7 @@ export async function answerWithRetrieval(brain, {
         )
       }
       setAdd(seen, evidenceId)
-      const sources = mapGet(evidenceRegistry, evidenceId)
+      const sources = evidenceSession.sources(evidenceId)
       if (!sources) {
         throw answerCommitmentError(
           `Answer commitment basis ${index} uses evidence not returned in this answer session.`,
@@ -2045,7 +1995,7 @@ export async function answerWithRetrieval(brain, {
             `Answer commitment temporary inference ${index} duplicates provenance evidence.`,
           )
         }
-        if (!mapGet(evidenceRegistry, evidenceId) ||
+        if (!evidenceSession.sources(evidenceId) ||
           !setHas(usedEvidenceIds, evidenceId)) {
           throw answerCommitmentError(
             `Answer commitment temporary inference ${index} must link selected used evidence.`,
@@ -2106,7 +2056,7 @@ export async function answerWithRetrieval(brain, {
           `Answer commitment enumeration item ${index} quote`,
           MEMORY_ANSWER_MAX_QUOTE_CHARS,
         )
-        const sources = mapGet(evidenceRegistry, evidenceId)
+        const sources = evidenceSession.sources(evidenceId)
         let exact = false
         for (let sourceIndex = 0; sourceIndex < sources.length; sourceIndex += 1) {
           if (stringIncludes(sources[sourceIndex], quote)) {
@@ -2259,8 +2209,7 @@ export async function answerWithRetrieval(brain, {
       const rerankQuery = capabilities.reranking
         ? bridgeRerankQuery({
             anchorEvidenceIds: normalized.anchorEvidenceIds,
-            briefingAnchorRegistry,
-            evidenceRegistry,
+            evidenceSession,
             primaryProbe: normalized.probes[0],
             question: routingQuestion,
           })
@@ -2409,7 +2358,7 @@ export async function answerWithRetrieval(brain, {
       if (row?.evidenceKind !== 'canonical_message' || !evidenceId || !text) {
         continue
       }
-      mapSet(briefingAnchorRegistry, evidenceId, [text])
+      evidenceSession.addRoutingAnchor(evidenceId, text)
       arrayPush(briefingAnchorEvidenceIds, evidenceId)
     }
     frontier.seedBridgeEligibility(briefingAnchorEvidenceIds)
@@ -2488,7 +2437,7 @@ export async function answerWithRetrieval(brain, {
   let providerFailed = false
   try {
     response = await provider({
-      answerEvidenceCount: () => evidenceCount,
+      answerEvidenceCount: () => evidenceSession.count,
       answerEnumerationRequired: enumerationRequired,
       answerRecommendationRequired: false,
       answerSupportingEvidenceOnly: supportingEvidenceOnly,
@@ -2540,7 +2489,7 @@ export async function answerWithRetrieval(brain, {
 
   let answerCommitted = weakSetHas(committedResponses, response)
   if (requiresEvidenceCommitment &&
-    evidenceCount > 0 && !answerCommitted) {
+    evidenceSession.count > 0 && !answerCommitted) {
     throw answerCommitmentError(
       'This provider must return the exact host-committed answer object after evidence retrieval.',
     )
@@ -2548,13 +2497,13 @@ export async function answerWithRetrieval(brain, {
   let answerConfirmation = null
   if (confirmationProvider) {
     const provisionalResponse = response
-    const priorEvidenceCount = evidenceRegistryIds.length
+    const priorEvidenceCount = evidenceSession.ids.length
     const priorEvidence = []
     const priorInformationKeys = new setConstructor()
-    for (let index = 0; index < evidenceRegistryIds.length; index += 1) {
-      const evidenceId = evidenceRegistryIds[index]
-      const texts = mapGet(evidenceRegistry, evidenceId)
-      const identity = mapGet(evidenceInformationIndex, evidenceId)
+    for (let index = 0; index < evidenceSession.ids.length; index += 1) {
+      const evidenceId = evidenceSession.ids[index]
+      const texts = evidenceSession.sources(evidenceId)
+      const identity = evidenceSession.identity(evidenceId)
       const fallbackKey = arrayJoin([
         '',
         '',
@@ -2749,12 +2698,12 @@ export async function answerWithRetrieval(brain, {
         confirmationCalls += 1
         confirmationSearchesPending += 1
         const excludedEvidenceIds = new setConstructor()
-        for (let index = 0; index < evidenceRegistryIds.length; index += 1) {
-          setAdd(excludedEvidenceIds, evidenceRegistryIds[index])
+        for (let index = 0; index < evidenceSession.ids.length; index += 1) {
+          setAdd(excludedEvidenceIds, evidenceSession.ids[index])
         }
         const excludedInformationKeys = new setConstructor()
-        for (let index = 0; index < returnedInformationKeys.length; index += 1) {
-          setAdd(excludedInformationKeys, returnedInformationKeys[index])
+        for (let index = 0; index < evidenceSession.informationKeys.length; index += 1) {
+          setAdd(excludedInformationKeys, evidenceSession.informationKeys[index])
         }
         const boundedSearchInput = applyTrustedTimeRange({
           ...(input.after === undefined ? {} : { after: input.after }),
@@ -2863,7 +2812,7 @@ export async function answerWithRetrieval(brain, {
     let confirmationProviderError = null
     try {
       confirmationResponse = await confirmationProvider({
-        answerEvidenceCount: () => evidenceCount,
+        answerEvidenceCount: () => evidenceSession.count,
         answerConfirmationClosed: () => confirmationClosed,
         answerEnumerationRequired: enumerationRequired,
         answerRecommendationRequired: false,
@@ -2943,7 +2892,7 @@ export async function answerWithRetrieval(brain, {
       confirmationCommittedResponses,
       confirmationResponse,
     )
-    if (evidenceCount > 0 && !confirmationCommitted) {
+    if (evidenceSession.count > 0 && !confirmationCommitted) {
       throw answerCommitmentError(
         'The confirmation provider must return a new exact host-committed answer object after closure or bounded exhaustion.',
       )
