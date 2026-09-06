@@ -408,6 +408,8 @@ function catchingUp(progress) {
 // milliseconds beats carrying an ANN dependency, and it is exactly
 // reproducible.
 export async function semanticFindEvidenceBatch(db, {
+  after = null,
+  before = null,
   embed,
   limit = 20,
   locator = null,
@@ -453,7 +455,9 @@ export async function semanticFindEvidenceBatch(db, {
   }
   const boundedLimit = Math.max(1, Math.min(Number(limit) || 20, 200))
   let locatorPlan = null
-  if (locator && typeof locator.candidateKeys === 'function') {
+  // A global ANN shortlist cannot guarantee recall within a date range.
+  if (after === null && before === null && locator &&
+    typeof locator.candidateKeys === 'function') {
     try {
       locatorPlan = await locator.candidateKeys(db, {
         limit: boundedLimit,
@@ -530,7 +534,9 @@ export async function semanticFindEvidenceBatch(db, {
         SELECT visible.*, v.vector AS semantic_vector
         FROM visible
         JOIN ${VECTOR_TABLE} v ON v.evidence_id = visible.id
-      `).all(scope.palariId, scope.userId)
+        WHERE (? IS NULL OR visible.event_at >= ?)
+          AND (? IS NULL OR visible.event_at <= ?)
+      `).all(scope.palariId, scope.userId, after, after, before, before)
       rowsByQuery = queryVectors.map(() => exactRows)
     }
     db.exec('COMMIT')

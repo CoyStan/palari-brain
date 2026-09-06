@@ -1471,6 +1471,8 @@ export function createDialogueGate(store, {
       }
       const scoped = normalizedScope(scope)
       const rows = await semanticFindEvidence(store.db, {
+        after: options.after ?? null,
+        before: options.before ?? null,
         embed: embedder,
         limit: options.limit,
         locator: semanticLocator,
@@ -1502,6 +1504,8 @@ export function createDialogueGate(store, {
         ? options.phrases.map((phrase) => String(phrase ?? ''))
         : options.phrases
       const batches = await semanticFindEvidenceBatch(store.db, {
+        after: options.after ?? null,
+        before: options.before ?? null,
         embed: embedder,
         limit: options.limit,
         locator: semanticLocator,
