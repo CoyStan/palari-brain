@@ -1526,3 +1526,10 @@ These are diagnostic measurements, not equivalent production latency claims.
 This implementation prioritizes scope-correct scoring and adds no durable index;
 large-scope workloads should evaluate maintained scope-local statistics before
 scaling it. Temporary storage is released after the query.
+
+
+Semantic top-k selection uses a stable bounded heap. Exact scoring still visits
+every eligible vector, but only k ranking entries are retained. Result ties keep
+the existing chronology and input order. Run
+`node evals/run-top-k-diagnostic.mjs` for a provider-free ranking-only comparison;
+it excludes SQLite and cosine scoring and does not predict end-to-end speedup.
