@@ -743,9 +743,16 @@ function withinBounds(row, after, before) {
 }
 
 export function reciprocalRankFuse(rankings, {
+  familyWeights = null,
   k = MEMORY_HYBRID_RRF_K,
   limit = DEFAULT_HYBRID_LIMIT,
 } = {}) {
+  if (familyWeights !== null && (typeof familyWeights !== 'object' ||
+    Array.isArray(familyWeights) || Object.values(familyWeights).some((weight) =>
+      typeof weight !== 'number' || !Number.isFinite(weight) || weight < 0))) {
+    throw new TypeError('Family weights must be finite non-negative numbers.')
+  }
+  const familyScores = new Map()
   const fused = new Map()
   for (const ranking of rankings ?? []) {
     const surface = String(ranking?.surface ?? '').trim()
@@ -761,7 +768,17 @@ export function reciprocalRankFuse(rankings, {
       }
       if (!entry.surfaces.includes(surface)) entry.surfaces.push(surface)
       entry.surfaceRanks[surface] = index + 1
-      entry.rrfScore += 1 / (Number(k) + index + 1)
+      const contribution = 1 / (Number(k) + index + 1)
+      if (familyWeights === null) {
+        entry.rrfScore += contribution
+      } else {
+        const family = surface.split(':', 1)[0]
+        const scores = familyScores.get(evidenceId) ?? new Map()
+        const weight = Object.hasOwn(familyWeights, family) ? familyWeights[family] : 1
+        scores.set(family, Math.max(scores.get(family) ?? 0, weight * contribution))
+        familyScores.set(evidenceId, scores)
+        entry.rrfScore = [...scores.values()].reduce((sum, score) => sum + score, 0)
+      }
       fused.set(evidenceId, entry)
     }
   }
@@ -1328,6 +1345,9 @@ async function hybridSearch(
   }
 
   const fused = reciprocalRankFuse(rankings, {
+    // Related probes locate additional candidates without multiplying their
+    // family's influence. Distinct lexical/semantic support still combines.
+    familyWeights: { ranked: 1, semantic: 1 },
     limit: informationFiltering
       ? candidateLimit
       : capabilities.reranking

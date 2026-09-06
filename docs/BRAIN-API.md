@@ -1495,3 +1495,15 @@ with chunk count; longer messages have more opportunities for accidental
 matches. Evaluate paired recall and false positives by message length before
 adopting it as a product default. No new embedding calls were purchased for the
 local tests.
+
+
+### Hybrid fusion weights
+
+Hybrid candidate fusion gives lexical and semantic retrieval one contribution
+each per evidence ID, taking the strongest rank within each family. Repeated
+query variants cannot multiply the family vote; distinct facets can still add
+new candidates. The exported reciprocalRankFuse helper retains additive legacy
+behavior unless familyWeights is supplied, for example
+`{ familyWeights: { ranked: 1, semantic: 1 } }`. Missing families default to one;
+weights must be finite and non-negative. This controls query multiplicity, not
+answer confidence or truth.

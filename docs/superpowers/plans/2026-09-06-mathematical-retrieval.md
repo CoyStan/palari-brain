@@ -24,7 +24,7 @@ merge them. Report measured evidence separately from proposed quality gains.
   maximum chunk cosine. Preserve default mean embeddings. Reuse derived vector
   lifecycle and configuration identity; test dilution, correction, deletion,
   scope, restart and unchanged canonical text. Document storage/length bias.
-- [ ] MATH-04: Bound each retrieval family's RRF contribution and deduplicate
+- [x] MATH-04: Bound each retrieval family's RRF contribution and deduplicate
   equivalent lists; retain distinct facets and public legacy fusion defaults.
   Test duplicate query invariance and complementary evidence coverage.
 - [ ] MATH-05: Compute FTS5 BM25 within the visible scope using an ephemeral
