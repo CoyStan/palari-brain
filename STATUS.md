@@ -1,5 +1,16 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 MATH-06 bounded top-k selection
+
+Semantic ranking retains only k scored candidates in a stable max-heap, with
+the existing cosine/chronology comparator. Selection costs O(N log k + k log k)
+and O(k) additional retained ranking state; SQLite reads and cosine work remain.
+The reusable ranking-only diagnostic over 100,000 rows/top 20 reproduced exact
+full-sort results and measured median 64.0 ms for sorting versus 1.32 ms for the
+heap. These timings exclude vector decoding and SQLite, not end-to-end latency.
+Core 178/178, quickstart 6/6, legacy 456/456, and offline package installation
+pass. Three heap contracts include adversarial inputs and stable ties.
+
 ## 2026-09-06 MATH-05 scope-local BM25
 
 Ranked dialogue BM25 now uses only visible canonical rows in a temporary FTS5

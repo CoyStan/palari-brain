@@ -30,7 +30,7 @@ merge them. Report measured evidence separately from proposed quality gains.
 - [x] MATH-05: Compute FTS5 BM25 within the visible scope using an ephemeral
   scoped FTS table. Keep tokenizer, query semantics and chronology. Test foreign
   corpus invariance, correction/deletion and score parity with isolated FTS.
-- [ ] MATH-06: Replace full sorting with a bounded heap using the exact existing
+- [x] MATH-06: Replace full sorting with a bounded heap using the exact existing
   comparator and stable ties. Compare results with an independent full-sort
   oracle across adversarial inputs and record a provider-free timing diagnostic.
 - [ ] MATH-07: Add paired fact-group bootstrap intervals and held-out fact

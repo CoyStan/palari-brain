@@ -22,6 +22,8 @@
 // embedded by the same model yields the same ranking, with chronology
 // breaking ties.
 
+import { boundedTopK } from './top-k.mjs'
+
 import {
   semanticVectorLocatorKey,
 } from './semantic-hnsw.mjs'
@@ -702,19 +704,21 @@ export async function semanticFindEvidenceBatch(db, {
   }
   return queryVectors.map((queryVector, queryIndex) => {
     const query = Float32Array.from(queryVector, Number)
-    return rowsByQuery[queryIndex]
-      .map((row) => ({
-        row,
-        similarity: chunked
-          ? chunksById.get(row.id).reduce((best, vector) =>
-            Math.max(best, cosine(query, vector)), -Infinity)
-          : cosine(query, fromBlob(row.semantic_vector)),
-      }))
-      .sort((left, right) =>
-        right.similarity - left.similarity ||
-        String(left.row.event_at).localeCompare(String(right.row.event_at)) ||
-        Number(left.row.dialogue_order) - Number(right.row.dialogue_order))
-      .slice(0, boundedLimit)
+    function* scoredRows() {
+      for (const row of rowsByQuery[queryIndex]) {
+        yield {
+          row,
+          similarity: chunked
+            ? chunksById.get(row.id).reduce((best, vector) =>
+              Math.max(best, cosine(query, vector)), -Infinity)
+            : cosine(query, fromBlob(row.semantic_vector)),
+        }
+      }
+    }
+    return boundedTopK(scoredRows(), Math.trunc(boundedLimit), (left, right) =>
+      right.similarity - left.similarity ||
+      String(left.row.event_at).localeCompare(String(right.row.event_at)) ||
+      Number(left.row.dialogue_order) - Number(right.row.dialogue_order))
       .map(({ row, similarity }) => {
         const {
           semantic_locator_key: _locatorKey,
