@@ -13,10 +13,8 @@ import { createEvidenceSession } from './evidence-session.mjs'
 // received an embedder. Graph lookup is read-only here: extraction remains an
 // explicit indexGraph() operation, so answering cannot create a provider call.
 
-import {
-  memoryAnswerSystemInstruction,
-  recallMemory,
-} from './brain.mjs'
+import { recallMemory } from './memory-kernel.mjs'
+import { memoryAnswerSystemInstruction } from './answer-instructions.mjs'
 import {
   MEMORY_EXPLORATION_INSTRUCTIONS,
   MEMORY_EXPLORATION_TOOLS,
@@ -1545,6 +1543,7 @@ async function hybridSearch(
 // can map MEMORY_RETRIEVAL_TOOLS to their provider's tool schema.
 export async function answerWithRetrieval(brain, {
   additionalInstructions = '',
+  allowEmptyAbstention = false,
   compositionMode = 'standard',
   confirmationProvider = null,
   expandPlannedSearches = false,
@@ -1561,6 +1560,9 @@ export async function answerWithRetrieval(brain, {
 } = {}) {
   if (typeof provider !== 'function') {
     throw new TypeError('answerWithRetrieval requires a provider function.')
+  }
+  if (typeof allowEmptyAbstention !== 'boolean') {
+    throw new TypeError('allowEmptyAbstention must be boolean.')
   }
   if (confirmationProvider !== null &&
     typeof confirmationProvider !== 'function') {
@@ -1842,10 +1844,11 @@ export async function answerWithRetrieval(brain, {
       MEMORY_ANSWER_MAX_TEXT_CHARS,
       { trim: true },
     )
-    if (!arrayIsArray(candidate.bases) || candidate.bases.length < 1 ||
+    const minimumBases = allowEmptyAbstention && candidate.abstained ? 0 : 1
+    if (!arrayIsArray(candidate.bases) || candidate.bases.length < minimumBases ||
       candidate.bases.length > MEMORY_ANSWER_MAX_BASES) {
       throw answerCommitmentError(
-        `Answer commitment bases must contain 1 to ` +
+        `Answer commitment bases must contain ${minimumBases} to ` +
           `${MEMORY_ANSWER_MAX_BASES} items.`,
       )
     }
