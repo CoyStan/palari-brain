@@ -27,6 +27,7 @@ import {
 } from './semantic-hnsw.mjs'
 
 const VECTOR_TABLE = 'dialogue_evidence_vectors'
+const SPACE_TABLE = 'dialogue_evidence_vector_spaces'
 const VECTOR_PENDING_TABLE = 'dialogue_evidence_vector_pending'
 const VECTOR_SCOPE_VERSION_TABLE = 'dialogue_evidence_vector_scope_versions'
 const HNSW_SNAPSHOT_TABLE = 'dialogue_evidence_hnsw_snapshots'
@@ -50,6 +51,11 @@ function ensureSemanticIndex(db) {
     // stable name so scope moves cannot retain a vector bound to its old key.
     db.exec(`DROP TRIGGER IF EXISTS ${VECTOR_TABLE}_au`)
     db.exec(`
+      CREATE TABLE IF NOT EXISTS ${SPACE_TABLE} (
+        palari_id TEXT NOT NULL, user_id TEXT NOT NULL,
+        embedding_id TEXT NOT NULL, generation INTEGER NOT NULL,
+        dims INTEGER, PRIMARY KEY (palari_id, user_id)
+      );
       CREATE TABLE IF NOT EXISTS ${VECTOR_TABLE} (
         evidence_id TEXT PRIMARY KEY,
         dims INTEGER NOT NULL,
@@ -245,7 +251,10 @@ function cosine(left, right) {
   let dot = 0
   let leftNorm = 0
   let rightNorm = 0
-  const length = Math.min(left.length, right.length)
+  if (left.length !== right.length) {
+    throw new TypeError('Embedding vector dimensions must match.')
+  }
+  const length = left.length
   for (let index = 0; index < length; index += 1) {
     dot += left[index] * right[index]
     leftNorm += left[index] * left[index]
@@ -255,11 +264,82 @@ function cosine(left, right) {
   return scale > 0 ? dot / scale : 0
 }
 
-function assertVectors(vectors, expected, label) {
+function assertVectors(vectors, expected, label, dimensions = null) {
   if (!Array.isArray(vectors) || vectors.length !== expected) {
-    throw new TypeError(
-      `${label} must return one vector per input text.`,
-    )
+    throw new TypeError(`${label} must return one vector per input text.`)
+  }
+  let dims = dimensions
+  for (const vector of vectors) {
+    if ((!Array.isArray(vector) && !ArrayBuffer.isView(vector)) || !vector.length) {
+      throw new TypeError('Embedding vector must contain finite numbers.')
+    }
+    dims ??= vector.length
+    if (vector.length !== dims) throw new TypeError('Embedding vector dimensions must match.')
+    for (const value of vector) {
+      if (typeof value !== 'number' || !Number.isFinite(Math.fround(value))) {
+        throw new TypeError('Embedding vector must contain finite Float32 numbers.')
+      }
+    }
+  }
+  return dims
+}
+
+function readSpace(db, scope) {
+  return db.prepare(`SELECT * FROM ${SPACE_TABLE}
+    WHERE palari_id = ? AND user_id = ?`).get(scope.palariId, scope.userId)
+}
+
+function assertCurrentSpace(db, scope, expected) {
+  const actual = readSpace(db, scope)
+  if (!actual || actual.generation !== expected.generation ||
+    actual.embedding_id !== expected.embedding_id) {
+    throw new Error('Embedding configuration changed during semantic operation.')
+  }
+  return actual
+}
+
+function bindSpace(db, scope, embeddingId) {
+  if (embeddingId !== null &&
+    (typeof embeddingId !== 'string' || !embeddingId.trim())) {
+    throw new TypeError('embeddingId must be a non-empty configuration identifier.')
+  }
+  const identity = embeddingId === null ? 'anonymous' : `explicit:${embeddingId}`
+  db.exec('BEGIN IMMEDIATE')
+  try {
+    const prior = readSpace(db, scope)
+    if (prior?.embedding_id === identity) {
+      db.exec('COMMIT')
+      return prior
+    }
+    // An explicit identity cannot adopt anonymous/legacy vectors. Rebuild
+    // only derived rows, and advance the revision used by HNSW snapshots.
+    if (prior || embeddingId !== null) {
+      db.prepare(`DELETE FROM ${VECTOR_TABLE} WHERE evidence_id IN (
+        SELECT id FROM dialogue_evidence WHERE palari_id = ? AND user_id = ?
+      )`).run(scope.palariId, scope.userId)
+      db.prepare(`INSERT OR REPLACE INTO ${VECTOR_PENDING_TABLE}
+        SELECT id, palari_id, user_id, dialogue_order FROM dialogue_evidence
+        WHERE palari_id = ? AND user_id = ?`).run(scope.palariId, scope.userId)
+      db.prepare(`INSERT INTO ${VECTOR_SCOPE_VERSION_TABLE} VALUES (?, ?, 1)
+        ON CONFLICT (palari_id, user_id) DO UPDATE SET revision = revision + 1`
+      ).run(scope.palariId, scope.userId)
+    }
+    const dimensions = db.prepare(`SELECT DISTINCT dims FROM ${VECTOR_TABLE} v
+      JOIN dialogue_evidence e ON e.id = v.evidence_id
+      WHERE e.palari_id = ? AND e.user_id = ? LIMIT 2`
+    ).all(scope.palariId, scope.userId)
+    if (dimensions.length > 1) throw new TypeError('Stored embedding vector dimensions must match.')
+    db.prepare(`INSERT INTO ${SPACE_TABLE} VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT (palari_id, user_id) DO UPDATE SET
+        embedding_id = excluded.embedding_id, generation = excluded.generation,
+        dims = excluded.dims`).run(scope.palariId, scope.userId, identity,
+      (prior?.generation ?? 0) + 1, dimensions[0]?.dims ?? null)
+    const result = readSpace(db, scope)
+    db.exec('COMMIT')
+    return result
+  } catch (error) {
+    db.exec('ROLLBACK')
+    throw error
   }
 }
 
@@ -314,6 +394,7 @@ function semanticScopeRevision(db, scope) {
 // complete. The pending table is a small, rebuildable checkpoint: it is
 // seeded once for old databases and maintained alongside evidence by trigger.
 export async function indexEvidenceVectors(db, {
+  embeddingId = null,
   batchSize = DEFAULT_SEMANTIC_CATCH_UP_ROWS,
   embed,
   scope,
@@ -323,6 +404,7 @@ export async function indexEvidenceVectors(db, {
     throw new TypeError('indexEvidenceVectors requires an embed function.')
   }
   ensureSemanticIndex(db)
+  const space = bindSpace(db, scope, embeddingId)
   const limit = boundedCatchUpRows(batchSize)
   const missing = db.prepare(`
     WITH visible AS (${visibleStatementsSql})
@@ -344,7 +426,7 @@ export async function indexEvidenceVectors(db, {
   if (!missing.length) return indexProgress(0, true)
 
   const vectors = await embed(missing.map((row) => String(row.content)))
-  assertVectors(vectors, missing.length, 'embed')
+  assertVectors(vectors, missing.length, 'embed', space.dims)
   const insert = db.prepare(`
     INSERT INTO ${VECTOR_TABLE} (evidence_id, dims, vector, locator_key)
     VALUES (?, ?, ?, ?)
@@ -354,7 +436,7 @@ export async function indexEvidenceVectors(db, {
       locator_key = excluded.locator_key
   `)
   const current = db.prepare(`
-    SELECT content
+    SELECT content, palari_id, user_id
     FROM dialogue_evidence
     WHERE id = ?
   `)
@@ -365,9 +447,14 @@ export async function indexEvidenceVectors(db, {
   let indexed = 0
   db.exec('BEGIN IMMEDIATE')
   try {
+    const currentSpace = assertCurrentSpace(db, scope, space)
+    const dims = assertVectors(vectors, missing.length, 'embed', currentSpace.dims)
+    db.prepare(`UPDATE ${SPACE_TABLE} SET dims = ?
+      WHERE palari_id = ? AND user_id = ?`).run(dims, scope.palariId, scope.userId)
     for (const [index, row] of missing.entries()) {
       const present = current.get(row.id)
-      if (!present || String(present.content) !== String(row.content)) continue
+      if (!present || String(present.content) !== String(row.content) ||
+        present.palari_id !== scope.palariId || present.user_id !== scope.userId) continue
       if (remove.run(row.id).changes !== 1) continue
       insert.run(
         row.id,
@@ -410,6 +497,7 @@ function catchingUp(progress) {
 export async function semanticFindEvidenceBatch(db, {
   after = null,
   before = null,
+  embeddingId = null,
   embed,
   limit = 20,
   locator = null,
@@ -439,13 +527,19 @@ export async function semanticFindEvidenceBatch(db, {
     return needle
   })
   const progress = await indexEvidenceVectors(db, {
+    embeddingId,
     embed,
     scope,
     visibleStatementsSql,
   })
   if (!progress.complete) throw catchingUp(progress)
+  const space = readSpace(db, scope)
+  const identity = embeddingId === null ? 'anonymous' : `explicit:${embeddingId}`
+  if (space?.embedding_id !== identity) {
+    throw new Error('Embedding configuration changed during semantic operation.')
+  }
   const queryVectors = await embed(needles)
-  assertVectors(queryVectors, needles.length, 'embed')
+  assertVectors(queryVectors, needles.length, 'embed', space.dims)
   for (let index = 0; index < queryVectors.length; index += 1) {
     if (!queryVectors[index]?.length) {
       throw new TypeError(
@@ -477,6 +571,7 @@ export async function semanticFindEvidenceBatch(db, {
   let transactionOpen = true
   db.exec('BEGIN')
   try {
+    assertCurrentSpace(db, scope, space)
     const revision = semanticScopeRevision(db, scope)
     if (hasMissingVectors(db, { scope, visibleStatementsSql })) {
       db.exec('ROLLBACK')

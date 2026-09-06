@@ -1,5 +1,14 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 MATH-02 embedding spaces
+
+Semantic vectors now require consistent dimensions and finite Float32 values.
+Optional embeddingId binds each scope to its model/preprocessing configuration;
+changes rebuild derived vectors and invalidate HNSW revisions. Query/indexing
+operations reject asynchronous configuration changes. Anonymous embedders remain
+compatible, with documented limits on detecting same-dimensional model changes.
+Four focused regressions and core, quickstart, legacy gates pass. No providers.
+
 ## 2026-09-06 MATH-01 date-filtered retrieval
 
 Exact, ranked, and semantic retrieval now apply date constraints before the

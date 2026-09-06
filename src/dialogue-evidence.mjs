@@ -548,6 +548,7 @@ export function createDialogueGate(store, {
   auditLog,
   clock = () => new Date(),
   embedder = null,
+  embeddingId = null,
   graphExtractor = null,
 } = {}) {
   ensureActiveSchema(store, clock)
@@ -1380,6 +1381,7 @@ export function createDialogueGate(store, {
       }
       return indexEvidenceVectors(store.db, {
         batchSize: options.batchSize,
+        embeddingId,
         embed: embedder,
         scope: normalizedScope(scope),
         visibleStatementsSql,
@@ -1473,6 +1475,7 @@ export function createDialogueGate(store, {
       const rows = await semanticFindEvidence(store.db, {
         after: options.after ?? null,
         before: options.before ?? null,
+        embeddingId,
         embed: embedder,
         limit: options.limit,
         locator: semanticLocator,
@@ -1506,6 +1509,7 @@ export function createDialogueGate(store, {
       const batches = await semanticFindEvidenceBatch(store.db, {
         after: options.after ?? null,
         before: options.before ?? null,
+        embeddingId,
         embed: embedder,
         limit: options.limit,
         locator: semanticLocator,
