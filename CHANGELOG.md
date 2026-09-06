@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+Merged retrieval improvements from PRs [#6](https://github.com/CoyStan/palari-brain/pull/6)
+through [#12](https://github.com/CoyStan/palari-brain/pull/12):
+
+- Date constraints apply before result limits in exact, ranked, semantic, and
+  hybrid recall. Date-constrained semantic queries score the eligible subset.
+- Semantic vectors require compatible dimensions and finite Float32 values.
+  Optional `embeddingId` changes trigger bounded scoped rebuilding, with stale
+  concurrent operations rejected.
+- `createChunkedEmbedder` supports experimental `retrieval: 'max'`, retaining
+  canonical-owned chunk vectors. Mean aggregation remains the default.
+- Hybrid fusion caps each lexical/semantic family's contribution at its best
+  rank, so repeated query variants cannot multiply votes.
+- BM25 statistics use only visible canonical rows. Temporary indexing adds
+  per-query work; large-scope performance remains a known tradeoff.
+- Semantic top-k selection uses a stable bounded heap while preserving ordering.
+- Locator diagnostics report paired fact-cluster uncertainty and support
+  fact-based development/holdout splits. The cache-only HNSW holdout runner
+  labels the historical corpus retrospective, not unseen evaluation.
+
+
 - Semantic retrieval can privately use a version-bound 512-dimensional/i8
   HNSW candidate index for qualifying scopes, followed by exact full-vector
   reranking from scoped SQLite rows.

@@ -6,7 +6,21 @@ long messages, pasted documents, and repeated content, what Palari Brain
 already does, and the resulting policy, so the question is not re-derived
 from scratch.
 
-## What Palari Brain does today (verified offline, 2026-08-01)
+## 2026-09-06 retrieval update
+
+Already-admitted long messages can opt into maximum-chunk semantic retrieval
+through `createChunkedEmbedder({ embed, maxChunkChars, retrieval: 'max', embeddingId })`.
+Each chunk remains derived data owned by its canonical message. Corrections and
+deletion invalidate it; canonical text and source/admission boundaries remain
+unchanged. Mean aggregation is still the default. This adds no document store
+or new admission route, and does not change the composer policy below.
+
+Max-chunk retrieval prevents dilution in the synthetic regression but costs
+more vectors and scoring and can favor longer messages. It is experimental;
+real-world recall and false positives by message length still need evaluation.
+See [the API contract](BRAIN-API.md#experimental-chunk-retrieval).
+
+## Historical behavior verified offline, 2026-08-01
 
 Replaying the extreme case through the real write path with a
 deterministic reducer showed:

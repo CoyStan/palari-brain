@@ -1,5 +1,20 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 merged retrieval handoff
+
+Founder-accepted PRs #6 through #12 are merged into main in stack order. The
+current behavior includes date filtering before limits, embedding configuration
+binding and validation, opt-in maximum-chunk retrieval, bounded retrieval-family
+fusion, scope-local BM25, stable heap selection, and paired fact diagnostics.
+Details and prior unit measurements remain below. The changelog and API,
+consumer, long-content, decision, and evaluation docs describe the merged state.
+
+Verification: core 182/182, quickstart 6/6, legacy 460/460, and offline package
+installation pass. No paid provider was called. Chunk retrieval remains
+experimental, scope-local BM25 incurs per-query indexing cost, and the existing
+holdout corpus remains retrospective. These changes do not establish a new
+release grade or 100M-token capacity claim.
+
 ## 2026-09-06 MATH-07 paired fact evaluation
 
 Locator diagnostics now report paired fact-cluster bootstrap intervals for
@@ -516,11 +531,17 @@ npm run memory-stage-audit -- --input <local.json>
 npm run scale-probe
 npm run scale:hnsw-quality
 npm run scale:hnsw-representations
+npm run scale:hnsw-fact-holdout
+node evals/run-top-k-diagnostic.mjs
 ```
 
 ## Next
 
 Take the next smallest product-memory behavior unit from real user feedback.
+For the merged retrieval work, prioritize large-scope lexical scoring cost,
+realistic opt-in chunk recall and false positives by message length, and fresh
+fact-group evaluation before changing defaults. Configure embeddingId when
+integrating a model so future model changes cannot silently reuse old vectors.
 Do not tune the sparse-sign locator further. If the scale-readiness track
 continues, SCALE-09 should test the now-real runtime path at a materially
 larger cardinality with genuine embeddings, then exercise concurrent queries,

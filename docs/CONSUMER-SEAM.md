@@ -190,8 +190,17 @@ with the host function result.
 GPT-5.6 Luna is not an embedding model. Semantic retrieval still requires the
 independent `embedder(texts)` option and may use Gemini, OpenAI embeddings, or
 a local model, provided stored rows and queries use the same embedding model.
-Changing that model requires rebuilding the derived vector table; canonical
-dialogue is unaffected.
+Supply a stable `embeddingId` covering the model, dimensions, and preprocessing.
+Changing that ID rebuilds the scope's derived vectors in bounded batches and
+invalidates HNSW snapshots; canonical dialogue is unaffected. In-flight
+operations reject a concurrent configuration change. Dimension and finite-value
+checks also reject malformed vectors, but a same-dimensional model switch
+cannot be detected when the host reuses an ID or an anonymous embedder.
+
+The optional chunk adapter includes chunk size and retrieval mode in its
+configuration identity. Experimental `retrieval: 'max'` scores canonical-owned
+chunks exactly and bypasses HNSW. See
+[retrieval configuration and scoring](BRAIN-API.md#retrieval-configuration-and-scoring).
 
 For sufficiently large scopes, Palari can use optional native USearch as a
 private candidate locator. Consumers do not configure or call it. The package

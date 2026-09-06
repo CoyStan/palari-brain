@@ -16,9 +16,10 @@ Palari Brain deliberately keeps two different representations:
 The digest does not replace the journal. It makes a long-lived assistant
 usable without sending hundreds of old messages to the answer model.
 
-There is no natural-language regex admission, keyword retrieval, FTS/BM25
-recall, fuzzy matching, vector search, or query-time scan in the active path.
-The current question is never used to decide what memory is stored.
+The digest-only `answerQuestion` path reads the bounded active digest without
+ranked or vector retrieval. `answerWithRetrieval` and the exploration APIs can
+search the canonical journal through exact, ranked, semantic, and temporal
+paths. The current question is never used to decide what memory is stored.
 
 ## Canonical write path
 
@@ -1456,6 +1457,16 @@ storage path (host stamps, verified quotes, lying-reducer rejection);
 finding aids, canonical reads, honest absence).
 
 
+## Retrieval configuration and scoring
+
+### Temporal result selection
+
+`exploreFind`, `exploreSemantic`, `exploreSemanticBatch`, and hybrid retrieval
+apply `after`/`before` constraints before selecting the result limit. Bounds are
+inclusive host chronology comparisons. Date-constrained semantic queries use
+exact scoring over eligible rows, bypassing a global HNSW shortlist that might
+omit all matches in the requested period.
+
 ### Embedding configuration identity
 
 Supply `embeddingId` alongside `embedder` when creating a brain. Use a stable
@@ -1527,6 +1538,8 @@ This implementation prioritizes scope-correct scoring and adds no durable index;
 large-scope workloads should evaluate maintained scope-local statistics before
 scaling it. Temporary storage is released after the query.
 
+
+### Bounded semantic selection
 
 Semantic top-k selection uses a stable bounded heap. Exact scoring still visits
 every eligible vector, but only k ranking entries are retained. Result ties keep

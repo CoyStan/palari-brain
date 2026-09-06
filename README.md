@@ -160,6 +160,26 @@ evidence checks, scope rules, and local state transitions.
 - **Provider seams** — OpenAI, Gemini, embedding, and reranker adapters remain
   replaceable components around a provider-neutral core.
 
+## Retrieval configuration
+
+Date filters apply before result limits. Ranked search computes BM25 from the
+caller's visible memories, and hybrid fusion limits repeated-query influence.
+Semantic search validates vector dimensions and uses bounded top-k selection.
+Supply a stable `embeddingId` covering model, dimensions, and preprocessing;
+changing it rebuilds that scope's derived vectors without changing dialogue.
+
+Long-message chunk retrieval is available through
+`createChunkedEmbedder({ embed, maxChunkChars, retrieval: 'max', embeddingId })`.
+It remains opt-in: mean aggregation is the default, and more chunks cost storage
+and scoring. Scope-local BM25 also adds per-query indexing work. See the
+[retrieval configuration and scoring contract](docs/BRAIN-API.md#retrieval-configuration-and-scoring)
+for behavior, compatibility, and measured limitations.
+
+Provider-free diagnostics include `node evals/run-top-k-diagnostic.mjs` and
+`npm run scale:hnsw-fact-holdout`. The latter needs the existing local vector
+cache, fails closed on misses, and labels its historical corpus retrospective.
+See [paired uncertainty and fact holdout](evals/README.md#paired-uncertainty-and-fact-holdout).
+
 ## Debug the real loop
 
 Use the reusable alpha runner for reversible diagnostics:
@@ -185,7 +205,7 @@ one alpha process at a time.
 | Canonical dialogue and admission | `src/dialogue-evidence.mjs`, `src/memory-store.mjs` |
 | Working memory and reduction | `src/memory-digest-store.mjs`, `src/memory-reducer.mjs` |
 | Retrieval and answers | `src/memory-exploration.mjs`, `src/retrieval-plan.mjs`, `src/retrieval-frontier.mjs`, `src/retrieval-answer.mjs` |
-| Retrieval indexes | `src/memory-search.mjs`, `src/memory-semantic.mjs`, `src/semantic-hnsw.mjs`, `src/memory-graph.mjs` |
+| Retrieval indexes | `src/memory-search.mjs`, `src/memory-semantic.mjs`, `src/semantic-hnsw.mjs`, `src/top-k.mjs`, `src/memory-graph.mjs` |
 | Provider seams | `src/gemini.mjs`, `src/openai.mjs`, `src/reranker-ettin.mjs` |
 | Local diagnostics | `evals/`, with its map in `evals/README.md` |
 

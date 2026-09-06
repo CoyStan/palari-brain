@@ -9,8 +9,18 @@ unrelated worktrees untouched. Experimental chunk retrieval stays opt-in.
 
 Each unit starts with failing behavioral tests, then implementation, focused
 verification, core/quickstart/legacy gates, a STATUS entry, and a BRAIN commit.
-Each branch bases on the previous branch. Publish PRs only after review; do not
-merge them. Report measured evidence separately from proposed quality gains.
+Each branch was based on the previous branch. The founder accepted all seven
+PRs and authorized merging in the follow-up conversation. They were retargeted
+to main and merged in order on 2026-09-06, preserving the implementation commits.
+Measured evidence remains separate from proposed quality gains.
+
+Merged PRs: [#6](https://github.com/CoyStan/palari-brain/pull/6),
+[#7](https://github.com/CoyStan/palari-brain/pull/7),
+[#8](https://github.com/CoyStan/palari-brain/pull/8),
+[#9](https://github.com/CoyStan/palari-brain/pull/9),
+[#10](https://github.com/CoyStan/palari-brain/pull/10),
+[#11](https://github.com/CoyStan/palari-brain/pull/11), and
+[#12](https://github.com/CoyStan/palari-brain/pull/12).
 
 - [x] MATH-01: Push after/before into exact/ranked SQL and semantic snapshot
   candidate selection. Pass bounds through dialogue and hybrid APIs; filtered

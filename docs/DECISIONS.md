@@ -14,6 +14,22 @@ ledger published with the first alpha is preserved at annotated tag
 - Correction and exact deletion must affect later recall and answers.
 - Provider adapters are injected. Core use is local and provider-neutral.
 
+## Retrieval decisions merged 2026-09-06
+
+- Temporal eligibility is applied before top-k selection. Date-constrained
+  semantic queries use exact eligible-subset scoring.
+- Embedding configuration identity binds derived vectors to a compatible space;
+  canonical evidence survives configuration changes.
+- Maximum-chunk retrieval stays opt-in until realistic recall and false-positive
+  measurements justify changing the default.
+- Hybrid fusion caps repeated votes within each retrieval family.
+- Lexical statistics must be scope-local. Temporary FTS indexing is the current
+  correctness-first implementation; its large-scope query cost needs follow-up.
+- Semantic selection uses a stable bounded heap; it does not remove vector-scan
+  costs or make approximate candidates authoritative.
+- Diagnostic uncertainty groups query variants by fact. Retrospective splits
+  cannot establish unseen generalization or revise historical grades.
+
 ## Alpha work
 
 - Ordinary diagnostics are repeatable and mutable. They are not benchmark
