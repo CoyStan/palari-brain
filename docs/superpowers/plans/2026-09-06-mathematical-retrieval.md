@@ -33,7 +33,7 @@ merge them. Report measured evidence separately from proposed quality gains.
 - [x] MATH-06: Replace full sorting with a bounded heap using the exact existing
   comparator and stable ties. Compare results with an independent full-sort
   oracle across adversarial inputs and record a provider-free timing diagnostic.
-- [ ] MATH-07: Add paired fact-group bootstrap intervals and held-out fact
+- [x] MATH-07: Add paired fact-group bootstrap intervals and held-out fact
   partitioning to locator diagnostics. Report absolute recall and retention
   separately, label small-sample limits, and test grouping, reproducibility and
   no overlap. Do not rewrite historical results or tune on holdout observations.

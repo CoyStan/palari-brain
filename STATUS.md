@@ -1,5 +1,19 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 MATH-07 paired fact evaluation
+
+Locator diagnostics now report paired fact-cluster bootstrap intervals for
+absolute recall, recall difference, and exact-hit retention. Seeded fact splits
+keep query variants and vector arrays aligned across development/holdout sets.
+Undefined denominators, insufficient facts, degenerate samples, and prior
+exposure are explicit. A fixed-config cache-only HNSW runner writes to stdout.
+The retrospective five-fact/ten-query partition recalled 10/10 for exact and
+HNSW, using 5,050 cache hits, zero misses/writes/provider inputs. Its degenerate
+intervals cannot establish unseen generalization or zero failure risk. Historical
+results were not rewritten. Core 182/182, quickstart 6/6, and legacy 460/460 pass;
+focused contracts cover paired grouping, partition leakage, alignment, and
+undefined denominators.
+
 ## 2026-09-06 MATH-06 bounded top-k selection
 
 Semantic ranking retains only k scored candidates in a stable max-heap, with
