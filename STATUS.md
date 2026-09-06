@@ -1,5 +1,16 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 MATH-05 scope-local BM25
+
+Ranked dialogue BM25 now uses only visible canonical rows in a temporary FTS5
+index, dropped before return. Foreign and invisible rows cannot affect scores.
+Four focused contracts cover invariance, native SQLite score parity, lifecycle,
+and transaction/error cleanup. Core, quickstart, and legacy gates pass.
+A local synthetic 5,000-row query measured scoped median/p95 28.9/36.6 ms versus
+7.5/8.5 ms for a simpler global-index reference. The correctness tradeoff costs
+per-query visible-text indexing; large-scope performance remains a limitation.
+No durable index, provider call, or dataset was added.
+
 ## 2026-09-06 MATH-04 retrieval-family fusion
 
 Hybrid candidate RRF now caps each lexical/semantic family at its strongest

@@ -1507,3 +1507,22 @@ behavior unless familyWeights is supplied, for example
 `{ familyWeights: { ranked: 1, semantic: 1 } }`. Missing families default to one;
 weights must be finite and non-negative. This controls query multiplicity, not
 answer confidence or truth.
+
+
+### Scope-local lexical scoring
+
+Ranked dialogue search computes SQLite BM25 over exactly the caller's visible
+canonical rows. Other users and invisible rows cannot affect document frequency
+or average length. A temporary FTS5 table preserves stemming and native BM25
+semantics; it is dropped before returning, including on failed searches. Date
+constraints select eligible results before limiting, while statistics cover the
+full visible scope. The legacy global-index maintenance helper remains available
+for historical callers but no longer determines ranked dialogue relevance.
+
+The temporary index costs work proportional to visible text on each ranked
+query. In a local 5,000-row synthetic diagnostic, scoped search took 28.9 ms
+median / 36.6 ms p95, versus 7.5 / 8.5 ms for a simpler global-index reference.
+These are diagnostic measurements, not equivalent production latency claims.
+This implementation prioritizes scope-correct scoring and adds no durable index;
+large-scope workloads should evaluate maintained scope-local statistics before
+scaling it. Temporary storage is released after the query.

@@ -27,7 +27,7 @@ merge them. Report measured evidence separately from proposed quality gains.
 - [x] MATH-04: Bound each retrieval family's RRF contribution and deduplicate
   equivalent lists; retain distinct facets and public legacy fusion defaults.
   Test duplicate query invariance and complementary evidence coverage.
-- [ ] MATH-05: Compute FTS5 BM25 within the visible scope using an ephemeral
+- [x] MATH-05: Compute FTS5 BM25 within the visible scope using an ephemeral
   scoped FTS table. Keep tokenizer, query semantics and chronology. Test foreign
   corpus invariance, correction/deletion and score parity with isolated FTS.
 - [ ] MATH-06: Replace full sorting with a bounded heap using the exact existing
