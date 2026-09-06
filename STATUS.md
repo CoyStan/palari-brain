@@ -1,5 +1,13 @@
 # STATUS — Palari alpha
 
+## 2026-09-06 MATH-04 retrieval-family fusion
+
+Hybrid candidate RRF now caps each lexical/semantic family at its strongest
+rank contribution per canonical ID. Repeated variants do not multiply votes;
+distinct facets still introduce complementary evidence. Public additive RRF
+remains the default for callers without familyWeights. Three focused contracts,
+core 171/171, quickstart 6/6, and legacy 449/449 pass. No provider calls.
+
 ## 2026-09-06 MATH-03 experimental chunk retrieval
 
 createChunkedEmbedder accepts opt-in retrieval: max. Scoped child vectors share
