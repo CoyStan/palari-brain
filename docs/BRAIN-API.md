@@ -1454,3 +1454,20 @@ the keyed session.
 storage path (host stamps, verified quotes, lying-reducer rejection);
 `node examples/walkthrough-retrieval.mjs` traces retrieval (digest,
 finding aids, canonical reads, honest absence).
+
+
+### Embedding configuration identity
+
+Supply `embeddingId` alongside `embedder` when creating a brain. Use a stable
+identifier containing the model/version, requested dimensions, and preprocessing
+version, for example `my-model-v2/768d/preprocess-v1`. Changing it rebuilds only
+that scope's derived vectors in bounded indexing batches and invalidates HNSW
+snapshots. Concurrent operations fail if the configuration changes mid-call.
+The same identifier may be reused across restarts with the same configuration.
+
+Existing embedders without an identifier remain supported as anonymous spaces,
+but the host must assign a new explicit ID when changing their model. Dimension
+checks cannot detect a same-dimensional model change without a new identifier.
+Vectors must have consistent dimensions and finite Float32 values. Zero vectors
+remain neutral similarity-zero inputs for compatibility; they convey no semantic
+match. A rejected query does not change canonical memory.

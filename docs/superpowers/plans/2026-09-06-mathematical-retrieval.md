@@ -16,7 +16,7 @@ merge them. Report measured evidence separately from proposed quality gains.
   candidate selection. Pass bounds through dialogue and hybrid APIs; filtered
   semantic queries use exact eligible-subset scoring. Reproduce limit=1 with
   older matches ahead of the sole eligible row, including hybrid search.
-- [ ] MATH-02: Validate finite Float32-compatible vectors and dimensions. Bind
+- [x] MATH-02: Validate finite Float32-compatible vectors and dimensions. Bind
   scoped vectors to an optional embedding configuration ID, invalidate derived
   vectors on changes, and test restart, model changes, malformed vectors, and
   asynchronous invalidation. Keep existing anonymous embedders compatible.

@@ -197,6 +197,7 @@ export async function createPalariBrain(options = {}) {
       auditLog: options.memoryAuditLog,
       clock: options.clock,
       embedder: options.embedder ?? null,
+      embeddingId: options.embeddingId ?? options.embedder?.embeddingId ?? null,
       graphExtractor: options.graphExtractor ?? null,
     })
     const retrievalCapabilities = Object.freeze({
