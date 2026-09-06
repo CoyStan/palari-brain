@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-Simplification stack (pending founder merge):
+Merged simplification PRs [#13](https://github.com/CoyStan/palari-brain/pull/13)
+through [#16](https://github.com/CoyStan/palari-brain/pull/16):
 
 - Separate storage from optional answer strategies; private EvidenceSession
   retains canonical ownership and keeps routing anchors non-citable.

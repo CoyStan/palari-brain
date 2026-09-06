@@ -1,7 +1,7 @@
 # Palari simplification stack
 
 Founder-approved scope: preserve evidence correctness while making answer policy
-and derived memory optional. Leave all PRs unmerged until founder review.
+and derived memory optional. Founder review and merge approval are complete.
 
 1. EvidenceSession: encapsulate evidence text, identities and review bookkeeping;
    retain separate routing anchors and unchanged commitment rules.
@@ -17,12 +17,12 @@ where exports change. Independent review checks isolation, forged citations,
 correction/deletion, and compatibility. No paid provider or new dataset is used.
 Use shared node_modules and one active lightweight worktree.
 
-## Completed implementation, awaiting founder merge
+## Completed implementation, merged into main
 
 - SIMP-01: private evidence ownership and immutable snapshots; PR #13.
 - SIMP-02: independent kernel and optional answer policies; PR #14.
 - SIMP-03: explicit digest/retrieval options and paired scripted runner; PR #15.
-- SIMP-04: core/answers entrypoints, truthful status, packaged example and docs.
+- SIMP-04: core/answers entrypoints, truthful status, packaged example and docs; PR #16.
 
 All six approved recommendations are covered by these four layers. Each layer
 received independent review and provider-free gates. Final checks: core 196/196,
