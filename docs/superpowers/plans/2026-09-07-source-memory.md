@@ -12,7 +12,7 @@ exclude dependent claims. Forgetting erases content while retaining a version
 marker so old citations cannot revive. Claims cannot depend on other claims.
 
 Validate with focused contracts, existing core/legacy/quickstart/package gates,
-and independent review. Publish a PR for this new feature.
+and independent review. Founder-approved PR #17 is now merged into main.
 
 Implementation complete: one 226-line module, three tables, an optional brain
 handle and answer adapter, eleven focused tests, documentation and an offline

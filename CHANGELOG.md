@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Add optional versioned project sources and provisional evidence-linked claims.
+- Add optional versioned project sources and provisional evidence-linked claims
+  in merged PR [#17](https://github.com/CoyStan/palari-brain/pull/17).
   Freshness derives from current source versions and access state; forgetting
   removes dependent claim text. Source answers validate returned quotes and
   recheck access after provider callbacks. Includes an offline project-budget

@@ -1,6 +1,6 @@
 # STATUS — Palari alpha
 
-## 2026-09-07 project source memory
+## 2026-09-07 project source memory merged
 
 Optional brain.sourceMemory(scope) admits versioned documents separately from
 user dialogue. Provisional claims bind exact source excerpts; version or access
@@ -15,7 +15,8 @@ Verification: 207 core tests, 485 legacy tests, existing quickstart and offline
 package install with the project example pass. Eleven focused contracts include
 scope isolation, updates, revocation, reopening and callback forgery. Independent
 review found no remaining blocking issues. No paid calls. Real-model extraction
-and conflict-resolution accuracy remain untested. This feature is a separate PR.
+and conflict-resolution accuracy remain untested. Founder-approved PR #17 is
+merged into main. The temporary source-memory worktree was removed.
 
 ## 2026-09-06 README presentation
 
