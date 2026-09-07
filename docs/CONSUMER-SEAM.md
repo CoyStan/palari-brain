@@ -335,3 +335,11 @@ lineage are not disposable indexes.
 Back up before an upgrade and treat any migration exception as a failed open.
 The package never catches a schema or lock failure and continues against an
 unknown partial state.
+
+## Project document sources
+
+`brain.sourceMemory(scope)` opens an optional scope-bound document/claim handle.
+`palari-brain/sources` exports `answerFromSources` and the low-level
+`createSourceMemory(store, scope)` constructor for trusted store owners.
+See [SOURCE-MEMORY.md](SOURCE-MEMORY.md) for the admission and version contracts.
+These sources never enter the dialogue journal or its digest automatically.

@@ -5,6 +5,7 @@ an immediate integration boundary.
 
 | Document | Scope |
 | --- | --- |
+| [SOURCE-MEMORY.md](SOURCE-MEMORY.md) | Versioned documents, provisional claims, dependency freshness and source answers. |
 | [SIMPLIFICATION.md](SIMPLIFICATION.md) | Core/answer entrypoints, journal mode, optional retrieval and comparison limits. |
 | [BRAIN-API.md](BRAIN-API.md) | Canonical journal, bounded digest, scoped retrieval, embedding identity, experimental chunks, answer commitments, and forgetting. |
 | [CONSUMER-SEAM.md](CONSUMER-SEAM.md) | Supported imports, attribution, scope, SQLite concurrency, and migration discipline. |

@@ -154,6 +154,21 @@ Start with the journal. Add derived components when your application needs them.
 The [integration guide](docs/SIMPLIFICATION.md) covers the callback contract,
 limits, and configuration. Existing root exports remain supported.
 
+## Project memory from multiple sources
+
+The optional source-memory API keeps documents separate from user speech. Claims
+cite exact source versions; updates and revocations exclude dependent claims
+until they are checked again. Alternative claims remain visible, and known
+copies share an origin count.
+
+```bash
+npm run quickstart:sources
+```
+
+The [source-memory guide](docs/SOURCE-MEMORY.md) covers admission, provisional
+claims, permissions, deletion and the injected answer callback. The example uses
+an explicit approval policy; it does not claim automatic conflict resolution.
+
 ## What is proven so far
 
 Palari is an **alpha library** with local SQLite storage and injected providers.
