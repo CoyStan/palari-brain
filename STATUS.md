@@ -1,5 +1,22 @@
 # STATUS — Palari alpha
 
+## 2026-09-07 project source memory
+
+Optional brain.sourceMemory(scope) admits versioned documents separately from
+user dialogue. Provisional claims bind exact source excerpts; version or access
+changes exclude dependent claims through a relational freshness check. Forgetting
+clears source metadata/content and dependent claims while retaining version
+markers. Known origins group copied support; alternatives remain explicit.
+The new sources entrypoint checks answer citations and rechecks source access
+following asynchronous provider work. No general graph, model extraction or
+background worker was added. See docs/SOURCE-MEMORY.md.
+
+Verification: 207 core tests, 485 legacy tests, existing quickstart and offline
+package install with the project example pass. Eleven focused contracts include
+scope isolation, updates, revocation, reopening and callback forgery. Independent
+review found no remaining blocking issues. No paid calls. Real-model extraction
+and conflict-resolution accuracy remain untested. This feature is a separate PR.
+
 ## 2026-09-06 README presentation
 
 README now opens with a lightweight SVG cover and a concrete memory journey.

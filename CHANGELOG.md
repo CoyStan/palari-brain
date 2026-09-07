@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Add optional versioned project sources and provisional evidence-linked claims.
+  Freshness derives from current source versions and access state; forgetting
+  removes dependent claim text. Source answers validate returned quotes and
+  recheck access after provider callbacks. Includes an offline project-budget
+  example. Existing dialogue admission and answer defaults remain unchanged.
+
+
 Merged simplification PRs [#13](https://github.com/CoyStan/palari-brain/pull/13)
 through [#16](https://github.com/CoyStan/palari-brain/pull/16):
 

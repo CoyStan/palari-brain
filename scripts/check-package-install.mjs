@@ -12,6 +12,7 @@ const repositoryRoot = fileURLToPath(new URL('..', import.meta.url))
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 
 const expectedEntries = Object.freeze([
+  Object.freeze({ count: 2, hash: '96e68f0b3e8d9a5f05b4629d7c805b44e981bfdb90fe49abbcf7ae657b0b1e0f', specifier: 'palari-brain/sources' }),
   Object.freeze({
     count: 8,
     hash: '2cba8b2a685eff9dd4713da1308e25f1462313d073d12b5a85c6a43e02cd5304',
@@ -150,6 +151,9 @@ try {
   }))
   process.stdout.write(run(process.execPath, [
     join(consumerRoot, 'node_modules/palari-brain/examples/quickstart-simple.mjs'),
+  ], { cwd: consumerRoot }))
+  process.stdout.write(run(process.execPath, [
+    join(consumerRoot, 'node_modules/palari-brain/examples/quickstart-sources.mjs'),
   ], { cwd: consumerRoot }))
   console.log(
     `package: ${manifest.files.length} files, ${manifest.size} packed bytes, ` +

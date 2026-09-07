@@ -1,3 +1,4 @@
+import { createSourceMemory } from './source-memory.mjs'
 // Canonical memory kernel: admission, host-owned provenance, scoped storage,
 // correction history, deletion, freshness and derived digest access.
 // Exact/ranked journal search and optional semantic/graph indexes locate
@@ -213,6 +214,7 @@ export async function createPalariBrain(options = {}) {
         store.close()
       },
       enabled: Boolean(store.enabled),
+      sourceMemory: (scope) => createSourceMemory(store, scope),
       digestEnabled: digestMode !== 'off',
       forgetById: gate.forgetById,
       forgetRequest: gate.forgetRequest,
