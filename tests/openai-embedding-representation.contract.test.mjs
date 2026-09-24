@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import {
-  createShortenedOpenAIHnswLocator,
-  shortenOpenAIEmbedding,
-} from '../evals/openai-embedding-representation.mjs'
+import { usearchSkip } from './support/optional-native.mjs'
+
+const { createShortenedOpenAIHnswLocator, shortenOpenAIEmbedding } = usearchSkip
+  ? {}
+  : await import('../evals/openai-embedding-representation.mjs')
 
 const SCOPE = Object.freeze({ palariId: 'shortened', userId: 'owner' })
 
-test('manual OpenAI shortening takes a normalized finite prefix', () => {
+test('manual OpenAI shortening takes a normalized finite prefix', { skip: usearchSkip }, () => {
   const shortened = shortenOpenAIEmbedding([3, 4, 12], 2, {
     sourceDimensions: 3,
   })
@@ -28,7 +29,7 @@ test('manual OpenAI shortening takes a normalized finite prefix', () => {
   )
 })
 
-test('shortened HNSW searches prefixes but keeps full-vector lifecycle inputs', () => {
+test('shortened HNSW searches prefixes but keeps full-vector lifecycle inputs', { skip: usearchSkip }, () => {
   const locator = createShortenedOpenAIHnswLocator({
     candidateLimit: 1,
     connectivity: 8,

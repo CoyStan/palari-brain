@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import test from 'node:test'
 
+import { usearchSkip } from './support/optional-native.mjs'
 import {
   createSemanticHnsw,
   semanticVectorLocatorKey,
@@ -199,6 +200,7 @@ test('runtime locator keys are deterministic and scope-bound', () => {
 })
 
 test('runtime HNSW atomically persists and reloads a version-bound snapshot',
+  { skip: usearchSkip },
   async (t) => {
     const { db, dbPath, root } = await fixture(t)
     const first = createSemanticHnsw({ dbPath, minimumRows: 2 })
@@ -236,6 +238,7 @@ test('runtime HNSW atomically persists and reloads a version-bound snapshot',
   })
 
 test('corrupt snapshots and unavailable native bindings fail to exact fallback',
+  { skip: usearchSkip },
   async (t) => {
     const { db, dbPath } = await fixture(t)
     const original = createSemanticHnsw({ dbPath, minimumRows: 2 })
@@ -307,6 +310,7 @@ test('small scopes take the exact path without loading a native module',
   })
 
 test('semantic runtime reranks scoped candidates and rebuilds after correction and delete',
+  { skip: usearchSkip },
   async (t) => {
     const { db, dbPath } = await semanticFixture(t)
     let locator = createSemanticHnsw({ dbPath, minimumRows: 2 })

@@ -1,5 +1,12 @@
 # STATUS — Palari alpha
 
+## 2026-09-24 optional native tests skip cleanly
+
+`npm install --omit=optional`, as the README suggests, left five native HNSW
+tests failing because `usearch` was absent. Those tests now skip with a named
+reason. With usearch: 207 pass. Without: 197 pass, 10 skip, 0 fail. No runtime
+change.
+
 ## 2026-09-07 project source memory merged
 
 Optional brain.sourceMemory(scope) admits versioned documents separately from

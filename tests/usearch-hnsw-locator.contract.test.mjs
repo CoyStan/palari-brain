@@ -4,7 +4,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 
-import { createUsearchHnswLocator } from '../evals/usearch-hnsw-locator.mjs'
+import { usearchSkip } from './support/optional-native.mjs'
+
+const { createUsearchHnswLocator } = usearchSkip
+  ? {}
+  : await import('../evals/usearch-hnsw-locator.mjs')
 
 const SCOPE = Object.freeze({ palariId: 'hnsw-palari', userId: 'hnsw-user' })
 const OTHER_SCOPE = Object.freeze({
@@ -23,7 +27,7 @@ function locator(candidateLimit = 2, quantization = 'f32') {
   })
 }
 
-test('USearch HNSW returns IDs only from its independently indexed scope', () => {
+test('USearch HNSW returns IDs only from its independently indexed scope', { skip: usearchSkip }, () => {
   const index = locator(1)
   index.upsert(SCOPE, { evidenceId: 'own', vector: [1, 0, 0, 0] })
   index.upsert(OTHER_SCOPE, { evidenceId: 'other', vector: [1, 0, 0, 0] })
@@ -34,7 +38,7 @@ test('USearch HNSW returns IDs only from its independently indexed scope', () =>
   assert.equal(index.stats(SCOPE).strategy, 'usearch-hnsw-f32-m8-ef32-k1')
 })
 
-test('USearch HNSW batch build, correction, and exact deletion stay synchronized', () => {
+test('USearch HNSW batch build, correction, and exact deletion stay synchronized', { skip: usearchSkip }, () => {
   const index = locator(2)
   index.replace(SCOPE, [
     { evidenceId: 'correctable', vector: [1, 0, 0, 0] },
@@ -54,7 +58,7 @@ test('USearch HNSW batch build, correction, and exact deletion stay synchronized
   assert.ok(!index.locate(SCOPE, [0, 1, 0, 0]).includes('correctable'))
 })
 
-test('persisted HNSW reloads with canonical IDs and rejects another scope', async (t) => {
+test('persisted HNSW reloads with canonical IDs and rejects another scope', { skip: usearchSkip }, async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'palari-usearch-'))
   t.after(() => rm(directory, { force: true, recursive: true }))
   const path = join(directory, 'index.usearch')
@@ -80,7 +84,7 @@ test('persisted HNSW reloads with canonical IDs and rejects another scope', asyn
   )
 })
 
-test('USearch HNSW fails closed on malformed entries and vector dimensions', () => {
+test('USearch HNSW fails closed on malformed entries and vector dimensions', { skip: usearchSkip }, () => {
   const index = locator()
   assert.throws(() => index.replace(SCOPE, [
     { evidenceId: 'duplicate', vector: [1, 0, 0, 0] },
@@ -95,7 +99,7 @@ test('USearch HNSW fails closed on malformed entries and vector dimensions', () 
   assert.throws(() => locator(2, 'b1'), /quantization must be one of/)
 })
 
-test('f32, bf16, and i8 preserve correction and deletion lifecycle behavior', () => {
+test('f32, bf16, and i8 preserve correction and deletion lifecycle behavior', { skip: usearchSkip }, () => {
   for (const quantization of ['f32', 'bf16', 'i8']) {
     const index = locator(2, quantization)
     index.replace(SCOPE, [
