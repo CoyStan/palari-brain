@@ -54,7 +54,18 @@ export function createClients({ celerisCapUsd, jevCapUsd, celerisKey = process.e
   return { spend, celerisChat, celerisJson, jevDecide }
 }
 
-export async function localEmbedder() {
+// chunkChars > 0 wraps the model in Palari's createChunkedEmbedder with
+// max-chunk retrieval: each message is split into consecutive slices and
+// scored by its best-matching slice instead of only its first ~256 tokens.
+export async function localEmbedder({ chunkChars = 0 } = {}) {
+  if (chunkChars > 0) {
+    const { createChunkedEmbedder } = await import('../src/embedder.mjs')
+    const base = await localEmbedder()
+    return {
+      embedder: createChunkedEmbedder({ embed: base.embedder, maxChunkChars: chunkChars, retrieval: 'max',
+        embeddingId: 'Xenova/all-MiniLM-L6-v2/384d/mean-normalized' }),
+    }
+  }
   const { pipeline } = await import('@huggingface/transformers')
   const extract = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', { dtype: 'fp32' })
   // MiniLM reads ~256 tokens; capping characters and batching 16 at a time
