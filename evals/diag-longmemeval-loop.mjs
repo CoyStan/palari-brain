@@ -30,8 +30,11 @@ const IDS = arg('--ids', '') ? new Set(arg('--ids', '').split(',')) : null
 const [SHARD, SHARDS] = arg('--shard', '0/1').split('/').map(Number)
 // --exclude-seed S (with --exclude-per-type N) removes an earlier seeded
 // sample so a fresh run is held out from questions used during design.
-const EXCLUDE_SEED = arg('--exclude-seed', '')
-const EXCLUDE_PER_TYPE = Number(arg('--exclude-per-type', 10))
+// --exclude 7:10,2026:20 removes several earlier seeded samples (seed:perType).
+const EXCLUDES = [
+  ...(arg('--exclude-seed', '') === '' ? [] : [[Number(arg('--exclude-seed')), Number(arg('--exclude-per-type', 10))]]),
+  ...arg('--exclude', '').split(',').filter(Boolean).map((pair) => pair.split(':').map(Number)),
+]
 const SEALED = '1568498a'
 const OUT = join('.palari-alpha', `lme-loop-${new Date().toISOString().replace(/[:.]/g, '-')}-s${SHARD}of${SHARDS}.jsonl`)
 const clients = createClients({
@@ -52,8 +55,15 @@ function seededShuffle(items, seed) {
 
 const raw = JSON.parse(await readFile('data/longmemeval_s_cleaned.json', 'utf8'))
   .filter((row) => !String(row.question_id).startsWith(SEALED))
-const excluded = new Set(EXCLUDE_SEED === '' ? [] : [...Map.groupBy(raw, (row) => row.question_type).values()]
-  .flatMap((rows) => seededShuffle(rows, Number(EXCLUDE_SEED)).slice(0, EXCLUDE_PER_TYPE)).map((row) => row.question_id))
+// Each excluded sample is reconstructed exactly as it was drawn: from the
+// pool left after the exclusions listed before it.
+const excluded = new Set()
+for (const [seed, perType] of EXCLUDES) {
+  const remaining = raw.filter((row) => !excluded.has(row.question_id))
+  for (const rows of Map.groupBy(remaining, (row) => row.question_type).values()) {
+    for (const row of seededShuffle(rows, seed).slice(0, perType)) excluded.add(row.question_id)
+  }
+}
 const pool = raw.filter((row) => !excluded.has(row.question_id))
 const byType = Map.groupBy(pool, (row) => row.question_type)
 const sample = (IDS
