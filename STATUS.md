@@ -1,5 +1,20 @@
 # STATUS — Palari alpha
 
+## 2026-10-04 Jev answer-support checker diagnostic
+
+evals/diag-jev-verifier.mjs asks TypeSafe Jev (typed decisions with
+probabilities) whether quoted evidence supports an answer, and whether an
+abstention smuggles a claim. Two runs, 8 calls each, ~$0.0003 total. All six
+support cases matched the diagnostic's expected labels with stable
+probabilities: faithful 1.00 supported, fabricated shellfish 0.99 unsupported,
+ignored correction 0.95 unsupported, applied correction 0.96 supported, and
+the stale March "Denver now" answer 0.81-0.83 partial (Celeris said supported
+at confidence 1.0). Over-inference was 0.76-0.77 unsupported. The smuggled
+abstention check separated weakly (P(yes) 0.59-0.62 vs 0.29-0.34 clean), so
+the fixed host abstention message remains the right fix there. Hand-written
+labels, eight cases: diagnostic only, not a calibration result. No product
+code changed; the checker is not wired into answers.
+
 ## 2026-10-04 Celeris-1 provider diagnostic
 
 evals/diag-celeris.mjs drives the remember/correct/forget journey through

@@ -67,10 +67,10 @@ try {
   }
   for (const a of abstentions) {
     const { smuggle } = await decide(`Text: ${a.text}`, { smuggle: smuggleQuestion })
-    const verdict = smuggle.choice ?? smuggle.answer ?? JSON.stringify(smuggle)
-    const ok = String(verdict).toLowerCase().startsWith(a.expect)
+    // noul answers carry P(yes) in the `noul` field.
+    const ok = (smuggle.noul >= 0.5 ? 'yes' : 'no') === a.expect
     agree += ok
-    console.log(`${ok ? 'AGREE' : 'DIFF '}  ${a.name}: ${JSON.stringify(smuggle)}`)
+    console.log(`${ok ? 'AGREE' : 'DIFF '}  ${a.name}: P(yes)=${smuggle.noul}`)
   }
 } catch (error) {
   console.log(`ERROR  ${error.message}`)
