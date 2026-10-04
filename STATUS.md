@@ -1,5 +1,30 @@
 # STATUS — Palari alpha
 
+## 2026-10-04 LongMemEval_S sample: Celeris baseline vs Jev + Celeris loop
+
+evals/diag-longmemeval-loop.mjs runs a seeded LongMemEval_S sample (10 per
+type, seed 7, sealed 1568498a excluded; data/ gitignored, MIT dataset) over
+local MiniLM embeddings. The shared loop now lives in evals/jev-celeris-loop.mjs
+and classifies fact vs recommendation requests inside its first Jev call
+(59/60 matched the dataset type), with a separate recommendation compose and
+consistency check. Jev auto-grades; every failure was manually reviewed.
+
+57 of 60 ran (3 haystacks failed ingestion with "Canonical dialogue identity
+conflict", apparently duplicated session content in the dataset). After
+manual correction (official rule allows off-by-one only for days):
+Celeris single-search baseline 40/57 (70%), Jev + Celeris loop 44/57 (77%).
+By type, loop vs baseline: single-session-user 9/9 vs 9/9, multi-session
+8/10 vs 6/10, preference 6/10 vs 5/10, temporal 5/10 vs 5/10, knowledge-update
+8/9 vs 9/9, single-session-assistant 8/9 vs 6/9; no-answer questions 4/4 both.
+Confidently wrong answers: loop 2, baseline 4. Jev blocked 6 drafts: 3 wrong
+(streaming service, airline order, 22 days) and 3 correct (5 months, four
+weeks, 38 coins), so verification broke even on temporal arithmetic
+(P(supported) 0.02-0.45 for both groups). Three preference failures were Jev
+judging no candidate relevant although the gold session was retrieved.
+Cost ~$0.133 for both arms (~$0.0015/question for the loop); mean answer time
+~10 s loop vs ~5 s baseline. n=57 gives roughly +/-11 points of sampling
+error; Jev grading differs from the official GPT-4o judge. Diagnostic only.
+
 ## 2026-10-04 local embeddings + three-level Jev policy
 
 The earlier diagnostic brains had no embedder, so every search was

@@ -126,7 +126,7 @@ for (const [index, rawInstance] of sample.entries()) {
         goldSessionFound: instance.answerSessionIds.some((id) => sessionsSeen.has(id)),
         goldSessionKept: instance.answerSessionIds.some((id) => sessionsKept.has(id)),
         blocked: !!trace.blocked, hedged: !!trace.hedged, draft: trace.draft ?? null,
-        pSupported: trace.pSupported ?? null, kind: trace.kind ?? null,
+        pSupported: trace.pSupported ?? null, pUnsupported: trace.pUnsupported ?? null, kind: trace.kind ?? null,
       }
     }
     results.push(record)
