@@ -134,7 +134,7 @@ for (const [index, rawInstance] of sample.entries()) {
           ? await answerWithSingleSearch(brain, { ...scope, question: instance.question, questionDate,
               provider: baselineProvider(trace, questionDate), limit: 20, evidenceMaxChars: 40_000 })
           : await answerWithRetrieval(brain, { ...scope, question: instance.question, questionDate,
-              provider: createLoopProvider({ clients, trace, questionDate, speakers: 'all', v2: arm === 'v2' }),
+              provider: createLoopProvider({ clients, trace, questionDate, speakers: 'all', v2: arm === 'v2', lean: arm === 'v3' }),
               maxRetrievalCalls: 4, allowEmptyAbstention: true, iterativeRetrieval: true,
               briefingPolicy: 'digest', retrievalProfile: 'simple' })
       } catch (error) {
