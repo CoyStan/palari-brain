@@ -1,5 +1,25 @@
 # STATUS — Palari alpha
 
+## 2026-10-04 reason-first answer prompt
+
+Reconstructing exactly what the baseline saw (deterministic local search)
+showed failures with the answer in context, e.g. "visiting my sister Emily in
+Denver" answered as unknown, and Twitter +120 chosen over TikTok +200. A
+reason-first prompt (list relevant facts with memory numbers, reason
+explicitly, then answer) fixed both in 3/3 runs each.
+
+The "reason" arm in evals/diag-longmemeval-loop.mjs is the baseline (one
+Palari search, one Celeris call, host-attached exact quotes) with only that
+prompt and a facts/reasoning/answer/used schema. On the same fresh 60:
+reason-first 55/60 (92%) vs baseline 50/60 (83%) vs lean v3 49/60.
+Per type (base/reason): single-session-user 11/12, multi-session 7/11,
+temporal 10/9, knowledge-update 11/11, assistant 11/12. Manually reviewed:
+6 fixed (2 projects, TikTok, Denver, Revolution Hall, 4 cuisines, average age
+59.6) and 1 broken (ukulele 24 days answered 0 days). Confidently wrong 3 vs 3.
+Median latency 0.80 s vs 0.76 s; ~$0.0012 per answer. With 7 discordant
+pairs (6-1) a two-sided sign test gives p~0.125, so this is a strong signal,
+not yet a proven gain. Session spend ~$2.90 of the $3 cap.
+
 ## 2026-10-04 tau2-bench airline: Celeris agent and Jev action guard
 
 tau2-bench (sierra-research, MIT, cloned outside the repo; Python 3.12 via
