@@ -1,5 +1,22 @@
 # STATUS — Palari alpha
 
+## 2026-10-04 Celeris on the full answer path
+
+The earlier Celeris runs used the simple answerWithSingleSearch baseline, not
+the product path (answerWithRetrieval + createOpenAIRetrievalProvider with
+memoryNumber aliases, memory_bridge, confirmation reviewer). Celeris's own
+/v1/responses returns an empty output array whenever tools are offered, so
+evals/celeris-responses-shim.mjs translates the adapter's Responses bodies to
+chat/completions and back, with a spend reserve. Through it, on one
+"which city do I live in now" question (9 probes): 4 empty replies (Celeris
+generated ~150 tokens but its server returned content null and no tool call,
+apparently a dropped malformed tool call), 4 commitments before any
+retrieval (OPENAI_ANSWER_COMMIT_BEFORE_EVIDENCE), and 1 plan->find->commit
+that failed commitment repair. Palari failed closed every time; no answer was
+produced. Celeris handles the small exploration tool loop but not yet the full
+product protocol (7 memory tools plus strict commit schema, ~5k-token prompt).
+Probe spend ~$0.015.
+
 ## 2026-10-04 harder Celeris + Jev diagnostic
 
 evals/diag-celeris-jev-hard.mjs stores 33 dated turns (filler, distractors,
