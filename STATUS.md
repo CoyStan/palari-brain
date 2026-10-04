@@ -1,5 +1,40 @@
 # STATUS — Palari alpha
 
+## 2026-10-04 held-out LongMemEval: loop v2 and lean v3 vs baseline
+
+All runs fully embed each history first (indexSemantic until complete; the
+local embedder now batches 16 texts and caps 1,500 characters, after a batch
+of 200 long messages was OOM-killed). Duplicate haystack session IDs (13/500
+instances repeat a filler session on two dates) get a "#2" suffix. Each
+sample excludes every question seen earlier.
+
+Held-out 120 (seed 2026, 20/type): baseline 87/120 (72.5%, after correcting
+one judge false positive) vs v2 93/120 (77.5%). v2 = Jev relevance on
+600-character excerpts, overlapped bridge probes, four-way Jev request kind,
+host count and date tools, recommendation fallback. Per type (base/v2):
+preference 10/17, temporal 10/15, single-session-user 20/19, assistant 19/17,
+knowledge-update 18/15, multi-session 11/10. Recommendation mode and the date
+tool helped; the count tool hurt (summed differences such as 512 minutes or
+58 mpg, summed updates, 10 confidently wrong multi-session answers) and the
+short excerpts made Jev drop relevant long messages. Confidently wrong:
+v2 21 vs baseline 11.
+
+Fresh 60 (seed 4242, 12/type, five types; all 30 preference questions were
+already used): baseline 50/60 (83%) vs lean v3 49/60 (82%). v3 = baseline
+search with all results to Celeris, Jev request kind in parallel, keyword
+search plus date tool for date questions, Jev blocks only P(unsupported)
+>= 0.7 or instruction-following. v3 lost two correct answers to Jev blocks and
+one date question to a wrong operation (59 vs 24 days); it won several counts.
+Median answer time: baseline 0.76 s, v3 0.77 s (p90 0.92 s).
+
+Conclusion: with fully indexed embeddings, one Palari search plus one Celeris
+call is the strong configuration (~0.7 s, ~$0.0008 per answer); extra Jev
+orchestration is roughly neutral overall. The robust gain is the
+recommendation prompt mode (+7/20 preference). Earlier "Palari adds little"
+results were partly an artifact of unindexed embeddings. Jev auto-grading had
+at least two false positives in manual review; n=60-120 leaves roughly
++/-7-11 points of sampling error. Session spend ~$0.72 of the $1 cap.
+
 ## 2026-10-04 loop latency profile
 
 evals/profile-loop-latency.mjs times each step of the Jev + Celeris loop on 8
