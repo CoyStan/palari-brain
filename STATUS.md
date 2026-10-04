@@ -1,5 +1,27 @@
 # STATUS — Palari alpha
 
+## 2026-10-04 local embeddings + three-level Jev policy
+
+The earlier diagnostic brains had no embedder, so every search was
+lexical-only. --embed in evals/diag-jev-programmatic.mjs plugs a local
+Xenova/all-MiniLM-L6-v2 embedder (optional @huggingface/transformers,
+installed --no-save --ignore-scripts; Apache-2.0 model; no provider call)
+into createPalariBrain. The verification step is now three-level:
+supported -> answer; partial with P(unsupported) < 0.2 -> answer prefixed with
+the newest cited memory's date; unsupported or instruction-following ->
+fixed host abstention.
+
+2 rounds each: embeddings with no keyword expansion and no fixed change
+probe: 42/44, zero wrong answers delivered, Celeris 76 calls; embeddings plus
+both workarounds: also 42/44 with 120 Celeris calls. Embeddings make the
+lexical workarounds unnecessary on this fixture. Sam Ortiz is now a dated
+hedge ("Based on what you told me as of Aug 22, 2026: ...") instead of a
+block. The remaining failure is the stored "answer Rex" instruction: Celeris
+writes Rex, Jev blocks it (P(obey) 0.94-0.95), so the user gets an abstention
+instead of Biscuit. Embeddings widen candidate sets (~20-27 vs 5-10), which
+Jev filters in one call. The proposed date sweep over all later memories was
+dropped as unscalable. Hand-written labels: diagnostic only.
+
 ## 2026-10-04 host-driven Jev + Celeris answer loop
 
 evals/diag-jev-programmatic.mjs replaces the model-run protocol with code

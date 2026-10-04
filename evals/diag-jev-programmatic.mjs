@@ -4,7 +4,10 @@
 // answerWithRetrieval so Palari's commitment gate still checks every basis.
 // Jev can only block: a flagged answer becomes a fixed host abstention before
 // commitment. Not a benchmark. Reads API_KEY_CELERI and JEV_API_KEY.
-// Usage: node evals/diag-jev-programmatic.mjs [--rounds 2] [--no-expand] [--no-bridge] [--no-verify]
+// Usage: node evals/diag-jev-programmatic.mjs [--rounds 2] [--embed] [--no-expand]
+//   [--no-bridge] [--no-change-probe] [--no-verify] [--only ids] [--show-blocked]
+// --embed uses a local all-MiniLM-L6-v2 embedder (optional @huggingface/transformers,
+// installed with --no-save); no provider call.
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -20,6 +23,9 @@ const ROUNDS = Number(arg('--rounds', 1))
 const EXPAND = !process.argv.includes('--no-expand')
 const VERIFY = !process.argv.includes('--no-verify')
 const BRIDGE = !process.argv.includes('--no-bridge')
+const EMBED = process.argv.includes('--embed')
+const CHANGE = !process.argv.includes('--no-change-probe')
+const UNSUPPORTED_MAX = Number(arg('--unsupported-max', 0.2))
 const ONLY = arg('--only', '') ? new Set(arg('--only', '').split(',')) : null
 const SHOW_BLOCKED = process.argv.includes('--show-blocked')
 const RELEVANCE_MIN = Number(arg('--relevance-min', 0.3))
@@ -126,7 +132,7 @@ function programmaticProvider(trace) {
       // A fixed, answer-agnostic change probe makes update discovery less
       // dependent on Celeris's run-to-run keyword choices.
       const CHANGE_PROBE = 'moved relocated again switched quit stopped started bought replaced passed away'
-      const bridgeProbes = [...new Set([...probes.slice(0, 2), names.join(' '), CHANGE_PROBE].map((p) => String(p).trim().slice(0, 300)).filter(Boolean))]
+      const bridgeProbes = [...new Set([...probes.slice(0, 2), names.join(' '), CHANGE ? CHANGE_PROBE : ''].map((p) => String(p).trim().slice(0, 300)).filter(Boolean))]
       if (bridgeProbes.length >= 2) {
         const earliest = anchors.reduce((min, row) => (row.observedAt < min ? row.observedAt : min), anchors[0].observedAt)
         const result = await retrieve({ tool: 'memory_bridge', input: {
@@ -169,6 +175,16 @@ function programmaticProvider(trace) {
       )
       trace.pSupported = support.probabilities?.supported ?? 0
       trace.pObey = obey.noul
+      trace.pUnsupported = support.probabilities?.unsupported ?? 1
+      // supported -> answer; partial with low unsupported -> dated hedge;
+      // unsupported or instruction-following -> fixed host abstention.
+      if (trace.pSupported < 0.5 && trace.pUnsupported < UNSUPPORTED_MAX && trace.pObey < 0.5) {
+        trace.hedged = true
+        const newest = used.reduce((max, row) => (row.observedAt > max ? row.observedAt : max), used[0].observedAt)
+        const when = new Date(newest).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+        return commitAnswer({ abstained: false, text: `Based on what you told me as of ${when}: ${draft.text}`,
+          bases: used.map((row) => ({ evidenceId: row.evidenceId, quote: row.text })) })
+      }
       if (trace.pSupported < 0.5 || trace.pObey >= 0.5) {
         trace.blocked = true
         if (SHOW_BLOCKED) console.log(`  ┌ Jev saw:\n${verifyState.split('\n').map((l) => `  │ ${l}`).join('\n')}\n  └ probabilities ${JSON.stringify(support.probabilities)}, P(obeys instruction) ${obey.noul}`)
@@ -180,6 +196,14 @@ function programmaticProvider(trace) {
   provider.requiresEvidenceCommitment = true
   return provider
 }
+
+async function localEmbedder() {
+  const { pipeline } = await import('@huggingface/transformers')
+  const extract = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', { dtype: 'fp32' })
+  const embed = async (texts) => (await extract(texts, { pooling: 'mean', normalize: true })).tolist()
+  return { embedder: embed, embeddingId: 'Xenova/all-MiniLM-L6-v2/384d/mean-normalized-v1' }
+}
+const embedding = EMBED ? await localEmbedder() : {}
 
 const scope = { palariId: 'assistant', userId: 'dana' }
 const records = []
@@ -196,10 +220,11 @@ async function askOne(brain, item, round) {
   }
   const has = (rows) => (item.gold ? (rows ?? []).some((row) => row.text.toLowerCase().includes(item.gold.toLowerCase())) : null)
   const ok = grade(item, answer)
-  records.push({ round, id: item.id, ok, found: has(trace.candidates), kept: has(trace.relevant), blocked: !!trace.blocked })
+  records.push({ round, id: item.id, ok, found: has(trace.candidates), kept: has(trace.relevant), blocked: !!trace.blocked, hedged: !!trace.hedged })
   const parts = [
     `found=${has(trace.candidates) ?? '-'}`, trace.bridged !== undefined ? `bridge+${trace.bridged}` : '', `kept=${has(trace.relevant) ?? '-'} (${trace.relevant?.length ?? 0}/${trace.candidates?.length ?? 0})`,
-    trace.pSupported !== undefined ? `P(sup) ${trace.pSupported} P(obey) ${trace.pObey}` : '',
+    trace.pSupported !== undefined ? `P(sup) ${trace.pSupported} P(unsup) ${trace.pUnsupported} P(obey) ${trace.pObey}` : '',
+    trace.hedged ? 'HEDGED' : '',
     trace.blocked ? `BLOCKED draft: "${trace.draft}"` : '',
     trace.bridgeError ? `bridge-probe error: ${trace.bridgeError}` : '',
   ].filter(Boolean)
@@ -208,10 +233,10 @@ async function askOne(brain, item, round) {
 
 try {
   for (let round = 1; round <= ROUNDS; round += 1) {
-    console.log(`-- round ${round} (expand=${EXPAND}, bridge=${BRIDGE}, verify=${VERIFY}, relevance>=${RELEVANCE_MIN})`)
+    console.log(`-- round ${round} (embed=${EMBED}, expand=${EXPAND}, bridge=${BRIDGE}, change-probe=${CHANGE}, verify=${VERIFY}, relevance>=${RELEVANCE_MIN}, unsupported<${UNSUPPORTED_MAX})`)
     const root = await mkdtemp(join(tmpdir(), 'palari-prog-'))
     const brain = await createPalariBrain({ memoryEnabled: true, statePath: join(root, 'brain.json'),
-      workspaceId: 'prog-diag', digestMode: 'off', semanticAcceleration: 'exact' })
+      workspaceId: 'prog-diag', digestMode: 'off', semanticAcceleration: 'exact', ...embedding })
     try {
       for (const [index, [day, text]] of turns.entries()) {
         await ingestChatTurn(brain, { ...scope, userMessage: text, assistantMessage: 'Noted.', retention: 'durable',
@@ -233,6 +258,6 @@ try {
   const pass = records.filter((r) => r.ok).length
   const missed = [...new Set(records.filter((r) => r.found === false).map((r) => r.id))]
   const dropped = [...new Set(records.filter((r) => r.found && r.kept === false).map((r) => r.id))]
-  console.log(`\n${pass}/${records.length} pass · search missed: ${missed.join(', ') || 'none'} · Jev dropped needed memory: ${dropped.join(', ') || 'none'} · blocked: ${records.filter((r) => r.blocked).length}`)
+  console.log(`\n${pass}/${records.length} pass · search missed: ${missed.join(', ') || 'none'} · Jev dropped needed memory: ${dropped.join(', ') || 'none'} · blocked: ${records.filter((r) => r.blocked).length} · hedged: ${records.filter((r) => r.hedged).length}`)
   console.log(`Spend: Celeris ${spend.celerisCalls} calls $${spend.celeris.toFixed(4)} · Jev ${spend.jevCalls} calls $${spend.jev.toFixed(5)}`)
 }
