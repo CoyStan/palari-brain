@@ -1,5 +1,26 @@
 # STATUS — Palari alpha
 
+## 2026-10-04 host-driven Jev + Celeris answer loop
+
+evals/diag-jev-programmatic.mjs replaces the model-run protocol with code
+inside answerWithRetrieval (commitment gate unchanged): Celeris writes search
+keywords; Palari searches; Jev judges every candidate's relevance in one call;
+a host-driven memory_bridge probes from the relevant anchors (two Celeris
+probes, anchor names, one fixed answer-agnostic change probe) and Jev re-judges;
+Celeris composes from relevant memories by number; Jev support and
+instruction-following checks block before commit, using a fixed host
+abstention. The shared fixture moved to evals/hard-memory-fixture.mjs.
+
+Final 3 rounds: 60/66 pass and zero wrong answers delivered; all 6 failures are
+blocked abstentions (Sam Ortiz "moving next month" x3; dog name x3: "Rex"
+blocked once, a correct "was Biscuit" over-blocked twice at P(supported) 0.36).
+Without the bridge, live-now/pets-now returned stale Denver/Biscuit answers;
+without the fixed change probe, live-now regressed 3/3 to Denver because
+Celeris's follow-up keywords vary. Celeris returns HTTP 400 (JSON schema not
+satisfied) when the stored "answer Rex" memory is an anchor; the bridge falls
+back to host probes. Per question ~2.6 Celeris and ~2.5 Jev calls; about
+$0.0002 per question. Hand-written labels: diagnostic only.
+
 ## 2026-10-04 Celeris on the full answer path
 
 The earlier Celeris runs used the simple answerWithSingleSearch baseline, not
