@@ -45,7 +45,23 @@ console.log(`${ids.length} questions · configs ${CONFIGS.join(',')} · ${OUT}`)
 
 for (const [n, id] of ids.entries()) {
   const [instance] = loadLongMemEvalInstances([dedupeSessionIds(byId.get(id))])
-  const record = { id, type: instance.questionType, goldSessions: instance.answerSessionIds.length }
+  // Answer-bearing messages as Palari source IDs: <session>:<turnIndex>:<role>,
+  // where a user turn and its following assistant reply share the user's index.
+  const answerTurns = []
+  for (const session of instance.sessions) {
+    for (let index = 0; index < session.turns.length;) {
+      const turn = session.turns[index]
+      if (turn.role === 'user' && session.turns[index + 1]?.role === 'assistant') {
+        if (turn.hasAnswer) answerTurns.push(`${session.sessionId}:${index}:user`)
+        if (session.turns[index + 1].hasAnswer) answerTurns.push(`${session.sessionId}:${index}:assistant`)
+        index += 2
+      } else {
+        if (turn.hasAnswer) answerTurns.push(`${session.sessionId}:${index}:${turn.role}`)
+        index += 1
+      }
+    }
+  }
+  const record = { id, type: instance.questionType, goldSessions: instance.answerSessionIds.length, answerTurns: answerTurns.length }
   for (const config of CONFIGS) {
     const root = await mkdtemp(join(tmpdir(), 'lme-recall-'))
     const brain = await createPalariBrain({ memoryEnabled: true, statePath: join(root, 'brain.json'),
@@ -63,18 +79,22 @@ for (const [n, id] of ids.entries()) {
         await answerWithSingleSearch(brain, { ...scope, question: instance.question, questionDate: instance.questionDate?.slice(0, 10),
           limit, evidenceMaxChars: 100_000, provider: (input) => { evidence = input.evidence; return { abstained: true, text: 'probe', bases: [] } } })
         const sessions = new Set(evidence.map((row) => row.session))
+        const messages = new Set(evidence.map((row) => row.sourceMessageId))
         ranks[limit] = {
           any: instance.answerSessionIds.some((s) => sessions.has(s)),
           all: instance.answerSessionIds.every((s) => sessions.has(s)),
+          // Stricter: the exact answer-bearing messages (LongMemEval has_answer).
+          turnsFound: answerTurns.filter((t) => messages.has(t)).length,
           ms: Date.now() - started,
         }
       }
-      record[config] = { indexMs, top20any: ranks[20].any, top20all: ranks[20].all, top50any: ranks[50].any, top50all: ranks[50].all, searchMs: ranks[20].ms }
+      record[config] = { indexMs, top20any: ranks[20].any, top20all: ranks[20].all, top50any: ranks[50].any, top50all: ranks[50].all,
+        turns20: ranks[20].turnsFound, turns50: ranks[50].turnsFound, searchMs: ranks[20].ms }
     } finally {
       brain.close()
       await rm(root, { recursive: true, force: true })
     }
   }
   await appendFile(OUT, `${JSON.stringify(record)}\n`)
-  console.log(`[${n + 1}/${ids.length}] ${record.type.padEnd(25)} ${CONFIGS.map((c) => `${c}:${record[c].top20any ? 'Y' : '-'}${record[c].top20all ? 'Y' : '-'}`).join(' ')} ${id}`)
+  console.log(`[${n + 1}/${ids.length}] ${record.type.padEnd(25)} turns=${answerTurns.length} ${CONFIGS.map((c) => `${c}:${record[c].top20any ? 'Y' : '-'}${record[c].top20all ? 'Y' : '-'} t${record[c].turns20}`).join(' ')} ${id}`)
 }
