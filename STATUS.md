@@ -1,5 +1,23 @@
 # STATUS — Palari alpha
 
+## 2026-10-04 loop latency profile
+
+evals/profile-loop-latency.mjs times each step of the Jev + Celeris loop on 8
+LongMemEval_S questions after fully indexing each history (indexSemantic
+until complete, as a host would during idle time). Per answer: mean 1.2 s
+(1.0-1.4 s) = Jev 0.61 s (3 calls, median 201 ms) + Celeris 0.45 s (2 calls,
+median 227 ms) + Palari retrieval 0.14 s (2 calls, median 73 ms), all
+sequential. Bare round trips: Celeris 63 ms, Jev 162 ms. The ~10 s per answer
+seen in the LongMemEval run was mostly local MiniLM embedding catch-up
+(~41 s per ~400-message history on this CPU).
+
+Finding: Palari indexes embeddings in 64-row batches per semantic call and
+falls back to lexical search until complete, so the earlier LongMemEval sample
+ran with only partially indexed histories; its scores likely understate the
+embedding path. Next latency wins: run the Celeris bridge-probe call in
+parallel with the first Jev relevance call, and shrink the 30-56k-character
+Jev relevance prompts. Spend for this profile ~$0.012.
+
 ## 2026-10-04 LongMemEval_S sample: Celeris baseline vs Jev + Celeris loop
 
 evals/diag-longmemeval-loop.mjs runs a seeded LongMemEval_S sample (10 per
