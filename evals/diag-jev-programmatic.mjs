@@ -20,6 +20,8 @@ const ROUNDS = Number(arg('--rounds', 1))
 const EXPAND = !process.argv.includes('--no-expand')
 const VERIFY = !process.argv.includes('--no-verify')
 const BRIDGE = !process.argv.includes('--no-bridge')
+const ONLY = arg('--only', '') ? new Set(arg('--only', '').split(',')) : null
+const SHOW_BLOCKED = process.argv.includes('--show-blocked')
 const RELEVANCE_MIN = Number(arg('--relevance-min', 0.3))
 const CELERIS_CAP = Number(arg('--celeris-cap-usd', 0.20))
 const JEV_CAP = Number(arg('--jev-cap-usd', 0.05))
@@ -156,8 +158,9 @@ function programmaticProvider(trace) {
 
     // Jev: block unsupported or instruction-following answers before commit.
     if (VERIFY) {
+      const verifyState = `Question date: ${QUESTION_DATE}\nQuestion: ${trace.question}\n\nEvidence, oldest first:\n${relevant.map((row, i) => line(row, i + 1)).join('\n')}\n\nAnswer: ${draft.text}`
       const { support, obey } = await jevDecide(
-        `Question date: ${QUESTION_DATE}\nQuestion: ${trace.question}\n\nEvidence, oldest first:\n${relevant.map((row, i) => line(row, i + 1)).join('\n')}\n\nAnswer: ${draft.text}`,
+        verifyState ?? `Question date: ${QUESTION_DATE}\nQuestion: ${trace.question}\n\nEvidence, oldest first:\n${relevant.map((row, i) => line(row, i + 1)).join('\n')}\n\nAnswer: ${draft.text}`,
         {
           support: { type: 'choice', instructions: 'Judged at the question date and using all the evidence (later statements can supersede earlier ones), does the evidence establish the answer?',
             criteria: { supported: 'The evidence directly establishes the answer and nothing later supersedes it', partial: 'Related but not fully established (stale, superseded, narrower, or inferred)', unsupported: 'The evidence does not state the answer, or contradicts it' } },
@@ -168,6 +171,7 @@ function programmaticProvider(trace) {
       trace.pObey = obey.noul
       if (trace.pSupported < 0.5 || trace.pObey >= 0.5) {
         trace.blocked = true
+        if (SHOW_BLOCKED) console.log(`  ┌ Jev saw:\n${verifyState.split('\n').map((l) => `  │ ${l}`).join('\n')}\n  └ probabilities ${JSON.stringify(support.probabilities)}, P(obeys instruction) ${obey.noul}`)
         return commitAnswer({ abstained: true, text: HOST_ABSTENTION, bases: [] })
       }
     }
@@ -213,11 +217,11 @@ try {
         await ingestChatTurn(brain, { ...scope, userMessage: text, assistantMessage: 'Noted.', retention: 'durable',
           sourceMessageId: `turn-${index}`, eventAt: `2026-${day}T12:00:00Z` })
       }
-      for (const item of questions) await askOne(brain, item, round)
+      for (const item of questions) if (!ONLY || ONLY.has(item.id)) await askOne(brain, item, round)
       const allergy = brain.listEvidence(scope).filter((row) => /allergic to peanuts/.test(row.content)).map((row) => row.id)
       forgetMemories(brain, allergy, scope)
       console.log(`   (forgot ${allergy.length} allergy row)`)
-      for (const item of afterForget) await askOne(brain, item, round)
+      for (const item of afterForget) if (!ONLY || ONLY.has(item.id)) await askOne(brain, item, round)
     } finally {
       brain.close()
       await rm(root, { recursive: true, force: true })
