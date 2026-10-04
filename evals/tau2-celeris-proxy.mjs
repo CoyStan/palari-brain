@@ -16,6 +16,10 @@ const CAP = Number(arg('--cap-usd', 2))
 const SPEND_FILE = arg('--spend-file', '.palari-alpha/tau2-spend.json')
 const GUARD = arg('--guard', 'none')
 const GUARD_THRESHOLD = Number(arg('--guard-threshold', 0.5))
+// advise: flagged calls go back to Celeris once with the concern and its reply
+// is returned as is. block: the flagged action is withheld and Celeris must
+// answer the user without tools this turn.
+const GUARD_MODE = arg('--guard-mode', 'advise')
 const CELERIS = 'https://inference.celeris.ai/celeris-1/v1/chat/completions'
 const celerisKey = process.env.API_KEY_CELERI
 const jevKey = process.env.JEV_API_KEY
@@ -59,6 +63,18 @@ async function celeris(body, role) {
     throw error
   }
   return json
+}
+
+// Celeris occasionally returns neither text nor a tool call; retry once.
+const isEmpty = (reply) => {
+  const message = reply.choices?.[0]?.message ?? {}
+  return !message.tool_calls?.length && !String(message.content ?? '').trim()
+}
+async function celerisNonEmpty(body, role) {
+  const reply = await celeris(body, role)
+  if (!isEmpty(reply)) return reply
+  spend.emptyRetries = (spend.emptyRetries ?? 0) + 1
+  return celeris(body, role)
 }
 
 async function jev(state, questions) {
@@ -114,10 +130,16 @@ async function guard(body, reply) {
     pCompliant < GUARD_THRESHOLD ? 'it may not follow the policy or may use arguments not supported by the conversation and tool results' : '',
     pConfirmed < GUARD_THRESHOLD ? 'the policy may require explicit user confirmation that has not been given' : '',
   ].filter(Boolean).join(', and ')
-  const revised = await celeris({
-    ...body,
-    messages: [...body.messages, { role: 'system', content: `A reviewer flagged your planned action ${proposed}: ${concern}. Re-check the policy and the conversation. If the action is correct and allowed, issue it again; otherwise respond to the user instead (for example, ask for confirmation or missing details).` }],
-  }, 'agent')
+  const revised = GUARD_MODE === 'block'
+    ? await celerisNonEmpty({
+      ...body,
+      tool_choice: 'none',
+      messages: [...body.messages, { role: 'system', content: `A policy reviewer blocked your planned action ${proposed}: ${concern}. Do not perform it now. Reply to the user instead: explain what the policy allows, or ask for the explicit confirmation or details that are missing.` }],
+    }, 'agent')
+    : await celerisNonEmpty({
+      ...body,
+      messages: [...body.messages, { role: 'system', content: `A reviewer flagged your planned action ${proposed}: ${concern}. Re-check the policy and the conversation. If the action is correct and allowed, issue it again; otherwise respond to the user instead (for example, ask for confirmation or missing details).` }],
+    }, 'agent')
   spend.guard.revised += 1
   save()
   return revised
@@ -137,10 +159,10 @@ createServer(async (request, response) => {
     for await (const chunk of request) raw += chunk
     const body = JSON.parse(raw)
     delete body.stream
-    let reply = await celeris(body, role)
+    let reply = await celerisNonEmpty(body, role)
     if (role === 'agent' && GUARD === 'jev') reply = await guard(body, reply)
     send(200, reply)
   } catch (error) {
     send(error.status ?? 500, { error: { message: error.message, type: 'proxy_error' } })
   }
-}).listen(PORT, '127.0.0.1', () => console.log(`proxy on 127.0.0.1:${PORT} cap $${CAP} guard ${GUARD} spend $${spend.usd.toFixed(4)}`))
+}).listen(PORT, '127.0.0.1', () => console.log(`proxy on 127.0.0.1:${PORT} cap $${CAP} guard ${GUARD}/${GUARD_MODE} spend $${spend.usd.toFixed(4)}`))

@@ -1,5 +1,32 @@
 # STATUS — Palari alpha
 
+## 2026-10-04 tau2-bench airline: Celeris agent and Jev action guard
+
+tau2-bench (sierra-research, MIT, cloned outside the repo; Python 3.12 via
+uv, plus websockets) ran the airline domain, whose 50 tasks are graded
+deterministically (DB state + required communication; retail needs a GPT-4.1
+NL-assertion judge). evals/tau2-celeris-proxy.mjs serves Celeris to LiteLLM
+with separate agent/user accounting, a persisted aggregate cap, one retry on
+empty Celeris replies, and an optional Jev guard on state-changing tool calls
+(advise: send the concern back once; block: withhold the action and force a
+tool-free reply). The simulated user is also Celeris, so scores are not
+leaderboard-comparable even though grading is official.
+
+Baseline, 50 tasks x 1 trial: pass^1 0.327 (16/49 graded; 1 empty-reply
+infrastructure error). It cost $1.89 (2,399 calls, median 26 messages, max
+201), about 5x the two-task pilot estimate. Failures: 16 wrong set of
+changes, 10 changes the policy required refusing, 4 wrong details, 2 missed
+changes, 1 other.
+
+Guard on the 10 refuse-type failures (task 9 skipped for cost): advise mode
+fixed 2/7 graded (Jev flagged 9/10 actions; Celeris often reissued them).
+Block mode fixed 7/7 graded but broke 3 of 4 previously passing tasks that
+require a change: Jev flagged 45/51 proposed actions (88%), so the block guard
+acts mostly as "refuse every change" rather than discriminating. A discriminative
+check is needed before any net claim. Celeris returned empty replies often
+(26 proxy retries in one run). Session spend ~$2.82 of the founder's $3 cap;
+paid runs stopped.
+
 ## 2026-10-04 held-out LongMemEval: loop v2 and lean v3 vs baseline
 
 All runs fully embed each history first (indexSemantic until complete; the
