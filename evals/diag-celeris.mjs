@@ -59,7 +59,7 @@ const answerSchema = {
 // Single-search answer provider: one structured chat completion.
 async function celerisAnswer({ question, questionDate, systemInstruction, memoryText, evidence, answerInstructions }) {
   const rows = evidence.map((row) => ({
-    evidenceId: row.evidenceId, speaker: row.speaker, at: row.eventAt ?? row.at, text: row.text,
+    evidenceId: row.evidenceId, speaker: row.speaker, saidAt: row.observedAt?.slice(0, 10), text: row.text,
   }))
   const { message } = await chat({
     messages: [

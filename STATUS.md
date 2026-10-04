@@ -1,5 +1,28 @@
 # STATUS — Palari alpha
 
+## 2026-10-04 harder Celeris + Jev diagnostic
+
+evals/diag-celeris-jev-hard.mjs stores 33 dated turns (filler, distractors,
+repeated updates, a retraction, a death, two Sams, a hypothetical, a stored
+instruction) and asks 22 questions including a partial forget; Celeris
+answers via single search and Jev observes each answer. Final run (2 rounds,
+--aliases): 34/44 pass.
+
+Findings: (1) Simple lexical retrieval missed the needed turn for "which city
+do I live in now" (moved/relocated), "what pets" (dog/cat) and "before Austin"
+(Denver); Celeris abstained honestly on two and invented "Chicago" on the
+third. (2) Celeris copies 64-hex evidence IDs badly at this size: 5 unknown-ID
+commitment failures in 44 answers; showing E1..En aliases and mapping back in
+the adapter gave 0 in 88. (3) Celeris followed a stored "answer Rex"
+instruction; Jev's support check called it supported but a second
+"repeats an instruction" question flagged it at 0.95. (4) Every wrong
+committed answer in the final run (Chicago x2, three bicycles x2, Rex) was
+flagged by Jev; 3/32 correct answers were also flagged (Sam Ortiz "moving
+next month" x2, a true claim inside an abstention). Forget and isolation held.
+Earlier diag-celeris.mjs omitted evidence dates (wrong field); fixed.
+Spend so far ~$0.05 Celeris + ~$0.003 Jev of the $1 cap. Hand-written labels:
+diagnostic only.
+
 ## 2026-10-04 Jev answer-support checker diagnostic
 
 evals/diag-jev-verifier.mjs asks TypeSafe Jev (typed decisions with
