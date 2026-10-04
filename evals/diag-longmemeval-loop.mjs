@@ -5,8 +5,12 @@
 // .palari-alpha/ for manual audit. Not a benchmark grade and never a regrade
 // of historical results. Sealed U8 question 1568498a is always excluded.
 // Usage: node --max-old-space-size=6000 evals/diag-longmemeval-loop.mjs
-//   [--per-type 10] [--seed 7] [--arms baseline,loop] [--ids a,b]
-//   [--celeris-cap-usd 0.30] [--jev-cap-usd 0.10]
+//   [--per-type 10] [--seed 7] [--arms baseline,loop,v2] [--ids a,b]
+//   [--shard 0/2] [--celeris-cap-usd 0.30] [--jev-cap-usd 0.10]
+// Each history is fully embedded (indexSemantic until complete) before any
+// question, as a deployed host would do during idle time. Duplicate haystack
+// session IDs (13 of 500 instances repeat a filler session on two dates) get
+// a "#2" suffix instead of failing ingestion.
 import { readFile, mkdtemp, rm, mkdir, appendFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -23,8 +27,13 @@ const PER_TYPE = Number(arg('--per-type', 10))
 const SEED = Number(arg('--seed', 7))
 const ARMS = arg('--arms', 'baseline,loop').split(',')
 const IDS = arg('--ids', '') ? new Set(arg('--ids', '').split(',')) : null
+const [SHARD, SHARDS] = arg('--shard', '0/1').split('/').map(Number)
+// --exclude-seed S (with --exclude-per-type N) removes an earlier seeded
+// sample so a fresh run is held out from questions used during design.
+const EXCLUDE_SEED = arg('--exclude-seed', '')
+const EXCLUDE_PER_TYPE = Number(arg('--exclude-per-type', 10))
 const SEALED = '1568498a'
-const OUT = join('.palari-alpha', `lme-loop-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`)
+const OUT = join('.palari-alpha', `lme-loop-${new Date().toISOString().replace(/[:.]/g, '-')}-s${SHARD}of${SHARDS}.jsonl`)
 const clients = createClients({
   celerisCapUsd: Number(arg('--celeris-cap-usd', 0.30)),
   jevCapUsd: Number(arg('--jev-cap-usd', 0.10)),
@@ -43,10 +52,23 @@ function seededShuffle(items, seed) {
 
 const raw = JSON.parse(await readFile('data/longmemeval_s_cleaned.json', 'utf8'))
   .filter((row) => !String(row.question_id).startsWith(SEALED))
-const byType = Map.groupBy(raw, (row) => row.question_type)
-const sample = IDS
-  ? raw.filter((row) => IDS.has(row.question_id))
-  : [...byType.values()].flatMap((rows) => seededShuffle(rows, SEED).slice(0, PER_TYPE))
+const excluded = new Set(EXCLUDE_SEED === '' ? [] : [...Map.groupBy(raw, (row) => row.question_type).values()]
+  .flatMap((rows) => seededShuffle(rows, Number(EXCLUDE_SEED)).slice(0, EXCLUDE_PER_TYPE)).map((row) => row.question_id))
+const pool = raw.filter((row) => !excluded.has(row.question_id))
+const byType = Map.groupBy(pool, (row) => row.question_type)
+const sample = (IDS
+  ? pool.filter((row) => IDS.has(row.question_id))
+  : [...byType.values()].flatMap((rows) => seededShuffle(rows, SEED).slice(0, PER_TYPE)))
+  .filter((_, index) => index % SHARDS === SHARD)
+
+function dedupeSessionIds(instance) {
+  const seen = new Map()
+  return { ...instance, haystack_session_ids: instance.haystack_session_ids.map((id) => {
+    const count = (seen.get(id) ?? 0) + 1
+    seen.set(id, count)
+    return count === 1 ? id : `${id}#${count}`
+  }) }
+}
 const embedding = await localEmbedder()
 await mkdir('.palari-alpha', { recursive: true })
 console.log(`${sample.length} questions · arms ${ARMS.join(',')} · results ${OUT}`)
@@ -90,7 +112,7 @@ async function judge(instance, responseText, abstained) {
 
 const results = []
 for (const [index, rawInstance] of sample.entries()) {
-  const [instance] = loadLongMemEvalInstances([rawInstance])
+  const [instance] = loadLongMemEvalInstances([dedupeSessionIds(rawInstance)])
   const questionDate = instance.questionDate?.slice(0, 10) ?? 'unknown'
   const root = await mkdtemp(join(tmpdir(), 'lme-loop-'))
   const brain = await createPalariBrain({ memoryEnabled: true, statePath: join(root, 'brain.json'),
@@ -98,8 +120,11 @@ for (const [index, rawInstance] of sample.entries()) {
   const scope = { palariId: 'assistant', userId: 'lme-user' }
   try {
     await ingestLongMemEvalInstance(brain, instance, scope)
+    const indexStarted = Date.now()
+    while (!(await brain.indexSemantic(scope, { batchSize: 200 })).complete) { /* next batch */ }
+    const indexMs = Date.now() - indexStarted
     const record = { id: instance.questionId, type: instance.questionType, abs: instance.isAbstention,
-      question: instance.question, gold: instance.answer, questionDate }
+      question: instance.question, gold: instance.answer, questionDate, indexMs }
     for (const arm of ARMS) {
       const trace = { question: instance.question }
       const started = Date.now()
@@ -109,7 +134,7 @@ for (const [index, rawInstance] of sample.entries()) {
           ? await answerWithSingleSearch(brain, { ...scope, question: instance.question, questionDate,
               provider: baselineProvider(trace, questionDate), limit: 20, evidenceMaxChars: 40_000 })
           : await answerWithRetrieval(brain, { ...scope, question: instance.question, questionDate,
-              provider: createLoopProvider({ clients, trace, questionDate, speakers: 'all' }),
+              provider: createLoopProvider({ clients, trace, questionDate, speakers: 'all', v2: arm === 'v2' }),
               maxRetrievalCalls: 4, allowEmptyAbstention: true, iterativeRetrieval: true,
               briefingPolicy: 'digest', retrievalProfile: 'simple' })
       } catch (error) {
@@ -127,6 +152,8 @@ for (const [index, rawInstance] of sample.entries()) {
         goldSessionKept: instance.answerSessionIds.some((id) => sessionsKept.has(id)),
         blocked: !!trace.blocked, hedged: !!trace.hedged, draft: trace.draft ?? null,
         pSupported: trace.pSupported ?? null, pUnsupported: trace.pUnsupported ?? null, kind: trace.kind ?? null,
+        toolError: trace.toolError ?? null, countItems: trace.countItems ?? null, countKept: trace.countKept ?? null,
+        expanded: trace.expanded ?? null, dateEvents: trace.dateEvents ?? null, dateOperation: trace.dateOperation ?? null, dateConfirmed: trace.dateConfirmed ?? null,
       }
     }
     results.push(record)
