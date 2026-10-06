@@ -1,5 +1,23 @@
 # STATUS — Palari alpha
 
+## 2026-10-06 Celeris prompt caching
+
+Celeris caches identical prompt prefixes automatically (32-token blocks, no
+parameter needed; prompt_cache_key, user and cache_control change nothing).
+A repeated 1,724-token prefix reported cached_tokens 1,696 (98%) from the
+second request, with latency ~0.1 s versus 14 s cold. The proxy now records
+prompt and cached tokens per role. Replaying tau2 airline tasks through it:
+task 19 alone cached 86% of agent input and 79% of user input ($0.0028 for the
+whole task); three tasks at concurrency 3 still cached 87.5% / 75%.
+
+The earlier 50-task airline baseline ($1.89, ~$0.038/task) priced out at
+roughly the uncached rate, i.e. it got almost no cache hits even though the
+request shapes were the same; the cause is not visible from our side
+(possibly provider-side cache availability at the time; Celeris had a 503
+outage just before these probes). At today's hit rates the same run should
+cost roughly $0.35-0.45. Always check the proxy's tokens.*.cached before
+trusting cost estimates. Session spend ~$2.91 of the $3 cap.
+
 ## 2026-10-04 reason-first answer prompt
 
 Reconstructing exactly what the baseline saw (deterministic local search)

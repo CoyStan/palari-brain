@@ -56,6 +56,14 @@ async function celeris(body, role) {
   const json = await response.json().catch(() => ({}))
   spend.celerisCalls += 1
   add(role, json.usage ? celerisCost(json.usage) : reserve)
+  // Prompt-cache accounting per role: how much input Celeris billed as cached.
+  const tokens = (spend.tokens ??= {})
+  const t = (tokens[role] ??= { prompt: 0, cached: 0, calls: 0, callsWithHit: 0 })
+  const cachedNow = json.usage?.prompt_tokens_details?.cached_tokens ?? 0
+  t.prompt += json.usage?.prompt_tokens ?? 0
+  t.cached += cachedNow
+  t.calls += 1
+  if (cachedNow > 0) t.callsWithHit += 1
   save()
   if (!response.ok) {
     const error = new Error(`Celeris HTTP ${response.status}: ${JSON.stringify(json.error ?? json).slice(0, 300)}`)
