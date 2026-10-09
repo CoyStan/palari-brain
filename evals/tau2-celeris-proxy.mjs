@@ -75,7 +75,12 @@ async function celeris(body, role) {
   })
   const json = await response.json().catch(() => ({}))
   spend.celerisCalls += 1
-  add(role, json.usage ? celerisCost(json.usage) : reserve)
+  // Bill only what Celeris reports. Error responses (e.g. 429 rate limits,
+  // retried by LiteLLM) carry no usage and are counted, not charged; a
+  // successful reply without usage still takes the conservative reserve.
+  if (json.usage) add(role, celerisCost(json.usage))
+  else if (response.ok) add(role, reserve)
+  else { const errors = (spend.errors ??= {}); errors[response.status] = (errors[response.status] ?? 0) + 1 }
   // Prompt-cache accounting per role: how much input Celeris billed as cached.
   const tokens = (spend.tokens ??= {})
   const t = (tokens[role] ??= { prompt: 0, cached: 0, calls: 0, callsWithHit: 0 })
