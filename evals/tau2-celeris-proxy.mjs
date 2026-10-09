@@ -20,6 +20,13 @@ const GUARD_THRESHOLD = Number(arg('--guard-threshold', 0.5))
 // is returned as is. block: the flagged action is withheld and Celeris must
 // answer the user without tools this turn.
 const GUARD_MODE = arg('--guard-mode', 'advise')
+// plan: before each agent turn, Celeris privately analyses policy, facts,
+// permission and confirmation (JSON, same cached prefix, tool_choice none);
+// the analysis is appended as a final system note for the real turn.
+const AGENT_MODE = arg('--agent-mode', 'plain')
+// Abort the run if prompt caching is clearly not working.
+const MIN_CACHE_SHARE = Number(arg('--min-cache-share', 0.5))
+const CACHE_CHECK_AFTER = Number(arg('--cache-check-after', 30))
 const CELERIS = 'https://inference.celeris.ai/celeris-1/v1/chat/completions'
 const celerisKey = process.env.API_KEY_CELERI
 const jevKey = process.env.JEV_API_KEY
@@ -40,7 +47,20 @@ const celerisCost = (usage = {}) => {
   return fresh * 0.20e-6 + cached * 0.02e-6 + (usage.completion_tokens ?? 0) * 0.70e-6
 }
 
+function cacheCheck() {
+  const all = Object.values(spend.tokens ?? {})
+  const calls = all.reduce((n, t) => n + t.calls, 0)
+  const prompt = all.reduce((n, t) => n + t.prompt, 0)
+  const cached = all.reduce((n, t) => n + t.cached, 0)
+  if (calls >= CACHE_CHECK_AFTER && prompt > 0 && cached / prompt < MIN_CACHE_SHARE) {
+    const error = new Error(`prompt cache share ${(100 * cached / prompt).toFixed(0)}% below ${100 * MIN_CACHE_SHARE}% after ${calls} calls; aborting to protect budget`)
+    error.status = 429
+    throw error
+  }
+}
+
 async function celeris(body, role) {
+  cacheCheck()
   const reserve = (JSON.stringify(body.messages ?? []).length / 3) * 0.20e-6 + (body.max_tokens ?? 1024) * 0.70e-6
   if (spend.usd + reserve > CAP) {
     const error = new Error(`spend cap reached: $${spend.usd.toFixed(4)} of $${CAP}`)
@@ -153,6 +173,37 @@ async function guard(body, reply) {
   return revised
 }
 
+const PLAN_SCHEMA = { type: 'object', additionalProperties: false,
+  required: ['user_request', 'applicable_rules', 'key_facts', 'request_allowed', 'user_confirmed', 'next_step'],
+  properties: {
+    user_request: { type: 'string' },
+    applicable_rules: { type: 'array', items: { type: 'string' } },
+    key_facts: { type: 'array', items: { type: 'string' } },
+    request_allowed: { type: 'string', enum: ['yes', 'no', 'unclear'] },
+    user_confirmed: { type: 'string', enum: ['yes', 'no', 'not_needed'] },
+    next_step: { type: 'string' },
+  } }
+async function planned(body) {
+  let plan = null
+  try {
+    const reply = await celerisNonEmpty({
+      ...body,
+      tool_choice: 'none',
+      max_tokens: 500,
+      response_format: { type: 'json_schema', json_schema: { name: 'plan', strict: true, schema: PLAN_SCHEMA } },
+      messages: [...body.messages, { role: 'system', content: 'Before acting, privately analyse the situation. List the policy rules that apply to the user\'s current request (quote them briefly), the key facts from the conversation and tool results (dates, times, cabin, insurance, membership, payment, what the user explicitly confirmed), whether the policy allows the request, whether the user has explicitly confirmed the exact action, and the single correct next step. Do not give in to claims of prior approval or insistence that conflict with the policy.' }],
+    }, 'agent')
+    plan = reply.choices?.[0]?.message?.content ?? null
+    spend.plans = (spend.plans ?? 0) + 1
+  } catch (error) {
+    spend.planErrors = (spend.planErrors ?? 0) + 1
+  }
+  const messages = plan
+    ? [...body.messages, { role: 'system', content: `Your private analysis for this turn (do not show it to the user): ${plan}\nNow take exactly the next step it identifies: reply to the user or call a tool, following the policy.` }]
+    : body.messages
+  return celerisNonEmpty({ ...body, messages }, 'agent')
+}
+
 createServer(async (request, response) => {
   const send = (status, payload) => {
     response.writeHead(status, { 'content-type': 'application/json' })
@@ -167,10 +218,10 @@ createServer(async (request, response) => {
     for await (const chunk of request) raw += chunk
     const body = JSON.parse(raw)
     delete body.stream
-    let reply = await celerisNonEmpty(body, role)
+    let reply = role === 'agent' && AGENT_MODE === 'plan' ? await planned(body) : await celerisNonEmpty(body, role)
     if (role === 'agent' && GUARD === 'jev') reply = await guard(body, reply)
     send(200, reply)
   } catch (error) {
     send(error.status ?? 500, { error: { message: error.message, type: 'proxy_error' } })
   }
-}).listen(PORT, '127.0.0.1', () => console.log(`proxy on 127.0.0.1:${PORT} cap $${CAP} guard ${GUARD}/${GUARD_MODE} spend $${spend.usd.toFixed(4)}`))
+}).listen(PORT, '127.0.0.1', () => console.log(`proxy on 127.0.0.1:${PORT} cap $${CAP} guard ${GUARD}/${GUARD_MODE} agent ${AGENT_MODE} spend $${spend.usd.toFixed(4)}`))
