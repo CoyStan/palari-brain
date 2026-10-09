@@ -1,5 +1,27 @@
 # STATUS — Palari alpha
 
+## 2026-10-09 tau2 airline with caching: plain vs reason-first agent
+
+Cost accounting correction: the proxy charged a conservative reserve for
+every provider response without usage. Under concurrency, Celeris returns
+many 429 rate-limit responses that LiteLLM retries silently, so earlier
+ledger totals (including the $1.89 first airline run) were inflated; the
+"no caching" reading of that run is therefore unproven. The proxy now
+counts errors without charging them. The provider dashboard is the source
+of truth; the session ledger (~$4.57 counting old inflated entries) is an
+upper bound against the founder's $5 cap.
+
+Run A, plain agent, concurrency 4: pass^1 0.48 (24/50), 82% of input cached,
+true cost ~$0.23 from tau2's own token counts; 2.6 minutes wall time.
+Run B, reason-first plan mode (private JSON analysis of rules, facts,
+permission and confirmation before each agent turn), concurrency 2: pass^1
+0.48 (24/50), $0.53, 201 rate-limit retries, 163 of 640 plan calls failed
+and fell back to plain. Paired: 18 pass in both, 6 only in A, 6 only in B.
+Forbidden changes fell 7 -> 4 but wrong details rose 0 -> 4. The same plain
+configuration scored 16/50 on 2026-10-04 and 24/50 here, so single 50-task
+trials cannot separate these variants; multi-trial pass^k is required.
+Paid runs stopped.
+
 ## 2026-10-06 Celeris prompt caching
 
 Celeris caches identical prompt prefixes automatically (32-token blocks, no
